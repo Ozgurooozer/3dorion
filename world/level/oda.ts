@@ -172,6 +172,7 @@ export function odaKur(sahne: Scene): OdaKurulumu {
     mManzara.emissiveColor = new Color3(0.7, 0.75, 0.9);
     mManzara.specularColor = Color3.Black();
     mManzara.backFaceCulling = false;
+    manzara.rotation.y = Math.PI; // varsayılan düzlem normali -Z; +Z'ye (odaya) çevir
     manzara.material = mManzara;
     manzara.metadata = { capa: "pencere" };
     meshler.push(manzara);
@@ -212,6 +213,7 @@ export function odaKur(sahne: Scene): OdaKurulumu {
     mEkran.diffuseColor = new Color3(0.02, 0.03, 0.05);
     mEkran.emissiveColor = new Color3(0.05, 0.10, 0.14);
     mEkran.specularColor = Color3.Black();
+    mEkran.backFaceCulling = false;
     monitorEkran.material = mEkran;
     monitorEkran.metadata = { capa: "monitor", yerTutucu: true };
     meshler.push(monitorEkran);
@@ -246,6 +248,7 @@ export function odaKur(sahne: Scene): OdaKurulumu {
     // Yüzey +X'e bakar: Y ekseninde -90°.
     tahtaYuzey.position.set(TAHTA.x + 0.03, TAHTA.y, TAHTA.z);
     tahtaYuzey.rotation.y = -Math.PI / 2;
+    mBeyaz.backFaceCulling = false;
     tahtaYuzey.material = mBeyaz;
     tahtaYuzey.metadata = { capa: "tahta", yerTutucu: true };
     meshler.push(tahtaYuzey);

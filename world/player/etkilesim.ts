@@ -56,7 +56,7 @@ export class EtkilesimYayici {
   /** Abone ol; dönen fonksiyon aboneliği iptal eder. */
   dinle(tur: "basladi" | "bitti", d: Dinleyici<EtkilesimOlayi>): () => void;
   dinle(tur: "ipucu", d: Dinleyici<Ipucu | null>): () => void;
-  dinle(tur: EtkilesimTur, d: Dinleyici<never>): () => void {
+  dinle(tur: EtkilesimTur, d: Dinleyici<EtkilesimOlayi> | Dinleyici<Ipucu | null>): () => void {
     const kume = this._kume(tur) as Set<unknown>;
     kume.add(d);
     return () => { kume.delete(d); };

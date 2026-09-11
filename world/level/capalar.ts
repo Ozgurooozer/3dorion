@@ -21,7 +21,11 @@ import { MASA, MONITOR, SANDALYE, TAHTA, PENCERE, KAPI } from "./olculer.ts";
  * `protocol/` sabit olduğu için burada genişletiyoruz; protokol sürümü
  * artarsa `CapaAdi` içine taşınmalı.
  */
-export type CapaAdiGenis = CapaAdi | "monitor";
+/**
+ * @deprecated `monitor` artık protokolün `CapaAdi` birliğinde. Doğrudan
+ * `CapaAdi` kullan; bu takma ad geçiş için duruyor.
+ */
+export type CapaAdiGenis = CapaAdi;
 
 /** Dünyada bir çapa tanımı. */
 export interface Capa {
@@ -62,7 +66,7 @@ const KAYIT: readonly Capa[] = [
   {
     ad: "masa",
     konum: v(MASA.x, MASA.ustYuzey, MASA.z),
-    durak: v(MASA.x, 0, -1.85),
+    durak: v(MASA.x, 0, -1.62),
     yon: ARKAYA,
     yaklasmaYaricapi: 1.6,
     eylemler: ["odaklan", "al", "birak", "bak"],
@@ -71,7 +75,7 @@ const KAYIT: readonly Capa[] = [
   {
     ad: "monitor",
     konum: v(MONITOR.x, MONITOR.y, MONITOR.z),
-    durak: v(MONITOR.x, 0, -1.85),
+    durak: v(MONITOR.x, 0, -1.62),
     yon: ARKAYA,
     yaklasmaYaricapi: 2.0,
     eylemler: ["odaklan", "kullan", "bak"],
@@ -80,7 +84,7 @@ const KAYIT: readonly Capa[] = [
   {
     ad: "sandalye",
     konum: v(SANDALYE.x, SANDALYE.oturma, SANDALYE.z),
-    durak: v(SANDALYE.x, 0, -1.85),
+    durak: v(SANDALYE.x, 0, -1.62),
     yon: ARKAYA,
     yaklasmaYaricapi: 0.9,
     eylemler: ["otur", "kalk"],

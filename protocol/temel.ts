@@ -32,8 +32,15 @@ export type Hedef =
   | { tip: "capa";  ad: string }
   | { tip: "nokta"; x: number; y: number; z: number };
 
-/** Sahnede sabit, isimle anılan noktalar. world/level bunları kaydeder. */
-export type CapaAdi = "masa" | "sandalye" | "tahta" | "pencere" | "kapi" | "oda_ortasi";
+/**
+ * Sahnede sabit, isimle anılan noktalar. world/level bunları kaydeder.
+ *
+ * Birliğe değer EKLEMEK kırıcı değildir (bkz. SOZLESME.md "Değiştirme kuralı"),
+ * çıkarmak kırıcıdır. `monitor` T1'den sonra eklendi: `OyuncuDurumu.etkilesim`
+ * zaten bu adı anıyordu ve `odaklan` niyeti onu hedef alıyor.
+ */
+export type CapaAdi =
+  | "masa" | "sandalye" | "tahta" | "pencere" | "kapi" | "oda_ortasi" | "monitor";
 
 export interface Vec3 { x: number; y: number; z: number }
 
