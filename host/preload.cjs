@@ -3,8 +3,7 @@
 "use strict";
 const { contextBridge, ipcRenderer } = require("electron");
 
-const CAGRI = { ptyAc: "pty:ac", ptiYaz: "pty:yaz", ptyBoyut: "pty:boyut", ptyKapat: "pty:kapat", sesUret: "ses:uret", sesVarMi: "ses:var", varlik: "varlik:yol" };
-const OLAY  = { ptyCikti: "pty:cikti", ptyBitti: "pty:bitti" };
+const { CAGRI, OLAY } = require("./kanallar.cjs");
 
 /** Dinleyici sarmalayıcı: abonelikten çıkma fonksiyonu döner (sızıntı önlemi). */
 function dinle(kanal, cb) {

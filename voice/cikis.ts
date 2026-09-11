@@ -21,6 +21,20 @@ export class PiperCikisi implements SesCikisi {
   private _konusuyor = false;
   private _kurulumVar: boolean | null = null;
   private _nabiz: number | null = null;
+  private _sonSure = 0;
+  private _tepeAgiz = 0;
+  private _baslamaGecikmesi = 0;
+
+  /**
+   * K3 ölçütünün gerçek metriği: soyle() çağrısından sesin ÇALMAYA BAŞLAMASINA
+   * kadar geçen süre (ms). Sesin kendi uzunluğu buna dahil değildir.
+   */
+  get baslamaGecikmesi(): number { return this._baslamaGecikmesi; }
+
+  /** Son çalınan sesin süresi (sn) — doğrulama için. */
+  get sonSure(): number { return this._sonSure; }
+  /** Son konuşmada ulaşılan en yüksek ağız açıklığı — senkronun canlı olduğunun kanıtı. */
+  get tepeAgiz(): number { return this._tepeAgiz; }
 
   kullanilabilir(): boolean { return this._kurulumVar !== false; }
 
@@ -35,6 +49,7 @@ export class PiperCikisi implements SesCikisi {
   async soyle(metin: string): Promise<boolean> {
     if (!metin.trim()) return false;
     this.kes();
+    const tBasla = performance.now();
     let bayt: Uint8Array;
     try {
       const c = await window.kopru.sesUret(metin);
@@ -61,11 +76,14 @@ export class PiperCikisi implements SesCikisi {
       this._kaynak = kaynak;
       this._analiz = analiz;
       this._konusuyor = true;
+      this._sonSure = sesTamponu.duration;
+      this._tepeAgiz = 0;
       this._nabizBaslat();
 
       return await new Promise<boolean>((coz) => {
         kaynak.onended = () => { this._bitir(); coz(true); };
         kaynak.start();
+        this._baslamaGecikmesi = performance.now() - tBasla;
       });
     } catch (err) {
       console.warn("[ses] çalma hatası:", err);
@@ -102,6 +120,7 @@ export class PiperCikisi implements SesCikisi {
       const rms = Math.sqrt(kare / this._tampon.length);
       const hedef = rms < ESIK ? 0 : Math.min(1, (rms - ESIK) * 7);
       this._agiz += (hedef - this._agiz) * YUMUSATMA;
+      if (this._agiz > this._tepeAgiz) this._tepeAgiz = this._agiz;
       this._nabiz = requestAnimationFrame(adim);
     };
     this._nabiz = requestAnimationFrame(adim);

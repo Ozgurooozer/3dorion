@@ -27,6 +27,7 @@ import { capaAdlari, tumCapalar } from "./level/capalar.ts";
 import { capaKonumu } from "./level/capaGeometri.ts";
 import { Oyuncu } from "./player/oyuncu.ts";
 import { EtkilesimOlaylari } from "./player/etkilesim.ts";
+import { PiperCikisi } from "../voice/cikis.ts";
 
 const tuval = document.getElementById("tuval") as HTMLCanvasElement;
 const hud = document.getElementById("hud") as HTMLDivElement;
@@ -129,3 +130,38 @@ setTimeout(() => {
     `etkilesim=${d.etkilesim ?? "-"} kopru=${typeof window.kopru}`
   );
 }, 4000);
+
+// ---- Orion'un sesi --------------------------------------------------------
+// Birleştirme noktası burası: voice/ ile world/ birbirini import etmez (K4),
+// ikisini giris.ts bağlar. Avatar geldiğinde (T2) agizAcikligi() buradan
+// avatar.agizAyarla()'ya beslenecek.
+const orionSesi = new PiperCikisi();
+(window as unknown as { orionSes: PiperCikisi }).orionSes = orionSesi;
+
+void (async () => {
+  const kurulu = await orionSesi.kurulumKontrol();
+  console.log(`[SES] piper kurulu=${kurulu}`);
+  if (!kurulu) return;
+
+  const sorgu = new URLSearchParams(location.search);
+  if (sorgu.has("sessiz")) return;
+
+  // ORION_SOZ verilmişse yalnızca onu söyle — elle deneme için.
+  const istenen = sorgu.get("soz");
+  if (istenen) {
+    const oldu = await orionSesi.soyle(istenen);
+    console.log(`[SES] istenen soyle=${oldu} baslama_gecikmesi=${orionSesi.baslamaGecikmesi.toFixed(0)}ms ses_uzunlugu=${orionSesi.sonSure.toFixed(2)}sn`);
+    return;
+  }
+
+  // İki cümle: ilki model yüklemesini taşır, ikincisi gerçek tur maliyetidir.
+  const cumleler = ["Merhaba Ozyn. Ben Orion. Odam hazır.", "Terminali masamda açabilirsin."];
+  for (let i = 0; i < cumleler.length; i++) {
+    const oldu = await orionSesi.soyle(cumleler[i]!);
+    console.log(
+      `[SES] cumle${i + 1} soyle=${oldu} ` +
+      `baslama_gecikmesi=${orionSesi.baslamaGecikmesi.toFixed(0)}ms ` +
+      `ses_uzunlugu=${orionSesi.sonSure.toFixed(2)}sn tepe_agiz=${orionSesi.tepeAgiz.toFixed(3)}`
+    );
+  }
+})();

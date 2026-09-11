@@ -5,14 +5,15 @@ import { spawn as ptySpawn } from "node-pty";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import fs from "node:fs";
+import { PiperSesi, piperBul } from "./ses.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const KOK = path.resolve(__dirname, "..");
 const GELISTIRME = !app.isPackaged;
 
-// Kanal adları host/kopru.ts ile aynı olmak ZORUNDA. Orada değişirse burada da değişir.
-const CAGRI = { ptyAc: "pty:ac", ptiYaz: "pty:yaz", ptyBoyut: "pty:boyut", ptyKapat: "pty:kapat", sesUret: "ses:uret", varlik: "varlik:yol" };
-const OLAY  = { ptyCikti: "pty:cikti", ptyBitti: "pty:bitti" };
+// Kanal adları tek kaynaktan: host/kanallar.cjs. Burada KOPYA TUTULMAZ.
+import kanallar from "./kanallar.cjs";
+const { CAGRI, OLAY } = kanallar;
 
 /** @type {Map<string, import("node-pty").IPty>} */
 const ptyler = new Map();
@@ -47,7 +48,7 @@ function pencereAc() {
 
   // Duman testi: pencere açılır, ölçüm basılır, kendiliğinden kapanır.
   if (process.env.ORION_SMOKE === "1") {
-    setTimeout(() => { console.log("[DUMAN] kabuk ayakta, kapatiliyor"); app.quit(); }, 8000);
+    setTimeout(() => { console.log("[DUMAN] kabuk ayakta, kapatiliyor"); app.quit(); }, 16000);
   }
 
   // Dış bağlantılar tarayıcıda açılır, pencerede asla.
@@ -56,9 +57,12 @@ function pencereAc() {
     return { action: "deny" };
   });
 
+  // ORION_SOZ ile açılışta bir cümle söyletilebilir (geliştirme kolaylığı):
+  //   ORION_SOZ="merhaba" npx electron .
+  const sorgu = process.env.ORION_SOZ ? { search: `?soz=${encodeURIComponent(process.env.ORION_SOZ)}` } : {};
   const sunucu = process.env.VITE_DEV_SERVER_URL;
-  if (GELISTIRME && sunucu) pencere.loadURL(sunucu);
-  else pencere.loadFile(path.join(KOK, "dist", "index.html"));
+  if (GELISTIRME && sunucu) pencere.loadURL(sunucu + (sorgu.search ?? ""));
+  else pencere.loadFile(path.join(KOK, "dist", "index.html"), sorgu);
 
   pencere.on("closed", () => { pencere = null; });
 }
@@ -112,9 +116,27 @@ ipcMain.handle(CAGRI.varlik, (_e, ad) => {
   return tam;
 });
 
-// ---- ses (Piper) — T5'te doldurulacak, şimdilik dürüst boş -----------------
+// ---- ses (Piper) ----------------------------------------------------------
+// Kalıcı süreç: cümle başına yeni piper.exe açmak 1.2 sn model yüklemesi demek.
+// Renderer'a YOL değil BAYT döndürülür — dev modda http://localhost'tan
+// file:// okumak Chromium tarafından engelli.
 
-ipcMain.handle(CAGRI.sesUret, (_e, _metin) => ({ ok: false, hata: "TTS henüz bağlanmadı (T5)" }));
+const ses = new PiperSesi();
+
+ipcMain.handle(CAGRI.sesVarMi, () => ses.kullanilabilir());
+
+ipcMain.handle(CAGRI.sesUret, async (_e, metin) => {
+  const r = await ses.uret(metin);
+  if (!r.ok) return { ok: false, hata: r.hata };
+  try {
+    const bayt = fs.readFileSync(r.yol);
+    // Üretilen wav tek kullanımlık; okuduktan sonra diski şişirmesin.
+    fs.unlink(r.yol, () => {});
+    return { ok: true, ses: new Uint8Array(bayt) };
+  } catch (err) {
+    return { ok: false, hata: `wav okunamadı: ${err?.message ?? err}` };
+  }
+});
 
 // ---- yaşam döngüsü --------------------------------------------------------
 
@@ -122,6 +144,7 @@ app.whenReady().then(pencereAc);
 app.on("activate", () => { if (BrowserWindow.getAllWindows().length === 0) pencereAc(); });
 app.on("window-all-closed", () => { if (process.platform !== "darwin") app.quit(); });
 app.on("before-quit", () => {
+  ses.kapat();
   for (const p of ptyler.values()) { try { p.kill(); } catch { /* kapanışta önemsiz */ } }
   ptyler.clear();
 });
