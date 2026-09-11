@@ -1,12 +1,15 @@
 {
   "compilerOptions": {
     "target": "ES2023",
-    "module": "NodeNext",
-    "moduleResolution": "nodenext",
-    "lib": ["ES2023", "DOM"],
+    // Renderer'ı vite paketliyor, testleri node doğrudan koşuyor.
+    // "preserve" + bundler çözümü: hem Babylon alt-yol import'ları çözülür,
+    // hem .ts uzantılı import'lar (node --experimental-strip-types) geçerli kalır.
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "strict": true,
     "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": false,
+    "noImplicitOverride": true,
     "noEmit": true,
     "allowImportingTsExtensions": true,
     "erasableSyntaxOnly": true,
