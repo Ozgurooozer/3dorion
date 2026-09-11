@@ -114,6 +114,31 @@ Mikrofon takıldığı gün tek dosya eklenir; `voice/cikis.ts`, avatar ağız s
 ve tüm hat değişmez. Orion'un **konuşması** bugün tam çalışıyor; **duyması**
 donanım bekliyor.
 
+## Karar kaydı — 3D yüzeyde terminal (T3, ölçümle)
+
+Projenin en riskli bilinmeyeni iki adayla prototiplendi ve ölçüldü:
+
+| Ölçüt | Aday A (doku) | Aday B (CSS matrix3d) |
+|---|---|---|
+| Girdi gecikmesi (medyan) | 19.8 ms | 19.9 ms |
+| FPS | 100 | 100 |
+| Okunabilirlik @1.5 m | okunur | **daha keskin** (gerçek DOM metni) |
+| 30° açı | bozulmuyor | bozulmuyor |
+| **Derinlik** | **doğru — önündeki nesne terminali kapatır** | **yok — terminal dünyanın üstünde yüzer** |
+
+Gecikme, FPS ve açıda iki aday **ayırt edilemez**. Kararı derinlik verdi:
+CSS bindirme WebGL tuvalinin üstünde bir DOM katmanıdır, derinlik testi yoktur.
+Bu projede oyuncu odada dolaşıyor ve Orion monitörün önünden geçiyor — terminalin
+onun üstüne binmesi kabul edilemez. **Aday A seçildi.**
+
+Kanıt: `world/surfaces/t3-derinlik-{A,B}.png` (aynı engel, A'da kapatıyor,
+B'de yok sayılıyor), `t3-{A,B}-{1.5m,30deg}.png`.
+
+Uygulama notu: brifte varsayılan "xterm'in canvas'ını dokuya kopyala" yolu
+geçersiz çıktı — `@xterm/xterm` 6 çekirdeği DOM renderer ile geliyor, kopyalanacak
+canvas üretmiyor. Bunun yerine xterm yalnızca VT durum makinesi olarak koşuyor,
+hücre ızgarası doğrudan `DynamicTexture` bağlamına boyanıyor. Ara canvas yok.
+
 ## MVP — tek dikey dilim
 
 Odaya gir → Orion masada kendi işini yapıyor (idle, yerel refleks modeli) →
