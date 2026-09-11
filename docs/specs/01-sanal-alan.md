@@ -79,6 +79,23 @@ iki kanal kuralı) — canlı dünyanın token maliyeti yapısal olarak sıfırd
 | Kabuk canlı | `fps=100.0 hz=19.98 tik=80 atlanan=0 kopru=object` | K1/K2 canlı doğrulandı |
 | **Mikrofon aygıtı** | **YOK** — yalnızca çıkış uçları (hoparlör, HDMI, dijital) | STT donanım bekliyor, aşağıya bak |
 | Electron Web Speech | API var, `start()` → `not-allowed`, `audioinput` sayısı 0 | Mikrofonsuz ayırt edilemez; karar askıda |
+| **ComfyUI boşta VRAM tutuyor** | Kuyruk boş, 19 saat boşta, yine de **2.6 GB** tutuyordu (3839→1241 MiB) | Dünya çalışırken ComfyUI kapalı olmalı — işletim kuralı |
+
+### İşletim kuralı — VRAM tavanı paylaşımı
+
+`/system_stats` içindeki `torch_vram_total` **yanıltıcıdır**: 576 MiB bildirdi,
+gerçek tutulan 2.6 GB'tı (modeller ayrı hesapta). Ölçüm için tek güvenilir
+kaynak `nvidia-smi`.
+
+Bütçe: Babylon ~1.5 GB + qwen2.5:7b ~5 GB = ~6.5 GB / 8.0 GB. ComfyUI'ın
+2.6 GB'ı bu tavanı kırar. Bu yüzden:
+
+- Dünya çalışırken ComfyUI **kapalı** olacak (aynı kartı paylaşıyorlar).
+- Görsel üretimi gerekirse: ComfyUI `POST /free {"unload_models":true,"free_memory":true}`
+  ile modelleri boşaltabiliyor (HTTP 200, ölçüldü) — ikisi sırayla çalışabilir,
+  aynı anda çalışamaz.
+- Geri getirme: `C:\ComfyUI\ComfyUI_windows_portable` içinde
+  `.\python_embeded\python.exe -s ComfyUI\main.py --windows-standalone-build`
 
 ### Ses kararının revizyonu
 
