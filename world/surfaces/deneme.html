@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<title>3dorion — monitör yüzeyi deneme sahnesi (T3)</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #05060b; overflow: hidden; }
+  #tuval { position: absolute; inset: 0; width: 100%; height: 100%; display: block; outline: none; touch-action: none; }
+
+  /* Aday B'nin DOM katmanı burada yaşar. pointer-events: none — kamera kontrolü
+     bindirme yüzünden ölmesin (odaklanınca çocuk öğe auto'ya çevrilir). */
+  #bindirme { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 5; }
+
+  /* Aday A'nın xterm DOM'u: ekran dışı ama YERLEŞİK. display:none olursa
+     xterm hücre ölçüsünü hesaplayamaz ve ızgara çöker. */
+  #gizli { position: absolute; left: -30000px; top: 0; z-index: 0; }
+
+  #hud {
+    position: absolute; left: 10px; top: 8px; z-index: 20; pointer-events: none;
+    font: 11px/1.5 "Cascadia Mono", Consolas, monospace; color: #8fa0cc;
+    text-shadow: 0 1px 3px #000; white-space: pre;
+  }
+  #asama {
+    position: absolute; right: 10px; top: 8px; z-index: 20; pointer-events: none;
+    font: 12px/1.5 "Cascadia Mono", Consolas, monospace; color: #ffd479;
+    text-shadow: 0 1px 3px #000; white-space: pre; text-align: right;
+  }
+</style>
+</head>
+<body>
+  <canvas id="tuval"></canvas>
+  <div id="bindirme"></div>
+  <div id="gizli"></div>
+  <div id="hud"></div>
+  <div id="asama"></div>
+  <script type="module" src="/world/surfaces/deneme.ts"></script>
+</body>
+</html>

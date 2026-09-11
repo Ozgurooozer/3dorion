@@ -144,7 +144,9 @@ export class TerminalCekirdek {
    */
   kuyruk(satir = 40): string {
     const buf = this.term.buffer.active;
-    const son = buf.baseY + this.term.rows;
+    // Son yazılmış satır kursörün bulunduğu satırdır. `baseY + rows` demek
+    // ekranın ALTINI okumaktır ve içerik kısayken boş dize döndürür.
+    const son = Math.min(buf.baseY + buf.cursorY + 1, buf.length);
     const bas = Math.max(0, son - satir);
     const cikti: string[] = [];
     for (let i = bas; i < son; i++) {
