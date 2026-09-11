@@ -26,6 +26,7 @@ import {
   carpisiyorMu, GOZ_YUKSEKLIK, GOVDE_YUKSEKLIK, OYUNCU_YARICAP, SANDALYE,
 } from "../level/olculer.ts";
 import { EtkilesimOlaylari, ipucuMetni, type EtkilesimYayici } from "./etkilesim.ts";
+import { bakilanCapa } from "./isinTarama.ts";
 
 /** Yürüme / koşma hızı (m/s). */
 const HIZ_YURU = 2.6;
@@ -49,7 +50,6 @@ export class Oyuncu implements KameraHedefi {
   /** Görünür gövde — 3. şahısta kendini görmek için. VRM T2'nin işi. */
   readonly govde: Mesh;
 
-  private _sahne: Scene;
   private _rig: KameraRig;
   private _yayici: EtkilesimYayici;
 
@@ -66,7 +66,6 @@ export class Oyuncu implements KameraHedefi {
   private _orion = new Vector3(SANDALYE.x, SANDALYE.oturma + 0.5, SANDALYE.z);
 
   constructor(sahne: Scene, oda: OdaKurulumu, rig: KameraRig, sec: OyuncuSecenekleri = {}) {
-    this._sahne = sahne;
     this._rig = rig;
     this._yayici = sec.yayici ?? EtkilesimOlaylari;
 
@@ -173,17 +172,18 @@ export class Oyuncu implements KameraHedefi {
   // ── Etkileşim ───────────────────────────────────────────────────────────
 
   /**
-   * Bakış ışınını 2.5 m tarar. Etiketli bir çapa mesh'ine denk gelirse ipucu
-   * yayılır; `E` o çapayla etkileşim başlatır.
+   * Bakış ışınını 2.5 m tarar ve OKLUZYONA saygı duyar.
+   *
+   * `scene.pickWithRay` + etiket süzgeci KULLANILMAZ: süzgeç isabetten önce
+   * çalıştığı için duvar ve masa ışını durdurmuyor, oyuncu duvarın arkasından
+   * monitöre `E` basabiliyordu. Artık `isinTarama.ts` odanın tüm katı
+   * yüzeylerini tarar, EN YAKIN isabeti verir; etiket süzmesi ondan SONRA olur.
    */
   private _etkilesimTara(): void {
     if (this._yayici.aktif) { this._yayici.ipucuAyarla(null); return; }
 
-    const isin = this._rig.isin(ISIN_MENZIL);
-    const vurus = this._sahne.pickWithRay(isin, (m) =>
-      m.isPickable && typeof (m.metadata as { capa?: unknown } | null)?.capa === "string");
-
-    const ad = vurus?.hit ? (vurus.pickedMesh?.metadata as { capa?: string } | null)?.capa : undefined;
+    const kaynak = { x: this.konum.x, y: this.konum.y + GOZ_YUKSEKLIK, z: this.konum.z };
+    const ad = bakilanCapa(kaynak, this._rig.bakisYonu(), ISIN_MENZIL);
     const capa = ad ? capaBul(ad) : null;
     if (!capa) { this._yayici.ipucuAyarla(null); return; }
 

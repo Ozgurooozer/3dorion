@@ -13,15 +13,6 @@ import type { CapaAdi, Vec3 } from "../../protocol/temel.ts";
 import { MASA, MONITOR, SANDALYE, TAHTA, PENCERE, KAPI } from "./olculer.ts";
 
 /**
- * Protokoldeki `CapaAdi` + dünyanın eklediği yüzeyler.
- *
- * `monitor` protokolün `CapaAdi` birliğinde YOK ama `OyuncuDurumu.etkilesim`
- * alanı onu isimle anıyor ("monitor" ise terminalde çalışıyor) ve `odaklan`
- * niyeti `capa: string` alıyor — yani protokol kırılmadan genişletilebilir.
- * `protocol/` sabit olduğu için burada genişletiyoruz; protokol sürümü
- * artarsa `CapaAdi` içine taşınmalı.
- */
-/**
  * @deprecated `monitor` artık protokolün `CapaAdi` birliğinde. Doğrudan
  * `CapaAdi` kullan; bu takma ad geçiş için duruyor.
  */
@@ -30,7 +21,7 @@ export type CapaAdiGenis = CapaAdi;
 /** Dünyada bir çapa tanımı. */
 export interface Capa {
   /** Kanonik ad. Niyetlerde bu dize geçer. */
-  ad: CapaAdiGenis;
+  ad: CapaAdi;
   /** Çapanın kendi noktası — bakılacak/odaklanılacak yer. */
   konum: Vec3;
   /**

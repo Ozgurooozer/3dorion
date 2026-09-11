@@ -16,6 +16,7 @@
 //        z=+4  └──── kapı ────────┘  ön duvar
 //              x=-5            x=+5
 "use strict";
+import type { CapaAdi } from "../../protocol/temel.ts";
 
 /** Bir eksen hizalı kutu (AABB). Çarpışma ve mesh üretimi aynı veriyi okur. */
 export interface Kutu {
@@ -127,3 +128,46 @@ export function carpisiyorMu(x: number, z: number, yaricap = OYUNCU_YARICAP): bo
   }
   return false;
 }
+
+// ── Katı yüzeyler: ışın okluzyonu ─────────────────────────────────────────
+// `ENGELLER` yalnızca YÜRÜME engelidir (XZ, duvarlar hariç). Bakış ışını ise
+// duvar/tavan/zemin dahil odanın TÜM katı yüzeylerini görmek zorundadır: aksi
+// hâlde oyuncu duvarın arkasından monitöre `E` basar. Bu liste `oda.ts`'nin
+// ürettiği mesh'lerin ışın amaçlı basitleştirilmiş (AABB) ikizidir.
+
+/** Işın testinde bir katı yüzey. `capa` null ise etkileşimsizdir (duvar, zemin). */
+export interface KatiYuzey {
+  kutu: Kutu;
+  /** Bu yüzeye bakmak hangi çapayı önerir; null = hiçbiri. */
+  capa: CapaAdi | null;
+}
+
+const _G = ODA.genislik, _D = ODA.derinlik, _Y = ODA.yukseklik, _K = ODA.duvarKalinlik;
+
+/**
+ * Odanın ışın-geçirmez yüzeyleri. Sıra anlamsız — `isinTara` en yakın
+ * isabeti seçer.
+ *
+ * Arka duvar TEK parça modellenir (oda.ts'te dört parçadır): pencere boşluğunu
+ * `pencere` paneli tam olarak kapladığı ve panelin duvardan 0.04 m ÖNDE
+ * durduğu için ışın her koşulda paneli önce vurur. Davranış birebir aynı,
+ * yüzey sayısı üç az.
+ */
+export const KATI_YUZEYLER: readonly KatiYuzey[] = [
+  // Kabuk — etkileşimsiz
+  { capa: null, kutu: { x: -_G / 2 - _K / 2, y: _Y / 2, z: 0, g: _K, yuk: _Y, d: _D } },        // sol duvar
+  { capa: null, kutu: { x:  _G / 2 + _K / 2, y: _Y / 2, z: 0, g: _K, yuk: _Y, d: _D } },        // sağ duvar
+  { capa: null, kutu: { x: 0, y: _Y / 2, z: -_D / 2 - _K / 2, g: _G + _K * 2, yuk: _Y, d: _K } }, // arka duvar
+  { capa: null, kutu: { x: 0, y: _Y / 2, z:  _D / 2 + _K / 2, g: _G + _K * 2, yuk: _Y, d: _K } }, // ön duvar
+  { capa: null, kutu: { x: 0, y: _Y + _K / 2, z: 0, g: _G + _K * 2, yuk: _K, d: _D + _K * 2 } },  // tavan
+  { capa: null, kutu: { x: 0, y: -0.01, z: 0, g: _G, yuk: 0.02, d: _D } },                        // zemin
+  // Etkileşimsiz dekor — ama ışını DURDURUR
+  { capa: null, kutu: { x: -_G / 2 + 0.22, y: 0.9, z: 2.4, g: 0.44, yuk: 1.8, d: 1.8 } },        // raf
+  // Etkileşimli yüzeyler
+  { capa: "masa", kutu: { x: MASA.x, y: MASA.ustYuzey / 2, z: MASA.z, g: MASA.genislik, yuk: MASA.ustYuzey, d: MASA.derinlik } },
+  { capa: "sandalye", kutu: { x: SANDALYE.x, y: 0.45, z: SANDALYE.z, g: SANDALYE.genislik, yuk: 0.9, d: SANDALYE.derinlik } },
+  { capa: "monitor", kutu: { x: MONITOR.x, y: MONITOR.y, z: MONITOR.z, g: MONITOR.genislik, yuk: MONITOR.yukseklik, d: 0.06 } },
+  { capa: "tahta", kutu: { x: TAHTA.x, y: TAHTA.y, z: TAHTA.z, g: 0.06, yuk: TAHTA.yukseklik, d: TAHTA.genislik } },
+  { capa: "pencere", kutu: { x: PENCERE.x, y: PENCERE.y, z: PENCERE.z, g: PENCERE.genislik, yuk: PENCERE.yukseklik, d: 0.06 } },
+  { capa: "kapi", kutu: { x: KAPI.x, y: KAPI.y, z: KAPI.z, g: KAPI.genislik, yuk: KAPI.yukseklik, d: 0.06 } },
+] as const;
