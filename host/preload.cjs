@@ -3,7 +3,7 @@
 "use strict";
 const { contextBridge, ipcRenderer } = require("electron");
 
-const CAGRI = { ptyAc: "pty:ac", ptiYaz: "pty:yaz", ptyBoyut: "pty:boyut", ptyKapat: "pty:kapat", sesUret: "ses:uret", varlik: "varlik:yol" };
+const CAGRI = { ptyAc: "pty:ac", ptiYaz: "pty:yaz", ptyBoyut: "pty:boyut", ptyKapat: "pty:kapat", sesUret: "ses:uret", sesVarMi: "ses:var", varlik: "varlik:yol" };
 const OLAY  = { ptyCikti: "pty:cikti", ptyBitti: "pty:bitti" };
 
 /** Dinleyici sarmalayıcı: abonelikten çıkma fonksiyonu döner (sızıntı önlemi). */
@@ -21,5 +21,6 @@ contextBridge.exposeInMainWorld("kopru", {
   ptyDinle:     (cb) => dinle(OLAY.ptyCikti, cb),
   ptyBittiDinle:(cb) => dinle(OLAY.ptyBitti, cb),
   sesUret:      (metin) => ipcRenderer.invoke(CAGRI.sesUret, metin),
+  sesVarMi:     () => ipcRenderer.invoke(CAGRI.sesVarMi),
   varlik:       (ad) => ipcRenderer.invoke(CAGRI.varlik, ad),
 });

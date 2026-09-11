@@ -10,8 +10,10 @@ export const CAGRI = {
   ptiYaz:   "pty:yaz",
   ptyBoyut: "pty:boyut",
   ptyKapat: "pty:kapat",
-  /** Piper TTS: metin → wav yolu. */
+  /** Piper TTS: metin → wav baytları. */
   sesUret:  "ses:uret",
+  /** TTS kurulu mu — UI ses düğmesini buna göre gri yapar. */
+  sesVarMi: "ses:var",
   /** Mutlak yol çözümü (VRM, poster, doku) — renderer dosya sistemi görmez. */
   varlik:   "varlik:yol",
 } as const;
@@ -42,7 +44,15 @@ export interface Kopru {
   ptyKapat(id: string): void;
   ptyDinle(cb: (c: PtyCikti) => void): () => void;
   ptyBittiDinle(cb: (b: PtyBitti) => void): () => void;
-  sesUret(metin: string): Promise<{ ok: boolean; yol?: string; hata?: string }>;
+  /**
+   * Metni sese çevirir ve wav BAYTLARINI döndürür — dosya yolu DEĞİL.
+   *
+   * Gerekçe: renderer geliştirme modunda http://localhost'tan yüklenir ve
+   * oradan `file://` okumak Chromium tarafından engellenir. Bayt döndürmek
+   * hem geliştirme hem paketli modda aynı şekilde çalışır (Blob URL).
+   */
+  sesUret(metin: string): Promise<{ ok: boolean; ses?: Uint8Array; hata?: string }>;
+  sesVarMi(): Promise<boolean>;
   varlik(ad: string): Promise<string>;
 }
 

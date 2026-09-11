@@ -67,6 +67,36 @@ Babylon ~1.5GB + qwen2.5:7b ~5GB = ~6.5GB. Whisper'a yer yok → STT tarayıcıd
 Piper CPU'da çalışır, VRAM 0. Dünya tick'i LLM'e gitmez (bkz. `protocol/SOZLESME.md`
 iki kanal kuralı) — canlı dünyanın token maliyeti yapısal olarak sıfırdır.
 
+## Ölçülen gerçekler (2026-09-11, bu makinede)
+
+| Ölçüm | Sonuç | Sonucu ne değiştirdi |
+|---|---|---|
+| Piper 1.2.0 + `tr_TR-dfki-medium` kuruldu | RTF 0.049 (3.5 sn ses / 0.17 sn çıkarım), VRAM 0 | TTS onaylandı |
+| Türkçe fonemleştirme | `şeker→ʃekˈɛr`, `ağaç→ˈaːtʃ`, `ılık→ɯɫˈɯk` ✓ | UTF-8 stdin doğru, çeviri katmanı gerekmiyor |
+| Süreç başına TTS maliyeti | **1350 ms** (model yükleme dahil) | Cümle başına süreç açmak K3'ü tek başına yiyor |
+| Kalıcı süreç TTS | **101–125 ms/cümle**, ilk cümle 462 ms | `host/ses.js` kalıcı süreç + seri kuyruk olarak yazıldı |
+| Dünya saati (simülasyon) | 20 Hz, 30 sn'de sapma < %5, atlanan 0 | K1 karşılandı |
+| Kabuk canlı | `fps=100.0 hz=19.98 tik=80 atlanan=0 kopru=object` | K1/K2 canlı doğrulandı |
+| **Mikrofon aygıtı** | **YOK** — yalnızca çıkış uçları (hoparlör, HDMI, dijital) | STT donanım bekliyor, aşağıya bak |
+| Electron Web Speech | API var, `start()` → `not-allowed`, `audioinput` sayısı 0 | Mikrofonsuz ayırt edilemez; karar askıda |
+
+### Ses kararının revizyonu
+
+"Web Speech STT" kararı **askıya alındı** — reddedilmedi. Sebep yazılım değil
+donanım: makinede giriş aygıtı yok. Bu yüzden ses girdisi bir **arayüz** olarak
+kuruldu (`voice/tip.ts` → `KonusmaKaynagi`):
+
+| Uygulama | Durum |
+|---|---|
+| `voice/metin-girdi.ts` | ✓ çalışıyor — hattın tamamı bugün uçtan uca test edilebilir |
+| `voice/sahte-mikrofon.ts` | ✓ çalışıyor — senaryolu konuşma, ara sonuçlar dahil; mikrofon gelince regresyon testi olarak kalır |
+| `voice/web-speech.ts` | **yazılmadı** — canlı doğrulanamayacak kod yazmıyoruz |
+| yerel whisper | Faz 2 adayı; mikrofon geldiğinde Web Speech ile karşılaştırmalı ölçülür |
+
+Mikrofon takıldığı gün tek dosya eklenir; `voice/cikis.ts`, avatar ağız senkronu
+ve tüm hat değişmez. Orion'un **konuşması** bugün tam çalışıyor; **duyması**
+donanım bekliyor.
+
 ## MVP — tek dikey dilim
 
 Odaya gir → Orion masada kendi işini yapıyor (idle, yerel refleks modeli) →
@@ -82,7 +112,7 @@ Bu dilim bitmeden hiçbir modül genişletilmez.
 |---|---|---|
 | K1 | Dünya tick'i 20Hz ± %5, 10 dakika boyunca sapma yok | tick sayacı logu |
 | K2 | 60 FPS (1080p, RTX 4060), avatar + terminal yüzeyi açıkken | Babylon FPS sayacı |
-| K3 | Ses turu (konuşma bitişi → TTS başlangıcı) < 1.5 sn | zaman damgalı log |
+| K3 | Ses turu (girdi bitişi → TTS başlangıcı) < 1.5 sn | zaman damgalı log — TTS payı ölçüldü: 101-125 ms |
 | K4 | `world/` içinde `bridge`/`mind`/molp import'u: **0** | grep denetimi, CI |
 | K5 | `tik` algısı beyin kanalına: **0 kez** | protokol testi + çalışma logu |
 | K6 | Monitörde `claude` çalışır, çıktı 3D yüzeyde okunur | ekran görüntüsü |
@@ -98,7 +128,7 @@ Bu dilim bitmeden hiçbir modül genişletilmez.
 | T2 | Avatar: VRM + animasyon durum makinesi, niyet→hareket | T1 | açık |
 | T3 | Monitör yüzeyi: xterm → DynamicTexture, pty, `claude` | T0 | açık |
 | T4 | Köprü: mesh client, Orion dünya araçları, algı geri akışı | T0,T2 | açık |
-| T5 | Ses: Web Speech STT + Piper kurulum + TTS hattı | T0 | açık |
+| T5 | Ses: Piper kurulum + TTS hattı + takılabilir girdi | T0 | **kısmen ✓** — TTS [TEST], STT mikrofon bekliyor |
 | T6 | Zihin: idle ajanda + dikkat filtresi + refleks | T4 | açık |
 | T7 | Demo (40sn çekim), design canvas, README, pazarlama | T1-T6 | açık |
 
