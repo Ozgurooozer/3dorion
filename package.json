@@ -1,0 +1,26 @@
+{
+  "name": "3dorion",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Orion'un sanal alanı — AI'ın içinde yaşadığı, terminalini masasında açtığın 3D sandbox.",
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-strip-types --test \"*/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "author": "Ozyn",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^26.5.1",
+    "electron": "^44.3.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0"
+  },
+  "dependencies": {
+    "@babylonjs/core": "^9.26.0",
+    "@babylonjs/loaders": "^9.26.0",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
+    "node-pty": "^1.1.0"
+  }
+}
