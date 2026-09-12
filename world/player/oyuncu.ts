@@ -216,16 +216,22 @@ export class Oyuncu implements KameraHedefi {
 
   private _olaylariBagla(): void {
     const bas = (e: KeyboardEvent) => {
+      // ESC HER ZAMAN DÜNYAYA AİT — metin alanı odaktayken bile.
+      // Önceden bu satır aşağıdaki "metin alanı" çıkışının ARDINDA kalıyordu:
+      // terminal odaktayken olayın hedefi xterm'in gizli TEXTAREA'sı olduğu
+      // için Esc hiç ulaşmıyor ve kullanıcı terminale hapsoluyordu.
+      if (e.code === "Escape") {
+        // Esc önce etkileşimi kapatır; etkileşim yoksa fare kilidini bırakır.
+        if (!this._yayici.bitir()) this._rig.fareKilitBirak();
+        return;
+      }
+
       const hedef = e.target as HTMLElement | null;
       // Bir metin alanına yazılıyorsa dünya klavyeyi çalmaz (T3 terminali).
       if (hedef && (hedef.tagName === "INPUT" || hedef.tagName === "TEXTAREA")) return;
       this._tuslar.add(e.code);
       if (e.code === "KeyF") { this._rig.modDegistir(); this._govdeyiYerlestir(); }
       else if (e.code === "KeyE") this._eTusu();
-      else if (e.code === "Escape") {
-        // Esc önce etkileşimi kapatır; etkileşim yoksa fare kilidini bırakır.
-        if (!this._yayici.bitir()) this._rig.fareKilitBirak();
-      }
     };
     const birak = (e: KeyboardEvent) => { this._tuslar.delete(e.code); };
     // Pencere odağı kaybolunca tuşlar "basılı kalmasın".

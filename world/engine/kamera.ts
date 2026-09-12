@@ -70,6 +70,8 @@ export class KameraRig {
 
   /** Sinematik çekim (T7). Aktifse oyuncu takibini geçersiz kılar. */
   private _sinematik: { konum: Vector3; bakis: Vector3; kalan: number } | null = null;
+  /** Odak kipi: terminal gibi bir yüzeyde sabitlenmiş kamera. Fare bozamaz. */
+  private _odak: { konum: Vector3; bakis: Vector3 } | null = null;
 
   /** Işın testinde yok sayılacak mesh'ler (oyuncu gövdesi, cam, manzara). */
   private _isinDisi = new Set<AbstractMesh>();
@@ -122,6 +124,35 @@ export class KameraRig {
       void this._tuval.requestPointerLock?.();
     }
   }
+
+  /**
+   * ODAK KİPİ — terminal gibi bir yüzeyde çalışırken kamerayı sabitler.
+   *
+   * Sinematikten AYRI bir kip olmak zorunda: sinematik, fare oynayınca
+   * bilerek iptal olur (kullanıcı kontrolü kazanır). Terminalde ise tam
+   * tersi isteniyor — fareyi oynatmak kamerayı kaçırmamalı, yoksa ekranda
+   * yazarken görüntü kayıyor. Odak yalnızca `odakBirak()` ile çözülür.
+   *
+   * Fare kilidi de bırakılır: terminaldeyken imleç serbest olmalı.
+   */
+  odakKilitle(hedefNokta: Vector3, mesafe = 0.95, yukseklik = 0.05): void {
+    const ortaya = new Vector3(-hedefNokta.x, 0, -hedefNokta.z);
+    if (ortaya.lengthSquared() < 1e-4) ortaya.set(0, 0, 1);
+    ortaya.normalize();
+    this._odak = {
+      konum: new Vector3(
+        hedefNokta.x + ortaya.x * mesafe,
+        hedefNokta.y + yukseklik,
+        hedefNokta.z + ortaya.z * mesafe,
+      ),
+      bakis: hedefNokta.clone(),
+    };
+    this._sinematik = null;
+    this.fareKilitBirak();
+  }
+
+  odakBirak(): void { this._odak = null; }
+  get odakta(): boolean { return this._odak !== null; }
 
   fareKilitBirak(): void {
     if (document.pointerLockElement === this._tuval) document.exitPointerLock();
@@ -185,6 +216,16 @@ export class KameraRig {
    */
   guncelle(dt: number): void {
     if (this._gecis < 1) this._gecis = Math.min(1, this._gecis + dt / GECIS_SURESI);
+
+    // Odak, sinematikten önce gelir ve süresizdir.
+    if (this._odak) {
+      this._hedefKonum.copyFrom(this._odak.konum);
+      const y = this._odak.bakis.subtract(this._odak.konum);
+      const yatayU = Math.hypot(y.x, y.z) || 1e-6;
+      this._hedefYaw = Math.atan2(y.x, y.z);
+      this._hedefPitch = -Math.atan2(y.y, yatayU);
+      return;
+    }
 
     const s = this._sinematik;
     if (s) {
@@ -307,6 +348,9 @@ export class KameraRig {
 
   private _olaylariBagla(): void {
     const fareHareket = (e: MouseEvent) => {
+      // Odaktayken fare kamerayı DÖNDÜRMEZ ve odağı bozmaz: terminalde
+      // yazarken imleci oynatmak görüntüyü kaçırmamalı.
+      if (this._odak) return;
       if (!this._fareAktif) return;
       this._yaw += (e.movementX ?? 0) * FARE_DUYARLIK;
       this._pitch += (e.movementY ?? 0) * FARE_DUYARLIK;

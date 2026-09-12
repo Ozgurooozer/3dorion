@@ -10,6 +10,7 @@ rem    3dorion.bat            derle + baslat (varsayilan)
 rem    3dorion.bat hizli      derlemeyi atla, dogrudan baslat
 rem    3dorion.bat gelistir   vite watch + Electron (kod degisince aninda yenile)
 rem    3dorion.bat test       birim testleri + tip kontrolu
+rem    3dorion.bat otodene    sahnede otomatik entegrasyon denemesi (4 kontrol)
 rem    3dorion.bat soyle "merhaba"   sadece bir cumle soylet
 rem
 rem  Not: ComfyUI acikken calistirma - bosta bile ~2.6 GB VRAM tutuyor,
@@ -27,6 +28,7 @@ set MOD=%~1
 if "%MOD%"=="" set MOD=normal
 
 if /i "%MOD%"=="test"     goto :test
+if /i "%MOD%"=="otodene"  goto :otodene
 if /i "%MOD%"=="gelistir" goto :gelistir
 if /i "%MOD%"=="soyle"    goto :soyle
 if /i "%MOD%"=="hizli"    goto :baslat
@@ -50,6 +52,15 @@ goto :son
 echo [gelistirme] vite watch + Electron. Kod degisince yeniden derlenir.
 start "vite" /min cmd /c "npx vite build --watch"
 timeout /t 3 >nul
+call npx electron .
+goto :son
+
+:otodene
+echo [otodene] sahne aciliyor, entegrasyon kontrolleri kosuyor...
+call npx vite build
+if errorlevel 1 goto :hata
+set "ORION_OTODENE=1"
+set "ORION_SMOKE=1"
 call npx electron .
 goto :son
 

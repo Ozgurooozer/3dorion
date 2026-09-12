@@ -62,6 +62,7 @@ function pencereAc() {
   const parcalar = [];
   if (process.env.ORION_SOZ) parcalar.push(`soz=${encodeURIComponent(process.env.ORION_SOZ)}`);
   if (process.env.ORION_TERMINAL_DENE === "1") parcalar.push("terminaldene=1", "sessiz=1");
+  if (process.env.ORION_OTODENE === "1") parcalar.push("otodene=1", "sessiz=1");
   const sorgu = parcalar.length ? { search: `?${parcalar.join("&")}` } : {};
   const sunucu = process.env.VITE_DEV_SERVER_URL;
   if (GELISTIRME && sunucu) pencere.loadURL(sunucu + (sorgu.search ?? ""));

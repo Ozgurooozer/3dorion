@@ -51,6 +51,8 @@ export interface Avatar {
   gorunur(g: boolean): void;
   /** Hangi iskeletin yüklendiği — HUD/duman testi bunu basar. */
   iskeletBilgisi(): AvatarIskeleti["bilgi"];
+  /** Avatarın ekranda göründüğü konum — mantık konumundan ayrı. */
+  cizimKonumu(): Vec3;
 }
 
 /**
@@ -103,6 +105,10 @@ export async function avatarKur(ayar: AvatarAyari): Promise<Avatar> {
     cizimGuncelle: (dt) => beden.cizimGuncelle(dt),
     gorunur: (g) => beden.gorunur(g),
     iskeletBilgisi: () => iskelet.bilgi,
+    /** Avatarın EKRANDA göründüğü konum (mantık konumu değil). Testler için. */
+    cizimKonumu: () => ({
+      x: iskelet.kok.position.x, y: iskelet.kok.position.y, z: iskelet.kok.position.z,
+    }),
     yokEt() { birak(); dinleyiciler.clear(); beden.yokEt(); },
   };
 }
