@@ -63,7 +63,11 @@ export const VARSAYILAN_KANAL: Record<AlgiTur, Kanal> = {
   dunya:    "beyin",
   yakin:    "yerel",
   duydum:   "beyin",
-  olay:     "yerel",
+  // Dünya olayları beyni ilgilendirir: "Ozyn odaya girdi", "masaya oturdu"
+  // tam da Orion'un tepki vermesi gereken şeylerdir. Gürültülü olanları
+  // (kamera değişti, ipucu) mind/dikkat DARALTARAK eler — sözleşme gereği
+  // daraltmak serbest, genişletmek yasak.
+  olay:     "beyin",
   terminal: "beyin",
   sonuc:    "yerel",
 };

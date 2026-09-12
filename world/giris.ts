@@ -34,6 +34,9 @@ import { avatarKur, VARSAYILAN_VRM, type Avatar } from "./avatar/index.ts";
 import { monitorKur, type Monitor } from "./surfaces/monitor.ts";
 import { niyetDogrula } from "../protocol/dogrula.ts";
 import { varlik } from "./varlik.ts";
+import { Kopru } from "../bridge/kopru.ts";
+import { OllamaBeyni } from "../bridge/ollama.ts";
+import { MetinGirdi } from "../voice/metin-girdi.ts";
 
 const tuval = document.getElementById("tuval") as HTMLCanvasElement;
 const hud = document.getElementById("hud") as HTMLDivElement;
@@ -75,6 +78,7 @@ void avatarKur({
     if (s.durum === "hata") altyaziGoster(`yapamadım: ${s.not ?? "bilinmeyen"}`);
   });
   console.log("[ORION] avatar hazır");
+  beyniBagla(a);
 }).catch((e) => console.error("[ORION] avatar kurulamadı:", e));
 
 // ── MANTIK: 20Hz ───────────────────────────────────────────────────────────
@@ -166,7 +170,7 @@ setInterval(() => {
     `kamera ${rig.mod === "omuz" ? "3.şahıs (F: 1.şahıs)" : "1.şahıs (F: 3.şahıs)"}  ` +
     `|  konum ${d.konum.x.toFixed(1)},${d.konum.z.toFixed(1)}  ` +
     `|  mesh ${oda.meshler.length}  |  çapa ${tumCapalar().length}\n` +
-    (ipucuMetin ? ipucuMetin : "WASD yürü · Shift koş · F kamera · E etkileşim · Esc çık");
+    (ipucuMetin ? ipucuMetin : "WASD yürü · Shift koş · F kamera · E terminal · T Orion'a yaz · 1-6 emir · Esc çık");
 }, 250);
 
 // ── Demo kancası (T7): sinematik çekim konsoldan tetiklenebilsin ───────────
@@ -247,6 +251,85 @@ if (new URLSearchParams(location.search).has("terminaldene")) {
   })();
 }
 
+
+
+// ── BEYİN: Orion kendi kararıyla dünyada eylemde bulunur ──────────────────
+// Köprü dünyayı da beyni de import etmez; ikisini burada bağlıyoruz.
+// Yerel model odadaki varlıktan sorumlu; ağır iş terminaldeki Claude'a gider.
+const girdi = new MetinGirdi();
+let kopru: Kopru | null = null;
+
+function dunyaDurumuMetni(): string {
+  const o = oyuncu.oyuncuDurumu();
+  const a = orion?.durum();
+  const capalar = tumCapalar().map((c) => c.ad).join(", ");
+  return [
+    `Odadasin. Capalar: ${capalar}.`,
+    a ? `Sen: ${a.poz}, konum ${a.konum.x.toFixed(1)},${a.konum.z.toFixed(1)}${a.oturuyor_mu ? ", oturuyorsun" : ""}.` : "",
+    `Ozyn ${o.mesafe?.toFixed?.(1) ?? "?"}m uzakta${o.bakiyor ? ", sana bakiyor" : ""}.`,
+    o.etkilesim === "monitor" ? "Ozyn senin monitorunde calisiyor." : "",
+  ].filter(Boolean).join(" ");
+}
+
+function beyniBagla(a: Avatar): void {
+  const beyin = new OllamaBeyni({ model: "qwen2.5:7b", zamanAsimiMs: 45_000 });
+  kopru = new Kopru({
+    beyin,
+    niyetGonder: (n, id) => a.niyet(n, id),
+    dunyaDurumu: dunyaDurumuMetni,
+    toplamaMs: 900,
+  });
+
+  // Orion konuşunca: altyazı + gerçek ses.
+  kopru.konusmaDinle((metin) => {
+    altyaziGoster(metin, Math.max(2600, metin.length * 70));
+    void orionSesi.soyle(metin);
+  });
+
+  // Niyet sonuçları beyne geri döner (yalnızca hatalar terfi eder).
+  a.sonucDinle((s) => kopru?.sonuc(s));
+
+  // Yazılan metin "duyuldu" algısı olur — mikrofon geldiğinde aynı yol kullanılır.
+  void girdi.baslat();
+  girdi.dinle((t) => {
+    if (!t.kesin) return;
+    altyaziGoster(`sen: ${t.metin}`, 2000);
+    kopru?.algi({ tur: "duydum", metin: t.metin, kesin: true });
+  });
+
+  void beyin.hazirMi().then((h) => {
+    console.log(`[BEYIN] ${beyin.ad} hazir=${h}`);
+    if (!h) altyaziGoster("Yerel model bulunamadı — Orion duyuyor ama düşünemiyor", 4000);
+  });
+}
+
+// ── Sohbet kutusu: T aç, Enter gönder, Esc kapat ──────────────────────────
+const sohbet = document.getElementById("sohbet") as HTMLDivElement;
+const sohbetGirdi = document.getElementById("sohbetGirdi") as HTMLInputElement;
+
+function sohbetAc(acik: boolean): void {
+  sohbet.dataset.acik = acik ? "1" : "0";
+  if (acik) sohbetGirdi.focus();
+  else { sohbetGirdi.blur(); sohbetGirdi.value = ""; }
+}
+
+addEventListener("keydown", (e) => {
+  const acikMi = sohbet.dataset.acik === "1";
+  if (!acikMi && (e.key === "t" || e.key === "T")) {
+    if (oyuncu.oyuncuDurumu().etkilesim === "monitor") return;  // terminaldeyken T yazıdır
+    e.preventDefault();
+    sohbetAc(true);
+    return;
+  }
+  if (!acikMi) return;
+  if (e.key === "Escape") { sohbetAc(false); return; }
+  if (e.key === "Enter") {
+    const m = sohbetGirdi.value.trim();
+    sohbetGirdi.value = "";
+    if (m) girdi.gonder(m);
+    sohbetAc(false);
+  }
+});
 
 // ── Otomatik entegrasyon denemesi (?otodene=1) ─────────────────────────────
 // Ozyn'in elle bulduğu üç hatayı bir daha geri gelmesinler diye kilitler.

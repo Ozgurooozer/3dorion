@@ -19,12 +19,29 @@
     opacity: 0; transition: opacity .18s ease; pointer-events: none;
   }
   #altyazi[data-gorunur="1"] { opacity: 1; }
+  #sohbet {
+    position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
+    z-index: 11; width: min(620px, 86vw); display: none;
+  }
+  #sohbet[data-acik="1"] { display: block; }
+  #sohbetGirdi {
+    width: 100%; box-sizing: border-box; padding: 11px 14px;
+    border-radius: 8px; border: 1px solid #2b3150;
+    background: rgba(10,10,18,.92); color: #e6e9f5;
+    font: 14px/1.4 "Segoe UI", system-ui, sans-serif; outline: none;
+  }
+  #sohbetGirdi:focus { border-color: #4d5fa8; }
+  #sohbetGirdi::placeholder { color: #5d688f; }
 </style>
 </head>
 <body>
   <canvas id="tuval"></canvas>
   <div id="hud"></div>
   <div id="altyazi"></div>
+  <div id="sohbet">
+    <input id="sohbetGirdi" type="text" autocomplete="off" spellcheck="false"
+           placeholder="Orion'a yaz… (T ile aç, Enter gönder, Esc kapat)" />
+  </div>
   <script type="module" src="/world/giris.ts"></script>
 </body>
 </html>
