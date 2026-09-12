@@ -59,7 +59,10 @@ function pencereAc() {
 
   // ORION_SOZ ile açılışta bir cümle söyletilebilir (geliştirme kolaylığı):
   //   ORION_SOZ="merhaba" npx electron .
-  const sorgu = process.env.ORION_SOZ ? { search: `?soz=${encodeURIComponent(process.env.ORION_SOZ)}` } : {};
+  const parcalar = [];
+  if (process.env.ORION_SOZ) parcalar.push(`soz=${encodeURIComponent(process.env.ORION_SOZ)}`);
+  if (process.env.ORION_TERMINAL_DENE === "1") parcalar.push("terminaldene=1", "sessiz=1");
+  const sorgu = parcalar.length ? { search: `?${parcalar.join("&")}` } : {};
   const sunucu = process.env.VITE_DEV_SERVER_URL;
   if (GELISTIRME && sunucu) pencere.loadURL(sunucu + (sorgu.search ?? ""));
   else pencere.loadFile(path.join(KOK, "dist", "index.html"), sorgu);

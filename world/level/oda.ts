@@ -23,6 +23,7 @@ import { CreateGround } from "@babylonjs/core/Meshes/Builders/groundBuilder";
 import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import { CreateCylinder } from "@babylonjs/core/Meshes/Builders/cylinderBuilder";
 import { ODA, MASA, MONITOR, SANDALYE, TAHTA, PENCERE, KAPI } from "./olculer.ts";
+import { varlik } from "../varlik.ts";
 
 /** Odanın kurulumundan dönen tutamaçlar. T3 monitör ekranını, T2 zemini ister. */
 export interface OdaKurulumu {
@@ -166,7 +167,7 @@ export function odaKur(sahne: Scene): OdaKurulumu {
     const manzara = CreatePlane("pen_manzara", { width: pg + 0.5, height: py + 0.5 }, sahne);
     manzara.position.set(PENCERE.x, PENCERE.y, -ODA.derinlik / 2 - ODA.duvarKalinlik - 0.02);
     const mManzara = new StandardMaterial("m_manzara", sahne);
-    const dManzara = doku("d_manzara", "/window-city.png");
+    const dManzara = doku("d_manzara", varlik("window-city.png"));
     mManzara.diffuseTexture = dManzara;
     mManzara.emissiveTexture = dManzara;
     mManzara.emissiveColor = new Color3(0.7, 0.75, 0.9);
@@ -297,8 +298,8 @@ export function odaKur(sahne: Scene): OdaKurulumu {
       return p;
     };
     // Sağ duvar: yüzey -X'e baksın → Y'de +90°.
-    poster("poster1", "/poster-1.png", G / 2 - 0.04, 1.7, -1.2, Math.PI / 2);
-    poster("poster2", "/poster-2.png", G / 2 - 0.04, 1.7,  0.4, Math.PI / 2);
+    poster("poster1", varlik("poster-1.png"), G / 2 - 0.04, 1.7, -1.2, Math.PI / 2);
+    poster("poster2", varlik("poster-2.png"), G / 2 - 0.04, 1.7,  0.4, Math.PI / 2);
   }
 
   // ── [10] Işık — ambient + tek yönlü. Gölge YOK (K2 bütçesi). ───────────

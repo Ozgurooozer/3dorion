@@ -172,7 +172,10 @@ export class KameraRig {
       hedefNokta.y + yukseklik,
       this._kis(hedefNokta.z + ortaya.z * mesafe, ODA.derinlik / 2 - 0.4),
     );
-    this._sinematik = { konum, bakis: hedefNokta.clone(), kalan: sure };
+    // sure <= 0 → süresiz: yalnızca sinematikBitir() serbest bırakır.
+    // (Önceden 0 geçilince ilk tikte kendiliğinden temizleniyordu; belge ile
+    //  davranış uyuşmuyordu. Terminale odaklanma bu kipi kullanıyor.)
+    this._sinematik = { konum, bakis: hedefNokta.clone(), kalan: sure > 0 ? sure : Infinity };
   }
 
   sinematikBitir(): void { this._sinematik = null; }
