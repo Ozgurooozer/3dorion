@@ -95,6 +95,11 @@ export interface GetirSonucu {
   parca: { tazelik: number; onem: number; ilgi: number };
 }
 
+/** Kayıttan gelen zaman damgasını makul aralığa çeker. */
+function saglamZaman(v: unknown, simdi: number): number {
+  return typeof v === "number" && Number.isFinite(v) && v > 0 && v <= simdi ? v : simdi;
+}
+
 export class Hafiza {
   private _aniler: Ani[] = [];
   private _kapasite: number;
@@ -111,6 +116,49 @@ export class Hafiza {
 
   get sayi(): number { return this._aniler.length; }
   get birikenOnem(): number { return this._birikenOnem; }
+
+  /**
+   * Anıları dışa aktar — kalıcı saklama için.
+   *
+   * SAF: dosyaya/depoya yazmaz. Nerede saklanacağı `mind/`in işi değil;
+   * burası tarayıcı ya da dosya sistemi tanımamalı. Depoyu kompozisyon
+   * kökü verir (bkz. `KopruAyari.hafizaDeposu`).
+   */
+  dok(): Ani[] { return this._aniler.map((a) => ({ ...a })); }
+
+  /**
+   * Kaydedilmiş anıları geri yükle.
+   *
+   * BİRLEŞTİRİR, EZMEZ: aynı metin zaten varsa yenisi eklenmez — böylece
+   * yükleme sırasında oluşmuş anılar kaybolmaz. Bozuk kayıtlar sessizce
+   * atılır: eski bir sürümden kalan ya da elle kurcalanmış bir dosya
+   * yüzünden Orion'un hafızası tamamen ölmemeli.
+   *
+   * @returns kaç anı yüklendi
+   */
+  yukle(aniler: readonly unknown[]): number {
+    let n = 0;
+    for (const ham of aniler) {
+      const a = ham as Partial<Ani>;
+      if (typeof a?.metin !== "string" || !a.metin.trim()) continue;
+      if (typeof a.onem !== "number" || !Number.isFinite(a.onem)) continue;
+      if (this._aniler.some((x) => x.metin === a.metin)) continue;
+
+      const t = this._simdi();
+      this._aniler.push({
+        metin: a.metin,
+        tur: (a.tur ?? "olay") as AniTuru,
+        onem: Math.max(1, Math.min(10, Math.round(a.onem))),
+        // Zaman damgaları gelecekteyse (saat değişmiş, kayıt bozuk) şimdiye
+        // çekilir; yoksa tazelik hesabı negatif süre görür ve bozulur.
+        olusma: saglamZaman(a.olusma, t),
+        sonErisim: saglamZaman(a.sonErisim ?? a.olusma, t),
+      });
+      n++;
+    }
+    this._budama();
+    return n;
+  }
 
   /** Anıyı kaydet. Aynı metin tekrar gelirse yenisi eklenmez, tazelenir. */
   ekle(metin: string, tur: AniTuru, onem: number): void {

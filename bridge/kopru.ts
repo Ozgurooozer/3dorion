@@ -71,6 +71,17 @@ export interface KopruAyari {
    * 0 = kapalı.
    */
   hafizaGetirme?: number;
+  /**
+   * Anıların OTURUMLAR ARASI saklanacağı depo.
+   *
+   * Verilmezse hafıza yalnızca bellekte kalır ve her açılışta sıfırlanır —
+   * yani Orion her seferinde sizi ilk kez görür. Odada YAŞAYAN biri iddiası
+   * için süreklilik şart.
+   *
+   * Depo arayüzü bilerek dar: köprü ne localStorage ne dosya sistemi bilir.
+   * Hatası yutulur — depo bozuksa Orion hafızasız çalışır ama ÇALIŞIR.
+   */
+  hafizaDeposu?: { oku(): unknown[]; yaz(aniler: unknown[]): void };
   simdi?: () => number;
 }
 
@@ -113,6 +124,17 @@ export class Kopru {
     this._ayar = ayar;
     this._dikkat = new Dikkat(ayar.dikkat);
     this._hafiza = new Hafiza({ simdi: ayar.simdi });
+
+    // Geçmiş oturumların anıları. Hata yutulur: bozuk bir kayıt yüzünden
+    // dünya açılmamazlık edemez.
+    if (ayar.hafizaDeposu) {
+      try {
+        const n = this._hafiza.yukle(ayar.hafizaDeposu.oku());
+        if (n) console.log(`[hafiza] ${n} ani onceki oturumlardan yuklendi`);
+      } catch (err) {
+        console.warn("[hafiza] kayit okunamadi, bos baslaniyor:", err);
+      }
+    }
   }
 
   /**
@@ -148,6 +170,24 @@ export class Kopru {
     for (const d of this._arizaDinleyiciler) {
       try { d(mesaj); } catch (err) { console.error("[kopru] arıza dinleyicisi hatası:", err); }
     }
+  }
+
+  /**
+   * Hafızayı depoya yaz — KISILMIŞ.
+   *
+   * Her anıda yazmak, yoğun bir terminal oturumunda saniyede onlarca
+   * serileştirme demek. 3 sn'lik pencere hem ucuz hem yeterli: çökme
+   * durumunda en fazla son birkaç saniye kaybolur.
+   */
+  private _hafizaSaat: ReturnType<typeof setTimeout> | null = null;
+  private _hafizaYaz(): void {
+    const depo = this._ayar.hafizaDeposu;
+    if (!depo || this._hafizaSaat) return;
+    this._hafizaSaat = setTimeout(() => {
+      this._hafizaSaat = null;
+      try { depo.yaz(this._hafiza.dok()); }
+      catch (err) { console.warn("[hafiza] kayit yazilamadi:", err); }
+    }, 3000);
   }
 
   /** Aşama kancası — gözlem amaçlı, hatası akışı kesmez. */
@@ -205,6 +245,7 @@ export class Kopru {
     // Kim söyledi bilgisi zaten `tur` alanında duruyor.
     const { tur: aniTur, icerik } = this._aniIcerigi(a, ozet);
     this._hafiza.ekle(icerik, aniTur, kuralOnemi(aniTur, icerik, a.tur === "terminal" ? a.kod : undefined));
+    this._hafizaYaz();
     this._turIcerikleri.push(icerik);
     this._turTurleri.add(a.tur);
 
@@ -248,6 +289,14 @@ export class Kopru {
   durdur(): void {
     this._durduruldu = true;
     if (this._zamanlayici) { clearTimeout(this._zamanlayici); this._zamanlayici = null; }
+    // Bekleyen hafıza yazması VARSA hemen tamamla: kapanışta 3 sn'lik
+    // pencereyi beklemek son anıları kaybetmek demek.
+    if (this._hafizaSaat) {
+      clearTimeout(this._hafizaSaat);
+      this._hafizaSaat = null;
+      try { this._ayar.hafizaDeposu?.yaz(this._hafiza.dok()); }
+      catch (err) { console.warn("[hafiza] kapanista yazilamadi:", err); }
+    }
   }
 
   private _gecikmeliDusun(): void {
@@ -294,7 +343,12 @@ export class Kopru {
         olay: turler.has("olay"),
       });
 
+      const dunya = this._ayar.dunyaDurumu();
+      // `dunya` da basılır: beynin ZEMİNİ o metin. Görünmezse "model neden
+      // böyle cevap verdi" sorusu yanıtsız kalıyor — özetler bağlamın
+      // yalnızca yarısı.
       console.log(`[BEYIN:girdi] ozet=${ozetler.length} ani=${anilar.length} gecmis=${this._gecmis.length} talimat=${talimat.length}ch | ${ozetler.map((o) => o.slice(0, 46)).join(" // ")}`);
+      console.log(`[BEYIN:dunya] ${dunya}`);
 
       // GECMIS HER ZAMAN GONDERILIR — ve bu bir GERI ALMADIR.
       //
@@ -321,7 +375,7 @@ export class Kopru {
         ornekler,
         anilar,
         ozetler,
-        dunya: this._ayar.dunyaDurumu(),
+        dunya,
         sabit: this._ayar.sabitBilgi?.(),
         gecmis,
         araclar: araclariUret(),

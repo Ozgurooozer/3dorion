@@ -183,6 +183,10 @@ let mantikTik = 0;
 // T6: beyin konuşmuyorken Orion'un masasında heykel gibi durmaması için
 // düşük maliyetli öneriler (bak/jest). Beyin/kullanıcı meşgulse asla araya
 // girmez — bkz. mind/ajanda.ts başındaki KATI KURAL.
+/** Orion'un anılarının localStorage anahtarı. Sürüm ekli: biçim değişirse
+ *  eski kayıt sessizce yanlış yorumlanmak yerine görmezden gelinir. */
+const HAFIZA_ANAHTARI = "orion.hafiza.v1";
+
 const ajanda = new Ajanda();
 
 // ── SENARYO KİPİ: kendiliğinden davranışları sustur ───────────────────────
@@ -813,13 +817,71 @@ if (new URLSearchParams(location.search).has("terminaldene")) {
 const girdi = new MetinGirdi();
 let kopru: Kopru | null = null;
 
+/** Dünyanın açıldığı an — "ne kadardır buradayım" bundan hesaplanır. */
+const ACILIS = Date.now();
+/** Ozyn'in en son konuştuğu an. 0 = hiç konuşmadı. */
+let sonKonusma = 0;
+
+/**
+ * Süreyi insan diline çevirir. Orion "1847 saniye" demez.
+ *
+ * Kabalık bilinçli: dakika hassasiyeti bir varlık için yeter ve sayı
+ * kalabalığı bağlamı şişirir.
+ */
+function sureSozu(ms: number): string {
+  const dk = Math.floor(ms / 60000);
+  if (dk < 1) return "az önce";
+  if (dk < 60) return `${dk} dakikadır`;
+  const saat = Math.floor(dk / 60);
+  return saat < 24 ? `${saat} saattir` : `${Math.floor(saat / 24)} gündür`;
+}
+
+/** Günün hangi vakti — "saat 14:32" yerine yaşanan bir zaman. */
+function gununVakti(d: Date): string {
+  const s = d.getHours();
+  if (s < 5) return "gecenin bir yarısı";
+  if (s < 12) return "sabah";
+  if (s < 17) return "öğleden sonra";
+  if (s < 21) return "akşam";
+  return "gece";
+}
+
+/**
+ * "Ne kadardır buradayım" cümlesi.
+ *
+ * Süreyi cümleye GÖMMEK gerekiyor, yan yana koymak değil: ilk sürüm
+ * `${sureSozu(...)} bu odadasin` diyordu ve bir dakikanın altında
+ * "az önce bu odadasin" gibi bozuk bir cümle çıkıyordu. Beynin okuyacağı
+ * metin bu; bozuk Türkçe modelin de diline bulaşır.
+ */
+function odadaSure(ms: number): string {
+  const dk = Math.floor(ms / 60000);
+  if (dk < 1) return "Bu odaya yeni geldin.";
+  return `${sureSozu(ms)} bu odadasin.`;
+}
+
+/** Sessizliğin ne kadar sürdüğü — varlığın farkında olması gereken şey. */
+function sessizlikSozu(ms: number): string {
+  const dk = Math.floor(ms / 60000);
+  if (dk < 1) return "Ozyn az önce konustu.";
+  return `Ozyn'le ${sureSozu(ms)} konusmadiniz.`;
+}
+
 function dunyaDurumuMetni(): string {
   const o = oyuncu.oyuncuDurumu();
   const a = orion?.durum();
+  const simdi = Date.now();
+  const d = new Date(simdi);
   return [
     a ? `Sen: ${a.poz}, konum ${a.konum.x.toFixed(1)},${a.konum.z.toFixed(1)}${a.oturuyor_mu ? ", oturuyorsun" : ""}.` : "",
     `Ozyn ${o.mesafe?.toFixed?.(1) ?? "?"}m uzakta${o.bakiyor ? ", sana bakiyor" : ""}.`,
     o.etkilesim === "monitor" ? "Ozyn senin monitorunde calisiyor." : "",
+    // ZAMAN — bir varlığın olmazsa olmazı. Bunlar olmadan Orion her turu
+    // zamansız bir "şimdi" içinde yaşıyor: ne gün ilerliyor, ne sessizlik
+    // birikiyor, ne de "sabahtan beri buradayım" diyebiliyor.
+    `Vakit ${gununVakti(d)}, saat ${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}.`,
+    odadaSure(simdi - ACILIS),
+    sonKonusma ? sessizlikSozu(simdi - sonKonusma) : "",
   ].filter(Boolean).join(" ");
 }
 
@@ -917,6 +979,22 @@ function beyniBagla(a: Avatar): void {
     // Ölçüm için ayarlanabilir: kısa pencere hipotezi (anı, alakasız sohbetin
     // altında gömülüyor mu?) tek değişkenle sınanabilsin.
     gecmisSiniri: Number(new URLSearchParams(location.search).get("gecmis") ?? 12) || 12,
+    // HAFIZA OTURUMLAR ARASI KALICI.
+    //
+    // Önceden yalnızca bellekteydi: her açılışta Orion sizi ilk kez
+    // görüyordu. "Odada yaşayan biri" iddiası, dünü hatırlamayan biriyle
+    // tutmuyor. localStorage yeterli — Electron renderer'ında kalıcı, IPC
+    // gerektirmiyor ve depo arayüzü dar olduğu için ileride dosyaya
+    // taşımak tek fonksiyon değişikliği.
+    hafizaDeposu: {
+      oku() {
+        const ham = localStorage.getItem(HAFIZA_ANAHTARI);
+        if (!ham) return [];
+        const j = JSON.parse(ham);
+        return Array.isArray(j) ? j : [];
+      },
+      yaz(aniler) { localStorage.setItem(HAFIZA_ANAHTARI, JSON.stringify(aniler)); },
+    },
     // İçerik süzgeci: hangi algının beyne değeceğine karar verir.
     // Kural tabanlı; ÖLÇÜLDÜ (mind/akis-olcum.ts, 12 gerçek komut çıktısı,
     // 12/12 ideal uyandırma). Spec'in önerdiği 270M model ölçümde elendi:
@@ -1021,6 +1099,7 @@ function beyniBagla(a: Avatar): void {
   girdi.dinle((t) => {
     if (!t.kesin) return;
     altyaziGoster(`sen: ${t.metin}`, 2000);
+    sonKonusma = Date.now();      // "en son ne zaman konuştuk" bundan
     kopru?.algi({ tur: "duydum", metin: t.metin, kesin: true });
   });
 

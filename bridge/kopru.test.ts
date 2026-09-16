@@ -413,3 +413,59 @@ test("BAŞARILI niyet sonucu hâlâ süzülür — kural yalnızca `gordum` içi
   await bekle(60);
   assert.equal(b.gordugu.length, 0, "rutin basari beyni uyandirmamali");
 });
+
+// ── HAFIZA OTURUMLAR ARASI ────────────────────────────────────────────────
+
+test("depo verilirse anılar YÜKLENİR ve beynin önüne çıkar", async () => {
+  const kayit = [{ metin: "Ozyn dün git kullanıyordu", tur: "olay", onem: 6,
+                   olusma: Date.now() - 86400000, sonErisim: Date.now() - 86400000 }];
+  const b = new SahteBeyin({ metin: "", cagrilar: [] });
+  const { k } = kur(b, {
+    hafizaGetirme: 3,
+    hafizaDeposu: { oku: () => kayit, yaz: () => {} },
+  });
+  k.algi({ tur: "duydum", metin: "git hakkinda ne biliyorsun", kesin: true });
+  await bekle(60);
+  const anilar = (b.gordugu[0]?.anilar ?? []).join(" | ");
+  assert.match(anilar, /dün git/, `onceki oturumun anisi gelmedi: "${anilar}"`);
+});
+
+test("BOZUK depo dünyayı çökertmez — hafızasız ama ÇALIŞIR", async () => {
+  const b = new SahteBeyin({ metin: "", cagrilar: [] });
+  const { k } = kur(b, {
+    hafizaDeposu: { oku: () => { throw new Error("kayit bozuk"); }, yaz: () => {} },
+  });
+  k.algi({ tur: "duydum", metin: "selam", kesin: true });
+  await bekle(60);
+  assert.equal(b.gordugu.length, 1, "bozuk depo beyni engellememeli");
+});
+
+test("durdur() bekleyen hafıza yazmasını TAMAMLAR — son anılar kaybolmaz", async () => {
+  const yazilan: unknown[][] = [];
+  const b = new SahteBeyin({ metin: "", cagrilar: [] });
+  const { k } = kur(b, {
+    hafizaDeposu: { oku: () => [], yaz: (a: unknown[]) => { yazilan.push(a); } },
+  });
+  k.algi({ tur: "duydum", metin: "bunu hatirla", kesin: true });
+  await bekle(60);
+  assert.equal(yazilan.length, 0, "kisma penceresi icinde henuz yazilmamis olmali");
+
+  k.durdur();                       // kapanış: bekleyen yazma tamamlanmalı
+  assert.equal(yazilan.length, 1, "kapanista yazilmadi");
+  assert.ok((yazilan[0] as { metin: string }[]).some((x) => /hatirla/.test(x.metin)));
+});
+
+test("yazma KISILIR — her anıda serileştirme yapılmaz", async () => {
+  const yazilan: unknown[][] = [];
+  const b = new SahteBeyin({ metin: "", cagrilar: [] });
+  const { k } = kur(b, {
+    hafizaDeposu: { oku: () => [], yaz: (a: unknown[]) => { yazilan.push(a); } },
+  });
+  for (let i = 0; i < 5; i++) {
+    k.algi({ tur: "duydum", metin: `mesaj ${i}`, kesin: true });
+    await bekle(5);
+  }
+  assert.equal(yazilan.length, 0, "kisma penceresi icinde yazma olmamali");
+  k.durdur();
+  assert.equal(yazilan.length, 1, "bes ani icin TEK yazma yeterli");
+});

@@ -146,3 +146,70 @@ test("sorgu tüm anıları kapsıyorsa boş döner, çökmez", () => {
   h.ekle("tek ani", "olay", 5);
   assert.deepEqual(h.getir("sorgu", 3, ["tek ani"]), []);
 });
+
+// ── KALICI HAFIZA ─────────────────────────────────────────────────────────
+// Önceden hafıza yalnızca bellekteydi: her açılışta Orion Ozyn'i ilk kez
+// görüyordu. "Odada yaşayan biri" iddiası dünü hatırlamayan biriyle tutmaz.
+
+test("dok/yukle turu: anılar oturumlar arası taşınır", () => {
+  const h1 = new Hafiza();
+  h1.ekle("Ozyn git kullanıyor", "olay", 5);
+  h1.ekle("tahtaya T6 bitti yazdım", "dusunce", 7);
+
+  const h2 = new Hafiza();
+  assert.equal(h2.yukle(h1.dok()), 2);
+  assert.equal(h2.sayi, 2);
+  assert.match(h2.getir("git", 1)[0]?.ani.metin ?? "", /git/);
+});
+
+test("yukle BİRLEŞTİRİR, ezmez — yükleme sırasında oluşan anı kaybolmaz", () => {
+  const eski = new Hafiza();
+  eski.ekle("dünkü not", "olay", 5);
+
+  const yeni = new Hafiza();
+  yeni.ekle("bugünkü not", "olay", 5);
+  yeni.yukle(eski.dok());
+
+  const metinler = yeni.dok().map((a) => a.metin);
+  assert.ok(metinler.includes("dünkü not"));
+  assert.ok(metinler.includes("bugünkü not"), "mevcut ani ezilmis");
+});
+
+test("AYNI anı iki kez yüklenmez", () => {
+  const h = new Hafiza();
+  h.ekle("tek not", "olay", 5);
+  const dokum = h.dok();
+  assert.equal(h.yukle(dokum), 0, "zaten var olan ani tekrar eklenmemeli");
+  assert.equal(h.sayi, 1);
+});
+
+test("BOZUK kayıt hafızayı öldürmez — sağlamlar yüklenir", () => {
+  const h = new Hafiza();
+  const n = h.yukle([
+    { metin: "sağlam", tur: "olay", onem: 5, olusma: Date.now(), sonErisim: Date.now() },
+    null, "çöp", 42,
+    { metin: "", onem: 5 },                 // boş metin
+    { metin: "önemsiz", onem: "beş" },      // önem sayı değil
+    { onem: 5 },                            // metin yok
+  ]);
+  assert.equal(n, 1, "yalnizca saglam kayit yuklenmeli");
+  assert.equal(h.dok()[0]?.metin, "sağlam");
+});
+
+test("GELECEK tarihli damga şimdiye çekilir — tazelik hesabı bozulmasın", () => {
+  const simdi = 1_000_000;
+  const h = new Hafiza({ simdi: () => simdi });
+  h.yukle([{ metin: "saati bozuk", tur: "olay", onem: 5,
+             olusma: simdi + 999_999, sonErisim: simdi + 999_999 }]);
+  const a = h.dok()[0]!;
+  assert.ok(a.olusma <= simdi, "gelecek damga kabul edilmemeli");
+  assert.ok(a.sonErisim <= simdi);
+});
+
+test("dok() KOPYA döner — dışarıdan bozulamaz", () => {
+  const h = new Hafiza();
+  h.ekle("dokunma", "olay", 5);
+  const d = h.dok();
+  d[0]!.metin = "bozuldu";
+  assert.equal(h.dok()[0]?.metin, "dokunma");
+});
