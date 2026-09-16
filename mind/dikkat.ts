@@ -125,6 +125,7 @@ export class Dikkat {
       case "olay":     return `olay:${a.ad}`;
       case "terminal": return `terminal:${a.kuyruk.slice(-120)}`;
       case "sonuc":    return `sonuc:${a.sonuc.durum}:${a.sonuc.not ?? ""}`;
+      case "gordum":   return `gordum:${a.ne}:${a.metin}`;
       case "yakin":    return `yakin:${a.nesneler.map((n) => n.ad).join(",")}`;
       case "dunya":    return "dunya";
       default:         return a.tur;

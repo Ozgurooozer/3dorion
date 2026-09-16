@@ -226,6 +226,7 @@ export class Kopru {
       case "olay":     return { tur: "olay", icerik: a.ad };
       case "terminal": return { tur: "terminal", icerik: a.kuyruk };
       case "sonuc":    return { tur: "sonuc", icerik: `${a.sonuc.durum}: ${a.sonuc.not ?? a.sonuc.niyet_id}` };
+      case "gordum":   return { tur: "sonuc", icerik: `${a.ne}: ${a.metin}` };
       default:         return { tur: "dusunce", icerik: ozet };
     }
   }

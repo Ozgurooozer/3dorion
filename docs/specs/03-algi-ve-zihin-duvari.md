@@ -77,9 +77,22 @@ Hiçbir hata vermeden, sadece "hiç kullanılmıyor" olarak sessiz kalıyordu.
 örneklerde. Geçersiz sorgu ayrıştırıcıda reddedilir (protokole gereksiz tur
 attırmamak için) ve çağrı sırasında en önde durur: bilgi, eylemden önce gelir.
 
-> DURUM: birim testlerle korunuyor ama sağlayıcı kotası dolduğu için gerçek
-> modelle SINANMADI. Modelin bu etiketi üretip üretmediği bilinmiyor
-> (bkz. `docs/ACIK-ISLER.md`).
+**CANLI DOĞRULANDI.** Kota döndüğünde gerçek modelle ölçüldü ve model yalnızca
+etiketi üretmekle kalmadı, DOĞRU SORGU TÜRÜNÜ de seçti:
+
+```
+"odada neler var"  → BAK: onumde   (5.4 sn)  → dunya_sor
+"ben neredeyim"    → BAK: oyuncu   (3.5 sn)  → dunya_sor
+```
+
+Not: model bu turlarda yalnızca eylem satırını yazdı, söz üretmedi. Bu doğru
+davranış — ama **cevabın nasıl geri geldiği burada yazılanın tersiydi**: ölçüm,
+cevabın `niyet sonucu` olarak geri beslenip BİR SONRAKİ turda kullanıldığı
+varsayımını YANLIŞ çıkardı (`sonuc` beyne hiç ulaşmıyordu, bkz.
+`docs/ACIK-ISLER.md`). Düzeltme: `protocol/algi.ts`'e ayrı bir `gordum`
+varyantı eklendi (`ne`, `metin`), `mind/refleks.ts` bunu HER ZAMAN terfi
+ettirir, `world/giris.ts` sorgu sonucunu bu kanaldan geri besler. Önce bak,
+sonra konuş — ama taşıyıcı `sonuc` değil `gordum`.
 
 ### Yan kazanç: algı bir ölçüm aracı oldu
 

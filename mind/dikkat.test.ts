@@ -63,6 +63,18 @@ test("farklı içerik tekrar sayılmaz", () => {
   assert.equal(d.karar(duydum("iki")).gecsin, true);
 });
 
+test("aynı turda farklı `gordum` sorguları birbirini tekrar saymaz", () => {
+  // Orion aynı düşünce turunda iki `sor` çağırabilir (world/giris.ts). İkisi de
+  // aynı 4sn penceresine düşer; anahtar yalnızca türe bakarsa ikincisi "tekrar"
+  // sanılıp düşer — gordum'un HER ZAMAN terfi etmesi kuralı bozulur.
+  const s = saatli();
+  const d = new Dikkat({ simdi: s.simdi });
+  const a: Algi = { tur: "gordum", ne: "onumde", metin: "masa" };
+  const b: Algi = { tur: "gordum", ne: "oyuncu", metin: "yakinda degil" };
+  assert.equal(d.karar(a).gecsin, true);
+  assert.equal(d.karar(b).gecsin, true);
+});
+
 test("terminal çıktısı kısılır — akan derleme beyni her satırda uyandırmaz", () => {
   const s = saatli();
   const d = new Dikkat({ simdi: s.simdi, terminalKisMs: 2500 });
