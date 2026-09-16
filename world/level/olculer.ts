@@ -92,6 +92,46 @@ export const KAPI = {
   genislik: 1.0, yukseklik: 2.1,
 } as const;
 
+// ── ZİHİN DUVARI (sağ duvar, normal -X) ───────────────────────────────────
+//
+// Orion'un kendi işleyişi odada GÖRÜNÜR olsun diye. Şimdiye kadar beynin ne
+// yaptığı yalnızca tarayıcı konsolunda vardı — yani dünyanın dışında. Kota
+// arızası bunu acı biçimde gösterdi: Orion 75 sn boyunca hiçbir şey yapmadı
+// ve odada sebebi görünmüyordu.
+//
+// İki panel, salt okunur: SEMA (akış şeması, canlı) ve GUNLUK (olay akışı).
+// Sağ duvar boştu; sol duvarda tahta ve raf var.
+
+/** Panellerin duvardan ayrık durduğu mesafe — ışın önce paneli vursun. */
+const ZIHIN_X = ODA.genislik / 2 - 0.06;
+
+export const SEMA = {
+  x: ZIHIN_X, y: 1.72, z: 1.35,
+  /** Genişlik Z ekseni boyunca (duvar normali -X). */
+  genislik: 2.4, yukseklik: 1.35,
+} as const;
+
+export const GUNLUK = {
+  x: ZIHIN_X, y: 1.72, z: -1.35,
+  genislik: 2.4, yukseklik: 1.35,
+} as const;
+
+// ── ADMIN TERMİNALİ ───────────────────────────────────────────────────────
+//
+// Masadaki İKİNCİ monitör. Ayrı olmak zorunda: `MONITOR` Ozyn'in çalıştığı ve
+// ORION'UN İZLEDİĞİ ekrandır. Yönetim işi (dünyayı yeniden başlatmak, günlüğe
+// bakmak) Orion'un algısına gürültü olarak düşmemeli.
+//
+// Masanın sağ ucuna sığdırıldı: masa x ∈ [-1.3, 1.3], ana monitör [-0.53, 0.53].
+export const ADMIN = {
+  x: 0.9,
+  y: MASA.ustYuzey + 0.34,
+  z: MASA.z - 0.14,
+  genislik: 0.74, yukseklik: 0.44,
+  /** İçe dönük açı (radyan): Ozyn'e baksın, duvara değil. */
+  aciY: -0.42,
+} as const;
+
 /**
  * Çarpışma engelleri. Oyuncu bunların içine giremez.
  * Duvarlar ayrı ele alınır (bkz. SINIR) — burada yalnızca oda içi mobilya var.
@@ -170,4 +210,10 @@ export const KATI_YUZEYLER: readonly KatiYuzey[] = [
   { capa: "tahta", kutu: { x: TAHTA.x, y: TAHTA.y, z: TAHTA.z, g: 0.06, yuk: TAHTA.yukseklik, d: TAHTA.genislik } },
   { capa: "pencere", kutu: { x: PENCERE.x, y: PENCERE.y, z: PENCERE.z, g: PENCERE.genislik, yuk: PENCERE.yukseklik, d: 0.06 } },
   { capa: "kapi", kutu: { x: KAPI.x, y: KAPI.y, z: KAPI.z, g: KAPI.genislik, yuk: KAPI.yukseklik, d: 0.06 } },
+  // Zihin duvarı — genişlik Z ekseninde, kalınlık X ekseninde (duvar normali -X).
+  { capa: "sema", kutu: { x: SEMA.x, y: SEMA.y, z: SEMA.z, g: 0.06, yuk: SEMA.yukseklik, d: SEMA.genislik } },
+  { capa: "gunluk", kutu: { x: GUNLUK.x, y: GUNLUK.y, z: GUNLUK.z, g: 0.06, yuk: GUNLUK.yukseklik, d: GUNLUK.genislik } },
+  // Yönetim terminali — masadaki ikinci monitör. Açılı duruyor ama ışın ikizi
+  // AABB: birkaç derecelik dönüş için ayrı bir dönük kutu testi yazmaya değmez.
+  { capa: "admin", kutu: { x: ADMIN.x, y: ADMIN.y, z: ADMIN.z, g: ADMIN.genislik, yuk: ADMIN.yukseklik, d: 0.06 } },
 ] as const;

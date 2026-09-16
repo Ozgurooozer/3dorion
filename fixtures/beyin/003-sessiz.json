@@ -1,0 +1,361 @@
+{
+  "sira": 3,
+  "beyin": "dis:127.0.0.1:4700",
+  "girdi": {
+    "talimat": "Sen Orion'sun. Ozyn'in çalışma odasında, onunla aynı mekânda bulunan bir varlıksın. Bir bedenin var: yürürsün, bakarsın, oturursun, tahtaya yazarsın, sesle konuşursun. Masanda bir monitör var; Ozyn orada çalışıyor ve sen ekranı görüyorsun. Odaya bakmak için dunya_sor kullanırsın; gördüğün, durduğun yerden görülebilendir. Görevin kod yazmak değil: olan biteni izlemek, hatırlamak ve işine yarayacaksa söze girmek. Konuşmak bir eylemdir: sesin ancak dunya_soyle ile duyulur, düz metin duyulmaz. Kısa konuş: EN FAZLA İKİ CÜMLE. Gevezelik odayı yorar. Gördüğün şeye cevap ver; hava durumu gibi genel laf etme. Bilmiyorsan bilmediğini söyle. Uydurma. Sahne yönergesi yazma (-böyle- veya *böyle*); yalnızca söyleyeceğin sözü ver. Her turda bir şey yapmak zorunda değilsin. Yapacak bir şey yoksa sessiz kal. 'Hatırladıkların' listesi sana geçmişten geleni veriyor: içeriğini KULLAN. Geçmiş sorulunca 'hatırlıyorum' demekle yetinme, NE olduğunu söyle. Tahtaya yazmak için önce `git` ile tahtanın önüne geçmelisin.",
+    "ornekler": [],
+    "anilar": [
+      "ekranda ne oldu, duzeltmek icin bir komut onerir misin",
+      "PS C:\\Users\\ozigo> gti status\ngti : The term 'gti' is not recognized as the name of a cmdlet, function, script file, or \noperable program. Check the spelling of the name, or if a path was included, verify that t\nhe path is correct and try again.\nAt line:1 char:1\n+ gti status\n+ ~~~\n    + CategoryInfo          : ObjectNotFound: (gti:String) [], CommandNotFoundException\n    + FullyQualifiedErrorId : CommandNotFoundException\nPS C:\\Users\\ozigo>"
+    ],
+    "ozetler": [
+      "Niyet n_mu3gl9qa_2 → hata (Ozyn komutu reddetti. Israr etme; baska bir yol oner ya da sor.)"
+    ],
+    "dunya": "Sen: duruyor, konum 0.9,-1.2. Ozyn 4.6m uzakta, sana bakiyor.",
+    "sabit": "Odadaki çapalar: masa, monitor, sandalye, tahta, pencere, kapi, sema, gunluk, admin, oda_ortasi.",
+    "gecmis": [
+      {
+        "rol": "orion",
+        "metin": "gti→git"
+      },
+      {
+        "rol": "kullanici",
+        "metin": "ekranda ne oldu, duzeltmek icin bir komut onerir misin"
+      },
+      {
+        "rol": "orion",
+        "metin": "Buradayım — şu an Python beyniyle çalışıyorum.",
+        "arac": true
+      }
+    ],
+    "araclar": [
+      {
+        "ad": "dunya_poz",
+        "aciklama": "Duruşunu değiştir (sürekli hal). Bir seferde tek duruş geçerli.",
+        "sema": {
+          "type": "object",
+          "properties": {
+            "poz": {
+              "type": "string",
+              "enum": [
+                "duruyor",
+                "oturuyor",
+                "yatıyor",
+                "eğiliyor",
+                "yürüyor",
+                "koşuyor",
+                "bakıyor"
+              ]
+            }
+          },
+          "required": [
+            "poz"
+          ]
+        }
+      },
+      {
+        "ad": "dunya_jest",
+        "aciklama": "Anlık bir jest yap. Duruşu bozmaz. İşaret ederken hedef ver.",
+        "sema": {
+          "type": "object",
+          "properties": {
+            "jest": {
+              "type": "string",
+              "enum": [
+                "el_salliyor",
+                "başını_sallıyor",
+                "omuz_silkiyor",
+                "işaret_ediyor",
+                "gülümsüyor",
+                "kaş_çatıyor",
+                "el_açıyor",
+                "bekliyor"
+              ]
+            },
+            "hedef": {
+              "type": "object",
+              "description": "Dünyada bir hedef. Oyuncu icin {tip:'oyuncu'}; isimli bir yer icin {tip:'capa',ad:'tahta'}; serbest nokta icin {tip:'nokta',x,y,z}.",
+              "properties": {
+                "tip": {
+                  "type": "string",
+                  "enum": [
+                    "oyuncu",
+                    "nesne",
+                    "capa",
+                    "nokta"
+                  ]
+                },
+                "ad": {
+                  "type": "string",
+                  "description": "tip 'nesne' veya 'capa' ise zorunlu."
+                },
+                "x": {
+                  "type": "number"
+                },
+                "y": {
+                  "type": "number"
+                },
+                "z": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "tip"
+              ]
+            }
+          },
+          "required": [
+            "jest"
+          ]
+        }
+      },
+      {
+        "ad": "dunya_bak",
+        "aciklama": "Başını veya gövdeni bir hedefe çevir. Serbest bakışa dönmek için hedef null ver.",
+        "sema": {
+          "type": "object",
+          "properties": {
+            "hedef": {
+              "type": "object",
+              "description": "Dünyada bir hedef. Oyuncu icin {tip:'oyuncu'}; isimli bir yer icin {tip:'capa',ad:'tahta'}; serbest nokta icin {tip:'nokta',x,y,z}.",
+              "properties": {
+                "tip": {
+                  "type": "string",
+                  "enum": [
+                    "oyuncu",
+                    "nesne",
+                    "capa",
+                    "nokta"
+                  ]
+                },
+                "ad": {
+                  "type": "string",
+                  "description": "tip 'nesne' veya 'capa' ise zorunlu."
+                },
+                "x": {
+                  "type": "number"
+                },
+                "y": {
+                  "type": "number"
+                },
+                "z": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "tip"
+              ]
+            }
+          },
+          "required": [
+            "hedef"
+          ]
+        }
+      },
+      {
+        "ad": "dunya_git",
+        "aciklama": "Hedefe yürü. Varınca sonuç bildirilir; engel varsa yol bulunur, ulaşılamazsa hata döner.",
+        "sema": {
+          "type": "object",
+          "properties": {
+            "hedef": {
+              "type": "object",
+              "description": "Dünyada bir hedef. Oyuncu icin {tip:'oyuncu'}; isimli bir yer icin {tip:'capa',ad:'tahta'}; serbest nokta icin {tip:'nokta',x,y,z}.",
+              "properties": {
+                "tip": {
+                  "type": "string",
+                  "enum": [
+                    "oyuncu",
+                    "nesne",
+                    "capa",
+                    "nokta"
+                  ]
+                },
+                "ad": {
+                  "type": "string",
+                  "description": "tip 'nesne' veya 'capa' ise zorunlu."
+                },
+                "x": {
+                  "type": "number"
+                },
+                "y": {
+                  "type": "number"
+                },
+                "z": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "tip"
+              ]
+            },
+            "mesafe": {
+              "type": "number",
+              "description": "Hedefin kac metre yakininda duracagin. Varsayilan capanin kendi yaricapi."
+            }
+          },
+          "required": [
+            "hedef"
+          ]
+        }
+      },
+      {
+        "ad": "dunya_otur",
+        "aciklama": "Bir yere otur. Çapa verilmezse sandalyeye gider.",
+        "sema": {
+          "type": "object",
+          "properties": {
+            "capa": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      {
+        "ad": "dunya_kalk",
+        "aciklama": "Ayağa kalk. Oturuyorsan yürümek için önce bu gerekir.",
+        "sema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "ad": "dunya_soyle",
+        "aciklama": "Yüksek sesle konuş. Altyazı görünür ve ses çalar. Sohbet metninden AYRI bir eylemdir — odada duyulmasını istediğini buraya yaz.",
+        "sema": {
+          "type": "object",
+          "properties": {
+            "metin": {
+              "type": "string",
+              "description": "En cok 1200 karakter. Tek nefeste okunabilir olsun."
+            },
+            "ses": {
+              "type": "boolean",
+              "description": "false ise yalnizca altyazi, ses calmaz."
+            }
+          },
+          "required": [
+            "metin"
+          ]
+        }
+      },
+      {
+        "ad": "dunya_komut",
+        "aciklama": "Terminale bir komut ÖNER. Komut ÇALIŞMAZ — ekranda Ozyn'e gösterilir, yalnızca o onaylarsa çalışır. Tek satır olmalı. `gerekce` zorunludur: neden bu komut? Gerekçesiz öneriler reddedilir. Reddedilirse ısrar etme.",
+        "sema": {
+          "type": "object",
+          "properties": {
+            "metin": {
+              "type": "string",
+              "description": "Onaya sunulacak tek satirlik komut."
+            },
+            "gerekce": {
+              "type": "string",
+              "description": "Bu komut neden gerekli, kisaca."
+            }
+          },
+          "required": [
+            "metin",
+            "gerekce"
+          ]
+        }
+      },
+      {
+        "ad": "dunya_yaz",
+        "aciklama": "Beyaz tahtaya yaz. Tahtanın önünde değilsen önce oraya gitmen gerekir.",
+        "sema": {
+          "type": "object",
+          "properties": {
+            "metin": {
+              "type": "string"
+            },
+            "temizle": {
+              "type": "boolean",
+              "description": "true ise once tahtayi siler."
+            }
+          },
+          "required": [
+            "metin"
+          ]
+        }
+      },
+      {
+        "ad": "dunya_al",
+        "aciklama": "Bir nesneyi eline al.",
+        "sema": {
+          "type": "object",
+          "properties": {
+            "nesne": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "nesne"
+          ]
+        }
+      },
+      {
+        "ad": "dunya_birak",
+        "aciklama": "Elindeki nesneyi bırak.",
+        "sema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "ad": "dunya_odaklan",
+        "aciklama": "Dikkatini bir yüzeye ver (monitor, tahta). Kameraya da ipucu verir.",
+        "sema": {
+          "type": "object",
+          "properties": {
+            "capa": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "capa"
+          ]
+        }
+      },
+      {
+        "ad": "dunya_dur",
+        "aciklama": "Yürüdüğün ve oynattığın her şeyi hemen kes.",
+        "sema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "ad": "dunya_sor",
+        "aciklama": "Odaya bak. 'onumde' = tam önündeki şey, 'yakin' = çevrendekiler, 'oyuncu' = Ozyn nerede, 'dunya' = buradan görünen her şey. Hiçbir şeyi değiştirmez.",
+        "sema": {
+          "type": "object",
+          "properties": {
+            "ne": {
+              "type": "string",
+              "enum": [
+                "onumde",
+                "yakin",
+                "oyuncu",
+                "dunya"
+              ]
+            }
+          },
+          "required": [
+            "ne"
+          ]
+        }
+      }
+    ]
+  },
+  "cikti": {
+    "metin": "",
+    "cagrilar": [],
+    "bilgi": {
+      "kaynak": "ornek-beyin.py",
+      "ozet_sayisi": 1,
+      "model": "dis:127.0.0.1:4700",
+      "sureMs": 2
+    }
+  }
+}

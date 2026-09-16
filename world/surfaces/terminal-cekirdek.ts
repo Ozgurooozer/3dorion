@@ -8,6 +8,7 @@
 // Bağımlılık sınırı: yalnızca @xterm/*, protocol/, host/kopru.ts (tip).
 "use strict";
 import { Terminal } from "@xterm/xterm";
+import { KabukIsaretAyiklayici, type KabukIsareti } from "./kabukIsaret.ts";
 import type { IDisposable, ITerminalOptions } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import type { PtyBitti, PtyCikti } from "../../host/kopru.ts";
@@ -43,10 +44,18 @@ export const TEMA = {
   white: "#cfd6ef", brightWhite: "#ffffff",
 } as const;
 
+/** Enter tusu: pty'ye giden satir sonu. Komut suresi bundan olculur. */
+const CR = String.fromCharCode(13);
+
 export class TerminalCekirdek {
   readonly term: Terminal;
   private readonly _ayar: CekirdekAyari;
   private _ptyId: string | null = null;
+  /** OSC 133 ayiklayici: isaretler xterm'e ULASMADAN once cikarilir. */
+  private _isaretci = new KabukIsaretAyiklayici();
+  private _isaretDinleyici: ((i: KabukIsareti) => void) | null = null;
+  /** Kullanicinin Enter'a bastigi an — komut suresi buradan olculur. */
+  private _komutBasladi = 0;
   private _cozuculer: Array<() => void> = [];
   private _atilanlar: IDisposable[] = [];
   private _kirli = true;
@@ -105,7 +114,17 @@ export class TerminalCekirdek {
     this._cozuculer.push(kopru.ptyDinle((c: PtyCikti) => {
       if (c.id !== this._ptyId) return;
       this._sonVeriAn = performance.now();
-      this.term.write(c.veri);
+      // Kabuk isaretleri ekrana YAZILMAZ: once ayiklanir, sonra kalan metin
+      // xterm'e gider. Yoksa istem satirinda gorunur cop olusur.
+      const { metin, isaretler } = this._isaretci.isle(c.veri);
+      for (const i of isaretler) {
+        if (i.tur === "bitti" && this._komutBasladi > 0) {
+          i.sureMs = Math.round(performance.now() - this._komutBasladi);
+          this._komutBasladi = 0;
+        }
+        this._isaretDinleyici?.(i);
+      }
+      if (metin) this.term.write(metin);
     }));
     this._cozuculer.push(kopru.ptyBittiDinle((b: PtyBitti) => {
       if (b.id !== this._ptyId) return;
@@ -113,14 +132,25 @@ export class TerminalCekirdek {
       this.term.write(`\r\n\x1b[38;5;244m[pty kapandı, kod ${b.kod}]\x1b[0m\r\n`);
       this._kirli = true;
     }));
-    this._atilanlar.push(this.term.onData((d) => { if (this._ptyId) kopru.ptyYaz(this._ptyId, d); }));
+    this._atilanlar.push(this.term.onData((d) => {
+      if (!this._ptyId) return;
+      // Enter = komut basladi. Sure olcumu buradan baslar; OSC 133 `B`
+      // istem gosterilince gelir ve YAZMA suresini de icerir.
+      if (d.includes(CR)) this._komutBasladi = performance.now();
+      kopru.ptyYaz(this._ptyId, d);
+    }));
     this._atilanlar.push(this.term.onBinary((d) => { if (this._ptyId) kopru.ptyYaz(this._ptyId, d); }));
     return id;
   }
 
+  /** Kabuk isaretlerini (OSC 133) dinle: komut basi/sonu ve cikis kodu. */
+  isaretDinle(cb: (i: KabukIsareti) => void): void { this._isaretDinleyici = cb; }
+
   /** Terminale doğrudan yaz (pty'ye gider). Ölçüm ve `E` etkileşimi kullanır. */
   yaz(veri: string): void {
-    if (this._ptyId) window.kopru.ptyYaz(this._ptyId, veri);
+    if (!this._ptyId) return;
+    if (veri.includes(CR)) this._komutBasladi = performance.now();
+    window.kopru.ptyYaz(this._ptyId, veri);
   }
 
   boyutBildir(cols: number, rows: number): void {

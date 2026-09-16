@@ -51,14 +51,27 @@ export type Niyet =
   | { tur: "odaklan";  capa: string }
   /** Yürüyen/oynayan her şeyi kes. Acil durdurma. */
   | { tur: "dur" }
+  /**
+   * Terminale bir komut ÖNER. ÇALIŞTIRMAZ.
+   *
+   * Bu protokoldeki tek tehlikeli yetenek, o yüzden tasarımı bilinçli olarak
+   * asimetrik: Orion yalnızca öneri üretebilir; komutu çalıştıran şey Ozyn'in
+   * TUŞUDUR. Zaman aşımıyla "evet" yok, varsayılan onay yok.
+   *
+   * `gerekce` zorunlu: neden bu komut? Onaylayan insan bilgilendirilmeden
+   * karar vermemeli. Gerekçesiz öneri reddedilir.
+   */
+  | { tur: "komut";    metin: string; gerekce: string }
   /** Salt-okunur sorgu: dünya durumunu istemek. Yanıt `algi: "dunya"`. */
-  | { tur: "sor";      ne: "dunya" | "yakin" | "oyuncu" };
+  | { tur: "sor";      ne: "dunya" | "yakin" | "oyuncu" | "onumde" };
 
 export type NiyetTur = Niyet["tur"];
 
 /** Dünya durumunu DEĞİŞTİREN niyetler. Yetki kapısı bunları ayırt eder. */
 export const YAZAN_NIYETLER: readonly NiyetTur[] = [
   "poz", "jest", "bak", "git", "otur", "kalk", "soyle", "yaz", "al", "birak", "odaklan", "dur",
+  // `komut` BİLEREK BURADA YOK: dünyayı kendisi değiştirmez, yalnızca öneri
+  // kuyruğuna girer. Dünyayı değiştiren şey Ozyn'in onayıdır.
 ];
 
 export function okunurMu(n: Niyet): boolean {

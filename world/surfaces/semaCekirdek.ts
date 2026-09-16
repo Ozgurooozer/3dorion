@@ -1,0 +1,161 @@
+// world/surfaces/semaCekirdek.ts — Beyin şemasının SAF çekirdeği.
+//
+// Şema, Orion'un algıdan eyleme giden yolunu odada gösterir. Bu dosya o yolun
+// VERİSİ ve YERLEŞİM aritmetiğidir; Babylon yok, canvas yok, test edilebilir.
+//
+// NEDEN ŞEMA: iki katmanlı beyin (sağ lob yerel/refleks, sol lob OpenCode)
+// tasarlandı ama dışarıdan bakan biri hangi katmanın çalıştığını göremiyordu.
+// Bir arıza olduğunda "Orion neden sustu" sorusunun cevabı konsoldaydı.
+//
+// SAF: bağımlılık yok, yan etki yok.
+"use strict";
+
+/** Şemadaki bir düğüm — işlem hattının bir durağı. */
+export interface Dugum {
+  ad: string;
+  etiket: string;
+  /** Hangi lob: yerel (hızlı, kuralcı) / bulut (yavaş, dilsel) / ortak. */
+  lob: "yerel" | "bulut" | "ortak";
+  /** Yerleşim ızgarası: sütun soldan sağa akış, satır 0 = ana hat. */
+  sutun: number;
+  satir: number;
+}
+
+/**
+ * İşlem hattı. Sıra ANLAMLI: soldan sağa veri akışı.
+ *
+ * Ana hat (satır 0) algıdan bedene giden yoldur. Satır -1/+1 yan dallardır:
+ * refleks ana hattı KISA DEVRE yapar (beyne uğramadan bedene gider), hafıza
+ * ise beyne girdi sağlar.
+ */
+export const DUGUMLER: readonly Dugum[] = [
+  { ad: "algi",    etiket: "ALGI",     lob: "yerel", sutun: 0, satir: 0 },
+  { ad: "suzgec",  etiket: "SÜZGEÇ",   lob: "yerel", sutun: 1, satir: 0 },
+  { ad: "refleks", etiket: "REFLEKS",  lob: "yerel", sutun: 2, satir: -1 },
+  { ad: "dikkat",  etiket: "DİKKAT",   lob: "yerel", sutun: 2, satir: 0 },
+  { ad: "hafiza",  etiket: "HAFIZA",   lob: "yerel", sutun: 2, satir: 1 },
+  { ad: "beyin",   etiket: "DÜŞÜNCE",  lob: "bulut", sutun: 3, satir: 0 },
+  // BAKIŞ ana hattın tersine akar: diğer düğümlerde bilgi dünyadan beyne
+  // gelir, burada beyin bilgiyi KENDİ ister (dunya_sor). Ayrı kutu olması
+  // bu yüzden: "ALGI" içinde göstermek iki farklı yönü tek şeymiş gibi
+  // okutuyordu.
+  { ad: "bakis",   etiket: "BAKIŞ",    lob: "yerel", sutun: 4, satir: -1 },
+  { ad: "niyet",   etiket: "NİYET",    lob: "ortak", sutun: 4, satir: 0 },
+  { ad: "onay",    etiket: "ONAY",     lob: "yerel", sutun: 5, satir: 1 },
+  { ad: "beden",   etiket: "BEDEN",    lob: "yerel", sutun: 5, satir: 0 },
+] as const;
+
+/** Aralarındaki oklar: [kaynak, hedef]. */
+export const OKLAR: readonly (readonly [string, string])[] = [
+  ["algi", "suzgec"],
+  ["suzgec", "dikkat"],
+  ["suzgec", "refleks"],
+  ["dikkat", "beyin"],
+  ["hafiza", "beyin"],
+  ["beyin", "niyet"],
+  ["niyet", "beden"],
+  ["niyet", "onay"],
+  ["refleks", "niyet"],
+  // Beyin bakmak ister, cevap beyne geri döner. Ok şemada ileri çizilir
+  // (geriye akan ok yerleşimi okunmaz kılardı); dönüşü "BAKIŞ" etiketi anlatır.
+  ["beyin", "bakis"],
+] as const;
+
+export interface DugumDurumu {
+  /** Kaç kez çalıştı. */
+  sayac: number;
+  /** En son ne zaman çalıştı (epoch ms); 0 = hiç. */
+  sonAn: number;
+  /** Kutunun altına yazılacak kısa not (gecikme, model adı, kesik süresi). */
+  not: string;
+  /** Arızalı mı — kırmızı çizilir. */
+  arizali: boolean;
+}
+
+export interface SemaDurumu {
+  oku(ad: string): DugumDurumu;
+  /** Düğüm çalıştı: sayaç artar, parıltı başlar. */
+  vur(ad: string, not?: string): void;
+  /** Not günceller ama sayacı ARTIRMAZ (durum bilgisi, olay değil). */
+  notYaz(ad: string, not: string): void;
+  ariza(ad: string, arizali: boolean, not?: string): void;
+  /**
+   * Parıltı yoğunluğu 0..1 — `sonAn`dan bu yana geçen süreye göre söner.
+   * Çizim bunu doğrudan alfa olarak kullanır.
+   */
+  parilti(ad: string, simdi: number): number;
+}
+
+/** Parıltının tamamen sönmesi (ms). Göz bir vuruşu yakalayacak kadar uzun. */
+export const PARILTI_MS = 1200;
+
+export function semaDurumuKur(): SemaDurumu {
+  const harita = new Map<string, DugumDurumu>();
+  const al = (ad: string): DugumDurumu => {
+    let d = harita.get(ad);
+    if (!d) { d = { sayac: 0, sonAn: 0, not: "", arizali: false }; harita.set(ad, d); }
+    return d;
+  };
+
+  return {
+    oku: (ad) => ({ ...al(ad) }),
+    vur(ad, not) {
+      const d = al(ad);
+      d.sayac++;
+      d.sonAn = Date.now();
+      if (not !== undefined) d.not = not;
+      // Bir vuruş arızayı KALDIRIR: düğüm yeniden çalışıyor demektir.
+      d.arizali = false;
+    },
+    notYaz(ad, not) { al(ad).not = not; },
+    ariza(ad, arizali, not) {
+      const d = al(ad);
+      d.arizali = arizali;
+      if (not !== undefined) d.not = not;
+    },
+    parilti(ad, simdi) {
+      const d = al(ad);
+      if (!d.sonAn) return 0;
+      const gecen = simdi - d.sonAn;
+      if (gecen < 0) return 1;                 // saat geri gitti; sönük gösterme
+      if (gecen >= PARILTI_MS) return 0;
+      return 1 - gecen / PARILTI_MS;
+    },
+  };
+}
+
+export interface Kutu { x: number; y: number; g: number; yuk: number }
+
+/**
+ * Izgarayı piksel kutularına çevirir.
+ *
+ * Yerleşim ÇİZİMDEN ayrı tutuldu ki sınanabilsin: kutuların çakışmaması ve
+ * alanın içinde kalması görsel değil, aritmetik bir iddiadır.
+ */
+export function yerlesim(
+  genislik: number, yukseklik: number, kenar: number, dugumler: readonly Dugum[] = DUGUMLER,
+): Map<string, Kutu> {
+  const sutunlar = Math.max(...dugumler.map((d) => d.sutun)) + 1;
+  const satirlar = [...new Set(dugumler.map((d) => d.satir))].sort((a, b) => a - b);
+  const enUst = satirlar[0] ?? 0;
+  const satirSayisi = (satirlar.at(-1) ?? 0) - enUst + 1;
+
+  const alanG = genislik - kenar * 2;
+  const alanY = yukseklik - kenar * 2;
+  const hucreG = alanG / sutunlar;
+  const hucreY = alanY / satirSayisi;
+
+  // Kutular hücreden küçük: aradaki boşluk okların geçtiği yerdir.
+  const kutuG = hucreG * 0.76;
+  const kutuY = Math.min(hucreY * 0.62, kutuG * 0.52);
+
+  const harita = new Map<string, Kutu>();
+  for (const d of dugumler) {
+    const merkezX = kenar + d.sutun * hucreG + hucreG / 2;
+    const merkezY = kenar + (d.satir - enUst) * hucreY + hucreY / 2;
+    harita.set(d.ad, {
+      x: merkezX - kutuG / 2, y: merkezY - kutuY / 2, g: kutuG, yuk: kutuY,
+    });
+  }
+  return harita;
+}

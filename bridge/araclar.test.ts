@@ -9,6 +9,11 @@ import { POZLAR } from "../protocol/niyet.ts";
 const BEKLENEN_TURLER = [
   "poz", "jest", "bak", "git", "otur", "kalk", "soyle",
   "yaz", "al", "birak", "odaklan", "dur", "sor",
+  // `komut` = terminale komut ÖNERME. Bilerek ve açıkça eklendi.
+  // Protokoldeki tek tehlikeli yetenek: Orion komutu ÇALIŞTIRMAZ, yalnızca
+  // önerir; çalıştıran şey Ozyn'in onay tuşudur. Bu listeyi güncellemek
+  // zorunda kalmak istenen davranıştır — yeni yetenek sessizce eklenemesin.
+  "komut",
 ];
 
 test("her niyet türünün bir aracı var — sessizce görünmez yetenek yok", () => {
@@ -73,4 +78,23 @@ test("araç yüzeyi token bütçesi makul", () => {
   const m = yuzeyMaliyeti();
   assert.ok(m > 100, `şüpheli küçük yüzey: ${m}`);
   assert.ok(m < 1500, `araç yüzeyi çok pahalı: ~${m} token/tur`);
+});
+
+// ── BAK zinciri: sözleşme → araç → protokol ───────────────────────────────
+// `BAK:` satırı `dunya_sor` çağrısına dönüyor (satirSozlesmesi.test.ts), ama
+// o çağrının PROTOKOL DOĞRULAMASINDAN geçtiği ayrıca sınanmalı: `onumde`
+// sorusu protokole sonradan eklendi ve iki taraf ayrı dosyalarda.
+
+test("dunya_sor dört sorunun HEPSİ için geçerli niyet üretir", () => {
+  for (const ne of ["onumde", "yakin", "oyuncu", "dunya"]) {
+    const d = cagriyiNiyete("dunya_sor", { ne });
+    assert.ok(d.ok, `${ne} reddedildi: ${d.ok ? "" : d.hata}`);
+    assert.equal(d.deger.tur, "sor");
+    assert.equal((d.deger as { ne: string }).ne, ne);
+  }
+});
+
+test("dunya_sor uydurma soruyu REDDEDER", () => {
+  const d = cagriyiNiyete("dunya_sor", { ne: "arkamda" });
+  assert.equal(d.ok, false, "bilinmeyen sorgu kabul edilmemeli");
 });

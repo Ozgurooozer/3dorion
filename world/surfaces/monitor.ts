@@ -24,6 +24,7 @@ import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import type { Scene } from "@babylonjs/core/scene";
 import type { Observer } from "@babylonjs/core/Misc/observable";
 import { TerminalCekirdek } from "./terminal-cekirdek.ts";
+import type { KabukIsareti } from "./kabukIsaret.ts";
 import { izgaraBoya, olcuUret, uykuBoya } from "./hucre-boyaci.ts";
 
 export interface MonitorAyari {
@@ -32,6 +33,13 @@ export interface MonitorAyari {
   ekran: AbstractMesh;
   /** Terminalin açılacağı çalışma dizini. */
   cwd?: string;
+  /**
+   * Satır sayısı. Varsayılan 24; küçük ekranlarda (yönetim terminali gibi)
+   * düşürmek gerekir — aynı satır sayısı küçük yüzeyde okunmaz hâle gelir.
+   */
+  satir?: number;
+  /** Doku/malzeme adı öneki. İki terminal aynı adı paylaşmamalı. */
+  ad?: string;
 }
 
 export interface Monitor {
@@ -42,11 +50,23 @@ export interface Monitor {
   boyutlandir(): void;
   /** Son N satır çıktı — T4 bunu protocol `algi: "terminal"` olarak yayacak. */
   kuyruk(satir?: number): string;
+  /**
+   * Kabuk işaretlerini dinle (OSC 133): komut bitti + ÇIKIŞ KODU.
+   * Orion'un "başarısız mı" sorusuna metin tahmini yerine kesin cevap.
+   */
+  isaretDinle(cb: (i: KabukIsareti) => void): void;
+  /**
+   * Terminale doğrudan yaz (pty'ye gider). Ölçüm/otomatik denemeler içindir:
+   * sentetik klavye olayları xterm'in girdi yoluna güvenilir biçimde
+   * ulaşmıyordu, bu yüzden kanıt üreten testler pty'ye doğrudan yazar.
+   */
+  yaz(veri: string): void;
   yokEt(): void;
 }
 
 /** Satır sayısı sabit; sütun sayısı ekranın en/boy oranından türer. */
-const ROWS = 24;
+/** Ana monitörün satır sayısı. Küçük ekranlar `ayar.satir` ile düşürür. */
+const VARSAYILAN_SATIR = 24;
 const HUCRE_W = 13, HUCRE_H = 28;
 /** Uyku hâli nabzı için yeniden boyama sıklığı. Her karede boyamak israftır. */
 const UYKU_HZ = 12;
@@ -56,29 +76,33 @@ const UYKU_HZ = 12;
  * Dünya AABB'si DEĞİL yerel kutu × ölçek kullanılır: monitör döndürüldüğünde
  * eksen hizalı kutu küçülür ve sütun sayısı yanlış çıkardı.
  */
-function sutunHesapla(ekran: AbstractMesh): number {
+function sutunHesapla(ekran: AbstractMesh, satir: number): number {
   const k = ekran.getBoundingInfo().boundingBox.extendSize;
   const s = ekran.absoluteScaling;
   const en = k.x * 2 * Math.abs(s.x), boy = Math.max(1e-6, k.y * 2 * Math.abs(s.y));
-  const sutun = Math.round(ROWS * (en / boy) * (HUCRE_H / HUCRE_W));
+  const sutun = Math.round(satir * (en / boy) * (HUCRE_H / HUCRE_W));
   return Math.min(200, Math.max(40, sutun));
 }
 
 export function monitorKur(ayar: MonitorAyari): Monitor {
   const { sahne, ekran } = ayar;
   const olcu = olcuUret(HUCRE_W, HUCRE_H);
+  // AD: odada birden fazla terminal var (ana monitör + yönetim terminali).
+  // DOM kimliği ve Babylon kaynak adları çakışmamalı.
+  const AD = ayar.ad ?? "monitor";
+  const ROWS = Math.max(8, ayar.satir ?? VARSAYILAN_SATIR);
 
   // xterm DOM'u ekran dışında ama YERLEŞİK durur. display:none olsaydı xterm
   // hücre ölçüsünü ölçemez ve ızgara çökerdi.
   const kap = document.createElement("div");
-  kap.id = "monitor-xterm";
+  kap.id = `${AD}-xterm`;
   kap.style.cssText = "position:absolute;left:-30000px;top:0;width:720px;height:432px;";
   document.body.appendChild(kap);
 
-  let cols = sutunHesapla(ekran);
+  let cols = sutunHesapla(ekran, ROWS);
   const cekirdek = new TerminalCekirdek({ kap, cwd: ayar.cwd, cols, rows: ROWS, fontSize: 14 });
 
-  const mat = new StandardMaterial("monitorMat", sahne);
+  const mat = new StandardMaterial(`${AD}Mat`, sahne);
   // Işıksız ekran reçetesi: doku DIFFUSE yuvasına girer, aydınlatmayı beyaz
   // emissiveColor sürer. Doku `emissiveTexture` yuvasına konursa aydınlatma
   // terimi sabit beyaz kalır ve düzlem bembeyaz çıkar (ölçüldü, bkz. deneme).
@@ -94,7 +118,7 @@ export function monitorKur(ayar: MonitorAyari): Monitor {
   function dokuKur(): void {
     doku?.dispose();
     DW = cols * olcu.w; DH = ROWS * olcu.h;
-    doku = new DynamicTexture("monitorDoku", { width: DW, height: DH }, sahne, true,
+    doku = new DynamicTexture(`${AD}Doku`, { width: DW, height: DH }, sahne, true,
       Texture.TRILINEAR_SAMPLINGMODE);
     doku.anisotropicFilteringLevel = 16;
     doku.hasAlpha = false;
@@ -168,6 +192,15 @@ export function monitorKur(ayar: MonitorAyari): Monitor {
       boya();
     },
 
+    isaretDinle(cb: (i: KabukIsareti) => void): void {
+      cekirdek.isaretDinle(cb);
+    },
+
+    yaz(veri: string): void {
+      if (oldu) return;
+      cekirdek.yaz(veri);
+    },
+
     kapat(): void {
       if (oldu) return;
       odakli = false;
@@ -189,7 +222,7 @@ export function monitorKur(ayar: MonitorAyari): Monitor {
 
     boyutlandir(): void {
       if (oldu) return;
-      const yeni = sutunHesapla(ekran);
+      const yeni = sutunHesapla(ekran, ROWS);
       if (yeni !== cols) {
         cols = yeni;
         cekirdek.boyutBildir(cols, ROWS);

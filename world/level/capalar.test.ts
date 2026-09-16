@@ -13,9 +13,14 @@ import {
 } from "./capalar.ts";
 import { carpisiyorMu, SINIR } from "./olculer.ts";
 
-const ZORUNLU = ["masa", "sandalye", "tahta", "pencere", "kapi", "oda_ortasi", "monitor"] as const;
+// İlk yedisi spec'ten; son üçü zihin duvarı ile geldi (şema/günlük panelleri
+// ve yönetim terminali). Sayı burada TEK yerde tutulur.
+const ZORUNLU = [
+  "masa", "sandalye", "tahta", "pencere", "kapi", "oda_ortasi", "monitor",
+  "sema", "gunluk", "admin",
+] as const;
 
-test("spec'in istediği yedi çapa kayıtlı", () => {
+test("beklenen çapaların hepsi kayıtlı, fazlası yok", () => {
   const adlar = capaAdlari();
   for (const a of ZORUNLU) assert.ok(adlar.includes(a), `eksik çapa: ${a}`);
   assert.equal(tumCapalar().length, ZORUNLU.length);

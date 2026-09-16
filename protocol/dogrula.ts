@@ -12,6 +12,11 @@ export type Sonuc<T> = { ok: true; deger: T } | { ok: false; hata: string };
 const TURLER: readonly NiyetTur[] = [
   "poz", "jest", "bak", "git", "otur", "kalk", "soyle",
   "yaz", "al", "birak", "odaklan", "dur", "sor",
+  // `komut` BURAYA EKLENMEYİ UNUTMUŞTU ve sessiz bir hata doğurdu:
+  // araç tanımı vardı, doğrulayıcı tanımıyordu. Model aracı DOĞRU çağırıyor,
+  // köprü "bilinmeyen niyet türü: komut" diyip reddediyordu. Canlı ölçümde
+  // "model komut önermiyor" sanıldı; oysa öneriyordu, biz düşürüyorduk.
+  "komut",
 ];
 
 const sayi = (v: unknown): boolean => typeof v === "number" && Number.isFinite(v);
@@ -40,6 +45,8 @@ function hedefDogrula(h: unknown, alan: string): Sonuc<Hedef> {
 
 /** Metin sınırı: bir "soyle" tek nefeste okunabilir olmalı, roman olmamalı. */
 export const METIN_SINIRI = 1200;
+/** Önerilen komut sınırı. Kısa tutulur: onaylayan insan tek bakışta okumalı. */
+export const KOMUT_SINIRI = 300;
 
 export function niyetDogrula(ham: unknown): Sonuc<Niyet> {
   if (ham === null || typeof ham !== "object") return { ok: false, hata: "niyet nesne olmalı" };
@@ -100,6 +107,21 @@ export function niyetDogrula(ham: unknown): Sonuc<Niyet> {
       return { ok: true, deger: { tur: "yaz", metin: o.metin as string, temizle: o.temizle === true } };
     }
 
+    case "komut": {
+      // Tek satır zorunlu: çok satırlı bir "komut" onay ekranında yanıltıcı
+      // görünür ve kullanıcı ne onayladığını göremez.
+      if (!yazi(o.metin)) return { ok: false, hata: "metin: boş olmayan komut olmalı" };
+      const k = (o.metin as string).trim();
+      if (k.length > KOMUT_SINIRI) return { ok: false, hata: `komut çok uzun (> ${KOMUT_SINIRI})` };
+      if (k.includes(String.fromCharCode(13)) || k.includes(String.fromCharCode(10))) {
+        return { ok: false, hata: "komut tek satir olmali - cok satirli oneri onaylanamaz" };
+      }
+      if (!yazi(o.gerekce)) return { ok: false, hata: "gerekce: neden bu komut? Gerekçesiz öneri kabul edilmez" };
+      const g = (o.gerekce as string).trim();
+      if (g.length > METIN_SINIRI) return { ok: false, hata: `gerekce çok uzun (> ${METIN_SINIRI})` };
+      return { ok: true, deger: { tur: "komut", metin: k, gerekce: g } };
+    }
+
     case "al":
       if (!yazi(o.nesne)) return { ok: false, hata: "nesne: boş olmayan metin olmalı" };
       return { ok: true, deger: { tur: "al", nesne: o.nesne as string } };
@@ -110,8 +132,8 @@ export function niyetDogrula(ham: unknown): Sonuc<Niyet> {
 
     case "sor": {
       const ne = o.ne;
-      if (ne !== "dunya" && ne !== "yakin" && ne !== "oyuncu")
-        return { ok: false, hata: `sor.ne geçersiz: ${String(ne)} (geçerli: dunya, yakin, oyuncu)` };
+      if (ne !== "dunya" && ne !== "yakin" && ne !== "oyuncu" && ne !== "onumde")
+        return { ok: false, hata: `sor.ne geçersiz: ${String(ne)} (geçerli: dunya, yakin, oyuncu, onumde)` };
       return { ok: true, deger: { tur: "sor", ne } };
     }
 

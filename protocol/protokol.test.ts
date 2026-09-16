@@ -119,3 +119,32 @@ test("zarf sürüm ve benzersiz kimlik taşır", () => {
   assert.notEqual(a.id, b.id);
   assert.ok(a.ts > 0);
 });
+
+test("GERİLEME: her araç türü doğrulayıcı tarafından TANINIR", () => {
+  // Gercek hata: `komut` niyeti arac tablosuna eklendi ama dogrulayicinin
+  // TURLER listesine eklenmedi. Model araci dogru cagiriyor, kopru
+  // "bilinmeyen niyet turu" deyip reddediyordu. Canli olcumde "model komut
+  // onermiyor" sanildi; oysa oneriyordu, biz dusuruyorduk.
+  // Bu test protokol ile dogrulayiciyi birbirine BAGLAR.
+  const ornekler: Record<string, Record<string, unknown>> = {
+    poz: { poz: "duruyor" },
+    jest: { jest: "gülümsüyor" },
+    // serbest bakis NULL ile belirtilir; alanin hic olmamasi gecersizdir
+    bak: { hedef: null },
+    git: { hedef: { tip: "capa", ad: "tahta" } },
+    otur: {},
+    kalk: {},
+    soyle: { metin: "selam" },
+    yaz: { metin: "not" },
+    al: { nesne: "kalem" },
+    birak: {},
+    odaklan: { capa: "monitor" },
+    dur: {},
+    sor: { ne: "dunya" },
+    komut: { metin: "git status", gerekce: "durumu gor" },
+  };
+  for (const [tur, govde] of Object.entries(ornekler)) {
+    const d = niyetDogrula({ ...govde, tur });
+    assert.ok(d.ok, `'${tur}' dogrulayici tarafindan reddedildi: ${d.ok ? "" : d.hata}`);
+  }
+});

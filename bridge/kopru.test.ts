@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { Kopru } from "./kopru.ts";
 import type { Beyin, BeyinCikti, BeyinGirdisi, AracCagrisi } from "./beyin.ts";
 import type { Niyet } from "../protocol/niyet.ts";
+import type { Algi } from "../protocol/algi.ts";
 
 /** Sahte beyin: ne döndüreceğini test belirler, ne gördüğünü test okur. */
 class SahteBeyin implements Beyin {
@@ -94,14 +95,32 @@ test("soyle niyeti konuşma dinleyicisine ulaşır", async () => {
   assert.equal(niyetler.length, 1);
 });
 
-test("düz metin duyulmaz — konuşmak bir eylemdir", async () => {
+// KURAL DEĞİŞTİ (2026-09-12, ölçümle) — eski hali: "düz metin ASLA duyulmaz".
+//
+// O kural canlı davranış ölçümünde kırıldı: Orion gerçek bir kabuk hatasını
+// doğru teşhis etti ("Terminal'da yanlış bir komut girildi") ama dunya_soyle
+// çağırmadı; kullanıcı mutlak sessizlik duydu ve Orion bozuk göründü.
+//
+// Dışarıdan bakınca "iç düşünce" ile "cevap vermek isteyip aracı unutmak"
+// AYIRT EDİLEMEZ; ikisi de araçsız düz metindir. İki hatadan hangisinin daha
+// kötü olduğu soruldu: ara sıra bir düşünceyi sesli söylemek zararsız, doğrudan
+// sorulduğunda susmak ürünü bozuk gösteriyor. Kural buna göre daraltıldı:
+// araç ÇAĞRILDIYSA metin hâlâ duyulmaz (eyleme eşlik eden iç ses), yalnızca
+// HİÇ araç yoksa kurtarılır.
+//
+// Değerlendirilip seçilmeyen almaşık: modele "aracı çağır" diye geri besleyip
+// bir tur daha döndürmek. Reddedildi — her seferinde 2-3 sn ek gecikme getirir
+// ve 7B modelin ikinci turda da çağıracağı garanti değil; garanti olmayan bir
+// düzeltme için kullanıcıyı bekletmek kötü takas.
+test("araç yokken düz metin KURTARILIR — kullanıcı sessizlik duymamalı", async () => {
   const b = new SahteBeyin({ metin: "içimden geçirdim", cagrilar: [] });
   const { k } = kur(b);
   const duyulan: string[] = [];
   k.konusmaDinle((m) => duyulan.push(m));
   k.algi({ tur: "duydum", metin: "selam", kesin: true });
   await bekle(60);
-  assert.deepEqual(duyulan, []);
+  assert.deepEqual(duyulan, ["içimden geçirdim"]);
+  assert.equal(k.sayac().kurtarilanMetin, 1);
 });
 
 test("beyin çökerse dünya durmaz, hata sayılır", async () => {
@@ -200,4 +219,144 @@ test("ısrarla geçersiz çağrı üreten model sonsuz döngüye sokmaz", async 
   // Kalkan 2 turda devreye girer: ilk tur + en çok 2 düzeltme turu
   assert.ok(b.gordugu.length <= 4, `döngü kesilmedi, ${b.gordugu.length} tur döndü`);
   assert.ok(b.gordugu.length >= 2, "hiç düzeltme şansı verilmedi");
+});
+
+// ── Düz metin kurtarma (ölçümden doğdu) ────────────────────────────────────
+test("araç çağrılmadıysa düz metin konuşmaya çevrilir — kullanıcı sessizlik duymaz", async () => {
+  const beyin = new SahteBeyin({ metin: "Terminalde komut bulunamadı hatası var.", cagrilar: [] });
+  const soylenen: string[] = [];
+  const k = new Kopru({ beyin, niyetGonder: () => {}, dunyaDurumu: () => "oda", toplamaMs: 5 });
+  k.konusmaDinle((m) => soylenen.push(m));
+  k.algi({ tur: "duydum", metin: "ne oldu?", kesin: true });
+  await new Promise((r) => setTimeout(r, 60));
+  assert.deepEqual(soylenen, ["Terminalde komut bulunamadı hatası var."]);
+  assert.equal(k.sayac().kurtarilanMetin, 1);
+});
+
+test("araç ÇAĞRILDIYSA düz metin seslendirilmez — iç düşünce gürültü olmasın", async () => {
+  const beyin = new SahteBeyin({
+    metin: "Şimdi ona bakayım.",
+    cagrilar: [{ ad: "dunya_bak", girdi: { hedef_tip: "oyuncu" } }],
+  });
+  const soylenen: string[] = [];
+  const k = new Kopru({ beyin, niyetGonder: () => {}, dunyaDurumu: () => "oda", toplamaMs: 5 });
+  k.konusmaDinle((m) => soylenen.push(m));
+  k.algi({ tur: "duydum", metin: "selam", kesin: true });
+  await new Promise((r) => setTimeout(r, 60));
+  assert.deepEqual(soylenen, [], "eyleme eşlik eden metin konuşulmamalı");
+  assert.equal(k.sayac().kurtarilanMetin, 0);
+});
+
+// ── Uzun vadeli hafıza ─────────────────────────────────────────────────────
+test("hafıza: 12 turluk pencere dışında kalan bilgi yine de hatırlanır", async () => {
+  // ESKİ DAVRANIS: gecmisSiniri=12 asildiginda ilk tur sessizce dusuyordu.
+  const b = new SahteBeyin();
+  const { k } = kur(b, { toplamaMs: 5, gecmisSiniri: 4, hafizaGetirme: 3 });
+
+  k.algi({ tur: "duydum", metin: "sifrem kirmizi balik", kesin: true });
+  await bekle(30);
+  // Pencereyi tasir: 10 alakasiz tur.
+  for (let i = 0; i < 10; i++) {
+    k.algi({ tur: "duydum", metin: `alakasiz konu ${i}`, kesin: true });
+    await bekle(12);
+  }
+  k.algi({ tur: "duydum", metin: "sifrem neydi", kesin: true });
+  await bekle(40);
+
+  const son = b.gordugu[b.gordugu.length - 1];
+  const anilar = (son?.anilar ?? []).join(" ");
+  assert.match(anilar, /kirmizi balik/, "eski ama ilgili bilgi anilarla gelmeli");
+});
+
+test("hafıza kapalıyken (0) anı gönderilmez", async () => {
+  const b = new SahteBeyin();
+  const { k } = kur(b, { toplamaMs: 5, hafizaGetirme: 0 });
+  k.algi({ tur: "duydum", metin: "bir sey", kesin: true });
+  await bekle(30);
+  assert.deepEqual(b.gordugu[b.gordugu.length - 1]?.anilar ?? [], []);
+});
+
+test("hafıza sayacı görünür — kaç anı tutuluyor", async () => {
+  const b = new SahteBeyin();
+  const { k } = kur(b, { toplamaMs: 5 });
+  k.algi({ tur: "duydum", metin: "birinci", kesin: true });
+  await bekle(20);
+  k.algi({ tur: "duydum", metin: "ikinci", kesin: true });
+  await bekle(20);
+  assert.equal(k.sayac().hafiza, 2);
+});
+
+test("konusmaDinle ÇOKLU — ikinci dinleyici birinciyi silmez", async () => {
+  // Gerçek hatadan doğdu: ölçüm dinleyicisi kuruldu, sonra üretim dinleyicisi
+  // bağlanınca ilki SESSİZCE silindi ve ölçüm "cevap boş" sandı.
+  const b = new SahteBeyin({ metin: "", cagrilar: [cagri("dunya_soyle", { metin: "merhaba" })] });
+  const { k } = kur(b, { toplamaMs: 5 });
+  const a: string[] = [], c: string[] = [];
+  k.konusmaDinle((m) => a.push(m));
+  k.konusmaDinle((m) => c.push(m));
+  k.algi({ tur: "duydum", metin: "selam", kesin: true });
+  await bekle(40);
+  assert.deepEqual(a, ["merhaba"]);
+  assert.deepEqual(c, ["merhaba"], "ikinci dinleyici birinciyi ezmemeli");
+});
+
+test("konusmaDinle abonelikten çıkarır", async () => {
+  const b = new SahteBeyin({ metin: "", cagrilar: [cagri("dunya_soyle", { metin: "x" })] });
+  const { k } = kur(b, { toplamaMs: 5 });
+  const a: string[] = [];
+  const birak = k.konusmaDinle((m) => a.push(m));
+  birak();
+  k.algi({ tur: "duydum", metin: "selam", kesin: true });
+  await bekle(40);
+  assert.deepEqual(a, []);
+});
+
+test("bir dinleyicinin hatası diğerlerini kesmez", async () => {
+  const b = new SahteBeyin({ metin: "", cagrilar: [cagri("dunya_soyle", { metin: "y" })] });
+  const { k } = kur(b, { toplamaMs: 5 });
+  const saglam: string[] = [];
+  k.konusmaDinle(() => { throw new Error("bozuk dinleyici"); });
+  k.konusmaDinle((m) => saglam.push(m));
+  k.algi({ tur: "duydum", metin: "selam", kesin: true });
+  await bekle(40);
+  assert.deepEqual(saglam, ["y"]);
+});
+
+test("hafızaya BİÇİM değil İÇERİK yazılır — kalıp ilgiyi zehirlemesin", async () => {
+  // Canlı ölçümde tüm anılar 'Ozyn dedi: "..."' olarak saklandığı için
+  // ortak önek yüzünden sorgu ne olursa olsun hep aynı üç anı dönüyordu.
+  const b = new SahteBeyin();
+  const { k } = kur(b, { toplamaMs: 5, hafizaGetirme: 2 });
+  k.algi({ tur: "duydum", metin: "terminal suzgeci uzerinde calisiyorum", kesin: true });
+  await bekle(30);
+  k.algi({ tur: "duydum", metin: "kahve ictim", kesin: true });
+  await bekle(30);
+  k.algi({ tur: "duydum", metin: "suzgec nasil gidiyor", kesin: true });
+  await bekle(40);
+
+  const anilar = (b.gordugu.at(-1)?.anilar ?? []);
+  assert.ok(!anilar.some((a) => a.includes("Ozyn dedi")), "anıda kalıp olmamalı: " + anilar.join(" | "));
+  assert.match(anilar.join(" "), /suzgeci/, "ilgili anı gelmeli");
+});
+
+test("GERİLEME: gürültü bloğu, ardından gelen GERÇEK hatanın yuvasını yemez", async () => {
+  // Canlı tez denemesinde bulundu: terminalin acilis afisi once dikkat'in
+  // terminal kisma yuvasini harciyor, sonra icerik suzgeci onu atiyordu;
+  // 2.5 sn icinde gelen gercek hata dikkat tarafindan kisilip dusuyordu.
+  // Sira duzeltildi: suzgec ONCE calisir, yuva bosa gitmez.
+  const b = new SahteBeyin();
+  const { k } = kur(b, {
+    toplamaMs: 5,
+    // Gercek uygulamadaki suzgec gibi: rutin cikti elenir, hata gecer.
+    suzgec: (a: Algi) => a.tur !== "terminal" || (a.kod !== undefined && a.kod !== 0),
+  });
+
+  k.algi({ tur: "terminal", kuyruk: "acilis afisi", kesildi: false, kod: 0 });
+  await bekle(15);
+  k.algi({ tur: "terminal", kuyruk: "komut bulunamadi", kesildi: false, kod: 1 });
+  await bekle(60);
+
+  const gorulen = b.gordugu.flatMap((g) => g.ozetler).join(" ");
+  assert.match(gorulen, /komut bulunamadi/, "gercek hata beyne ULASMALI");
+  assert.equal(k.sayac().suzulen, 1, "gurultu suzgecte elenmis olmali");
 });

@@ -22,7 +22,7 @@ import { CreateBox } from "@babylonjs/core/Meshes/Builders/boxBuilder";
 import { CreateGround } from "@babylonjs/core/Meshes/Builders/groundBuilder";
 import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import { CreateCylinder } from "@babylonjs/core/Meshes/Builders/cylinderBuilder";
-import { ODA, MASA, MONITOR, SANDALYE, TAHTA, PENCERE, KAPI } from "./olculer.ts";
+import { ODA, MASA, MONITOR, SANDALYE, TAHTA, PENCERE, KAPI, SEMA, GUNLUK, ADMIN } from "./olculer.ts";
 import { varlik } from "../varlik.ts";
 
 /** Odanın kurulumundan dönen tutamaçlar. T3 monitör ekranını, T2 zemini ister. */
@@ -33,6 +33,12 @@ export interface OdaKurulumu {
   monitorEkran: Mesh;
   /** Beyaz tahta yüzeyi. T2/T4 `yaz` niyetinde buraya yazacak (yer tutucu). */
   tahtaYuzey: Mesh;
+  /** Zihin duvarı: Orion'un akış şeması (sağ duvar, salt okunur). */
+  semaYuzey: Mesh;
+  /** Zihin duvarı: Orion'un olay günlüğü (sağ duvar, salt okunur). */
+  gunlukYuzey: Mesh;
+  /** Masadaki ikinci monitör: yönetim terminali (Claude Code). */
+  adminEkran: Mesh;
   /** Zemin — raycast ve yer hizası için. */
   zemin: Mesh;
   /** Oyuncunun ışın testinde yok sayması gereken mesh'ler (cam, backdrop). */
@@ -297,9 +303,15 @@ export function odaKur(sahne: Scene): OdaKurulumu {
       meshler.push(p);
       return p;
     };
-    // Sağ duvar: yüzey -X'e baksın → Y'de +90°.
-    poster("poster1", varlik("poster-1.png"), G / 2 - 0.04, 1.7, -1.2, Math.PI / 2);
-    poster("poster2", varlik("poster-2.png"), G / 2 - 0.04, 1.7,  0.4, Math.PI / 2);
+    // Posterler eskiden SAĞ duvardaydı. Sağ duvar artık ZİHİN DUVARI: iki
+    // panel oraya asıldı ve `poster2` (z=0.4) şema panelinin kenarıyla
+    // çakışıyordu — ekran görüntüsünde panelin üstüne taşan parlak bir şerit
+    // olarak göründü. Posterler boş duvarlara taşındı.
+    //
+    // Sol duvar, tahtanın ötesi (tahta z ∈ [-1.8, 1.4], raf z ∈ [1.5, 3.3]):
+    poster("poster1", varlik("poster-1.png"), -G / 2 + 0.04, 1.7, -2.9, -Math.PI / 2);
+    // Ön duvar, kapının (x = 2.6) karşı tarafı. CreatePlane normali -Z: dönüş yok.
+    poster("poster2", varlik("poster-2.png"), -1.8, 1.7, D / 2 - 0.04, 0);
   }
 
   // ── [10] Işık — ambient + tek yönlü. Gölge YOK (K2 bütçesi). ───────────
@@ -316,17 +328,68 @@ export function odaKur(sahne: Scene): OdaKurulumu {
   // Gölge haritası bilerek kurulmadı: 8GB VRAM tavanı + 60 FPS hedefi.
   // Gerekirse tek bir 1024 CascadedShadowGenerator eklenebilir; MVP'de yok.
 
+  // ── [10b] ZİHİN DUVARI — sağ duvarda iki salt-okunur panel ──────────────
+  //
+  // Orion'un kendi işleyişi odada görünür olsun diye. İçerik `world/surfaces/`
+  // altındaki çizicilerin işi; burada yalnızca yüzey ve çerçeve var.
+  //
+  // Yüzey -X'e bakar (sağ duvardan odaya): Y ekseninde +90°.
+  function zihinPaneli(isim: string, capa: string, o: { x: number; y: number; z: number; genislik: number; yukseklik: number }): Mesh {
+    const p = CreatePlane(isim, { width: o.genislik, height: o.yukseklik }, sahne);
+    p.position.set(o.x - 0.03, o.y, o.z);
+    p.rotation.y = Math.PI / 2;
+    const mat = new StandardMaterial(`m_${isim}`, sahne);
+    mat.diffuseColor = new Color3(0.02, 0.03, 0.05);
+    mat.emissiveColor = new Color3(0.04, 0.07, 0.11);
+    mat.specularColor = Color3.Black();
+    mat.backFaceCulling = false;
+    p.material = mat;
+    p.metadata = { capa, yerTutucu: true };
+    meshler.push(p);
+    // Çerçeve: panel duvara yapışık görünmesin.
+    kutu(`${isim}_cerceve`, 0.04, o.yukseklik + 0.07, o.genislik + 0.07, o.x, o.y, o.z, mMetal);
+    return p;
+  }
+  const semaYuzey = zihinPaneli("sema_yuzey", "sema", SEMA);
+  const gunlukYuzey = zihinPaneli("gunluk_yuzey", "gunluk", GUNLUK);
+
+  // ── [10c] Yönetim terminali — masadaki ikinci monitör ───────────────────
+  // Ana monitörden AYRI: orası Ozyn'in çalıştığı ve Orion'un izlediği ekran.
+  // Yönetim işi Orion'un algısına gürültü olarak düşmemeli.
+  const adminEkran = CreatePlane("admin_ekran",
+    { width: ADMIN.genislik, height: ADMIN.yukseklik }, sahne);
+  {
+    adminEkran.position.set(ADMIN.x, ADMIN.y, ADMIN.z + 0.03);
+    adminEkran.rotation.y = Math.PI + ADMIN.aciY;
+    const mA = new StandardMaterial("m_admin", sahne);
+    mA.diffuseColor = new Color3(0.02, 0.03, 0.05);
+    mA.emissiveColor = new Color3(0.05, 0.10, 0.14);
+    mA.specularColor = Color3.Black();
+    mA.backFaceCulling = false;
+    adminEkran.material = mA;
+    adminEkran.metadata = { capa: "admin", yerTutucu: true };
+    meshler.push(adminEkran);
+
+    const kasa = kutu("admin_kasa", ADMIN.genislik + 0.05, ADMIN.yukseklik + 0.05, 0.035,
+      ADMIN.x, ADMIN.y, ADMIN.z, mKoyu);
+    kasa.rotation.y = ADMIN.aciY;
+    silindir("admin_boyun", 0.04, 0.16, ADMIN.x, MASA.ustYuzey + 0.08, ADMIN.z, mMetal);
+    kutu("admin_taban", 0.24, 0.02, 0.14, ADMIN.x, MASA.ustYuzey + 0.01, ADMIN.z, mMetal);
+  }
+
   // ── [11] Statik dondurma ────────────────────────────────────────────────
   // Monitör ve tahta HARİÇ her şey dondurulur: onların malzemesi T3/T4
   // tarafından değişecek. Donmuş malzeme sonradan güncellenemez.
-  const donmaz = new Set<Mesh>([monitorEkran, tahtaYuzey]);
+  const donmaz = new Set<Mesh>([monitorEkran, tahtaYuzey, semaYuzey, gunlukYuzey, adminEkran]);
   for (const m of meshler) {
     m.isPickable = true;
     m.freezeWorldMatrix();
     if (!donmaz.has(m) && m.material) m.material.freeze();
   }
 
-  const kurulum: OdaKurulumu = { meshler, monitorEkran, tahtaYuzey, zemin, seffaflar };
+  const kurulum: OdaKurulumu = {
+    meshler, monitorEkran, tahtaYuzey, semaYuzey, gunlukYuzey, adminEkran, zemin, seffaflar,
+  };
   _sonKurulum = kurulum;
   return kurulum;
 }

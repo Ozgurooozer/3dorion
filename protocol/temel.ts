@@ -40,7 +40,10 @@ export type Hedef =
  * zaten bu adı anıyordu ve `odaklan` niyeti onu hedef alıyor.
  */
 export type CapaAdi =
-  | "masa" | "sandalye" | "tahta" | "pencere" | "kapi" | "oda_ortasi" | "monitor";
+  | "masa" | "sandalye" | "tahta" | "pencere" | "kapi" | "oda_ortasi" | "monitor"
+  // Zihin duvarı (sağ duvar): Orion'un kendi işleyişini gösteren yüzeyler.
+  // Orion oraya YÜRÜYEBİLİR — kendi durumuna bakmak bir eylemdir.
+  | "sema" | "gunluk" | "admin";
 
 export interface Vec3 { x: number; y: number; z: number }
 

@@ -539,3 +539,52 @@ test("avatar DONMUŞ görünmez: 40 sn içinde nefes de göz kırpma da olur", (
   // 40 sn / 3.2 sn taban ≈ 12 kırpma; insanda 40 sn'de 8-16 normal.
   assert.ok(kirpma >= 8 && kirpma <= 16, `40 sn'de ${kirpma} kırpma — insan dışı`);
 });
+
+// ── BAKIŞ KİLİDİ vs VARIŞ YÖNÜ ────────────────────────────────────────────
+// Canlı ölçümde bulundu: Orion tahtaya gidiyor, varış yönüne dönüyor, sonra
+// SESSİZCE monitöre geri dönüyordu ve orada kalıyordu (9 sn boyunca sabit).
+// Sebep: `bak` kalıcı bir hedef bırakıyor, `_bakisGuncelle` boyun sınırı
+// aşılınca gövdeyi de o hedefe çeviriyor ve iş bitince bu her tikte yeniden
+// oluyor — `git`in varış yönü eziliyor.
+
+test("`bak` kilidi `git`in VARIŞ YÖNÜNÜ ezmez", () => {
+  const tahta = capaBul("tahta");
+  const monitor = capaBul("monitor");
+  assert.ok(tahta && monitor);
+
+  const k = new Kosucu({ x: 0, y: 0, z: -1.6 });
+  // Önce monitöre bakmasını söyle: kalıcı bakış kilidi kurulur.
+  k.niyet({ tur: "bak", hedef: { tip: "capa", ad: "monitor" } } as Niyet, "b1");
+  k.tik(20);
+
+  // Sonra tahtaya git: varışta tahtanın yönüne dönmeli.
+  k.niyet({ tur: "git", hedef: { tip: "capa", ad: "tahta" } } as Niyet, "g1");
+  assert.ok(k.bekle("g1", "bitti"), "git bitmedi");
+
+  // Dönüş "bitti" anında henüz tamamlanmamış olabilir (gövde yumuşak döner):
+  // önce oturmasını bekle, SONRA sabitliği ölç.
+  k.tik(60);
+  const hemen = { ...k.y.durum().bakis };
+  // Bir süre daha koş: bakış kilidi geri dönerse BURADA kayar.
+  k.tik(120);
+  const sonra = k.y.durum().bakis;
+
+  assert.ok(Math.abs(hemen.x - sonra.x) < 0.05 && Math.abs(hemen.z - sonra.z) < 0.05,
+    `varistan sonra bakis kaydi: (${hemen.x.toFixed(2)},${hemen.z.toFixed(2)}) `
+    + `→ (${sonra.x.toFixed(2)},${sonra.z.toFixed(2)})`);
+
+  // Ve gerçekten TAHTAYA bakıyor olmalı (tahta -X'te).
+  assert.ok(sonra.x < -0.7,
+    `tahtaya donmeli, bakis.x=${sonra.x.toFixed(2)} (monitore donduyse pozitif cikar)`);
+});
+
+test("`bak` kilidi `git` OLMADAN korunur — kilit gereksiz yere silinmez", () => {
+  const k = new Kosucu({ x: 0, y: 0, z: -1.6 });
+  k.niyet({ tur: "bak", hedef: { tip: "capa", ad: "tahta" } } as Niyet, "b1");
+  k.tik(60);
+  const a = { ...k.y.durum().bakis };
+  k.tik(60);
+  const b = k.y.durum().bakis;
+  assert.ok(Math.abs(a.x - b.x) < 0.05 && Math.abs(a.z - b.z) < 0.05, "bakis kilidi tutmali");
+  assert.ok(a.x < -0.5, `tahtaya bakmali, bakis.x=${a.x.toFixed(2)}`);
+});

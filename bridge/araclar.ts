@@ -81,6 +81,21 @@ export const ARAC_TABLOSU: Record<NiyetTur, Omit<AracTanimi, "ad">> = {
       required: ["metin"],
     },
   },
+  komut: {
+    aciklama:
+      "Terminale bir komut ÖNER. Komut ÇALIŞMAZ — ekranda Ozyn'e gösterilir, " +
+      "yalnızca o onaylarsa çalışır. Tek satır olmalı. `gerekce` zorunludur: " +
+      "neden bu komut? Gerekçesiz öneriler reddedilir. Reddedilirse ısrar etme.",
+    sema: {
+      type: "object",
+      properties: {
+        metin: { type: "string", description: "Onaya sunulacak tek satirlik komut." },
+        gerekce: { type: "string", description: "Bu komut neden gerekli, kisaca." },
+      },
+      required: ["metin", "gerekce"],
+    },
+  },
+
   yaz: {
     aciklama: "Beyaz tahtaya yaz. Tahtanın önünde değilsen önce oraya gitmen gerekir.",
     sema: {
@@ -100,8 +115,15 @@ export const ARAC_TABLOSU: Record<NiyetTur, Omit<AracTanimi, "ad">> = {
   },
   dur: { aciklama: "Yürüdüğün ve oynattığın her şeyi hemen kes.", sema: { type: "object", properties: {} } },
   sor: {
-    aciklama: "Dünya hakkında salt-okunur sorgu: nerede ne var, oyuncu nerede. Hiçbir şeyi değiştirmez.",
-    sema: { type: "object", properties: { ne: { type: "string", enum: ["dunya", "yakin", "oyuncu"] } }, required: ["ne"] },
+    // Orion odayı BURADAN görür. Cevap yalnızca bulunduğu yerden GÖRÜLEBİLEN
+    // şeyleri içerir (mind/algiHizmeti.ts): duvarın arkası bilinmez.
+    aciklama: "Odaya bak. 'onumde' = tam önündeki şey, 'yakin' = çevrendekiler, "
+      + "'oyuncu' = Ozyn nerede, 'dunya' = buradan görünen her şey. Hiçbir şeyi değiştirmez.",
+    sema: {
+      type: "object",
+      properties: { ne: { type: "string", enum: ["onumde", "yakin", "oyuncu", "dunya"] } },
+      required: ["ne"],
+    },
   },
 };
 

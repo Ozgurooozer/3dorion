@@ -52,11 +52,24 @@ export class OllamaBeyni implements Beyin {
 
   async dusun(girdi: BeyinGirdisi): Promise<BeyinCikti> {
     const mesajlar = [
-      { role: "system", content: DUNYA_TALIMATI },
-      ...girdi.gecmis.map((g) => ({
-        role: g.rol === "kullanici" ? "user" : "assistant",
-        content: g.metin,
-      })),
+      { role: "system", content: girdi.sabit ? `${girdi.talimat ?? DUNYA_TALIMATI}
+${girdi.sabit}` : (girdi.talimat ?? DUNYA_TALIMATI) },
+      // Gecmis DOGRU temsil edilir: Orion'un sozleri gercekte `dunya_soyle`
+      // arac cagrisiydi. Duz `assistant` metni olarak gostermek modele
+      // "asistan duz metin yazar" oruntusunu ogretiyor ve cikti bozuluyordu
+      // (olcum: `orlda_komut {...}` gibi bozuk adlar duz metin olarak).
+      // Ornekler: dogru davranisi GOSTEREN kisa gosterimler. Sistemden sonra,
+      // gecmisten once. Olcum: sogukta 1-3/4 -> ornekle 4/4.
+      ...(girdi.ornekler ?? []),
+      ...girdi.gecmis.flatMap((g) => {
+        if (g.rol === "kullanici") return [{ role: "user", content: g.metin }];
+        if (!g.arac) return [{ role: "assistant", content: g.metin }];
+        return [
+          { role: "assistant", content: "",
+            tool_calls: [{ function: { name: "dunya_soyle", arguments: { metin: g.metin } } }] },
+          { role: "tool", content: "bitti" },
+        ];
+      }),
       { role: "user", content: this._durumMetni(girdi) },
     ];
 
@@ -70,6 +83,15 @@ export class OllamaBeyni implements Beyin {
         function: { name: a.ad, description: a.aciklama, parameters: a.sema },
       })),
     };
+
+    // Tanilama dokumu: canli istegin TAM olarak ne oldugunu gormek icin.
+    // Sonda ile canli arasindaki fark tahminle kapanmayinca eklendi.
+    if (typeof localStorage !== "undefined" && localStorage.getItem("beyinDokum") === "1") {
+      console.log(`[BEYIN:dokum] arac=${govde.tools.length} ${govde.tools.map((t) => t.function.name).join(",")}`);
+      for (const m of mesajlar) {
+        console.log(`[BEYIN:dokum] ${m.role}: ${String(m.content).replace(/\s+/g, " ").slice(0, 1200)}`);
+      }
+    }
 
     const t0 = Date.now();
     const c = new AbortController();

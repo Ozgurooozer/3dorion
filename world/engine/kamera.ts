@@ -20,6 +20,7 @@ import { FreeCamera } from "@babylonjs/core/Cameras/freeCamera";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { Ray } from "@babylonjs/core/Culling/ray";
 import { ODA } from "../level/olculer.ts";
+import { fareKipiKur, type FareKipi } from "./fareKipi.ts";
 
 /** Kameranın takip ettiği şey. `world/player/oyuncu.ts` bunu uygular. */
 export interface KameraHedefi {
@@ -37,8 +38,14 @@ const OMUZ = {
   geri: 2.8,
   /** Göz hizasının kaç metre üstünde. */
   yukari: 0.45,
-  /** Sağa kayma (0 = tam arka). */
-  yan: 0.55,
+  /**
+   * Sağa kayma (0 = tam arka).
+   *
+   * 0.55 düşüktü: gövde çerçevenin TAM ORTASINDA duruyor ve odanın görünümünü
+   * kapatıyordu. Omuz kamerasının amacı zaten yandan bakmaktır — karakter
+   * kenarda, manzara açık. 0.85 ile kapsül sağa kayıyor ve orta alan açılıyor.
+   */
+  yan: 0.85,
   /** Duvara çarpınca bırakılacak boşluk. */
   tampon: 0.25,
 } as const;
@@ -77,6 +84,8 @@ export class KameraRig {
   private _isinDisi = new Set<AbstractMesh>();
 
   private _fareAktif = false;
+  /** Fare kipi (girdi kararı) — kurulum `_olaylariBagla` içinde. */
+  private _fare: FareKipi | null = null;
   private _cozucular: Array<() => void> = [];
 
   constructor(sahne: Scene, tuval: HTMLCanvasElement) {
@@ -102,8 +111,23 @@ export class KameraRig {
   /** Mod geçişi sürüyor mu — oyuncu bu sırada da hareket edebilir. */
   get gecisteMi(): boolean { return this._gecis < 1; }
   get sinematikAktifMi(): boolean { return this._sinematik !== null; }
+  /**
+   * Fare şu an kamerayı mı sürüyor? HUD için.
+   *
+   * Odakta Ctrl'ye, gezinirken kilide bağlı — iki kip iki farklı koşul.
+   */
+  get fareKamerada(): boolean { return this._fare?.kamerada ?? false; }
 
   hedefAyarla(h: KameraHedefi): void { this._hedef = h; }
+
+  /**
+   * Bakış açısını doğrudan kur (radyan). Doğuş yönü, sahne kurulumu ve
+   * ölçüm/test için — fare girdisinden bağımsız tek giriş noktası.
+   */
+  bakisAyarla(yaw: number, pitch = this._pitch): void {
+    this._yaw = yaw;
+    this._pitch = Math.max(-PITCH_SINIR, Math.min(PITCH_SINIR, pitch));
+  }
 
   /** Işın testinden muaf tut (oyuncu gövdesi, cam, pencere manzarası). */
   isinDisiTut(...meshler: AbstractMesh[]): void {
@@ -114,7 +138,8 @@ export class KameraRig {
   modDegistir(): KameraModu {
     this._mod = this._mod === "omuz" ? "birinci" : "omuz";
     this._gecis = 0;
-    if (this._mod === "birinci") this.fareKilitIste();
+    // Kilit durumuna DOKUNMAZ: kilit odağa bağlı (bkz. `_olaylariBagla`),
+    // moda değil. Mod değiştirmek fare kipini değiştirmemeli.
     return this._mod;
   }
 
@@ -133,10 +158,19 @@ export class KameraRig {
    * tersi isteniyor — fareyi oynatmak kamerayı kaçırmamalı, yoksa ekranda
    * yazarken görüntü kayıyor. Odak yalnızca `odakBirak()` ile çözülür.
    *
-   * Fare kilidi de bırakılır: terminaldeyken imleç serbest olmalı.
+   * Fare kilidi BIRAKILIR: ekrandayken imleç serbest olmalı ki tıklayıp
+   * nesne seçebilesin. Kamerayı ayarlamak istersen Ctrl basılı tut.
    */
-  odakKilitle(hedefNokta: Vector3, mesafe = 0.95, yukseklik = 0.05): void {
-    const ortaya = new Vector3(-hedefNokta.x, 0, -hedefNokta.z);
+  odakKilitle(hedefNokta: Vector3, mesafe = 0.95, yukseklik = 0.05, yon?: Vector3): void {
+    // YÖN: verilirse kamera yüzeyin KENDİ normali boyunca konumlanır.
+    //
+    // Verilmezse "oda ortasına doğru" varsayılır — duvara asılı düz yüzeyler
+    // için bu doğru, ama AÇILI bir yüzey için değil. Yönetim terminali masada
+    // 24° çevrilmiş duruyor ve varsayılan hesap kamerayı ekrana eğik
+    // koyuyordu: görüntüde ekran çerçeveyi taşıdı ve yamuk göründü.
+    const ortaya = yon
+      ? new Vector3(yon.x, 0, yon.z)
+      : new Vector3(-hedefNokta.x, 0, -hedefNokta.z);
     if (ortaya.lengthSquared() < 1e-4) ortaya.set(0, 0, 1);
     ortaya.normalize();
     this._odak = {
@@ -151,7 +185,17 @@ export class KameraRig {
     this.fareKilitBirak();
   }
 
-  odakBirak(): void { this._odak = null; }
+  /**
+   * Odaktan çık: kamera yeniden fareye devredilir.
+   *
+   * Kilit HEMEN istenir — "ekrandan çıkınca fare ile normal kamera" beklentisi
+   * bir tıklama daha gerektirmemeli. Tarayıcı isteği reddedebilir (Esc sonrası
+   * kısa bir bekleme uygular); o durumda tuvale tıklamak kilidi geri alır.
+   */
+  odakBirak(): void {
+    this._odak = null;
+    this.fareKilitIste();
+  }
   get odakta(): boolean { return this._odak !== null; }
 
   fareKilitBirak(): void {
@@ -305,7 +349,11 @@ export class KameraRig {
    */
   cizimGuncelle(dt: number): void {
     // Kare hızından bağımsız yumuşatma: exp(-k·dt).
-    const hizli = this._mod === "birinci" && this._gecis >= 1 && !this._sinematik;
+    // 1. şahısta kamera göze YAPIŞIR (k=1): gecikme baş sallanması gibi hissedilir.
+    // Ama ODAKTA değil — orada kamera gözden ayrılıp ekranın önüne gider ve bu
+    // yolculuk yumuşak olmalı, yoksa terminale geçiş sert bir ışınlanma olur.
+    const hizli = this._mod === "birinci" && this._gecis >= 1
+      && !this._sinematik && !this._odak;
     const k = hizli ? 1 : 1 - Math.exp(-14 * Math.min(dt, 0.1));
     const p = this.kamera.position;
     p.x += (this._hedefKonum.x - p.x) * k;
@@ -314,10 +362,22 @@ export class KameraRig {
 
     // Rotasyon: Euler, quaternion YOK (bkz. dosya başı notu).
     this.kamera.rotationQuaternion = null;
-    if (this._sinematik) {
+    if (this._sinematik || this._odak) {
+      // ODAK da yönü SÜRÜR. Eskiden yalnızca sinematik bu dala giriyordu ve
+      // odakta kamera ekranın önüne gidip OYUNCUNUN baktığı yöne bakmaya devam
+      // ediyordu. 3. şahısta fark edilmiyordu (oyuncu zaten monitöre dönük
+      // yürüyor), 1. şahısta açı tutmuyordu — bildirilen arıza tam buydu.
       const rk = 1 - Math.exp(-6 * Math.min(dt, 0.1));
       this.kamera.rotation.x += (this._hedefPitch - this.kamera.rotation.x) * rk;
       this.kamera.rotation.y += this._aciFarki(this._hedefYaw, this.kamera.rotation.y) * rk;
+
+      // Odakta oyuncunun bakışını da kameraya YETİŞTİR: odak bırakılınca
+      // `else` dalı `_yaw/_pitch`'e anında set ediyor; senkron olmazsa
+      // masadan kalkarken görüntü sert biçimde sıçrar.
+      if (this._odak) {
+        this._pitch = this.kamera.rotation.x;
+        this._yaw = this.kamera.rotation.y;
+      }
     } else {
       this.kamera.rotation.set(this._pitch, this._yaw, 0);
     }
@@ -347,29 +407,33 @@ export class KameraRig {
   }
 
   private _olaylariBagla(): void {
-    const fareHareket = (e: MouseEvent) => {
-      // Odaktayken fare kamerayı DÖNDÜRMEZ ve odağı bozmaz: terminalde
-      // yazarken imleci oynatmak görüntüyü kaçırmamalı.
-      if (this._odak) return;
-      if (!this._fareAktif) return;
-      this._yaw += (e.movementX ?? 0) * FARE_DUYARLIK;
-      this._pitch += (e.movementY ?? 0) * FARE_DUYARLIK;
-      this._pitch = Math.max(-PITCH_SINIR, Math.min(PITCH_SINIR, this._pitch));
-      // Sinematik çekim sırasında fare oynatmak çekimi keser — kullanıcı
-      // kontrolü her zaman kazanır.
-      if (this._sinematik) this._sinematik = null;
-    };
-    const kilitDegisti = () => { this._fareAktif = document.pointerLockElement === this._tuval; };
-    const tuvalTik = () => this.fareKilitIste();
+    // Fare kipi KARARI ayrı bir modülde (`fareKipi.ts`): kamera geometrisiyle
+    // ilgisi yok ve orada tek başına sınanabiliyor. Rig yalnızca "döndür"
+    // hizmetini ve odak durumunu sunar.
+    this._fare = fareKipiKur({
+      tuval: this._tuval,
+      odaktaMi: () => this._odak !== null,
+      kilitIste: () => this.fareKilitIste(),
+      kilitliMi: () => this._fareAktif,
+      dondur: (dx, dy) => this._fareyleDondur(dx, dy),
+    });
 
-    addEventListener("mousemove", fareHareket);
+    const kilitDegisti = () => { this._fareAktif = document.pointerLockElement === this._tuval; };
     document.addEventListener("pointerlockchange", kilitDegisti);
-    this._tuval.addEventListener("click", tuvalTik);
 
     this._cozucular.push(
-      () => removeEventListener("mousemove", fareHareket),
+      () => this._fare?.sok(),
       () => document.removeEventListener("pointerlockchange", kilitDegisti),
-      () => this._tuval.removeEventListener("click", tuvalTik),
     );
+  }
+
+  /** Ham fare deltasını bakışa çevirir. Duyarlılık ve sınırlar burada. */
+  private _fareyleDondur(dx: number, dy: number): void {
+    this._yaw += dx * FARE_DUYARLIK;
+    this._pitch = Math.max(-PITCH_SINIR, Math.min(PITCH_SINIR, this._pitch + dy * FARE_DUYARLIK));
+    // Sinematik çekim sırasında fare oynatmak çekimi keser — kullanıcı
+    // kontrolü her zaman kazanır. (Odak öyle DEĞİL: orada kamera bilerek
+    // sabit ve yalnızca `odakBirak()` çözer.)
+    if (this._sinematik) this._sinematik = null;
   }
 }

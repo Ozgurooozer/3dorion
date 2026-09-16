@@ -19,6 +19,37 @@
     opacity: 0; transition: opacity .18s ease; pointer-events: none;
   }
   #altyazi[data-gorunur="1"] { opacity: 1; }
+
+  /* Onay paneli: Orion'un ONERDIGI komut. Hicbir sey calismadan once burada
+     gorunur. Renk risk seviyesine gore degisir; karar Ozyn'in tusudur. */
+  #onay {
+    position: fixed; left: 50%; top: 12%; transform: translateX(-50%); z-index: 20;
+    width: min(720px, 92vw); display: none;
+    background: rgba(10,12,20,.94); color: #e9ecf7;
+    border: 2px solid #4a5570; border-radius: 10px; padding: 14px 18px;
+    font: 14px/1.5 "Segoe UI", system-ui, sans-serif;
+    box-shadow: 0 10px 34px rgba(0,0,0,.55);
+  }
+  #onay[data-acik="1"] { display: block; }
+  #onay[data-risk="yikici"]     { border-color: #d4564f; }
+  #onay[data-risk="degistirir"] { border-color: #d8a23f; }
+  #onay[data-risk="okur"]       { border-color: #4f9d6b; }
+  #onay .baslik { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; opacity: .72; }
+  #onay .komut {
+    margin: 8px 0; padding: 9px 11px; border-radius: 6px; background: #05070d;
+    font: 15px/1.4 "Cascadia Mono", Consolas, monospace; color: #ffe9a8;
+    word-break: break-all;
+  }
+  #onay .risk { font-weight: 600; }
+  #onay[data-risk="yikici"] .risk     { color: #ff8c84; }
+  #onay[data-risk="degistirir"] .risk { color: #ffcf7a; }
+  #onay[data-risk="okur"] .risk       { color: #8fdcac; }
+  #onay .gerekce { opacity: .86; margin-top: 4px; }
+  #onay .tuslar { margin-top: 10px; font-size: 13px; opacity: .9; }
+  #onay kbd {
+    background: #222838; border: 1px solid #3d465e; border-bottom-width: 2px;
+    border-radius: 4px; padding: 1px 6px; font-family: inherit;
+  }
   #sohbet {
     position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
     z-index: 11; width: min(620px, 86vw); display: none;
@@ -38,6 +69,13 @@
   <canvas id="tuval"></canvas>
   <div id="hud"></div>
   <div id="altyazi"></div>
+  <div id="onay" data-acik="0" data-risk="degistirir">
+    <div class="baslik">Orion bir komut oneriyor — calismadi</div>
+    <div class="komut" id="onayKomut"></div>
+    <div class="risk" id="onayRisk"></div>
+    <div class="gerekce" id="onayGerekce"></div>
+    <div class="tuslar"><kbd>Y</kbd> onayla ve calistir &nbsp;·&nbsp; <kbd>N</kbd> reddet &nbsp;·&nbsp; <kbd>Esc</kbd> reddet</div>
+  </div>
   <div id="sohbet">
     <input id="sohbetGirdi" type="text" autocomplete="off" spellcheck="false"
            placeholder="Orion'a yaz… (T ile aç, Enter gönder, Esc kapat)" />

@@ -374,7 +374,10 @@ export class Yurutucu {
     // Zaten menzildeyse: anında biter, yürüme animasyonu TETİKLENMEZ.
     if (!this._oturuyor && mesafeXZ(this._konum, varis) <= zatenOrada) {
       this._aktifIptal(cikti);
-      if (varisYaw !== null) this._govdeHedefYaw = varisYaw;
+      if (varisYaw !== null) {
+        this._bakis = null;              // bkz. `_vardi`: varış yönü bakış kilidini düşürür
+        this._govdeHedefYaw = varisYaw;
+      }
       cikti.push({ niyet_id: id, durum: "basladi" });
       cikti.push({ niyet_id: id, durum: "bitti", veri: { x: this._konum.x, y: this._konum.y, z: this._konum.z } });
       return;
@@ -429,6 +432,7 @@ export class Yurutucu {
       const hata = this._yoluKur(is);
       if (hata) { cikti.push(this._hata(id, hata)); return; }
     } else if (is.varisYaw !== null) {
+      this._bakis = null;                // bkz. `_vardi`
       this._govdeHedefYaw = is.varisYaw;
     }
     this._aktif = is;
@@ -650,6 +654,19 @@ export class Yurutucu {
     this._hiz = 0;
     if (hareketliMi(this._poz.poz)) this._poz.gec("duruyor");
     if (is.varisYaw !== null) {
+      // ESKİ BAKIŞ KİLİDİ BURADA DÜŞER.
+      //
+      // `bak` niyeti kalıcı bir hedef bırakıyor ve `_bakisGuncelle` boyun
+      // sınırı aşıldığında GÖVDEYİ de o hedefe çeviriyor. İş bitip `_aktif`
+      // null olunca bu her tikte yeniden oluyordu: Orion tahtaya varıyor,
+      // varış yönüne dönüyor, sonra sessizce monitöre geri dönüyordu.
+      // Canlı ölçümde tam olarak bu görüldü (bakış tahtada değil monitörde,
+      // 9 sn boyunca sabit).
+      //
+      // Karar: açık bir varış yönü olan `git`/`otur`, eski bakış kilidini
+      // GEÇERSİZ KILAR — daha yeni ve hedef hakkında daha somut bir emirdir.
+      // Orion başka bir yere bakmak isterse yeni bir `bak` gönderir.
+      this._bakis = null;
       this._govdeHedefYaw = is.varisYaw;
       is.asama = "donuyor";
       is.asamaGecen = 0;

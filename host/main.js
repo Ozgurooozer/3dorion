@@ -21,9 +21,38 @@ let ptySayac = 0;
 /** @type {BrowserWindow | null} */
 let pencere = null;
 
+/**
+ * Dünya terminalinin kabuğu.
+ *
+ * Windows'ta artık POWERSHELL — eskiden COMSPEC (cmd.exe) idi. Sebep ölçüldü:
+ * Orion'un "bu komut başarısız oldu mu" sorusuna güvenilir cevap vermesi için
+ * komut başına ÇIKIŞ KODU gerekiyor (OSC 133 ; D ; <kod>). cmd.exe'nin PROMPT
+ * değişkeni %ERRORLEVEL%'i her istemde genişletmediğinden Microsoft'un
+ * belgelediği cmd dizisi bile kodu YAYMIYOR. PowerShell'in `prompt`
+ * fonksiyonu $LASTEXITCODE'a erişebiliyor; bu makinede node-pty üzerinden
+ * canlı doğrulandı (echo -> D;0, bilinmeyen komut -> D;1).
+ *
+ * ORION_KABUK ile geçersiz kılınabilir (ör. cmd.exe'ye dönmek için).
+ */
 function varsayilanKabuk() {
-  if (process.platform === "win32") return process.env.COMSPEC ?? "powershell.exe";
+  if (process.env.ORION_KABUK) return process.env.ORION_KABUK;
+  if (process.platform === "win32") return "powershell.exe";
   return process.env.SHELL ?? "/bin/bash";
+}
+
+/** PowerShell'e kabuk entegrasyonunu enjekte eden argümanlar. */
+function kabukArgv(kabuk) {
+  if (!/powershell\.exe$|pwsh(\.exe)?$/i.test(kabuk)) return [];
+  const E = "$([char]27)";
+  const BEL = "$([char]7)";
+  const prompt = [
+    "function prompt {",
+    "  $k = if ($?) { 0 } else { 1 };",
+    "  if ($null -ne $LASTEXITCODE -and $LASTEXITCODE -ne 0) { $k = $LASTEXITCODE };",
+    `  "${E}]133;D;$k${BEL}${E}]133;A${BEL}PS $($executionContext.SessionState.Path.CurrentLocation)> ${E}]133;B${BEL}"`,
+    "}",
+  ].join(" ");
+  return ["-NoLogo", "-NoExit", "-Command", prompt];
 }
 
 function pencereAc() {
@@ -48,7 +77,30 @@ function pencereAc() {
 
   // Duman testi: pencere açılır, ölçüm basılır, kendiliğinden kapanır.
   if (process.env.ORION_SMOKE === "1") {
-    setTimeout(() => { console.log("[DUMAN] kabuk ayakta, kapatiliyor"); app.quit(); }, 16000);
+    // Süre ayarlanabilir: gorudene gibi gerçek komut çalıştıran denemeler
+    // 16 sn'ye sığmıyor, yarıda kesilen bir deneme kanıt değildir.
+    const sure = Number(process.env.ORION_SMOKE_MS ?? 16000) || 16000;
+    setTimeout(async () => {
+      // EKRAN GORUNTUSU — gorsel isler icin tek kanit yolu.
+      //
+      // Testler geometriyi ve veriyi dogruluyor ama "ekranda dogru mu
+      // gorunuyor" sorusunu yanitlamiyor. Paneller, kamera acisi, yazi
+      // okunurlugu: bunlar ancak goruntuye bakilarak dogrulanir.
+      // ORION_SS=<yol> verilirse pencere PNG olarak kaydedilir.
+      const ss = process.env.ORION_SS;
+      if (ss && pencere && !pencere.isDestroyed()) {
+        try {
+          const g = await pencere.webContents.capturePage();
+          fs.mkdirSync(path.dirname(ss), { recursive: true });
+          fs.writeFileSync(ss, g.toPNG());
+          console.log(`[DUMAN] ekran goruntusu: ${ss}`);
+        } catch (e) {
+          console.error("[DUMAN] ekran goruntusu alinamadi:", e?.message ?? e);
+        }
+      }
+      console.log("[DUMAN] kabuk ayakta, kapatiliyor");
+      app.quit();
+    }, sure);
   }
 
   // Dış bağlantılar tarayıcıda açılır, pencerede asla.
@@ -63,6 +115,36 @@ function pencereAc() {
   if (process.env.ORION_SOZ) parcalar.push(`soz=${encodeURIComponent(process.env.ORION_SOZ)}`);
   if (process.env.ORION_TERMINAL_DENE === "1") parcalar.push("terminaldene=1", "sessiz=1");
   if (process.env.ORION_OTODENE === "1") parcalar.push("otodene=1", "sessiz=1");
+  if (process.env.ORION_GORUDENE === "1") parcalar.push("gorudene=1", "sessiz=1");
+  if (process.env.ORION_DAVRANIS === "1") parcalar.push("davranis=1");
+  if (process.env.ORION_SESSIZDENE === "1") parcalar.push("sessizdene=1", "sessiz=1");
+  if (process.env.ORION_YUZDENE === "1") parcalar.push("yuzdene=1", "sessiz=1");
+  if (process.env.ORION_HAFIZADENE === "1") parcalar.push("hafizadene=1", "sessiz=1");
+  if (process.env.ORION_TAHTADENE === "1") parcalar.push("tahtadene=1", "sessiz=1");
+  if (process.env.ORION_TAHTABEYIN === "1") parcalar.push("tahtabeyin=1", "sessiz=1");
+  if (process.env.ORION_ONAYDENE === "1") parcalar.push("onaydene=1", "sessiz=1");
+  if (process.env.ORION_TEZDENE === "1") parcalar.push("tezdene=1", "sessiz=1");
+  if (process.env.ORION_ZIHINDENE === "1") parcalar.push("zihindene=1", "sessiz=1");
+  if (process.env.ORION_ADMINDENE === "1") parcalar.push("admindene=1", "sessiz=1");
+  if (process.env.ORION_GORDENE === "1") parcalar.push("gordene=1", "sessiz=1");
+  if (process.env.ORION_SENARYODENE === "1") parcalar.push("senaryodene=1", "sessiz=1");
+  if (process.env.ORION_SAGLOBDENE === "1") parcalar.push("saglobdene=1", "sessiz=1");
+  if (process.env.ORION_ACIDENE === "1") parcalar.push("acidene=1", "sessiz=1");
+  if (process.env.ORION_BAKDENE === "1") parcalar.push("bakdene=1", "sessiz=1");
+  if (process.env.ORION_FPS === "1") parcalar.push("fps=1");
+  if (process.env.ORION_RAKIP === "1") parcalar.push("rakip=1");
+  if (process.env.ORION_GECMIS) parcalar.push(`gecmis=${process.env.ORION_GECMIS}`);
+  // Model karşılaştırması için: aynı ölçüm düzeneği, farklı beyin.
+  if (process.env.ORION_MODEL) parcalar.push(`model=${encodeURIComponent(process.env.ORION_MODEL)}`);
+  // Sağlayıcı/adres/şifre de dışarıdan: kota dolunca başka bir sağlayıcıya
+  // geçmek kod değişikliği gerektirmemeli.
+  if (process.env.ORION_SAGLAYICI) parcalar.push(`saglayici=${encodeURIComponent(process.env.ORION_SAGLAYICI)}`);
+  // Beyin seçimi: ORION_BEYIN=dis → başka bir dilde yazılmış beyne bağlan.
+  if (process.env.ORION_BEYIN) parcalar.push(`beyin=${encodeURIComponent(process.env.ORION_BEYIN)}`);
+  if (process.env.ORION_KAYIT === "1") parcalar.push("kayit=1");
+  if (process.env.ORION_BEYIN_ADRES) parcalar.push(`beyinadres=${encodeURIComponent(process.env.ORION_BEYIN_ADRES)}`);
+  if (process.env.ORION_OPENCODE) parcalar.push(`opencode=${encodeURIComponent(process.env.ORION_OPENCODE)}`);
+  if (process.env.OPENCODE_SERVER_PASSWORD) parcalar.push(`sifre=${encodeURIComponent(process.env.OPENCODE_SERVER_PASSWORD)}`);
   const sorgu = parcalar.length ? { search: `?${parcalar.join("&")}` } : {};
   const sunucu = process.env.VITE_DEV_SERVER_URL;
   if (GELISTIRME && sunucu) pencere.loadURL(sunucu + (sorgu.search ?? ""));
@@ -76,7 +158,7 @@ function pencereAc() {
 ipcMain.handle(CAGRI.ptyAc, (olay, istek) => {
   const id = `pty${++ptySayac}`;
   const kabuk = istek?.kabuk || varsayilanKabuk();
-  const p = ptySpawn(kabuk, istek?.argv ?? [], {
+  const p = ptySpawn(kabuk, istek?.argv ?? kabukArgv(kabuk), {
     name: "xterm-256color",
     cols: Math.max(20, istek?.cols ?? 80),
     rows: Math.max(5,  istek?.rows ?? 24),

@@ -35,6 +35,20 @@ const HIZ_KOS = 4.6;
 const ISIN_MENZIL = 2.5;
 /** "Orion'a bakıyor" konik toleransı (yarı açı ≈ 28°). */
 const BAKIS_KOSINUS = Math.cos(0.49);
+/**
+ * Kamera gövdeye bu mesafeden yakınsa gövde çizilmez (metre).
+ *
+ * ÖLÇÜLDÜ: açılışta HUD "gövde 1.44m görünür" diyordu ve kapsül ekranın
+ * yarısını kaplıyordu. Sebep geometri: kamera FOV'u 0.9 rad, yani 1.44 m'de
+ * dikey görüş alanı ≈ 1.39 m — kapsül ise 1.75 m boyunda. Yani o mesafede
+ * gövde ekranı dikey olarak TAMAMEN kaplıyor.
+ *
+ * İlk denemede 1.1 seçmiştim; ölçüm bunun yetersiz olduğunu gösterdi.
+ * 2.0 m'de kapsül çerçevenin alt köşesinde kalıyor ve omuz-üstü görünüm
+ * bozulmuyor. (Normal omuz mesafesi 2.8 m; bu eşik yalnızca kamera duvara
+ * sıkıştığında devreye girer.)
+ */
+const GOVDE_GIZLEME_MESAFESI = 2.0;
 
 export interface OyuncuSecenekleri {
   /** Başlangıç konumu (ayak). Varsayılan: kapının önü. */
@@ -69,7 +83,10 @@ export class Oyuncu implements KameraHedefi {
     this._rig = rig;
     this._yayici = sec.yayici ?? EtkilesimOlaylari;
 
-    this.konum = (sec.dogumYeri ?? new Vector3(2.6, 0, 2.6)).clone();
+    // Doğum yeri köşeden İÇERİ alındı. (2.6, 2.6) kapının önündeki köşeydi ve
+    // omuz kamerası arkadaki iki duvara birden sıkışıyordu: açılış manzarası
+    // oyuncunun kendi gövdesiyle kapanıyordu.
+    this.konum = (sec.dogumYeri ?? new Vector3(1.6, 0, 1.9)).clone();
     this.konum.y = 0;
 
     this.govde = CreateCapsule("oyuncu_govde", {
@@ -108,6 +125,10 @@ export class Oyuncu implements KameraHedefi {
     this._t = t;
     this._hareket(dt);
     this._etkilesimTara();
+    // Görünürlük HER TİKTE: `_govdeyiYerlestir` yalnızca `_hareket` içinde
+    // çağrılıyordu ve orası hareket yoksa erken dönüyor — oyuncu dururken
+    // gövde gizleme hiç çalışmıyordu (açılış manzarasında görüldü).
+    this._govdeGorunurluk();
   }
 
   /** Protokol biçiminde salt-okunur durum. Mesaj YAYMAZ — T4 yayar. */
@@ -166,8 +187,40 @@ export class Oyuncu implements KameraHedefi {
     // Gövde bakışın yatay yönüne döner (kamera pitch'i gövdeyi eğmez).
     this.govde.rotation.y = this._rig.yaw;
     // 1. şahısta kamera gövdenin içinde: kendi kafasını görmesin.
-    this.govde.isVisible = this._rig.mod !== "birinci" || this._rig.gecisteMi;
+    const modaGore = this._rig.mod !== "birinci" || this._rig.gecisteMi;
+
+    // 3. ŞAHISTA DA GİZLENİR — kamera gövdeye yapışmışsa.
+    //
+    // Omuz kamerası duvara çarpınca oyuncuya doğru sıkışıyor (bkz. kamera.ts
+    // duvar ışını). Odanın köşesinde bu sıkışma tam dibe kadar gidiyor ve
+    // gövde EKRANIN YARISINI kaplıyor — açılış manzarasında görüldü: dev bir
+    // mavi kubbe. Mod kuralı bunu yakalamıyordu çünkü sorun mod değil MESAFE.
+    this._modaGore = modaGore;
+    this._govdeGorunurluk();
   }
+
+  /** Son hesaplanan mod kuralı — görünürlük her tikte yeniden uygulanır. */
+  private _modaGore = true;
+
+  /**
+   * Gövde görünür mü? Kamera gövdeye yapışmışsa GİZLENİR.
+   *
+   * Omuz kamerası duvara çarpınca oyuncuya doğru sıkışıyor (kamera.ts duvar
+   * ışını). Odanın köşesinde sıkışma dibe kadar gidiyor ve gövde ekranın
+   * yarısını kaplıyor. Sorun mod değil MESAFE olduğu için mod kuralı bunu
+   * yakalamıyordu.
+   */
+  private _govdeGorunurluk(): void {
+    const k = this._rig.kamera.position;
+    const g = this.govde.position;
+    const uzaklik = Math.hypot(k.x - g.x, k.y - g.y, k.z - g.z);
+    this._sonUzaklik = uzaklik;
+    this.govde.isVisible = this._modaGore && uzaklik > GOVDE_GIZLEME_MESAFESI;
+  }
+
+  private _sonUzaklik = Infinity;
+  /** Kamera–gövde mesafesi (tanı/HUD için). */
+  get govdeUzakligi(): number { return this._sonUzaklik; }
 
   // ── Etkileşim ───────────────────────────────────────────────────────────
 
@@ -221,8 +274,17 @@ export class Oyuncu implements KameraHedefi {
       // terminal odaktayken olayın hedefi xterm'in gizli TEXTAREA'sı olduğu
       // için Esc hiç ulaşmıyor ve kullanıcı terminale hapsoluyordu.
       if (e.code === "Escape") {
-        // Esc önce etkileşimi kapatır; etkileşim yoksa fare kilidini bırakır.
-        if (!this._yayici.bitir()) this._rig.fareKilitBirak();
+        // Esc ÜÇ AŞAMALI, sırası önemli:
+        //   1. Açık bir etkileşim varsa (terminal) onu kapat — kapanışı
+        //      `odakBirak`ı zaten tetikler.
+        //   2. Etkileşimsiz bir ODAK varsa (panele tıklayarak geçilmiş) onu
+        //      bırak. Eskiden bu aşama yoktu: Esc kilidi bırakıyordu ama
+        //      kamera panelde sabit kalıyordu, yani kullanıcı panelde
+        //      mahsur kalıyordu.
+        //   3. İkisi de yoksa fare kilidini bırak — "imlecimi geri ver".
+        if (this._yayici.bitir()) return;
+        if (this._rig.odakta) { this._rig.odakBirak(); return; }
+        this._rig.fareKilitBirak();
         return;
       }
 

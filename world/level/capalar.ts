@@ -10,7 +10,7 @@
 // Babylon `Vector3` gereken yerde `capaGeometri.ts` dönüştürür.
 "use strict";
 import type { CapaAdi, Vec3 } from "../../protocol/temel.ts";
-import { MASA, MONITOR, SANDALYE, TAHTA, PENCERE, KAPI } from "./olculer.ts";
+import { MASA, MONITOR, SANDALYE, TAHTA, PENCERE, KAPI, SEMA, GUNLUK, ADMIN } from "./olculer.ts";
 
 /**
  * @deprecated `monitor` artık protokolün `CapaAdi` birliğinde. Doğrudan
@@ -40,6 +40,14 @@ export interface Capa {
   eylemler: readonly string[];
   /** HUD/altyazıda gösterilecek insan-okur ad. */
   etiket: string;
+  /**
+   * SANAL çapa: gidilebilir bir hedef ama GÖRÜLEBİLİR bir nesne değil.
+   *
+   * `oda_ortasi` böyledir — orada duran bir şey yok, yalnızca bir koordinat.
+   * Algı hizmeti bunları atlar; yoksa Orion "yakınında odanın ortası var"
+   * gibi anlamsız şeyler söylüyor (canlı ölçümde tam olarak bu oldu).
+   */
+  sanal?: true;
 }
 
 const v = (x: number, y: number, z: number): Vec3 => ({ x, y, z });
@@ -48,6 +56,7 @@ const v = (x: number, y: number, z: number): Vec3 => ({ x, y, z });
 const ARKAYA = v(0, 0, -1);
 const ONE    = v(0, 0, 1);
 const SOLA   = v(-1, 0, 0);
+const SAGA   = v(1, 0, 0);
 
 /**
  * Kayıt defteri. Sıra anlamlı değil; `capaBul` ada göre arar.
@@ -108,8 +117,38 @@ const KAYIT: readonly Capa[] = [
     eylemler: ["bak"],
     etiket: "kapı",
   },
+  // ── Zihin duvarı (sağ duvar, normal -X) ────────────────────────────────
+  // Durak panelin SOLUNDA (-X yönünde), yüzü duvara dönük: SAGA bakış.
+  {
+    ad: "sema",
+    konum: v(SEMA.x, SEMA.y, SEMA.z),
+    durak: v(SEMA.x - 1.35, 0, SEMA.z),
+    yon: SAGA,
+    yaklasmaYaricapi: 1.8,
+    eylemler: ["bak", "odaklan"],
+    etiket: "beyin şeması",
+  },
+  {
+    ad: "gunluk",
+    konum: v(GUNLUK.x, GUNLUK.y, GUNLUK.z),
+    durak: v(GUNLUK.x - 1.35, 0, GUNLUK.z),
+    yon: SAGA,
+    yaklasmaYaricapi: 1.8,
+    eylemler: ["bak", "odaklan"],
+    etiket: "beyin günlüğü",
+  },
+  {
+    ad: "admin",
+    konum: v(ADMIN.x, ADMIN.y, ADMIN.z),
+    durak: v(ADMIN.x, 0, -1.62),
+    yon: ARKAYA,
+    yaklasmaYaricapi: 1.6,
+    eylemler: ["odaklan", "kullan", "bak"],
+    etiket: "yönetim terminali",
+  },
   {
     ad: "oda_ortasi",
+    sanal: true,
     konum: v(0, 0, 0),
     durak: v(0, 0, 0),
     yon: ARKAYA,

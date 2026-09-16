@@ -15,6 +15,7 @@ import type { Saat } from "../engine/tik.ts";
 import { Yurutucu } from "./yurutucu.ts";
 import { Beden } from "./beden.ts";
 import { prosedurelIskelet } from "./prosedurel.ts";
+import { iskeletSec } from "./iskeletSecim.ts";
 import { vrmIskeletYukle } from "./vrm.ts";
 import type { AvatarIskeleti } from "./iskelet.ts";
 
@@ -26,6 +27,11 @@ export interface AvatarAyari {
   saat: Saat;
   spawn?: Vec3;
   vrmYolu?: string;
+  /**
+   * Görünüşü ifadeye tercih et: ağzı oynamayan bir VRM olsa bile kullan.
+   * Varsayılan false — konuşma bu projenin çekirdek yeteneği.
+   */
+  vrmZorla?: boolean;
   /**
    * Oyuncu konumu sağlayıcısı (isteğe bağlı). `bak {tip:"oyuncu"}` ve
    * `git {tip:"oyuncu"}` bunu kullanır; verilmezse o hedefler açık bir `hata`
@@ -63,18 +69,29 @@ export interface Avatar {
 export async function avatarKur(ayar: AvatarAyari): Promise<Avatar> {
   const yol = ayar.vrmYolu ?? VARSAYILAN_VRM;
 
-  let iskelet: AvatarIskeleti;
+  // Seçim ölçütü "yüklendi mi" DEĞİL, "ifade edebiliyor mu" — bkz.
+  // iskeletSecim.ts. Yüklenen ama ağzı oynamayan bir model eskiden kabul
+  // ediliyor, yalnızca uyarı basılıyordu; sonuç olarak ölçülmüş ağız senkronu
+  // (tepe_agiz=1.000) ekranda HİÇ görünmüyordu.
+  let vrmIskelet: AvatarIskeleti | null = null;
   try {
-    iskelet = await vrmIskeletYukle(ayar.sahne, yol);
-    console.log(`[avatar] VRM yüklendi: ${iskelet.bilgi.kaynak}`);
-    if (!iskelet.bilgi.agizDestegi) console.warn("[avatar] ağız senkronu bu iskelette görünmeyecek (blend shape yok).");
-    if (!iskelet.bilgi.basDestegi) console.warn("[avatar] baş ayrı dönmeyecek (boyun kemiği yok).");
+    vrmIskelet = await vrmIskeletYukle(ayar.sahne, yol);
+    console.log(`[avatar] VRM okundu: ${vrmIskelet.bilgi.kaynak}`);
   } catch (err) {
     const sebep = err instanceof Error ? err.message : String(err);
-    console.warn(
-      `[avatar] VRM yüklenemedi ('${yol}'): ${sebep}\n` +
-      "[avatar] PROSEDÜREL avatara düşülüyor. Dünya avatarsız kalmıyor, ama karakter " +
-      "modeli görünmüyor — dosya yolunu ve assets/ içeriğini kontrol et.");
+    console.warn(`[avatar] VRM yüklenemedi ('${yol}'): ${sebep}`);
+  }
+
+  const karar = iskeletSec(vrmIskelet?.bilgi ?? null, { vrmZorla: ayar.vrmZorla ?? false });
+  console.log(`[avatar] iskelet=${karar.secim} — ${karar.gerekce}`);
+
+  let iskelet: AvatarIskeleti;
+  if (karar.secim === "vrm" && vrmIskelet) {
+    iskelet = vrmIskelet;
+  } else {
+    // Reddedilen VRM sahnede KALMASIN: mesh'leri yok edilir. Yoksa görünmeyen
+    // ama yüklenmiş bir iskelet bellekte ve çizim listesinde durur.
+    vrmIskelet?.yokEt();
     iskelet = prosedurelIskelet(ayar.sahne);
   }
 

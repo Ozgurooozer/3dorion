@@ -51,7 +51,18 @@ export type Algi =
   /** Oyuncunun dünyadaki eylemi: odaya girdi, masaya oturdu, monitörü açtı. */
   | { tur: "olay";     ad: string; ayrinti?: Record<string, unknown> }
   /** Monitördeki terminalin son çıktısı — Orion kendi çalıştırdığı işi görür. */
-  | { tur: "terminal"; kuyruk: string; kesildi: boolean }
+  | {
+      tur: "terminal"; kuyruk: string; kesildi: boolean;
+      /**
+       * Komutun ÇIKIŞ KODU (OSC 133 ; D ; <kod>). Kabuk entegrasyonu varsa
+       * dolu gelir. Metne bakıp "başarısız mı" diye tahmin etmeye son veren
+       * alan budur: 0 = başarı, başka her şey = başarısızlık.
+       *
+       * İsteğe bağlıdır — cmd.exe kod yaymaz, kabuk entegrasyonu kapalı da
+       * olabilir. EK alan olduğu için mevcut üretici/tüketicileri kırmaz.
+       */
+      kod?: number;
+    }
   /** Gönderilmiş bir niyetin akıbeti. */
   | { tur: "sonuc";    sonuc: NiyetSonucu };
 
@@ -81,7 +92,16 @@ export function ozetle(a: Algi): string {
     case "duydum":
       return `Ozyn dedi: "${a.metin}"`;
     case "terminal":
-      return `Terminal çıktısı${a.kesildi ? " (kısaltıldı)" : ""}:\n${a.kuyruk}`;
+      // ATIF ALGIDA OLMALI. "Terminal çıktısı:" nötr bir başlıktı ve model
+      // komutu KENDİSİNİN yazdığını sanıyordu ("yazdığım komut tanınmıyor")
+      // — sistem promptunda aksi yazmasına rağmen. Ölçümde 3/3 koşuda tekrar
+      // etti. `duydum` zaten "Ozyn dedi:" diyor; burada da aynısı yapılır.
+      // Çıkış kodu VARSA tahmine gerek yok: kabuk "bu komut battı" diyor.
+      return `Ozyn'in terminalinde (masandaki ekran)${
+        a.kod === undefined ? ""
+          : a.kod === 0 ? ", komut başarıyla bitti"
+          : `, komut HATA ile bitti (çıkış kodu ${a.kod})`
+      }${a.kesildi ? ", kısaltıldı" : ""}:\n${a.kuyruk}`;
     case "dunya": {
       const n = a.nesneler.slice(0, 6).map((x) => `${x.ad}(${x.mesafe.toFixed(1)}m)`).join(", ");
       return `Dünya: ${a.orion.poz}, Ozyn ${a.oyuncu.mesafe.toFixed(1)}m ${a.oyuncu.bakiyor ? "sana bakıyor" : "başka yöne bakıyor"}. Yakında: ${n}`;
