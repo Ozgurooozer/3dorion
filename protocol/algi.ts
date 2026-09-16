@@ -64,7 +64,16 @@ export type Algi =
       kod?: number;
     }
   /** Gönderilmiş bir niyetin akıbeti. */
-  | { tur: "sonuc";    sonuc: NiyetSonucu };
+  | { tur: "sonuc";    sonuc: NiyetSonucu }
+  /**
+   * `sor` niyetinin CEVABI — beynin kendi istediği bilgi.
+   *
+   * Neden `sonuc` değil: `sonuc` bir EYLEMİN akıbetidir ve başarılı olanı
+   * rutin sayılıp beyne çıkarılmaz (mind/refleks.ts). Sorunun cevabı ise
+   * içeriğin ta kendisi — çıkarılmazsa Orion sorup cevabı hiç duymaz.
+   * Canlıda tam olarak bu oldu: `sor` gitti, cevap geldi, beyin hiç öğrenmedi.
+   */
+  | { tur: "gordum";   ne: string; metin: string };
 
 export type AlgiTur = Algi["tur"];
 
@@ -81,6 +90,8 @@ export const VARSAYILAN_KANAL: Record<AlgiTur, Kanal> = {
   olay:     "beyin",
   terminal: "beyin",
   sonuc:    "yerel",
+  // Beynin KENDİ istediği cevap: yerel kanalda tutmak soruyu anlamsız kılar.
+  gordum:   "beyin",
 };
 
 /**
@@ -112,6 +123,8 @@ export function ozetle(a: Algi): string {
       return `Olay: ${a.ad}`;
     case "sonuc":
       return `Niyet ${a.sonuc.niyet_id} → ${a.sonuc.durum}${a.sonuc.not ? ` (${a.sonuc.not})` : ""}`;
+    case "gordum":
+      return `Baktın (${a.ne}): ${a.metin}`;
     case "tik":
       // Bilerek boş: tik beyin kanalına girmez. Buraya düşmek bir hatadır.
       return "";

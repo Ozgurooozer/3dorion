@@ -360,3 +360,56 @@ test("GERİLEME: gürültü bloğu, ardından gelen GERÇEK hatanın yuvasını 
   assert.match(gorulen, /komut bulunamadi/, "gercek hata beyne ULASMALI");
   assert.equal(k.sayac().suzulen, 1, "gurultu suzgecte elenmis olmali");
 });
+
+// ── SORUNUN CEVABI BEYNE ULAŞIR ───────────────────────────────────────────
+// Canlıda bulunan hata: Orion `sor` gönderiyor, algı hizmeti doğru cevabı
+// üretiyor, ama cevap `sonuc` olarak döndüğü için "rutin başarı" sayılıp
+// süzülüyordu. Orion soruyor ve cevabı hiç duymuyordu.
+//
+// Bu testler canlı koşuya değil, DETERMİNİSTİK yola bakar: modelin o turda
+// `BAK:` üretip üretmemesi kaprisli, ama cevabın beyne ulaşması olmak zorunda.
+
+test("`gordum` beynin ÖNÜNE düşer — cevap süzülmez", async () => {
+  const b = new SahteBeyin({ metin: "", cagrilar: [] });
+  const { k } = kur(b);
+  k.algi({ tur: "gordum", ne: "onumde", metin: "yönetim terminali (birkaç adım ötede)" });
+  await bekle(60);
+  assert.equal(b.gordugu.length, 1, "beyin hic uyanmadi");
+  const ozetler = b.gordugu[0]!.ozetler.join(" | ");
+  assert.match(ozetler, /yönetim terminali/, `cevap beyne ulasmadi: "${ozetler}"`);
+});
+
+test("cevabın İÇERİĞİ taşınır — sabit kalıp değil", async () => {
+  // Hafızaya/bağlama "Baktın (onumde)" gibi sabit bir kalıp yazmak ilgi
+  // skorunu zehirler: her cevap aynı öneki paylaşırsa benzerlik içerikten
+  // değil biçimden gelir. Aynı hata daha önce `Ozyn dedi:` önekiyle yaşandı.
+  const b = new SahteBeyin({ metin: "", cagrilar: [] });
+  const { k } = kur(b);
+  k.algi({ tur: "gordum", ne: "yakin", metin: "beyaz tahta, monitör" });
+  await bekle(60);
+  const ozetler = b.gordugu[0]!.ozetler.join(" | ");
+  assert.match(ozetler, /beyaz tahta, monitör/, "icerik kaybolmus");
+});
+
+test("AYNI turda iki farklı soru birbirini düşürmez", async () => {
+  // `onumde` ve `yakin` ayrı sorulardır; ikisi de aynı "gordum" türünden
+  // geldiği için tekrar sanılıp biri atılırsa Orion yarım bilgiyle konuşur.
+  const b = new SahteBeyin({ metin: "", cagrilar: [] });
+  const { k } = kur(b);
+  k.algi({ tur: "gordum", ne: "onumde", metin: "monitör" });
+  k.algi({ tur: "gordum", ne: "yakin", metin: "masa, sandalye" });
+  await bekle(60);
+  const ozetler = b.gordugu.at(-1)!.ozetler.join(" | ");
+  assert.match(ozetler, /monitör/, "ilk soru dustu");
+  assert.match(ozetler, /masa, sandalye/, "ikinci soru dustu");
+});
+
+test("BAŞARILI niyet sonucu hâlâ süzülür — kural yalnızca `gordum` için gevşedi", async () => {
+  const b = new SahteBeyin({ metin: "", cagrilar: [] });
+  const { k } = kur(b, {
+    suzgec: (a: Algi, ozet: string) => a.tur === "gordum" || /hata/.test(ozet),
+  });
+  k.algi({ tur: "sonuc", sonuc: { niyet_id: "n1", durum: "bitti" } });
+  await bekle(60);
+  assert.equal(b.gordugu.length, 0, "rutin basari beyni uyandirmamali");
+});

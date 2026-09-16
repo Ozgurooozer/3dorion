@@ -213,3 +213,31 @@ test("SÜRE: sessiz basari (cikti yok) uzunsa bildirilir", () => {
   const bos = "Ozyn'in terminalinde, komut başarıyla bitti:\n(çıktı yok)";
   assert.equal(k.karar({ ozet: bos, tur: "terminal", kod: 0, sureMs: 8200 }).terfi, true);
 });
+
+// ── SORUNUN CEVABI SÜZÜLMEZ ───────────────────────────────────────────────
+// Canlıda bulundu: Orion `sor` gönderiyor, algı hizmeti yanıtlıyor, ama cevap
+// `sonuc` olarak geldiği için "rutin başarı" sayılıp beyne hiç çıkmıyordu.
+// Orion soruyor ve cevabı duymuyordu — döngünün yarısı sessizce kopuktu.
+
+test("`gordum` HER ZAMAN terfi eder — beyin cevabı kendisi istedi", () => {
+  const r = new KuralRefleksi();
+  for (const metin of ["yönetim terminali (birkaç adım ötede)", "yakınında bir şey yok", ""]) {
+    const k = r.karar({ tur: "gordum", ozet: `Baktın (onumde): ${metin}` });
+    assert.equal(k.terfi, true, `cevap suzuldu: "${metin}"`);
+  }
+});
+
+test("tür bilgisi olmadan da özetten tanınır — eski yol da çalışmalı", () => {
+  const k = new KuralRefleksi().karar({ ozet: "Baktın (yakin): masa, monitör" });
+  assert.equal(k.terfi, true);
+});
+
+test("BAŞARILI niyet sonucu hâlâ süzülür — kural yalnızca `gordum` için gevşedi", () => {
+  const k = new KuralRefleksi().karar({ tur: "sonuc", ozet: "Niyet n_1 → bitti" });
+  assert.equal(k.terfi, false, "rutin basari beyne cikmamali");
+});
+
+test("BAŞARISIZ niyet sonucu yine terfi eder", () => {
+  const k = new KuralRefleksi().karar({ tur: "sonuc", ozet: "Niyet n_1 → hata (uzakta)" });
+  assert.equal(k.terfi, true);
+});

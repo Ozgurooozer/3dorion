@@ -15,17 +15,48 @@
   yüz ifadesi bu yüzden sınırlı. (Ozyn ertelemişti.)
 - **STT yok** — mikrofon donanımı yok. (Ozyn ertelemişti.)
 
-## CANLI DOĞRULAMA BEKLEYEN
+## YARIM KALDI — buradan devam et (2026-09-16)
 
-- **`BAK:` etiketi.** Algı hizmeti yazıldıktan sonra fark edildi: talimat
-  modele "odaya bakmak için `dunya_sor` kullan" diyordu ama satır
-  sözleşmesinde karşılığı YOKTU — yani Orion bakma isteğini ifade edemiyordu
-  ve hizmet ulaşılamazdı. `BAK: <onumde|yakin|oyuncu|dunya>` eklendi,
-  5 birim testle korunuyor (399/399), AMA sağlayıcı kotası dolduğu için
-  gerçek modelle hiç sınanmadı. Model bu etiketi gerçekten üretiyor mu,
-  bilinmiyor.
-  Sınama yolu: kota açıkken `T` → "önünde ne var" → günlükte `sor(onumde)`
-  satırı ve şemada `BAKIŞ` kutusunun yanması beklenir.
+### `gordum` düzeltmesi: yazıldı + birim testli, CANLI DOĞRULANMADI
+
+**Hata (canlıda görüldü):** Orion `sor` gönderiyor, algı hizmeti doğru cevabı
+üretiyor, ama cevap beyne HİÇ ulaşmıyor. Orion soruyor ve cevabı duymuyor.
+
+```
+[BEYIN→NIYET] {"tur":"sor","ne":"onumde"}
+[SOR] onumde → "yönetim terminali (birkaç adım ötede)"
+dusunme: 1        ← ikinci tur hiç olmadı, Orion konuşmadı
+```
+
+**Sebebi:** cevap `sonuc` (niyet akıbeti) olarak dönüyordu; `mind/refleks.ts`
+başarılı sonuçları "rutin" sayıp beyne çıkarmıyor. O kural EYLEMLER için doğru
+("masaya yürüdü → bitti" beyni ilgilendirmez) ama `sor` bir eylem değil, SORU.
+
+**Yapılan değişiklik (3 dosya):**
+- `protocol/algi.ts` — yeni varyant `{tur:"gordum", ne, metin}`, kanal `beyin`,
+  `ozetle` içinde `Baktın (ne): metin`
+- `mind/refleks.ts` — `gordum` HER ZAMAN terfi eder ("sorunun cevabı")
+- `world/giris.ts` — `sor` artık hem `sonuc` (niyeti kapatır, rutin) hem
+  `gordum` (cevabı taşır) gönderiyor
+
+**Durum:** `npm test` 446/446 yeşil, `tsc` temiz. Refleks için 4 yeni test var.
+
+**YAPILMASI GEREKEN — tek adım:**
+```
+npx vite build
+ORION_BAKDENE=1 ORION_SMOKE=1 ORION_SMOKE_MS=45000 npx electron .
+```
+Beklenen: `[SOR] onumde → ...` satırından SONRA ikinci bir `[BEYIN→NIYET]`
+(`soyle`) ve `[SOZ]` görünmeli — yani Orion gördüğünü söylemeli.
+`dusunme` sayacı 2 veya daha fazla olmalı (önceden 1'de kalıyordu).
+
+Çalışmazsa bakılacak yer: süzgeç `gordum`u geçiriyor mu (`[kopru] suzulen`
+sayacı), ve dikkat kısması ikinci turu boğuyor mu.
+
+> NOT: Bu bölümdeki iddia belgeye erken yazılmıştı. Spec 03'te "cevap beyne
+> geri besleniyor, bir sonraki turda konuşuyor" deniyordu — ölçüm bunun
+> YANLIŞ olduğunu gösterdi. Düzeltme yapıldı ama canlı kanıt henüz yok;
+> doğrulanana kadar spec'e "çalışıyor" diye yazılmamalı.
 
 ## Sözleşme kalitesi (iyileştirme, arıza değil)
 
@@ -49,9 +80,12 @@ Satır sözleşmesi çalışıyor ve tez uçtan uca geçti. Bunlar cila:
 - **Oyuncu gövdesi kapsül.** Omuz kamerasında belirgin duruyor. Gizleme eşiği
   (2.0 m) ve omuz kayması (0.85) ölçümle ayarlandı, ama gerçek çözüm daha ince
   bir gövde ya da gerçek avatar.
-- **Günlük panelinin üst yarısı boş.** 18 satır ayrılmış, olay azken üstte
-  boşluk kalıyor. Terminal davranışı (en yeni altta) doğru; yine de satır
-  sayısı düşürülüp yazı büyütülebilir.
+- ~~Günlük panelinin yazısı küçük~~ — **ÖLÇÜLDÜ, SORUN YOK.** 18 satırda punto
+  42 mm; görme açısı panel odağında 126', oda ortasından 49', en uzak köşeden
+  29'. Rahat okuma eşiği ~20-30' olduğuna göre her mesafede yeterli. Ekran
+  görüntüsünde küçük görünmesinin sebebi çekimin 5.2 m'den ve geniş açıdan
+  alınmış olmasıydı — panel değil, çekim.
+  (Üst yarının boş kalması kusur değil: günlük terminal gibi alttan dolar.)
 
 ## Güvenlik
 
@@ -61,7 +95,7 @@ Satır sözleşmesi çalışıyor ve tez uçtan uca geçti. Bunlar cila:
 
 ## Bu oturumda ÇÖZÜLENLER (referans)
 
-Terminal kamera açısı (1./3. şahıs aynı çerçeve, görsel doğrulandı) · fare kipi
+`BAK:` etiketi CANLI doğrulandı (model doğru sorgu türünü seçiyor: "odada neler var"→`onumde`, "ben neredeyim"→`oyuncu`) · Terminal kamera açısı (1./3. şahıs aynı çerçeve, görsel doğrulandı) · fare kipi
 (odağa bağlı: gezinirken fare kamerayı sürer, ekranda imleç serbest + Ctrl'le kamera) · açılış manzarası (görünürlük her tikte,
 doğum yeri, omuz kayması) · `bak` kilidinin `git` varış yönünü ezmesi · poster
 çakışması · geçici hatada oturumun silinmesi · `GIT:` etiketinin kabuk

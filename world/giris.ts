@@ -368,7 +368,13 @@ function niyetiYurut(n: Niyet, id: string): void {
     console.log(`[SOR] ${n.ne} → "${c.metin}" (${c.maliyet} krk${c.kirpildi ? ", kırpıldı" : ""})`);
     sema.vur("bakis", n.ne);
     gunluk.ekle("bilgi", "algi", `sor(${n.ne}): ${c.metin}`);
+    // İKİ ayrı mesaj, ikisi de gerekli:
+    //   `sonuc` niyeti kapatır (rutin, beyne çıkmaz),
+    //   `gordum` CEVABI taşır ve beyne mutlaka ulaşır.
+    // Önceden yalnızca `sonuc` gönderiliyordu ve cevap süzgeçte ölüyordu:
+    // Orion soruyordu, algı hizmeti yanıtlıyordu, beyin hiç öğrenmiyordu.
     kopru?.sonuc({ niyet_id: id, durum: "bitti", not: c.metin });
+    kopru?.algi({ tur: "gordum", ne: n.ne, metin: c.metin });
     return;
   }
 

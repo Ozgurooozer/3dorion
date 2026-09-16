@@ -153,6 +153,12 @@ export class KuralRefleksi implements Refleks {
     }
 
     // Niyet sonucu: yalnızca BAŞARISIZLIK öğreticidir.
+    // Sorunun cevabı HER ZAMAN terfi eder: beyin onu kendisi istedi.
+    // Süzmek, Orion'un sorup cevabı hiç duymaması demek (canlıda yaşandı).
+    if (t === "gordum" || (!t && o.startsWith("Baktın ("))) {
+      return { terfi: true, gerekce: "sorunun cevabı" };
+    }
+
     if (t === "sonuc" || (!t && o.startsWith("Niyet "))) {
       const hata = /→\s*hata/.test(o);
       return { terfi: hata, gerekce: hata ? "niyet hatası" : "rutin başarı" };
