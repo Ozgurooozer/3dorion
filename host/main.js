@@ -131,6 +131,8 @@ function pencereAc() {
   if (process.env.ORION_SAGLOBDENE === "1") parcalar.push("saglobdene=1", "sessiz=1");
   if (process.env.ORION_ACIDENE === "1") parcalar.push("acidene=1", "sessiz=1");
   if (process.env.ORION_BAKDENE === "1") parcalar.push("bakdene=1", "sessiz=1");
+  if (process.env.ORION_ZOOMDENE === "1") parcalar.push("zoomdene=1", "sessiz=1");
+  if (process.env.ORION_ZOOM) parcalar.push(`zoom=${encodeURIComponent(process.env.ORION_ZOOM)}`);
   if (process.env.ORION_FPS === "1") parcalar.push("fps=1");
   if (process.env.ORION_RAKIP === "1") parcalar.push("rakip=1");
   if (process.env.ORION_GECMIS) parcalar.push(`gecmis=${process.env.ORION_GECMIS}`);

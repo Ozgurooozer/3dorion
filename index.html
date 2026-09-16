@@ -20,6 +20,34 @@
   }
   #altyazi[data-gorunur="1"] { opacity: 1; }
 
+  /* Zoom kumandasi: YALNIZCA bir yuzeye odaklanmisken gorunur. Odak disinda
+     kamera omuz-ustu takip yapiyor ve mesafe oyuncuya bagli — orada zoom'un
+     anlami yok, gosterilirse yalan soyler.
+     Gorunurluk data-acik ile; style.display JS'ten ASLA elle degistirilmez. */
+  #zoom {
+    /* HUD ust solda UC satir (11px/1.5 + 8px ust = ~58px). Kumanda 14px'te
+       iken ikisi cakisiyordu — ekran goruntusunde gorundu. Altina alindi. */
+    position: fixed; left: 50%; top: 64px; transform: translateX(-50%); z-index: 12;
+    display: none; align-items: center; gap: 2px; padding: 4px;
+    border-radius: 999px; border: 1px solid rgba(120,140,190,.22);
+    background: rgba(9,11,20,.82); backdrop-filter: blur(6px);
+    box-shadow: 0 2px 14px rgba(0,0,0,.45);
+    font: 12px/1 "Segoe UI", system-ui, sans-serif; color: #c5cee8;
+    user-select: none;
+  }
+  #zoom[data-acik="1"] { display: flex; }
+  #zoom button {
+    width: 26px; height: 26px; border: 0; border-radius: 999px; cursor: pointer;
+    background: transparent; color: #c5cee8; font-size: 15px; line-height: 1;
+    transition: background .12s ease, color .12s ease;
+  }
+  #zoom button:hover:not(:disabled) { background: rgba(88,193,255,.16); color: #fff; }
+  #zoom button:disabled { opacity: .3; cursor: default; }
+  #zoom .oran {
+    min-width: 46px; text-align: center; font-variant-numeric: tabular-nums;
+    color: #8b97ba; letter-spacing: .02em;
+  }
+
   /* Onay paneli: Orion'un ONERDIGI komut. Hicbir sey calismadan once burada
      gorunur. Renk risk seviyesine gore degisir; karar Ozyn'in tusudur. */
   #onay {
@@ -69,6 +97,11 @@
   <canvas id="tuval"></canvas>
   <div id="hud"></div>
   <div id="altyazi"></div>
+  <div id="zoom" data-acik="0">
+    <button id="zoomUzak" type="button" title="uzaklaş (tekerlek aşağı)">−</button>
+    <span class="oran" id="zoomOran">%100</span>
+    <button id="zoomYakin" type="button" title="yakınlaş (tekerlek yukarı)">+</button>
+  </div>
   <div id="onay" data-acik="0" data-risk="degistirir">
     <div class="baslik">Orion bir komut oneriyor — calismadi</div>
     <div class="komut" id="onayKomut"></div>

@@ -24,6 +24,17 @@ export interface Oneri {
   risk: RiskKarari;
   /** Öneri anı (ms). */
   an: number;
+  /**
+   * DONDURULMUŞ son tarih (ms). Öneri anında hesaplanır ve BİR DAHA DEĞİŞMEZ.
+   *
+   * Neden saklanıyor: eskiden kontrol `simdi - an < zamanAsimi` idi, yani
+   * ÖZGÜN damga GÜNCEL süreyle karşılaştırılıyordu. Süre canlı değişebilir
+   * hale gelince (devre panosu) bu, bekleyen öneriyi Ozyn hiçbir şey
+   * yapmadan düşürüyor ve denetim izine "dustu" diye yazıyordu — iz yalan
+   * söylüyordu. Ozyn'e gösterilen son tarih bir SÖZLEŞMEDİR; geriye dönük
+   * değiştirmek, basmak üzere olduğu tuşun anlamını değiştirir.
+   */
+  sonTarih: number;
 }
 
 export type KapiDurumu = "bos" | "bekliyor";
@@ -36,28 +47,39 @@ export interface OneriSonucu {
 
 export interface KarardanSonra {
   oneri: Oneri;
-  karar: "onay" | "ret" | "dustu";
+  /**
+   * `elle_dusuruldu`: Ozyn öneriyi panodan iptal etti. ASLA "onay" değildir —
+   * panodan onaya giden bir yol YOKTUR.
+   */
+  karar: "onay" | "ret" | "dustu" | "elle_dusuruldu";
   /** Öneriden karara kadar geçen süre (ms). */
   sureMs: number;
 }
 
 export interface OnayKapisiAyari {
-  /** Bekleyen öneri bu süre içinde karara bağlanmazsa DÜŞER (onaylanmaz). */
-  zamanAsimiMs?: number;
+  /**
+   * Bekleyen öneri bu süre içinde karara bağlanmazsa DÜŞER (onaylanmaz).
+   *
+   * Fonksiyon da verilebilir: devre panosu bu ayarı CANLI değiştirecek ve
+   * "düğme = tel, değer değil" ilkesi gereği karar yolu ile panel AYNI
+   * fonksiyonu okumalı — kopya tutulursa ikisi sessizce ayrışır.
+   */
+  zamanAsimiMs?: number | (() => number);
   simdi?: () => number;
 }
 
 export class OnayKapisi {
   private _bekleyen: Oneri | null = null;
-  private _zamanAsimi: number;
+  private _zamanAsimi: () => number;
   private _simdi: () => number;
   private _gecmis: KarardanSonra[] = [];
-  private _sayac = { onerilen: 0, onaylanan: 0, reddedilen: 0, dusen: 0, ezilmeyeCalisan: 0 };
+  private _sayac = { onerilen: 0, onaylanan: 0, reddedilen: 0, dusen: 0, elleDusurulen: 0, ezilmeyeCalisan: 0 };
 
   constructor(ayar: OnayKapisiAyari = {}) {
     // 90 sn: kullanıcı ekrana bakmıyor olabilir. Süre dolunca öneri DÜŞER,
     // asla onaylanmaz — "beklerken kabul edildi" diye bir şey yok.
-    this._zamanAsimi = ayar.zamanAsimiMs ?? 90_000;
+    const za = ayar.zamanAsimiMs ?? 90_000;
+    this._zamanAsimi = typeof za === "function" ? za : () => za;
     this._simdi = ayar.simdi ?? (() => Date.now());
   }
 
@@ -88,7 +110,10 @@ export class OnayKapisi {
     const k = komut.trim();
     if (!k) return { kabul: false, sebep: "boş komut önerilemez" };
 
-    this._bekleyen = { id, komut: k, gerekce: gerekce.trim(), risk: komutRiski(k), an: simdi };
+    this._bekleyen = {
+      id, komut: k, gerekce: gerekce.trim(), risk: komutRiski(k), an: simdi,
+      sonTarih: simdi + this._zamanAsimi(),   // DONDURULDU
+    };
     this._sayac.onerilen++;
     return { kabul: true };
   }
@@ -130,10 +155,30 @@ export class OnayKapisi {
     return this._zamanAsimiKontrol(simdiMs ?? this._simdi());
   }
 
+  /**
+   * Bekleyen öneriyi Ozyn elle iptal etti (panodan).
+   *
+   * Bu bir AYAR değil EYLEMDİR: zaman aşımını kısaltarak öneri düşürmek
+   * denetim izini kirletir ("dustu" yazar, oysa insan iptal etmiştir).
+   * Ayrı karar türü olması izin dürüst kalmasını sağlar.
+   */
+  elleDusur(gerekce = ""): Oneri | null {
+    const simdi = this._simdi();
+    const o = this._bekleyen;
+    if (!o) return null;
+    this._bekleyen = null;
+    this._sayac.elleDusurulen++;
+    this._kaydet(o, "elle_dusuruldu", simdi);
+    if (gerekce) console.log(`[ONAY] elle dusuruldu: ${o.komut} — ${gerekce}`);
+    return o;
+  }
+
   private _zamanAsimiKontrol(simdi: number): Oneri | null {
     const o = this._bekleyen;
     if (!o) return null;
-    if (simdi - o.an < this._zamanAsimi) return null;
+    // Dondurulmuş son tarih. Ayar sonradan değişse bile bu öneri kendi
+    // sözleşmesiyle yaşar; yeni ayar SONRAKİ öneriye uygulanır.
+    if (simdi < o.sonTarih) return null;
     this._bekleyen = null;
     this._sayac.dusen++;
     this._kaydet(o, "dustu", simdi);

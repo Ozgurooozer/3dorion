@@ -20,6 +20,7 @@ import { Engine } from "@babylonjs/core/Engines/engine";
 import { Scene } from "@babylonjs/core/scene";
 import { Color4 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
+import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import "@babylonjs/core/Materials/standardMaterial";
 // YAN ETKİ — iki ayrı kullanıcısı var, ikisi de bu satır olmadan SESSİZCE bozulur:
 //   `Scene.pickWithRay` (kamera duvar testi) ve `Scene.pick` (odakta tıklama).
@@ -577,6 +578,10 @@ EtkilesimOlaylari.dinle("bitti", (o) => {
  */
 async function monitoreGec(): Promise<void> {
   adminTerminal.odaklan(false);   // iki terminale birden yazılmaz
+  // Terminallerde zoom YOK: 0.95 m okunabilirlik için ÖLÇÜLDÜ (1.5 m'de
+  // hücre başına 4.4 piksel, okunmuyor; 0.6 m'de ~11 piksel). Genel
+  // çerçeveleme hesabıyla ezmek o ölçümü çöpe atardı.
+  odakMesh = null; zoomUygula(false);
   const ekranNoktasi = oda.monitorEkran.getAbsolutePosition();
   // Odak kipi (sinematik DEĞİL): fare oynayınca bozulmaz, yalnızca Esc çözer.
   // 0.95 m: 0.62'de ekran çerçeveyi taşıyordu, bütün ekran görünsün.
@@ -598,6 +603,7 @@ async function monitoreGec(): Promise<void> {
  */
 async function admineGec(): Promise<void> {
   monitor.odaklan(false);
+  odakMesh = null; zoomUygula(false);   // bkz. monitoreGec: mesafe ölçülmüş
   // Ekranın KENDİ normali boyunca konumlan: admin monitörü masada açılı.
   // CreatePlane'in varsayılan normali -Z olduğu için yön oradan türetilir.
   const yon = oda.adminEkran.getDirection(new Vector3(0, 0, -1));
@@ -650,14 +656,102 @@ const YUZEY_GECISI: Record<string, () => void | Promise<void>> = {
  * normali kullanılır — duvara asılı paneller için "oda ortasına doğru"
  * varsayımı yanlış çerçeveliyordu (yönetim terminalinde ölçülmüştü).
  */
-function panelOdak(mesh: { getAbsolutePosition(): Vector3; getDirection(v: Vector3): Vector3 },
-                   etiket: string): void {
+/**
+ * Yüzeyin TAMAMININ çerçeveye sığacağı kamera mesafesi.
+ *
+ * Sabit mesafe yanlıştı: 1.15 m'de görünen dikey alan 1.11 m, oysa zihin
+ * duvarı panelleri 1.35 m — tablo çerçeveyi taşıyordu ve alt/üstü kesiliyordu
+ * (Ozyn bildirdi, hesapla doğrulandı).
+ *
+ * Artık mesafe geometriden türüyor: dikey görüş alanı `2·d·tan(fov/2)`, bunu
+ * yüzey yüksekliğine eşitleyip %15 pay bırakıyoruz. Böylece kural her panel
+ * boyutunda kendiliğinden doğru — yeni bir yüzey eklendiğinde sayı ayarlamak
+ * gerekmiyor.
+ */
+function cerceveMesafesi(mesh: AbstractMesh, pay = 1.15): number {
+  const k = mesh.getBoundingInfo().boundingBox.extendSize;
+  const o = mesh.absoluteScaling;
+  const yukseklik = Math.max(0.1, k.y * 2 * Math.abs(o.y));
+  const genislik = Math.max(0.1, k.x * 2 * Math.abs(o.x));
+
+  const dikeyFov = rig.kamera.fov;
+  const enBoy = Math.max(0.5, motor.getRenderWidth() / Math.max(1, motor.getRenderHeight()));
+
+  // İki kısıt: yükseklik dikey FOV'a, genişlik yatay FOV'a sığmalı.
+  // Hangisi daha uzak mesafe istiyorsa o kazanır.
+  const dikeyIcin = (yukseklik * pay) / (2 * Math.tan(dikeyFov / 2));
+  const yatayIcin = (genislik * pay) / (2 * Math.tan(dikeyFov / 2) * enBoy);
+  return Math.max(dikeyIcin, yatayIcin);
+}
+
+// ── ZOOM — odaktaki yüzeyi ne kadar yakından çerçeveliyoruz ───────────────
+//
+// `cerceveMesafesi`'nin `pay` çarpanı zaten "yüzeyin etrafında ne kadar boşluk
+// kalsın" demek: 1.0 = tam sığar, büyüdükçe uzaklaşır. Zoom bu tek sayıyı
+// oynatıyor — FOV'a dokunmuyoruz çünkü FOV değiştirmek perspektifi bozar
+// (dolly ile zoom farkı), oysa burada istenen şey kameranın geri çekilmesi.
+//
+// Aralık ölçümle değil geometriyle seçildi: 0.70'te panel çerçeveyi taşar
+// (kırpma kasıtlı, detaya bakmak için), 3.0'da oda bağlamıyla birlikte görünür.
+const ZOOM_EN_YAKIN = 0.70;
+const ZOOM_EN_UZAK = 3.00;
+const ZOOM_ADIM = 0.15;
+const ZOOM_VARSAYILAN = 1.15;
+
+let zoomPayi = ZOOM_VARSAYILAN;
+/** Odaklanılan mesh — zoom değişince yeniden çerçevelemek için saklanır. */
+let odakMesh: AbstractMesh | null = null;
+
+const zoomKutu = document.getElementById("zoom") as HTMLElement;
+const zoomOran = document.getElementById("zoomOran") as HTMLElement;
+const zoomYakinDugme = document.getElementById("zoomYakin") as HTMLButtonElement;
+const zoomUzakDugme = document.getElementById("zoomUzak") as HTMLButtonElement;
+
+/** Kumandayı ve kamerayı güncel zoom'a göre tazeler. */
+function zoomUygula(yenidenCerceveleme = true): void {
+  const acik = odakMesh !== null;
+  zoomKutu.dataset.acik = acik ? "1" : "0";
+  if (!acik) return;
+
+  // %100 = varsayılan çerçeveleme. Kullanıcı "1.15 pay" değil "%100" görür.
+  zoomOran.textContent = `%${Math.round((ZOOM_VARSAYILAN / zoomPayi) * 100)}`;
+  zoomYakinDugme.disabled = zoomPayi <= ZOOM_EN_YAKIN + 1e-6;
+  zoomUzakDugme.disabled = zoomPayi >= ZOOM_EN_UZAK - 1e-6;
+
+  if (!yenidenCerceveleme || !odakMesh) return;
+  // `odakKilitle` mutlak konum saklıyor; yeniden çağırmak dolly'yi başlatır
+  // ve kamera zaten hedefe lerp'lediği için geçiş bedavaya yumuşak olur.
+  const yon = odakMesh.getDirection(new Vector3(0, 0, -1));
+  rig.odakKilitle(odakMesh.getAbsolutePosition(), cerceveMesafesi(odakMesh, zoomPayi), 0.02, yon);
+}
+
+function zoomDegistir(delta: number): void {
+  if (!odakMesh) return;
+  const yeni = Math.max(ZOOM_EN_YAKIN, Math.min(ZOOM_EN_UZAK, zoomPayi + delta));
+  if (Math.abs(yeni - zoomPayi) < 1e-6) return;   // uçta: sessizce hiçbir şey yapma
+  zoomPayi = yeni;
+  zoomUygula();
+}
+
+zoomYakinDugme.addEventListener("click", () => zoomDegistir(-ZOOM_ADIM));
+zoomUzakDugme.addEventListener("click", () => zoomDegistir(+ZOOM_ADIM));
+
+// Tekerlek: düğmeler keşfedilebilirlik için, tekerlek hız için.
+// Yalnızca odakta çalışır — gezinirken tekerleğin başka bir anlamı yok.
+tuval.addEventListener("wheel", (e) => {
+  if (!odakMesh) return;
+  e.preventDefault();
+  zoomDegistir(e.deltaY > 0 ? +ZOOM_ADIM : -ZOOM_ADIM);
+}, { passive: false });
+
+function panelOdak(mesh: AbstractMesh, etiket: string): void {
   monitor.odaklan(false);
   adminTerminal.odaklan(false);
   // CreatePlane'in yüzey normali -Z; mesh döndürülmüş olsa da bu doğru yönü verir.
-  const yon = mesh.getDirection(new Vector3(0, 0, -1));
-  rig.odakKilitle(mesh.getAbsolutePosition(), 1.15, 0.02, yon);
-  altyaziGoster(`${etiket} — Esc ile çık`, 2400);
+  odakMesh = mesh;
+  zoomPayi = ZOOM_VARSAYILAN;        // her yeni panelde temiz başla
+  zoomUygula();                      // kamerayı da kurar
+  altyaziGoster(`${etiket} — fare serbest, tıklayabilirsin · Esc ile çık`, 3000);
 }
 
 // Tıklanabilirlik GÖRÜNÜR olmalı: gizli davranış "düzgün kullanım" değildir.
@@ -712,6 +806,11 @@ function monitordenCik(): void {
 
 // ── HUD: K1 ve K2 ölçümleri ekranda. "Sanırım hızlı" yerine sayı. ─────────
 setInterval(() => {
+  // Odaktan çıkışın birden çok yolu var (Esc, panel değişimi, terminale
+  // geçiş). Her birine ayrı temizlik kancası asmak yerine tek gözetim
+  // noktası: odak düştüyse zoom kumandası da kapanır.
+  if (!rig.odakta && odakMesh) { odakMesh = null; zoomUygula(false); }
+
   const hz = saat.olculenHz;
   const d = oyuncu.oyuncuDurumu();
   hud.textContent =
@@ -1457,6 +1556,26 @@ if (new URLSearchParams(location.search).has("admindene")) {
     console.log(`[ADMINDENE] ${sonraDusunme === oncekiDusunme ? "GECTI" : "KALDI"} `
       + `admin cikisi Orion'a sizmadi (dusunme ${oncekiDusunme} -> ${sonraDusunme})`);
     console.log(`[ADMINDENE] ana monitor acik mi: ${monitor.acikMi()}`);
+  })();
+}
+
+// ── ZOOM denemesi (?zoomdene=1) ───────────────────────────────────────────
+// Ozyn'in bildirdiği şikayet: "kamera hâlâ çok yakın tabloya, tabloyu tam
+// göremiyorum." Zoom eklendi; bu kip üç seviyede ekran görüntüsü aldırır.
+// `ORION_ZOOM=<pay>` ile tek bir seviye seçilir.
+if (new URLSearchParams(location.search).has("zoomdene")) {
+  void (async () => {
+    const bekle = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    await bekle(1500);
+    panelOdak(oda.semaYuzey, "beyin şeması");
+    const istenen = Number(new URLSearchParams(location.search).get("zoom") ?? "0");
+    if (istenen > 0) {
+      zoomPayi = istenen;
+      zoomUygula();
+    }
+    await bekle(2500);
+    console.log(`[ZOOMDENE] pay=${zoomPayi.toFixed(2)} oran=${zoomOran.textContent} `
+      + `kumanda=${zoomKutu.dataset.acik} odakta=${rig.odakta}`);
   })();
 }
 

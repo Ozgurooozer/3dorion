@@ -159,3 +159,71 @@ export function yerlesim(
   }
   return harita;
 }
+
+// ── ALAN GEOMETRİSİ — çizim ve TIKLAMA aynı kaynaktan okur ────────────────
+//
+// NEDEN BURADA: bu oranlar `sema.ts`'in `ciz()` fonksiyonunun içindeydi
+// (`kenar`, `basYuk`, `altYuk`) ve yerleşime uygulanan `+y0` kaydırması da
+// orada ayrı bir yardımcıdaydı. Tıklama testi bu DÖRT sayıyı yeniden
+// hesaplasaydı çizim ile tıklama iki ayrı matematiğe dayanırdı ve er geç
+// kayarlardı — kullanıcıya "panel biraz şaşı" diye görünen, ama aslında iki
+// kopya arasındaki sapma olan bir hata.
+//
+// Artık tek kaynak burası. `sema.ts` çizerken, vuruş testi tıklarken
+// aynı fonksiyonları çağırır.
+
+/** Panelin şerit/kenar geometrisi. Tüm oranlar burada, başka hiçbir yerde. */
+export interface SemaAlani {
+  genislik: number;
+  yukseklik: number;
+  /** Dış kenar boşluğu. */
+  kenar: number;
+  /** Başlık şeridi yüksekliği. Şema alanı bunun ALTINDA başlar. */
+  basYuk: number;
+  /** Alt durum şeridi yüksekliği. */
+  altYuk: number;
+  /** Şema alanının üst kenarı (= basYuk). */
+  y0: number;
+  /** Şema alanının yüksekliği (şeritler düşülmüş). */
+  alanYuk: number;
+}
+
+export function semaAlani(genislik: number, yukseklik: number): SemaAlani {
+  // Math.round: `sema.ts`'teki özgün davranış birebir korunuyor. Yuvarlamayı
+  // kaldırmak kutuları yarım piksel kaydırır ve yazıyı bulanıklaştırır.
+  const kenar = Math.round(yukseklik * 0.04);
+  const basYuk = Math.round(yukseklik * 0.11);
+  const altYuk = Math.round(yukseklik * 0.10);
+  return {
+    genislik, yukseklik, kenar, basYuk, altYuk,
+    y0: basYuk,
+    alanYuk: yukseklik - basYuk - altYuk,
+  };
+}
+
+/** Panelde GÖRÜLEN kutular — `yerlesim()` + dikey kaydırma. */
+export function semaYerlesimi(
+  alan: SemaAlani, dugumler: readonly Dugum[] = DUGUMLER,
+): Map<string, Kutu> {
+  const ham = yerlesim(alan.genislik, alan.alanYuk, alan.kenar, dugumler);
+  const cikti = new Map<string, Kutu>();
+  for (const [ad, k] of ham) cikti.set(ad, { ...k, y: k.y + alan.y0 });
+  return cikti;
+}
+
+/**
+ * Piksel noktası hangi düğümün üstünde? Kutu dışıysa `null`.
+ *
+ * Başlık ve alt şerit bilerek `null` döner: oralara tıklamak bir düğüm
+ * seçmek değildir ve "yanlışlıkla en yakın kutuyu seç" davranışı devre
+ * panosunda tehlikelidir — operatör neye bastığını bilmeli.
+ */
+export function dugumBul(
+  alan: SemaAlani, px: number, py: number, dugumler: readonly Dugum[] = DUGUMLER,
+): string | null {
+  if (py < alan.y0 || py > alan.y0 + alan.alanYuk) return null;
+  for (const [ad, k] of semaYerlesimi(alan, dugumler)) {
+    if (px >= k.x && px <= k.x + k.g && py >= k.y && py <= k.y + k.yuk) return ad;
+  }
+  return null;
+}

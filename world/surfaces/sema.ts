@@ -13,8 +13,8 @@ import type { Scene } from "@babylonjs/core/scene";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import { yuzeyKur, RENK, YAZI, zeminDoldur, yuvarlakKutu } from "./yuzey.ts";
 import type { Yuzey, YuzeyOlcusu } from "./yuzey.ts";
-import { DUGUMLER, OKLAR, semaDurumuKur, yerlesim } from "./semaCekirdek.ts";
-import type { Dugum, Kutu, SemaDurumu } from "./semaCekirdek.ts";
+import { DUGUMLER, OKLAR, semaDurumuKur, semaAlani, semaYerlesimi } from "./semaCekirdek.ts";
+import type { Dugum, Kutu, SemaAlani, SemaDurumu } from "./semaCekirdek.ts";
 
 export interface SemaAyari {
   sahne: Scene;
@@ -53,9 +53,11 @@ export function semaKur(ayar: SemaAyari): SemaPaneli {
     const simdi = Date.now();
     zeminDoldur(bag, o, RENK.ekranZemin);
 
-    const kenar = Math.round(o.yukseklik * 0.04);
-    const basYuk = Math.round(o.yukseklik * 0.11);
-    const altYuk = Math.round(o.yukseklik * 0.10);
+    // Geometri TEK KAYNAKTAN: `semaCekirdek.semaAlani`. Bu oranlar eskiden
+    // burada hesaplanıyordu; tıklama testi de aynı sayılara ihtiyaç duyduğu
+    // için çekirdeğe taşındı — iki kopya er geç birbirinden kayardı.
+    const alan: SemaAlani = semaAlani(o.genislik, o.yukseklik);
+    const { kenar, basYuk, altYuk } = alan;
 
     // ── Başlık ───────────────────────────────────────────────────────────
     bag.fillStyle = "#0d1220";
@@ -80,9 +82,7 @@ export function semaKur(ayar: SemaAyari): SemaPaneli {
     bag.moveTo(0, basYuk); bag.lineTo(o.genislik, basYuk); bag.stroke();
 
     // ── Şema alanı ───────────────────────────────────────────────────────
-    const alanY0 = basYuk;
-    const alanYuk = o.yukseklik - basYuk - altYuk;
-    const kutular = yerlesimAlanda(o.genislik, alanYuk, kenar, alanY0);
+    const kutular = semaYerlesimi(alan);
 
     // Oklar ÖNCE: kutuların altında kalsınlar.
     for (const [a, b] of OKLAR) {
@@ -135,14 +135,6 @@ export function semaKur(ayar: SemaAyari): SemaPaneli {
     bag.font = `${Math.round(altYuk * 0.40)}px ${YAZI.tek}`;
     bag.fillText(kirp(bag, altDurum || "hazır", o.genislik - kenar * 2),
       kenar, o.yukseklik - altYuk / 2);
-  }
-
-  /** Şema alanı başlık/alt şerit arasında; yerleşimi oraya kaydırır. */
-  function yerlesimAlanda(genislik: number, alanYuk: number, kenar: number, y0: number): Map<string, Kutu> {
-    const ham = yerlesim(genislik, alanYuk, kenar);
-    const cikti = new Map<string, Kutu>();
-    for (const [ad, k] of ham) cikti.set(ad, { ...k, y: k.y + y0 });
-    return cikti;
   }
 
   const yuzey: Yuzey = yuzeyKur({

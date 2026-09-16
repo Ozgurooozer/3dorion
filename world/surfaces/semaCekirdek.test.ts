@@ -4,7 +4,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   DUGUMLER, OKLAR, PARILTI_MS, semaDurumuKur, yerlesim,
+  semaAlani, semaYerlesimi, dugumBul,
 } from "./semaCekirdek.ts";
+import type { Kutu } from "./semaCekirdek.ts";
 
 test("her okun iki ucu da kayıtlı bir düğüm — kopuk ok yok", () => {
   const adlar = new Set(DUGUMLER.map((d) => d.ad));
@@ -93,4 +95,99 @@ test("bilinmeyen düğüm okumak çökmez — boş durum döner", () => {
   const b = d.oku("yok_boyle_bir_sey");
   assert.equal(b.sayac, 0);
   assert.equal(b.arizali, false);
+});
+
+// ── EŞDEĞERLİK: yeni geometri ESKİ çizim matematiğiyle BİREBİR aynı ───────
+//
+// S1 refactor'ünün kapısı. Oranlar `sema.ts`'in `ciz()` içinden çekirdeğe
+// taşındı; taşıma sırasında bir piksel bile kaymadığını kanıtlamak gerek.
+// Eski matematik burada REFERANS olarak yeniden yazılıyor — iki bağımsız
+// uygulama aynı sonucu veriyorsa taşıma temizdir.
+
+/** `sema.ts`'in taşınmadan ÖNCEKİ hesabı, birebir. */
+function eskiMatematik(genislik: number, yukseklik: number) {
+  const kenar = Math.round(yukseklik * 0.04);
+  const basYuk = Math.round(yukseklik * 0.11);
+  const altYuk = Math.round(yukseklik * 0.10);
+  const alanY0 = basYuk;
+  const alanYuk = yukseklik - basYuk - altYuk;
+  const ham = yerlesim(genislik, alanYuk, kenar);
+  const kutular = new Map<string, Kutu>();
+  for (const [ad, k] of ham) kutular.set(ad, { ...k, y: k.y + alanY0 });
+  return { kenar, basYuk, altYuk, kutular };
+}
+
+test("semaAlani ESKİ oranları birebir üretir", () => {
+  for (const [g, y] of [[910, 512], [1820, 1024], [600, 400]] as const) {
+    const eski = eskiMatematik(g, y);
+    const a = semaAlani(g, y);
+    assert.equal(a.kenar, eski.kenar, `${g}x${y} kenar kaydı`);
+    assert.equal(a.basYuk, eski.basYuk, `${g}x${y} başlık kaydı`);
+    assert.equal(a.altYuk, eski.altYuk, `${g}x${y} alt şerit kaydı`);
+  }
+});
+
+test("semaYerlesimi ESKİ kutuların AYNISINI üretir — bir piksel bile kaymaz", () => {
+  for (const [g, y] of [[910, 512], [1820, 1024], [600, 400]] as const) {
+    const eski = eskiMatematik(g, y).kutular;
+    const yeni = semaYerlesimi(semaAlani(g, y));
+    assert.equal(yeni.size, eski.size, `${g}x${y} kutu sayısı değişti`);
+    for (const [ad, e] of eski) {
+      const n = yeni.get(ad);
+      assert.ok(n, `${ad} kayboldu`);
+      assert.deepEqual(n, e, `${g}x${y} ${ad} kaydı`);
+    }
+  }
+});
+
+// ── VURUŞ TESTİ ───────────────────────────────────────────────────────────
+
+test("her düğümün MERKEZİ kendi adına döner — gidiş-dönüş", () => {
+  const alan = semaAlani(910, 512);
+  for (const [ad, k] of semaYerlesimi(alan)) {
+    const bulunan = dugumBul(alan, k.x + k.g / 2, k.y + k.yuk / 2);
+    assert.equal(bulunan, ad, `${ad} merkezi ${bulunan} olarak okundu`);
+  }
+});
+
+test("her düğümün DÖRT KÖŞESİ de kendi adına döner", () => {
+  const alan = semaAlani(910, 512);
+  for (const [ad, k] of semaYerlesimi(alan)) {
+    const koseler: readonly (readonly [number, number])[] =
+      [[1, 1], [k.g - 1, 1], [1, k.yuk - 1], [k.g - 1, k.yuk - 1]];
+    for (const [dx, dy] of koseler) {
+      assert.equal(dugumBul(alan, k.x + dx, k.y + dy), ad, `${ad} köşesi kaçtı`);
+    }
+  }
+});
+
+test("BAŞLIK ve ALT ŞERİT null döner — yanlışlıkla düğüm seçilmez", () => {
+  const alan = semaAlani(910, 512);
+  assert.equal(dugumBul(alan, 455, alan.basYuk / 2), null, "başlıkta düğüm bulundu");
+  assert.equal(dugumBul(alan, 455, alan.yukseklik - alan.altYuk / 2), null, "alt şeritte düğüm bulundu");
+});
+
+test("OK KANALINA tıklamak null döner — en yakına yuvarlama YOK", () => {
+  // Devre panosunda "yanlışlıkla en yakın kutuyu seç" tehlikelidir:
+  // operatör neye bastığını bilmeli.
+  const alan = semaAlani(910, 512);
+  const k = semaYerlesimi(alan).get("algi")!;
+  // Kutunun hemen sağındaki boşluk (oklar oradan geçer).
+  assert.equal(dugumBul(alan, k.x + k.g + 5, k.y + k.yuk / 2), null);
+});
+
+test("alan DIŞINA tıklamak çökmez", () => {
+  const alan = semaAlani(910, 512);
+  const noktalar: readonly (readonly [number, number])[] =
+    [[-50, -50], [99999, 99999], [0, 0], [910, 512]];
+  for (const [px, py] of noktalar) {
+    assert.doesNotThrow(() => dugumBul(alan, px, py));
+  }
+});
+
+test("DAR panelde de vuruş testi tutarlı", () => {
+  const alan = semaAlani(320, 180);
+  for (const [ad, k] of semaYerlesimi(alan)) {
+    assert.equal(dugumBul(alan, k.x + k.g / 2, k.y + k.yuk / 2), ad);
+  }
 });
