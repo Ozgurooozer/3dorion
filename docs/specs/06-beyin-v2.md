@@ -170,23 +170,34 @@ oda turu ve Faz 2'nin Haiku kolu sınır sıfırlanınca yapılacak.
 
 ## 6.6 Faz 2 — nedensellik sonucu (2026-09-17)
 
+> **İlk ölçüm GEÇERSİZDİ, alet bozuktu.** `bridge/ollama.ts` kullanıcı
+> mesajını kendisi kuruyor ve `anilar` alanını HİÇ kullanmıyordu. Yani yerel
+> beyinde A ve B kolları **birebir aynı girdiye** dönüşüyordu; ölçülen
+> "%50 → %100" farkı gürültüydü. Aynı hata bir ürün hatasıydı: Orion yerel
+> beyinle çalışırken uzun vadeli hafızası hiç yoktu. Düzeltildi ve
+> `bridge/baglamSozlesmesi.test.ts` ile her beyin için sabitlendi (düzeltme
+> geri alınınca test kırmızıya dönüyor — doğrulandı).
+
 Aynı gerçek girdi, tek değişken anılar. Fixture: `fixtures/sadakat/{A,B}.json`.
 
 | beyin | kol | sadık | nesneyi söyledi | uydurma |
 |---|---|---|---|---|
-| `qwen2.5:7b` (yerel) | A — eski anılarla | **5/10 (%50)** | 7/10 | 2/10 |
-| `qwen2.5:7b` (yerel) | B — anılarsız | **10/10 (%100)** | 10/10 | **0** |
-| `opencode` ling-3.0 | A — eski anılarla | 4/10 (%40) | 7/10 | 4/10 |
-| `opencode` ling-3.0 | B — anılarsız | 2/3 (%67)* | 2/3 | 1/3 |
+| `qwen2.5:7b` | A — eski anılarla | **1/10 (%10)** | 5/10 | monitör 9, masa 7, tahta 6 |
+| `qwen2.5:7b` | B — anılarsız | **6/10 (%60)** | 7/10 | pencere 2 |
+| `opencode` ling-3.0 | A — eski anılarla | 4/10 (%40) | 7/10 | masa 2, monitör 1, tahta 1 |
+| `opencode` ling-3.0 | B — anılarsız | 2/3 (%67)\* | 2/3 | masa 1 |
 
 \* Günlük ücretsiz kota 4. koşuda doldu; kol eksik.
 
-**Geçerlilik:** A kolu sorunu ölçülebilir oranda gösteriyor (yerelde 5/10
-sadakatsiz), yani test pozitif üretebiliyor — "fark yok" sonucu okunabilir
-olurdu. **Sonuç: K2 doğrulandı**, eski anılar sadakati düşürüyor. Faz 3 açık.
+**En güçlü kanıt sayı değil, uydurulanın KİMLİĞİ:** A kolunda uydurulan
+nesneler (monitör 9/10, masa 7/10, tahta 6/10) tam olarak eski anıların
+içeriği — `yakin: yönetim terminali, çalışma masası, monitör` ve
+`onumde: beyaz tahta`. Model onları kopyalıyor.
 
-Haiku kolu Claude aylık harcama sınırı nedeniyle bekliyor; sınır sıfırlanınca
-aynı fixture'larla eklenecek.
+**Geçerlilik:** A kolu sorunu ölçülebilir oranda gösteriyor, yani test pozitif
+üretebiliyor. **K2 doğrulandı.**
+
+Haiku kolu Claude aylık harcama sınırı nedeniyle bekliyor.
 
 ## 7. Riskler
 

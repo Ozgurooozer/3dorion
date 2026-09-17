@@ -122,7 +122,17 @@ ${girdi.sabit}` : (girdi.talimat ?? DUNYA_TALIMATI) },
 
   /** Algı özetleri + dünya durumu → modele verilecek tek blok. */
   private _durumMetni(g: BeyinGirdisi): string {
-    const satirlar = [g.dunya, ...g.ozetler].filter(Boolean);
+    // ANILAR UNUTULMUŞTU — yerel beyinle Orion'un uzun vadeli hafızası hiç
+    // yoktu. `opencode.ts` (bkz. baglam.ts) gönderiyordu, burası göndermiyordu;
+    // yani "hangi beyin" seçimi sessizce "hafıza var mı" seçimine dönüşüyordu.
+    // Ölçümde yakalandı: hafıza denemesinin iki kolu bu beyinde BİREBİR aynı
+    // girdiye dönüşüyor, aradaki fark gürültüden ibaret kalıyordu.
+    // Biçim `baglam.ts` ile aynı (spec 06 K8: bağlam beyinden bağımsızdır).
+    const satirlar = [
+      g.dunya,
+      ...(g.anilar?.length ? [`Hatirladiklarin: ${g.anilar.join(" | ")}`] : []),
+      ...g.ozetler,
+    ].filter(Boolean);
     return satirlar.join("\n");
   }
 

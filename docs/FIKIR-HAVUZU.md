@@ -19,6 +19,23 @@ bitmeden başlatılmaz.
   yapay zekâsındaki utility AI). Önce doğru bir çalışma belleği gerekir.
 - **BM25 / IDF** — spec 06'da koşullu (5c). Kök bulma gerekirse Türkçe'ye
   özgü olmalı; Open Notebook'un İngilizce kök bulucusu işe yaramaz.
+- **SmolVLM (görüntü anlayan küçük model) — ertelendi, 2026-09-17.**
+  Orion'a "göz" takma fikri. **Şimdi değil, çünkü algı zaten doğru çalışıyor:**
+  ölçümde dünya "yönetim terminali" dedi ve doğruydu; hata gördüğünü
+  *anlatırken* oldu (eski anılar bağlamı kirletti). Kamera bunu çözmez, modelin
+  çelişebileceği ikinci bir girdi ekler. Işın testi sahnenin gerçeğine doğrudan
+  erişiyor: 0 ms, kesin. Görüntü modeli aynı soruyu daha yavaş ve daha belirsiz
+  cevaplar — bilineni tahmin etmiş olur. Donanım: 8 GB VRAM'de Babylon (~1,5 GB)
+  + `qwen2.5:7b` (4,7 GB) var; 2B sığmaz, 500M sığar ama Türkçesi zayıf.
+  Asıl darboğaz dil katmanı: yerel model ölçümde dünya satırını papağan gibi
+  tekrarladı ("ortalama bakıyorsun, konum 0.9,-1.2...").
+  **Tetikleyici koşul — bunlardan biri olursa aç:**
+  (a) Orion'un, metin olarak elimizde OLMAYAN bir şeyi okuması gerekirse
+  (Ozyn'in gösterdiği ekran görüntüsü, fotoğraf);
+  (b) algı hattında çapraz kontrol istenirse — ışın testi ile görüntü modeli
+  aynı kareye bakıp çelişirse hata yakalanır (ayna kontrolünün mantığı).
+  (b) bir ürün özelliği değil, test aracıdır.
+  Doğrulanacaklar: Ollama/llama.cpp desteği, gerçek VRAM ve gecikme, Türkçe.
 - **Karşılaştırma değerlendirmesi:** GPT-2 ürün için elendi (Türkçe'de 3,07
   token/kelime, 1.024 bağlam, talimat/araç yok); yalnızca transformer içini
   göstermek için öğretici — zihin duvarında "model nasıl düşünür" paneli fikri.

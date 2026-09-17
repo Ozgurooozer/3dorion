@@ -511,3 +511,16 @@ test("YENİ gözlem ESKİSİNİ siler — iki yer birden 'önümde' olamaz", asy
   assert.match(d, /yönetim terminali/);
   assert.doesNotMatch(d, /beyaz tahta/, "eski gözlem ŞİMDİ'de kaldı");
 });
+
+test("ANILAR zaman etiketiyle sunulur (spec 06 K3)", async () => {
+  // Zamansız anı, model için şimdiki bilgiden ayırt edilemez.
+  const b = new SahteBeyin();
+  const { k } = kur(b, { hafizaGetirme: 3 });
+  k.algi({ tur: "duydum", metin: "kırmızı kalem nerede", kesin: true });
+  await bekle(60);
+  k.algi({ tur: "duydum", metin: "kırmızı kalem lazım", kesin: true });
+  await bekle(60);
+  const anilar = b.gordugu.at(-1)!.anilar ?? [];
+  assert.ok(anilar.length > 0, "anı getirilmedi");
+  for (const a of anilar) assert.match(a, /^\[(az önce|\d+ (dakika|saat|gün) önce)\] /, `zamansız anı: ${a}`);
+});

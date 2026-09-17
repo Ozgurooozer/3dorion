@@ -18,6 +18,7 @@ import { kimlik } from "../protocol/temel.ts";
 import { Dikkat, type DikkatAyari } from "../mind/dikkat.ts";
 import { Hafiza, kuralOnemi, type AniTuru } from "../mind/hafiza.ts";
 import { calismaBellegiKur, type CalismaBellegi } from "../mind/calismaBellegi.ts";
+import { oncesiSozu } from "../mind/zaman.ts";
 import { araclariUret, cagriyiNiyete } from "./araclar.ts";
 import type { Beyin } from "./beyin.ts";
 import { talimatUret } from "./talimat.ts";
@@ -337,12 +338,17 @@ export class Kopru {
     try {
       // İlgili anılar: sorgu, bu turu tetikleyen algıların birleşimi.
       const adet = this._ayar.hafizaGetirme ?? 3;
+      const simdiMs = this._ayar.simdi?.() ?? Date.now();
       // Sorgu da İÇERİK olmalı: kalıpla sorgulamak kalıpla eşleşmeye yol açar.
       const icerikler = this._turIcerikleri.splice(0);
       const anilar = adet > 0 && icerikler.length
         // Bu turun içerikleri hafızaya az önce yazıldı; anı olarak geri
         // gelmeleri "hatırlamak" değil kendini tekrar etmektir.
-        ? this._hafiza.getir(icerikler.join(" "), adet, icerikler).map((x) => x.ani.metin)
+        // ZAMAN ETİKETİ (spec 06 K3): anı, şimdiki bilgiden ayırt edilebilsin.
+        // Zamansızken canlı kayıtta günler öncesinin "Ozyn komutu reddetti"
+        // anısı, model için az önce olmuş gibi duruyordu.
+        ? this._hafiza.getir(icerikler.join(" "), adet, icerikler)
+            .map((x) => `[${oncesiSozu(simdiMs - x.ani.olusma)}] ${x.ani.metin}`)
         : [];
 
       if (anilar.length) console.log(`[HAFIZA] getirilen ${anilar.length}: ${anilar.map((a) => a.slice(0, 60)).join(" | ")}`);
