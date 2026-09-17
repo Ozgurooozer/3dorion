@@ -5,3 +5,6 @@ dist/
 .venv-needle/
 graphify-out/
 .opencode/
+
+# CodeGraph indeksi — makineye özel, paylaşılmaz
+.codegraph/
