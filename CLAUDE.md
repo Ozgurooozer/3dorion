@@ -75,3 +75,26 @@ host/       Electron main process: pty, IPC, window, injects a PowerShell `promp
 - **Claims require live evidence, not just passing unit tests.** The spec docs use `[TEST]` (unit-tested), `[ÖLÇÜLDÜ]` (measured live), and `[YAZILDI-KOŞULMADI]` (written but never run) as status tags — a green test suite alone does not mean a feature "works" here; several real bugs in this codebase's history were only caught by an actual live run (`3dorion.bat <mod>dene`) after unit tests already passed. When adding a behavior that affects what Orion perceives or how it reacts, prefer adding/using a `*dene` scenario in `3dorion.bat` over trusting unit tests alone.
 - **Don't tune behavior on vibes.** Model/parameter choices in this repo (which local LLM, temperature, memory window size, output-thinning thresholds) were each settled by a measurement script under `tools/` and are documented with the actual numbers in `docs/specs/01-sanal-alan.md`. If you're about to change one, check whether a measurement tool already exists (`tools/model-olcum.mjs`, `mind/refleks-olcum.ts`, `mind/akis-olcum.ts`, `world/davranisDenemesi.ts`) before changing it on intuition.
 - Exit codes, not text-pattern matching on command output, decide whether a shell command was "long-running" or "an error" — this is why the shell was switched from cmd.exe to PowerShell (PowerShell's `prompt` function can read `$LASTEXITCODE`; cmd's `PROMPT` sequence can't). Don't reintroduce keyword-based error detection on terminal output.
+
+## Ponytail ve bu repo — çelişkinin çözümü
+
+The `ponytail` plugin is installed globally (lazy-senior-dev ruleset, injected at
+every session start). Two of its rules collide with this repo's house style, and
+this repo wins on both:
+
+- **"If the explanation is longer than the code, delete the explanation."**
+  That rule targets *response prose*, not source comments. In this repo the
+  dense Turkish "why" comments ARE the deliverable — `docs/specs/` explicitly
+  treats rationale-in-code as the record of measured decisions, and several real
+  bugs were avoided because a comment explained why something sits where it
+  does. **Never thin a comment in this repo to satisfy ponytail.** Keep response
+  prose short; keep code comments as they are.
+- **"The first lazy solution that works is the right one."** For work that
+  triggers the `kussu` skill (concurrency/state/IO design, dependency choice,
+  >30 lines, measurement tooling, provenance), kussu wins: interface first,
+  adversarial test first, two candidates. Ponytail's ladder still applies to the
+  *implementation* once the design is settled — especially rung 2 ("already in
+  this codebase? reuse it"), which is exactly the rule that would have caught
+  the four duplicated setting-normalizers in `mind/`.
+
+Everywhere else ponytail applies normally.
