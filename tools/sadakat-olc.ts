@@ -7,7 +7,7 @@
 // Kullanım:
 //   node --experimental-strip-types tools/sadakat-olc.ts \
 //        --fixture=fixtures/sadakat/A.json,fixtures/sadakat/B.json \
-//        --beyin=opencode|dis  [--n=10] [--adres=http://127.0.0.1:4700]
+//        --beyin=opencode|dis|yerel  [--n=10] [--model=...] [--adres=http://127.0.0.1:4700]
 //
 // Kota / hız sınırı hatasında DURUR ve o ana kadarki sonucu basar —
 // yeniden denemek hem kotayı yer hem de ölçümü zamana yayıp bozar.
@@ -15,6 +15,7 @@
 import fs from "node:fs";
 import { OpenCodeBeyni } from "../bridge/opencode.ts";
 import { DisBeyin } from "../bridge/disBeyin.ts";
+import { OllamaBeyni } from "../bridge/ollama.ts";
 import type { Beyin, BeyinGirdisi } from "../bridge/beyin.ts";
 import { puanla, type Beklenti } from "./sadakat.ts";
 
@@ -28,7 +29,11 @@ if (!fixtures.length) { console.error("--fixture=... gerekli"); process.exit(2);
 
 const beyin: Beyin = tur === "opencode"
   ? new OpenCodeBeyni({ durumsuz: true, zamanAsimiMs: 90_000, modelID: arg("model") })
-  : new DisBeyin({ adres: arg("adres"), zamanAsimiMs: 120_000 });
+  : tur === "yerel"
+    // Yerel model bedava: bulut kotaları dolduğunda nedensellik sorusu
+    // (anılar sebep mi?) yine de cevaplanabilir — soru modelle ilgili değil.
+    ? new OllamaBeyni({ model: arg("model", "qwen2.5:7b"), zamanAsimiMs: 120_000 })
+    : new DisBeyin({ adres: arg("adres"), zamanAsimiMs: 120_000 });
 
 if (!(await beyin.hazirMi())) { console.error(`beyin ayakta degil: ${beyin.ad}`); process.exit(1); }
 console.log(`beyin: ${beyin.ad} · n=${n}\n`);

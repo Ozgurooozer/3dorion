@@ -168,6 +168,26 @@ düşünmeyi kapatıyor.
 **Engel:** Claude aylık harcama sınırına takıldı (2026-09-17 ~19:45). Canlı
 oda turu ve Faz 2'nin Haiku kolu sınır sıfırlanınca yapılacak.
 
+## 6.6 Faz 2 — nedensellik sonucu (2026-09-17)
+
+Aynı gerçek girdi, tek değişken anılar. Fixture: `fixtures/sadakat/{A,B}.json`.
+
+| beyin | kol | sadık | nesneyi söyledi | uydurma |
+|---|---|---|---|---|
+| `qwen2.5:7b` (yerel) | A — eski anılarla | **5/10 (%50)** | 7/10 | 2/10 |
+| `qwen2.5:7b` (yerel) | B — anılarsız | **10/10 (%100)** | 10/10 | **0** |
+| `opencode` ling-3.0 | A — eski anılarla | 4/10 (%40) | 7/10 | 4/10 |
+| `opencode` ling-3.0 | B — anılarsız | 2/3 (%67)* | 2/3 | 1/3 |
+
+\* Günlük ücretsiz kota 4. koşuda doldu; kol eksik.
+
+**Geçerlilik:** A kolu sorunu ölçülebilir oranda gösteriyor (yerelde 5/10
+sadakatsiz), yani test pozitif üretebiliyor — "fark yok" sonucu okunabilir
+olurdu. **Sonuç: K2 doğrulandı**, eski anılar sadakati düşürüyor. Faz 3 açık.
+
+Haiku kolu Claude aylık harcama sınırı nedeniyle bekliyor; sınır sıfırlanınca
+aynı fixture'larla eklenecek.
+
 ## 7. Riskler
 
 - **Ücretsiz kota:** Faz 1–2 ~20–30 çağrı. 429'da dur, raporla.
