@@ -68,6 +68,7 @@ import type { Beyin } from "../bridge/beyin.ts";
 import { MetinGirdi } from "../voice/metin-girdi.ts";
 import { ikiCumleyeKisalt } from "../voice/kisalt.ts";
 import { Ajanda } from "../mind/ajanda.ts";
+import { gozlemAnisiMi } from "../mind/hafiza.ts";
 import { KuralRefleksi, UZUN_ISLEM_MS } from "../mind/refleks.ts";
 import { OnayKapisi } from "../mind/onayKapisi.ts";
 import { riskEtiketi } from "../mind/komutRiski.ts";
@@ -217,6 +218,37 @@ let mantikTik = 0;
 /** Orion'un anılarının localStorage anahtarı. Sürüm ekli: biçim değişirse
  *  eski kayıt sessizce yanlış yorumlanmak yerine görmezden gelinir. */
 const HAFIZA_ANAHTARI = "orion.hafiza.v1";
+const HAFIZA_YEDEK = "orion.hafiza.v1.yedek-gozlem-temizligi";
+
+/**
+ * TEK SEFERLİK temizlik (spec 06 K2): eski sürümde anlık gözlemler kalıcı
+ * hafızaya yazılıyordu ("onumde: beyaz tahta (birkaç adım ötede)"). O
+ * kayıtlar bugün getirilip Orion'a dünkü gözlemini anlattırıyor.
+ *
+ * ÖNCE YEDEK: silme geri alınamaz. Yedek anahtarı bir kez yazılır (varsa
+ * dokunulmaz — ikinci koşu temizlenmiş hâli yedeğe basıp aslını ezmesin).
+ * Geri dönüş: yedek anahtarı asıl anahtara kopyalamak.
+ *
+ * Desen dar tutuldu: yalnızca `sonuc` türü VE `onumde|yakin|oyuncu|dunya: `
+ * önekiyle başlayanlar. Diğer `sonuc` anıları ("hata: ...") kalır.
+ */
+function gozlemleriAyikla(aniler: unknown[]): unknown[] {
+  const temiz = aniler.filter((a) => !gozlemAnisiMi(a));
+  const silinen = aniler.length - temiz.length;
+  if (!silinen) return aniler;
+
+  try {
+    if (!localStorage.getItem(HAFIZA_YEDEK)) {
+      localStorage.setItem(HAFIZA_YEDEK, JSON.stringify(aniler));
+    }
+  } catch (err) {
+    // Yedek yazılamadıysa SİLME. Veri kaybı, kirli hafızadan beterdir.
+    console.warn("[hafiza] yedek yazilamadi, temizlik ATLANDI:", err);
+    return aniler;
+  }
+  console.warn(`[hafiza] ${silinen} anlik gozlem anisi temizlendi (yedek: ${HAFIZA_YEDEK})`);
+  return temiz;
+}
 
 /**
  * DEVRE PANOSU TELLERİ — yazılabilir ayarların tek doğruluk kaynağı.
@@ -434,6 +466,7 @@ function niyetiYurut(n: Niyet, id: string): void {
     // Orion soruyordu, algı hizmeti yanıtlıyordu, beyin hiç öğrenmiyordu.
     kopru?.sonuc({ niyet_id: id, durum: "bitti", not: c.metin });
     kopru?.algi({ tur: "gordum", ne: n.ne, metin: c.metin });
+    gordumGeldi = true;   // `bakdene` yedeği: zincir kendiliğinden işledi mi?
     return;
   }
 
@@ -767,6 +800,8 @@ let odakMesh: AbstractMesh | null = null;
 let odakliYuzey: string | null = null;
 /** Senaryoların panoyu sorgulayabilmesi için. Üretimde yalnızca okunur. */
 let panoKaydiGlobal: Pano | null = null;
+/** `bakdene` icin: algi cevabi beyne ulasti mi (senaryo yedegi buna bakar). */
+let gordumGeldi = false;
 /**
  * Panoyu oku. Fonksiyon olması gerekli: TS, modül kapsamındaki `let`i
  * bildirim yerindeki `null`a daraltıyor ve senaryo bloğunda `?.` zinciri
@@ -1257,7 +1292,7 @@ function beyniBagla(a: Avatar): void {
         const ham = localStorage.getItem(HAFIZA_ANAHTARI);
         if (!ham) return [];
         const j = JSON.parse(ham);
-        return Array.isArray(j) ? j : [];
+        return Array.isArray(j) ? gozlemleriAyikla(j) : [];
       },
       yaz(aniler) { localStorage.setItem(HAFIZA_ANAHTARI, JSON.stringify(aniler)); },
     },
@@ -2125,7 +2160,18 @@ if (new URLSearchParams(location.search).has("bakdene")) {
     const k = kopru as Kopru | null;
     k?.algi({ tur: "duydum", kesin: true, metin: "önünde ne var, bir bak bakalım" });
     await bekle(20000);
-    console.log(`[BAKDENE] sayac=${JSON.stringify(k?.sayac())}`);
+
+    // BELİRLEYİCİ YEDEK: zincirin sınanması modelin `BAK:` satırı üretmesine
+    // bağlı kalmasın. Zayıf bir model `bak` (avatar bakışı) seçince `gordum`
+    // hiç doğmuyor ve deneme sessizce HİÇBİR ŞEY sınamıyordu — yeşil görünen
+    // ama boş bir kapı. Model kendi üretmediyse niyeti biz gönderiyoruz;
+    // ölçülen şey zincir (sor → cevap → beyne ŞİMDİ satırı), modelin seçimi değil.
+    if (!(k?.sayac().dusunme ?? 0) || !gordumGeldi) {
+      console.log("[BAKDENE] model BAK: uretmedi — sor niyeti dogrudan gonderiliyor");
+      niyetiYurut({ tur: "sor", ne: "onumde" }, "bakdene_yedek");
+      await bekle(12000);
+    }
+    console.log(`[BAKDENE] gordum=${gordumGeldi} sayac=${JSON.stringify(k?.sayac())}`);
   })();
 }
 

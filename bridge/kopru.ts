@@ -17,6 +17,7 @@ import type { Niyet, NiyetSonucu } from "../protocol/niyet.ts";
 import { kimlik } from "../protocol/temel.ts";
 import { Dikkat, type DikkatAyari } from "../mind/dikkat.ts";
 import { Hafiza, kuralOnemi, type AniTuru } from "../mind/hafiza.ts";
+import { calismaBellegiKur, type CalismaBellegi } from "../mind/calismaBellegi.ts";
 import { araclariUret, cagriyiNiyete } from "./araclar.ts";
 import type { Beyin } from "./beyin.ts";
 import { talimatUret } from "./talimat.ts";
@@ -104,6 +105,8 @@ export class Kopru {
   private _ayar: KopruAyari;
   private _dikkat: Dikkat;
   private _hafiza: Hafiza;
+  /** ŞU ANKİ durum (spec 06 K2) — anı değil, üzerine yazılır ve eskir. */
+  private _calisma: CalismaBellegi;
   private _tampon: string[] = [];
   /** Bu turda hangi algi turleri geldi — talimat buna gore daralir. */
   private _turTurleri = new Set<string>();
@@ -124,6 +127,7 @@ export class Kopru {
     this._ayar = ayar;
     this._dikkat = new Dikkat(ayar.dikkat);
     this._hafiza = new Hafiza({ simdi: ayar.simdi });
+    this._calisma = calismaBellegiKur({ simdi: ayar.simdi });
 
     // Geçmiş oturumların anıları. Hata yutulur: bozuk bir kayıt yüzünden
     // dünya açılmamazlık edemez.
@@ -244,8 +248,15 @@ export class Kopru {
     // canlı ölçümde sorgu ne olursa olsun hep aynı üç alakasız anı dönüyordu.
     // Kim söyledi bilgisi zaten `tur` alanında duruyor.
     const { tur: aniTur, icerik } = this._aniIcerigi(a, ozet);
-    this._hafiza.ekle(icerik, aniTur, kuralOnemi(aniTur, icerik, a.tur === "terminal" ? a.kod : undefined));
-    this._hafizaYaz();
+    // DURUM ≠ ANI (spec 06 K2). `gordum` o ANA ait bir gözlem: Orion iki adım
+    // atınca yanlışa döner. Kalıcı hafızaya yazıldığında dünkü gözlem bugün
+    // "hatırlanan bilgi" diye geri geliyordu ve Orion onu anlatıyordu.
+    // [ÖLÇÜLDÜ] aynı girdi, tek fark eski gözlem anıları: sadakat %50 → %100.
+    if (a.tur === "gordum") this._calisma.yaz(a.ne, a.metin);
+    else {
+      this._hafiza.ekle(icerik, aniTur, kuralOnemi(aniTur, icerik, a.tur === "terminal" ? a.kod : undefined));
+      this._hafizaYaz();
+    }
     this._turIcerikleri.push(icerik);
     this._turTurleri.add(a.tur);
 
@@ -345,7 +356,10 @@ export class Kopru {
         olay: turler.has("olay"),
       });
 
-      const dunya = this._ayar.dunyaDurumu();
+      // ŞİMDİ (spec 06 K2/K3): anlık gözlemler dünya durumunun yanında,
+      // yaşlarıyla. Anılarla aynı listede değil — karışması bu spec'in
+      // çözdüğü hatanın ta kendisiydi.
+      const dunya = [this._ayar.dunyaDurumu(), ...this._calisma.satirlar()].join("\n");
       // `dunya` da basılır: beynin ZEMİNİ o metin. Görünmezse "model neden
       // böyle cevap verdi" sorusu yanıtsız kalıyor — özetler bağlamın
       // yalnızca yarısı.

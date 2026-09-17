@@ -46,6 +46,20 @@ export interface HafizaAyari {
 /** Doğrulanmış sabit: "Our decay factor is 0.995" (saat başına). */
 export const BOZULMA = 0.995;
 
+/**
+ * Bu kayıt, eski sürümde yanlışlıkla kalıcı hafızaya yazılmış bir ANLIK
+ * GÖZLEM mi? (spec 06 K2)
+ *
+ * Geçmiş kayıtları temizlemek için — `world/giris.ts` yüklerken kullanır.
+ * Desen bilerek DAR: yalnızca `sonuc` türü ve algı sorgusu öneki. Bir kaydı
+ * yanlışlıkla silmek geri alınamaz; fazladan bırakmak yalnızca gürültüdür.
+ */
+export function gozlemAnisiMi(a: unknown): boolean {
+  const o = a as { tur?: unknown; metin?: unknown };
+  return o?.tur === "sonuc" && typeof o.metin === "string"
+    && /^(onumde|yakin|oyuncu|dunya): /.test(o.metin);
+}
+
 /** Türkçe/İngilizce çok geçen, ayırt etmeyen kelimeler. */
 const DOLGU = new Set([
   "bir", "bu", "şu", "o", "ve", "ile", "için", "ama", "da", "de", "mi", "mı",

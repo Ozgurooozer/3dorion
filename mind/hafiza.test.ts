@@ -2,7 +2,7 @@
 "use strict";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { Hafiza, kelimeIlgisi, kuralOnemi, BOZULMA } from "./hafiza.ts";
+import { Hafiza, kelimeIlgisi, kuralOnemi, BOZULMA, gozlemAnisiMi } from "./hafiza.ts";
 
 function saatli(baslangic = 1_000_000) {
   let t = baslangic;
@@ -212,4 +212,27 @@ test("dok() KOPYA döner — dışarıdan bozulamaz", () => {
   const d = h.dok();
   d[0]!.metin = "bozuldu";
   assert.equal(h.dok()[0]?.metin, "dokunma");
+});
+
+// ── Eski anlık gözlem kayıtlarının temizliği (spec 06 K2) ─────────────────
+
+test("gozlemAnisiMi: YALNIZCA anlık gözlem kayıtlarını işaretler", () => {
+  // Yanlış silme geri alınamaz; desen bu yüzden dar.
+  const gozlem = [
+    { tur: "sonuc", metin: "onumde: beyaz tahta (birkaç adım ötede)" },
+    { tur: "sonuc", metin: "yakin: yönetim terminali, çalışma masası" },
+    { tur: "sonuc", metin: "oyuncu: Ozyn (birkaç adım ötede)" },
+    { tur: "sonuc", metin: "dunya: oda ortasında" },
+  ];
+  for (const a of gozlem) assert.equal(gozlemAnisiMi(a), true, `kaçtı: ${a.metin}`);
+
+  const kalmali = [
+    { tur: "sonuc", metin: "hata: zaten onay bekleyen bir öneri var" },
+    { tur: "sonuc", metin: "basarili: git status" },
+    { tur: "konusma", metin: "onumde: diye başlayan bir cümle kurdu" },  // tür farklı
+    { tur: "terminal", metin: "onumde: x" },
+    { tur: "olay", metin: "ozyn_yuzeye_gecti" },
+    null, undefined, 42, "onumde: düz metin",
+  ];
+  for (const a of kalmali) assert.equal(gozlemAnisiMi(a), false, `yanlışlıkla silinecekti: ${JSON.stringify(a)}`);
 });

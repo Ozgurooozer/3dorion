@@ -469,3 +469,45 @@ test("yazma KISILIR — her anıda serileştirme yapılmaz", async () => {
   k.durdur();
   assert.equal(yazilan.length, 1, "bes ani icin TEK yazma yeterli");
 });
+
+// ── DURUM ≠ ANI (spec 06 K2) ──────────────────────────────────────────────
+
+test("GÖRDÜM kalıcı hafızaya YAZILMAZ — o ana ait bir gözlem", async () => {
+  // Yazıldığı için dünkü gözlem bugün "hatırlanan bilgi" diye geri geliyor ve
+  // Orion onu anlatıyordu. [ÖLÇÜLDÜ] sadakat %50 → %100.
+  const b = new SahteBeyin();
+  const { k } = kur(b);
+  k.algi({ tur: "gordum", ne: "onumde", metin: "yönetim terminali (birkaç adım ötede)" });
+  await bekle(60);
+  assert.equal(k.hafiza.sayi, 0, "anlık gözlem kalıcı hafızaya sızdı");
+});
+
+test("GÖRDÜM 'ŞİMDİ' satırı olarak dünya metnine girer, yaşıyla", async () => {
+  const b = new SahteBeyin();
+  const { k } = kur(b);
+  k.algi({ tur: "gordum", ne: "onumde", metin: "yönetim terminali" });
+  await bekle(60);
+  const d = b.gordugu.at(-1)!.dunya;
+  assert.match(d, /önünde: yönetim terminali \(\d+ sn önce baktın\)/);
+  assert.match(d, /Oda: masa, tahta/, "dünya durumu kaybolmamalı");
+});
+
+test("KONUŞMA hâlâ hafızaya yazılır — kural yalnızca DURUMA uygulanır", async () => {
+  const b = new SahteBeyin();
+  const { k } = kur(b);
+  k.algi({ tur: "duydum", metin: "yarın toplantı var", kesin: true });
+  await bekle(60);
+  assert.equal(k.hafiza.sayi, 1, "olay hafızaya yazılmadı — fazla kısıtlandı");
+});
+
+test("YENİ gözlem ESKİSİNİ siler — iki yer birden 'önümde' olamaz", async () => {
+  const b = new SahteBeyin();
+  const { k } = kur(b);
+  k.algi({ tur: "gordum", ne: "onumde", metin: "beyaz tahta" });
+  await bekle(40);
+  k.algi({ tur: "gordum", ne: "onumde", metin: "yönetim terminali" });
+  await bekle(60);
+  const d = b.gordugu.at(-1)!.dunya;
+  assert.match(d, /yönetim terminali/);
+  assert.doesNotMatch(d, /beyaz tahta/, "eski gözlem ŞİMDİ'de kaldı");
+});
