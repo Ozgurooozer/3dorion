@@ -19,6 +19,13 @@ export interface Dugum {
   /** Yerleşim ızgarası: sütun soldan sağa akış, satır 0 = ana hat. */
   sutun: number;
   satir: number;
+  /**
+   * Bu durak NE YAPAR — tek cümle, detay görünümünde okunur.
+   *
+   * Kısa tutulması kural: panel duvardan okunuyor ve paragraf okunmaz.
+   * Ayrıntı sayılarla verilir, nesirle değil.
+   */
+  aciklama: string;
 }
 
 /**
@@ -29,20 +36,30 @@ export interface Dugum {
  * ise beyne girdi sağlar.
  */
 export const DUGUMLER: readonly Dugum[] = [
-  { ad: "algi",    etiket: "ALGI",     lob: "yerel", sutun: 0, satir: 0 },
-  { ad: "suzgec",  etiket: "SÜZGEÇ",   lob: "yerel", sutun: 1, satir: 0 },
-  { ad: "refleks", etiket: "REFLEKS",  lob: "yerel", sutun: 2, satir: -1 },
-  { ad: "dikkat",  etiket: "DİKKAT",   lob: "yerel", sutun: 2, satir: 0 },
-  { ad: "hafiza",  etiket: "HAFIZA",   lob: "yerel", sutun: 2, satir: 1 },
-  { ad: "beyin",   etiket: "DÜŞÜNCE",  lob: "bulut", sutun: 3, satir: 0 },
+  { ad: "algi",    etiket: "ALGI",     lob: "yerel", sutun: 0, satir: 0,
+    aciklama: "Dünyadan gelen her şey buradan girer: terminal çıktısı, konuşma, olay." },
+  { ad: "suzgec",  etiket: "SÜZGEÇ",   lob: "yerel", sutun: 1, satir: 0,
+    aciklama: "İçerik yargısı: hangi algı beyne değer? Kural tabanlı, 0 ms." },
+  { ad: "refleks", etiket: "REFLEKS",  lob: "yerel", sutun: 2, satir: -1,
+    aciklama: "Süzgeçten dönen algı burada kalır — beyne gitmez, ucuz tepki verilir." },
+  { ad: "dikkat",  etiket: "DİKKAT",   lob: "yerel", sutun: 2, satir: 0,
+    aciklama: "Maliyet tavanı: tik yasağı, bütçe, tekrar ve kısma kuralları." },
+  { ad: "hafiza",  etiket: "HAFIZA",   lob: "yerel", sutun: 2, satir: 1,
+    aciklama: "Geçmiş anılardan bu tura ilgili olanları getirir." },
+  { ad: "beyin",   etiket: "DÜŞÜNCE",  lob: "bulut", sutun: 3, satir: 0,
+    aciklama: "Dil katmanı: dış model. Yavaş ve pahalı, o yüzden seçilerek uyandırılır." },
   // BAKIŞ ana hattın tersine akar: diğer düğümlerde bilgi dünyadan beyne
   // gelir, burada beyin bilgiyi KENDİ ister (dunya_sor). Ayrı kutu olması
   // bu yüzden: "ALGI" içinde göstermek iki farklı yönü tek şeymiş gibi
   // okutuyordu.
-  { ad: "bakis",   etiket: "BAKIŞ",    lob: "yerel", sutun: 4, satir: -1 },
-  { ad: "niyet",   etiket: "NİYET",    lob: "ortak", sutun: 4, satir: 0 },
-  { ad: "onay",    etiket: "ONAY",     lob: "yerel", sutun: 5, satir: 1 },
-  { ad: "beden",   etiket: "BEDEN",    lob: "yerel", sutun: 5, satir: 0 },
+  { ad: "bakis",   etiket: "BAKIŞ",    lob: "yerel", sutun: 4, satir: -1,
+    aciklama: "Beynin KENDİ istediği bilgi: odaya bakma sorgusunun cevabı." },
+  { ad: "niyet",   etiket: "NİYET",    lob: "ortak", sutun: 4, satir: 0,
+    aciklama: "Karar eyleme dönüşür; protokol doğrulamasından geçer." },
+  { ad: "onay",    etiket: "ONAY",     lob: "yerel", sutun: 5, satir: 1,
+    aciklama: "Komut önerileri burada bekler. Ozyn onaylamadan hiçbir komut çalışmaz." },
+  { ad: "beden",   etiket: "BEDEN",    lob: "yerel", sutun: 5, satir: 0,
+    aciklama: "Avatar gerçekten hareket eder: yürür, bakar, yazar, konuşur." },
 ] as const;
 
 /** Aralarındaki oklar: [kaynak, hedef]. */
@@ -226,4 +243,39 @@ export function dugumBul(
     if (px >= k.x && px <= k.x + k.g && py >= k.y && py <= k.y + k.yuk) return ad;
   }
   return null;
+}
+
+// ── UV → DÜĞÜM ────────────────────────────────────────────────────────────
+//
+// NEDEN ÇEKİRDEKTE: Babylon'un `PickingInfo.getTextureCoordinates()` UV verir
+// (0..1, v ALTTAN yukarı). Piksel uzayı ise ÜSTTEN aşağı. Aradaki `1 - v`
+// çevirimi `giris.ts`'te dursaydı:
+//
+//   - geometriden ayrı bir yerde yaşardı ve ters dönmesi ancak canlı koşuda
+//     fark edilirdi (panel "biraz şaşı" görünür, birim testi yeşil kalır),
+//   - tıklanabilir her yeni yüzey aynı satırı kopyalardı.
+//
+// Şemanın dikey yerleşimi neredeyse simetrik (satır -1 / 0 / +1) olduğu için
+// ters çevrim ÇÖKMEZ: yalnızca REFLEKS yerine HAFIZA seçer. Sessiz ve yanlış.
+// Bu yüzden testi simetriyi kıracak şekilde yazıldı.
+
+/** UV (v alttan) → piksel (y üstten). Aralık dışı değer KIRPILMAZ, aynen döner. */
+export function uvdenPiksel(
+  alan: SemaAlani, u: number, v: number,
+): { px: number; py: number } {
+  return { px: u * alan.genislik, py: (1 - v) * alan.yukseklik };
+}
+
+/** Doku UV'si hangi düğümün üstünde? Kutu dışıysa `null`. Fırlatmaz. */
+export function dugumBulUv(
+  alan: SemaAlani, u: number, v: number, dugumler: readonly Dugum[] = DUGUMLER,
+): string | null {
+  if (!Number.isFinite(u) || !Number.isFinite(v)) return null;
+  const { px, py } = uvdenPiksel(alan, u, v);
+  return dugumBul(alan, px, py, dugumler);
+}
+
+/** Bir düğümün tanımı — detay görünümü ve pano kaydı buradan okur. */
+export function dugumTanim(ad: string): Dugum | null {
+  return DUGUMLER.find((d) => d.ad === ad) ?? null;
 }

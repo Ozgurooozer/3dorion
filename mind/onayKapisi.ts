@@ -86,6 +86,13 @@ export class OnayKapisi {
   get durum(): KapiDurumu { return this._bekleyen ? "bekliyor" : "bos"; }
   get bekleyen(): Oneri | null { return this._bekleyen ? { ...this._bekleyen } : null; }
   sayac(): typeof this._sayac { return { ...this._sayac }; }
+  /**
+   * Güncel zaman aşımı (ms) — TELDEN okunur, kopyadan değil.
+   *
+   * Bekleyen bir önerinin son tarihi öneri anında DONDURULDUĞU için bu sayı
+   * onu geriye dönük etkilemez; yalnızca sonraki öneriye uygular.
+   */
+  get zamanAsimiMs(): number { return this._zamanAsimi(); }
   gecmis(): KarardanSonra[] { return [...this._gecmis]; }
 
   /**

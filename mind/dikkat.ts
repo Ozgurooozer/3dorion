@@ -13,13 +13,22 @@
 import type { Algi, AlgiTur } from "../protocol/algi.ts";
 import { VARSAYILAN_KANAL } from "../protocol/algi.ts";
 
+/**
+ * Ayar: sabit sayı ya da TEL.
+ *
+ * Tel verilirse karar yolu her kararda TAZE okur; devre panosu aynı teli
+ * yazar. Kopya tutulmadığı için panel ile karar yolunun ayrışması yapısal
+ * olarak imkânsız kalır. `OnayKapisi` S0'da aynı biçimi almıştı.
+ */
+type Ayar = number | (() => number);
+
 export interface DikkatAyari {
   /** Dakikada beyne gidebilecek azami mesaj. Bütçe freni. */
-  dakikaBasinaAzami?: number;
+  dakikaBasinaAzami?: Ayar;
   /** Aynı olayın tekrarı bu süre içinde yutulur (ms). */
-  tekrarPenceresiMs?: number;
+  tekrarPenceresiMs?: Ayar;
   /** Terminal çıktısı bu sıklıktan daha sık gönderilmez (ms). */
-  terminalKisMs?: number;
+  terminalKisMs?: Ayar;
   /** Test edilebilirlik: zaman kaynağı dışarıdan verilebilir. */
   simdi?: () => number;
 }
@@ -34,9 +43,9 @@ export interface DikkatKarari {
 const ONEMSIZ_OLAYLAR = new Set(["kamera_degisti", "ipucu", "fare_kilidi"]);
 
 export class Dikkat {
-  private _azami: number;
-  private _tekrarMs: number;
-  private _terminalMs: number;
+  private _azami: () => number;
+  private _tekrarMs: () => number;
+  private _terminalMs: () => number;
   private _simdi: () => number;
 
   /** Beyne gönderilen mesajların zaman damgaları (kayan pencere). */
@@ -46,9 +55,13 @@ export class Dikkat {
   private _sayac = { gecen: 0, dusen: 0 };
 
   constructor(ayar: DikkatAyari = {}) {
-    this._azami = ayar.dakikaBasinaAzami ?? 20;
-    this._tekrarMs = ayar.tekrarPenceresiMs ?? 4000;
-    this._terminalMs = ayar.terminalKisMs ?? 2500;
+    // Sabit sayı da kabul edilir: mevcut çağrı yerlerinin hiçbiri değişmez
+    // ve testler olduğu gibi geçer. Normalizasyon tek satır.
+    const tel = (a: Ayar | undefined, varsayilan: number): (() => number) =>
+      a === undefined ? () => varsayilan : (typeof a === "function" ? a : () => a);
+    this._azami = tel(ayar.dakikaBasinaAzami, 20);
+    this._tekrarMs = tel(ayar.tekrarPenceresiMs, 4000);
+    this._terminalMs = tel(ayar.terminalKisMs, 2500);
     this._simdi = ayar.simdi ?? (() => Date.now());
   }
 
@@ -80,7 +93,7 @@ export class Dikkat {
 
     // 4) Terminal çıktısı kısma: akan bir derleme çıktısı her satırda beyni uyandırmasın.
     if (a.tur === "terminal") {
-      if (t - this._sonTerminal < this._terminalMs) {
+      if (t - this._sonTerminal < this._terminalMs()) {
         this._sayac.dusen++;
         return { gecsin: false, sebep: "kisildi" };
       }
@@ -89,14 +102,14 @@ export class Dikkat {
     // 5) Tekrar penceresi
     const anahtar = this._anahtar(a);
     const onceki = this._sonAnahtar.get(anahtar);
-    if (onceki !== undefined && t - onceki < this._tekrarMs) {
+    if (onceki !== undefined && t - onceki < this._tekrarMs()) {
       this._sayac.dusen++;
       return { gecsin: false, sebep: "tekrar" };
     }
 
     // 6) Bütçe freni (kayan 60 sn penceresi)
     this._gecmis = this._gecmis.filter((x) => t - x < 60_000);
-    if (this._gecmis.length >= this._azami) {
+    if (this._gecmis.length >= this._azami()) {
       this._sayac.dusen++;
       return { gecsin: false, sebep: "butce" };
     }
@@ -110,6 +123,18 @@ export class Dikkat {
 
   /** Gözlem: kaç algı geçti, kaçı düştü. HUD ve bütçe denetimi okur. */
   sayac(): { gecen: number; dusen: number } { return { ...this._sayac }; }
+
+  // ── Devre panosu okuyucuları ──────────────────────────────────────────
+  //
+  // SALT OKUNUR. Panonun ayarları göstermesi için gerek; yazma S5'te ve
+  // ayrı bir kapıyla gelir. Getter olmaları önemli: alan doğrudan dışa
+  // açılsaydı panel onu bir kez kopyalayabilir ve modül içeriden
+  // değiştiğinde ekranda eski sayı kalırdı.
+  get azami(): number { return this._azami(); }
+  get tekrarPenceresiMs(): number { return this._tekrarMs(); }
+  get terminalKisMs(): number { return this._terminalMs(); }
+  /** Kayan pencerede ŞU AN kaç mesaj var — bütçe teyidi bunu gösterecek. */
+  get penceredekiMesaj(): number { return this._gecmis.length; }
 
   /** Konuşma gibi bir şey olduğunda kısıtları sıfırla — kullanıcı bekletilemez. */
   sifirla(): void {

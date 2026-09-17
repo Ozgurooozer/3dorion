@@ -1,7 +1,39 @@
 # Modüler Beyin + Devre Paneli (Spec v1 — PLAN)
 
 > Karar tarihi: 2026-09-16 · Sahip: Ozyn · Yönetici: Orion (Claude Code)
-> Durum: **plan** — hiçbir aşama uygulanmadı. Onay bekliyor.
+> Durum: **panel tarafı S0–S7 uygulandı** (2026-09-17). MCP/skill tarafı
+> (§5 Aşama 1–4, 7) hâlâ plan.
+
+## 0. Uygulanan: devre panosu (S0–S7)
+
+| # | Ne | Durum | Kanıt |
+|---|---|---|---|
+| S0 | Onay kapısı son tarihi öneri anında DONDURULUR; `elleDusur()` | bitti | `[TEST]` `mind/onayKapisi.test.ts` |
+| S1 | `semaAlani`/`semaYerlesimi`/`dugumBul` saf çekirdeğe | bitti | `[TEST]` piksel-eşdeğerlik testi |
+| S2 | Kamera zoom (üstte ±, tekerlek) | bitti | `[ÖLÇÜLDÜ]` ekran görüntüsü |
+| S3 | Tıkla → düğüm seç → salt okunur detay | bitti | `[ÖLÇÜLDÜ]` `zihindene`: AYNA 10/10, ters çift 0 |
+| S4 | `protocol/pano.ts` + `mind/tanim/` + sınıf rozetleri | bitti | `[TEST]` 6 modül / 26 tel; `sabit` teller görünür ve yazıcısız |
+| S5 | `guvenli` yazma (tel yoluyla) | bitti | `[ÖLÇÜLDÜ]` 6 aynı algı: `tekrar=4000ms` → 2 geçti/4 düştü; `0ms` → 6 geçti/0 düştü |
+| S6 | `tehlikeli` + iki aşamalı teyit + bağlı eylemler | bitti | `[TEST]` bekleyen öneri özgün son tarihine kadar yaşar, izde tek `dustu` |
+| S7 | `olculmus` kilidi + kalıcı "ÖLÇÜM DIŞI" damgası | bitti | `[TEST]` gerekçesiz açılmaz; kilit kapansa da damga silinmez |
+
+Toplam: **539 test yeşil**, `tsc --noEmit` temiz, K4 grep kapısı boş.
+
+Uygulama sırasında değişen üç karar:
+
+1. **`Tel<T>`** — plandaki "düğme = tel" fikri, aynı anda hem okuyucu hem
+   yazma noktası olan tek bir nesneye dönüştü. Modülle panonun ayrışması
+   böylece yapısal olarak imkânsız; bir sözleşme değil, bir tip.
+2. **Vuruş bölgeleri ÇİZİMDEN kaydediliyor**, bağımsız hesaplanmıyor.
+   Açıklama cümlesinin kaç satır sardığı `measureText`e bağlı olduğu için
+   ayrı bir hesap kaçınılmaz olarak kayardı.
+3. **Ölçüm kilidi panelden AÇILMIYOR.** Gerekçe zorunlu, gerekçe yazmak
+   klavye istiyor, odadaki panelin klavyesi yok. Panele "aç" düğmesi koyup
+   gerekçeyi uydurmak kilidin tek işlevini — sürtünmeyi — yok ederdi.
+   Açma yolu yönetim terminalinden (`orionPano.kilitAc("...")`) geçiyor.
+
+Kalan bilinen kusur: zoom hapı (%100) panel başlığının üst şeridiyle
+görsel olarak çakışıyor. İşlevsel etkisi yok.
 
 ## 1. İki iş, tek iş
 

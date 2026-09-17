@@ -191,3 +191,80 @@ test("DAR panelde de vuruş testi tutarlı", () => {
     assert.equal(dugumBul(alan, k.x + k.g / 2, k.y + k.yuk / 2), ad);
   }
 });
+
+// ── UV ÇEVİRİMİ: ters dönerse SESSİZ yanlış seçer ─────────────────────────
+//
+// Babylon UV verir (v ALTTAN), piksel uzayı üstten. `1 - v` unutulursa panel
+// çökmez: REFLEKS yerine HAFIZA seçer. Şemanın dikey yerleşimi -1/0/+1 ile
+// neredeyse simetrik olduğu için "gidiş-dönüş" testi TEK BAŞINA bu hatayı
+// yakalamaz — aşağıdaki asimetri testleri onun için var.
+
+import { uvdenPiksel, dugumBulUv, dugumTanim } from "./semaCekirdek.ts";
+
+/** Piksel → UV, `uvdenPiksel`in TERSİ. Test bilerek bağımsız yazıldı. */
+function pikselUv(alan: ReturnType<typeof semaAlani>, px: number, py: number) {
+  return { u: px / alan.genislik, v: 1 - py / alan.yukseklik };
+}
+
+test("UV gidiş-dönüş: her düğümün merkezi kendi adına döner", () => {
+  const alan = semaAlani(910, 512);
+  for (const [ad, k] of semaYerlesimi(alan)) {
+    const { u, v } = pikselUv(alan, k.x + k.g / 2, k.y + k.yuk / 2);
+    assert.equal(dugumBulUv(alan, u, v), ad, `${ad} UV gidiş-dönüşü kaydı`);
+  }
+});
+
+test("ASİMETRİ: v ters çevrilirse REFLEKS yerine HAFIZA seçilir — tuzak budur", () => {
+  const alan = semaAlani(910, 512);
+  const k = semaYerlesimi(alan).get("refleks")!;
+  const { u, v } = pikselUv(alan, k.x + k.g / 2, k.y + k.yuk / 2);
+
+  assert.equal(dugumBulUv(alan, u, v), "refleks");
+  // Aynı noktanın AYNADAKİ hâli başka bir düğüm olmalı. Bu iddia tutmazsa
+  // yerleşim dikey simetrik demektir ve bu test artık ters çevrimi yakalamaz.
+  const ayna = dugumBulUv(alan, u, 1 - v);
+  assert.notEqual(ayna, "refleks", "ayna aynı düğüme düştü — test körleşmiş");
+  assert.equal(ayna, "hafiza", "ayna beklenen komşuya düşmedi");
+});
+
+test("ASİMETRİ: BAKIŞ'ın aynası BOŞLUĞA düşer — ters çevrim seçimi kaybeder", () => {
+  // BAKIŞ sütun 4 / satır -1'de; sütun 4 / satır +1 boş. Ters çevrimde
+  // tıklama hiçbir şey seçmez: "tıkladım ama açılmadı" diye okunur, panel
+  // bozuk sanılır. REFLEKS testi yanlış seçimi, bu test kayıp seçimi tutar.
+  const alan = semaAlani(910, 512);
+  const k = semaYerlesimi(alan).get("bakis")!;
+  const { u, v } = pikselUv(alan, k.x + k.g / 2, k.y + k.yuk / 2);
+  assert.equal(dugumBulUv(alan, u, v), "bakis");
+  assert.equal(dugumBulUv(alan, u, 1 - v), null, "sütun 4 satır +1 boş olmalı");
+});
+
+test("uvdenPiksel v=1 ÜSTE, v=0 ALTA düşer", () => {
+  const alan = semaAlani(910, 512);
+  assert.equal(uvdenPiksel(alan, 0, 1).py, 0, "v=1 üst kenar olmalı");
+  assert.equal(uvdenPiksel(alan, 0, 0).py, 512, "v=0 alt kenar olmalı");
+  assert.equal(uvdenPiksel(alan, 1, 0).px, 910);
+});
+
+test("BAŞLIK şeridinin UV'si null döner — üst şerit düğüm değil", () => {
+  const alan = semaAlani(910, 512);
+  const { u, v } = pikselUv(alan, 455, alan.basYuk / 2);
+  assert.equal(dugumBulUv(alan, u, v), null);
+});
+
+test("bozuk UV çökmez — NaN/Infinity/aralık dışı null döner", () => {
+  const alan = semaAlani(910, 512);
+  for (const [u, v] of [[NaN, 0.5], [0.5, NaN], [Infinity, 0.5], [-3, 0.5], [0.5, 9]] as const) {
+    assert.doesNotThrow(() => dugumBulUv(alan, u, v));
+    assert.equal(dugumBulUv(alan, u, v), null, `${u},${v} için null bekleniyordu`);
+  }
+});
+
+test("dugumTanim her düğüm için açıklama döner, bilinmeyende null", () => {
+  for (const d of DUGUMLER) {
+    const t = dugumTanim(d.ad);
+    assert.ok(t, `${d.ad} tanımı yok`);
+    assert.ok(t.aciklama.length > 20, `${d.ad} açıklaması boş/çok kısa`);
+    assert.ok(!t.aciklama.includes("\n"), `${d.ad} açıklaması çok satırlı — panel tek satır çizer`);
+  }
+  assert.equal(dugumTanim("yok_boyle"), null);
+});

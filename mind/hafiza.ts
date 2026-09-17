@@ -36,8 +36,8 @@ export interface Ani {
 }
 
 export interface HafizaAyari {
-  /** Bu sayıyı aşınca en düşük skorlular atılır. */
-  kapasite?: number;
+  /** Bu sayıyı aşınca en düşük skorlular atılır. Tel de olabilir. */
+  kapasite?: number | (() => number);
   /** Kelime örtüşmesi yerine gömme kullanmak isteyen buraya takar. */
   ilgiOlcer?: (sorgu: string, ani: string) => number;
   simdi?: () => number;
@@ -102,19 +102,36 @@ function saglamZaman(v: unknown, simdi: number): number {
 
 export class Hafiza {
   private _aniler: Ani[] = [];
-  private _kapasite: number;
+  private _kapasite: () => number;
   private _ilgiOlcer: (sorgu: string, ani: string) => number;
   private _simdi: () => number;
   /** Reflection eşiği için biriken önem (Generative Agents: eşik 150). */
   private _birikenOnem = 0;
 
   constructor(ayar: HafizaAyari = {}) {
-    this._kapasite = ayar.kapasite ?? 300;
+    this._kapasite = ayar.kapasite === undefined ? () => 300
+      : (typeof ayar.kapasite === "function" ? ayar.kapasite : () => ayar.kapasite as number);
     this._ilgiOlcer = ayar.ilgiOlcer ?? kelimeIlgisi;
     this._simdi = ayar.simdi ?? (() => Date.now());
   }
 
   get sayi(): number { return this._aniler.length; }
+  /** Devre panosu okuyucusu — salt okunur, yazma S5'te. */
+  get kapasite(): number { return this._kapasite(); }
+
+  /**
+   * Kapasiteyi ŞİMDİ uygula — fazlasını at.
+   *
+   * Ayrı bir EYLEM olması kasıtlı: budama normalde tembel (`ekle`/`yukle`).
+   * Kapasite sürgüsünü 300'den 50'ye sürüklemek her ara değerde anı
+   * silseydi, kullanıcı 120'de durmak isterken 50'nin silmesini çoktan
+   * yemiş olurdu. Dönüş: kaç anı silindi.
+   */
+  buda(): number {
+    const once = this._aniler.length;
+    this._budama();
+    return once - this._aniler.length;
+  }
   get birikenOnem(): number { return this._birikenOnem; }
 
   /**
@@ -240,12 +257,12 @@ export class Hafiza {
 
   /** Kapasite aşılınca EN DÜŞÜK skorlular atılır — kör FIFO değil. */
   private _budama(): void {
-    if (this._aniler.length <= this._kapasite) return;
+    if (this._aniler.length <= this._kapasite()) return;
     const t = this._simdi();
     const puan = (a: Ani) =>
       Math.pow(BOZULMA, (t - a.sonErisim) / 3_600_000) + a.onem / 10;
     this._aniler.sort((x, y) => puan(y) - puan(x));
-    this._aniler.length = this._kapasite;
+    this._aniler.length = this._kapasite();
     // Sıra bozuldu; oluşma sırasına geri döndür (sonAniler anlamlı kalsın).
     this._aniler.sort((x, y) => x.olusma - y.olusma);
   }

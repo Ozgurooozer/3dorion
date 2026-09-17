@@ -281,6 +281,8 @@ export class Kopru {
 
   /** Tanılama/ölçüm: hafızaya doğrudan erişim. */
   get hafiza(): Hafiza { return this._hafiza; }
+  /** Devre panosu okuyucusu — dikkat ayarları ve sayaçları panelde görünsün. */
+  get dikkat(): Dikkat { return this._dikkat; }
 
   /** Ajanda (mind/ajanda.ts) için: beyin şu an düşünüyorsa araya girme. */
   get dusunuyorMu(): boolean { return this._dusunuyor; }

@@ -55,6 +55,22 @@ export interface OyuncuSecenekleri {
   dogumYeri?: Vector3;
   /** Olay yayıcısı. Varsayılan: süreç geneli `EtkilesimOlaylari`. */
   yayici?: EtkilesimYayici;
+  /**
+   * Esc yığınının EN ÜST aşaması — etkileşimden de odaktan da önce denenir.
+   *
+   * NEDEN GERİ ÇAĞRI: panellerin içinde artık alt görünümler açılıyor (şema
+   * → düğüm detayı). Detay açıkken Esc'in önce onu kapatması gerek, yoksa
+   * tek tuş hem detayı hem odağı birden düşürür ve kullanıcı bir adımda
+   * duvarın dibinden odanın ortasına atılır.
+   *
+   * Alternatif, `giris.ts`'e ayrı bir yakalayıcı Esc dinleyicisi koymaktı;
+   * elendi çünkü Esc'in İKİ sahibi olurdu ve hangisinin önce koştuğu
+   * dinleyici kayıt sırasına kalırdı — sessizce bozulan türden bir bağ.
+   * Buradaysa sıra tek yerde, okunur biçimde yazılı.
+   *
+   * `true` dönerse Esc TÜKETİLMİŞ sayılır, alt aşamalar koşmaz.
+   */
+  escOnce?: () => boolean;
 }
 
 export class Oyuncu implements KameraHedefi {
@@ -65,6 +81,7 @@ export class Oyuncu implements KameraHedefi {
   readonly govde: Mesh;
 
   private _rig: KameraRig;
+  private _escOnce: (() => boolean) | null;
   private _yayici: EtkilesimYayici;
 
   private _tuslar = new Set<string>();
@@ -82,6 +99,7 @@ export class Oyuncu implements KameraHedefi {
   constructor(sahne: Scene, oda: OdaKurulumu, rig: KameraRig, sec: OyuncuSecenekleri = {}) {
     this._rig = rig;
     this._yayici = sec.yayici ?? EtkilesimOlaylari;
+    this._escOnce = sec.escOnce ?? null;
 
     // Doğum yeri köşeden İÇERİ alındı. (2.6, 2.6) kapının önündeki köşeydi ve
     // omuz kamerası arkadaki iki duvara birden sıkışıyordu: açılış manzarası
@@ -282,6 +300,16 @@ export class Oyuncu implements KameraHedefi {
         //      kamera panelde sabit kalıyordu, yani kullanıcı panelde
         //      mahsur kalıyordu.
         //   3. İkisi de yoksa fare kilidini bırak — "imlecimi geri ver".
+        //
+        // 0. aşama (`escOnce`) hepsinden önce: odaklı bir panelin İÇİNDE
+        //    açılmış alt görünüm varsa Esc önce onu kapatır. Fırlatırsa
+        //    yutulur — bir çizim hatası kullanıcıyı panelde hapsetmemeli.
+        if (this._escOnce) {
+          let tuketildi = false;
+          try { tuketildi = this._escOnce(); }
+          catch (hata) { console.error("[oyuncu] escOnce hatası:", hata); }
+          if (tuketildi) return;
+        }
         if (this._yayici.bitir()) return;
         if (this._rig.odakta) { this._rig.odakBirak(); return; }
         this._rig.fareKilitBirak();

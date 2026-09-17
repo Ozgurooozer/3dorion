@@ -44,6 +44,16 @@ import { monitorKur, type Monitor } from "./surfaces/monitor.ts";
 import { tahtaKur, type Tahta } from "./surfaces/tahta.ts";
 import { gunlukKur, type GunlukEkrani } from "./surfaces/gunluk.ts";
 import { semaKur, type SemaPaneli } from "./surfaces/sema.ts";
+// Devre panosu: sözleşme `protocol/`ta, tanımlar `mind/tanim/`da. Bu iki
+// import K4'ün belgelenmiş istisnası olan kompozisyon kökünde, burada.
+import { panoKur, tel } from "../protocol/pano.ts";
+import type { Pano } from "../protocol/pano.ts";
+import {
+  dikkatTanimi, hafizaTanimi, onayTanimi, ajandaTanimi, refleksTanimi, beyinTanimi,
+} from "../mind/tanim/index.ts";
+// Yalnızca `zihindene` ayna kontrolü için: şemanın sütun sırasıyla ekrandaki
+// sırayı karşılaştırmak gerek. Saf veri, K4 sınırını ihlal etmez.
+import { DUGUMLER } from "./surfaces/semaCekirdek.ts";
 import { TAHTA, GUNLUK, SEMA, GOZ_YUKSEKLIK } from "./level/olculer.ts";
 import { niyetDogrula } from "../protocol/dogrula.ts";
 import type { Niyet } from "../protocol/niyet.ts";
@@ -85,7 +95,25 @@ const oda = odaKur(sahne);
 const rig = new KameraRig(sahne, tuval);
 // Doğum yeri köşeden İÇERİ: (2.6, 2.6) kapı köşesiydi ve omuz kamerası iki
 // duvara birden sıkışıp oyuncunun gövdesine yapışıyordu (ölçüm: 1.44 m).
-const oyuncu = new Oyuncu(sahne, oda, rig, { dogumYeri: new Vector3(1.6, 0, 1.9) });
+const oyuncu = new Oyuncu(sahne, oda, rig, {
+  dogumYeri: new Vector3(1.6, 0, 1.9),
+  // Esc yığınının 0. aşaması: panel içindeki alt görünüm önce kapanır.
+  // `sema` aşağıda kuruluyor; kapanış çağrı ANINDA okunduğu için sorun yok.
+  // Esc yığını sırayla daralır: teyit → detay → (oyuncu.ts: etkileşim →
+  // odak → fare kilidi). Her Esc BİR adım geri alır; tek tuşun kullanıcıyı
+  // duvarın dibinden odanın ortasına atması istenmiyor.
+  escOnce: () => {
+    if (panoKaydiGlobal?.bekleyenTeyit()) {
+      panoKaydiGlobal.teyitIptal();
+      altyaziGoster("teyit iptal edildi", 1800);
+      return true;
+    }
+    if (sema.secili() === null) return false;
+    sema.sec(null);
+    altyaziGoster("şemaya dönüldü · Esc ile panelden çık", 1800);
+    return true;
+  },
+});
 
 const saat = new Saat();
 
@@ -188,7 +216,26 @@ let mantikTik = 0;
  *  eski kayıt sessizce yanlış yorumlanmak yerine görmezden gelinir. */
 const HAFIZA_ANAHTARI = "orion.hafiza.v1";
 
-const ajanda = new Ajanda();
+/**
+ * DEVRE PANOSU TELLERİ — yazılabilir ayarların tek doğruluk kaynağı.
+ *
+ * Değer modülün içinde değil BURADA duruyor. Modül teli okur, pano aynı
+ * teli okur ve yazar; ikisinin ayrışması yapısal olarak imkânsız.
+ *
+ * Başlangıç değerleri modüllerin kendi varsayılanlarıyla AYNI — telin
+ * takılması davranışı değiştirmemeli, yalnızca değiştirilebilir kılmalı.
+ */
+const PANO_TELLERI = {
+  dikkat: { tekrar: tel(4000), terminalKis: tel(2500), azami: tel(20) },
+  ajanda: { asgari: tel(15_000), sapma: tel(15_000) },
+  hafiza: { kapasite: tel(300) },
+  onay: { zamanAsimi: tel(90_000) },
+} as const;
+
+const ajanda = new Ajanda({
+  asgariAralikMs: PANO_TELLERI.ajanda.asgari,
+  azamiSapmaMs: PANO_TELLERI.ajanda.sapma,
+});
 
 // ── SENARYO KİPİ: kendiliğinden davranışları sustur ───────────────────────
 //
@@ -220,7 +267,12 @@ const refleks = new KuralRefleksi();
 // ── ONAY KAPISI: projedeki tek tehlikeli yetenegin tek gecidi ─────────────
 // Orion komut ONERIR, CALISTIRAMAZ. Calistiran sey Ozyn'in tusudur.
 // Zaman asimiyla "evet" yoktur; suresi dolan oneri DUSER.
-const onayKapisi = new OnayKapisi();
+const onayKapisi = new OnayKapisi({
+  // Süre TELDEN okunur: panel bunu (teyitle) değiştirebilir. Bekleyen
+  // önerinin son tarihi öneri anında dondurulduğu için değişiklik ona
+  // geriye dönük uygulanmaz — S0'da onarılan gizli hata buydu.
+  zamanAsimiMs: PANO_TELLERI.onay.zamanAsimi,
+});
 const onayPanel = document.getElementById("onay") as HTMLDivElement;
 const onayKomutEl = document.getElementById("onayKomut") as HTMLDivElement;
 const onayRiskEl = document.getElementById("onayRisk") as HTMLDivElement;
@@ -581,7 +633,7 @@ async function monitoreGec(): Promise<void> {
   // Terminallerde zoom YOK: 0.95 m okunabilirlik için ÖLÇÜLDÜ (1.5 m'de
   // hücre başına 4.4 piksel, okunmuyor; 0.6 m'de ~11 piksel). Genel
   // çerçeveleme hesabıyla ezmek o ölçümü çöpe atardı.
-  odakMesh = null; zoomUygula(false);
+  odakMesh = null; odakliYuzey = "monitor"; zoomUygula(false);
   const ekranNoktasi = oda.monitorEkran.getAbsolutePosition();
   // Odak kipi (sinematik DEĞİL): fare oynayınca bozulmaz, yalnızca Esc çözer.
   // 0.95 m: 0.62'de ekran çerçeveyi taşıyordu, bütün ekran görünsün.
@@ -603,7 +655,7 @@ async function monitoreGec(): Promise<void> {
  */
 async function admineGec(): Promise<void> {
   monitor.odaklan(false);
-  odakMesh = null; zoomUygula(false);   // bkz. monitoreGec: mesafe ölçülmüş
+  odakMesh = null; odakliYuzey = "admin"; zoomUygula(false);   // bkz. monitoreGec: mesafe ölçülmüş
   // Ekranın KENDİ normali boyunca konumlan: admin monitörü masada açılı.
   // CreatePlane'in varsayılan normali -Z olduğu için yön oradan türetilir.
   const yon = oda.adminEkran.getDirection(new Vector3(0, 0, -1));
@@ -701,6 +753,24 @@ const ZOOM_VARSAYILAN = 1.15;
 let zoomPayi = ZOOM_VARSAYILAN;
 /** Odaklanılan mesh — zoom değişince yeniden çerçevelemek için saklanır. */
 let odakMesh: AbstractMesh | null = null;
+/**
+ * ODAKTAKİ yüzeyin çapa adı. Tıklamanın anlamını belirler:
+ *
+ *   uzaktaki yüzeye tıkla  → o yüzeye GEÇ
+ *   odaktaki yüzeye tıkla  → o yüzeyin İÇİNE tıkla
+ *
+ * Bu ayrım olmadan odaktaki panele her tıklayış `panelOdak`u yeniden
+ * çağırıyordu: zoom sıfırlanıyor ve tıklama hiçbir şey seçmiyordu.
+ */
+let odakliYuzey: string | null = null;
+/** Senaryoların panoyu sorgulayabilmesi için. Üretimde yalnızca okunur. */
+let panoKaydiGlobal: Pano | null = null;
+/**
+ * Panoyu oku. Fonksiyon olması gerekli: TS, modül kapsamındaki `let`i
+ * bildirim yerindeki `null`a daraltıyor ve senaryo bloğunda `?.` zinciri
+ * `never` üretiyor. Açık dönüş tipi bu daraltmayı keser.
+ */
+function panoyuAl(): Pano | null { return panoKaydiGlobal; }
 
 const zoomKutu = document.getElementById("zoom") as HTMLElement;
 const zoomOran = document.getElementById("zoomOran") as HTMLElement;
@@ -749,6 +819,7 @@ function panelOdak(mesh: AbstractMesh, etiket: string): void {
   adminTerminal.odaklan(false);
   // CreatePlane'in yüzey normali -Z; mesh döndürülmüş olsa da bu doğru yönü verir.
   odakMesh = mesh;
+  odakliYuzey = (mesh.metadata as { capa?: string } | undefined)?.capa ?? null;
   zoomPayi = ZOOM_VARSAYILAN;        // her yeni panelde temiz başla
   zoomUygula();                      // kamerayı da kurar
   altyaziGoster(`${etiket} — fare serbest, tıklayabilirsin · Esc ile çık`, 3000);
@@ -760,6 +831,11 @@ function panelOdak(mesh: AbstractMesh, etiket: string): void {
 // imleç zaten kilitli ve tıklamanın işi kamerayı ele almak.
 let sonVurgu: string | null = null;
 let vurguSaat = 0;
+
+/** Odaktaki yüzeyin İÇİNDE imlecin altında tıklanacak ne var — yüzey söyler. */
+const YUZEY_HEDEF: Record<string, (u: number, v: number) => string | null> = {
+  sema: (u, v) => sema.hedef(u, v),
+};
 
 tuval.addEventListener("mousemove", (e) => {
   if (!rig.odakta) {
@@ -774,6 +850,19 @@ tuval.addEventListener("mousemove", (e) => {
 
   const p = sahne.pick(e.offsetX, e.offsetY);
   const capa = (p?.pickedMesh?.metadata as { capa?: string } | undefined)?.capa;
+
+  // ODAKTAKİ yüzeyin içi: imleç kutunun üstündeyken `pointer`, boşlukta değil.
+  // Devre panosunda "neresi tıklanabilir" denemeyle öğrenilmemeli.
+  if (capa && capa === odakliYuzey) {
+    const uv = p?.getTextureCoordinates?.();
+    const hedef = uv ? (YUZEY_HEDEF[capa]?.(uv.x, uv.y) ?? null) : null;
+    const anahtar = hedef ? `${capa}:${hedef}` : null;
+    if (anahtar === sonVurgu) return;
+    sonVurgu = anahtar;
+    tuval.style.cursor = hedef ? "pointer" : "";
+    return;
+  }
+
   const tiklanabilir = capa && capa in YUZEY_GECISI ? capa : null;
   if (tiklanabilir === sonVurgu) return;
 
@@ -785,12 +874,35 @@ tuval.addEventListener("mousemove", (e) => {
   }
 });
 
+/**
+ * Odaktaki yüzeyin İÇİNE tıklama. Dönüş: tıklama tüketildi mi.
+ *
+ * UV doğrudan yüzeye geçirilir; piksele çevirmek burada YAPILMAZ. Çözünürlük
+ * (`dikeyPiksel`) yüzeyin kendi bilgisi — dışarı sızsaydı değiştiği gün
+ * tıklamalar sessizce kayardı.
+ */
+const YUZEY_TIKLAMA: Record<string, (u: number, v: number) => boolean> = {
+  sema: (u, v) => sema.tikla(u, v),
+};
+
 tuval.addEventListener("click", (e) => {
   // Gezinirken tıklama kamerayı ele alır (kamera.ts); burası yalnızca odak kipi.
   if (!rig.odakta) return;
   const p = sahne.pick(e.offsetX, e.offsetY);
   const capa = (p?.pickedMesh?.metadata as { capa?: string } | undefined)?.capa;
   if (!capa) return;
+
+  // ZATEN odaktaki yüzey: tıklama geçiş değil, içerik tıklamasıdır.
+  if (capa === odakliYuzey) {
+    const uv = p?.getTextureCoordinates?.();
+    if (!uv) return;
+    const ele = YUZEY_TIKLAMA[capa];
+    if (!ele) return;                       // içi tıklanabilir değil: sessiz
+    const tuketildi = ele(uv.x, uv.y);
+    console.log(`[TIKLAMA] ${capa} içi uv=${uv.x.toFixed(3)},${uv.y.toFixed(3)} tüketildi=${tuketildi}`);
+    return;                                 // geçişi TEKRAR çalıştırma: zoom sıfırlanırdı
+  }
+
   const gec = YUZEY_GECISI[capa];
   if (!gec) return;
   console.log(`[TIKLAMA] ${capa} yuzeyine geciliyor`);
@@ -809,7 +921,14 @@ setInterval(() => {
   // Odaktan çıkışın birden çok yolu var (Esc, panel değişimi, terminale
   // geçiş). Her birine ayrı temizlik kancası asmak yerine tek gözetim
   // noktası: odak düştüyse zoom kumandası da kapanır.
-  if (!rig.odakta && odakMesh) { odakMesh = null; zoomUygula(false); }
+  if (!rig.odakta && (odakMesh || odakliYuzey)) {
+    odakMesh = null; odakliYuzey = null;
+    // Panelden çıkarken detay da kapanır: geri dönüldüğünde şema karşılar.
+    // Açık bırakmak "panel bozulmuş" gibi okunurdu — kullanıcı o detayı
+    // seçtiğini çoktan unutmuş olur.
+    sema.sec(null);
+    zoomUygula(false);
+  }
 
   const hz = saat.olculenHz;
   const d = oyuncu.oyuncuDurumu();
@@ -1052,6 +1171,13 @@ function beyniBagla(a: Avatar): void {
     }
   }, 1000);
   kopru = new Kopru({
+    // Dikkat'in yazılabilir ayarları TELDEN gelir: karar yolu ile devre
+    // panosu artık aynı nesneyi okur.
+    dikkat: {
+      tekrarPenceresiMs: PANO_TELLERI.dikkat.tekrar,
+      terminalKisMs: PANO_TELLERI.dikkat.terminalKis,
+      dakikaBasinaAzami: PANO_TELLERI.dikkat.azami,
+    },
     beyin: beyinKayitli,
     niyetGonder: (n, id) => {
       // Davranış ölçümü için: hangi niyet üretildi, yalnızca kimliği değil.
@@ -1144,6 +1270,49 @@ function beyniBagla(a: Avatar): void {
       sema.vur(asama, not);
     },
   });
+
+  // ── DEVRE PANOSU kayıt defteri ───────────────────────────────────────
+  //
+  // Kompozisyon kökü kurar (K4'ün belgelenmiş tek istisnası): `world/`
+  // içindeki hiçbir dosya `mind/`i görmez, yalnızca `protocol/pano.ts`
+  // tipini bilir. Kayıt defteri burada doğar ve panele TAKILIR.
+  //
+  // Beyin tanımı bir sınıf örneği değil üç okuyucu alıyor: koşan beynin
+  // durumu (ad, devre kesici) tek bir nesnede toplanmış değil ve sahte bir
+  // nesne uydurmak, panonun tam da kaçındığı kopya-durum olurdu.
+  const panoKaydi = panoKur([
+    dikkatTanimi(kopru.dikkat, PANO_TELLERI.dikkat),
+    hafizaTanimi(kopru.hafiza, PANO_TELLERI.hafiza),
+    onayTanimi(onayKapisi, PANO_TELLERI.onay),
+    ajandaTanimi(ajanda, PANO_TELLERI.ajanda),
+    refleksTanimi(),
+    beyinTanimi({
+      ad: () => beyin.ad,
+      kesikSaniye: () => kesikSn(),
+      yakinlikKurali: () => true,
+    }),
+  ]);
+  sema.panoBagla(panoKaydi);
+  panoKaydiGlobal = panoKaydi;
+  console.log(`[PANO] ${panoKaydi.moduller().length} modül, ` +
+    `${panoKaydi.goruntu().reduce((n, m) => n + m.dugmeler.length, 0)} tel bağlandı`);
+
+  // ── ÖLÇÜM KİLİDİ: panelden AÇILMAZ, bilerek ─────────────────────────
+  //
+  // Kilidi açmak GEREKÇE ister ve gerekçe yazmak metin girişi gerektirir;
+  // odadaki panelin klavyesi yok. Panele "aç" düğmesi koyup gerekçeyi
+  // uydurmak, kilidin tek işlevini — sürtünmeyi — ortadan kaldırırdı.
+  // Bu yüzden açma yolu yönetim terminalinden geçer ve yazılı bir cümle
+  // ister. Kapatmak damgayı KALDIRMAZ.
+  (globalThis as unknown as Record<string, unknown>).orionPano = {
+    kilitAc: (gerekce: string) => panoKaydi.kilitAc(gerekce),
+    kilitKapat: () => panoKaydi.kilitKapat(),
+    durum: () => ({
+      kilitAcik: panoKaydi.kilitAcikMi(),
+      olcumDisi: panoKaydi.olcumDisi(),
+      gerekce: panoKaydi.kilitGerekcesi(),
+    }),
+  };
 
   // Senaryo kipinde beyin susar: elle gönderilen niyetler kesilmesin.
   // (Köprü kurulduktan SONRA — `durdur()` örneğin üstünde çalışır.)
@@ -1637,6 +1806,143 @@ if (new URLSearchParams(location.search).has("zihindene")) {
     sema.durumYaz("düşünce geri geldi");
     gunluk.ekle("iyi", "beyin", "sağlayıcı yeniden yanıt veriyor");
     console.log(`[ZIHINDENE] gunluk satirlari=${gunluk.satirlar().length}`);
+
+    // ── AYNA KONTROLÜ — göz kararı değil, ışın testi ────────────────────
+    //
+    // Birim testi UV→düğüm matematiğini kanıtlıyor ama ARADAKİ zinciri
+    // kanıtlayamaz: mesh dönük, malzemenin arka yüzü açık ve kamera panele
+    // hangi taraftan baktığını bilmiyoruz. Yüzey ters taraftan görünüyorsa
+    // gördüğün ALGI'ya tıklarsın, ışın BEDEN'in UV'sine düşer. Panel
+    // çökmez, yalnızca "biraz şaşı" görünür — tam olarak sessiz hata.
+    //
+    // Varsayımsız ölçüm: ekrana ızgara atıp her noktayı GERÇEK `sahne.pick`
+    // ile çözüyoruz, sonra düğümlerin ekran-X sırasını şemadaki sütun
+    // sırasıyla karşılaştırıyoruz. UV yerleşimi hakkında hiçbir kabul yok.
+    panelOdak(oda.semaYuzey, "beyin şeması");
+    await bekle(1400);
+
+    // ÖN KOŞUL ZORLANIR: tarama ŞEMA görünümünde anlamlı. Detay açıkken
+    // `hedef` düğüm değil düğme adı döndürür ve kontrol sessizce başka bir
+    // şeyi ölçer — ilk koşuda tam olarak bu oldu (vurulan 5/10, adlar
+    // "dikkat.tekrar artir"). Kontrol kendi ön koşulunu kurmalı.
+    sema.sec(null);
+    await bekle(120);
+    console.log(`[ZIHINDENE] ayna oncesi secili=${sema.secili()}`);
+
+    const ekranX = new Map<string, number[]>();
+    const G = motor.getRenderWidth(), Y = motor.getRenderHeight();
+    for (let ex = 0; ex < G; ex += 6) {
+      for (let ey = 0; ey < Y; ey += 6) {
+        const p = sahne.pick(ex, ey);
+        if ((p?.pickedMesh?.metadata as { capa?: string } | undefined)?.capa !== "sema") continue;
+        const uv = p?.getTextureCoordinates?.();
+        if (!uv) continue;
+        const ad = sema.hedef(uv.x, uv.y);
+        if (!ad) continue;
+        (ekranX.get(ad) ?? ekranX.set(ad, []).get(ad)!).push(ex);
+      }
+    }
+
+    const ortalama = (a: number[]) => a.reduce((x, y) => x + y, 0) / a.length;
+    const olculen = [...ekranX.entries()]
+      .map(([ad, xs]) => ({ ad, x: ortalama(xs), n: xs.length }))
+      .sort((a, b) => a.x - b.x);
+    const beklenen = [...DUGUMLER].sort((a, b) => a.sutun - b.sutun || a.satir - b.satir);
+
+    if (!olculen.length) {
+      console.log("[ZIHINDENE] AYNA KALDI — panelde hiç düğüm vurulamadı (ışın hiç değmedi?)");
+    } else {
+      // Sütun sırası: soldaki düğüm ekranda da solda olmalı.
+      let ters = 0;
+      for (let i = 0; i < olculen.length; i++) {
+        for (let j = i + 1; j < olculen.length; j++) {
+          const a = DUGUMLER.find((d) => d.ad === olculen[i]!.ad);
+          const b = DUGUMLER.find((d) => d.ad === olculen[j]!.ad);
+          if (a && b && a.sutun > b.sutun) ters++;
+        }
+      }
+      console.log(`[ZIHINDENE] AYNA ${ters === 0 ? "GECTI" : "KALDI"} — ` +
+        `vurulan=${olculen.length}/${DUGUMLER.length} ters_cift=${ters}`);
+      console.log(`[ZIHINDENE] ekran sirasi : ${olculen.map((o) => o.ad).join(" ")}`);
+      console.log(`[ZIHINDENE] sema sirasi  : ${beklenen.map((d) => d.ad).join(" ")}`);
+    }
+
+    // Detay görünümü gerçekten çiziliyor mu — ekran görüntüsünde görünsün.
+    sema.sec("dikkat");
+    console.log(`[ZIHINDENE] detay secili=${sema.secili()} sayac=${sema.oku("dikkat").sayac}`);
+    await bekle(900);
+
+    // ── S5 KAPISI (canlı): ekrandaki "+" DÜĞMESİNE gerçekten bas ─────────
+    //
+    // Birim testi panonun yazdığını kanıtlıyor. Kanıtlamadığı şey, ekranda
+    // GÖRÜNEN düğmenin o yazmayı tetikleyip tetiklemediği: çizim bir yere,
+    // vuruş bölgesi başka yere düşerse testler yeşil kalır ve panel elle
+    // denenene kadar bozuk durur.
+    {
+      const G2 = motor.getRenderWidth(), Y2 = motor.getRenderHeight();
+      let basildi = false;
+      // Ön koşul: DETAY açık olmalı. Tarama sırasında araya giren bir
+      // tıklama seçimi değiştirebilir; kapı kendi zeminini kurar.
+      sema.sec("dikkat");
+      await bekle(120);
+      const oncekiDeger = () => panoyuAl()?.goruntu("dikkat")
+        .flatMap((m) => m.dugmeler).find((d) => d.ad === "dikkat.tekrar")?.deger ?? null;
+      const once = oncekiDeger();
+
+      dis: for (let ex = 0; ex < G2; ex += 3) {
+        for (let ey = 0; ey < Y2; ey += 3) {
+          const p = sahne.pick(ex, ey);
+          if ((p?.pickedMesh?.metadata as { capa?: string } | undefined)?.capa !== "sema") continue;
+          const uv = p?.getTextureCoordinates?.();
+          if (!uv) continue;
+          const h = sema.hedef(uv.x, uv.y);
+          if (h && h.includes("dikkat.tekrar") && h.endsWith("artir")) {
+            sema.tikla(uv.x, uv.y);
+            basildi = true;
+            break dis;
+          }
+        }
+      }
+      const sonra = oncekiDeger();
+      console.log(`[ZIHINDENE] S5 ${basildi && sonra !== once ? "GECTI" : "KALDI"} — ` +
+        `"+" bulundu=${basildi} tekrar: ${once} -> ${sonra}`);
+      await bekle(700);
+
+      // ── S6 KAPISI (canlı): TEHLİKELİ düğme teyit ekranı AÇMALI ─────────
+      //
+      // Birim testi panonun teyit istediğini kanıtlıyor. Kanıtlamadığı şey,
+      // ekrandaki "−" düğmesine basmanın o teyidi açıp açmadığı: sınıf
+      // kapısını panelin kendi yorumladığı bir tasarımda buradaki yol
+      // sessizce doğrudan yazmaya kayabilirdi.
+      const oku = (ad: string) => panoyuAl()?.goruntu("dikkat")
+        .flatMap((m) => m.dugmeler).find((d) => d.ad === ad)?.deger ?? null;
+      const azamiOnce = oku("dikkat.azami");
+      let teyitAcildi = false;
+
+      dis2: for (let ex = 0; ex < G2; ex += 3) {
+        for (let ey = 0; ey < Y2; ey += 3) {
+          const p = sahne.pick(ex, ey);
+          if ((p?.pickedMesh?.metadata as { capa?: string } | undefined)?.capa !== "sema") continue;
+          const uv = p?.getTextureCoordinates?.();
+          if (!uv) continue;
+          const h = sema.hedef(uv.x, uv.y);
+          if (h && h.includes("dikkat.azami") && h.endsWith("azalt")) {
+            sema.tikla(uv.x, uv.y);
+            teyitAcildi = true;
+            break dis2;
+          }
+        }
+      }
+      await bekle(400);
+      const teyit = panoyuAl()?.bekleyenTeyit() ?? null;
+      const yazilmadi = oku("dikkat.azami") === azamiOnce;
+      console.log(`[ZIHINDENE] S6 ${teyitAcildi && teyit && yazilmadi ? "GECTI" : "KALDI"} — ` +
+        `"−" bulundu=${teyitAcildi} teyit=${teyit ? "acik" : "yok"} ` +
+        `deger_degismedi=${yazilmadi} azami=${azamiOnce}`);
+      if (teyit) console.log(`[ZIHINDENE] S6 uyari: ${teyit.uyari}`);
+      await bekle(900);
+    }
+
     console.log("[ZIHINDENE] bitti — panelleri gozle dogrula");
   })();
 }
