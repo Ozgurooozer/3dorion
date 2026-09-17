@@ -165,8 +165,10 @@ inisiyatif (çalışma belleğini okuyan, fayda puanlamalı ajanda).
 Uzun düşünme bu istemde hem yavaşlatıyor hem cevabı bozuyor; adaptör
 düşünmeyi kapatıyor.
 
-**Engel:** Claude aylık harcama sınırına takıldı (2026-09-17 ~19:45). Canlı
-oda turu ve Faz 2'nin Haiku kolu sınır sıfırlanınca yapılacak.
+**Engel (aşıldı):** Claude aylık harcama sınırına takıldı (2026-09-17 ~19:45);
+sınır 21:30'da sıfırlandı, Faz 2'nin Haiku kolu ve Faz 3–5 doğrulaması
+koşuldu (§6.6, §6.7). Gecikme 30 koşuda ortalama **2,77 sn** — 1b'deki
+2,8–2,9 sn ile aynı. **Kalan:** `dis` beyniyle canlı `bakdene` oda turu.
 
 ## 6.6 Faz 2 — nedensellik sonucu (2026-09-17)
 
@@ -186,6 +188,8 @@ Aynı gerçek girdi, tek değişken anılar. Fixture: `fixtures/sadakat/{A,B}.js
 | `qwen2.5:7b` | B — anılarsız | **6/10 (%60)** | 7/10 | pencere 2 |
 | `opencode` ling-3.0 | A — eski anılarla | 4/10 (%40) | 7/10 | masa 2, monitör 1, tahta 1 |
 | `opencode` ling-3.0 | B — anılarsız | 2/3 (%67)\* | 2/3 | masa 1 |
+| **`claude:haiku`** | **A — eski anılarla** | **0/10 (%0)** | 3/10 | tahta 5, masa 4, monitör 1 |
+| **`claude:haiku`** | **B — anılarsız** | **8/10 (%80)** | 9/10 | monitör 1 |
 
 \* Günlük ücretsiz kota 4. koşuda doldu; kol eksik.
 
@@ -197,7 +201,11 @@ içeriği — `yakin: yönetim terminali, çalışma masası, monitör` ve
 **Geçerlilik:** A kolu sorunu ölçülebilir oranda gösteriyor, yani test pozitif
 üretebiliyor. **K2 doğrulandı.**
 
-Haiku kolu Claude aylık harcama sınırı nedeniyle bekliyor.
+**Haiku kolu tanıyı tek başına kanıtlıyor: %0 → %80.** Üç beyinde de aynı
+yön, ve Haiku'da fark (80 puan) aletin gürültü bandının (~25 puan) çok
+dışında. Model ne kadar iyi olursa olsun eski gözlem anıları onu uydurmaya
+itiyor — yani sorun modelde değil, **bağlamda**. Uydurulanın kimliği yine
+anıların içeriği (tahta, masa, monitör).
 
 ## 6.7 Faz 3–5 sonuçları (2026-09-17)
 
@@ -211,7 +219,18 @@ ancak canlı koşuda ya da birim testiyle ölçülür.)
 |---|---|---|
 | A — düzeltme öncesi, eski gözlem anılarıyla | %10 | **22 kez** (monitör 9, masa 7, tahta 6) |
 | B — aynısı, anılar boş | %60 | 2 |
-| D2 — Faz 3+4 sonrası | %30–56 | 0–1 |
+| D2 — Faz 3+4 sonrası (`qwen2.5:7b`) | %30–56 | 0–1 |
+| **D2 — Faz 3+4 sonrası (`claude:haiku`)** | **%90** | **1** |
+
+**Hedefe ulaşıldı (`claude:haiku`, 2026-09-17 21:5x):** sadık 9/10, nesneyi
+söyledi 10/10, uydurma 1 (`masa`, o da Ozyn'i konumlandırırken). Başlangıç
+noktası aynı beyinde %0 idi. Ayrıca #9 koşusunda anı DOĞRU kullanıldı:
+"Dün `gti` yazım hatasını hatırlıyorum — `git` olmalıydı" — zaman etiketiyle
+(Faz 4a) ve şimdiki gözlemle karıştırmadan. Hedeflenen davranış tam olarak bu.
+
+**Yerel model ile bulut modeli arasındaki fark artık bağlam değil, model.**
+Aynı bağlamda Haiku %90, `qwen2.5:7b` %30–56. Kalan boşluk "gözlenen nesneyi
+hiç söylememe" — yerel modelin zayıflığı, ayrı bir iş (`docs/ACIK-ISLER.md`).
 
 **Kazanç uydurmada ve bandın çok dışında:** 22 → ≤1. Sadakat de yükseldi ama
 oranın kendisi gürültü bandına yakın; "gözlenen nesneyi hiç söylememe"
