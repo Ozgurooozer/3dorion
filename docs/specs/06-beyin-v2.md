@@ -74,6 +74,10 @@ Gerekçelerin tamamı toplantı kaydında.
 - **K8** Bağlam sözleşmesi: SABİT · ŞİMDİ · HATIRLANANLAR · BU TUR.
 - **K9** Sabit teller değişmez: onay kapısı, `tik` yasağı, yakınlık kuralı.
 - **K10** Kapsam dışı: vektör DB yığını, planla-dağıt-birleştir, podcast.
+- **K11** **Ölçüm beyni Claude Haiku** (`claude -p`, araçlar kapalı). Model
+  değişikliği kendi başına bir değişkendir: bellek düzeltmelerinden **önce**
+  bağlanır ve ayrı ölçülür (Faz 2 = model × anı). Faz 3–5 hep aynı beyinle
+  ölçülür. Gerekçe: ücretsiz bulut kotası ölçümü kesiyordu; tek değişken kuralı.
 
 ## 4. Mimari
 
@@ -120,7 +124,8 @@ Her faz ayrı onayla başlar; sonunda durulur ve sayılar raporlanır.
 |---|---|---|
 | **0** | Bu belge + toplantı kaydı | Ozyn onayı |
 | **1** | Sadakat ölçer: `tools/sadakat.ts` (belirleyici puanlayıcı) + `fixtures/sadakat/` (gerçek kayıttan A/B) + `tools/sadakat-olc.ts` (tekrar oynatıcı) | Kalibrasyon testi yeşil (bugünkü iki gerçek çıktı); A için taban çizgisi |
-| **2** | Nedensellik: A (eski anılarla) vs B (anılarsız), N=10 | A sorunu göstermiyorsa test geçersiz. B belirgin iyiyse → 3; değilse **tanı yanlış, dur** |
+| **1b** | **Claude Haiku beyni (K11).** `bridge/baglam.ts`: bağlam metni ve yanıt ayrıştırma `opencode.ts`'ten çıkarılır, iki beyin aynı sözleşmeyi kullanır. `tools/claude-beyin.ts`: dış beyin HTTP sözleşmesini (`/saglik`, `/dusun`) `claude -p --model haiku --tools ""` ile karşılayan adaptör; durumsuz olduğu için `gecmis` metne girer. Seçicideki `dis` seçeneğiyle odaya takılır. | **Güvenlik:** "komutu çalıştır" isteğinde hiçbir araç çağrılmaz (JSON çıktısında araç kullanımı 0). **Temizlik:** giriş token sayısı ölçülür — ponytail / CLAUDE.md sızmıyor. Gecikme ölçülür. Canlı: `dis` → Haiku ile `bakdene` en az bir tur. |
+| **2** | Nedensellik, **2×2**: model (opencode, Haiku) × anı (A eski anılarla, B anılarsız), her hücre N=10 | Her modelde A sorunu göstermiyorsa o kol geçersiz. B belirgin iyiyse → 3; değilse **tanı yanlış, dur**. Ölçüm beyni bu fazda kesinleşir. opencode kolu 429 alırsa kısmi sonuç raporlanır |
 | **3** | Çalışma belleği (K2): `mind/calismaBellegi.ts`; `gordum` hafızaya yazılmaz; yedekli tek seferlik eski kayıt temizliği | Girdide bakış biçimli anı 0; sadakat B koluna yakın |
 | **4a** | Anılara göreli zaman (K3) | Ayrı ölçüm, sadakat düşmez |
 | **4b** | Görünen adlar: `onumde` → "önümde", sabit çapa listesi etiketlerle | Ayrı ölçüm |
@@ -133,6 +138,14 @@ taşır, kota yer, varyans ekler. Belirleyici etiket eşleştirme seçildi; bili
 sınırı eş anlamlılar (her etiket için varyant listesi tutulur).
 
 ## 6. Sonraki spec — yalnızca yön
+
+**Faz 7 — Odadaki Claude, Orion'un kendisi.** Faz 1b'deki bağlantı *başsız*:
+dünya her turda Claude'u çağırır. Tezin asıl hâli tersidir — odadaki
+terminalde koşan `claude` bir **skill** (`orion-beden`) ile dünyaya MCP
+üzerinden bağlanır ve algıyı kendisi *çeker* (spec 05 §2, Aşama 1–4). Skill
+burada gerekir; başsız bağlantıda gerekmez. Ön koşul: bu spec'in bağlam
+sözleşmesi (K8) ve sadakat ölçeri — MCP yolunun da aynı ölçüte tabi olması için.
+Güvenlik kapısı spec 05 R2: o oturumda `bash/edit/write` kapalı.
 
 Konsolidasyon (epizodik → semantik, kaynaklı) · doğrulanmış atıf (`[ani:12]`,
 kimliğin var olduğu kontrol edilir) · gömme (`nomic-embed-text` kurulu) ·
