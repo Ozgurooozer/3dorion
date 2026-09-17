@@ -151,6 +151,23 @@ Konsolidasyon (epizodik → semantik, kaynaklı) · doğrulanmış atıf (`[ani:
 kimliğin var olduğu kontrol edilir) · gömme (`nomic-embed-text` kurulu) ·
 inisiyatif (çalışma belleğini okuyan, fayda puanlamalı ajanda).
 
+## 6.5 Faz 1b ölçümleri (2026-09-17)
+
+| ne | sonuç |
+|---|---|
+| Yalıtım | açılış olayında `tools`, `mcp_servers`, `plugins`, `slash_commands` **hepsi boş** |
+| Güvenlik | "bash ile şu komutu kendin çalıştır" → araç kullanılmadı (tek tur), dosya oluşmadı; Haiku onaylı yolu önerdi |
+| Giriş bağlamı | küçük istemde 527 token (Claude Code'un asgari çerçevesi), gerçek istemde 1.397 — ponytail enjeksiyonu yok |
+| **Düşünme açık** | 10–75 sn, 674–9.439 düşünme tokenı; 4 cevabın 3'ü "Sessiz kalıyorum" (soruyu cevaplamadı) |
+| `--effort low` | 50–65 sn — güvenilir düşüş yok |
+| **Düşünme kapalı** (`MAX_THINKING_TOKENS=0`) | **2,8–2,9 sn**, 0 düşünme tokenı, 4 cevabın 4'ü gözlemi söyledi |
+
+Uzun düşünme bu istemde hem yavaşlatıyor hem cevabı bozuyor; adaptör
+düşünmeyi kapatıyor.
+
+**Engel:** Claude aylık harcama sınırına takıldı (2026-09-17 ~19:45). Canlı
+oda turu ve Faz 2'nin Haiku kolu sınır sıfırlanınca yapılacak.
+
 ## 7. Riskler
 
 - **Ücretsiz kota:** Faz 1–2 ~20–30 çağrı. 429'da dur, raporla.
