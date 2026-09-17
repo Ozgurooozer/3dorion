@@ -34,10 +34,8 @@
 //
 // Bağımlılık: protocol/ + beyin.ts + fetch. Babylon yok, Electron yok.
 "use strict";
-import type { Beyin, BeyinGirdisi, BeyinCikti, AracCagrisi } from "./beyin.ts";
-import { araclariUret } from "./araclar.ts";
-import { metinKurtar } from "./metinKurtarma.ts";
-import { yanitAyir, cagrilaraCevir, SOZLESME_TALIMATI } from "./satirSozlesmesi.ts";
+import type { Beyin, BeyinGirdisi, BeyinCikti } from "./beyin.ts";
+import { baglamMetni, hamdanCikti } from "./baglam.ts";
 
 export interface OpenCodeAyari {
   adres?: string;
@@ -47,6 +45,11 @@ export interface OpenCodeAyari {
   zamanAsimiMs?: number;
   /** Sunucu şifreliyse (OPENCODE_SERVER_PASSWORD). */
   sifre?: string;
+  /**
+   * Her tur yeni oturum + geçmiş metinde. Yalnızca ölçüm/tekrar oynatma
+   * içindir; odada kalıcı oturum kullanılır (hafıza orada yaşıyor).
+   */
+  durumsuz?: boolean;
 }
 
 interface OturumYaniti { id?: string; sessionID?: string }
@@ -81,6 +84,7 @@ export class OpenCodeBeyni implements Beyin {
   private _modelID: string;
   private _zamanAsimi: number;
   private _sifre?: string;
+  private _durumsuz: boolean;
   /** Tek kalıcı oturum: OpenCode oturumu konuşma sürekliliğini kendi tutar. */
   private _oturum: string | null = null;
 
@@ -118,6 +122,7 @@ export class OpenCodeBeyni implements Beyin {
     this._modelID = ayar.modelID ?? "inclusionai/ling-3.0-flash-vl:free";
     this._zamanAsimi = ayar.zamanAsimiMs ?? 30_000;
     this._sifre = ayar.sifre;
+    this._durumsuz = ayar.durumsuz ?? false;
     this.ad = `opencode:${this._modelID}`;
   }
 
@@ -202,19 +207,15 @@ export class OpenCodeBeyni implements Beyin {
   }
 
   private async _dusun(girdi: BeyinGirdisi): Promise<BeyinCikti> {
+    // Durumsuz kip (tekrar oynatma): her tur temiz oturum — önceki turun
+    // cevabı bir sonrakinin ölçümüne sızmasın.
+    if (this._durumsuz) this._oturum = null;
     const oturum = await this._oturumAl();
     const t0 = Date.now();
 
-    const sistem = [
-      girdi.talimat,
-      girdi.sabit,
-      SOZLESME_TALIMATI,
-    ].filter(Boolean).join("\n");
-    const kullanici = [
-      girdi.dunya,
-      ...(girdi.anilar?.length ? [`Hatirladiklarin: ${girdi.anilar.join(" | ")}`] : []),
-      ...girdi.ozetler,
-    ].filter(Boolean).join("\n");
+    // Bağlam biçimi `baglam.ts`'te — Haiku beyniyle AYNI metin (spec 06 K8).
+    // Durumsuz kipte geçmiş metne girer: yeni oturum onu başka yerden bilemez.
+    const { sistem, kullanici } = baglamMetni(girdi, { gecmis: this._durumsuz });
 
     let yanit: MesajYaniti;
     try {
@@ -256,37 +257,8 @@ export class OpenCodeBeyni implements Beyin {
         `${h.name ?? "hata"}${kod ? ` ${kod}` : ""}: ${h.data?.message ?? "ayrinti yok"}`, kod);
     }
 
-    const ham = this._metniTopla(yanit);
-    const bilinen = araclariUret().map((a) => a.ad);
-
-    // BİRİNCİL YOL: satır sözleşmesi. Model doğal cevabını yazar, eylemi
-    // sonuna `KOMUT:` / `TAHTA:` / `GIT:` satırı olarak ekler. Ölçüm gereği:
-    // `format: json_schema` bu model/sağlayıcıda 60-90 sn askıda kalıyordu,
-    // şemasız istek 8.6 sn'de doğru cevabı veriyordu (bkz. satirSozlesmesi.ts).
-    const ayrik = yanitAyir(ham);
-
-    // YEDEK: model eski alışkanlıkla söz içine JSON araç çağrısı sızdırabilir.
-    // Temizlenmezse Orion bunu SESLİ okur (ekran görüntüsüyle görüldü:
-    // `orld {"name":"dunya_bak",...}`). Kurtarma sözü temizler; oradan çıkan
-    // çağrıları da alırız — `dunya_soyle` hariç, sözü aşağıda zaten üretiyoruz.
-    let ekCagrilar: AracCagrisi[] = [];
-    if (ayrik.soz.includes("{") && bilinen.some((ad) => ayrik.soz.includes(ad))) {
-      const k = metinKurtar(ayrik.soz, bilinen);
-      ayrik.soz = k.konusulabilir;
-      ekCagrilar = (k.cagrilar as AracCagrisi[]).filter((c) => c.ad !== "dunya_soyle");
-    }
-
-    const cagrilar: AracCagrisi[] = [...ekCagrilar, ...(cagrilaraCevir(ayrik) as AracCagrisi[])];
-    if (cagrilar.length === 0 && ham) {
-      console.warn(`[opencode] yanittan eylem cikmadi: "${ham.replace(/\s+/g, " ").slice(0, 100)}"`);
-    }
-
-    return {
-      // `metin` yalnızca günlük/panel içindir; ses cagrilar[dunya_soyle]'den gider.
-      metin: ayrik.soz,
-      cagrilar,
-      bilgi: { model: this.ad, sureMs: Date.now() - t0, oturum },
-    };
+    // Satır sözleşmesi + sızan JSON kurtarma — gerekçeleri `baglam.ts`te.
+    return hamdanCikti(this._metniTopla(yanit), { model: this.ad, sureMs: Date.now() - t0, oturum });
   }
 
   /** Yanıt parçalarından okunabilir metni toplar. */
