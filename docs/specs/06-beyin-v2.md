@@ -133,6 +133,12 @@ Her faz ayrı onayla başlar; sonunda durulur ve sayılar raporlanır.
 | **5b** | Tazelik yalnızca eşiği geçene (K5) | Eşiği geçmeyenin `sonErisim`i değişmez |
 | **5c** | IDF (K6) — yalnızca 5a sonrası kalıp eşleşmesi sürüyorsa | Ayrı ölçüm |
 
+**TÜM FAZLAR KAPANDI (2026-09-17).** 0 · 1 · 1b · 2 · 3 · 4a · 4b · 5a · 5b
+yapıldı ve ölçüldü; **5c (IDF) bilerek yapılmadı** — K6 "ölçüm gerektirirse"
+diyordu, kalıp üreten kaynak Faz 3'te kurudu (gerekçe §6.7). Sonuç:
+`claude:haiku` ile %0 → **%90 sadakat**, canlı odada doğrulandı.
+Sıradaki iş bu spec'te değil: §6 ve `docs/ACIK-ISLER.md`.
+
 **Puanlayıcı seçimi (Faz 1):** LLM hakem elendi — aynı sadakat sorununu
 taşır, kota yer, varyans ekler. Belirleyici etiket eşleştirme seçildi; bilinen
 sınırı eş anlamlılar (her etiket için varyant listesi tutulur).
