@@ -69,6 +69,7 @@ import { MetinGirdi } from "../voice/metin-girdi.ts";
 import { ikiCumleyeKisalt } from "../voice/kisalt.ts";
 import { Ajanda } from "../mind/ajanda.ts";
 import { gozlemAnisiMi } from "../mind/hafiza.ts";
+import { sureSozu } from "../mind/zaman.ts";
 import { KuralRefleksi, UZUN_ISLEM_MS } from "../mind/refleks.ts";
 import { OnayKapisi } from "../mind/onayKapisi.ts";
 import { riskEtiketi } from "../mind/komutRiski.ts";
@@ -1077,20 +1078,6 @@ const ACILIS = Date.now();
 /** Ozyn'in en son konuştuğu an. 0 = hiç konuşmadı. */
 let sonKonusma = 0;
 
-/**
- * Süreyi insan diline çevirir. Orion "1847 saniye" demez.
- *
- * Kabalık bilinçli: dakika hassasiyeti bir varlık için yeter ve sayı
- * kalabalığı bağlamı şişirir.
- */
-function sureSozu(ms: number): string {
-  const dk = Math.floor(ms / 60000);
-  if (dk < 1) return "az önce";
-  if (dk < 60) return `${dk} dakikadır`;
-  const saat = Math.floor(dk / 60);
-  return saat < 24 ? `${saat} saattir` : `${Math.floor(saat / 24)} gündür`;
-}
-
 /** Günün hangi vakti — "saat 14:32" yerine yaşanan bir zaman. */
 function gununVakti(d: Date): string {
   const s = d.getHours();
@@ -1275,7 +1262,10 @@ function beyniBagla(a: Avatar): void {
     dunyaDurumu: dunyaDurumuMetni,
     // Çapa adları DEĞİŞMEZ: sistem mesajında bir kez söylenir. Her turun
     // sonuna eklendiğinde model onları son algı sanıp geri okuyordu.
-    sabitBilgi: () => `Odadaki çapalar: ${tumCapalar().map((c) => c.ad).join(", ")}.`,
+    // GÖRÜNEN adlar (spec 06 K3): iç kimlik (`admin`, `sema`) modele hiçbir
+    // şey anlatmıyordu; algı hizmeti "yönetim terminali" derken sabit liste
+    // "admin" diyordu ve model ikisini aynı şey saymıyordu.
+    sabitBilgi: () => `Odadakiler: ${tumCapalar().map((c) => c.etiket).join(", ")}.`,
     toplamaMs: 900,
     // Ölçüm için ayarlanabilir: kısa pencere hipotezi (anı, alakasız sohbetin
     // altında gömülüyor mu?) tek değişkenle sınanabilsin.
@@ -2167,7 +2157,13 @@ if (new URLSearchParams(location.search).has("bakdene")) {
     // ama boş bir kapı. Model kendi üretmediyse niyeti biz gönderiyoruz;
     // ölçülen şey zincir (sor → cevap → beyne ŞİMDİ satırı), modelin seçimi değil.
     if (!(k?.sayac().dusunme ?? 0) || !gordumGeldi) {
-      console.log("[BAKDENE] model BAK: uretmedi — sor niyeti dogrudan gonderiliyor");
+      // ÖNCE YÖNE, SONRA SOR: gözlenen şey her koşuda AYNI olmalı, yoksa
+      // ölçüm fazı değil sahneyi ölçer. Ozyn'e bakarken "önünde ne var"
+      // sorusunun dürüst cevabı "Ozyn" oluyor ve Orion buna "sen" diyerek
+      // cevap verebiliyor — puanlayıcı kelimeyi arar, sadık cevabı kaçırır.
+      console.log("[BAKDENE] model BAK: uretmedi — once yonetim terminaline bak, sonra sor");
+      niyetiYurut({ tur: "bak", hedef: { tip: "capa", ad: "admin" } }, "bakdene_yon");
+      await bekle(2500);
       niyetiYurut({ tur: "sor", ne: "onumde" }, "bakdene_yedek");
       await bekle(12000);
     }
