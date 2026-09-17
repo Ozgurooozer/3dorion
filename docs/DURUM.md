@@ -106,8 +106,11 @@ Bugün:
 - Panoda `beyin.model` düğmesi **görünüyor ama yazılamıyor** — sınıfı
   `tehlikeli`, etkisi `yeniden_kurulum`.
 
-Eksik olan tek parça: çalışırken beyin değiştiren bir sarmalayıcı
-(`SecilebilirBeyin`). Spec 05 bunu MCP planıyla birlikte ertelemişti.
+**2026-09-17 güncellemesi: YAPILDI.** `bridge/secilebilirBeyin.ts` —
+panodaki DÜŞÜNCE düğümünden `opencode` / `yerel:qwen2.5` / `yerel:qwen3` /
+`dis` arasında teyitle geçiliyor. `[TEST]` 14 düşman testi (5 mutasyonun 5'i
+yakalandı) · `[ÖLÇÜLDÜ]` canlıda Python beyni kapalıyken `dis` reddedildi,
+`qwen2.5:7b`'ye geçildi; geçiş sonrası FPS sabit 100.
 
 Tasarımda üç kural şart:
 1. **Geçiş tur sınırında olur**, düşünürken asla. Yarım düşünceyi başka beyin
@@ -123,7 +126,7 @@ Tasarımda üç kural şart:
 2. 4 kopya normalizasyonu tekilleştir.
 3. `sema.ts` saf yardımcılarını test et.
 4. **Teze dön:** cevabın kullanılması, sonra Orion'un kendi gündemi.
-5. `SecilebilirBeyin` — model seçimi panelden.
+5. ~~`SecilebilirBeyin` — model seçimi panelden.~~ Yapıldı.
 
 Ponytail denemesi sürüyor; karar tarihi **2026-10-01**
 (`docs/olcum-ponytail.md`).
