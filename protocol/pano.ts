@@ -110,6 +110,13 @@ export interface Dugme {
   kaynak?: string;
   /** Bir adımda ne kadar değişir — sayısal düğmelerde panel bunu kullanır. */
   adim?: number;
+  /**
+   * Metin düğmesinin geçerli değerleri, panelde gezinme SIRASIYLA.
+   *
+   * Verilirse yazma bu listenin dışını reddeder. Fonksiyon, çünkü liste
+   * çalışırken değişebilir (yeni beyin tanımı gibi); kopya tutulmaz.
+   */
+  secenekler?: () => readonly string[];
   /** Güncel değeri TAZE okur. Fırlatabilir — okuyucu yakalar. */
   oku(): Deger;
   /**
@@ -191,6 +198,8 @@ export interface DugmeGoruntu {
   /** Yazılamıyorsa neden — panelde rozet yerine bu okunur. */
   kilitSebebi: string;
   adim: number;
+  /** Metin düğmesinin seçenekleri; yoksa boş. */
+  secenekler: readonly string[];
 }
 
 export interface ModulGoruntu {
@@ -319,6 +328,13 @@ export function panoKur(moduller: readonly Modul[]): Pano {
     return "";
   };
 
+  /** Liste dışı değer mi? İki yazma yolu (`yaz`, `teyitIste`) aynı kuralı kullanır. */
+  const listeDisi = (d: Dugme, deger: Deger): string => {
+    if (!d.secenekler || typeof deger !== "string") return "";
+    const liste = secenekleriOku(d);
+    return liste.includes(deger) ? "" : `geçersiz seçenek: ${deger} (geçerli: ${liste.join(", ")})`;
+  };
+
   const dugmeBul = (ad: string): Dugme | null => {
     for (const m of moduller) for (const d of m.dugmeler) if (d.ad === ad) return d;
     return null;
@@ -342,6 +358,7 @@ export function panoKur(moduller: readonly Modul[]): Pano {
       yazilabilir: kapi(d) === "",
       kilitSebebi: kapi(d),
       adim: d.adim ?? 0,
+      secenekler: secenekleriOku(d),
     };
   };
 
@@ -402,6 +419,8 @@ export function panoKur(moduller: readonly Modul[]): Pano {
       if (typeof deger === "number" && !Number.isFinite(deger)) {
         return red("sayı geçersiz", d);
       }
+      const disarida = listeDisi(d, deger);
+      if (disarida) return red(disarida, d);
       if (typeof deger === "number" && d.aralik) {
         const { en, cok } = d.aralik;
         if (deger < en || deger > cok) {
@@ -451,6 +470,8 @@ export function panoKur(moduller: readonly Modul[]): Pano {
       if (typeof deger === "number" && !Number.isFinite(deger)) {
         return { oldu: false, sebep: "sayı geçersiz", deger: eski };
       }
+      const disarida = listeDisi(d, deger);
+      if (disarida) return { oldu: false, sebep: disarida, deger: eski };
       if (typeof deger === "number" && d.aralik && (deger < d.aralik.en || deger > d.aralik.cok)) {
         return { oldu: false, sebep: `aralık dışı: ${d.aralik.en}–${d.aralik.cok}`, deger: eski };
       }
@@ -561,4 +582,14 @@ export function panoKur(moduller: readonly Modul[]): Pano {
       }));
     },
   };
+}
+
+/** Seçenek listesini FIRLATMADAN oku — görüntü kare döngüsünde üretiliyor. */
+function secenekleriOku(d: Dugme): readonly string[] {
+  if (!d.secenekler) return [];
+  try { return d.secenekler(); }
+  catch (e) {
+    console.error(`[PANO] '${d.ad}' seçenekleri okunamadı:`, e);
+    return [];
+  }
 }

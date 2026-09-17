@@ -40,7 +40,6 @@ export interface KayitAyari {
  * duyulan fixture'dır.
  */
 export class KayitBeyni implements Beyin {
-  readonly ad: string;
   private _ic: Beyin;
   private _yaz: (s: string) => void;
   private _azami: number;
@@ -48,10 +47,16 @@ export class KayitBeyni implements Beyin {
 
   constructor(ic: Beyin, ayar: KayitAyari = {}) {
     this._ic = ic;
-    this.ad = ic.ad;
     this._yaz = ayar.yaz ?? ((s) => console.log(s));
     this._azami = ayar.azamiUzunluk ?? 120_000;
   }
+
+  /**
+   * İçteki beynin adı, HER OKUMADA. Kurulumda dondurulsaydı, çalışırken
+   * değişen bir beynin (`SecilebilirBeyin`) etrafında kayıtlar geçişten
+   * sonra da eski beynin adını taşırdı — fixture'lar yanlış beyne atfedilirdi.
+   */
+  get ad(): string { return this._ic.ad; }
 
   hazirMi(): Promise<boolean> { return this._ic.hazirMi(); }
 

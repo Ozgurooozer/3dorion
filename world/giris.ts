@@ -62,6 +62,8 @@ import { Kopru } from "../bridge/kopru.ts";
 import { OpenCodeBeyni } from "../bridge/opencode.ts";
 import { DisBeyin } from "../bridge/disBeyin.ts";
 import { KayitBeyni } from "../bridge/kayitBeyni.ts";
+import { OllamaBeyni } from "../bridge/ollama.ts";
+import { SecilebilirBeyin, type BeyinSecenegi } from "../bridge/secilebilirBeyin.ts";
 import type { Beyin } from "../bridge/beyin.ts";
 import { MetinGirdi } from "../voice/metin-girdi.ts";
 import { ikiCumleyeKisalt } from "../voice/kisalt.ts";
@@ -1130,18 +1132,54 @@ function beyniBagla(a: Avatar): void {
   // örnek: `tools/ornek-beyin.py`). Python/Go/Rust fark etmez — dünya, köprü
   // ve protokol hiçbir şey bilmez. Ayrım baştan böyle kurulmuştu; burası
   // yalnızca hangi uygulamanın kullanılacağını seçer.
-  const beyin: Beyin = q.get("beyin") === "dis"
-    ? new DisBeyin({
-        adres: q.get("beyinadres") || undefined,
-        zamanAsimiMs: 10_000,
-      })
-    : new OpenCodeBeyni({
+  //
+  // ÇALIŞIRKEN DEĞİŞTİRİLEBİLİR: seçici panodaki DÜŞÜNCE düğümünden sürülür.
+  // Açılış seçimi (`?beyin=`) yalnızca BAŞLANGIÇ beynini belirler. Beyinler
+  // tembel kurulur — seçilmeyen yerel model yüklenmez, bulut oturumu açılmaz.
+  //
+  // Yerel seçenekler düşünce için ÖLÇÜMLE elenmişti (yukarıda): listede
+  // durmaları "iyi düşünür" iddiası değil, bulut kapalıyken ya da kotası
+  // dolduğunda elle geçilebilecek bir yedek olmaları.
+  const secenekler: BeyinSecenegi[] = [
+    { ad: "opencode", kur: () => new OpenCodeBeyni({
         providerID: q.get("saglayici") || "openrouter",
         modelID: q.get("model") || "inclusionai/ling-3.0-flash-vl:free",
         adres: q.get("opencode") || undefined,
         sifre: q.get("sifre") || undefined,
         zamanAsimiMs: 30_000,
-      });
+      }) },
+    { ad: "yerel:qwen2.5", kur: () => new OllamaBeyni({ model: "qwen2.5:7b" }) },
+    { ad: "yerel:qwen3", kur: () => new OllamaBeyni({ model: "qwen3:4b" }) },
+    { ad: "dis", kur: () => new DisBeyin({
+        adres: q.get("beyinadres") || undefined,
+        zamanAsimiMs: 10_000,
+      }) },
+  ];
+  // Başlangıç: `?beyin=` listede varsa o, yoksa opencode. Liste TEK kaynak;
+  // bilinen adları ayrıca yazmak, yeni seçenek eklenince sessizce ayrışırdı.
+  // Bilinmeyen değer çökertmez — eskiden de opencode'a düşüyordu.
+  const istek = q.get("beyin");
+  const baslangic = secenekler.some((s) => s.ad === istek) ? istek! : "opencode";
+  if (istek && baslangic !== istek) {
+    console.warn(`[BEYIN] bilinmeyen beyin '${istek}', opencode ile başlanıyor`);
+  }
+  const secici = new SecilebilirBeyin(secenekler, baslangic, {
+    bildir: (o) => {
+      if (o.tur === "gecti") {
+        sema.ariza("beyin", false);
+        sema.not("beyin", kisaAd(beyin.ad));
+        gunluk.ekle("iyi", "beyin", `sol lob değişti: ${beyin.ad}`);
+        altyaziGoster(`düşünce artık ${beyin.ad}`, 2600);
+      } else {
+        gunluk.ekle("hata", "beyin", `${o.hedef} beynine geçilemedi: ${o.sebep}`);
+        altyaziGoster(`geçilemedi: ${o.sebep}`, 3200);
+      }
+    },
+  });
+  const beyin: Beyin = secici;
+  console.log(`[BEYIN] seçenekler: ${secici.secenekAdlari().join(", ")} · başlangıç: ${secici.aktif}`);
+  /** Panel notu için kısa ad: `opencode:saglayici/model` → `model`. */
+  const kisaAd = (ad: string) => ad.replace(/^opencode:/, "").split("/").pop() ?? ad;
 
   // KAYIT: `?kayit=1` ile her tur `[BEYIN:KAYIT] {json}` olarak günlüğe düşer.
   // Sonra `tools/beyin-ayikla.mjs` fixture üretir, `tools/beyin-tekrar.ts`
@@ -1155,9 +1193,12 @@ function beyniBagla(a: Avatar): void {
    * Arayüze eklemek uygulama ayrıntısını sözleşmeye sızdırmak olurdu; onun
    * yerine burada tip koruması ile sorulur.
    */
-  const kesikSn = (): number => beyin instanceof OpenCodeBeyni ? beyin.kesikSaniye : 0;
+  const kesikSn = (): number => {
+    const ic = secici.ic;
+    return ic instanceof OpenCodeBeyni ? ic.kesikSaniye : 0;
+  };
   console.log(`[BEYIN] ${beyin.ad}`);
-  sema.not("beyin", beyin.ad.replace(/^opencode:/, "").split("/").pop() ?? beyin.ad);
+  sema.not("beyin", kisaAd(beyin.ad));
   gunluk.ekle("bilgi", "beyin", `sol lob bağlandı: ${beyin.ad}`);
   sema.durumYaz("beyin bağlı, algı bekleniyor");
 
@@ -1290,6 +1331,17 @@ function beyniBagla(a: Avatar): void {
       ad: () => beyin.ad,
       kesikSaniye: () => kesikSn(),
       yakinlikKurali: () => true,
+      secim: {
+        istenen: () => secici.istenen,
+        iste: (ad) => secici.iste(ad),
+        secenekler: () => secici.secenekAdlari(),
+        durum: () => {
+          const g = secici.gecis;
+          if (g.tur === "kontrol") return `${secici.aktif} → ${g.hedef} (kontrol)`;
+          if (g.tur === "reddedildi") return `${secici.aktif} (${g.hedef} reddedildi)`;
+          return beyin.ad;
+        },
+      },
     }),
   ]);
   sema.panoBagla(panoKaydi);
@@ -1940,6 +1992,50 @@ if (new URLSearchParams(location.search).has("zihindene")) {
         `"−" bulundu=${teyitAcildi} teyit=${teyit ? "acik" : "yok"} ` +
         `deger_degismedi=${yazilmadi} azami=${azamiOnce}`);
       if (teyit) console.log(`[ZIHINDENE] S6 uyari: ${teyit.uyari}`);
+      await bekle(900);
+      // Kapı arkasında İZ BIRAKMAZ: açık kalan teyit sonraki kapının isteğini
+      // "bekleyen ezilemez" kuralına takıyordu ve o kapı yanlış teyidi
+      // onaylıyordu (ilk koşuda dikkat.azami=15 böyle yazıldı).
+      panoyuAl()?.teyitIptal();
+    }
+
+    // ── BEYİN SEÇİCİ (canlı): cevabı bilinen iki geçiş ─────────────────
+    //
+    // Birim testleri yönlendirmeyi kanıtlıyor; burada kanıtlanan GERÇEK
+    // sağlık kontrolleri. Ollama ayakta ve qwen2.5:7b kurulu → geçmeli.
+    // Python dış beyni koşmuyor → reddedilmeli ve mevcut beyin kalmalı.
+    {
+      const pn = panoyuAl();
+      const deger = (ad: string) => pn?.goruntu("beyin")
+        .flatMap((m) => m.dugmeler).find((d) => d.ad === ad)?.deger ?? null;
+      const gec = async (hedef: string) => {
+        pn?.teyitIptal();                               // zemin: açık teyit yok
+        pn?.teyitIste("beyin.model", hedef);
+        const t = pn?.bekleyenTeyit();
+        // Onaylanan teyit BİZİM istediğimiz olmalı — başkasınınkini onaylamak
+        // bu kapının ilk koşusundaki hataydı.
+        if (!t || t.dugmeAdi !== "beyin.model" || t.yeni !== hedef) {
+          console.log(`[ZIHINDENE] SECICI teyit beklenmedik: ${t ? `${t.dugmeAdi}=${String(t.yeni)}` : "yok"}`);
+          return null;
+        }
+        const s = pn!.teyitliYaz(t.jeton);
+        // Sağlık kontrolü asenkron: "kontrol" durumu bitene kadar bekle.
+        for (let i = 0; i < 40 && String(deger("beyin.aktif")).includes("(kontrol)"); i++) await bekle(150);
+        return s;
+      };
+      const once = deger("beyin.aktif");
+
+      const r = await gec("dis");
+      const disSonra = { model: deger("beyin.model"), aktif: deger("beyin.aktif") };
+      console.log(`[ZIHINDENE] SECICI-RED ${disSonra.model === "opencode" && String(disSonra.aktif).includes("reddedildi") ? "GECTI" : "KALDI"}` +
+        ` — yazma=${r?.oldu} model=${disSonra.model} aktif=${disSonra.aktif}`);
+
+      const y = await gec("yerel:qwen2.5");
+      const yerelSonra = { model: deger("beyin.model"), aktif: deger("beyin.aktif") };
+      console.log(`[ZIHINDENE] SECICI-GECIS ${yerelSonra.aktif === "qwen2.5:7b" ? "GECTI" : "KALDI"}` +
+        ` — yazma=${y?.oldu} once=${once} model=${yerelSonra.model} aktif=${yerelSonra.aktif}`);
+
+      sema.sec("beyin");
       await bekle(900);
     }
 

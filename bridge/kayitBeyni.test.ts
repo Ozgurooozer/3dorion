@@ -94,3 +94,20 @@ test("ad ve hazirMi İÇ BEYİNDEN gelir — sarmalayıcı görünmez olmalı", 
   assert.equal(b.ad, "sahte");
   assert.equal(await b.hazirMi(), false);
 });
+
+test("AD canlı okunur — içteki beyin değişirse kayıt yeni adı taşır", async () => {
+  // `SecilebilirBeyin` gibi çalışırken değişen bir beynin etrafında
+  // dondurulmuş ad, fixture'ları yanlış beyne atfederdi.
+  const satirlar: string[] = [];
+  let ad = "A";
+  const ic = {
+    get ad() { return ad; },
+    hazirMi: async () => true,
+    dusun: async () => ({ metin: "", cagrilar: [] }),
+  };
+  const k = new KayitBeyni(ic, { yaz: (s) => satirlar.push(s) });
+  ad = "B";
+  assert.equal(k.ad, "B");
+  await k.dusun({ talimat: "", mesajlar: [], araclar: [] } as never);
+  assert.match(satirlar[0]!, /"beyin":"B"/, "kayıt eski adı taşıyor");
+});

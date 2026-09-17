@@ -536,7 +536,10 @@ export function semaKur(ayar: SemaAyari): SemaPaneli {
         // açılır. Çizmemek "bu ayar hiç değiştirilemez" demek olurdu ki
         // yanlış; kilit sebebi zaten rozette ve teyitte okunuyor.
         const teyitli = d.kilitSebebi.includes("teyit");
-        if ((d.yazilabilir || teyitli) && typeof d.deger === "number" && d.adim > 0) {
+        // Sayı: adım adım. Metin: seçenek listesinde önceki/sonraki.
+        const ayarlanir = (typeof d.deger === "number" && d.adim > 0)
+          || (typeof d.deger === "string" && d.secenekler.length > 1);
+        if ((d.yazilabilir || teyitli) && ayarlanir) {
           const dg = Math.round(satirY * 1.12);
           const artiX = etkiX - Math.round(o.genislik * 0.115) - dg;
           const eksiX = artiX - dg - Math.round(satirY * 0.22);
@@ -666,10 +669,10 @@ export function semaKur(ayar: SemaAyari): SemaPaneli {
       // sanar, değer değişmez ve nedenini hiç öğrenmez.
       const mevcut = pano.goruntu(secim ?? "").flatMap((m) => m.dugmeler)
         .find((d) => d.ad === dugmeAdi);
-      if (!mevcut || typeof mevcut.deger !== "number") return false;
+      if (!mevcut) return false;
 
-      const adim = mevcut.adim || 1;
-      const hedef = mevcut.deger + (islem === "artir" ? adim : -adim);
+      const hedef = sonrakiDeger(mevcut, islem === "artir" ? 1 : -1);
+      if (hedef === null) return false;
       // Sınıf kapısına göre yol ayrılır: güvenli olan doğrudan yazılır,
       // teyit isteyen teyit ekranını AÇAR. Karar panoda, panelde değil —
       // panelin kapıyı kendi yorumlaması ikinci bir doğruluk kaynağı olurdu.
@@ -821,4 +824,20 @@ function degerYaz(d: DugmeGoruntu["deger"]): string {
   if (d === null) return "—";
   if (typeof d === "boolean") return d ? "evet" : "hayır";
   return String(d);
+}
+
+/**
+ * −/+ basılınca yazılacak değer. Sayıda adım kadar, metinde listede bir
+ * sonraki/önceki (uçta başa döner: iki beyin arasında gidip gelmek tek
+ * tuşla olmalı). Ayarlanamayan düğmede `null`.
+ */
+export function sonrakiDeger(d: DugmeGoruntu, yon: 1 | -1): number | string | null {
+  if (typeof d.deger === "number") return d.deger + yon * (d.adim || 1);
+  if (typeof d.deger === "string" && d.secenekler.length > 1) {
+    const i = d.secenekler.indexOf(d.deger);
+    const n = d.secenekler.length;
+    // Değer listede yoksa (ör. eski ad) ilk seçeneğe git — kilitlenme yok.
+    return d.secenekler[i < 0 ? 0 : (i + yon + n) % n]!;
+  }
+  return null;
 }

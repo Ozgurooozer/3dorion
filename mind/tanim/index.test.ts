@@ -296,3 +296,84 @@ test("S6: DİKKAT tavanı uyarısı pencereye göre CANLI değişir", () => {
   assert.match(u, /sn beyne hiçbir şey gitmez/);
   pano.teyitIptal();
 });
+
+// ── BEYİN SEÇİCİ: panodan geçiş ──────────────────────────────────────────
+//
+// `mind/` → `bridge/` bağımlılığı yasak olduğu için gerçek `SecilebilirBeyin`
+// burada kullanılamaz; onun sözleşmesini taklit eden küçük bir sahte yeter.
+// Gerçek sınıfın davranışı `bridge/secilebilirBeyin.test.ts`te sınanıyor.
+
+function sahteSecim(baslangic = "opencode") {
+  const durum = { istenen: baslangic, aktif: baslangic, surer: false };
+  return {
+    durum,
+    secim: {
+      istenen: () => durum.istenen,
+      iste: (ad: string) => {
+        if (durum.surer) return "geçiş sürüyor";
+        if (!["opencode", "yerel"].includes(ad)) return `böyle bir beyin yok: ${ad}`;
+        durum.istenen = ad; durum.surer = true;
+        return "";
+      },
+      secenekler: () => ["opencode", "yerel"],
+      durum: () => durum.surer ? `${durum.aktif} → ${durum.istenen} kontrol` : durum.aktif,
+    },
+  };
+}
+
+test("BEYİN SEÇİMİ panodan teyitle yapılır, doğrudan yazılamaz", () => {
+  const { durum, secim } = sahteSecim();
+  const p = panoKur([beyinTanimi({
+    ad: () => "opencode:ling", kesikSaniye: () => 0, yakinlikKurali: () => true, secim,
+  })]);
+
+  // Doğrudan yazma: tehlikeli sınıf, reddedilir.
+  assert.match(p.yaz("beyin.model", "yerel").sebep, /teyit/);
+  assert.equal(durum.istenen, "opencode");
+
+  p.teyitIste("beyin.model", "yerel");
+  const t = p.bekleyenTeyit();
+  assert.ok(t, "teyit açılmadı");
+  assert.match(t.uyari, /TAŞINMAZ/, "bağlam kaybı uyarısı yok");
+  assert.match(t.uyari, /opencode:ling/, "uyarı şu an koşan beyni söylemiyor");
+
+  const s = p.teyitliYaz(t.jeton);
+  assert.equal(s.oldu, true, s.sebep);
+  assert.equal(durum.istenen, "yerel");
+});
+
+test("SEÇİCİ reddederse sebep panoya ulaşır — 'oturmadı' diye yutulmaz", () => {
+  const { durum, secim } = sahteSecim();
+  durum.surer = true;                                // geçiş sürüyor
+  const p = panoKur([beyinTanimi({
+    ad: () => "opencode:ling", kesikSaniye: () => 0, yakinlikKurali: () => true, secim,
+  })]);
+  p.teyitIste("beyin.model", "yerel");
+  const s = p.teyitliYaz(p.bekleyenTeyit()!.jeton);
+  assert.equal(s.oldu, false);
+  assert.match(s.sebep, /geçiş sürüyor/, `asıl sebep kayboldu: ${s.sebep}`);
+});
+
+test("SEÇİLEN ile KOŞAN ayrı görünür", () => {
+  const { durum, secim } = sahteSecim();
+  const p = panoKur([beyinTanimi({
+    ad: () => "opencode:ling", kesikSaniye: () => 0, yakinlikKurali: () => true, secim,
+  })]);
+  secim.iste("yerel");
+  const g = Object.fromEntries(p.goruntu()[0]!.dugmeler.map((d) => [d.ad, d]));
+  assert.equal(g["beyin.model"]!.deger, "yerel");
+  assert.match(String(g["beyin.aktif"]!.deger), /opencode → yerel/);
+  assert.deepEqual(g["beyin.model"]!.secenekler, ["opencode", "yerel"]);
+  assert.equal(g["beyin.aktif"]!.yazilabilir, false);
+  void durum;
+});
+
+test("SEÇİCİSİZ kurulumda beyin.model salt okunur kalır (eski davranış)", () => {
+  const p = panoKur([beyinTanimi({
+    ad: () => "opencode:ling", kesikSaniye: () => 0, yakinlikKurali: () => true,
+  })]);
+  const d = p.goruntu()[0]!.dugmeler.find((x) => x.ad === "beyin.model")!;
+  assert.equal(d.deger, "opencode:ling");
+  assert.equal(d.yazilabilir, false);
+  assert.match(p.teyitIste("beyin.model", "x").sebep, /yazıcısı yok/);
+});

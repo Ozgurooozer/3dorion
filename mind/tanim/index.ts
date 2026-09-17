@@ -219,11 +219,42 @@ export function beyinTanimi(kaynaklar: {
   ad: () => string;
   kesikSaniye: () => number;
   yakinlikKurali: () => boolean;
+  /**
+   * Beyin SEÇİCİSİ. Verilmezse `beyin.model` salt okunur kalır.
+   *
+   * Sınıf değil düz fonksiyonlar: `mind/` → `bridge/` bağımlılığı yok ve
+   * olmamalı. Kompozisyon kökü `SecilebilirBeyin`i bu biçime çevirir.
+   */
+  secim?: {
+    /** Kullanıcının en son seçtiği (sağlık kontrolü sürerken hedef). */
+    istenen: () => string;
+    /** Geçiş iste; `""` = kabul, aksi hâlde red sebebi. */
+    iste: (ad: string) => string;
+    secenekler: () => readonly string[];
+    /** Gerçekten koşan beyin + geçiş durumu, tek satır. */
+    durum: () => string;
+  };
 }): Modul {
+  const s = kaynaklar.secim;
   const dugmeler: Dugme[] = [
-    { ad: "beyin.model", etiket: "koşan beyin", sinif: "tehlikeli", etki: "yeniden_kurulum",
-      oku: kaynaklar.ad,
-      aciklama: "Şu an düşünceyi üreten model/ajan. Değiştirmek beynin yeniden kurulmasını gerektirir." },
+    s
+      ? { ad: "beyin.model", etiket: "seçili beyin", sinif: "tehlikeli", etki: "sonraki_tur",
+          oku: s.istenen, secenekler: s.secenekler,
+          // Ret FIRLATILIR: pano yazıcı hatasını sebebiyle gösterir. Sessiz
+          // dönseydi pano "yazıldı ama değer oturmadı" der, asıl neden
+          // ("geçiş sürüyor") kaybolurdu.
+          yaz: (d) => { const red = s.iste(String(d)); if (red) throw new Error(red); },
+          uyari: (yeni) =>
+            `Şu an ${kaynaklar.ad()} düşünüyor. ${String(yeni)} beynine geçince mevcut ` +
+            `oturumun sohbet geçmişi yeni beyne TAŞINMAZ. Geçiş önce sağlık ` +
+            `kontrolünden geçer; geçemezse mevcut beyin kalır. Süren düşünce eski beyinde biter.`,
+          aciklama: "Düşünceyi hangi beynin üreteceği. Geçiş tur sınırında olur, yarım düşünce bölünmez." }
+      : { ad: "beyin.model", etiket: "koşan beyin", sinif: "tehlikeli", etki: "yeniden_kurulum",
+          oku: kaynaklar.ad,
+          aciklama: "Şu an düşünceyi üreten model/ajan. Değiştirmek beynin yeniden kurulmasını gerektirir." },
+    ...(s ? [{ ad: "beyin.aktif", etiket: "gerçekten koşan", sinif: "sabit" as const, etki: "aninda" as const,
+          oku: s.durum,
+          aciklama: "Seçilen ile koşan ayrı gösterilir: sağlık kontrolü sürerken ya da reddedilince ikisi farklıdır." }] : []),
     { ad: "beyin.kesik", etiket: "devre kesici", sinif: "sabit", etki: "aninda",
       birim: "sn", oku: kaynaklar.kesikSaniye,
       aciklama: "Üst üste arızadan sonra beyin geçici kapanır. 0 = açık. Ölçüm, ayar değil." },

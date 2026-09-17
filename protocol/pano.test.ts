@@ -422,3 +422,37 @@ test("kilit SABİT ve TEHLİKELİ düğmeleri etkilemez — eksenler karışmaz"
   assert.match(g.thl!.kilitSebebi, /teyit/, "tehlikeli düğme kilitten etkilenmiş");
   assert.match(p.yaz("sbt", false).sebep, /sabit/);
 });
+
+// ── SEÇENEK LİSTESİ ───────────────────────────────────────────────────────
+
+test("SEÇENEK DIŞI metin reddedilir — iki yazma yolunda da", () => {
+  // Beyin düğmesine "gpt-99" yazılabilseydi seçici kendi listesinde bulamaz,
+  // pano ise "yazıldı" derdi. Kural iki yolda da (doğrudan ve teyitli) aynı.
+  const g = tel<string>("a");
+  const t = tel<string>("a");
+  const p = panoKur([modul("d", [
+    dugme({ ad: "guv", sinif: "guvenli", oku: g, yaz: (v) => g.yaz(v as string),
+            secenekler: () => ["a", "b"] }),
+    dugme({ ad: "thl", sinif: "tehlikeli", oku: t, yaz: (v) => t.yaz(v as string),
+            secenekler: () => ["a", "b"], uyari: () => "bağlam kaybolur" }),
+  ])]);
+
+  assert.match(p.yaz("guv", "gpt-99").sebep, /geçersiz seçenek/);
+  assert.equal(g(), "a");
+  assert.equal(p.yaz("guv", "b").oldu, true);
+
+  assert.match(p.teyitIste("thl", "gpt-99").sebep, /geçersiz seçenek/);
+  assert.equal(p.bekleyenTeyit(), null, "geçersiz seçenek için teyit açıldı");
+});
+
+test("seçenekler CANLI okunur ve fırlatırsa görüntü çökmez", () => {
+  let liste = ["a"];
+  const p = panoKur([modul("d", [
+    dugme({ ad: "x", oku: () => "a", secenekler: () => liste }),
+    dugme({ ad: "y", oku: () => "a", secenekler: () => { throw new Error("liste yok"); } }),
+  ])]);
+  assert.deepEqual(p.goruntu()[0]!.dugmeler[0]!.secenekler, ["a"]);
+  liste = ["a", "b"];
+  assert.deepEqual(p.goruntu()[0]!.dugmeler[0]!.secenekler, ["a", "b"], "liste kopyalanmış");
+  assert.deepEqual(p.goruntu()[0]!.dugmeler[1]!.secenekler, []);
+});

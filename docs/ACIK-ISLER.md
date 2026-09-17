@@ -25,7 +25,10 @@
    Tek yardımcıya indirilmeli.
 3. **`world/surfaces/sema.ts` testsiz** (824 satır). Saf yardımcılar
    (`satirla`, `suredenBeri`, `degerYaz`) canvas'sız sınanabilir.
-4. **Sonra teze dön:** aşağıdaki "Orion'un inisiyatifi".
+4. **Sonra teze dön — önce cevabın KULLANILMASI.** Orion `sor` ile bakıyor,
+   cevap beyne ulaşıyor ama anlattığı şey cevapla uyuşmuyor (aşağıda, "Beyin
+   davranışı"). İnisiyatif bundan sonra gelir: göremeyen bir varlığa gündem
+   vermek, uydurmayı hızlandırmaktan ibaret olur.
 
 ## Beyin davranışı (canlıda görüldü, 2026-09-17)
 
@@ -54,6 +57,20 @@ Satır sözleşmesi çalışıyor ve tez uçtan uca geçti. Bunlar cila:
 - **İki örnek kaynağı.** `ornekler.ts` few-shot'ları araç çağrısı biçiminde
   tutuyor ve OpenCode yolunda KULLANILMIYOR; örnekler ayrıca
   `SOZLESME_TALIMATI` içine metin olarak gömülü. Tek kaynak olmalı.
+
+## Test düzeneği
+
+- **Tarama kapıları ağır.** `zihindene`'deki AYNA/S5/S6 kapıları ekranı
+  senkron `sahne.pick` ile tarıyor; o aralıkta FPS 100 → 8–19'a düşüyor
+  (ölçüldü, 2026-09-17). Ürün değil düzenek; senaryolar `giris.ts`'ten
+  çıkarılırken daha seyrek ızgara ya da erken çıkışla düzeltilmeli.
+- **Açıklanamayan iki panel yazması, tekrarlanamadı.** Bir koşuda
+  `dikkat.tekrar = 4000`, bir başkasında istenmemiş `yerel:qwen3` geçişi
+  görüldü. Kodda sentetik tıklama yok; tek yol panel tıklaması. O koşularda
+  `[TIKLAMA]` günlükte aranmamıştı, artık her panel tıklaması iz bırakıyor.
+  Ayrıca aynı koşuda ekran görüntüsünde FPS 2 / 100 atlanan tik görüldü;
+  örnekleyiciyle tekrar koşunca seçici sonrası FPS sabit 100 çıktı.
+  Makinede eşzamanlı başka GPU yükü olabilir.
 
 ## Görünüm / kullanım
 
