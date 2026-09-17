@@ -255,6 +255,31 @@ oranın kendisi gürültü bandına yakın; "gözlenen nesneyi hiç söylememe"
 - **5c (IDF) YAPILMADI.** K6 "ölçüm gerektirirse" diyordu; kalıp üreten kaynak
   (gözlem anıları) Faz 3'te kurudu, gövde eşleşmesi de ekleri çözdü.
 
+### Canlı oda turu — `dis` (Haiku) beyniyle, 2026-09-17 21:54
+
+`ORION_BAKDENE=1 ORION_BEYIN=dis ORION_BEYIN_ADRES=... ORION_KAYIT=1 npm start`.
+Zincirin tamamı **kendiliğinden** işledi; senaryonun deterministik yedeği
+(`bak(admin)` → `sor(onumde)`) devreye girmedi.
+
+| tur | ne oldu |
+|---|---|
+| 1 | Ozyn: "önünde ne var, bir bak bakalım" → Orion **kendi** `dunya_sor(onumde)` çağırdı (2,5 sn) |
+| 2 | Algı cevabı geldi → **"Yönetim terminali önümde birkaç adım ötede duruyor"** (3,2 sn) |
+
+2. turun girdisi dört fazı birden doğruluyor:
+
+- **Faz 3:** `anilar` içinde `onumde:` / `yakin:` biçiminde **tek bir gözlem
+  anısı yok** — eskiden bağlamı dolduran şey buydu.
+- **Faz 3:** ŞİMDİ satırı çalışma belleğinden geliyor:
+  `önünde: yönetim terminali (birkaç adım ötede) (1 sn önce baktın)`.
+- **Faz 4a:** anı zaman etiketli — `[51 dakika önce] hata: bilinmeyen çapa...`.
+- **Faz 4b:** hem ŞİMDİ hem BU TUR satırı görünen adı kullanıyor
+  ("önünde", "yönetim terminali"), iç kimlik (`onumde`, `admin`) değil.
+- **Faz 5:** 25 anı arasından **1 tanesi** döndü ve o da sorguyla gerçekten
+  ilgili (`'yönetim terminali'` geçiyor). Eşik öncesi hep 3 anı gelirdi.
+
+Uydurma yok; söylenen şey tam olarak algının verdiği şey. Giriş 1.371 token.
+
 **Canlı doğrulama:** getirme çalışmaya devam ediyor (2 ve 1 anı), gelen anı
 gerçekten ilgili (`hata: bilinmeyen çapa/nesne: 'yönetim terminali'`),
 alakasızlar eleniyor (öncesinde hep 3 anı gelirdi).

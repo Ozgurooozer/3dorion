@@ -32,11 +32,14 @@
 
 ## Beyin davranışı (canlıda görüldü, 2026-09-17)
 
-- **Orion gördüğünü değil uydurduğunu anlatıyor.** `bakdene` koşusunda
-  `[SOR] onumde → "yönetim terminali (birkaç adım ötede)"` döndü, Orion ise
-  *"Önümde masa ve üzerindeki monitör var. Sol tarafta tahta, sağ tarafta
-  pencere"* dedi. Cevap beyne ULAŞIYOR (`dusunme` 2) ama içeriği KULLANILMIYOR.
-  Algının asıl amacı buydu; şu hâliyle `sor` süs.
+- ~~**Orion gördüğünü değil uydurduğunu anlatıyor.**~~ — **ÇÖZÜLDÜ**
+  (spec 06 Faz 1–5, ölçüldü). Aşağıya taşındı.
+
+- **Yerel model gözlenen nesneyi sık sık HİÇ söylemiyor.** Uydurma bitti ama
+  `qwen2.5:7b` aynı bağlamda %30–56 sadık, `claude:haiku` %90. Yani kalan
+  boşluk artık bağlamda değil MODELDE. "Sessiz kalıyorum" deyip soruyu
+  cevapsız bırakıyor. Sıradaki aday: daha iyi bir yerel model ya da bu tur
+  için `dis` beynine düşme. Alet hazır: `tools/sadakat-olc.ts --beyin=yerel`.
 - **PowerShell'de cmd sözdizimi öneriyor.** Aynı koşuda `cd /d 3dorion &&
   git status` önerildi. Kabuk PowerShell; `cd /d` orada geçersiz. Onay kapısı
   doğru tuttu, ama öneri çalışmazdı. Talimata kabuk türü yazılmalı.
@@ -93,6 +96,15 @@ Satır sözleşmesi çalışıyor ve tez uçtan uca geçti. Bunlar cila:
   şifresiz.
 
 ## ÇÖZÜLENLER (referans)
+
+**2026-09-17 (akşam):** **Uydurma sorunu kapandı — spec 06 Faz 1–5.**
+Kök neden ölçüldü, düzeltildi ve canlı doğrulandı: anlık gözlem kalıcı
+hafızaya yazılıyordu, getirme eşiksizdi, anılar zamansız/kaynaksız
+sunuluyordu. Sonuç `claude:haiku` ile **%0 → %90 sadakat**, uydurma 22 → 1
+(n=10). Canlı `bakdene`: Orion kendi `dunya_sor` çağırdı ve algının verdiği
+şeyi aynen söyledi. Yol boyunca iki gerçek hata daha çıktı:
+`bridge/ollama.ts` anıları HİÇ göndermiyordu (yerel beyinde hafıza yoktu) ve
+iki hafıza testi yanlış sebepten yeşildi.
 
 **2026-09-17:** `gordum` — sorunun cevabı artık beyne ulaşıyor, CANLI
 doğrulandı (`bakdene`: `[SOR]` sonrası ikinci `[BEYIN→NIYET]`, `dusunme` 1→2) ·
