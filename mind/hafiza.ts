@@ -38,6 +38,13 @@ export interface Ani {
 export interface HafizaAyari {
   /** Bu sayıyı aşınca en düşük skorlular atılır. Tel de olabilir. */
   kapasite?: number | (() => number);
+  /**
+   * Getirme eşiği: HAM ilgi bu değerin ÜSTÜNDE olmayan anı getirilmez.
+   *
+   * Varsayılan 0 — yani sorguyla hiçbir ortak yanı olmayan anı dönmez.
+   * Ölçümle seçildi (bkz. `getir`).
+   */
+  ilgiEsigi?: number;
   /** Kelime örtüşmesi yerine gömme kullanmak isteyen buraya takar. */
   ilgiOlcer?: (sorgu: string, ani: string) => number;
   simdi?: () => number;
@@ -85,11 +92,32 @@ export function kelimeler(metin: string): Set<string> {
  * taban çizgisidir, nihai cevap değil.
  */
 export function kelimeIlgisi(sorgu: string, ani: string): number {
-  const a = kelimeler(sorgu), b = kelimeler(ani);
+  const a = govdeler(sorgu), b = govdeler(ani);
   if (a.size === 0 || b.size === 0) return 0;
   let kesisim = 0;
   for (const w of a) if (b.has(w)) kesisim++;
   return kesisim / (a.size + b.size - kesisim);
+}
+
+/**
+ * Kelimeleri GÖVDESİNE indirger: ilk 5 harf.
+ *
+ * Türkçe eklemeli bir dil ve tam kelime eşleşmesi burada çuvallıyor:
+ * "süzgeç" ile "süzgeci", "terminal" ile "terminali" farklı kelime sayılıyordu.
+ * Getirme eşiği eklenince bu görünür oldu — meşru anılar HİÇ gelmiyordu
+ * (`kopru.test.ts` "kalıp ilgiyi zehirlemesin" testi kırmızıya döndü) ve
+ * eşik uydurmayı azaltırken unutkanlık üretiyordu.
+ *
+ * 5 harf ÖLÇÜMLE değil, dilin yapısıyla seçildi: Türkçede ekler sona gelir,
+ * gövde başta durur. BİLİNEN SINIR — ünsüz yumuşaması gövdenin son harfini
+ * değiştirir ("kayıt" → "kaydı"), kısa kelimelerde bu ilk 5 harfin içine
+ * düşer ve eşleşme yine kaçar. Gerçek çözüm gömme (spec 06 §6);
+ * `nomic-embed-text` kurulu, kıyas ölçümü ayrı iş.
+ */
+function govdeler(metin: string): Set<string> {
+  const g = new Set<string>();
+  for (const w of kelimeler(metin)) g.add(w.slice(0, 5));
+  return g;
 }
 
 /** [0,1] aralığına min-max normalize — makaledeki adım. */
@@ -117,12 +145,14 @@ function saglamZaman(v: unknown, simdi: number): number {
 export class Hafiza {
   private _aniler: Ani[] = [];
   private _kapasite: () => number;
+  private _esik: number;
   private _ilgiOlcer: (sorgu: string, ani: string) => number;
   private _simdi: () => number;
   /** Reflection eşiği için biriken önem (Generative Agents: eşik 150). */
   private _birikenOnem = 0;
 
   constructor(ayar: HafizaAyari = {}) {
+    this._esik = ayar.ilgiEsigi ?? 0;
     this._kapasite = ayar.kapasite === undefined ? () => 300
       : (typeof ayar.kapasite === "function" ? ayar.kapasite : () => ayar.kapasite as number);
     this._ilgiOlcer = ayar.ilgiOlcer ?? kelimeIlgisi;
@@ -235,12 +265,27 @@ export class Hafiza {
       : this._aniler;
     if (adaylar.length === 0) return [];
 
-    const ham = adaylar.map((a) => ({
+    const tumu = adaylar.map((a) => ({
       a,
       tazelik: Math.pow(BOZULMA, (t - a.sonErisim) / 3_600_000), // saat cinsinden
       onem: a.onem,
       ilgi: this._ilgiOlcer(sorgu, a.metin),
     }));
+
+    // GETİRME EŞİĞİ (spec 06 K4). Eşiğin altındaki aday ELENİR; ilgi burada
+    // HAM değerdir, adaylar arasında göreli yayılmadan önce bakılır.
+    //
+    // Neden gerekli: skor = tazelik + önem + ilgi. İlgisi SIFIR olan bir anı
+    // (sorguyla tek ortak kelimesi bile yok) yalnızca taze ve önemli olduğu
+    // için ilk üçe girebiliyordu — ve girince `sonErisim`i tazelendiği için
+    // bir sonraki turda daha da yukarı çıkıyordu. Kendini besleyen döngü.
+    //
+    // Eşik ÖLÇÜMLE seçildi (varsayılan 0 = "hiç ortak yanı yoksa getirme"):
+    // gerçekten ilgili anılar ham ilgi 0,077–0,182 alıyor, alakasızlar tam
+    // 0,000. Daha yüksek bir eşik gerçek anıları da keserdi.
+    // Eş anlamlıyı kaçırma bedeli kabul: hatırlamamak, yanlış hatırlamaktan iyidir.
+    const ham = tumu.filter((h) => h.ilgi > this._esik);
+    if (ham.length === 0) return [];
 
     const nT = normalize(ham.map((h) => h.tazelik));
     const nO = normalize(ham.map((h) => h.onem));

@@ -199,6 +199,47 @@ içeriği — `yakin: yönetim terminali, çalışma masası, monitör` ve
 
 Haiku kolu Claude aylık harcama sınırı nedeniyle bekliyor.
 
+## 6.7 Faz 3–5 sonuçları (2026-09-17)
+
+**Aletin gürültü bandı — önce bu.** Aynı fixture, aynı beyin, iki ayrı koşu:
+%30 ve %56. Yani **n=10'da ~25 puanın altındaki fark yorumlanamaz.** Aşağıdaki
+iddialar bu bandın dışındakilerle sınırlı. (Tekrar oynatma `hafiza.getir`'i
+çağırmaz — fixture'ın anıları kayıt anında donar; getirme değişiklikleri
+ancak canlı koşuda ya da birim testiyle ölçülür.)
+
+| ölçüm | sadık | uydurma (10 koşuda) |
+|---|---|---|
+| A — düzeltme öncesi, eski gözlem anılarıyla | %10 | **22 kez** (monitör 9, masa 7, tahta 6) |
+| B — aynısı, anılar boş | %60 | 2 |
+| D2 — Faz 3+4 sonrası | %30–56 | 0–1 |
+
+**Kazanç uydurmada ve bandın çok dışında:** 22 → ≤1. Sadakat de yükseldi ama
+oranın kendisi gürültü bandına yakın; "gözlenen nesneyi hiç söylememe"
+(%40–56) yerel modelin zayıflığı, ayrı bir sorun.
+
+### Faz 5 — ölçümle şekillendi
+
+- **5a (eşik) yalnız başına ZARARLI çıktı.** Ham ilgi dağılımı ölçüldü:
+  gerçekten ilgili anılar 0,077–0,182; alakasızlar tam 0,000. Eşik "ilgi > 0"
+  seçildi. Ama Türkçe ekler yüzünden `suzgec` sorgusu `suzgeci` anısını
+  kaçırıyordu: eşik uydurmayı azaltırken **unutkanlık** üretti
+  (`kopru.test.ts` kırmızıya döndü — meşru bir beklentiydi).
+- **Çözüm: gövde eşleşmesi.** Kelimeler ilk 5 harfine indirgenerek
+  karşılaştırılıyor. Bilinen sınır testle sabitlendi: ünsüz yumuşaması kısa
+  kelimede kaçar (`kayıt` → `kaydı`). Gerçek çözüm gömme (§6).
+- **İki test YANLIŞ SEBEPTEN yeşildi.** "İLGİ: örtüşen anı önce gelir" ve
+  "kalıp ilgiyi zehirlemesin" testlerinde sorgu ile anı Türkçe ekler yüzünden
+  hiç örtüşmüyordu; testler ilgiyi değil sırayı ölçüyormuş. Eşik bunu açığa
+  çıkardı ve düzeltildi.
+- **5b bedava geldi:** yalnızca dönen anı tazelenir, dönen = eşiği geçen.
+  Ek kod yok; kendini besleyen döngü kapandı (testle sabit).
+- **5c (IDF) YAPILMADI.** K6 "ölçüm gerektirirse" diyordu; kalıp üreten kaynak
+  (gözlem anıları) Faz 3'te kurudu, gövde eşleşmesi de ekleri çözdü.
+
+**Canlı doğrulama:** getirme çalışmaya devam ediyor (2 ve 1 anı), gelen anı
+gerçekten ilgili (`hata: bilinmeyen çapa/nesne: 'yönetim terminali'`),
+alakasızlar eleniyor (öncesinde hep 3 anı gelirdi).
+
 ## 7. Riskler
 
 - **Ücretsiz kota:** Faz 1–2 ~20–30 çağrı. 429'da dur, raporla.

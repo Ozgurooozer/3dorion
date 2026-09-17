@@ -11,8 +11,9 @@
 //                    sonsuza kadar doğru değildir (oyun motorlarının algı
 //                    sistemlerindeki uyaran yaşı).
 //
-// SAF: bağımlılık yok, Babylon yok, protokol yok.
+// Bağımlılık: yalnızca protokolün etiket haritası (iç ad → Türkçe).
 "use strict";
+import { SORU_ETIKETI } from "../protocol/algi.ts";
 
 export interface CalismaAyari {
   /** Bu yaşı geçen gözlem okunmaz. */
@@ -34,14 +35,6 @@ export interface CalismaBellegi {
   satirlar(): string[];
   unut(anahtar: string): void;
 }
-
-/** Algı sorgusunun iç adı → Orion'un ağzından çıkacak hâli. */
-const ETIKET: Record<string, string> = {
-  onumde: "önünde",
-  yakin: "yakınında",
-  oyuncu: "Ozyn",
-  dunya: "odada",
-};
 
 export function calismaBellegiKur(ayar: CalismaAyari = {}): CalismaBellegi {
   const azamiYas = ayar.azamiYasMs ?? 30_000;
@@ -67,7 +60,7 @@ export function calismaBellegiKur(ayar: CalismaAyari = {}): CalismaBellegi {
       // Yaş HER SATIRDA yazılır: model "3 sn önce" ile "25 sn önce" arasındaki
       // farkı ancak söylenirse bilebilir (spec 06 K3).
       return taze().map((g) =>
-        `${ETIKET[g.anahtar] ?? g.anahtar}: ${g.deger} (${Math.round(g.yasMs / 1000)} sn önce baktın)`);
+        `${SORU_ETIKETI[g.anahtar] ?? g.anahtar}: ${g.deger} (${Math.round(g.yasMs / 1000)} sn önce baktın)`);
     },
   };
 }

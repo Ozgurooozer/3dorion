@@ -42,7 +42,9 @@ test("TAZELİK: eşit önem ve ilgide yeni anı öne geçer", () => {
   h.ekle("alfa kaydı", "olay", 5);
   s.saatIlerlet(48);
   h.ekle("beta kaydı", "olay", 5);
-  const r = h.getir("kayıt", 2);
+  // Sorgu anılarla ÖRTÜŞMELİ: getirme eşiği (spec 06 K4) ilgisi sıfır olanı
+  // hiç döndürmez. Bu test sırayı ölçüyor, o yüzden ikisi de eşiği geçmeli.
+  const r = h.getir("kaydı", 2);
   assert.equal(r[0]?.ani.metin, "beta kaydı");
 });
 
@@ -58,14 +60,14 @@ test("ÖNEM: eşit tazelik ve ilgide önemli anı öne geçer", () => {
 test("getir() seçilen anıları TAZELER — makale 'recently accessed' der", () => {
   const s = saatli();
   const h = new Hafiza({ simdi: s.simdi });
-  h.ekle("eski ama erişilen", "olay", 5);
+  h.ekle("eski ama erişilen kayıt", "olay", 5);
   s.saatIlerlet(100);
   h.ekle("yeni kayıt", "olay", 5);
 
-  h.getir("eski ama erişilen", 1);          // eskiyi tazele
+  h.getir("eski ama erişilen kayıt", 1);    // eskiyi tazele
   const r = h.getir("kayıt", 2);
   // Tazelendiği için artık tazelik bileşeni düşük değil.
-  const eski = r.find((x) => x.ani.metin === "eski ama erişilen");
+  const eski = r.find((x) => x.ani.metin === "eski ama erişilen kayıt");
   assert.ok(eski, "anı hâlâ durmalı");
   assert.ok((eski?.parca.tazelik ?? 0) > 0.5, "erişim onu tazelemiş olmalı");
 });
@@ -235,4 +237,54 @@ test("gozlemAnisiMi: YALNIZCA anlık gözlem kayıtlarını işaretler", () => {
     null, undefined, 42, "onumde: düz metin",
   ];
   for (const a of kalmali) assert.equal(gozlemAnisiMi(a), false, `yanlışlıkla silinecekti: ${JSON.stringify(a)}`);
+});
+
+// ── GETİRME EŞİĞİ ve GÖVDE EŞLEŞMESİ (spec 06 K4) ────────────────────────
+
+test("EŞİK: sorguyla hiç ortak yanı olmayan anı GETİRİLMEZ", () => {
+  // Eskiden skor = tazelik + önem + ilgi idi; ilgisi SIFIR bir anı yalnızca
+  // taze ve önemli olduğu için ilk sıraya girebiliyordu. Canlı ölçümde
+  // uydurmanın kaynağı buydu.
+  const s = saatli();
+  const h = new Hafiza({ simdi: s.simdi });
+  h.ekle("Ozyn kahve içmeye gitti", "olay", 10);      // taze VE çok önemli
+  assert.deepEqual(h.getir("terminal hatası nedir", 3), []);
+});
+
+test("EŞİK amnezi yapmaz: Türkçe EKLİ hâller yine eşleşir", () => {
+  // Eşik tek başına eklendiğinde "suzgec" sorgusu "suzgeci" anısını
+  // kaçırıyordu — uydurma yerine unutkanlık. Gövde eşleşmesi bunu çözer.
+  const s = saatli();
+  const h = new Hafiza({ simdi: s.simdi });
+  h.ekle("terminal süzgeci üzerinde çalışıyorum", "konusma", 5);
+  const r = h.getir("süzgeç nasıl gidiyor", 2);
+  assert.equal(r.length, 1, "ekli hâl kaçtı");
+});
+
+test("BİLİNEN SINIR: ünsüz yumuşaması kısa kelimede kaçar", () => {
+  // "kayıt" → "kaydı": değişim ilk 5 harfin İÇİNDE. Gerçek çözüm gömme.
+  // Test bunu SABİTLİYOR ki sessizce beklenmedik bir davranış sanılmasın.
+  const s = saatli();
+  const h = new Hafiza({ simdi: s.simdi });
+  h.ekle("alfa kaydı", "olay", 5);
+  assert.deepEqual(h.getir("kayıt", 2), []);
+});
+
+test("eşik AYARLANABİLİR — -1 eski davranışı geri getirir", () => {
+  const s = saatli();
+  const h = new Hafiza({ simdi: s.simdi, ilgiEsigi: -1 });
+  h.ekle("Ozyn kahve içmeye gitti", "olay", 5);
+  assert.equal(h.getir("terminal hatası nedir", 3).length, 1);
+});
+
+test("5b: eşiği geçmeyen anı TAZELENMEZ — kendini besleyen döngü kırılır", () => {
+  // Eskiden getirilen her anının sonErişimi yenileniyordu; alakasız bir anı
+  // bir kez geldiğinde bir sonraki turda DAHA taze sayılıp yine geliyordu.
+  const s = saatli();
+  const h = new Hafiza({ simdi: s.simdi });
+  h.ekle("Ozyn kahve içmeye gitti", "olay", 5);
+  const once = h.dok()[0]!.sonErisim;
+  s.saatIlerlet(5);
+  h.getir("terminal hatası nedir", 3);          // eşiği geçmez → dönmez
+  assert.equal(h.dok()[0]!.sonErisim, once, "getirilmeyen anı tazelendi");
 });

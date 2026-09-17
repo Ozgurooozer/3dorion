@@ -1,24 +1,19 @@
-// world/zamanSozu.test.ts — zaman cümleleri BOZUK TÜRKÇE üretmemeli.
+// mind/zaman.test.ts — zaman cümleleri BOZUK TÜRKÇE üretmemeli.
 //
 // Bu metinler doğrudan beynin bağlamına giriyor. İlk sürüm
 // `${sureSozu(...)} bu odadasin` diyordu ve bir dakika altında
 // "az önce bu odadasin" çıkıyordu — bozuk Türkçe modelin de diline bulaşır.
 //
-// Mantık `giris.ts` içinde (kompozisyon kökü, sahneye bağlı) olduğu için
-// burada aynı kurallar bağımsız olarak sabitleniyor.
+// Mantık ÖNCE `giris.ts` içindeydi ve bu test onun KOPYASINI tutuyordu; iki
+// kopya er geç ayrışır. `mind/zaman.ts`e taşındı, burası artık onu sınıyor.
 "use strict";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
+import { sureSozu, oncesiSozu } from "./zaman.ts";
+
 const DK = 60_000, SAAT = 60 * DK, GUN = 24 * SAAT;
 
-function sureSozu(ms: number): string {
-  const dk = Math.floor(ms / DK);
-  if (dk < 1) return "az önce";
-  if (dk < 60) return `${dk} dakikadır`;
-  const saat = Math.floor(dk / 60);
-  return saat < 24 ? `${saat} saattir` : `${Math.floor(saat / 24)} gündür`;
-}
 function odadaSure(ms: number): string {
   return Math.floor(ms / DK) < 1 ? "Bu odaya yeni geldin." : `${sureSozu(ms)} bu odadasin.`;
 }
@@ -71,6 +66,24 @@ test("HAM SAYI sızmaz — Orion '1847000 ms' demez", () => {
   for (const ms of [0, 999, 61_000, 7_200_000]) {
     for (const c of [odadaSure(ms), sessizlikSozu(ms)]) {
       assert.ok(!/\d{4,}/.test(c), `ham sayi sizdi: "${c}"`);
+    }
+  }
+});
+
+test("oncesiSozu GEÇMİŞ AN kalıbı — 'süredir' değil 'önce'", () => {
+  // "3 saattir Ozyn komutu reddetti" bozuk; anı geçmiş bir andır.
+  assert.equal(oncesiSozu(30_000), "az önce");
+  assert.equal(oncesiSozu(12 * DK), "12 dakika önce");
+  assert.equal(oncesiSozu(3 * SAAT), "3 saat önce");
+  assert.equal(oncesiSozu(2 * GUN), "2 gün önce");
+});
+
+test("iki kalıp KARIŞMAZ", () => {
+  for (const ms of [30_000, 12 * DK, 3 * SAAT, 2 * GUN]) {
+    const s = sureSozu(ms), o = oncesiSozu(ms);
+    if (ms >= DK) {
+      assert.match(s, /(dakikadır|saattir|gündür)$/, `sureSozu bozuk: ${s}`);
+      assert.match(o, /önce$/, `oncesiSozu bozuk: ${o}`);
     }
   }
 });
