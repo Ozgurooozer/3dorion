@@ -6,5 +6,3 @@ dist/
 graphify-out/
 .opencode/
 
-# CodeGraph indeksi — makineye özel, paylaşılmaz
-.codegraph/
