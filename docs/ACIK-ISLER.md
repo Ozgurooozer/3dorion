@@ -2,7 +2,7 @@
 
 > Bu liste "hemen çöz" listesi DEĞİL. Yan yolda çıkan, asıl işi bloke etmeyen
 > kusurlar buraya yazılır ve önceliği Ozyn belirler.
-> Son güncelleme: 2026-09-15
+> Son güncelleme: 2026-09-17
 
 ## Karar bekleyen (büyük)
 
@@ -15,48 +15,28 @@
   yüz ifadesi bu yüzden sınırlı. (Ozyn ertelemişti.)
 - **STT yok** — mikrofon donanımı yok. (Ozyn ertelemişti.)
 
-## YARIM KALDI — buradan devam et (2026-09-16)
+## Sıradaki (2026-09-17 kod incelemesinden, bu sırayla)
 
-### `gordum` düzeltmesi: yazıldı + birim testli, CANLI DOĞRULANMADI
+1. **Senaryoları `world/giris.ts`'ten çıkar.** Dosya 2.312 satır, 1.304'ü
+   (21 blok) `?xxxdene` senaryosu — test kodu üretim dosyasında ve bundle'da.
+   `world/senaryolar/` altına, dinamik import ile.
+2. **Ayar normalizasyonu 4 kopya.** `mind/dikkat.ts`, `ajanda.ts`, `hafiza.ts`,
+   `onayKapisi.ts` aynı `sayı | () => sayı` çevirimini ayrı ayrı yapıyor.
+   Tek yardımcıya indirilmeli.
+3. **`world/surfaces/sema.ts` testsiz** (824 satır). Saf yardımcılar
+   (`satirla`, `suredenBeri`, `degerYaz`) canvas'sız sınanabilir.
+4. **Sonra teze dön:** aşağıdaki "Orion'un inisiyatifi".
 
-**Hata (canlıda görüldü):** Orion `sor` gönderiyor, algı hizmeti doğru cevabı
-üretiyor, ama cevap beyne HİÇ ulaşmıyor. Orion soruyor ve cevabı duymuyor.
+## Beyin davranışı (canlıda görüldü, 2026-09-17)
 
-```
-[BEYIN→NIYET] {"tur":"sor","ne":"onumde"}
-[SOR] onumde → "yönetim terminali (birkaç adım ötede)"
-dusunme: 1        ← ikinci tur hiç olmadı, Orion konuşmadı
-```
-
-**Sebebi:** cevap `sonuc` (niyet akıbeti) olarak dönüyordu; `mind/refleks.ts`
-başarılı sonuçları "rutin" sayıp beyne çıkarmıyor. O kural EYLEMLER için doğru
-("masaya yürüdü → bitti" beyni ilgilendirmez) ama `sor` bir eylem değil, SORU.
-
-**Yapılan değişiklik (3 dosya):**
-- `protocol/algi.ts` — yeni varyant `{tur:"gordum", ne, metin}`, kanal `beyin`,
-  `ozetle` içinde `Baktın (ne): metin`
-- `mind/refleks.ts` — `gordum` HER ZAMAN terfi eder ("sorunun cevabı")
-- `world/giris.ts` — `sor` artık hem `sonuc` (niyeti kapatır, rutin) hem
-  `gordum` (cevabı taşır) gönderiyor
-
-**Durum:** `npm test` 446/446 yeşil, `tsc` temiz. Refleks için 4 yeni test var.
-
-**YAPILMASI GEREKEN — tek adım:**
-```
-npx vite build
-ORION_BAKDENE=1 ORION_SMOKE=1 ORION_SMOKE_MS=45000 npx electron .
-```
-Beklenen: `[SOR] onumde → ...` satırından SONRA ikinci bir `[BEYIN→NIYET]`
-(`soyle`) ve `[SOZ]` görünmeli — yani Orion gördüğünü söylemeli.
-`dusunme` sayacı 2 veya daha fazla olmalı (önceden 1'de kalıyordu).
-
-Çalışmazsa bakılacak yer: süzgeç `gordum`u geçiriyor mu (`[kopru] suzulen`
-sayacı), ve dikkat kısması ikinci turu boğuyor mu.
-
-> NOT: Bu bölümdeki iddia belgeye erken yazılmıştı. Spec 03'te "cevap beyne
-> geri besleniyor, bir sonraki turda konuşuyor" deniyordu — ölçüm bunun
-> YANLIŞ olduğunu gösterdi. Düzeltme yapıldı ama canlı kanıt henüz yok;
-> doğrulanana kadar spec'e "çalışıyor" diye yazılmamalı.
+- **Orion gördüğünü değil uydurduğunu anlatıyor.** `bakdene` koşusunda
+  `[SOR] onumde → "yönetim terminali (birkaç adım ötede)"` döndü, Orion ise
+  *"Önümde masa ve üzerindeki monitör var. Sol tarafta tahta, sağ tarafta
+  pencere"* dedi. Cevap beyne ULAŞIYOR (`dusunme` 2) ama içeriği KULLANILMIYOR.
+  Algının asıl amacı buydu; şu hâliyle `sor` süs.
+- **PowerShell'de cmd sözdizimi öneriyor.** Aynı koşuda `cd /d 3dorion &&
+  git status` önerildi. Kabuk PowerShell; `cd /d` orada geçersiz. Onay kapısı
+  doğru tuttu, ama öneri çalışmazdı. Talimata kabuk türü yazılmalı.
 
 ## Sözleşme kalitesi (iyileştirme, arıza değil)
 
@@ -77,6 +57,8 @@ Satır sözleşmesi çalışıyor ve tez uçtan uca geçti. Bunlar cila:
 
 ## Görünüm / kullanım
 
+- **Zoom hapı (%100) şema panelinin başlık şeridine biniyor.** Metinle
+  çakışmıyor, işlevsel etkisi yok; yeri ideal değil.
 - **Oyuncu gövdesi kapsül.** Omuz kamerasında belirgin duruyor. Gizleme eşiği
   (2.0 m) ve omuz kayması (0.85) ölçümle ayarlandı, ama gerçek çözüm daha ince
   bir gövde ya da gerçek avatar.
@@ -93,7 +75,14 @@ Satır sözleşmesi çalışıyor ve tez uçtan uca geçti. Bunlar cila:
   verilirse hem host hem beyin otomatik kullanıyor. Sunucu şu an localhost'ta
   şifresiz.
 
-## Bu oturumda ÇÖZÜLENLER (referans)
+## ÇÖZÜLENLER (referans)
+
+**2026-09-17:** `gordum` — sorunun cevabı artık beyne ulaşıyor, CANLI
+doğrulandı (`bakdene`: `[SOR]` sonrası ikinci `[BEYIN→NIYET]`, `dusunme` 1→2) ·
+devre panosu S0–S7 (`docs/specs/05`) · onay kapısı son tarihinin geriye dönük
+değişmesi (S0).
+
+**2026-09-15/16:**
 
 `BAK:` etiketi CANLI doğrulandı (model doğru sorgu türünü seçiyor: "odada neler var"→`onumde`, "ben neredeyim"→`oyuncu`) · Terminal kamera açısı (1./3. şahıs aynı çerçeve, görsel doğrulandı) · fare kipi
 (odağa bağlı: gezinirken fare kamerayı sürer, ekranda imleç serbest + Ctrl'le kamera) · açılış manzarası (görünürlük her tikte,
