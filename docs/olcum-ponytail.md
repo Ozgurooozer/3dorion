@@ -75,3 +75,13 @@ Sıradaki dört iş (açık işler güncelleme, senaryoları `giris.ts`'ten çı
 
 Kaldırma: `claude plugin uninstall ponytail@ponytail` + `~/.claude/` altındaki
 iki bayrak dosyası.
+
+## Gözlemler
+
+- **2026-09-17 — Soru 1, karışık kanıt.** Model seçicide başlangıç beynini
+  doğrulamak için seçenek adlarını ikinci bir listeye yazdım (`baslangicBeyni`)
+  — yani ponytail açıkken de kopya ÜRETİLDİ. Commit'ten önce fark edilip tek
+  kaynaktan türetildi. Basamak kopyayı engellemedi; yakalanmasına yardım etmiş
+  olabilir ama bunu ayırt edecek kontrol yok. Tek başına karar vermeye yetmez.
+- **2026-09-17 — Soru 2.** Seçici ve pano değişikliklerinde "neden" yorumları
+  inceltilmedi; ev kuralı tuttu.
