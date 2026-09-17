@@ -2,6 +2,10 @@
 
 > Karar tarihi: 2026-09-13 · Sahip: Ozyn · Yönetici: Orion (Claude Code)
 > Durum: **plan** — ölçümlerle gerekçelendirildi, uygulanmadı.
+>
+> **Devamı:** `06-beyin-v2.md` (2026-09-17) bu iki katmanlı düzeni korur ve
+> altına bellek katmanlarını ekler: çalışma belleği / epizodik hafıza ayrımı,
+> zaman-kaynak etiketi, getirme eşiği.
 
 ## Neden
 

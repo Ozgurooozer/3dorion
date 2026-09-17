@@ -1,5 +1,28 @@
 # Fikir Havuzu — şimdi değil, ama kaybolmasın
 
+## Beyin v2 sonrası (spec 06 §6) — 2026-09-17
+
+Kaynak: `docs/arastirma/open-notebook.md`, toplantı
+`C:\vault\meetings\meeting-2026-09-17-orion-beyin-mimarisi`. Spec 06 Faz 1–5
+bitmeden başlatılmaz.
+
+- **Doğrulanmış atıf.** Anılar tipli kimlikle (`[ani:12]`) sunulur, model
+  dayandığını işaretler, kimliğin gerçekten var olduğu **kontrol edilir**.
+  Open Notebook bunu istemle istiyor ama doğrulamıyor — o eksiği tekrarlamamak.
+  Atıf gelince K5 "yalnızca kullanılan anı pekişir" hâline gelir.
+- **Konsolidasyon.** Epizodik anılar boşta semantik bilgiye dönüşür, türediği
+  anıları kaynak olarak taşır (Open Notebook'un kaynak → içgörü ayrımı).
+- **Yoğun gömme.** `nomic-embed-text` makinede kurulu; `HafizaAyari.ilgiOlcer`
+  kancası hazır. Eş anlamlıları kaçırmayı çözer. Kelime eşleşmesiyle
+  ölçülerek karşılaştırılmalı.
+- **İnisiyatif.** Çalışma belleğini okuyan, fayda puanlamalı ajanda (oyun
+  yapay zekâsındaki utility AI). Önce doğru bir çalışma belleği gerekir.
+- **BM25 / IDF** — spec 06'da koşullu (5c). Kök bulma gerekirse Türkçe'ye
+  özgü olmalı; Open Notebook'un İngilizce kök bulucusu işe yaramaz.
+- **Karşılaştırma değerlendirmesi:** GPT-2 ürün için elendi (Türkçe'de 3,07
+  token/kelime, 1.024 bağlam, talimat/araç yok); yalnızca transformer içini
+  göstermek için öğretici — zihin duvarında "model nasıl düşünür" paneli fikri.
+
 ## MaleCNS connectome (Google/Janelia, Eylül 2026)
 
 Ozyn kaynakları paylaştı; başka bir agent 3dorion için faydalı olacağını

@@ -11,6 +11,8 @@ Full architecture rationale, decision log, and measured results live in `docs/sp
 - `docs/specs/02-beyin-mimarisi.md` — two-tier brain architecture plan (local reflex vs. cloud "thought" tier).
 - `docs/specs/03-algi-ve-zihin-duvari.md` — perception service + the "mind wall" self-observability panels.
 - `docs/specs/04-dis-beyin.md` — the language-agnostic "external brain" HTTP contract.
+- `docs/specs/05-moduler-beyin-ve-devre-paneli.md` — the mind-wall control panel (pano) and brain modularity.
+- `docs/specs/06-beyin-v2.md` — **current brain direction**: state vs memory split, time/source tags, retrieval threshold, faithfulness metric. Read before touching `mind/hafiza.ts`, `bridge/kopru.ts` context assembly, or perception→memory paths.
 - `docs/ACIK-ISLER.md` — open issues, ordered by what's blocking vs. cosmetic.
 - `docs/FIKIR-HAVUZU.md` — idea backlog, not yet committed to.
 
