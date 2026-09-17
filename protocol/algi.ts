@@ -78,6 +78,21 @@ export type Algi =
 export type AlgiTur = Algi["tur"];
 
 /** Varsayılan kanal ataması. mind/dikkat bunu yalnızca daraltabilir, genişletemez. */
+/**
+ * Algı sorgusunun iç adı → Orion'un dilindeki karşılığı.
+ *
+ * İç ad bağlama sızmamalı: `Baktın (onumde)` Türkçe bir kelime değil ve
+ * model onu ne okuyabilir ne de kendi cümlesinde kullanabilir (spec 06 K3).
+ * Burada duruyor çünkü hem `ozetle` hem `mind/calismaBellegi` aynı haritayı
+ * kullanır; iki kopya er geç ayrışırdı.
+ */
+export const SORU_ETIKETI: Record<string, string> = {
+  onumde: "önünde",
+  yakin: "yakınında",
+  oyuncu: "Ozyn",
+  dunya: "odada",
+};
+
 export const VARSAYILAN_KANAL: Record<AlgiTur, Kanal> = {
   tik:      "yerel",
   dunya:    "beyin",
@@ -124,7 +139,7 @@ export function ozetle(a: Algi): string {
     case "sonuc":
       return `Niyet ${a.sonuc.niyet_id} → ${a.sonuc.durum}${a.sonuc.not ? ` (${a.sonuc.not})` : ""}`;
     case "gordum":
-      return `Baktın (${a.ne}): ${a.metin}`;
+      return `Baktın (${SORU_ETIKETI[a.ne] ?? a.ne}): ${a.metin}`;
     case "tik":
       // Bilerek boş: tik beyin kanalına girmez. Buraya düşmek bir hatadır.
       return "";
