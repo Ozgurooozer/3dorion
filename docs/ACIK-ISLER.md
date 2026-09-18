@@ -2,7 +2,7 @@
 
 > Bu liste "hemen çöz" listesi DEĞİL. Yan yolda çıkan, asıl işi bloke etmeyen
 > kusurlar buraya yazılır ve önceliği Ozyn belirler.
-> Son güncelleme: 2026-09-17
+> Son güncelleme: 2026-09-18
 
 ## Karar bekleyen (büyük)
 
@@ -25,19 +25,32 @@
    Tek yardımcıya indirilmeli.
 3. **`world/surfaces/sema.ts` testsiz** (824 satır). Saf yardımcılar
    (`satirla`, `suredenBeri`, `degerYaz`) canvas'sız sınanabilir.
-4. **Sonra teze dön — önce cevabın KULLANILMASI.** Orion `sor` ile bakıyor,
-   cevap beyne ulaşıyor ama anlattığı şey cevapla uyuşmuyor (aşağıda, "Beyin
-   davranışı"). İnisiyatif bundan sonra gelir: göremeyen bir varlığa gündem
-   vermek, uydurmayı hızlandırmaktan ibaret olur.
+4. ~~**Sonra teze dön — önce cevabın KULLANILMASI.**~~ — **ÇÖZÜLDÜ**
+   (2026-09-17/18). Aşağıda "ÇÖZÜLENLER".
+
+5. **Orion'un inisiyatifi — artık kapı AÇIK.** K1 "sadakat önce" diyordu,
+   sağlandı (%100). İkinci ön koşul da geldi: fayda puanlaması için MALİYET
+   gerekir ve Faz 2'den sonra gövdenin hata payı var. Eksik olan güç bütçesi
+   (`docs/FIKIR-HAVUZU.md`).
 
 ## Beyin davranışı (canlıda görüldü, 2026-09-17)
 
 - ~~**Orion gördüğünü değil uydurduğunu anlatıyor.**~~ — **ÇÖZÜLDÜ**
   (spec 06 Faz 1–5, ölçüldü). Aşağıya taşındı.
 
-- **Yerel model gözlenen nesneyi sık sık HİÇ söylemiyor.** Uydurma bitti ama
-  `qwen2.5:7b` aynı bağlamda %30–56 sadık, `claude:haiku` %90. Yani kalan
-  boşluk artık bağlamda değil MODELDE. "Sessiz kalıyorum" deyip soruyu
+- ~~**Yerel model gözlenen nesneyi sık sık HİÇ söylemiyor.**~~ — **TEŞHİS
+  YANLIŞTI** (2026-09-18, spec 06 §6.8). Sorun sessizlik değil kelime
+  salatasıydı ve sebebi modelin yetersizliği değil, **Türkçe bağlamdı**:
+  aynı model İngilizce çerçevede 0/10 → 9/10 doğru araç, 2,3 kat hızlı.
+  Bağlam İngilizceye alındı. ESKİ METİN (yanlış teşhis) referans için:
+  "`qwen2.5:7b` aynı bağlamda %30–56 sadık ... boşluk artık bağlamda değil
+  MODELDE" — bu cümle ham çıktıya bakılmadan yazılmıştı.
+
+- **Yerel modelin Türkçe SÖZ kalitesi hâlâ ölçülmedi.** İngilizce bağlamda
+  araç çağırmayı düzgün yapıyor (9/10) ama Türkçe cümle kurarken nasıl,
+  ölçülmedi — `dunya_soyle` metnini puanlayan bir koşu gerekiyor. Alet hazır:
+  `tools/sadakat-olc.ts --beyin=yerel --fixture=fixtures/sadakat/E3-ing-cerceve.json`.
+  Not: eski ölçümde "Sessiz kalıyorum" deyip soruyu
   cevapsız bırakıyor. Sıradaki aday: daha iyi bir yerel model ya da bu tur
   için `dis` beynine düşme. Alet hazır: `tools/sadakat-olc.ts --beyin=yerel`.
 - **PowerShell'de cmd sözdizimi öneriyor.** Aynı koşuda `cd /d 3dorion &&
@@ -96,6 +109,27 @@ Satır sözleşmesi çalışıyor ve tez uçtan uca geçti. Bunlar cila:
   şifresiz.
 
 ## ÇÖZÜLENLER (referans)
+
+**2026-09-18:** **Bağlam dili + beden mimarisi.**
+- **Bağlam İngilizce çerçeveye geçti** (spec 06 §6.8). `qwen2.5:7b` Türkçe
+  bağlamda 1. turda 10/10 YANLIŞ araç seçiyor ve kelime salatası üretiyordu;
+  İngilizce çerçevede 9/10 doğru ve 2,3 kat hızlı. Haiku'da sadakat
+  %90 → **%100**. Sınır: İngilizce = makineye ait olan; Türkçe = odadaki
+  şeylerin adları ve Orion'un sesi. Protokol kimlikleri (`KOMUT:`, `onumde`)
+  çevrilmez.
+- **Beden mimarisi, donanım disiplininde** (Faz 0–5). Gövde künyesi
+  bildirimsel tabloya (`protocol/bedenTanimi.ts`) · `AvatarIskeleti`
+  Babylon'dan kurtuldu · **aktüatör doyumu**: komut artık gerçekleşene eşit
+  değil (0,1 → 1,25 m/s, 13 tik; fren 1,187 → 0,587 → 0) · propriyosepsiyon
+  bağlama girdi, sadakat düşmedi (%100) · **LED yüz üçüncü sürücü olarak
+  çalıştı** (canlı HIL 4/4).
+- **Claude Haiku artık seçilebiliyor**; adaptörü Electron başlatıyor.
+- Yol boyunca **dört gerçek hata**, hepsi ölçümle: `refleks.ts` ölü bir dalı
+  canlı sanıyordu (önek kayması) · `zaman.test.ts` üç fonksiyonun kopyasını
+  tutuyordu · `_hiz` her tik sıfırlanıyordu (gövde 0,1 m/s'de saplandı) ·
+  fren hedefin merkezine göre hesaplanıyordu, hiç devreye girmiyordu.
+- **Yapılmayanlar, gerekçeli:** duyu gecikmesi (~150 ms bu dünyada
+  gözlemlenemez; örnekle-tut zaten `calismaBellegi`de var) · IDF (K6).
 
 **2026-09-17 (akşam):** **Uydurma sorunu kapandı — spec 06 Faz 1–5.**
 Kök neden ölçüldü, düzeltildi ve canlı doğrulandı: anlık gözlem kalıcı
