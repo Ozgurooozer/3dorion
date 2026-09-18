@@ -296,3 +296,75 @@ alakasızlar eleniyor (öncesinde hep 3 anı gelirdi).
 - **Tek fixture yanıltabilir:** Faz 3 sonrası en az iki farklı konumdan kayıt.
 - **Kalıcı veri:** temizlik yedeksiz çalışmaz; geri dönüş = yedeği geri yaz.
 - **Kapsam kayması:** §6 bu spec'te başlatılmaz.
+
+## 6.8 Bağlam dili: İngilizce çerçeve, Türkçe ses (2026-09-18)
+
+**Tetikleyen bulgu.** "Yerel model gözlenen nesneyi söylemiyor" diye not
+düşmüştük. Ham çıktıya bakınca sorun sessizlik değil, **kelime salatası**
+çıktı: `qwen2.5:7b` 10 cevabın 8'inde "ortalama"/"ormanı" diye başlıyor,
+"management terminali", "öninizdeydi", arada Çince karakter üretiyor.
+
+**Ölçüm (aynı girdi, tek değişken bağlam dili; 1. tur, n=10, doğru eylem
+`dunya_sor(onumde)` — kesin ölçülebilir):**
+
+| bağlam | doğru araç | bozuk şema | gecikme |
+|---|---|---|---|
+| Türkçe | **0/10** | 2 | 1,4 sn |
+| yalnız talimat + araç açıklamaları İngilizce | 4/10 | 0 | 0,6 sn |
+| hepsi İngilizce çerçeve | **9/10** | 0 | **0,6 sn** |
+
+Model yetersiz değil — **Türkçe bağlam onu zehirliyor**. Üç seviyede birden
+çöküyordu: araç seçimi, argüman şeması, metin. İngilizce çerçevede hem
+düzeliyor hem 2,3 kat hızlanıyor (Türkçe token olarak pahalı).
+
+Kazancın **yarısı durum satırlarından** geliyor: yalnız talimatı çevirmek
+4/10'da kalıyor. Bu yüzden `protocol/algi.ts`, `mind/calismaBellegi.ts`,
+`mind/zaman.ts`, `world/giris.ts` → `dunyaDurumuMetni` de çevrildi.
+
+**Haiku'da da iyileşti:** aynı fixture'da %90 → **%100** sadık, uydurma 1 → 0.
+
+### Sınır — nerede hangi dil
+
+- **İngilizce = makineye ait olan.** Talimat, araç açıklamaları, durum
+  satırlarının çerçevesi (`in front of you`, `you looked`, `3 hours ago`).
+- **Türkçe = Ozyn'in dünyasına ait olan.** Odadaki şeylerin **adları**
+  ("yönetim terminali", "beyaz tahta") ve Ozyn'in kendi sözleri.
+- **Orion'un SESİ her zaman Türkçe.** `DUNYA_TALIMATI`nın sonundaki DİL
+  kuralı bunu zorunlu kılıyor; Haiku ölçümde 10/10 uydu ve nesne adlarını
+  verildiği gibi kullandı.
+- **Protokol kimlikleri çevrilmez:** `KOMUT:`, `BAK:`, `onumde`, `dunya_sor`,
+  poz/jest enum değerleri. Bunları çevirmek sözleşmeyi **sessizce** kırar.
+
+**K8 korundu:** bağlam beyinden bağımsız. Dil beyne göre değişmiyor; yerel
+beyne İngilizce, buluta Türkçe vermek K8'i çiğnerdi ve tam da bugün bulunan
+`ollama.ts` hatasının sınıfına girerdi.
+
+### Yol boyunca çıkan iki gerçek hata
+
+- **`mind/refleks.ts` ölü bir dalı canlı sanıyordu.** `"Terminal çıktısı"`
+  öneki arıyordu ama `ozetle` çoktan `"Ozyn'in terminalinde…"` üretiyordu.
+  Gerçek algıda o dal hiç çalışmıyordu; yalnızca ölçüm araçları eski metni
+  **elle** beslediği için yeşil görünüyordu. Önekler `protocol/algi.ts` →
+  `OZET_ONEKI` altında tek kaynağa alındı, üretimden doğrulayan test eklendi.
+  `slice(5)` de sabit uzunluktaydı, aynı kaynağa bağlandı.
+- **`mind/zaman.test.ts` üç fonksiyonun kopyasını tutuyordu**
+  (`odadaSure`, `sessizlikSozu`, `gununVakti`) çünkü `giris.ts` sahneye
+  bağlıydı. Dil değişiminde sessizce ayrıştılar: test eski Türkçeyi
+  doğruluyor, üretim İngilizce veriyordu. Üçü de `mind/zaman.ts`e taşındı.
+
+### Ölçüm hijyeni — kendi hatam
+
+İlk "model sağlıklı mı" testlerimi `curl` ile yaptım ve Git Bash Türkçe
+karakterleri bozdu; model bana resmen *"the characters are mojibake"* diye
+cevap verdi. O karşılaştırmalar **geçersizdi**. Geçerli olan yalnızca gerçek
+boru hattından (Node/`fetch`, doğru UTF-8) geçen fixture ölçümleridir.
+Kural: bağlam ölçümü **üretimin kullandığı yoldan** yapılır.
+
+### Yapılmayan: duyu gecikmesi
+
+Beden planında (Faz 4) örnekle-tut gecikmesi vardı; **yapılmadı**. Gerekçe
+K6'nın aynısı: ölçüm gerektirmiyor. ~150 ms gecikme bu dünyada
+gözlemlenemez — en hızlı şey Orion'un koşması (2,45 m/s → 0,37 m) ve mesafe
+zaten `mesafeSozu` ile 1,2 / 2,5 / 4,5 m eşiklerine kabalaştırılıyor; cevap
+metni değişmiyor. Ayrıca örnekle-tut **zaten var**: `mind/calismaBellegi.ts`
+cevabı tutuyor, 30 sn'de eskitiyor ve yaşını açıkça yazıyor.

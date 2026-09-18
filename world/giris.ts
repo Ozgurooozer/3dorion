@@ -1151,6 +1151,22 @@ function beyniBagla(a: Avatar): void {
       }) },
     { ad: "yerel:qwen2.5", kur: () => new OllamaBeyni({ model: "qwen2.5:7b" }) },
     { ad: "yerel:qwen3", kur: () => new OllamaBeyni({ model: "qwen3:4b" }) },
+    // Claude Haiku — ADI AÇIK OLSUN. Eskiden yalnızca `dis` vardı ve panelde
+    // o adla duruyordu: Ozyn için Haiku diye bir seçenek görünmüyordu, üstelik
+    // `tools/claude-beyin.ts`i ayrı bir terminalde elle başlatmak gerekiyordu
+    // (başlatmazsan `hazirMi()` düşer ve seçim sessizce reddedilir). Adaptörü
+    // artık Electron kendi başlatıyor (`host/main.js`).
+    //
+    // Zaman aşımı 30 sn: ölçümde Haiku 2,8–3,6 sn: dönüyor, ama `claude -p`
+    // soğuk açılışta daha uzun sürebiliyor ve 10 sn'lik tavan gereksiz yere
+    // "geçilemedi" veriyordu.
+    { ad: "claude:haiku", kur: () => new DisBeyin({
+        ad: "claude:haiku",
+        adres: q.get("claudeadres") || undefined,
+        zamanAsimiMs: 30_000,
+      }) },
+    // Genel dış beyin yuvası (spec 04): başka bir dilde yazılmış beyin.
+    // `?beyinadres=` ile başka bir uca bağlanır.
     { ad: "dis", kur: () => new DisBeyin({
         adres: q.get("beyinadres") || undefined,
         zamanAsimiMs: 10_000,

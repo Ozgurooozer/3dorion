@@ -2,6 +2,7 @@
 // ESM (package.json "type":"module"). Electron 44 ESM main destekler.
 import { app, BrowserWindow, ipcMain, shell } from "electron";
 import { spawn as ptySpawn } from "node-pty";
+import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import fs from "node:fs";
@@ -228,11 +229,48 @@ ipcMain.handle(CAGRI.sesUret, async (_e, metin) => {
 
 // ---- yaşam döngüsü --------------------------------------------------------
 
-app.whenReady().then(pencereAc);
+// ── Claude beyni adaptörü ─────────────────────────────────────────────────
+//
+// NEDEN BURADA. Zihin duvarındaki beyin seçicide Claude seçilemiyordu: seçenek
+// `dis` diye anlaşılmaz bir adla duruyordu ve `tools/claude-beyin.ts`i AYRI bir
+// terminalde elle başlatmak gerekiyordu. Başlatmadıysan `hazirMi()` düşüyor ve
+// seçim sessizce reddediliyor — yani Ozyn için o seçenek hiç yoktu.
+//
+// Adaptör boşta bekleyen küçük bir Node süreci; `claude -p` yalnızca gerçekten
+// düşünülürken çalışır. `ORION_CLAUDE_BEYIN=0` ile kapatılabilir.
+let claudeBeyni = null;
+
+function claudeBeyniBaslat() {
+  if (process.env.ORION_CLAUDE_BEYIN === "0") return;
+  const port = process.env.ORION_CLAUDE_PORT || "4700";
+  try {
+    claudeBeyni = spawn(
+      process.execPath,
+      ["--experimental-strip-types", path.join(KOK, "tools", "claude-beyin.ts"),
+       `--port=${port}`, "--model=haiku"],
+      { cwd: KOK, stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" } },
+    );
+    // Adaptörün sesi ana günlüğe düşsün: sessizce ölürse sebebi görünmeli.
+    claudeBeyni.stdout.on("data", (d) => process.stdout.write(`[claude-beyin] ${d}`));
+    claudeBeyni.stderr.on("data", (d) => process.stderr.write(`[claude-beyin] ${d}`));
+    claudeBeyni.on("exit", (kod) => {
+      if (kod !== 0 && kod !== null) console.warn(`[claude-beyin] cikti, kod=${kod}`);
+      claudeBeyni = null;
+    });
+    console.log(`[claude-beyin] baslatildi, port ${port}`);
+  } catch (e) {
+    // Adaptör açılmazsa oda YİNE ÇALIŞIR — yalnızca o beyin seçeneği düşer.
+    console.warn(`[claude-beyin] baslatilamadi: ${e?.message ?? e}`);
+  }
+}
+
+app.whenReady().then(() => { claudeBeyniBaslat(); return pencereAc(); });
 app.on("activate", () => { if (BrowserWindow.getAllWindows().length === 0) pencereAc(); });
 app.on("window-all-closed", () => { if (process.platform !== "darwin") app.quit(); });
 app.on("before-quit", () => {
   ses.kapat();
   for (const p of ptyler.values()) { try { p.kill(); } catch { /* kapanışta önemsiz */ } }
   ptyler.clear();
+  // Adaptör bizim başlattığımız süreç: arkada kalıp portu tutmasın.
+  if (claudeBeyni) { try { claudeBeyni.kill(); } catch { /* kapanışta önemsiz */ } claudeBeyni = null; }
 });
