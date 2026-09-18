@@ -6,9 +6,10 @@
 
 ## Karar bekleyen (büyük)
 
-- **MCP kaydı (Aşama 3).** Satır sözleşmesinin yerini alacak gerçek
-  tool-calling. Ozyn OpenCode tarafında skill yazacaktı. Aşağıdaki
-  "sözleşme kalitesi" maddelerinin çoğunu kökten anlamsızlaştırır.
+- ~~**MCP kaydı (Aşama 3).**~~ — **YAPILDI (2026-09-19)**, spec 05 §8.
+  Aşama 1–4 canlı kapılardan geçti: R2 (ajanda Bash yok), `tezdene` (ajan
+  `dunya_komut` önerdi, onay kapısı tuttu), R1 (ajan öldürülünce sağ lob
+  devraldı). Açık: Aşama 7 — ikinci ajan (OpenCode) + sayıyla karşılaştırma.
 - **Orion'un inisiyatifi.** Şu an tepki veriyor, kendi gündemi yok. Hafıza var
   ama kişilik/süreklilik zayıf. Projenin asıl vaadi buydu.
 - **VRM avatar** — `assets/orion.vrm` aslında Cesium_Man, 0 morph target;

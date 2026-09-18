@@ -1,8 +1,9 @@
 # Modüler Beyin + Devre Paneli (Spec v1 — PLAN)
 
 > Karar tarihi: 2026-09-16 · Sahip: Ozyn · Yönetici: Orion (Claude Code)
-> Durum: **panel tarafı S0–S7 uygulandı** (2026-09-17). MCP/skill tarafı
-> (§5 Aşama 1–4, 7) hâlâ plan.
+> Durum: **panel tarafı S0–S7 uygulandı** (2026-09-17). **MCP/skill tarafı
+> Aşama 1–4 uygulandı ve canlı kapılardan geçti** (2026-09-19, §8). Aşama 7
+> (ikinci ajan + karşılaştırma) açık.
 
 ## 0. Uygulanan: devre panosu (S0–S7)
 
@@ -176,3 +177,76 @@ bu yüzden kasıtlı olarak ertelendi.
   kalıyor. Modülerlik, tek yol dayatmamak demek.
 - **Satır sözleşmesi silinmiyor** — MCP'siz ajanlar için gerekli kalır.
 - **Panel süs eklemiyor.** Her görsel öğe bir bilgi taşımalı.
+
+## 8. Aşama 1–4 sonuçları (2026-09-19)
+
+### Tasarım kararı — MCP ajanı bir `Beyin` olur
+
+`bridge/mcpBeyin.ts`: köprü `dusun(girdi)` çağırır → ajan `dunya_bekle` ile
+çeker → `dunya_*` araçları **çalıştırılmaz, toplanır** → ajanın bir sonraki
+`dunya_bekle`si turu kapatır → çağrılar `dusun()`'un cevabı olarak köprüye
+döner ve diğer beyinlerinkiyle **aynı yoldan** işlenir.
+
+Aşama 2'nin iki şartı ("çağrılar mevcut `dogrula` + `niyetiYurut` yolundan
+geçer", "`mind/` korunur") böylece sözden değil **yapıdan** gelir: bağlam
+sözleşmesi (K8), `dogrula`, onay kapısı, zincir bütçesi, susma kapısı ve
+`tik` yasağı MCP yolunda da işler — atlanacak bir yan yol yok. Tur DIŞINDA
+araç çağrısı reddedilir (R7).
+
+**Taşıma:** `host/mcpSunucu.js` — Streamable HTTP, durumsuz, yalnız JSON;
+SDK yok (4 yöntem, ~100 satır). Dünya renderer'da yaşadığı için (spec 07 K2)
+`tools/*` IPC ile röle edilir. Yalnızca `127.0.0.1`; localhost olmayan
+`Origin` 403 (DNS rebinding).
+
+### Kapılar
+
+| kapı | sonuç |
+|---|---|
+| **R2 — ajanda Bash yok** | açılış olayında **15 araç, hepsi `mcp__orion__*`**; Bash/Edit/Write yok. İzin ayarı (`--tools ""`, `--strict-mcp-config`, `--setting-sources ""`), skill talimatı değil `[ÖLÇÜLDÜ]` |
+| **Aşama 1** — bağlanır, konuşur | `orion=connected`; ajan `dunya_soyle` ile konuştu `[ÖLÇÜLDÜ]` |
+| **Aşama 2** — `tik` ulaşmaz, onay tutar | köprüyle birlikte test: `tik` ajana ulaşmıyor; `dunya_komut` yalnızca `komut` NİYETİ olur `[TEST]` |
+| **Aşama 3** — promptsuz terminal tepkisi | `tezdene` **GEÇTİ**: `gti status` → ajan `dunya_komut("git status")` → onay kapısı: önerilen 1, onaylanan 1 — komut ANCAK onaydan sonra çalıştı `[ÖLÇÜLDÜ]` |
+| **Aşama 4 / R1** — ajan ölürse | ajan `dunya_bekle` ASKIDAYKEN öldürüldü → `[mcp] ajan bağlantısı koptu → temas kesildi` → sağ lob `git` önerdi, onaysız çalışmadı: `saglobdene` 2/2 `[ÖLÇÜLDÜ]` |
+| **R3** — tek sahiplik | `SecilebilirBeyin` zaten tek aktif beyin tutuyor; `mcp` bir seçenek |
+
+Birim testleri: `bridge/mcpBeyin.test.ts` 19, `host/mcpSunucu.test.ts` 10 —
+hepsi mutasyonla kırmızıya dönebildiği kanıtlandı.
+
+### Canlıda bulunan dört sorun — spec'in üç varsayımı ölçümle yanlış çıktı
+
+**1. R5 varsayımı yanlış: ajan "sessiz" alınca döngüye devam ETMİYOR.**
+Spec: "bekleme ~25 sn, sessiz döner, ajan döngüye devam eder." Ölçüm: Haiku
+25 sn "quiet" alınca oturumu bitirdi (`tur=2`), skill "asla bırakma" demesine
+rağmen. Bu tam olarak R1. Talimat güvence değil; iki yapısal karşılık:
+- **Denetleyici döngü** (`tools/orion-ajan.ts`): oturum biterse yeniden başlar.
+- **Uzun bekleme:** 25 → 60–120 sn. Her "quiet" bir model turu; ölçülen
+  oturum başlangıcı **$0,025** → 25 sn'lik beklemeyle boşta saatte ~$3,4 (R4).
+
+**2. Süreye dayalı temas uzun beklemeyle çelişiyor.** 120 sn bekleyen canlı
+ajan 60 sn'de "ölü" sanılacaktı; tersine, ölen ajanın açık HTTP isteği onu
+"canlı" gösterecekti. **Temas = açık bağlantı:** bekleyen `dunya_bekle` canlı
+ajandır; HTTP kopması → iptal sinyali → temas HEMEN kesilir. İptal
+**etiketli**: hızlı yeniden başlatmada eski bağlantının kopma sinyali yeni
+ajanın beklemesini öldürmesin.
+
+**3. Yeni oturum talimatsız başlayacaktı.** Talimat yalnızca temas koparsa
+yeniden gidiyordu; denetleyicinin hızlı yeniden başlatması kuralsız bir Orion
+açardı. MCP `initialize` artık oturum başlangıcını bildiriyor.
+
+**4. Satır sözleşmesi ajanı araç çağırmaktan alıkoydu.** Ajan durumu aldı ve
+hiç araç çağırmadan metinle bitirdi. Sebep: bağlam, araçsız modeller için
+yazılmış "cümleyle yaz, eylemi `KOMUT:` satırıyla belirt" sözleşmesini
+taşıyordu. Spec'in MCP'yi seçme sebebi tam da bu hileden kurtulmaktı.
+`baglamMetni(…, { satirSozlesmesi: false })` — sözleşme kalkınca ajan gerçek
+araç çağırdı ve döngüyü tek oturumda sürdürdü.
+
+### Kullanım
+
+```
+npm start                                  # dünya; MCP ucu :4800 (ORION_MCP=0 kapatır)
+node --experimental-strip-types tools/orion-ajan.ts [--model=haiku]
+# zihin duvarında beyin seçici → "mcp"
+```
+
+Skill: `.claude/skills/orion-beden/SKILL.md` — yalnızca döngü ve sınırlar;
+asıl talimat `dunya_bekle`'nin ilk cevabıyla gelir (talimat kopyalanmaz).

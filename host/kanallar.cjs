@@ -25,12 +25,16 @@ const CAGRI = {
   hafizaYaz:         "hafiza:yaz",
   /** Göç için senkron yazım: göç, sonucu bilmeden "taşındı" diyemez. */
   hafizaYazSenkron:  "hafiza:yaz-senkron",
+  /** MCP rölesi (spec 05 Aşama 1): renderer'ın `tools/*` cevabı main'e. */
+  mcpYanit:          "mcp:yanit",
 };
 
 /** Main → renderer (tek yönlü olay). */
 const OLAY = {
   ptyCikti: "pty:cikti",
   ptyBitti: "pty:bitti",
+  /** MCP rölesi: main'deki HTTP ucuna gelen `tools/*` isteği renderer'a. */
+  mcpIstek: "mcp:istek",
 };
 
 module.exports = { CAGRI, OLAY };

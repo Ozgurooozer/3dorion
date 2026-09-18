@@ -22,10 +22,24 @@ export interface BaglamSecenek {
    * "You looked: ..." satırının neye cevap olduğunu bilmez.
    */
   gecmis?: boolean;
+  /**
+   * Satır sözleşmesi (`KOMUT:` / `BAK:` satırları) eklensin mi. Varsayılan: evet.
+   *
+   * Bu sözleşme ARAÇ ÇAĞIRAMAYAN modeller için bir geçici çözüm: eylem metnin
+   * içinden ayrıştırılır (OpenCode, `claude:haiku` adaptörü — ikisi de araçsız).
+   * Gerçek araç çağıran bir ajana (MCP) ise "cümleyle yaz" demek TERS etki
+   * yapıyor: canlıda ajan durumu aldı ve hiç araç çağırmadan metinle bitirdi.
+   * Yerel beyin (`ollama.ts`) zaten kendi mesajını kurup sözleşmeyi almıyor.
+   *
+   * K8'e aykırı DEĞİL: bağlam sözleşmesi Orion'un NE BİLDİĞİDİR ve o aynı
+   * kalıyor. Bu ise eylemin nasıl İFADE edileceği — bir taşıma ayrıntısı.
+   */
+  satirSozlesmesi?: boolean;
 }
 
 export function baglamMetni(girdi: BeyinGirdisi, s: BaglamSecenek = {}): { sistem: string; kullanici: string } {
-  const sistem = [girdi.talimat, girdi.sabit, SOZLESME_TALIMATI].filter(Boolean).join("\n");
+  const sozlesme = s.satirSozlesmesi === false ? "" : SOZLESME_TALIMATI;
+  const sistem = [girdi.talimat, girdi.sabit, sozlesme].filter(Boolean).join("\n");
   const kullanici = [
     ...(s.gecmis ? gecmisSatirlari(girdi.gecmis) : []),
     girdi.dunya,

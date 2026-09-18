@@ -72,6 +72,7 @@ import { gozlemAnisiMi } from "../mind/hafiza.ts";
 import { odadaSure, sessizlikSozu, gununVakti } from "../mind/zaman.ts";
 import { depoYukle } from "../mind/hafizaGocu.ts";
 import { GucButcesi, Inisiyatif } from "../mind/inisiyatif.ts";
+import { McpBeyin } from "../bridge/mcpBeyin.ts";
 import { KuralRefleksi, UZUN_ISLEM_MS } from "../mind/refleks.ts";
 import { OnayKapisi } from "../mind/onayKapisi.ts";
 import { riskEtiketi } from "../mind/komutRiski.ts";
@@ -332,6 +333,43 @@ const inisiyatif = new Inisiyatif(inisiyatifSn > 0
   : {});
 /** Güç bütçesine düşülen son beyin turu sayısı — fark kadar `dusundu()`. */
 let gucDusunmeSayaci = 0;
+
+// ── MCP AJANI (spec 05 Aşama 1-2) ─────────────────────────────────────────
+// Tek örnek: seçicideki "mcp" girdisi ve main'deki HTTP ucunun rölesi AYNI
+// nesneyle konuşur. Beyin seçili değilken ajanın `dunya_bekle`si yalnızca
+// "sessiz" döner ve araç çağrıları reddedilir (açık tur yok) — uç etkisizdir.
+const mcpBeyin = new McpBeyin();
+(globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru?.mcpDinle?.(async ({ id, yontem, param }) => {
+  const k = (globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru!;
+  // Yeni ajan oturumu (MCP initialize): talimat yeniden gitsin. Cevap yok (id 0).
+  if (yontem === "oturum") { mcpBeyin.oturumBasladi(); return; }
+  // Ajanın bağlantısı koptu: YALNIZCA o isteğin beklemesini iptal et.
+  if (yontem === "iptal") {
+    mcpBeyin.bekleIptal((param as { id?: number })?.id);
+    // Gözlemlenebilir olsun: R1 kapısı bu satırı arar.
+    console.log(`[mcp] ajan baglantisi koptu → temas kesildi (hazir=${mcpBeyin.kesikSaniye === 0})`);
+    return;
+  }
+  try {
+    if (yontem === "tools/list") {
+      return k.mcpYanitla!(id, {
+        tools: mcpBeyin.araclar().map((a) => ({ name: a.ad, description: a.aciklama, inputSchema: a.sema })),
+      });
+    }
+    const p = param as { name?: string; arguments?: Record<string, unknown> };
+    if (p?.name === "dunya_bekle") {
+      // Tavan 120 sn: main'deki röle sınırı (130 sn) bunun üstünde. Ajan ne
+      // isterse istesin en az 60 sn: kısa bekleme = her "quiet" bir model turu.
+      const sn = Math.min(120, Math.max(60, Number(p.arguments?.azami_sn ?? 120) || 120));
+      const s = await mcpBeyin.bekle(sn * 1000, id);
+      return k.mcpYanitla!(id, { content: [{ type: "text", text: "sessiz" in s ? "quiet — nothing happened. Call dunya_bekle again." : s.metin }] });
+    }
+    const r = mcpBeyin.cagri(String(p?.name ?? ""), p?.arguments ?? {});
+    return k.mcpYanitla!(id, { content: [{ type: "text", text: r.mesaj }], isError: !r.ok });
+  } catch (hata) {
+    k.mcpYanitla!(id, undefined, String((hata as Error)?.message ?? hata));
+  }
+});
 
 // ── SENARYO KİPİ: kendiliğinden davranışları sustur ───────────────────────
 //
@@ -1268,6 +1306,11 @@ function beyniBagla(a: Avatar): void {
         adres: q.get("claudeadres") || undefined,
         zamanAsimiMs: 30_000,
       }) },
+    // MCP ajanı (spec 05): odadaki `claude` dünyaya MCP ile bağlanır ve algıyı
+    // ÇEKER. Beyin arayüzünün arkasında: ajanın çağrıları köprüye döner ve
+    // diğer beyinlerinkiyle AYNI yoldan geçer (dogrula, onay kapısı, zincir
+    // bütçesi). Ajan bağlı değilse `hazirMi()` false → seçim reddedilir.
+    { ad: "mcp", kur: () => mcpBeyin },
     // Genel dış beyin yuvası (spec 04): başka bir dilde yazılmış beyin.
     // `?beyinadres=` ile başka bir uca bağlanır.
     { ad: "dis", kur: () => new DisBeyin({
@@ -1309,13 +1352,14 @@ function beyniBagla(a: Avatar): void {
   if (q.has("kayit")) console.log("[KAYIT] beyin turlari gunluge yaziliyor");
 
   /**
-   * Devre kesici YALNIZCA OpenCode beyninde var (sağlayıcı kotası ona özgü).
+   * Devre kesici iki beyinde var: OpenCode (sağlayıcı kotası) ve MCP (ajanla
+   * TEMAS kopması — spec 05 R1: ajan ölünce Orion susmasın, sağ lob devralsın).
    * Arayüze eklemek uygulama ayrıntısını sözleşmeye sızdırmak olurdu; onun
    * yerine burada tip koruması ile sorulur.
    */
   const kesikSn = (): number => {
     const ic = secici.ic;
-    return ic instanceof OpenCodeBeyni ? ic.kesikSaniye : 0;
+    return ic instanceof OpenCodeBeyni || ic instanceof McpBeyin ? ic.kesikSaniye : 0;
   };
   console.log(`[BEYIN] ${beyin.ad}`);
   sema.not("beyin", kisaAd(beyin.ad));
@@ -1546,10 +1590,15 @@ function beyniBagla(a: Avatar): void {
   void beyin.hazirMi().then((h) => {
     console.log(`[BEYIN] ${beyin.ad} hazir=${h}`);
     if (!h) {
-      // Sessiz bozulma YOK: kullanıcı neyin kapalı olduğunu bilsin.
-      console.warn("[BEYIN] OpenCode sunucusu yok (opencode serve). KURALLI VARLIK kipi: " +
-        "Orion hareket eder ve tepki verir ama düşünemez.");
-      altyaziGoster("Düşüncem şu an kapalı — `opencode serve` çalışmıyor", 5000);
+      // Sessiz bozulma YOK: kullanıcı neyin kapalı olduğunu bilsin — ve DOĞRU
+      // sebebi. Bu mesaj eskiden hangi beyin olursa olsun "OpenCode sunucusu
+      // yok" diyordu; beyin `mcp` iken yanıltıcıydı (asıl eksik: ajan).
+      const sebep = beyin.ad === "mcp"
+        ? "MCP ajanı bağlı değil (node tools/orion-ajan.ts)"
+        : beyin.ad.startsWith("opencode") ? "OpenCode sunucusu yok (opencode serve)"
+        : `${beyin.ad} hazır değil`;
+      console.warn(`[BEYIN] ${sebep}. KURALLI VARLIK kipi: Orion hareket eder ve tepki verir ama düşünemez.`);
+      altyaziGoster(`Düşüncem şu an kapalı — ${sebep}`, 5000);
     }
   });
 }
@@ -1789,6 +1838,9 @@ if (new URLSearchParams(location.search).has("tezdene")) {
   try { localStorage.setItem("beyinDokum", "1"); } catch { /* onemsiz */ }
   void (async () => {
     const bekle = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    // `?senaryobekle=N`: MCP ajanı (spec 05) HTTP ucuna bağlanana kadar bekle.
+    // Yoksa hata ajan bağlanmadan gelir ve test yanlış sebepten kalır.
+    await bekle(Number(new URLSearchParams(location.search).get("senaryobekle") ?? 0) * 1000);
     await bekle(2000);
     await monitoreGec();
     await bekle(1800);
@@ -2297,6 +2349,9 @@ if (new URLSearchParams(location.search).has("acidene")) {
 if (new URLSearchParams(location.search).has("saglobdene")) {
   void (async () => {
     const bekle = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    // `?senaryobekle=N`: spec 05 R1 kapısı — MCP ajanı bağlanıp ÖLDÜRÜLSÜN,
+    // hata ondan SONRA gelsin. Sağ lob ölü ajanın yerini alıyor mu?
+    await bekle(Number(new URLSearchParams(location.search).get("senaryobekle") ?? 0) * 1000);
     await bekle(2500);
     await monitoreGec();
     await bekle(1800);

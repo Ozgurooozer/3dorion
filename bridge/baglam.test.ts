@@ -28,3 +28,8 @@ test("durumsuz beyinde geçmiş girer, 'You looked' satırından ÖNCE ve tekrar
   assert.equal(k.match(/You: Bakıyorum\./g)?.length, 1, "aynı söz iki kez yazıldı");
   assert.ok(k.indexOf("Ozyn:") < k.indexOf("You looked"), "soru cevaptan sonra geldi");
 });
+
+test("satır sözleşmesi VARSAYILAN olarak girer — metinden ayrıştıran beyinler bozulmasın", () => {
+  assert.match(baglamMetni(girdi).sistem, /KOMUT: </);
+  assert.doesNotMatch(baglamMetni(girdi, { satirSozlesmesi: false }).sistem, /KOMUT: </);
+});

@@ -48,6 +48,9 @@ export interface Kopru {
   hafizaYaz(kayitlar: unknown[]): void;
   /** Göç için: sonuç bilinmeden "taşındı" denemez. */
   hafizaYazSenkron(kayitlar: unknown[]): boolean;
+  /** MCP rölesi: main'deki HTTP ucuna gelen `tools/list` / `tools/call`. */
+  mcpDinle(cb: (istek: { id: number; yontem: string; param: unknown }) => void): () => void;
+  mcpYanitla(id: number, sonuc: unknown, hata?: string): void;
 }
 
 declare global {

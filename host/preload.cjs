@@ -26,4 +26,7 @@ contextBridge.exposeInMainWorld("kopru", {
   hafizaOku:        () => ipcRenderer.sendSync(CAGRI.hafizaOku),
   hafizaYaz:        (kayitlar) => ipcRenderer.send(CAGRI.hafizaYaz, kayitlar),
   hafizaYazSenkron: (kayitlar) => ipcRenderer.sendSync(CAGRI.hafizaYazSenkron, kayitlar),
+  // MCP rölesi (spec 05 Aşama 1): main'deki uca gelen `tools/*` istekleri.
+  mcpDinle:         (cb) => dinle(OLAY.mcpIstek, cb),
+  mcpYanitla:       (id, sonuc, hata) => ipcRenderer.send(CAGRI.mcpYanit, { id, sonuc, hata }),
 });

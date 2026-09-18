@@ -8,6 +8,7 @@ import path from "node:path";
 import fs from "node:fs";
 import { PiperSesi, piperBul } from "./ses.js";
 import { hafizaDosyasiOku, hafizaDosyasiYaz } from "./hafizaDosyasi.js";
+import { mcpSunucuKur } from "./mcpSunucu.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const KOK = path.resolve(__dirname, "..");
@@ -140,6 +141,8 @@ function pencereAc() {
   if (process.env.ORION_GECMIS) parcalar.push(`gecmis=${process.env.ORION_GECMIS}`);
   // Senaryosuz canlı denemede TTS'i kapatmak için (Ozyn'in hoparlöründen ses çıkmasın).
   if (process.env.ORION_SESSIZ === "1") parcalar.push("sessiz=1");
+  // MCP ajanı bağlanana kadar senaryoyu beklet (spec 05 canlı kapısı).
+  if (process.env.ORION_SENARYO_BEKLE) parcalar.push(`senaryobekle=${encodeURIComponent(process.env.ORION_SENARYO_BEKLE)}`);
   // İnisiyatif canlı denemesi: sessizlik eşiği ve refrakter N saniyeye iner.
   if (process.env.ORION_INISIYATIF_SN) parcalar.push(`inisiyatifsn=${encodeURIComponent(process.env.ORION_INISIYATIF_SN)}`);
   // Model karşılaştırması için: aynı ölçüm düzeneği, farklı beyin.
@@ -244,6 +247,58 @@ ipcMain.on(CAGRI.hafizaYazSenkron, (e, kayitlar) => {
   }
 });
 
+// ---- MCP ucu (spec 05 Aşama 1) --------------------------------------------
+// Odadaki `claude` buraya bağlanıp Orion'un bedenini sürer. İstekler IPC ile
+// renderer'daki `bridge/mcpBeyin.ts`'e röle edilir — dünya orada yaşıyor.
+// Uç yalnız 127.0.0.1'de; araç çağrıları burada ÇALIŞMAZ, köprüye gider ve
+// onay kapısı dahil bütün korumalardan geçer. `ORION_MCP=0` ile kapatılır.
+const mcpBekleyenler = new Map();
+let mcpSira = 0;
+
+function mcpRole(yontem, param, sinyal) {
+  return new Promise((coz, reddet) => {
+    if (!pencere || pencere.isDestroyed()) return reddet(new Error("dunya penceresi yok"));
+    const id = ++mcpSira;
+    mcpBekleyenler.set(id, { coz, reddet });
+    pencere.webContents.send(OLAY.mcpIstek, { id, yontem, param });
+    // Ajanın bağlantısı koptu (ajan öldü): bekleyen `dunya_bekle`yi renderer'da
+    // iptal et — ETİKETLİ, yalnızca bu isteğinkini (bkz. McpBeyin.bekleIptal).
+    sinyal?.addEventListener("abort", () => {
+      if (!mcpBekleyenler.delete(id)) return;
+      if (param?.name === "dunya_bekle" && pencere && !pencere.isDestroyed()) {
+        pencere.webContents.send(OLAY.mcpIstek, { id: 0, yontem: "iptal", param: { id } });
+      }
+      reddet(new Error("istemci baglantiyi kopardi"));
+    }, { once: true });
+  });
+}
+ipcMain.on(CAGRI.mcpYanit, (_e, { id, sonuc, hata }) => {
+  const b = mcpBekleyenler.get(id);
+  if (!b) return;                  // süresi dolmuş istek: sessizce bırak
+  mcpBekleyenler.delete(id);
+  if (hata) b.reddet(new Error(hata)); else b.coz(sonuc);
+});
+
+let mcpUcu = null;
+function mcpUcuBaslat() {
+  if (process.env.ORION_MCP === "0") return;
+  const port = Number(process.env.ORION_MCP_PORT || 4800);
+  mcpUcu = mcpSunucuKur({
+    port,
+    role: mcpRole,
+    // Yeni ajan oturumu → talimat yeniden gitsin. Aynı röle kanalı, cevap
+    // beklenmez (id 0): yeni kanal = yeni preload ucu + yeni tip, kayma riski.
+    oturumBasladi: () => {
+      if (pencere && !pencere.isDestroyed()) pencere.webContents.send(OLAY.mcpIstek, { id: 0, yontem: "oturum", param: null });
+    },
+    // dunya_bekle en fazla 120 sn bekliyor; röle sınırı onun üstünde olmalı.
+    // 25 sn'den uzatıldı (ölçüm): her "quiet" bir model turu ve ajan onu alınca
+    // oturumu bitiriyordu — 25 sn'lik beklemeyle boşta saatte ~$3,4.
+    releSiniriMs: 130_000,
+  });
+  mcpUcu.hazir.then(() => console.log(`[mcp] dunya ucu: http://127.0.0.1:${mcpUcu.port}/mcp`));
+}
+
 // ---- ses (Piper) ----------------------------------------------------------
 // Kalıcı süreç: cümle başına yeni piper.exe açmak 1.2 sn model yüklemesi demek.
 // Renderer'a YOL değil BAYT döndürülür — dev modda http://localhost'tan
@@ -303,7 +358,7 @@ function claudeBeyniBaslat() {
   }
 }
 
-app.whenReady().then(() => { claudeBeyniBaslat(); return pencereAc(); });
+app.whenReady().then(() => { claudeBeyniBaslat(); mcpUcuBaslat(); return pencereAc(); });
 app.on("activate", () => { if (BrowserWindow.getAllWindows().length === 0) pencereAc(); });
 app.on("window-all-closed", () => { if (process.platform !== "darwin") app.quit(); });
 app.on("before-quit", () => {
@@ -312,4 +367,5 @@ app.on("before-quit", () => {
   ptyler.clear();
   // Adaptör bizim başlattığımız süreç: arkada kalıp portu tutmasın.
   if (claudeBeyni) { try { claudeBeyni.kill(); } catch { /* kapanışta önemsiz */ } claudeBeyni = null; }
+  if (mcpUcu) { try { mcpUcu.kapat(); } catch { /* kapanışta önemsiz */ } mcpUcu = null; }
 });
