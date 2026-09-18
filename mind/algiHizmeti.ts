@@ -24,6 +24,7 @@
 // SAF: Babylon yok, dünya nesnesi yok. Her şey enjekte edilir; testlenebilir.
 "use strict";
 import type { CapaAdi, Vec3 } from "../protocol/temel.ts";
+import { BEDEN } from "../protocol/bedenTanimi.ts";
 
 /** Sorulabilecek şeyler. Protokoldeki `sor.ne` ile birebir eşleşir. */
 export type Soru = "dunya" | "yakin" | "oyuncu" | "onumde";
@@ -70,8 +71,14 @@ export const BUTCE: Record<Soru, number> = {
   dunya: 300,
 };
 
-/** Bakış konisinin yarı açısı (radyan). ~40° — insan odak alanına yakın. */
-const KONI_YARIM = 0.70;
+/**
+ * Bakış konisinin yarı açısı (radyan). ~40° — insan odak alanına yakın.
+ *
+ * Künyeden gelir (`protocol/bedenTanimi.ts`): göz gövdenin bir parçası, ama
+ * `mind/` ile `world/` birbirini import edemez (K4). Ortak künye ikisinin de
+ * bağlı olduğu `protocol/` altında durur — donanımda da datasheet ortak belgedir.
+ */
+const KONI_YARIM = BEDEN.duyu.koniYarim;
 
 /** XZ düzleminde mesafe. Y yok sayılır: kat farkı olmayan tek odalı dünya. */
 function mesafeXZ(a: Vec3, b: Vec3): number {
@@ -156,7 +163,10 @@ export function sorguYanitla(soru: Soru, d: DunyaGorusu): Cevap {
     case "yakin": {
       parcalar = gorunur
         .map((c) => ({ c, m: mesafeXZ(d.konum, c.konum) }))
-        .filter((x) => x.m <= 2.5)
+        // Menzil künyeden. `mesafeSozu`daki 2.5 ile aynı sayı olması TESADÜF:
+        // orası bir söz merdiveni (1.2 / 2.5 / 4.5), burası duyunun menzili.
+        // İkisi ayrı şeyler, bilerek birbirine bağlanmadı.
+        .filter((x) => x.m <= BEDEN.duyu.yakinMenzil)
         .sort((a, b) => a.m - b.m)
         .map((x) => `${x.c.etiket} (${mesafeSozu(x.m)})`);
       if (parcalar.length === 0) parcalar = ["yakınında bir şey yok"];

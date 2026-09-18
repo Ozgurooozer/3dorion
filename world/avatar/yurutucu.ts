@@ -18,6 +18,7 @@
 import type { Hedef, Vec3 } from "../../protocol/temel.ts";
 import type { Jest, Niyet, NiyetSonucu, Poz } from "../../protocol/niyet.ts";
 import type { OrionDurumu } from "../../protocol/algi.ts";
+import { BEDEN } from "../../protocol/bedenTanimi.ts";
 import { capaBul, mesafeXZ } from "../level/capalar.ts";
 import { SANDALYE } from "../level/olculer.ts";
 import { PozMakinesi, hareketliMi } from "./durumMakinesi.ts";
@@ -26,25 +27,31 @@ import {
   type Nokta2,
 } from "./yolBulma.ts";
 
-const DER = Math.PI / 180;
-
 // ── Ölçüler ve hızlar ──────────────────────────────────────────────────────
+//
+// Sayılar artık BURADA DEĞİL: `protocol/bedenTanimi.ts` künyesinden geliyor.
+// Aynı gövdenin ölçüleri üç dosyada üç kez yaşıyordu (burası, `prosedurel.ts`,
+// `mind/algiHizmeti.ts`) ve VRM iskeleti hiçbirini paylaşmıyordu.
+//
+// Adlar dışa verilmeye DEVAM EDİYOR: `yurutucu.test.ts` sınırları buradan
+// import ediyor ve testin künyeyi değil DAVRANIŞI sınaması doğru — sınır
+// künyede değişirse test yine gerçek sınırı görür.
 
 /** Yürüme hızı (m/s). Sakin, ofis içi tempo. */
-export const YURUME_HIZI = 1.25;
+export const YURUME_HIZI = BEDEN.hareket.yurumeHizi;
 /** Koşma hızı (m/s). Uzun mesafede kendiliğinden devreye girer. */
-export const KOSMA_HIZI = 2.45;
+export const KOSMA_HIZI = BEDEN.hareket.kosmaHizi;
 /** Kalan yol bundan uzunsa avatar koşar. 10×8 m odada nadiren aşılır. */
-export const KOSMA_ESIGI = 4.0;
+export const KOSMA_ESIGI = BEDEN.hareket.kosmaEsigi;
 /** Gövde dönüş hızı (rad/s). */
-export const GOVDE_DONME_HIZI = 4.2;
+export const GOVDE_DONME_HIZI = BEDEN.eklem.govdeYaw.aciHiz;
 /** Baş dönüş hızı (rad/s) — gövdeden hızlı, insan böyle. */
-export const BAS_DONME_HIZI = 6.5;
+export const BAS_DONME_HIZI = BEDEN.eklem.basYaw.aciHiz;
 
 /** İnsan boyun sınırı, yaw. Aşılırsa GÖVDE döner — donuk kafa dönüşü yok. */
-export const BOYUN_YAW_SINIRI = 80 * DER;
+export const BOYUN_YAW_SINIRI = BEDEN.eklem.basYaw.sinir;
 /** İnsan boyun sınırı, pitch. Aşılamaz; gövde pitch'i telafi etmez. */
-export const BOYUN_PITCH_SINIRI = 40 * DER;
+export const BOYUN_PITCH_SINIRI = BEDEN.eklem.basPitch.sinir;
 
 /** `git {tip:"nokta"}` için varsayılan varış toleransı. */
 export const NOKTA_TOLERANSI = 0.25;
@@ -64,9 +71,9 @@ export const KALKMA_SURESI = 0.7;
 export const JEST_SURESI = 1.1;
 
 /** Baş yüksekliği (ayak hizasından). Bakış açısı buradan hesaplanır. */
-export const BAS_YUKSEKLIGI = 1.55;
+export const BAS_YUKSEKLIGI = BEDEN.basYuksekligi;
 /** Bir yürüme adımının uzunluğu — yürüme fazı buradan türer. */
-export const ADIM_UZUNLUGU = 0.72;
+export const ADIM_UZUNLUGU = BEDEN.adimUzunlugu;
 
 /**
  * Otururken kökün yükselmesi. Bacaklar bükülür, kalça oturma yüzeyine oturur;

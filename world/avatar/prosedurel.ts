@@ -20,10 +20,17 @@ import { CreateBox } from "@babylonjs/core/Meshes/Builders/boxBuilder";
 import { CreateSphere } from "@babylonjs/core/Meshes/Builders/sphereBuilder";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import type { Jest, Poz } from "../../protocol/niyet.ts";
+import { BEDEN } from "../../protocol/bedenTanimi.ts";
 import type { AvatarIskeleti, IskeletBilgisi } from "./iskelet.ts";
 
-/** Hedef boy — VRM yolu da bu boya normalize edilir, ikisi aynı ölçekte durur. */
-export const BOY = 1.75;
+/**
+ * Hedef boy — VRM yolu da bu boya normalize edilir, ikisi aynı ölçekte durur.
+ *
+ * Künyeden gelir (`protocol/bedenTanimi.ts`): boy hem buradaki mesh oranlarını
+ * hem `yurutucu.ts`'teki baş yüksekliğini belirliyor ve iki dosyada ayrı ayrı
+ * yazılıyordu. Aynı gövde, tek ölçü.
+ */
+export const BOY = BEDEN.boy;
 
 const TAU = Math.PI * 2;
 
