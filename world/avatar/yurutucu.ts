@@ -264,6 +264,11 @@ export class Yurutucu {
       mesgul: this._aktif !== null,
       elinde: this._elinde,
       oturuyor_mu: this._oturuyor,
+      // Propriyosepsiyon: aktüatörün GERÇEK durumu, komut edilen değil.
+      hiz: this._hiz,
+      hedefeKalan: this._aktif?.hedef
+        ? mesafeXZ(this._konum, this._aktif.hedef)
+        : undefined,
     };
   }
 

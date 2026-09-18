@@ -1085,6 +1085,16 @@ function dunyaDurumuMetni(): string {
   const d = new Date(simdi);
   return [
     a ? `You: ${a.poz}, position ${a.konum.x.toFixed(1)},${a.konum.z.toFixed(1)}${a.oturuyor_mu ? ", seated" : ""}.` : "",
+    // PROPRİYOSEPSİYON. Yalnızca HAREKET HÂLİNDEYKEN yazılır — duruyorken
+    // "hızın 0" demek her tura bir satır ekleyip hiçbir şey söylemez, bağlam
+    // ise sadakatin en pahalı kaynağı (spec 06: bağlama giren her satır
+    // ölçülür). Aktüatör doyuma girdiği için bu sayı artık gerçek: komut
+    // edilen değil, gerçekleşen.
+    a && a.hiz !== undefined && a.hiz > 0.05
+      ? `You are moving at ${a.hiz.toFixed(1)} m/s${
+          a.hedefeKalan !== undefined ? `, ${a.hedefeKalan.toFixed(1)}m left to your target` : ""
+        }.`
+      : "",
     `Ozyn is ${o.mesafe?.toFixed?.(1) ?? "?"}m away${o.bakiyor ? ", looking at you" : ""}.`,
     o.etkilesim === "monitor" ? "Ozyn is working on your monitor." : "",
     // ZAMAN — bir varlığın olmazsa olmazı. Bunlar olmadan Orion her turu

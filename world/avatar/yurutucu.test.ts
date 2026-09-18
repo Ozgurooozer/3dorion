@@ -498,8 +498,13 @@ test("durum() protokol biçimini korur ve bakış birim vektör", () => {
   const k = new Kosucu();
   k.niyet({ tur: "bak", hedef: { tip: "capa", ad: "pencere" } }, "b1").tik(40);
   const d = k.y.durum();
+  // `hiz` ve `hedefeKalan` propriyosepsiyon alanlarıdır (Faz 3): aktüatör
+  // doyuma girdiği için komut ile gerçekleşen ayrışıyor, bu ikisi o farkı
+  // gövdenin dışına taşır. Alan EKLEMEK kırıcı değildir (spec 01), ama liste
+  // burada kilitli kalsın: alanın SESSİZCE eklenmesi bağlamı da sessizce
+  // şişirir ve sadakat ölçümü sebebini bulamaz.
   assert.deepEqual(Object.keys(d).sort(),
-    ["bakis", "elinde", "konum", "mesgul", "oturuyor_mu", "poz"]);
+    ["bakis", "elinde", "hedefeKalan", "hiz", "konum", "mesgul", "oturuyor_mu", "poz"]);
   const boy = Math.hypot(d.bakis.x, d.bakis.y, d.bakis.z);
   assert.ok(Math.abs(boy - 1) < 1e-9, `bakış birim olmalı, ${boy}`);
 });

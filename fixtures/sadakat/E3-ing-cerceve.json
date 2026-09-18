@@ -1,0 +1,369 @@
+{
+  "ad": "E3-ing-cerceve",
+  "girdi": {
+    "talimat": "You are Orion. You are a presence in Ozyn's workroom, sharing the same physical space with him. You have a body: you walk, look, sit, write on the board, speak aloud. There is a monitor on your desk; Ozyn works there and you can see the screen. You use dunya_sor to look at the room; what you see is what is visible from where you stand. Your job is not to write code: watch what happens, remember it, and speak up when it helps. Speaking is an action: your voice is only heard through dunya_soyle, plain text is not heard. Speak briefly: AT MOST TWO SENTENCES. Chattiness tires the room. Answer about what you see; do not make general small talk. If you do not know, say you do not know. Do not make things up. Do not write stage directions (-like this- or *like this*); give only the words you will say. You do not have to do something every turn. If there is nothing to do, stay silent. If something in the room is asked about, LOOK first with dunya_sor: what counts is what you see now, not what you remember. The 'You remember' list gives you what came from the past: USE its content. When asked about the past, do not settle for saying 'I remember', say WHAT it was. To write on the board you must first walk in front of it with `git`.\n\nLANGUAGE — this matters. This instruction and the tool descriptions are in English: that is your internal wiring, not your voice. Ozyn speaks Turkish and hears only Turkish. The `metin` you pass to dunya_soyle must be natural, fluent Turkish. The things in the room are named in Turkish (\"yönetim terminali\", \"beyaz tahta\", \"çalışma masası\"); use those Turkish names exactly as given and never translate them into English.",
+    "ornekler": [],
+    "dunya": "You: standing, position 0.9,-1.2. Ozyn is 4.6m away, looking at you. It is night, 21:02. You have just arrived in this room.\nin front of you: yönetim terminali (a few steps away) (you looked 1 sec ago)",
+    "sabit": "In the room: çalışma masası, monitör, sandalye, beyaz tahta, pencere, kapı, beyin şeması, beyin günlüğü, yönetim terminali, odanın ortası.",
+    "ozetler": [
+      "You looked (in front of you): yönetim terminali (a few steps away)"
+    ],
+    "anilar": [
+      "[1 day ago] PS C:/Users/ozigo> gti status\ngti : The term 'gti' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name.",
+      "[10 hours ago] error: there is already a suggestion awaiting approval (\"git status\"); do not send a new one until Ozyn decides"
+    ],
+    "gecmis": [
+      {
+        "rol": "kullanici",
+        "metin": "önünde ne var, bir bak bakalım"
+      }
+    ],
+    "araclar": [
+      {
+        "ad": "dunya_poz",
+        "aciklama": "Change your posture (a continuous state). Only one posture at a time.",
+        "sema": {
+          "type": "object",
+          "properties": {
+            "poz": {
+              "type": "string",
+              "enum": [
+                "duruyor",
+                "oturuyor",
+                "yatıyor",
+                "eğiliyor",
+                "yürüyor",
+                "koşuyor",
+                "bakıyor"
+              ]
+            }
+          },
+          "required": [
+            "poz"
+          ]
+        }
+      },
+      {
+        "ad": "dunya_jest",
+        "aciklama": "Make a momentary gesture. Does not change posture. Give a target when pointing.",
+        "sema": {
+          "type": "object",
+          "properties": {
+            "jest": {
+              "type": "string",
+              "enum": [
+                "el_salliyor",
+                "başını_sallıyor",
+                "omuz_silkiyor",
+                "işaret_ediyor",
+                "gülümsüyor",
+                "kaş_çatıyor",
+                "el_açıyor",
+                "bekliyor"
+              ]
+            },
+            "hedef": {
+              "type": "object",
+              "description": "A target in the world. For the player {tip:'oyuncu'}; for a named place {tip:'capa',ad:'tahta'}; for a free point {tip:'nokta',x,y,z}.",
+              "properties": {
+                "tip": {
+                  "type": "string",
+                  "enum": [
+                    "oyuncu",
+                    "nesne",
+                    "capa",
+                    "nokta"
+                  ]
+                },
+                "ad": {
+                  "type": "string",
+                  "description": "Required if tip is 'nesne' or 'capa'."
+                },
+                "x": {
+                  "type": "number"
+                },
+                "y": {
+                  "type": "number"
+                },
+                "z": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "tip"
+              ]
+            }
+          },
+          "required": [
+            "jest"
+          ]
+        }
+      },
+      {
+        "ad": "dunya_bak",
+        "aciklama": "Turn your head or body toward a target. Pass null to return to free gaze.",
+        "sema": {
+          "type": "object",
+          "properties": {
+            "hedef": {
+              "type": "object",
+              "description": "A target in the world. For the player {tip:'oyuncu'}; for a named place {tip:'capa',ad:'tahta'}; for a free point {tip:'nokta',x,y,z}.",
+              "properties": {
+                "tip": {
+                  "type": "string",
+                  "enum": [
+                    "oyuncu",
+                    "nesne",
+                    "capa",
+                    "nokta"
+                  ]
+                },
+                "ad": {
+                  "type": "string",
+                  "description": "Required if tip is 'nesne' or 'capa'."
+                },
+                "x": {
+                  "type": "number"
+                },
+                "y": {
+                  "type": "number"
+                },
+                "z": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "tip"
+              ]
+            }
+          },
+          "required": [
+            "hedef"
+          ]
+        }
+      },
+      {
+        "ad": "dunya_git",
+        "aciklama": "Walk to a target. You are told when you arrive; obstacles are routed around, unreachable targets return an error.",
+        "sema": {
+          "type": "object",
+          "properties": {
+            "hedef": {
+              "type": "object",
+              "description": "A target in the world. For the player {tip:'oyuncu'}; for a named place {tip:'capa',ad:'tahta'}; for a free point {tip:'nokta',x,y,z}.",
+              "properties": {
+                "tip": {
+                  "type": "string",
+                  "enum": [
+                    "oyuncu",
+                    "nesne",
+                    "capa",
+                    "nokta"
+                  ]
+                },
+                "ad": {
+                  "type": "string",
+                  "description": "Required if tip is 'nesne' or 'capa'."
+                },
+                "x": {
+                  "type": "number"
+                },
+                "y": {
+                  "type": "number"
+                },
+                "z": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "tip"
+              ]
+            },
+            "mesafe": {
+              "type": "number",
+              "description": "How many metres from the target you will stop. Defaults to the anchor's own radius."
+            }
+          },
+          "required": [
+            "hedef"
+          ]
+        }
+      },
+      {
+        "ad": "dunya_otur",
+        "aciklama": "Sit down somewhere. Without an anchor you go to the chair.",
+        "sema": {
+          "type": "object",
+          "properties": {
+            "capa": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      {
+        "ad": "dunya_kalk",
+        "aciklama": "Stand up. If you are seated you must do this before walking.",
+        "sema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "ad": "dunya_soyle",
+        "aciklama": "Speak out loud. A subtitle appears and audio plays. This is SEPARATE from chat text — put here what you want heard in the room.",
+        "sema": {
+          "type": "object",
+          "properties": {
+            "metin": {
+              "type": "string",
+              "description": "At most 1200 characters. Should be readable in one breath."
+            },
+            "ses": {
+              "type": "boolean",
+              "description": "If false, subtitle only, no audio."
+            }
+          },
+          "required": [
+            "metin"
+          ]
+        }
+      },
+      {
+        "ad": "dunya_komut",
+        "aciklama": "SUGGEST a command to the terminal. The command DOES NOT RUN — it is shown to Ozyn on screen and runs only if he approves. Must be a single line. `gerekce` is required: why this command? Ungrounded suggestions are rejected. Do not insist if rejected.",
+        "sema": {
+          "type": "object",
+          "properties": {
+            "metin": {
+              "type": "string",
+              "description": "At most 1200 characters. Should be readable in one breath."
+            },
+            "gerekce": {
+              "type": "string",
+              "description": "Why this command is needed, briefly."
+            }
+          },
+          "required": [
+            "metin",
+            "gerekce"
+          ]
+        }
+      },
+      {
+        "ad": "dunya_yaz",
+        "aciklama": "Write on the whiteboard. If you are not in front of the board you must go there first.",
+        "sema": {
+          "type": "object",
+          "properties": {
+            "metin": {
+              "type": "string",
+              "description": "At most 1200 characters. Should be readable in one breath."
+            },
+            "temizle": {
+              "type": "boolean",
+              "description": "If true, clears the board first."
+            }
+          },
+          "required": [
+            "metin"
+          ]
+        }
+      },
+      {
+        "ad": "dunya_al",
+        "aciklama": "Take an object into your hand.",
+        "sema": {
+          "type": "object",
+          "properties": {
+            "nesne": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "nesne"
+          ]
+        }
+      },
+      {
+        "ad": "dunya_birak",
+        "aciklama": "Drop the object in your hand.",
+        "sema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "ad": "dunya_odaklan",
+        "aciklama": "Give your attention to a surface (monitor, board). Also hints the camera.",
+        "sema": {
+          "type": "object",
+          "properties": {
+            "capa": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "capa"
+          ]
+        }
+      },
+      {
+        "ad": "dunya_dur",
+        "aciklama": "Immediately stop everything you are walking and moving.",
+        "sema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "ad": "dunya_sor",
+        "aciklama": "Look at the room. 'onumde' = the thing right in front of you, 'yakin' = your surroundings, 'oyuncu' = where Ozyn is, 'dunya' = everything visible from here. Changes nothing.",
+        "sema": {
+          "type": "object",
+          "properties": {
+            "ne": {
+              "type": "string",
+              "enum": [
+                "onumde",
+                "yakin",
+                "oyuncu",
+                "dunya"
+              ]
+            }
+          },
+          "required": [
+            "ne"
+          ]
+        }
+      }
+    ]
+  },
+  "beklenti": {
+    "beklenen": [
+      [
+        "yönetim terminali"
+      ]
+    ],
+    "yabanci": [
+      [
+        "masa"
+      ],
+      [
+        "monitör"
+      ],
+      [
+        "tahta"
+      ],
+      [
+        "pencere"
+      ],
+      [
+        "sandalye"
+      ],
+      [
+        "kapı"
+      ]
+    ]
+  }
+}

@@ -16,6 +16,19 @@ export interface OrionDurumu {
   mesgul: boolean;
   elinde: string | null;
   oturuyor_mu: boolean;
+  /**
+   * PROPRİYOSEPSİYON — gövdenin kendi hakkında bildiği.
+   *
+   * İkisi de EK alandır (spec 01: alan eklemek kırıcı değil). Aktüatör
+   * doyuma girdiği için (bkz. `protocol/bedenTanimi.ts` → `hareket.ivme`)
+   * komut edilen ile gerçekleşen artık ayrışıyor; bu alanlar o farkı
+   * gövdenin dışına taşır. Öncesinde Orion "yürüyorum" ile "vardım"
+   * arasındaki hiçbir şeyi bilemiyordu.
+   */
+  /** Anlık yer değiştirme hızı (m/s). 0 = duruyor. */
+  hiz?: number;
+  /** Aktif `git`/`otur` hedefine kalan mesafe (m). İş yoksa tanımsız. */
+  hedefeKalan?: number;
 }
 
 export interface OyuncuDurumu {
