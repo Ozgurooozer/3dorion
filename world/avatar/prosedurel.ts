@@ -296,8 +296,13 @@ export function prosedurelIskelet(sahne: Scene): AvatarIskeleti {
   }
 
   /** Elindeki nesne göstergesi — `beden.ts` durum değişince açar/kapar. */
+  // Kök artık DIŞA VERİLMİYOR (bkz. iskelet.ts): sürücü arayüzü Babylon'a
+  // bağlı kalmasın diye kapanışın içinde kalıyor.
+  function konumUygula(x: number, y: number, z: number): void { kok.position.set(x, y, z); }
+  function cizimKonumu() { return { x: kok.position.x, y: kok.position.y, z: kok.position.z }; }
+
   const iskelet: AvatarIskeleti & { elindekiGoster(v: boolean): void } = {
-    kok, bilgi,
+    bilgi, konumUygula, cizimKonumu,
     govdeUygula, basUygula, pozUygula, jestUygula,
     agizUygula, bostaUygula, gozKirp, gorunur, yokEt,
     elindekiGoster(v: boolean) { tutulan.setEnabled(v); },

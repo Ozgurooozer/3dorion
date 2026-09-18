@@ -59,7 +59,7 @@ export class Beden {
     this._cizimKonum.set(x, y, z);
     this._hedefYaw = yaw;
     this._cizimYaw = yaw;
-    this.iskelet.kok.position.copyFrom(this._cizimKonum);
+    this.iskelet.konumUygula(this._cizimKonum.x, this._cizimKonum.y, this._cizimKonum.z);
     this.iskelet.govdeUygula(yaw);
   }
 
@@ -94,7 +94,7 @@ export class Beden {
     this._cizimYaw = aciSar(this._cizimYaw + aciSar(this._hedefYaw - this._cizimYaw) * ky);
 
     const i = this.iskelet;
-    i.kok.position.copyFrom(this._cizimKonum);
+    i.konumUygula(this._cizimKonum.x, this._cizimKonum.y, this._cizimKonum.z);
     i.govdeUygula(this._cizimYaw);
     i.pozUygula(this._poz, this._faz, this._hiz);
     i.basUygula(this._basYaw, this._basPitch);

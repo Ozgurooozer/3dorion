@@ -245,8 +245,12 @@ export async function vrmIskeletYukle(sahne: Scene, yol: string): Promise<Avatar
     kok.dispose();
   }
 
+  // Kök kapanışın içinde kalır — sürücü arayüzü Babylon tipine bağlanmasın.
+  function konumUygula(x: number, y: number, z: number): void { kok.position.set(x, y, z); }
+  function cizimKonumu() { return { x: kok.position.x, y: kok.position.y, z: kok.position.z }; }
+
   return {
-    kok, bilgi,
+    bilgi, konumUygula, cizimKonumu,
     govdeUygula, basUygula, pozUygula, jestUygula,
     agizUygula, bostaUygula, gozKirp, gorunur, yokEt,
   };

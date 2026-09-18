@@ -123,9 +123,7 @@ export async function avatarKur(ayar: AvatarAyari): Promise<Avatar> {
     gorunur: (g) => beden.gorunur(g),
     iskeletBilgisi: () => iskelet.bilgi,
     /** Avatarın EKRANDA göründüğü konum (mantık konumu değil). Testler için. */
-    cizimKonumu: () => ({
-      x: iskelet.kok.position.x, y: iskelet.kok.position.y, z: iskelet.kok.position.z,
-    }),
+    cizimKonumu: () => iskelet.cizimKonumu(),
     yokEt() { birak(); dinleyiciler.clear(); beden.yokEt(); },
   };
 }

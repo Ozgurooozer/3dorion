@@ -6,8 +6,22 @@
 //
 // Buradaki hiçbir fonksiyon KARAR VERMEZ. `yurutucu.ts` ne yapılacağını
 // söyler, bu arayüz onu mesh'e/kemiğe uygular.
+//
+// SÜRÜCÜ ARAYÜZÜ — Babylon'a bağlı DEĞİL (2026-09-18).
+//
+// Eskiden burada `readonly kok: TransformNode` vardı ve arayüzün tek Babylon
+// sızıntısı oydu. Geri kalan her şey saf sayı: yaw, pitch, faz, hız, açıklık,
+// nefes, kapanma. Yani bu arayüz fiilen bir SERVO KOMUT SETİ; tek bir tip
+// yüzünden renderer'a çakılı duruyordu.
+//
+// Donanımcıların yaptığı ayrım bu: `ros2_control`da denetleyici
+// `SystemInterface` ile konuşur, karşısındakinin Gazebo mu gerçek eklem mi
+// olduğunu bilmez. Kök düğüm artık uygulamanın İÇİNDE kalıyor; dışarıya
+// yalnızca "şu konuma git" ve "şu an neredesin" sorulabiliyor.
+//
+// Sonuç: bu arayüzü uygulayan bir şeyin Babylon sahnesi OLMAK ZORUNDA DEĞİL.
 "use strict";
-import type { TransformNode } from "@babylonjs/core/Meshes/transformNode";
+import type { Vec3 } from "../../protocol/temel.ts";
 import type { Jest, Poz } from "../../protocol/niyet.ts";
 
 export interface IskeletBilgisi {
@@ -25,9 +39,18 @@ export interface IskeletBilgisi {
 }
 
 export interface AvatarIskeleti {
-  /** Kök düğüm. Konum ve gövde yaw'ı buna uygulanır. */
-  readonly kok: TransformNode;
   readonly bilgi: IskeletBilgisi;
+
+  /** Kökü dünya konumuna taşı. Gövde yaw'ı ayrı: `govdeUygula`. */
+  konumUygula(x: number, y: number, z: number): void;
+  /**
+   * ÇİZİLEN konum — mantıksal değil.
+   *
+   * `yurutucu.durum().konum` mantıksal doğrudur ve tik hızında ilerler;
+   * burası sunum katmanının yumuşattığı, ekranda gerçekten görünen yerdir.
+   * İkisi bilerek ayrı tutulur (testler aradaki farkı sınar).
+   */
+  cizimKonumu(): Vec3;
 
   /** Gövde yaw'ı (radyan, dünya uzayı). */
   govdeUygula(yaw: number): void;
