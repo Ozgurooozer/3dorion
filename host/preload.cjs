@@ -22,4 +22,8 @@ contextBridge.exposeInMainWorld("kopru", {
   sesUret:      (metin) => ipcRenderer.invoke(CAGRI.sesUret, metin),
   sesVarMi:     () => ipcRenderer.invoke(CAGRI.sesVarMi),
   varlik:       (ad) => ipcRenderer.invoke(CAGRI.varlik, ad),
+  // Hafıza dosyası (spec 07). Okuma SENKRON: köprü depoyu kurucuda okuyor.
+  hafizaOku:        () => ipcRenderer.sendSync(CAGRI.hafizaOku),
+  hafizaYaz:        (kayitlar) => ipcRenderer.send(CAGRI.hafizaYaz, kayitlar),
+  hafizaYazSenkron: (kayitlar) => ipcRenderer.sendSync(CAGRI.hafizaYazSenkron, kayitlar),
 });

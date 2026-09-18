@@ -70,6 +70,7 @@ import { ikiCumleyeKisalt } from "../voice/kisalt.ts";
 import { Ajanda } from "../mind/ajanda.ts";
 import { gozlemAnisiMi } from "../mind/hafiza.ts";
 import { odadaSure, sessizlikSozu, gununVakti } from "../mind/zaman.ts";
+import { depoYukle } from "../mind/hafizaGocu.ts";
 import { KuralRefleksi, UZUN_ISLEM_MS } from "../mind/refleks.ts";
 import { OnayKapisi } from "../mind/onayKapisi.ts";
 import { riskEtiketi } from "../mind/komutRiski.ts";
@@ -249,6 +250,52 @@ function gozlemleriAyikla(aniler: unknown[]): unknown[] {
   }
   console.warn(`[hafiza] ${silinen} anlik gozlem anisi temizlendi (yedek: ${HAFIZA_YEDEK})`);
   return temiz;
+}
+
+/** `localStorage`'daki eski hafıza — göç kaynağı ve geri dönüş yolu (K5). */
+function eskiHafizayiOku(): unknown[] {
+  const ham = localStorage.getItem(HAFIZA_ANAHTARI);
+  if (!ham) return [];
+  try {
+    const j = JSON.parse(ham);
+    return Array.isArray(j) ? j : [];
+  } catch { return []; }
+}
+
+/**
+ * Hafıza deposu (spec 07 K4, K5, K7).
+ *
+ * Electron varsa hafıza host'un JSON dosyasında yaşar; yoksa (`npm run dev`,
+ * yalnız Vite) eskisi gibi `localStorage`da — geliştirme kipi kırılmasın.
+ *
+ * TEK KURAL, veri güvenliği için: yükleme `eski-yedek` döndüyse (göç
+ * başarısız, doğrulanamadı ya da dosya okunamadı) o oturumun YAZIMLARI da
+ * `localStorage`a gider, dosyaya DOKUNULMAZ. Aksi hâlde okunamayan ama
+ * sağlam olan dosya, oturum boyunca eski veriyle ezilirdi.
+ */
+function hafizaDeposuKur(): { oku(): unknown[]; yaz(aniler: unknown[]): void } {
+  const k = (globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru;
+  const dosya = k?.hafizaOku && k.hafizaYaz && k.hafizaYazSenkron ? k : null;
+  let dosyayaYaz = false;
+
+  return {
+    oku() {
+      if (!dosya) return gozlemleriAyikla(eskiHafizayiOku());
+      const s = depoYukle({
+        dosyaOku: () => dosya.hafizaOku!(),
+        dosyaYazSenkron: (x) => dosya.hafizaYazSenkron!(x),
+        eskiOku: eskiHafizayiOku,
+      });
+      dosyayaYaz = s.kaynak !== "eski-yedek";
+      const satir = `[hafiza] ${s.kayitlar.length} kayit · kaynak=${s.kaynak}${s.not ? ` · ${s.not}` : ""}`;
+      if (s.kaynak === "eski-yedek") console.warn(satir); else console.log(satir);
+      return gozlemleriAyikla(s.kayitlar);
+    },
+    yaz(aniler) {
+      if (dosya && dosyayaYaz) dosya.hafizaYaz!(aniler);
+      else localStorage.setItem(HAFIZA_ANAHTARI, JSON.stringify(aniler));
+    },
+  };
 }
 
 /**
@@ -1273,15 +1320,11 @@ function beyniBagla(a: Avatar): void {
     // tutmuyor. localStorage yeterli — Electron renderer'ında kalıcı, IPC
     // gerektirmiyor ve depo arayüzü dar olduğu için ileride dosyaya
     // taşımak tek fonksiyon değişikliği.
-    hafizaDeposu: {
-      oku() {
-        const ham = localStorage.getItem(HAFIZA_ANAHTARI);
-        if (!ham) return [];
-        const j = JSON.parse(ham);
-        return Array.isArray(j) ? gozlemleriAyikla(j) : [];
-      },
-      yaz(aniler) { localStorage.setItem(HAFIZA_ANAHTARI, JSON.stringify(aniler)); },
-    },
+    //
+    // DOSYAYA TAŞINDI (spec 07 K4, 2026-09-19). Yukarıdaki not doğru çıktı:
+    // arayüz dar olduğu için değişiklik bu blokla sınırlı (K7). Karar
+    // `mind/hafizaGocu.ts` → `depoYukle`de; burada yalnızca G/Ç bağlanır.
+    hafizaDeposu: hafizaDeposuKur(),
     // İçerik süzgeci: hangi algının beyne değeceğine karar verir.
     // Kural tabanlı; ÖLÇÜLDÜ (mind/akis-olcum.ts, 12 gerçek komut çıktısı,
     // 12/12 ideal uyandırma). Spec'in önerdiği 270M model ölçümde elendi:

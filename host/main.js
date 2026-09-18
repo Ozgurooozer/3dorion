@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import fs from "node:fs";
 import { PiperSesi, piperBul } from "./ses.js";
+import { hafizaDosyasiOku, hafizaDosyasiYaz } from "./hafizaDosyasi.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const KOK = path.resolve(__dirname, "..");
@@ -203,6 +204,40 @@ ipcMain.handle(CAGRI.varlik, (_e, ad) => {
   if (!tam.startsWith(kok + path.sep)) throw new Error("varlık kök dizin dışında");
   if (!fs.existsSync(tam)) throw new Error(`varlık yok: ${ad}`);
   return tam;
+});
+
+// ---- hafıza dosyası (spec 07 K4) -------------------------------------------
+// Orion'un hafızası renderer'ın localStorage'ından buraya taşındı: tarayıcı
+// profiline ve köke bağlı kalmasın, ölçüm araçları okuyabilsin, yedeklenebilsin.
+// `ORION_HAFIZA_DOSYASI` ile yol değiştirilebilir (deneme/ölçüm için ayrı hafıza).
+const HAFIZA_YOLU = process.env.ORION_HAFIZA_DOSYASI
+  || path.join(app.getPath("userData"), "orion-hafiza.json");
+
+// Okuma senkron (`sendSync`): köprü depoyu kurucuda senkron okuyor (K7).
+ipcMain.on(CAGRI.hafizaOku, (e) => {
+  try { e.returnValue = hafizaDosyasiOku(HAFIZA_YOLU); }
+  catch (hata) {
+    // İzin hatası vb.: "yok" DEMEYİZ — öyle desek göç yanlış tetiklenir.
+    console.error(`[hafiza] okunamadi: ${hata?.message ?? hata}`);
+    e.returnValue = { durum: "hata", mesaj: String(hata?.message ?? hata) };
+  }
+});
+// Tek yönlü: IPC mesajları tek renderer'dan SIRAYLA gelir, her biri atomik yazılır.
+ipcMain.on(CAGRI.hafizaYaz, (_e, kayitlar) => {
+  if (!Array.isArray(kayitlar)) return console.error("[hafiza] dizi olmayan yazim reddedildi");
+  try { hafizaDosyasiYaz(HAFIZA_YOLU, kayitlar); }
+  catch (hata) { console.error(`[hafiza] yazilamadi: ${hata?.message ?? hata}`); }
+});
+// Göç için: sonuç bilinmeden "taşındı" denemez.
+ipcMain.on(CAGRI.hafizaYazSenkron, (e, kayitlar) => {
+  try {
+    if (!Array.isArray(kayitlar)) throw new Error("dizi degil");
+    hafizaDosyasiYaz(HAFIZA_YOLU, kayitlar);
+    e.returnValue = true;
+  } catch (hata) {
+    console.error(`[hafiza] goc yazimi basarisiz: ${hata?.message ?? hata}`);
+    e.returnValue = false;
+  }
 });
 
 // ---- ses (Piper) ----------------------------------------------------------

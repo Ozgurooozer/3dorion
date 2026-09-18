@@ -1,28 +1,13 @@
-// host/kopru.ts — Electron main ↔ renderer IPC sözleşmesi. TEK KAYNAK.
+// host/kopru.ts — Electron main ↔ renderer IPC sözleşmesinin TİPLERİ.
 //
-// Hem main hem preload hem renderer buradan okur. Kanal adı burada
-// tanımlanmadıysa yoktur; string literal ile IPC çağırmak yasaktır.
+// KANAL ADLARI BURADA DEĞİL: tek kaynakları `host/kanallar.cjs`. Bu dosyada
+// eskiden `CAGRI` ve `OLAY` sabitlerinin ikinci bir kopyası duruyordu ve
+// kimse onları import etmiyordu (2026-09-19, grep ile doğrulandı) — yani
+// `kanallar.cjs`'in önlemek için yaratıldığı hata sınıfının ta kendisi:
+// kanal eklenir, bir kopyaya yazılmaz, `ipcMain.handle(undefined, ...)`
+// sessizce hiçbir şey kaydetmez. Silindi; burada yalnızca tipler kalır.
 "use strict";
-
-/** Renderer → main (davet/çağrı). */
-export const CAGRI = {
-  ptyAc:    "pty:ac",
-  ptiYaz:   "pty:yaz",
-  ptyBoyut: "pty:boyut",
-  ptyKapat: "pty:kapat",
-  /** Piper TTS: metin → wav baytları. */
-  sesUret:  "ses:uret",
-  /** TTS kurulu mu — UI ses düğmesini buna göre gri yapar. */
-  sesVarMi: "ses:var",
-  /** Mutlak yol çözümü (VRM, poster, doku) — renderer dosya sistemi görmez. */
-  varlik:   "varlik:yol",
-} as const;
-
-/** Main → renderer (tek yönlü olay). */
-export const OLAY = {
-  ptyCikti: "pty:cikti",
-  ptyBitti: "pty:bitti",
-} as const;
+import type { DosyaDurumu } from "../mind/hafizaGocu.ts";
 
 export interface PtyAcIstek {
   /** Boş bırakılırsa ana kabuk (Windows: powershell.exe). */
@@ -54,6 +39,15 @@ export interface Kopru {
   sesUret(metin: string): Promise<{ ok: boolean; ses?: Uint8Array; hata?: string }>;
   sesVarMi(): Promise<boolean>;
   varlik(ad: string): Promise<string>;
+  /**
+   * Hafıza dosyası (spec 07 K4). Okuma SENKRON — `bridge/kopru.ts` depoyu
+   * kurucuda senkron okuyor ve K7 arayüzü değiştirmeyi yasaklıyor.
+   * Dönüş biçimi `mind/hafizaGocu.ts` → `DosyaDurumu`.
+   */
+  hafizaOku(): DosyaDurumu;
+  hafizaYaz(kayitlar: unknown[]): void;
+  /** Göç için: sonuç bilinmeden "taşındı" denemez. */
+  hafizaYazSenkron(kayitlar: unknown[]): boolean;
 }
 
 declare global {

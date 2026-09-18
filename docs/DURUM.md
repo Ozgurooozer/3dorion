@@ -78,10 +78,16 @@ elle başlatmak gerekiyordu — yani Ozyn için o seçenek pratikte yoktu.
 
 ## Tooling modeli neden ana beyin olmadı `[ÖLÇÜLDÜ]`
 
-Soru yerinde, üstelik **tooling modeli zaten kurulu ve zaten kullanılıyor**:
-`functiongemma-270m` (253 MB), `mind/refleks.ts` → `OllamaRefleks`. Ama orada
-araç çağırmak için değil, *"bu olay beyni uyandırsın mı"* ikili JSON kararı
-için kullanılıyor.
+Soru yerinde. Tooling modeli **kurulu** ama **üretimde kullanılmıyor**:
+`functiongemma-270m` (253 MB) için `mind/refleks.ts` → `OllamaRefleks` sınıfı
+var, ancak yalnızca ölçüm aracı (`mind/refleks-olcum.ts`) onu örnekliyor.
+Sağ lob kararı (*"bu olay beyni uyandırsın mı"*) için ölçülmüş ve **elenmişti**:
+31/31 geçersiz JSON, 13,8 sn azami gecikme, sıfır bilgi katkısı
+(`world/giris.ts` → `suzgec` notu). Üretimde kural tabanlı süzgeç çalışıyor.
+
+> **Düzeltme (2026-09-19):** bu raporun ilk sürümü "zaten kullanılıyor"
+> diyordu — yanlıştı. Sınıfın varlığına bakıp kullanıldığını varsaymışım;
+> örneklendiği yeri aramamışım.
 
 Araç seçiminde bugün ilk kez ölçüldü:
 
