@@ -1,132 +1,175 @@
 # 3dorion — durum raporu
 
-> Tarih: 2026-09-17 · `master` @ `cbcfb3c` (origin'den 3 commit önde)
-> Kanıt etiketleri: `[TEST]` birim testli · `[ÖLÇÜLDÜ]` canlı koşuda görüldü ·
-> `[YAZILDI-KOŞULMADI]` yazıldı, çalıştırılmadı
+> Tarih: 2026-09-18 · `master` @ `c4781dc` (origin ile eşit) · 611 test yeşil
+> Kanıt etiketleri: `[TEST]` birim testli · `[ÖLÇÜLDÜ]` canlı/gerçek koşuda
+> sayı var · `[YAZILDI-KOŞULMADI]` yazıldı, çalıştırılmadı
 
 ## Tek cümle
 
-Oda, terminal, onay kapısı ve iki loblu beyin **çalışıyor**; Orion bakıp
-soruyor ve cevabı alıyor ama **cevabı kullanmıyor**, kendi gündemi de yok.
-Tezin iskeleti ayakta, ruhu eksik.
+Orion artık **gördüğünü doğru söylüyor** (%100 sadakat, uydurma 0) ve
+**bedeninde hata payı var** (komut ≠ gerçekleşen); tezin iskeleti de ruhu da
+ayakta — eksik olan tek büyük parça **kendi gündemi**.
 
-## Tez
+Bir önceki rapor (2026-09-17) "cevabı kullanmıyor, gündemi yok" diyordu.
+Birincisi çözüldü, ikincisi duruyor — ama artık ön koşulları hazır.
 
-> **"AI'ın oturduğu oda — terminalini onun masasında açıyorsun."**
+---
 
-| parça | durum | kanıt |
+## Plan envanteri — ne bitti, ne bekliyor
+
+| plan | kapsam | durum |
 |---|---|---|
-| Oda + avatar + 20 Hz dünya | çalışıyor | `[ÖLÇÜLDÜ]` FPS 100, tik 19,5–19,8 Hz |
-| Masadaki gerçek terminal (`claude` açılıyor) | çalışıyor | `[ÖLÇÜLDÜ]` |
-| Orion terminal hatasını görüp teşhis ediyor | çalışıyor | `[ÖLÇÜLDÜ]` `gti status` → "`git` olmalı" |
-| Komut önerisi onay kapısında bekliyor | çalışıyor | `[ÖLÇÜLDÜ]` Orion hiçbir komutu kendisi çalıştırmadı |
-| Soruya verilen cevap beyne ulaşıyor (`gordum`) | çalışıyor | `[ÖLÇÜLDÜ]` `dusunme` 1 → 2 (2026-09-17) |
-| **Cevabın içeriği kullanılıyor** | **HAYIR** | `[ÖLÇÜLDÜ]` algı "yönetim terminali" dedi, Orion "masa, tahta, pencere" anlattı |
-| **Orion'un kendi gündemi / inisiyatifi** | **yok** | Yalnızca tepki veriyor |
-| Kalıcı hafıza + zaman algısı | çalışıyor | `[TEST]` + `hafizadene` 13 tur |
-| Zihin duvarı: devre panosu (S0–S7) | bitti | `[ÖLÇÜLDÜ]` ayna 10/10, panelden yazma ve teyit canlı |
+| **spec 01** — sanal alan | oda, tik, protokol, MVP K1–K12 | ✅ **bitti** |
+| **spec 02** — iki loblu beyin | refleks / düşünce ayrımı | ✅ **bitti** |
+| **spec 03** — algı + zihin duvarı | algı hizmeti, paneller | ✅ **bitti** |
+| **spec 04** — dış beyin | dil-bağımsız HTTP sözleşmesi | ✅ **bitti**, bugün Haiku ile kullanıldı |
+| **spec 05** — modüler beyin + devre panosu | pano, teller, teyit | ✅ **bitti** (S0–S7) |
+| **spec 06** — beyin v2 (sadakat) | Faz 0·1·1b·2·3·4a·4b·5a·5b | ✅ **bitti** · 5c (IDF) **gerekçeli atlandı** |
+| **spec 06 §6.8** — bağlam dili | İngilizce çerçeve / Türkçe ses | ✅ **bitti** |
+| **beden mimarisi** (plan dosyası) | Faz 0·1·2·3·5 | ✅ **bitti** · Faz 4 **gerekçeli atlandı** |
+| **spec 07** — dünya çekirdeği | başsız sim, kalıcılık, dil seçimi | ⏸ **başlamadı** — panel kurulmadı |
+| **inisiyatif** | Orion'un kendi gündemi | ⏸ **bekliyor** — ön koşulları hazır |
+| **MCP kaydı (Aşama 3)** | satır sözleşmesinin yerine gerçek tool-calling | ⏸ **karar bekliyor** (Ozyn) |
+| **ponytail denemesi** | ölç, 2026-10-01'de karar | ⏳ **süresi dolmadı** |
+| **VRM avatar** | Cesium_Man, 0 morph target | ⏸ **Ozyn erteledi** |
+| **STT** | mikrofon donanımı yok | ⏸ **Ozyn erteledi** |
+
+---
+
+## Bugün biten iki büyük iş
+
+### 1. Bağlam dili — İngilizce çerçeve `[ÖLÇÜLDÜ]`
+
+"Yerel model cevap vermiyor" teşhisi **yanlıştı**. Ham çıktı kelime salatası
+gösterdi ve sebep modelin yetersizliği değil, **Türkçe bağlamdı**:
+
+| bağlam | doğru araç (1. tur, n=10) | gecikme |
+|---|---|---|
+| Türkçe | **0/10** (+2 bozuk şema) | 1,4 sn |
+| yalnız talimat+araç İngilizce | 4/10 | 0,6 sn |
+| hepsi İngilizce çerçeve | **9/10** | **0,6 sn** |
+
+Haiku'da sadakat **%90 → %100**, uydurma 1 → 0.
+
+**Sınır:** İngilizce = makineye ait olan (talimat, araç açıklamaları, durum
+satırlarının çerçevesi). Türkçe = odadaki şeylerin **adları** ve Orion'un
+**sesi**. Protokol kimlikleri (`KOMUT:`, `onumde`, `dunya_sor`) çevrilmez.
+
+### 2. Beden mimarisi — donanım disiplininde
+
+| faz | ne | kapı |
+|---|---|---|
+| 0 | Gövde künyesi `protocol/bedenTanimi.ts`'e (URDF mantığı) | saf taşıma, hiçbir sayı değişmedi `[TEST]` |
+| 1 | `AvatarIskeleti` **Babylon'dan kurtuldu** | `grep @babylonjs` → boş `[TEST]` |
+| 2 | **Aktüatör doyumu** — komut ≠ gerçekleşen | 0,1→1,25 m/s 13 tik; fren 1,187→0,587→0 `[ÖLÇÜLDÜ]` |
+| 3 | Propriyosepsiyon bağlamda | sadakat **düşmedi** (%100) `[ÖLÇÜLDÜ]` |
+| 5 | **LED yüz = üçüncü sürücü** | canlı HIL **4/4**, gerçek sunucuya `[ÖLÇÜLDÜ]` |
+
+Faz 5 mimari iddianın kanıtı: aynı `Yurutucu`, sahne yerine gerçek donanım
+ucu. Birim testleri **Babylon kancası olmadan** koşuyor.
+
+### 3. Claude Haiku seçilebiliyor
+
+Panelde `claude:haiku` adıyla duruyor; adaptörü Electron başlatıyor, çıkışta
+öldürüyor. Öncesinde seçenek `dis` diye anlaşılmaz bir addaydı ve adaptörü
+elle başlatmak gerekiyordu — yani Ozyn için o seçenek pratikte yoktu.
+
+---
+
+## Tooling modeli neden ana beyin olmadı `[ÖLÇÜLDÜ]`
+
+Soru yerinde, üstelik **tooling modeli zaten kurulu ve zaten kullanılıyor**:
+`functiongemma-270m` (253 MB), `mind/refleks.ts` → `OllamaRefleks`. Ama orada
+araç çağırmak için değil, *"bu olay beyni uyandırsın mı"* ikili JSON kararı
+için kullanılıyor.
+
+Araç seçiminde bugün ilk kez ölçüldü:
+
+| model | doğru `sor(onumde)` | not |
+|---|---|---|
+| `functiongemma-270m` | **0/10** her üç dil yapılandırmasında | `tool_calls` alanına hiç yazmadı |
+
+Ham çıktı sebebi gösterdi — **beceremediği için değil, başka lehçe konuştuğu
+için**:
+
+```
+<start_function_call>call:dunya_sor{ne:<escape>onumde<escape>}<end_function_call>
+```
+
+Doğru aracı ve doğru argümanı üretiyor, ama ollama'nın OpenAI-tarzı
+`tool_calls` alanı `null` kalıyor; köprü göremiyor. Üstelik **durmuyor**:
+aynı cevapta önce yanlış `dunya_yaz`, sonra doğru `dunya_sor`, sonra
+`dunya_dur`, sonra `dunya_sor{ne:dunya}`... Tek araç verildiğinde tamamen
+dağıldı (`call:git us current_page_url` tekrarı) — 270M bizim şemayı tutmuyor.
+
+**Ana beynin gerçek engeli ise ayrı ve daha temel:** ana beyin yalnızca araç
+çağırmıyor, **Türkçe konuşuyor**. `dunya_soyle`nin `metin` alanı serbest
+metindir. 270M'lik bir fonksiyon modeli doğru çağrıyı üretebilir ama Türkçe
+cümle kuramaz.
+
+**Yani fikir ölü değil, bugünkü aday yetersiz.** Doğru biçim şu ayrım:
+eylem seçimi (araç çağrısı — kimlikler, dil yok) tooling modeline, **söz**
+(Türkçe düzyazı) büyük beyne. Ölçülmesi gereken: orta boy bir araç uzmanı
+(ör. 3–8B fonksiyon-çağırma modeli) bizim 14 araçlık şemayı tutuyor mu.
+Alet hazır (`scratchpad/kapsam-olc.mjs` kalıbı), maliyet birkaç dakika.
+
+---
 
 ## Sayılar
 
-| ölçü | değer |
-|---|---:|
-| Test | **539 / 539 yeşil**, `tsc` temiz, K4 sınırı temiz |
-| Kod (test hariç) | 16.078 satır, 116 TS dosyası |
-| `world/` kod / test oranı | 0,25 (en zayıf katman) |
-| `mind/` · `bridge/` oranı | 0,73 · 0,72 |
-| En büyük dosya | `world/giris.ts` 2.312 satır — **%56'sı senaryo** |
-| Kumanda paneli katmanı | 2.053 satır |
-| Beyin katmanı (`mind/`) | 1.826 satır |
-
-Son satır önemli: Orion'un **kendine bakma aygıtı artık düşünme aygıtından
-büyük.** Panel gerekliydi ve istenmişti, ama sıradaki emek teze gitmeli.
-
-## Bilinen kusurlar
-
-**Beyin davranışı**
-- Cevap alınıyor, kullanılmıyor (yukarıda).
-- PowerShell'de cmd sözdizimi öneriyor (`cd /d`). Onay kapısı tuttu.
-
-**Kod borcu** (2026-09-17 incelemesi)
-1. `giris.ts`'te 21 senaryo bloğu, 1.304 satır — üretim dosyasında ve bundle'da.
-2. Ayar normalizasyonu 4 dosyada kopyalanmış.
-3. `sema.ts` 824 satır, testsiz.
-
-**Görünüm**
-- Zoom hapı şema başlığına biniyor (işlevsel etkisi yok).
-
-Ayrıntı: `docs/ACIK-ISLER.md`.
-
-## Yerel modeller — neler var, ne işe yarar
-
-Donanım: **RTX 4060, 8 GB VRAM.** (Ölçüm anında 5,4 GB doluydu.)
-
-| model | boyut | projedeki yeri |
-|---|---:|---|
-| `qwen2.5:7b` | 4,7 GB | Yerel düşünce beyni (`ollama.ts`). **Ölçümle seçildi:** 8 GB'a sığıp araç çağrısını güvenilir yapan tek aday. |
-| `qwen3:4b` | 2,5 GB | Aday, ölçülmedi |
-| `functiongemma-270m` | 253 MB | Küçük araç çağıran model — çıkarım organı adayı |
-| `nomic-embed-text` | 274 MB | **Gömme modeli.** Hafızanın `ilgiOlcer` kancasına takılabilir; bugün kullanılmıyor |
-| Bulut (OpenCode) | — | Asıl düşünce lobu |
-| Needle 2 | — | `tools/needle-cikarim.py`: refleks olarak 4/6; asıl yeri çıkarım + gömme olabilir |
-
-### GPT-2 değerlendirmesi (2026-09-17)
-
-| özellik | GPT-2 | etkisi |
+| ölçüt | değer | kanıt |
 |---|---|---|
-| Bağlam | **1.024 token, sabit** | Konum gömmeleri öğrenilmiş; genişletilemez |
-| Türkçe | Tokenizer İngilizce | **Ölçüldü:** TR 3,07 token/kelime, EN 1,17 → **~2,6× şişme**. 1.024 token ≈ **~330 Türkçe kelime**, istem + cevap toplamı |
-| Talimat / sohbet | Yok | Sadece metin devam ettirir |
-| Araç çağırma | Yok | Niyet üretemez |
-| VRAM | 124M–1,5B, <1–3 GB | Sığar |
+| Sadakat (Haiku, İngilizce çerçeve) | **%100** (10/10) | `[ÖLÇÜLDÜ]` |
+| Uydurma | **0** | `[ÖLÇÜLDÜ]` |
+| Beyin gecikmesi (Haiku) | 2,4–3,7 sn | `[ÖLÇÜLDÜ]` |
+| Yerel araç seçimi (İngilizce çerçeve) | 9/10, 0,6 sn | `[ÖLÇÜLDÜ]` |
+| Dünya tiki | 19,8–20,0 Hz, 0 atlanan | `[ÖLÇÜLDÜ]` |
+| Onaysız çalışan komut | **0** (değişmez) | `[TEST]` |
+| Test | 611 yeşil | `[TEST]` |
+| Sadakat fixture'ları | 10 | — |
 
-**Sonuç: üründe yeri yok.** Her aday rolde elimizde daha iyisi zaten kurulu:
+---
 
-- Düşünce lobu → Türkçe yok, araç yok, bağlam 30 kat küçük.
-- Refleks → proje zaten ölçtü: bu kapalı kümede kurallar 0 ms'de kazanıyor.
-- Hafıza gömmesi → `nomic-embed-text` kurulu ve bu iş için eğitilmiş;
-  GPT-2'nin gizli durumları kötü cümle gömmesi verir.
-- Terminalden yapısal çıkarım → talimat izleme gerekir; `functiongemma-270m`
-  ya da `qwen3:4b` uygun.
+## Açık kusurlar (öncelik sırasıyla)
 
-**Tek meşru kullanım: öğrenme.** 124M'lik model, transformer'ın içini görmek
-için idealdir — dikkat haritaları, katman katman tahmin ("logit lens"). Zihin
-duvarında bir modelin *nasıl düşündüğünü* göstermek istenirse bu bir fikir
-havuzu maddesi olabilir; ürün kararı değil.
+1. **Orion'un inisiyatifi yok.** Tezin asıl vaadi. **Artık kapı açık:** K1'in
+   iki ön koşulu da sağlandı — sadakat %100, ve fayda puanlaması için gereken
+   **maliyet** Faz 2'den sonra var (gövdenin hata payı). Eksik: güç bütçesi.
+2. **Senaryolar `world/giris.ts` içinde.** ~1.300 satır test kodu üretim
+   dosyasında ve bundle'da.
+3. **Ayar normalizasyonu 4 kopya** (`dikkat`, `ajanda`, `hafiza`, `onayKapisi`).
+4. **`world/surfaces/sema.ts` testsiz** (824 satır).
+5. **Yerel modelin Türkçe SÖZ kalitesi ölçülmedi.** Araç çağırma ölçüldü
+   (9/10), cümle kurma ölçülmedi.
+6. **PowerShell'de cmd sözdizimi öneriyor** (`cd /d`). Onay kapısı tutuyor
+   ama öneri çalışmazdı.
+7. **`OPENCODE_SERVER_PASSWORD` ayarlı değil.**
 
-## Düşünce lobunda model değiştirme
+---
 
-**Olmalı — ve yarısı zaten var.**
+## Bilerek yapılmayanlar (gerekçeli)
 
-Bugün:
-- Beyin **yalnızca açılışta** seçiliyor: `ORION_BEYIN`, `ORION_SAGLAYICI`,
-  `ORION_MODEL` ortam değişkenleri (`host/main.js`).
-- `Beyin` arayüzü (`hazirMi()`, `dusun()`) değiştirmeye hazır; arkasında
-  `ollama`, `opencode`, `disBeyin` var.
-- Panoda `beyin.model` düğmesi **görünüyor ama yazılamıyor** — sınıfı
-  `tehlikeli`, etkisi `yeniden_kurulum`.
+- **IDF / BM25 (spec 06 5c).** K6 "ölçüm gerektirirse" diyordu; kalıp üreten
+  kaynak Faz 3'te kurudu, gövde eşleşmesi ekleri çözdü.
+- **Duyu gecikmesi (beden Faz 4).** ~150 ms bu dünyada gözlemlenemez: en hızlı
+  şey koşan Orion (2,45 m/s → 0,37 m) ve mesafe zaten 1,2/2,5/4,5 m eşiklerine
+  kabalaştırılıyor. Üstelik örnekle-tut **zaten var**: `mind/calismaBellegi.ts`
+  cevabı tutuyor, 30 sn'de eskitiyor, yaşını yazıyor.
+- **ROS 2 / URDF XML / fizik motoru.** Desen alındı, çatı alınmadı.
 
-**2026-09-17 güncellemesi: YAPILDI.** `bridge/secilebilirBeyin.ts` —
-panodaki DÜŞÜNCE düğümünden `opencode` / `yerel:qwen2.5` / `yerel:qwen3` /
-`dis` arasında teyitle geçiliyor. `[TEST]` 14 düşman testi (5 mutasyonun 5'i
-yakalandı) · `[ÖLÇÜLDÜ]` canlıda Python beyni kapalıyken `dis` reddedildi,
-`qwen2.5:7b`'ye geçildi; geçiş sonrası FPS sabit 100.
-
-Tasarımda üç kural şart:
-1. **Geçiş tur sınırında olur**, düşünürken asla. Yarım düşünceyi başka beyin
-   bitiremez.
-2. **Önce sağlık kontrolü.** Yeni beyin `hazirMi()` geçmezse eskisi kalır;
-   panelde neden geçilemediği yazar.
-3. **İki aşamalı teyit.** OpenCode oturumunun biriken bağlamı geçişte kaybolur;
-   kullanıcı bunu teyitte okumalı.
+---
 
 ## Sıradaki — önerilen sıra
 
-1. Senaryoları `giris.ts`'ten çıkar.
-2. 4 kopya normalizasyonu tekilleştir.
-3. `sema.ts` saf yardımcılarını test et.
-4. **Teze dön:** cevabın kullanılması, sonra Orion'un kendi gündemi.
-5. ~~`SecilebilirBeyin` — model seçimi panelden.~~ Yapıldı.
+1. **Güç bütçesi** — tek skaler kaynak; hareket de düşünce de aynı yerden
+   harcar. İnisiyatifin ön koşulu: tartacak maliyeti olmayan bir varlığın
+   gündemi olamaz.
+2. **İnisiyatif** — çalışma belleğini okuyan fayda puanlamalı ajanda.
+3. **Senaryoları `giris.ts`'ten çıkar** — borç, ama hiçbir şeyi bloke etmiyor.
+4. *(paralel, ucuz)* Orta boy araç-uzmanı model ölçümü — yukarıdaki tooling
+   sorusunun devamı.
 
-Ponytail denemesi sürüyor; karar tarihi **2026-10-01**
-(`docs/olcum-ponytail.md`).
+**spec 07 (dünya çekirdeği / başsız sim / dil seçimi)** bilerek beklemede:
+mühendislik merceği "önce durum ve saatler, sonra süreç sınırı" dedi ve
+Faz 0–5 tam onu yaptı. Süreç ayrımına gerek doğarsa artık ölçülebilir bir
+zeminden karar verilir.
