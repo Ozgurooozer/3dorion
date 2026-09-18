@@ -3,6 +3,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { OllamaRefleks, KuralRefleksi } from "./refleks.ts";
+// Önek ÜRETİMDEN gelir, elle yazılmaz: bu dosya eskiden "Terminal çıktısı:"
+// diye sabit bir metin besliyordu ve `ozetle` öneki değiştirince test hâlâ
+// yeşil kalıyordu — ölü bir dalı canlı sanıyorduk (spec 06 §6.8).
+import { OZET_ONEKI } from "../protocol/algi.ts";
 
 function yanit(icerik: unknown, ok = true, status = 200) {
   return {
@@ -94,13 +98,13 @@ test("hazirMi() model listedeyse true döner", async () => {
 
 test("GERÇEK: cmd.exe bilinmeyen komut terfi eder", () => {
   const k = new KuralRefleksi();
-  const o = "Terminal çıktısı:\n'boyle_bir_komut_yok' is not recognized as an internal or external command,\noperable program or batch file.";
+  const o = `${OZET_ONEKI.terminal}:\n'boyle_bir_komut_yok' is not recognized as an internal or external command,\noperable program or batch file.`;
   assert.equal(k.karar({ ozet: o }).terfi, true);
 });
 
 test("GERÇEK: cmd dir 'File Not Found' terfi eder", () => {
   const k = new KuralRefleksi();
-  const o = "Terminal çıktısı:\n Volume in drive C has no label.\n\n Directory of C:\\Users\\ozigo\\3dorion\n\nFile Not Found";
+  const o = `${OZET_ONEKI.terminal}:\n Volume in drive C has no label.\n\n Directory of C:\\Users\\ozigo\\3dorion\n\nFile Not Found`;
   assert.equal(k.karar({ ozet: o }).terfi, true);
 });
 
@@ -108,33 +112,33 @@ test("GERÇEK: PowerShell hatası yığın izi sanılıp susturulmaz", () => {
   // Bu bir GERİLEME testidir: çıktıdaki "At line:1" satırı yüzünden
   // yığın-izi koruması bu gerçek hatayı yutuyordu.
   const k = new KuralRefleksi();
-  const o = "Terminal çıktısı:\nboyle_bir_komut_yok : The term 'boyle_bir_komut_yok' is not recognized as the name of a cmdlet, function, script file,\nor operable program.\nAt line:1 char:1\n+ boyle_bir_komut_yok\n    + FullyQualifiedErrorId : CommandNotFoundException";
+  const o = `${OZET_ONEKI.terminal}:\nboyle_bir_komut_yok : The term 'boyle_bir_komut_yok' is not recognized as the name of a cmdlet, function, script file,\nor operable program.\nAt line:1 char:1\n+ boyle_bir_komut_yok\n    + FullyQualifiedErrorId : CommandNotFoundException`;
   assert.equal(k.karar({ ozet: o }).terfi, true, "gerçek hata susturulmamalı");
 });
 
 test("GERÇEK: bash 'command not found' terfi eder", () => {
   const k = new KuralRefleksi();
-  const o = "Terminal çıktısı:\n/usr/bin/bash: line 10: boyle_bir_komut_yok: command not found";
+  const o = `${OZET_ONEKI.terminal}:\n/usr/bin/bash: line 10: boyle_bir_komut_yok: command not found`;
   assert.equal(k.karar({ ozet: o }).terfi, true);
 });
 
 test("GERÇEK: npm ls bağımlılık ağacı beyni uyandırmaz", () => {
   const k = new KuralRefleksi();
-  const o = "Terminal çıktısı:\n3dorion@0.1.0 C:\\Users\\ozigo\\3dorion\n+-- @babylonjs/core@9.26.0\n+-- electron@44.3.0\n+-- node-pty@1.1.0";
+  const o = `${OZET_ONEKI.terminal}:\n3dorion@0.1.0 C:\\Users\\ozigo\\3dorion\n+-- @babylonjs/core@9.26.0\n+-- electron@44.3.0\n+-- node-pty@1.1.0`;
   assert.equal(k.karar({ ozet: o }).terfi, false);
 });
 
 test("GERÇEK: git status listesi beyni uyandırmaz", () => {
   const k = new KuralRefleksi();
-  const o = "Terminal çıktısı:\nOn branch master\nChanges not staged for commit:\n\tmodified:   bridge/kopru.ts\n\tmodified:   world/giris.ts";
+  const o = `${OZET_ONEKI.terminal}:\nOn branch master\nChanges not staged for commit:\n\tmodified:   bridge/kopru.ts\n\tmodified:   world/giris.ts`;
   assert.equal(k.karar({ ozet: o }).terfi, false);
 });
 
 test("konuşma her zaman terfi eder, rutin niyet başarısı etmez", () => {
   const k = new KuralRefleksi();
-  assert.equal(k.karar({ ozet: 'Ozyn dedi: "merhaba"' }).terfi, true);
-  assert.equal(k.karar({ ozet: "Niyet n_a1 → bitti" }).terfi, false);
-  assert.equal(k.karar({ ozet: "Niyet n_a1 → hata (çapa yok)" }).terfi, true);
+  assert.equal(k.karar({ ozet: `${OZET_ONEKI.duydum} "merhaba"` }).terfi, true);
+  assert.equal(k.karar({ ozet: `${OZET_ONEKI.sonuc}n_a1 → bitti` }).terfi, false);
+  assert.equal(k.karar({ ozet: `${OZET_ONEKI.sonuc}n_a1 → hata (çapa yok)` }).terfi, true);
 });
 
 test("tanınmayan biçim güvenli tarafa düşer — sessizce yutulmaz", () => {
@@ -159,9 +163,9 @@ test("GERİLEME: özet metni değişse bile tür verildiğinde süzgeç doğru �
 test("tür verildiğinde konuşma ve olaylar önekten bağımsız sınıflanır", () => {
   const k = new KuralRefleksi();
   assert.equal(k.karar({ ozet: "herhangi bir biçim", tur: "duydum" }).terfi, true);
-  assert.equal(k.karar({ ozet: "Olay: kamera_degisti", tur: "olay" }).terfi, false);
-  assert.equal(k.karar({ ozet: "Niyet n_1 → bitti", tur: "sonuc" }).terfi, false);
-  assert.equal(k.karar({ ozet: "Dünya: ...", tur: "dunya" }).terfi, false);
+  assert.equal(k.karar({ ozet: `${OZET_ONEKI.olay} kamera_degisti`, tur: "olay" }).terfi, false);
+  assert.equal(k.karar({ ozet: `${OZET_ONEKI.sonuc}n_1 → bitti`, tur: "sonuc" }).terfi, false);
+  assert.equal(k.karar({ ozet: `${OZET_ONEKI.dunya} ...`, tur: "dunya" }).terfi, false);
 });
 
 // ── Çıkış kodu: tahmin biter, kesin sinyal başlar ──────────────────────────
@@ -222,13 +226,13 @@ test("SÜRE: sessiz basari (cikti yok) uzunsa bildirilir", () => {
 test("`gordum` HER ZAMAN terfi eder — beyin cevabı kendisi istedi", () => {
   const r = new KuralRefleksi();
   for (const metin of ["yönetim terminali (birkaç adım ötede)", "yakınında bir şey yok", ""]) {
-    const k = r.karar({ tur: "gordum", ozet: `Baktın (onumde): ${metin}` });
+    const k = r.karar({ tur: "gordum", ozet: `${OZET_ONEKI.gordum}in front of you): ${metin}` });
     assert.equal(k.terfi, true, `cevap suzuldu: "${metin}"`);
   }
 });
 
 test("tür bilgisi olmadan da özetten tanınır — eski yol da çalışmalı", () => {
-  const k = new KuralRefleksi().karar({ ozet: "Baktın (yakin): masa, monitör" });
+  const k = new KuralRefleksi().karar({ ozet: `${OZET_ONEKI.gordum}near you): masa, monitör` });
   assert.equal(k.terfi, true);
 });
 

@@ -19,7 +19,7 @@ export interface BaglamSecenek {
    * Oturum tutan beyin (OpenCode, kalıcı oturum) geçmişi zaten biliyor;
    * metne eklemek bağlamı ikiye katlar. DURUMSUZ beyin (her tur yeni `claude
    * -p`, tekrar oynatma) geçmişi başka hiçbir yerden göremez — eklenmezse
-   * "Baktın: ..." satırının neye cevap olduğunu bilmez.
+   * "You looked: ..." satırının neye cevap olduğunu bilmez.
    */
   gecmis?: boolean;
 }
@@ -29,7 +29,7 @@ export function baglamMetni(girdi: BeyinGirdisi, s: BaglamSecenek = {}): { siste
   const kullanici = [
     ...(s.gecmis ? gecmisSatirlari(girdi.gecmis) : []),
     girdi.dunya,
-    ...(girdi.anilar?.length ? [`Hatirladiklarin: ${girdi.anilar.join(" | ")}`] : []),
+    ...(girdi.anilar?.length ? [`You remember: ${girdi.anilar.join(" | ")}`] : []),
     ...girdi.ozetler,
   ].filter(Boolean).join("\n");
   return { sistem, kullanici };
@@ -47,11 +47,11 @@ function gecmisSatirlari(gecmis: BeyinGirdisi["gecmis"]): string[] {
   const satirlar: string[] = [];
   let onceki = "";
   for (const g of gecmis) {
-    const s = g.rol === "kullanici" ? `Ozyn: ${g.metin}` : `Sen: ${g.metin}`;
+    const s = g.rol === "kullanici" ? `Ozyn: ${g.metin}` : `You: ${g.metin}`;
     if (s !== onceki) satirlar.push(s);
     onceki = s;
   }
-  return ["Onceki konusma:", ...satirlar, ""];
+  return ["Earlier conversation:", ...satirlar, ""];
 }
 
 /**

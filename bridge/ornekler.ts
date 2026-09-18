@@ -50,7 +50,9 @@ const TERMINAL_ORNEGI: OrnekMesaj[] = [
   {
     role: "user",
     content:
-      "Ozyn'in terminalinde (masandaki ekran), komut HATA ile bitti (çıkış kodu 1):\n" +
+      // Bu metin `protocol/algi.ts` → `ozetle`nin ÜRETTİĞİ biçimdir; örnek
+      // gerçek biçimi göstermezse modele yanlış kalıp öğretir.
+      "In Ozyn's terminal (the screen on your desk), the command finished with an ERROR (exit code 1):\n" +
       "pyhton : The term 'pyhton' is not recognized as the name of a cmdlet.",
   },
   ...aracTuru("dunya_komut", {
@@ -61,7 +63,7 @@ const TERMINAL_ORNEGI: OrnekMesaj[] = [
 
 /** Ozyn konuşunca gerçekten CEVAP VERMEK (susmamak). */
 const KONUSMA_ORNEGI: OrnekMesaj[] = [
-  { role: "user", content: 'Ozyn dedi: "orada mısın"' },
+  { role: "user", content: 'Ozyn said: "orada mısın"' },
   ...aracTuru("dunya_soyle", { metin: "Buradayım Ozyn." }),
 ];
 

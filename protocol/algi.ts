@@ -79,18 +79,22 @@ export type AlgiTur = Algi["tur"];
 
 /** Varsayılan kanal ataması. mind/dikkat bunu yalnızca daraltabilir, genişletemez. */
 /**
- * Algı sorgusunun iç adı → Orion'un dilindeki karşılığı.
+ * Algı sorgusunun iç adı → bağlamda görünecek karşılığı.
  *
- * İç ad bağlama sızmamalı: `Baktın (onumde)` Türkçe bir kelime değil ve
+ * İç ad bağlama sızmamalı: `Baktın (onumde)` hiçbir dilde kelime değil ve
  * model onu ne okuyabilir ne de kendi cümlesinde kullanabilir (spec 06 K3).
  * Burada duruyor çünkü hem `ozetle` hem `mind/calismaBellegi` aynı haritayı
  * kullanır; iki kopya er geç ayrışırdı.
+ *
+ * Karşılıklar İNGİLİZCE (2026-09-18, ölçüldü — spec 06 §6.8): bağlamın
+ * çerçevesi makineye konuşur, Orion'un SESİ değildir. Odadaki şeylerin
+ * ADLARI Türkçe kalır; burada ad yok, yalnızca çerçeve var.
  */
 export const SORU_ETIKETI: Record<string, string> = {
-  onumde: "önünde",
-  yakin: "yakınında",
+  onumde: "in front of you",
+  yakin: "near you",
   oyuncu: "Ozyn",
-  dunya: "odada",
+  dunya: "in the room",
 };
 
 export const VARSAYILAN_KANAL: Record<AlgiTur, Kanal> = {
@@ -110,36 +114,55 @@ export const VARSAYILAN_KANAL: Record<AlgiTur, Kanal> = {
 };
 
 /**
+ * Özet satırlarının BAŞLANGIÇ eki — tek kaynak.
+ *
+ * `mind/refleks.ts` algı türü verilmediğinde satırı ÖNEKİNDEN tanır. Önek iki
+ * yerde ayrı ayrı yazılınca kayıyor: `ozetle` "Ozyn'in terminalinde…" üretirken
+ * refleks hâlâ "Terminal çıktısı" arıyordu, yani o dal gerçek algıda ölüydü ve
+ * yalnızca ölçüm araçları (eski metni elle besliyorlardı) onu canlı sanıyordu.
+ * Buradan okuyan herkes aynı metni görür; kayma bir daha olamaz.
+ */
+export const OZET_ONEKI = {
+  duydum:   "Ozyn said:",
+  terminal: "In Ozyn's terminal",
+  dunya:    "World:",
+  yakin:    "Near you:",
+  olay:     "Event:",
+  sonuc:    "Intent ",
+  gordum:   "You looked (",
+} as const;
+
+/**
  * Beyin kanalına giden algıyı LLM'in okuyacağı tek satıra indirir.
  * Amaç: JSON şişkinliğini bağlamdan uzak tutmak. Token cimriliği burada başlar.
  */
 export function ozetle(a: Algi): string {
   switch (a.tur) {
     case "duydum":
-      return `Ozyn dedi: "${a.metin}"`;
+      return `${OZET_ONEKI.duydum} "${a.metin}"`;
     case "terminal":
       // ATIF ALGIDA OLMALI. "Terminal çıktısı:" nötr bir başlıktı ve model
       // komutu KENDİSİNİN yazdığını sanıyordu ("yazdığım komut tanınmıyor")
       // — sistem promptunda aksi yazmasına rağmen. Ölçümde 3/3 koşuda tekrar
       // etti. `duydum` zaten "Ozyn dedi:" diyor; burada da aynısı yapılır.
       // Çıkış kodu VARSA tahmine gerek yok: kabuk "bu komut battı" diyor.
-      return `Ozyn'in terminalinde (masandaki ekran)${
+      return `${OZET_ONEKI.terminal} (the screen on your desk)${
         a.kod === undefined ? ""
-          : a.kod === 0 ? ", komut başarıyla bitti"
-          : `, komut HATA ile bitti (çıkış kodu ${a.kod})`
-      }${a.kesildi ? ", kısaltıldı" : ""}:\n${a.kuyruk}`;
+          : a.kod === 0 ? ", the command finished successfully"
+          : `, the command finished with an ERROR (exit code ${a.kod})`
+      }${a.kesildi ? ", truncated" : ""}:\n${a.kuyruk}`;
     case "dunya": {
       const n = a.nesneler.slice(0, 6).map((x) => `${x.ad}(${x.mesafe.toFixed(1)}m)`).join(", ");
-      return `Dünya: ${a.orion.poz}, Ozyn ${a.oyuncu.mesafe.toFixed(1)}m ${a.oyuncu.bakiyor ? "sana bakıyor" : "başka yöne bakıyor"}. Yakında: ${n}`;
+      return `${OZET_ONEKI.dunya} ${a.orion.poz}, Ozyn ${a.oyuncu.mesafe.toFixed(1)}m away, ${a.oyuncu.bakiyor ? "looking at you" : "looking elsewhere"}. Near: ${n}`;
     }
     case "yakin":
-      return `Yakında: ${a.nesneler.map((x) => x.ad).join(", ")}`;
+      return `${OZET_ONEKI.yakin} ${a.nesneler.map((x) => x.ad).join(", ")}`;
     case "olay":
-      return `Olay: ${a.ad}`;
+      return `${OZET_ONEKI.olay} ${a.ad}`;
     case "sonuc":
-      return `Niyet ${a.sonuc.niyet_id} → ${a.sonuc.durum}${a.sonuc.not ? ` (${a.sonuc.not})` : ""}`;
+      return `${OZET_ONEKI.sonuc}${a.sonuc.niyet_id} → ${a.sonuc.durum}${a.sonuc.not ? ` (${a.sonuc.not})` : ""}`;
     case "gordum":
-      return `Baktın (${SORU_ETIKETI[a.ne] ?? a.ne}): ${a.metin}`;
+      return `${OZET_ONEKI.gordum}${SORU_ETIKETI[a.ne] ?? a.ne}): ${a.metin}`;
     case "tik":
       // Bilerek boş: tik beyin kanalına girmez. Buraya düşmek bir hatadır.
       return "";

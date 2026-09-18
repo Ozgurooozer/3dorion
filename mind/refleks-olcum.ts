@@ -13,6 +13,7 @@
 //
 // Koşum:  node --experimental-strip-types mind/refleks-olcum.ts
 "use strict";
+import { OZET_ONEKI } from "../protocol/algi.ts";
 import { KuralRefleksi, OllamaRefleks, type Refleks } from "./refleks.ts";
 
 interface Durum {
@@ -31,27 +32,27 @@ interface Durum {
 const KUME: Durum[] = [
   // — terminal: gürültü —
   { grup: "terminal", beklenen: false, neden: "paket uyarısı, Orion'u ilgilendirmez",
-    ozet: "Terminal çıktısı:\nnpm WARN deprecated inflight@1.0.6: This module is not supported" },
+    ozet: `${OZET_ONEKI.terminal}:\nnpm WARN deprecated inflight@1.0.6: This module is not supported` },
   { grup: "terminal", beklenen: false, neden: "derleme varlık listesi, tek satırı anlamsız",
-    ozet: "Terminal çıktısı:\n  dist/assets/index-Dwfm1WzR.js   1,885.78 kB │ gzip: 456.72 kB" },
+    ozet: `${OZET_ONEKI.terminal}:\n  dist/assets/index-Dwfm1WzR.js   1,885.78 kB │ gzip: 456.72 kB` },
   { grup: "terminal", beklenen: false, neden: "boş kabuk istemi, hiçbir bilgi yok",
-    ozet: "Terminal çıktısı:\n$ " },
+    ozet: `${OZET_ONEKI.terminal}:\n$ ` },
   { grup: "terminal", beklenen: false, neden: "yığın izi çerçeveleri — hata satırı ayrı geldi zaten",
-    ozet: "Terminal çıktısı (kısaltıldı):\n    at Module._compile (node:internal/modules/cjs/loader:1234:14)\n    at Module._load (node:internal/modules/cjs/loader:1012:12)" },
+    ozet: `${OZET_ONEKI.terminal} (truncated):\n    at Module._compile (node:internal/modules/cjs/loader:1234:14)\n    at Module._load (node:internal/modules/cjs/loader:1012:12)` },
   { grup: "terminal", beklenen: false, neden: "ilerleme göstergesi, sonuç değil",
-    ozet: "Terminal çıktısı:\nresolving dependencies... 47/312" },
+    ozet: `${OZET_ONEKI.terminal}:\nresolving dependencies... 47/312` },
 
   // — terminal: sinyal —
   { grup: "terminal", beklenen: true, neden: "gerçek hata, Orion söylemeli",
-    ozet: "Terminal çıktısı:\nError: Cannot find module './protocol/algi.ts'" },
+    ozet: `${OZET_ONEKI.terminal}:\nError: Cannot find module './protocol/algi.ts'` },
   { grup: "terminal", beklenen: true, neden: "ağ hatası, iş durdu",
-    ozet: "Terminal çıktısı:\nnpm ERR! code ECONNREFUSED" },
+    ozet: `${OZET_ONEKI.terminal}:\nnpm ERR! code ECONNREFUSED` },
   { grup: "terminal", beklenen: true, neden: "test sonucu — başlattığı işin akıbeti",
-    ozet: "Terminal çıktısı:\nℹ tests 151\nℹ pass 151\nℹ fail 0" },
+    ozet: `${OZET_ONEKI.terminal}:\nℹ tests 151\nℹ pass 151\nℹ fail 0` },
   { grup: "terminal", beklenen: true, neden: "başarısız test, kesinlikle bildirilmeli",
-    ozet: "Terminal çıktısı:\nℹ tests 151\nℹ pass 149\nℹ fail 2" },
+    ozet: `${OZET_ONEKI.terminal}:\nℹ tests 151\nℹ pass 149\nℹ fail 2` },
   { grup: "terminal", beklenen: true, neden: "başlattığı derleme bitti",
-    ozet: "Terminal çıktısı:\n✓ built in 3.88s" },
+    ozet: `${OZET_ONEKI.terminal}:\n✓ built in 3.88s` },
 
   // — olay —
   { grup: "olay", beklenen: true,  neden: "kullanıcı geldi, tepki verilmeli", ozet: "Olay: oyuncu_odaya_girdi" },
@@ -81,25 +82,25 @@ const KUME: Durum[] = [
   { grup: "dusman", beklenen: false, neden: "JSON alanı; hata YOK, sadece alan adı hata kelimesi içeriyor",
     ozet: 'Terminal çıktısı:\n  "error": null,' },
   { grup: "dusman", beklenen: false, neden: "commit mesajı hata kelimesi içeriyor; olan biten bir şey yok",
-    ozet: "Terminal çıktısı:\na1b2c3d fix error handling in parser" },
+    ozet: `${OZET_ONEKI.terminal}:\na1b2c3d fix error handling in parser` },
   { grup: "dusman", beklenen: false, neden: "kullanıcının yazdığı komutun yankısı, sonuç değil",
     ozet: 'Terminal çıktısı:\n$ grep -rn "error" src/ | wc -l' },
   { grup: "dusman", beklenen: false, neden: "tarayıcı favicon gürültüsü, işi ilgilendirmiyor",
-    ozet: "Terminal çıktısı:\nFailed to load resource: the server responded with a status of 404 (favicon.ico)" },
+    ozet: `${OZET_ONEKI.terminal}:\nFailed to load resource: the server responded with a status of 404 (favicon.ico)` },
 
   // Olay var ama anahtar kelime yok — kural kaçırmalı:
   { grup: "dusman", beklenen: true, neden: "süreç çöktü — 'error' kelimesi geçmiyor ama en kritik çıktı",
-    ozet: "Terminal çıktısı:\nSegmentation fault (core dumped)" },
+    ozet: `${OZET_ONEKI.terminal}:\nSegmentation fault (core dumped)` },
   { grup: "dusman", beklenen: true, neden: "OOM katili süreci öldürdü; tek kelime, hayati",
-    ozet: "Terminal çıktısı:\nKilled" },
+    ozet: `${OZET_ONEKI.terminal}:\nKilled` },
   { grup: "dusman", beklenen: true, neden: "iş bitti ama 'built in' kalıbı değil",
-    ozet: "Terminal çıktısı:\nCompiled successfully in 1.2s" },
+    ozet: `${OZET_ONEKI.terminal}:\nCompiled successfully in 1.2s` },
   { grup: "dusman", beklenen: true, neden: "güvenlik bulgusu — söylenmeye değer, hata kelimesi yok",
-    ozet: "Terminal çıktısı:\n17 vulnerabilities (3 moderate, 14 high)" },
+    ozet: `${OZET_ONEKI.terminal}:\n17 vulnerabilities (3 moderate, 14 high)` },
   { grup: "dusman", beklenen: true, neden: "süreç yanıt vermiyor; kalıp yok ama durum kritik",
-    ozet: "Terminal çıktısı:\nTimeout waiting for localhost:5173 after 30000ms" },
+    ozet: `${OZET_ONEKI.terminal}:\nTimeout waiting for localhost:5173 after 30000ms` },
   { grup: "dusman", beklenen: false, neden: "satır sonu uyarısı, her git işleminde çıkar",
-    ozet: "Terminal çıktısı:\nwarning: LF will be replaced by CRLF in package-lock.json" },
+    ozet: `${OZET_ONEKI.terminal}:\nwarning: LF will be replaced by CRLF in package-lock.json` },
 ];
 
 interface Rapor {

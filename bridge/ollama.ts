@@ -130,7 +130,7 @@ ${girdi.sabit}` : (girdi.talimat ?? DUNYA_TALIMATI) },
     // Biçim `baglam.ts` ile aynı (spec 06 K8: bağlam beyinden bağımsızdır).
     const satirlar = [
       g.dunya,
-      ...(g.anilar?.length ? [`Hatirladiklarin: ${g.anilar.join(" | ")}`] : []),
+      ...(g.anilar?.length ? [`You remember: ${g.anilar.join(" | ")}`] : []),
       ...g.ozetler,
     ].filter(Boolean);
     return satirlar.join("\n");

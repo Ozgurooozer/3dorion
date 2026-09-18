@@ -25,7 +25,7 @@ const ONEK = "dunya_";
 /** Hedef şeması — birden çok araçta tekrar ettiği için tek yerde. */
 const HEDEF_SEMA = {
   type: "object",
-  description: "Dünyada bir hedef. Oyuncu icin {tip:'oyuncu'}; isimli bir yer icin {tip:'capa',ad:'tahta'}; serbest nokta icin {tip:'nokta',x,y,z}.",
+  description: "A target in the world. For Ozyn {tip:'oyuncu'}; for a named place {tip:'capa',ad:'tahta'}; for a free point {tip:'nokta',x,y,z}.",
   properties: {
     tip: { type: "string", enum: ["oyuncu", "nesne", "capa", "nokta"] },
     ad:  { type: "string", description: "tip 'nesne' veya 'capa' ise zorunlu." },
@@ -43,82 +43,83 @@ const HEDEF_SEMA = {
  */
 export const ARAC_TABLOSU: Record<NiyetTur, Omit<AracTanimi, "ad">> = {
   poz: {
-    aciklama: "Duruşunu değiştir (sürekli hal). Bir seferde tek duruş geçerli.",
+    aciklama: "Change your posture (a continuous state). Only one posture at a time.",
     sema: { type: "object", properties: { poz: { type: "string", enum: [...POZLAR] } }, required: ["poz"] },
   },
   jest: {
-    aciklama: "Anlık bir jest yap. Duruşu bozmaz. İşaret ederken hedef ver.",
+    aciklama: "Make a momentary gesture. Does not change your posture. Give a target when pointing.",
     sema: { type: "object", properties: { jest: { type: "string", enum: [...JESTLER] }, hedef: HEDEF_SEMA }, required: ["jest"] },
   },
   bak: {
-    aciklama: "Başını veya gövdeni bir hedefe çevir. Serbest bakışa dönmek için hedef null ver.",
+    aciklama: "Turn your head or body toward a target. Pass a null target to return to free gaze.",
     sema: { type: "object", properties: { hedef: HEDEF_SEMA }, required: ["hedef"] },
   },
   git: {
-    aciklama: "Hedefe yürü. Varınca sonuç bildirilir; engel varsa yol bulunur, ulaşılamazsa hata döner.",
+    aciklama: "Walk to a target. You are told when you arrive; obstacles are routed around, an unreachable target returns an error.",
     sema: {
       type: "object",
       properties: {
         hedef: HEDEF_SEMA,
-        mesafe: { type: "number", description: "Hedefin kac metre yakininda duracagin. Varsayilan capanin kendi yaricapi." },
+        mesafe: { type: "number", description: "How many metres from the target you will stop. Defaults to the anchor's own radius." },
       },
       required: ["hedef"],
     },
   },
   otur: {
-    aciklama: "Bir yere otur. Çapa verilmezse sandalyeye gider.",
+    aciklama: "Sit down somewhere. Without an anchor you go to the chair.",
     sema: { type: "object", properties: { capa: { type: "string" } } },
   },
-  kalk: { aciklama: "Ayağa kalk. Oturuyorsan yürümek için önce bu gerekir.", sema: { type: "object", properties: {} } },
+  kalk: { aciklama: "Stand up. If you are seated this comes first, before walking.", sema: { type: "object", properties: {} } },
   soyle: {
-    aciklama: "Yüksek sesle konuş. Altyazı görünür ve ses çalar. Sohbet metninden AYRI bir eylemdir — odada duyulmasını istediğini buraya yaz.",
+    aciklama: "Speak out loud, IN TURKISH. A subtitle appears and audio plays. This is SEPARATE from plain text — put here what you want heard in the room.",
     sema: {
       type: "object",
       properties: {
-        metin: { type: "string", description: "En cok 1200 karakter. Tek nefeste okunabilir olsun." },
-        ses:   { type: "boolean", description: "false ise yalnizca altyazi, ses calmaz." },
+        metin: { type: "string", description: "Turkish, at most 1200 characters. Should be readable in one breath." },
+        ses:   { type: "boolean", description: "If false, subtitle only, no audio." },
       },
       required: ["metin"],
     },
   },
   komut: {
     aciklama:
-      "Terminale bir komut ÖNER. Komut ÇALIŞMAZ — ekranda Ozyn'e gösterilir, " +
-      "yalnızca o onaylarsa çalışır. Tek satır olmalı. `gerekce` zorunludur: " +
-      "neden bu komut? Gerekçesiz öneriler reddedilir. Reddedilirse ısrar etme.",
+      "SUGGEST a command to the terminal. The command DOES NOT RUN — it is shown " +
+      "to Ozyn on screen and runs only if he approves. Must be a single line. " +
+      "`gerekce` is required: why this command? Suggestions without one are " +
+      "rejected. Do not insist if rejected.",
     sema: {
       type: "object",
       properties: {
-        metin: { type: "string", description: "Onaya sunulacak tek satirlik komut." },
-        gerekce: { type: "string", description: "Bu komut neden gerekli, kisaca." },
+        metin: { type: "string", description: "The single-line command to put before Ozyn for approval." },
+        gerekce: { type: "string", description: "Why this command is needed, briefly. Turkish." },
       },
       required: ["metin", "gerekce"],
     },
   },
 
   yaz: {
-    aciklama: "Beyaz tahtaya yaz. Tahtanın önünde değilsen önce oraya gitmen gerekir.",
+    aciklama: "Write on the whiteboard. If you are not in front of the board you must walk there first.",
     sema: {
       type: "object",
-      properties: { metin: { type: "string" }, temizle: { type: "boolean", description: "true ise once tahtayi siler." } },
+      properties: { metin: { type: "string" }, temizle: { type: "boolean", description: "If true, clears the board first." } },
       required: ["metin"],
     },
   },
   al: {
-    aciklama: "Bir nesneyi eline al.",
+    aciklama: "Take an object into your hand.",
     sema: { type: "object", properties: { nesne: { type: "string" } }, required: ["nesne"] },
   },
-  birak: { aciklama: "Elindeki nesneyi bırak.", sema: { type: "object", properties: {} } },
+  birak: { aciklama: "Drop the object in your hand.", sema: { type: "object", properties: {} } },
   odaklan: {
-    aciklama: "Dikkatini bir yüzeye ver (monitor, tahta). Kameraya da ipucu verir.",
+    aciklama: "Give your attention to a surface (monitor, tahta). Also hints the camera.",
     sema: { type: "object", properties: { capa: { type: "string" } }, required: ["capa"] },
   },
-  dur: { aciklama: "Yürüdüğün ve oynattığın her şeyi hemen kes.", sema: { type: "object", properties: {} } },
+  dur: { aciklama: "Immediately stop everything you are walking and moving.", sema: { type: "object", properties: {} } },
   sor: {
     // Orion odayı BURADAN görür. Cevap yalnızca bulunduğu yerden GÖRÜLEBİLEN
     // şeyleri içerir (mind/algiHizmeti.ts): duvarın arkası bilinmez.
-    aciklama: "Odaya bak. 'onumde' = tam önündeki şey, 'yakin' = çevrendekiler, "
-      + "'oyuncu' = Ozyn nerede, 'dunya' = buradan görünen her şey. Hiçbir şeyi değiştirmez.",
+    aciklama: "Look at the room. 'onumde' = the thing right in front of you, 'yakin' = your surroundings, "
+      + "'oyuncu' = where Ozyn is, 'dunya' = everything visible from here. Changes nothing.",
     sema: {
       type: "object",
       properties: { ne: { type: "string", enum: ["onumde", "yakin", "oyuncu", "dunya"] } },

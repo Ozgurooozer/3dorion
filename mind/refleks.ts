@@ -18,7 +18,7 @@
 // atlama" değil, en fazla "gereksiz uyandırma" riski taşımalı.
 "use strict";
 import type { Niyet } from "../protocol/niyet.ts";
-import type { AlgiTur } from "../protocol/algi.ts";
+import { OZET_ONEKI, type AlgiTur } from "../protocol/algi.ts";
 
 export interface RefleksGirdi {
   /** Kısa, tek satırlık algı özeti (protocol/algi.ts ozetle() çıktısı). */
@@ -119,11 +119,11 @@ export class KuralRefleksi implements Refleks {
     const t = g.tur;
 
     // Konuşma her zaman terfi eder — kullanıcı bekletilemez.
-    if (t === "duydum" || (!t && o.startsWith("Ozyn dedi:"))) {
+    if (t === "duydum" || (!t && o.startsWith(OZET_ONEKI.duydum))) {
       return { terfi: true, gerekce: "konuşma" };
     }
 
-    if (t === "terminal" || (!t && o.startsWith("Terminal çıktısı"))) {
+    if (t === "terminal" || (!t && o.startsWith(OZET_ONEKI.terminal))) {
       // ÇIKIŞ KODU her şeyden önce gelir: kesin sinyal, tahmin değil.
       if (g.kod !== undefined) {
         if (g.kod !== 0) return { terfi: true, gerekce: `komut hata ile bitti (çıkış kodu ${g.kod})` };
@@ -146,8 +146,10 @@ export class KuralRefleksi implements Refleks {
       return this._terminal(o);
     }
 
-    if (t === "olay" || (!t && o.startsWith("Olay:"))) {
-      const ad = o.slice(5).trim();
+    if (t === "olay" || (!t && o.startsWith(OZET_ONEKI.olay))) {
+      // Önekin UZUNLUĞU da tek kaynaktan: sabit 5 yazılıydı ("Olay:") ve önek
+      // İngilizceye dönünce bir harf kayıp olay adı bozulacaktı.
+      const ad = o.slice(OZET_ONEKI.olay.length).trim();
       const gurultu = ONEMSIZ_OLAYLAR.has(ad);
       return { terfi: !gurultu, gerekce: gurultu ? "gürültü olay" : "dünya olayı" };
     }
@@ -155,17 +157,17 @@ export class KuralRefleksi implements Refleks {
     // Niyet sonucu: yalnızca BAŞARISIZLIK öğreticidir.
     // Sorunun cevabı HER ZAMAN terfi eder: beyin onu kendisi istedi.
     // Süzmek, Orion'un sorup cevabı hiç duymaması demek (canlıda yaşandı).
-    if (t === "gordum" || (!t && o.startsWith("Baktın ("))) {
+    if (t === "gordum" || (!t && o.startsWith(OZET_ONEKI.gordum))) {
       return { terfi: true, gerekce: "sorunun cevabı" };
     }
 
-    if (t === "sonuc" || (!t && o.startsWith("Niyet "))) {
+    if (t === "sonuc" || (!t && o.startsWith(OZET_ONEKI.sonuc))) {
       const hata = /→\s*hata/.test(o);
       return { terfi: hata, gerekce: hata ? "niyet hatası" : "rutin başarı" };
     }
 
     // Dünya/yakın anlık görüntüleri istenmeden gelirse rutindir.
-    if (t === "dunya" || t === "yakin" || (!t && (o.startsWith("Dünya:") || o.startsWith("Yakında:")))) {
+    if (t === "dunya" || t === "yakin" || (!t && (o.startsWith(OZET_ONEKI.dunya) || o.startsWith(OZET_ONEKI.yakin)))) {
       return { terfi: false, gerekce: "rutin anlık görüntü" };
     }
 

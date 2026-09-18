@@ -488,7 +488,8 @@ test("GÖRDÜM 'ŞİMDİ' satırı olarak dünya metnine girer, yaşıyla", asyn
   k.algi({ tur: "gordum", ne: "onumde", metin: "yönetim terminali" });
   await bekle(60);
   const d = b.gordugu.at(-1)!.dunya;
-  assert.match(d, /önünde: yönetim terminali \(\d+ sn önce baktın\)/);
+  // Çerçeve İngilizce, nesne adı Türkçe (spec 06 §6.8).
+  assert.match(d, /in front of you: yönetim terminali \(you looked \d+ sec ago\)/);
   assert.match(d, /Oda: masa, tahta/, "dünya durumu kaybolmamalı");
 });
 
@@ -522,5 +523,5 @@ test("ANILAR zaman etiketiyle sunulur (spec 06 K3)", async () => {
   await bekle(60);
   const anilar = b.gordugu.at(-1)!.anilar ?? [];
   assert.ok(anilar.length > 0, "anı getirilmedi");
-  for (const a of anilar) assert.match(a, /^\[(az önce|\d+ (dakika|saat|gün) önce)\] /, `zamansız anı: ${a}`);
+  for (const a of anilar) assert.match(a, /^\[(just now|\d+ (minutes|hours|days) ago)\] /, `zamansız anı: ${a}`);
 });

@@ -69,7 +69,7 @@ import { MetinGirdi } from "../voice/metin-girdi.ts";
 import { ikiCumleyeKisalt } from "../voice/kisalt.ts";
 import { Ajanda } from "../mind/ajanda.ts";
 import { gozlemAnisiMi } from "../mind/hafiza.ts";
-import { sureSozu } from "../mind/zaman.ts";
+import { odadaSure, sessizlikSozu, gununVakti } from "../mind/zaman.ts";
 import { KuralRefleksi, UZUN_ISLEM_MS } from "../mind/refleks.ts";
 import { OnayKapisi } from "../mind/onayKapisi.ts";
 import { riskEtiketi } from "../mind/komutRiski.ts";
@@ -1078,50 +1078,19 @@ const ACILIS = Date.now();
 /** Ozyn'in en son konuştuğu an. 0 = hiç konuşmadı. */
 let sonKonusma = 0;
 
-/** Günün hangi vakti — "saat 14:32" yerine yaşanan bir zaman. */
-function gununVakti(d: Date): string {
-  const s = d.getHours();
-  if (s < 5) return "gecenin bir yarısı";
-  if (s < 12) return "sabah";
-  if (s < 17) return "öğleden sonra";
-  if (s < 21) return "akşam";
-  return "gece";
-}
-
-/**
- * "Ne kadardır buradayım" cümlesi.
- *
- * Süreyi cümleye GÖMMEK gerekiyor, yan yana koymak değil: ilk sürüm
- * `${sureSozu(...)} bu odadasin` diyordu ve bir dakikanın altında
- * "az önce bu odadasin" gibi bozuk bir cümle çıkıyordu. Beynin okuyacağı
- * metin bu; bozuk Türkçe modelin de diline bulaşır.
- */
-function odadaSure(ms: number): string {
-  const dk = Math.floor(ms / 60000);
-  if (dk < 1) return "Bu odaya yeni geldin.";
-  return `${sureSozu(ms)} bu odadasin.`;
-}
-
-/** Sessizliğin ne kadar sürdüğü — varlığın farkında olması gereken şey. */
-function sessizlikSozu(ms: number): string {
-  const dk = Math.floor(ms / 60000);
-  if (dk < 1) return "Ozyn az önce konustu.";
-  return `Ozyn'le ${sureSozu(ms)} konusmadiniz.`;
-}
-
 function dunyaDurumuMetni(): string {
   const o = oyuncu.oyuncuDurumu();
   const a = orion?.durum();
   const simdi = Date.now();
   const d = new Date(simdi);
   return [
-    a ? `Sen: ${a.poz}, konum ${a.konum.x.toFixed(1)},${a.konum.z.toFixed(1)}${a.oturuyor_mu ? ", oturuyorsun" : ""}.` : "",
-    `Ozyn ${o.mesafe?.toFixed?.(1) ?? "?"}m uzakta${o.bakiyor ? ", sana bakiyor" : ""}.`,
-    o.etkilesim === "monitor" ? "Ozyn senin monitorunde calisiyor." : "",
+    a ? `You: ${a.poz}, position ${a.konum.x.toFixed(1)},${a.konum.z.toFixed(1)}${a.oturuyor_mu ? ", seated" : ""}.` : "",
+    `Ozyn is ${o.mesafe?.toFixed?.(1) ?? "?"}m away${o.bakiyor ? ", looking at you" : ""}.`,
+    o.etkilesim === "monitor" ? "Ozyn is working on your monitor." : "",
     // ZAMAN — bir varlığın olmazsa olmazı. Bunlar olmadan Orion her turu
     // zamansız bir "şimdi" içinde yaşıyor: ne gün ilerliyor, ne sessizlik
     // birikiyor, ne de "sabahtan beri buradayım" diyebiliyor.
-    `Vakit ${gununVakti(d)}, saat ${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}.`,
+    `It is ${gununVakti(d.getHours())}, ${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}.`,
     odadaSure(simdi - ACILIS),
     sonKonusma ? sessizlikSozu(simdi - sonKonusma) : "",
   ].filter(Boolean).join(" ");
@@ -1265,7 +1234,8 @@ function beyniBagla(a: Avatar): void {
     // GÖRÜNEN adlar (spec 06 K3): iç kimlik (`admin`, `sema`) modele hiçbir
     // şey anlatmıyordu; algı hizmeti "yönetim terminali" derken sabit liste
     // "admin" diyordu ve model ikisini aynı şey saymıyordu.
-    sabitBilgi: () => `Odadakiler: ${tumCapalar().map((c) => c.etiket).join(", ")}.`,
+    // Çapa ETİKETLERİ Türkçe kalır: onlar odadaki şeylerin ADI, çerçeve değil.
+    sabitBilgi: () => `In the room: ${tumCapalar().map((c) => c.etiket).join(", ")}.`,
     toplamaMs: 900,
     // Ölçüm için ayarlanabilir: kısa pencere hipotezi (anı, alakasız sohbetin
     // altında gömülüyor mu?) tek değişkenle sınanabilsin.

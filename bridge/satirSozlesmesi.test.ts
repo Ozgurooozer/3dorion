@@ -91,8 +91,21 @@ test("sözleşme talimatı GIDILECEK öğretir ve ÖRNEK içerir", () => {
   assert.match(SOZLESME_TALIMATI, /GIDILECEK:/);
   assert.ok(!/^GIT:/m.test(SOZLESME_TALIMATI), "eski etiket ogretilmemeli");
   // Örnekler ölçümde anlatımdan güçlü çıktı; kaybolmasınlar.
-  assert.match(SOZLESME_TALIMATI, /ÖRNEKLER:/);
+  assert.match(SOZLESME_TALIMATI, /EXAMPLES/);
   assert.match(SOZLESME_TALIMATI, /KOMUT: python --version/);
+});
+
+// Anlatım İngilizceye döndü (spec 06 §6.8) ama ETİKETLER protokol kimliği:
+// `ETIKET` regexi ve `BAK_SORULARI` onları birebir arıyor. Çevrilirlerse
+// sözleşme SESSİZCE kırılır — model doğru satırı yazar, ayrıştırıcı görmez.
+test("etiketler ve BAK değerleri ÇEVRİLMEDEN kalır", () => {
+  for (const e of ["KOMUT:", "GEREKCE:", "TAHTA:", "GIDILECEK:", "BAK:"]) {
+    assert.ok(SOZLESME_TALIMATI.includes(e), `etiket kayboldu: ${e}`);
+  }
+  assert.match(SOZLESME_TALIMATI, /onumde\|yakin\|oyuncu\|dunya/, "BAK değerleri çevrilmiş");
+  // Örnekteki SÖZ kısmı Türkçe kalmalı: Orion'un sesi Türkçe ve örnek tam da
+  // sesin nasıl olacağını gösteriyor.
+  assert.match(SOZLESME_TALIMATI, /yazım hatası/, "örnek söz Türkçeliğini yitirdi");
 });
 
 test("KOMUT satırı yürüme emrine dönüşmez — onay kapısı kabuk komutu için", () => {

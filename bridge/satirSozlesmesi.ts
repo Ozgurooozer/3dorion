@@ -54,26 +54,34 @@ export interface AyrilmisYanit {
 /** `BAK:` ile sorulabilecek şeyler. Protokoldeki `sor.ne` ile aynı küme. */
 const BAK_SORULARI = ["onumde", "yakin", "oyuncu", "dunya"] as const;
 
-/** Sözleşmenin modele anlatımı. Kısa ve örnekli; her turda bağlama giriyor. */
+/**
+ * Sözleşmenin modele anlatımı. Kısa ve örnekli; her turda bağlama giriyor.
+ *
+ * ANLATIM İngilizce, ETİKETLER değil (2026-09-18, spec 06 §6.8): `KOMUT:`,
+ * `TAHTA:`, `GIDILECEK:`, `BAK:` ve `onumde` gibi değerler protokol kimliği —
+ * aşağıdaki `ETIKET` regexi ve `BAK_SORULARI` onları birebir arıyor. Çevirmek
+ * sözleşmeyi sessizce kırardı. Örneklerdeki SÖZ kısmı Türkçe kalır: Orion'un
+ * sesi Türkçe ve örnek tam da sesin nasıl olacağını gösteriyor.
+ */
 export const SOZLESME_TALIMATI = [
-  "Cevabını normal cümlelerle yaz.",
-  "Bir EYLEM gerekiyorsa cevabının SONUNA ayrı satır olarak ekle:",
-  "KOMUT: <terminalde çalıştırılacak tek satır> | GEREKCE: <kısa neden>",
-  "TAHTA: <tahtaya yazılacak not>",
-  "GIDILECEK: <odada gidilecek yerin adı>",
-  "BAK: <onumde|yakin|oyuncu|dunya>   — odada ne olduğunu görmek için",
-  "Eylem gerekmiyorsa bu satırları hiç yazma.",
+  "Write your answer in normal sentences, in Turkish.",
+  "If an ACTION is needed, append it at the END of your answer as its own line:",
+  "KOMUT: <single line to run in the terminal> | GEREKCE: <short reason>",
+  "TAHTA: <note to write on the whiteboard>",
+  "GIDILECEK: <name of the place in the room to walk to>",
+  "BAK: <onumde|yakin|oyuncu|dunya>   — to see what is in the room",
+  "If no action is needed, do not write these lines at all.",
   // ÖRNEKLER anlatımdan güçlü çıktı (ölçüm): örneksiz cevaplar markdown'a ve
   // kod bloğuna kaçıyordu; örnekli cevaplar kısa ve sözleşmeye uygun geldi.
   "",
-  "ÖRNEKLER:",
-  "Ekranda `pyhton ... not recognized` → `pyhton` yazım hatası, doğrusu `python`.",
+  "EXAMPLES (note that the spoken part is Turkish):",
+  "Screen shows `pyhton ... not recognized` → `pyhton` yazım hatası, doğrusu `python`.",
   "KOMUT: python --version | GEREKCE: yazım hatası düzeltmesi",
-  "Ozyn 'kapıya git' dedi → Tamam.",
+  "Ozyn said 'kapıya git' → Tamam.",
   "GIDILECEK: kapi",
-  "Ozyn 'önünde ne var' dedi → Bakıyorum.",
+  "Ozyn said 'önünde ne var' → Bakıyorum.",
   "BAK: onumde",
-  "YALNIZCA gereken satırı yaz; gerekmeyeni hiç yazma.",
+  "Write ONLY the line you need; never write one you do not.",
 ].join("\n");
 
 /**

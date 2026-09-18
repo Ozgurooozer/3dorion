@@ -60,7 +60,7 @@ export function calismaBellegiKur(ayar: CalismaAyari = {}): CalismaBellegi {
       // Yaş HER SATIRDA yazılır: model "3 sn önce" ile "25 sn önce" arasındaki
       // farkı ancak söylenirse bilebilir (spec 06 K3).
       return taze().map((g) =>
-        `${SORU_ETIKETI[g.anahtar] ?? g.anahtar}: ${g.deger} (${Math.round(g.yasMs / 1000)} sn önce baktın)`);
+        `${SORU_ETIKETI[g.anahtar] ?? g.anahtar}: ${g.deger} (you looked ${Math.round(g.yasMs / 1000)} sec ago)`);
     },
   };
 }

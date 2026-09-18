@@ -32,16 +32,19 @@ test("YAŞ satırda yazar — model şimdiki ile biraz öncekini ayırabilsin", 
   const { cb, ilerle } = düzenek();
   cb.yaz("onumde", "yönetim terminali");
   ilerle(3_000);
-  assert.deepEqual(cb.satirlar(), ["önünde: yönetim terminali (3 sn önce baktın)"]);
+  assert.deepEqual(cb.satirlar(), ["in front of you: yönetim terminali (you looked 3 sec ago)"]);
 });
 
-test("iç adlar Türkçeye çevrilir, bilinmeyen ad olduğu gibi kalır", () => {
+// Çerçeve İngilizce, NESNE ADI Türkçe (spec 06 §6.8): "masa, monitör" Ozyn'in
+// dünyasına ait, çevrilmez; "in front of you" makineye konuşan çerçevedir.
+test("iç adlar okunur karşılığına çevrilir, bilinmeyen ad olduğu gibi kalır", () => {
   const { cb } = düzenek();
   cb.yaz("yakin", "masa, monitör");
   cb.yaz("bilinmeyen", "x");
   const s = cb.satirlar().join("|");
-  assert.match(s, /yakınında: masa, monitör/);
+  assert.match(s, /near you: masa, monitör/);
   assert.match(s, /bilinmeyen: x/);
+  assert.doesNotMatch(s, /\byakin\b/, "iç ad bağlama sızdı");
 });
 
 test("EN YENİ ÖNCE — sıralama yaşa göre", () => {

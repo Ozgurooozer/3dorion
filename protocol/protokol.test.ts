@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { niyetDogrula, METIN_SINIRI } from "./dogrula.ts";
 import { POZLAR, JESTLER, SURELI_NIYETLER, okunurMu } from "./niyet.ts";
-import { VARSAYILAN_KANAL, ozetle } from "./algi.ts";
+import { VARSAYILAN_KANAL, ozetle, OZET_ONEKI } from "./algi.ts";
 import { zarfla, SURUM } from "./temel.ts";
 
 test("geçerli poz kabul edilir", () => {
@@ -88,7 +88,8 @@ test("tik yerel kanalda kalır — maliyet tavanı kuralı", () => {
 });
 
 test("ozetle beyin algılarını tek satıra indirir", () => {
-  assert.match(ozetle({ tur: "duydum", metin: "selam", kesin: true }), /Ozyn dedi: "selam"/);
+  // Çerçeve İngilizce, Ozyn'in KENDİ sözü Türkçe (spec 06 §6.8).
+  assert.match(ozetle({ tur: "duydum", metin: "selam", kesin: true }), /Ozyn said: "selam"/);
   const d = ozetle({
     tur: "dunya",
     orion: { poz: "duruyor" } as never,
@@ -97,7 +98,19 @@ test("ozetle beyin algılarını tek satıra indirir", () => {
     capalar: ["masa"],
   });
   assert.match(d, /monitor\(1\.1m\)/);
-  assert.match(d, /sana bakıyor/);
+  assert.match(d, /looking at you/);
+});
+
+// `mind/refleks.ts` algı türü yokken satırı ÖNEKİNDEN tanır. Önek bir yerde
+// üretilip başka yerde elle aranınca kayıyor: `ozetle` "Ozyn'in terminalinde…"
+// üretirken refleks hâlâ "Terminal çıktısı" arıyordu, yani o dal ölüydü.
+// Bu test öneki ÜRETİMDEN doğrular; kayma bir daha sessiz kalamaz.
+test("özet satırları OZET_ONEKI ile başlar — refleks eşleşmesi kaymasın", () => {
+  assert.ok(ozetle({ tur: "duydum", metin: "x", kesin: true }).startsWith(OZET_ONEKI.duydum));
+  assert.ok(ozetle({ tur: "olay", ad: "kapi_acildi" }).startsWith(OZET_ONEKI.olay));
+  assert.ok(ozetle({ tur: "yakin", nesneler: [] }).startsWith(OZET_ONEKI.yakin));
+  assert.ok(ozetle({ tur: "gordum", ne: "onumde", metin: "tahta" }).startsWith(OZET_ONEKI.gordum));
+  assert.ok(ozetle({ tur: "terminal", kuyruk: "x", kesildi: false }).startsWith(OZET_ONEKI.terminal));
 });
 
 test("süreli niyetler listesi git ve soyle içerir", () => {
