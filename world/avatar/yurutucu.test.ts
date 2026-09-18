@@ -15,7 +15,7 @@
 "use strict";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { Yurutucu, ARA_NOKTA_TOLERANSI, BOYUN_PITCH_SINIRI, BOYUN_YAW_SINIRI, NOKTA_TOLERANSI, aciSar } from "./yurutucu.ts";
+import { Yurutucu, ARA_NOKTA_TOLERANSI, BOYUN_PITCH_SINIRI, BOYUN_YAW_SINIRI, NOKTA_TOLERANSI, YURUME_HIZI, aciSar } from "./yurutucu.ts";
 import { AVATAR_YARICAP, yolBul, yolUzunlugu } from "./yolBulma.ts";
 import { capaBul, mesafeXZ } from "../level/capalar.ts";
 import { bostaHesapla } from "./bosta.ts";
@@ -587,4 +587,68 @@ test("`bak` kilidi `git` OLMADAN korunur — kilit gereksiz yere silinmez", () =
   const b = k.y.durum().bakis;
   assert.ok(Math.abs(a.x - b.x) < 0.05 && Math.abs(a.z - b.z) < 0.05, "bakis kilidi tutmali");
   assert.ok(a.x < -0.5, `tahtaya bakmali, bakis.x=${a.x.toFixed(2)}`);
+});
+
+// ── AKTÜATÖR: komut ≠ gerçekleşen ─────────────────────────────────────────
+//
+// Bu testler NAİF ÇÖZÜMDEN ÖNCE yazıldı. Hedefledikleri çöküş biçimi:
+// gövdenin ışınlanması. Önceki hâlde hız sabitti ve ilk tikte azami değere
+// SIÇRIYORDU — komut edilen ile gerçekleşen arasında hiç fark yoktu, yani
+// propriyosepsiyon süstü: Orion'un "yürüyorum" demesiyle "vardım" demesi
+// arasında ölçülebilir hiçbir şey olmuyordu.
+//
+// Gerçek bir aktüatör doyuma girer: tork sonludur, kütle atalet taşır.
+
+test("AKTÜATÖR: ilk tikte azami hıza SIÇRAMAZ", () => {
+  const k = new Kosucu({ x: 0, y: 0, z: 0 });
+  k.niyet({ tur: "git", hedef: { tip: "nokta", x: 0, y: 0, z: 2 } } as Niyet, "a1");
+  k.tik(1);
+  const h = k.y.gorunum().hiz;
+  assert.ok(h > 0, `hic hareket etmedi: ${h}`);
+  assert.ok(h < YURUME_HIZI * 0.9,
+    `ilk tikte azami hiza sicradi: ${h.toFixed(3)} (azami ${YURUME_HIZI})`);
+});
+
+test("AKTÜATÖR: hız kademeli artar — ivme sınırı var", () => {
+  const k = new Kosucu({ x: 0, y: 0, z: 0 });
+  k.niyet({ tur: "git", hedef: { tip: "nokta", x: 0, y: 0, z: 2 } } as Niyet, "a2");
+  const hizlar: number[] = [];
+  for (let i = 0; i < 5; i++) { k.tik(1); hizlar.push(k.y.gorunum().hiz); }
+  for (let i = 1; i < hizlar.length; i++) {
+    assert.ok(hizlar[i]! >= hizlar[i - 1]! - 1e-9,
+      `hiz geriledi: ${hizlar.map((h) => h.toFixed(2)).join(" → ")}`);
+  }
+  assert.ok(hizlar.at(-1)! > hizlar[0]!,
+    `hiz hic artmadi: ${hizlar.map((h) => h.toFixed(2)).join(" → ")}`);
+});
+
+test("AKTÜATÖR: yol süresi ideal süreden UZUN — hızlanma bedava değil", () => {
+  const MESAFE = 3;
+  const k = new Kosucu({ x: 0, y: 0, z: 0 });
+  k.niyet({ tur: "git", hedef: { tip: "nokta", x: 0, y: 0, z: MESAFE } } as Niyet, "a3");
+  const s = k.bekle("a3", "bitti");
+  assert.ok(s, "varamadi");
+  const tik = k.iz.length;
+  const idealTik = (MESAFE / YURUME_HIZI) / DT;
+  assert.ok(tik > idealTik,
+    `isinlandi: ${tik} tik, ivmesiz ideal ${idealTik.toFixed(1)} tik`);
+  // Ama makul kalmalı: watchdog 20 sn = 400 tik.
+  assert.ok(tik < 400 * 0.5, `cok yavas, watchdog'a yaklasti: ${tik} tik`);
+});
+
+test("AKTÜATÖR: varışta hız sıfıra İNER, sıçramaz", () => {
+  const k = new Kosucu({ x: 0, y: 0, z: 0 });
+  k.niyet({ tur: "git", hedef: { tip: "nokta", x: 0, y: 0, z: 3 } } as Niyet, "a4");
+  // Varıştan hemen ÖNCEKİ hızı yakala.
+  let oncekiHiz = 0;
+  for (let i = 0; i < 600; i++) {
+    const h = k.y.gorunum().hiz;
+    k.tik(1);
+    if (k.sonuclar.some((r) => r.niyet_id === "a4" && r.durum === "bitti")) break;
+    if (h > 0) oncekiHiz = h;
+  }
+  assert.ok(k.sonuclar.some((r) => r.niyet_id === "a4" && r.durum === "bitti"), "varamadi");
+  assert.ok(oncekiHiz < YURUME_HIZI * 0.75,
+    `tam hizda duvara carpar gibi durdu: son hiz ${oncekiHiz.toFixed(3)}`);
+  assert.equal(k.y.gorunum().hiz, 0, "varista hiz sifirlanmali");
 });

@@ -47,6 +47,10 @@ export const KOSMA_ESIGI = BEDEN.hareket.kosmaEsigi;
 export const GOVDE_DONME_HIZI = BEDEN.eklem.govdeYaw.aciHiz;
 /** Baş dönüş hızı (rad/s) — gövdeden hızlı, insan böyle. */
 export const BAS_DONME_HIZI = BEDEN.eklem.basYaw.aciHiz;
+/** İvme (m/s²) — aktüatör doyumu; hız azami değere sıçramaz. */
+export const IVME = BEDEN.hareket.ivme;
+/** Frenleme (m/s²) — durmak hızlanmaktan hızlı. */
+export const FREN = BEDEN.hareket.fren;
 
 /** İnsan boyun sınırı, yaw. Aşılırsa GÖVDE döner — donuk kafa dönüşü yok. */
 export const BOYUN_YAW_SINIRI = BEDEN.eklem.basYaw.sinir;
@@ -215,6 +219,8 @@ export class Yurutucu {
   private _agiz = 0;
   private _yurumeFazi = 0;
   private _hiz = 0;
+  /** Bu tik yurume asamasi kostu mu — kosmadiysa hiz frenle iner. */
+  private _yurudu = false;
 
   private _jest: Jest | null = null;
   private _jestKalan = 0;
@@ -302,8 +308,16 @@ export class Yurutucu {
     }
 
     // 3) Aktif iş.
-    this._hiz = 0;
+    //
+    // `_hiz` ARTIK HER TİK SIFIRLANMIYOR. Eskiden türetilmiş bir değerdi
+    // (`adim / dt`) ve burada sıfırlamak doğruydu; aktüatörün DURUMU olunca
+    // sıfırlamak ivmeyi her tik baştan başlatıyor ve gövde `IVME * dt`de
+    // takılı kalıyor — ölçüldü: 0.100 m/s'de saplandı, masaya hiç varamadı.
+    this._yurudu = false;
     if (this._aktif) this._isIlerle(this._aktif, dt, sonuclar);
+    // Yürüme aşaması bu tik koşmadıysa beden YAVAŞLAR. Durmak da bir süreç:
+    // dönerken, otururken ya da iş bittiğinde hız aniden kesilmez.
+    if (!this._yurudu) this._hiz = Math.max(0, this._hiz - FREN * dt);
 
     // 4) Gövde ve baş dönüşü (iş bittikten sonra: varış yönü aynı tikte işler).
     this._govdeYaw = aciYaklas(this._govdeYaw, this._govdeHedefYaw, GOVDE_DONME_HIZI * dt);
@@ -640,11 +654,31 @@ export class Yurutucu {
       if (uz > 1e-6) {
         const sapma = Math.abs(aciSar(this._govdeHedefYaw - this._govdeYaw));
         const carpan = Math.max(0, Math.cos(sapma));
-        const hiz = (is.kosuyor ? KOSMA_HIZI : YURUME_HIZI) * carpan;
-        const adim = Math.min(hiz * dt, uz);
+        // İSTENEN hız. Gerçekleşen hız bu değil — aktüatör doyuma girer.
+        let istenen = (is.kosuyor ? KOSMA_HIZI : YURUME_HIZI) * carpan;
+
+        // Frenleme profili: DURACAĞI noktaya kadar yavaşlayabilmeli.
+        // v² = 2·a·s → durabileceğim azami hız = √(2·fren·kalan).
+        //
+        // `kalan` hedefin MERKEZİNE değil, gerçekten durduğu yere ölçülür:
+        // varış `tolerans` yarıçapında gerçekleşiyor ve orada `_hiz` sıfıra
+        // çekiliyor. Merkeze göre frenlersek tolerans sınırına hâlâ 1,22 m/s
+        // ile giriyor ve hız sıçrayarak kesiliyordu — fren hiç devreye
+        // girmiyordu (ölçüldü). Durma noktası tolerans sınırıdır.
+        const kalan = Math.max(0, mesafeXZ(this._konum, hedef) - is.tolerans);
+        istenen = Math.min(istenen, Math.sqrt(2 * FREN * Math.max(0, kalan)));
+
+        // İVME SINIRI: hız istenene ANINDA ulaşamaz. Komut ≠ gerçekleşen.
+        const tavan = (istenen > this._hiz ? IVME : FREN) * dt;
+        this._hiz += Math.max(-tavan, Math.min(tavan, istenen - this._hiz));
+        if (this._hiz < 0) this._hiz = 0;
+
+        this._yurudu = true;
+        const adim = Math.min(this._hiz * dt, uz);
         this._konum.x += (dx / uz) * adim;
         this._konum.z += (dz / uz) * adim;
-        this._hiz = dt > 0 ? adim / dt : 0;
+        // `_hiz` ARTIK TÜRETİLMİYOR: eskiden `adim / dt` ile geri hesaplanıyordu,
+        // yani her zaman komut edilene eşitti. Şimdi aktüatörün gerçek durumu.
         this._yurumeFazi = (this._yurumeFazi + adim / ADIM_UZUNLUGU) % 1;
         if (uz - adim <= ARA_NOKTA_TOLERANSI) is.yol.shift();
       } else {

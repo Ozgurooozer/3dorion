@@ -64,6 +64,26 @@ export const BEDEN = {
     kosmaHizi: 2.45,
     /** Kalan yol bundan uzunsa avatar koşar (m). 10×8 m odada nadiren aşılır. */
     kosmaEsigi: 4.0,
+
+    /**
+     * İvme (m/s²) — AKTÜATÖR DOYUMU.
+     *
+     * Bu alan olmadan komut = gerçekleşen oluyordu: gövde ilk tikte azami
+     * hıza sıçrıyordu, yani ışınlanıyordu. Gerçek bir aktüatörde tork
+     * sonludur ve kütle atalet taşır; hızlanmak zaman alır.
+     *
+     * Asıl kazanç görsel değil: komut ile gerçekleşen arasında ÖLÇÜLEBİLİR
+     * bir fark doğuyor. Hata payı olmayan bir bedende propriyosepsiyon süstür
+     * — düzeltilecek bir şey yoksa duyunun işlevi de yok.
+     *
+     * 2.0 m/s²: yürüme hızına (1.25 m/s) ~0,6 sn'de çıkar. İnsan temposu.
+     */
+    ivme: 2.0,
+    /**
+     * Frenleme (m/s²). Durmak hızlanmaktan hızlıdır — ağırlığı geriye vermek
+     * itmekten kolay. Varış bu profille yumuşar, duvara çarpar gibi durmaz.
+     */
+    fren: 3.0,
   },
 
   duyu: {
