@@ -25,7 +25,14 @@ import type { Vec3 } from "../../protocol/temel.ts";
 import type { Jest, Poz } from "../../protocol/niyet.ts";
 
 export interface IskeletBilgisi {
-  tur: "vrm" | "prosedurel";
+  /**
+   * Hangi sürücü bağlı.
+   *
+   * `ledyuz` GERÇEK DONANIMDIR (`world/avatar/ledYuz.ts`): gövdesi yok,
+   * yalnızca yüz. Arayüz kısmi gövdeyi baştan destekliyordu — bayraklar
+   * (`basDestegi` vb.) tam da bunun içindi.
+   */
+  tur: "vrm" | "prosedurel" | "ledyuz";
   /** İnsan-okur kaynak açıklaması — HUD ve log için. */
   kaynak: string;
   /** Ağız (blend shape / çene mesh'i) sürülebiliyor mu. */
