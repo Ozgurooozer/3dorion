@@ -368,3 +368,87 @@ gözlemlenemez — en hızlı şey Orion'un koşması (2,45 m/s → 0,37 m) ve m
 zaten `mesafeSozu` ile 1,2 / 2,5 / 4,5 m eşiklerine kabalaştırılıyor; cevap
 metni değişmiyor. Ayrıca örnekle-tut **zaten var**: `mind/calismaBellegi.ts`
 cevabı tutuyor, 30 sn'de eskitiyor ve yaşını açıkça yazıyor.
+
+## 6.9 İnisiyatif v1 — Orion'un kendi gündemi (2026-09-19)
+
+K1 "önce sadakat, sonra inisiyatif" diyordu. Sadakat %100'e çıktı (§6.8);
+ikinci ön koşul olan **maliyet** de geldi (beden Faz 2: gövdenin hata payı).
+
+### İş bölümü
+
+- **`mind/inisiyatif.ts` NE ZAMAN'a karar verir** — fayda puanlaması (oyun
+  yapay zekâsındaki utility AI): beyne kendiliğinden düşünme fırsatı verilmeli mi?
+- **NE yapılacağına beyin karar verir** — konuşmak, bakmak ya da susmak.
+  Eylem seçimini yine sadakati ölçülmüş olan yapıyor.
+
+**Kapılar** (biri kapalıysa fayda hesaplanmaz): beyin/gövde meşgul · Ozyn
+monitörde (odak işi bölünmez) · Ozyn odada değil · güç < 0,5 · refrakter
+süre (15 dk) · sessizlik < eşik (10 dk).
+
+**Güç bütçesi** (`protocol/bedenTanimi.ts` → `guc`): hareket (∝ GERÇEK hız)
+ve beyin turu aynı bataryadan harcar, dinlenince dolar. Uzun bir yürüyüşten
+sonra Orion kendiliğinden söze girmez.
+
+**Yol:** yeni yol yok — `kopru.algi({tur:"olay", ayrinti:{kaynak:"inisiyatif"}})`,
+dikkat süzgecinden ve dakika sınırından geçer.
+
+### Maliyet tavanı `[TEST]`
+
+`tik` yasağının inisiyatif karşılığı: 1 saat boşta, 20 Hz → **en fazla 4
+uyanma**. Mutasyon: refrakter kapısı kalkınca **saatte 110 uyanma** — güç
+bütçesi tek başına tavan değil (dinlenme saatte ~120 turu karşılıyor), asıl
+tavan refrakter süre.
+
+### Canlıda bulunan iki sorun — ikisi de inisiyatiften ÖNCE vardı
+
+**1. Bakış zinciri.** `gordum` her zaman terfi ediyor ve Haiku her turda hem
+bakıp hem konuşuyordu: her bakışın cevabı beyni yeniden uyandırdı. Tek
+inisiyatif → **5 tur**, Orion 4 kez "Bakıyorum" dedi. (`bakdene` de 3 tur
+yapıyordu; inisiyatif onu büyüttü.) Maliyet tavanı testi UYANMALARI sayıyordu,
+TURLARI değil — o yüzden kaçırdı.
+
+→ **Zincir bütçesi** (`bridge/kopru.ts` → `ZINCIR_AZAMI = 1`): her dış tetik
+1 takip turu hakkı verir; hakkı **tur başına** tükenir (mesaj başına değil —
+beyin tek turda iki soru sorabilir, iki cevap aynı turda buluşmalı; ilk
+sürüm mesaj başına düşürüyordu ve önceden var olan bir testi kırdı). Hakkı
+biten bakış cevabı beyni uyandırmaz ama **kaybolmaz**, çalışma belleğine
+yazılır. Mutasyon: bütçe kalkınca tek tetik **20 tur** (sahte beynin cevap
+sayısıyla sınırlı — fiilen sınırsız).
+
+**2. Susma ilanı.** Model susmayı seçince bunu SESLİ söylüyor: "Sessiz
+kalıyorum…". Ölçüm (Haiku, n=10, gerçek inisiyatif girdisi):
+
+| olay metni | baktı | sesli susma ilanı | konuştu |
+|---|---|---|---|
+| kısa ifade | 6 | **3** | 1 |
+| "susacağını söyleme, hiçbir araç çağırma" | 6 | **3** | 1 |
+
+**İstem yaması hiçbir şeyi değiştirmedi** — spec 06 panelinin S1'i neden
+elediğinin canlı kanıtı. Kısa ifade tutuldu.
+
+→ **Yapısal:** köprü zincirin kökenini taşıyor (`ayrinti.kaynak`, metinden
+değil); **yalnızca inisiyatif zincirinde** susma ilanıyla başlayan söz düşer ve
+dünyaya da gitmez. Soru-cevapta aynı cümle ("neden konuşmuyorsun" → "Sessiz
+kalıyorum çünkü…") dokunulmaz — iki yönlü mutasyonla kanıtlandı.
+
+### Canlı sonuç `[ÖLÇÜLDÜ]`
+
+| | önce | sonra |
+|---|---|---|
+| tur / inisiyatif | 5 | ilki 2, sonrakiler 1 |
+| sesli "Sessiz kalıyorum" | vardı | **0** (6/6 yutuldu) |
+| `bakdene` soru-cevap | — | 2 tur, "Önümde yönetim terminali var", `zincirKesilen: 0` |
+
+**Dürüst gözlem:** model 6 inisiyatifin 6'sında susmayı seçti ("konuşacak
+bir sebep yok"). Bu doğru bir karar — salt sessizlik ona söyleyecek somut bir
+şey vermiyor. Ayrıca yutulan ilanlarda "Ozyn çalışıyor" gibi **uydurma**
+vardı (Ozyn monitörde değildi): içeriksiz bir tetik uydurmaya davetiye.
+Makine güvenli ve çalışıyor; söz üretecek olan **içerikli tetikler**.
+
+### v2 — yapılmadı, gerekçeli
+
+- **Merak** (boştayken `sor(onumde)`): `gordum` her zaman terfi ediyor, yani
+  her "ucuz bakış" bir LLM turu olurdu. Önce protokole köken alanı gerekir.
+- **İçerikli tetikler:** tekrarlayan terminal hatası, çalışma belleğiyle
+  ilgili bir anı, Ozyn'in uzun süre Orion'a bakması. Sessizlikten farklı
+  olarak modele söyleyecek somut bir şey verirler.

@@ -71,6 +71,7 @@ import { Ajanda } from "../mind/ajanda.ts";
 import { gozlemAnisiMi } from "../mind/hafiza.ts";
 import { odadaSure, sessizlikSozu, gununVakti } from "../mind/zaman.ts";
 import { depoYukle } from "../mind/hafizaGocu.ts";
+import { GucButcesi, Inisiyatif } from "../mind/inisiyatif.ts";
 import { KuralRefleksi, UZUN_ISLEM_MS } from "../mind/refleks.ts";
 import { OnayKapisi } from "../mind/onayKapisi.ts";
 import { riskEtiketi } from "../mind/komutRiski.ts";
@@ -318,6 +319,19 @@ const ajanda = new Ajanda({
   asgariAralikMs: PANO_TELLERI.ajanda.asgari,
   azamiSapmaMs: PANO_TELLERI.ajanda.sapma,
 });
+
+// ── İNİSİYATİF: Orion'un kendi gündemi (mind/inisiyatif.ts) ──────────────
+// `ajanda` heykel gibi durmasın diye rastgele bakar; bu ise DURUMA bakıp
+// beyne kendiliğinden düşünme fırsatı verir. NE yapılacağına beyin karar
+// verir. `?inisiyatifsn=N` yalnızca canlı deneme içindir: eşik ve refrakter
+// N saniyeye iner, 10 dakika beklemek gerekmez.
+const gucButcesi = new GucButcesi();
+const inisiyatifSn = Number(new URLSearchParams(location.search).get("inisiyatifsn") ?? 0);
+const inisiyatif = new Inisiyatif(inisiyatifSn > 0
+  ? { sessizlikEsigiMs: inisiyatifSn * 1000, refrakterMs: inisiyatifSn * 1000 }
+  : {});
+/** Güç bütçesine düşülen son beyin turu sayısı — fark kadar `dusundu()`. */
+let gucDusunmeSayaci = 0;
 
 // ── SENARYO KİPİ: kendiliğinden davranışları sustur ───────────────────────
 //
@@ -645,6 +659,48 @@ saat.dinle((t, dt) => {
       d.etkilesim === "monitor" ||
       (kopru?.dusunuyorMu ?? false) ||
       a.poz === "yürüyor" || a.poz === "koşuyor";
+    // GÜÇ: gövdenin GERÇEK hızıyla (Faz 2'den beri komut edilen değil) ve
+    // tamamlanan beyin turlarıyla harcanır, dinlenince dolar.
+    gucButcesi.tikle(dt, a.hiz ?? 0);
+    const dusunme = kopru?.sayac().dusunme ?? 0;
+    for (; gucDusunmeSayaci < dusunme; gucDusunmeSayaci++) gucButcesi.dusundu();
+
+    // İNİSİYATİF önce, ajanda sonra: durum söze girmeyi gerektiriyorsa rastgele
+    // bir bakış onu gölgelemesin. İkisi de senaryo kipinde susar.
+    if (!SENARYO_KIPI && kopru) {
+      const sessizlikMs = Date.now() - (sonKonusma || ACILIS);
+      const k = inisiyatif.karar({
+        simdiMs: t * 1000,
+        mesgul,
+        ozynMonitorde: d.etkilesim === "monitor",
+        ozynOdada: (d.mesafe ?? Infinity) < 8,
+        sessizlikMs,
+        guc: gucButcesi.seviye,
+      });
+      if (k) {
+        // YENİ YOL YOK: sıradan bir olay algısı. Dikkat süzgecinden ve dakika
+        // sınırından geçer, tek karar→eylem yolu (`niyetiYurut`) korunur.
+        // Çerçeve İngilizce (spec 06 §6.8).
+        //
+        // Köken YAPISAL alanda (`ayrinti.kaynak`), metinde değil: köprü susma
+        // ilanını yalnızca inisiyatif zincirinde yutuyor ve bunu metinden
+        // tahmin etmek, bugün önek eşleştirmesinin kaymasıyla aynı hata olurdu.
+        //
+        // İfade KISA tutuldu: "susacağını söyleme, hiçbir araç çağırma" diye
+        // uzatmak ölçümde hiçbir şeyi değiştirmedi (3/10 → 3/10), yalnızca
+        // bağlamı büyüttü. Susma ilanını köprü yapısal olarak yutuyor.
+        const sure = k.dakika >= 1 ? `${k.dakika} minutes` : `${Math.round(sessizlikMs / 1000)} seconds`;
+        kopru.algi({
+          tur: "olay",
+          ad: `nobody has spoken for ${sure} — this is your own initiative: `
+            + "say something only if it is useful, otherwise stay silent",
+          ayrinti: { kaynak: "inisiyatif" },
+        });
+        console.log(`[INISIYATIF] soze_gir · sessizlik=${k.dakika} dk · fayda=${k.fayda.toFixed(2)} · guc=${gucButcesi.seviye.toFixed(2)}`);
+        gunluk.ekle("bilgi", "inisiyatif", `kendiliğinden düşünme fırsatı (${k.dakika} dk sessizlik)`);
+      }
+    }
+
     // Senaryo kipinde ajanda susar: senaryonun niyetini kesmesin.
     const oneri = SENARYO_KIPI ? null : ajanda.tikle(t * 1000, mesgul);
     if (oneri) orion.niyet(oneri, kimlik("ajanda"));

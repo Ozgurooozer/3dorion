@@ -100,7 +100,49 @@ export interface KopruSayaci {
   kurtarilanCagri: number;
   /** Konuşulmayıp yutulan araç çöpü — kullanıcı JSON dinlemesin. */
   yutulanCop: number;
+  /**
+   * Zincir bütçesi bittiği için beyni UYANDIRMAYAN bakış cevabı. Cevap
+   * kaybolmaz, çalışma belleğine yazılır. Bu sayı büyüyorsa beyin her turda
+   * bakıyor demektir — bütçe olmasa her biri bir LLM turu olurdu.
+   */
+  zincirKesilen: number;
+  /** İnisiyatif zincirinde yutulan susma ilanı ("Sessiz kalıyorum…"). */
+  yutulanSusma: number;
 }
+
+/**
+ * Susma İLANI — model susmayı seçmiş ama bunu söylüyor.
+ *
+ * ÖLÇÜLDÜ (2026-09-19, Haiku, n=10, gerçek inisiyatif girdisi): kendiliğinden
+ * düşünme turunda 3/10 "Sessiz kalıyorum…" SESLİ söylendi. Olay metnine
+ * "susacağını söyleme, hiçbir araç çağırma" diye açıkça yazmak sonucu
+ * DEĞİŞTİRMEDİ (yine 3/10) — istem yaması işe yaramadı, bu yüzden yapısal.
+ *
+ * DAR tutuldu: yalnızca sözün BAŞINDA ve yalnızca ölçülen kalıplar. Ve
+ * yalnızca İNİSİYATİF zincirinde uygulanır — Ozyn "neden konuşmuyorsun"
+ * derse aynı cümle bir cevaptır ve dokunulmaz.
+ */
+const SUSMA_ILANI = /^\s*(sessiz kal|susuyorum|susacağım|susmayı)/;
+
+/** Olay inisiyatiften mi geldi — metinden DEĞİL, yapısal alandan okunur. */
+function inisiyatifOlayiMi(a: Algi): boolean {
+  return a.tur === "olay" && a.ayrinti?.kaynak === "inisiyatif";
+}
+
+/**
+ * Bir dış tetiğin (Ozyn'in sözü, terminal hatası, olay, inisiyatif) beyne
+ * verdiği TAKİP turu hakkı.
+ *
+ * NEDEN VAR — canlıda bulundu (2026-09-19, inisiyatif denemesi): `gordum`
+ * her zaman terfi ediyor ("beyin cevabı kendisi istedi") ve Haiku her turda
+ * hem bakıp hem konuşuyordu. Her bakışın cevabı beyni yeniden uyandırdı:
+ * tek tetik → 5 tur, Orion 4 kez "Bakıyorum" dedi.
+ *
+ * NEDEN 1: soru-cevap tam olarak bir takip turu ister (soru turu → bakış →
+ * cevap turu). Fazlası ölçülmüş bir ihtiyaç değil, ölçülmüş bir maliyet.
+ * Model ne yaparsa yapsın bir tetik en fazla 1 + ZINCIR_AZAMI tur doğurur.
+ */
+export const ZINCIR_AZAMI = 1;
 
 export class Kopru {
   private _ayar: KopruAyari;
@@ -118,7 +160,17 @@ export class Kopru {
   private _dusunuyor = false;
   /** Düşünme sürerken yeni girdi geldiyse, bitince bir tur daha dön. */
   private _tekrarGerek = false;
-  private _sayac: KopruSayaci = { dusunme: 0, niyet: 0, reddedilenCagri: 0, hata: 0, suzulen: 0, kurtarilanMetin: 0, kurtarilanCagri: 0, yutulanCop: 0 };
+  private _sayac: KopruSayaci = { dusunme: 0, niyet: 0, reddedilenCagri: 0, hata: 0, suzulen: 0, kurtarilanMetin: 0, kurtarilanCagri: 0, yutulanCop: 0, zincirKesilen: 0, yutulanSusma: 0 };
+  /** Kalan takip turu hakkı — bkz. ZINCIR_AZAMI. */
+  private _zincirKalan = ZINCIR_AZAMI;
+  /**
+   * Şu anki zinciri kim başlattı. Takip turları (yalnız bakış cevabı) kökeni
+   * DEVRALIR: inisiyatifle başlayan zincirin bakış sonrası turu da inisiyatiftir.
+   */
+  private _zincirKokeni: "dis" | "inisiyatif" = "dis";
+  /** Bekleyen turda inisiyatif / dış tetik var mı — tur başında kökeni belirler. */
+  private _turInisiyatif = false;
+  private _turDis = false;
   /** Üst üste kaç tur yalnızca ret geri beslemesiyle döndük. Döngü kalkanı. */
   private _ardisikRet = 0;
   private _konusmaDinleyiciler = new Set<(metin: string) => void>();
@@ -201,6 +253,18 @@ export class Kopru {
     catch (err) { console.error("[kopru] asama dinleyicisi hatasi:", err); }
   }
 
+  /**
+   * Söz dünyaya çıksın mı. Tek kural: inisiyatif zincirinde susma İLANI
+   * düşer (bkz. SUSMA_ILANI). Üç konuşma yolunun üçü de buradan geçer.
+   */
+  private _sozuGecir(metin: string): boolean {
+    if (this._zincirKokeni !== "inisiyatif") return true;
+    if (!SUSMA_ILANI.test(metin.toLocaleLowerCase("tr-TR"))) return true;
+    this._sayac.yutulanSusma++;
+    console.log(`[kopru] inisiyatif: susma ilani yutuldu ("${metin.slice(0, 60)}")`);
+    return false;
+  }
+
   private _konusmaYay(metin: string): void {
     for (const d of this._konusmaDinleyiciler) {
       try { d(metin); } catch (err) { console.error("[kopru] konuşma dinleyicisi hatası:", err); }
@@ -214,6 +278,15 @@ export class Kopru {
     const ozet = ozetle(a);
     // Boş özet = `tik`. Beyin kanalına asla girmez (protocol/SOZLESME.md).
     if (!ozet) return;
+
+    // ZİNCİR BÜTÇESİ (bkz. ZINCIR_AZAMI). Hakkı biten bakış cevabı beyni
+    // uyandırmaz — ama KAYBOLMAZ: çalışma belleğine yazılır, bir sonraki
+    // gerçek tetikte ŞİMDİ satırında yaşıyla görünür.
+    if (a.tur === "gordum" && this._zincirKalan <= 0) {
+      this._calisma.yaz(a.ne, a.metin);
+      this._sayac.zincirKesilen++;
+      return;
+    }
 
     // SIRA ÖNEMLİ — içerik süzgeci DİKKAT'TEN ÖNCE gelir.
     //
@@ -236,6 +309,14 @@ export class Kopru {
 
     const k = this._dikkat.karar(a);
     if (!k.gecsin) return;
+
+    // Bakış cevabı dışındaki her tetik (söz, terminal, olay, inisiyatif)
+    // hakkı YENİLER. Tüketim turun başında olur (bkz. `_dusun`).
+    if (a.tur !== "gordum") {
+      this._zincirKalan = ZINCIR_AZAMI;
+      if (inisiyatifOlayiMi(a)) this._turInisiyatif = true;
+      else this._turDis = true;
+    }
 
     this._tampon.push(ozet);
 
@@ -355,6 +436,16 @@ export class Kopru {
 
       const turler = new Set(this._turTurleri);
       this._turTurleri.clear();
+      // Yalnızca bakış cevaplarından oluşan tur bir TAKİP turudur ve hakkı
+      // TUR başına tüketir, mesaj başına değil: beyin tek turda iki soru
+      // sorabilir (`onumde` + `yakin`) ve iki cevap aynı turda buluşmalı.
+      // İlk sürüm mesaj başına düşürüyordu ve ikinci cevabı kesiyordu.
+      if (turler.size > 0 && [...turler].every((t) => t === "gordum")) this._zincirKalan--;
+      // KÖKEN: dış tetik her zaman kazanır (Ozyn konuştuysa cevap inisiyatif
+      // sayılmaz). Yalnız bakış cevabından oluşan tur kökeni devralır.
+      if (this._turDis) this._zincirKokeni = "dis";
+      else if (this._turInisiyatif) this._zincirKokeni = "inisiyatif";
+      this._turDis = this._turInisiyatif = false;
       const talimat = talimatUret({
         konusma: turler.has("duydum"),
         terminal: turler.has("terminal"),
@@ -427,6 +518,8 @@ export class Kopru {
         }
         this._ardisikRet = 0;  // geçerli çağrı geldi, düzeltme döngüsü kırıldı
         const id = kimlik("n");
+        // Düşen söz dünyaya da GİTMEZ: `niyetGonder` de atlanır.
+        if (d.deger.tur === "soyle" && !this._sozuGecir(d.deger.metin)) continue;
         if (d.deger.tur === "soyle" && this._konusmaDinleyiciler.size) {
           this._konusmaYay(d.deger.metin);
           this._gecmis.push({ rol: "orion", metin: d.deger.metin, arac: true });
@@ -464,12 +557,13 @@ export class Kopru {
           this._sayac.kurtarilanCagri++;
           console.warn(`[kopru] METINDEN kurtarildi: ${c.ad}`);
           const id = kimlik("n");
+          if (d.deger.tur === "soyle" && !this._sozuGecir(d.deger.metin)) continue;
           if (d.deger.tur === "soyle") { this._konusmaYay(d.deger.metin); this._gecmis.push({ rol: "orion", metin: d.deger.metin, arac: true }); this._kirp(); }
           this._ayar.niyetGonder(d.deger, id);
           this._sayac.niyet++;
         }
 
-        if (konusulabilir && this._konusmaDinleyiciler.size) {
+        if (konusulabilir && this._konusmaDinleyiciler.size && this._sozuGecir(konusulabilir)) {
           const metin = konusulabilir.slice(0, 400);
           this._sayac.kurtarilanMetin++;
           console.warn(`[kopru] arac cagrilmadi, temiz metin konusmaya cevrildi: "${metin.slice(0, 80)}"`);

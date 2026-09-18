@@ -15,8 +15,10 @@ bitmeden başlatılmaz.
 - **Yoğun gömme.** `nomic-embed-text` makinede kurulu; `HafizaAyari.ilgiOlcer`
   kancası hazır. Eş anlamlıları kaçırmayı çözer. Kelime eşleşmesiyle
   ölçülerek karşılaştırılmalı.
-- **İnisiyatif.** Çalışma belleğini okuyan, fayda puanlamalı ajanda (oyun
-  yapay zekâsındaki utility AI). Önce doğru bir çalışma belleği gerekir.
+- ~~**İnisiyatif.**~~ — **v1 YAPILDI (2026-09-19)**, spec 06 §6.9. Kalan
+  v2 maddeleri: **merak** (önce `gordum`'a köken alanı gerekir — yoksa her
+  bakış bir LLM turu) ve **içerikli tetikler** (tekrarlayan hata, ilgili anı,
+  Ozyn'in bakışı). Salt sessizlik tetiğinde model 6/6 susmayı seçti.
 - **BM25 / IDF** — spec 06'da koşullu (5c). Kök bulma gerekirse Türkçe'ye
   özgü olmalı; Open Notebook'un İngilizce kök bulucusu işe yaramaz.
 - **SmolVLM (görüntü anlayan küçük model) — ertelendi, 2026-09-17.**

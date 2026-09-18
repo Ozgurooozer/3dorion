@@ -86,6 +86,27 @@ export const BEDEN = {
     fren: 3.0,
   },
 
+  /**
+   * GÜÇ — bedenin bataryası (Ozyn'in makine/EE panelinin önerisi, 2026-09-18).
+   *
+   * Hareket de düşünce de AYNI kaynaktan harcar. Sebep estetik değil:
+   * "tik beyne gitmez" bugüne kadar DAYATILAN bir kuraldı; güç bütçesiyle
+   * maliyet Orion'un sahip olduğu bir şeye dönüşüyor — uzun bir yürüyüşten
+   * sonra kendiliğinden söze girmesi azalır. İnisiyatifin (fayda
+   * puanlamasının) ön koşulu buydu: tartacak bedeli olmayan bir varlığın
+   * gündemi olamaz.
+   *
+   * Birimler: seviye 0..1 (kapasite = 1).
+   */
+  guc: {
+    /** Dinlenirken saniyede dolan (tam dolum ≈ 10 dk). */
+    dinlenmeHizi: 1 / 600,
+    /** Yürünen metre başına harcanan (10 m yürüyüş ≈ %10). */
+    hareketMaliyeti: 0.01,
+    /** Beyin turu başına harcanan (≈ 20 tur boşaltır). */
+    dusunceMaliyeti: 0.05,
+  },
+
   duyu: {
     /**
      * Görüş konisinin YARIM açısı (radyan). ~40°, insan odak alanına yakın.

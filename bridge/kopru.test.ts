@@ -507,6 +507,10 @@ test("YENİ gözlem ESKİSİNİ siler — iki yer birden 'önümde' olamaz", asy
   k.algi({ tur: "gordum", ne: "onumde", metin: "beyaz tahta" });
   await bekle(40);
   k.algi({ tur: "gordum", ne: "onumde", metin: "yönetim terminali" });
+  // İkinci bakış kendi başına beyni UYANDIRMAZ (zincir bütçesi, 2026-09-19);
+  // ama çalışma belleğinin üstüne yazar. Niyet aynı kalıyor: yeni gözlem
+  // eskisini siler. Gözlem yolu değişti — gerçek bir tetik sonrası turda bak.
+  k.algi({ tur: "duydum", metin: "şimdi ne görüyorsun", kesin: true });
   await bekle(60);
   const d = b.gordugu.at(-1)!.dunya;
   assert.match(d, /yönetim terminali/);
@@ -524,4 +528,147 @@ test("ANILAR zaman etiketiyle sunulur (spec 06 K3)", async () => {
   const anilar = b.gordugu.at(-1)!.anilar ?? [];
   assert.ok(anilar.length > 0, "anı getirilmedi");
   for (const a of anilar) assert.match(a, /^\[(just now|\d+ (minutes|hours|days) ago)\] /, `zamansız anı: ${a}`);
+});
+
+// ── ZİNCİR BÜTÇESİ: bakışın cevabı beyni sonsuza kadar uyandırmaz ──────────
+//
+// NAİF ÇÖZÜMDEN ÖNCE yazıldı. Canlıda bulundu (2026-09-19, inisiyatif denemesi):
+// `gordum` her zaman beyne terfi ediyor ("beyin cevabı kendisi istedi") ve
+// Haiku her turda hem BAKIP hem KONUŞUYORDU. Sonuç: tek tetik → 5 tur,
+// Orion 4 kez "Bakıyorum" dedi. Maliyet tavanı testi UYANMALARI sayıyordu,
+// TURLARI değil — o yüzden kaçırdı.
+
+/** Her turda bakan ve konuşan beyin — canlıda Haiku'nun yaptığı. */
+function bakipKonusanBeyin(n = 20): SahteBeyin {
+  return new SahteBeyin(...Array.from({ length: n }, () => ({
+    metin: "",
+    cagrilar: [cagri("dunya_sor", { ne: "dunya" }), cagri("dunya_soyle", { metin: "Bakıyorum." })],
+  })));
+}
+
+/** Dünyayı oynar: beynin her `sor` niyetine bir `gordum` ile cevap verir. */
+async function dunyayiOyna(k: Kopru, niyetler: { n: Niyet; id: string }[], tur = 25): Promise<void> {
+  let islenen = 0;
+  for (let i = 0; i < tur; i++) {
+    await bekle(40);
+    for (; islenen < niyetler.length; islenen++) {
+      const n = niyetler[islenen]!.n;
+      // Her cevap farklı metin: dikkat'in tekrar süzgeci zinciri YANLIŞ
+      // SEBEPTEN kesmesin — ölçülen şey bütçe olmalı.
+      if (n.tur === "sor") k.algi({ tur: "gordum", ne: n.ne, metin: `nesne ${islenen}` });
+    }
+  }
+}
+
+test("ZİNCİR: tek tetik en fazla 1 takip turu doğurur — bakış döngüsü yok", async () => {
+  const b = bakipKonusanBeyin();
+  const { k, niyetler } = kur(b);
+  k.algi({ tur: "olay", ad: "kendiliginden" });
+  await dunyayiOyna(k, niyetler);
+  assert.equal(b.gordugu.length, 2, `tek tetik ${b.gordugu.length} tur dogurdu (beklenen: tetik + 1 takip)`);
+});
+
+test("ZİNCİR: bütçesi biten cevap KAYBOLMAZ — çalışma belleğine yazılır", async () => {
+  const b = bakipKonusanBeyin();
+  const { k, niyetler } = kur(b);
+  k.algi({ tur: "olay", ad: "kendiliginden" });
+  await dunyayiOyna(k, niyetler);
+  // Zincir kesildi; yeni bir dış tetik gelince beyin SON bakışı bilmeli.
+  k.algi({ tur: "duydum", metin: "ne gördün", kesin: true });
+  await dunyayiOyna(k, niyetler, 6);
+  const sonGirdi = b.gordugu.find((g) => g.ozetler.some((o) => o.includes("ne gördün")));
+  assert.ok(sonGirdi, "yeni tetik beyni uyandirmadi");
+  assert.match(sonGirdi.dunya, /in the room: nesne \d+/, "kesilen bakisin cevabi calisma belleginden dustu");
+});
+
+test("ZİNCİR: soru-cevap BOZULMAZ — soru turu, bakış, cevap turu", async () => {
+  const b = new SahteBeyin(
+    { metin: "", cagrilar: [cagri("dunya_sor", { ne: "onumde" })] },
+    { metin: "", cagrilar: [cagri("dunya_soyle", { metin: "Önümde yönetim terminali var." })] },
+  );
+  const { k, niyetler } = kur(b);
+  k.algi({ tur: "duydum", metin: "önünde ne var", kesin: true });
+  await dunyayiOyna(k, niyetler);
+  assert.equal(b.gordugu.length, 2, "cevap turu hic gelmedi — soru-cevap kirildi");
+  assert.ok(b.gordugu[1]!.ozetler.some((o) => o.startsWith("You looked")), "cevap turu bakisin sonucunu gormedi");
+});
+
+test("ZİNCİR: yeni bir dış tetik bütçeyi YENİLER", async () => {
+  const b = bakipKonusanBeyin();
+  const { k, niyetler } = kur(b);
+  k.algi({ tur: "olay", ad: "birinci" });
+  await dunyayiOyna(k, niyetler);
+  const ilk = b.gordugu.length;
+  k.algi({ tur: "olay", ad: "ikinci" });
+  await dunyayiOyna(k, niyetler);
+  assert.equal(b.gordugu.length - ilk, 2, "ikinci tetik takip turu alamadi — butce yenilenmedi");
+});
+
+// ── İNİSİYATİF ZİNCİRİNDE SUSMA İLANI ──────────────────────────────────────
+//
+// NAİF ÇÖZÜMDEN ÖNCE yazıldı. Ölçüldü (2026-09-19, Haiku, n=10): kendiliğinden
+// düşünme turunda model 3/10 "Sessiz kalıyorum…" diye SESLİ söylüyor.
+// "susacağını söyleme" diye açıkça yazmak bunu DEĞİŞTİRMEDİ (yine 3/10).
+// Model susmayı seçmiş; ilanı düşmeli. Ama YALNIZCA inisiyatif zincirinde —
+// Ozyn "neden konuşmuyorsun" derse aynı cümle bir CEVAPTIR.
+
+const inisiyatifOlayi = (): Algi => ({ tur: "olay", ad: "sessizlik", ayrinti: { kaynak: "inisiyatif" } });
+
+test("SUSMA İLANI: inisiyatif turunda 'Sessiz kalıyorum…' söylenmez ve dünyaya gitmez", async () => {
+  const b = new SahteBeyin({ metin: "", cagrilar: [cagri("dunya_soyle", { metin: "Sessiz kalıyorum. Ozyn çalışıyor." })] });
+  const { k, niyetler } = kur(b);
+  const duyulan: string[] = [];
+  k.konusmaDinle((m) => duyulan.push(m));
+  k.algi(inisiyatifOlayi());
+  await bekle(80);
+  assert.equal(b.gordugu.length, 1, "inisiyatif beyni uyandirmadi");
+  assert.deepEqual(duyulan, [], "susma ilani SESLI soylendi");
+  assert.ok(!niyetler.some((x) => x.n.tur === "soyle"), "susma ilani dunyaya soyle niyeti olarak gitti");
+  assert.equal(k.sayac().yutulanSusma, 1);
+});
+
+test("SUSMA İLANI: bakış sonrası TAKİP turu da inisiyatif zincirine aittir", async () => {
+  const b = new SahteBeyin(
+    { metin: "", cagrilar: [cagri("dunya_sor", { ne: "dunya" })] },
+    { metin: "", cagrilar: [cagri("dunya_soyle", { metin: "Sessiz kalıyorum, yapacak bir şey yok." })] },
+  );
+  const { k, niyetler } = kur(b);
+  const duyulan: string[] = [];
+  k.konusmaDinle((m) => duyulan.push(m));
+  k.algi(inisiyatifOlayi());
+  await dunyayiOyna(k, niyetler, 8);
+  assert.equal(b.gordugu.length, 2);
+  assert.deepEqual(duyulan, [], "takip turunda susma ilani soylendi");
+});
+
+test("SUSMA İLANI yanlış pozitif YOK: Ozyn sorunca aynı cümle bir CEVAPTIR", async () => {
+  const b = new SahteBeyin({ metin: "", cagrilar: [cagri("dunya_soyle", { metin: "Sessiz kalıyorum çünkü seni bölmek istemedim." })] });
+  const { k } = kur(b);
+  const duyulan: string[] = [];
+  k.konusmaDinle((m) => duyulan.push(m));
+  k.algi({ tur: "duydum", metin: "neden konuşmuyorsun", kesin: true });
+  await bekle(80);
+  assert.deepEqual(duyulan, ["Sessiz kalıyorum çünkü seni bölmek istemedim."], "soru-cevapta cevap yutuldu");
+});
+
+test("İNİSİYATİF turunda GERÇEK içerik söylenir — yalnızca ilan düşer", async () => {
+  const b = new SahteBeyin({ metin: "", cagrilar: [cagri("dunya_soyle", { metin: "Tahtada dünkü not hâlâ duruyor." })] });
+  const { k } = kur(b);
+  const duyulan: string[] = [];
+  k.konusmaDinle((m) => duyulan.push(m));
+  k.algi(inisiyatifOlayi());
+  await bekle(80);
+  assert.deepEqual(duyulan, ["Tahtada dünkü not hâlâ duruyor."]);
+});
+
+test("SUSMA İLANI: Ozyn araya girerse köken DIŞ olur — cevap düşmez", async () => {
+  const b = new SahteBeyin({ metin: "", cagrilar: [cagri("dunya_soyle", { metin: "Sessiz kalıyorum, dinliyorum." })] });
+  b.gecikmeMs = 0;
+  const { k } = kur(b);
+  const duyulan: string[] = [];
+  k.konusmaDinle((m) => duyulan.push(m));
+  k.algi(inisiyatifOlayi());
+  k.algi({ tur: "duydum", metin: "orada mısın", kesin: true });   // aynı toplama penceresinde
+  await bekle(80);
+  assert.deepEqual(duyulan, ["Sessiz kalıyorum, dinliyorum."], "Ozyn konusmusken cevap inisiyatif sanildi");
 });

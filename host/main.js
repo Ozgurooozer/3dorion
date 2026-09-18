@@ -138,6 +138,10 @@ function pencereAc() {
   if (process.env.ORION_FPS === "1") parcalar.push("fps=1");
   if (process.env.ORION_RAKIP === "1") parcalar.push("rakip=1");
   if (process.env.ORION_GECMIS) parcalar.push(`gecmis=${process.env.ORION_GECMIS}`);
+  // Senaryosuz canlı denemede TTS'i kapatmak için (Ozyn'in hoparlöründen ses çıkmasın).
+  if (process.env.ORION_SESSIZ === "1") parcalar.push("sessiz=1");
+  // İnisiyatif canlı denemesi: sessizlik eşiği ve refrakter N saniyeye iner.
+  if (process.env.ORION_INISIYATIF_SN) parcalar.push(`inisiyatifsn=${encodeURIComponent(process.env.ORION_INISIYATIF_SN)}`);
   // Model karşılaştırması için: aynı ölçüm düzeneği, farklı beyin.
   if (process.env.ORION_MODEL) parcalar.push(`model=${encodeURIComponent(process.env.ORION_MODEL)}`);
   // Sağlayıcı/adres/şifre de dışarıdan: kota dolunca başka bir sağlayıcıya
