@@ -36,6 +36,35 @@ bitmeden başlatılmaz.
   aynı kareye bakıp çelişirse hata yakalanır (ayna kontrolünün mantığı).
   (b) bir ürün özelliği değil, test aracıdır.
   Doğrulanacaklar: Ollama/llama.cpp desteği, gerçek VRAM ve gecikme, Türkçe.
+- **Needle 3 (cactus-compute, 8–29 MB araç-çağırma modeli) — ölçüldü,
+  ertelendi, 2026-09-19.** Fikir: eylem seçimini (araç çağrısı) küçük bir
+  uzman modele, sözü (Türkçe düzyazı) büyük beyne vermek. Ölçüm (16 sorgu,
+  her sorgu `reset()` + yalnız ilk karar `run(max_steps=0)`):
+
+  | | bizim şema | Needle rehberine göre şema |
+  |---|---|---|
+  | araç + argüman doğru | 2/16 | **8/16** |
+  | İngilizce sorgu | — | 9/13 araç |
+  | **Türkçe sorgu** | — | **0/3** |
+  | gecikme | ~0,8 sn | **0,2–0,6 sn** |
+
+  **Neden şimdi değil:** (1) Ozyn Türkçe konuşuyor ve Needle sorguyu doğrudan
+  onun sözünden alıyor — Türkçe 0/3. (2) Güven skoru bizim alanda kalibre
+  değil: "Fransa'nın başkenti ne" → `look_in_front`, **güven 1.0**; reddetmesi
+  gerekiyordu. Güvene göre yönlendirme (act / confirm / refuse) bu yüzden
+  çalışmaz.
+  **Ders — şema tasarımı model kadar önemli:** aynı model, bizim çoğullanmış
+  şemayla (`dunya_sor` + `ne` enum'u, `dunya_*` adları) 2/16, "her eylem ayrı
+  araç, kullanıcının söyleyeceği ad" şemasıyla 8/16. Adaptör taslağı
+  `scratchpad/needle-adil.py` → `esle()` içinde (12 satır).
+  **Ölçüm hijyeni:** ilk koşum geçersizdi — `run()` bir ajan döngüsü, aracı
+  çalıştırmayı deneyip "unknown tool" hatasını geri besliyordu ve çağrılar
+  arası konuşma durumu kalıyordu. Doğrusu: her sorguda `reset()`, `max_steps=0`.
+  **Telemetri:** binary'de varsayılan AÇIK (anonim sayım, Supabase ucu);
+  kullanılırsa `NEEDLE_TELEMETRY=0` ve `DO_NOT_TRACK=1` zorunlu.
+  **Tetikleyici — aç:** Needle LoRA ile bizim 12 eylemimiz üzerine **Türkçe**
+  ince ayarlanırsa (README: ince ayar 18–36 puan kaldırıyor) ve yeniden
+  ölçümde Türkçe ≥ %80 + konu dışında güven < 0,3 olursa.
 - **Karşılaştırma değerlendirmesi:** GPT-2 ürün için elendi (Türkçe'de 3,07
   token/kelime, 1.024 bağlam, talimat/araç yok); yalnızca transformer içini
   göstermek için öğretici — zihin duvarında "model nasıl düşünür" paneli fikri.
