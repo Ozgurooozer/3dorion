@@ -21,7 +21,7 @@
 1. **Senaryoları `world/giris.ts`'ten çıkar.** Dosya 2.312 satır, 1.304'ü
    (21 blok) `?xxxdene` senaryosu — test kodu üretim dosyasında ve bundle'da.
    `world/senaryolar/` altına, dinamik import ile.
-2. **Ayar normalizasyonu 4 kopya.** `mind/dikkat.ts`, `ajanda.ts`, `hafiza.ts`,
+2. **Ayar normalizasyonu artık 5 kopya** (2026-09-19'da `mind/inisiyatif.ts` beşinciyi ekledi — ponytail açıkken; bkz. `docs/olcum-ponytail.md`). Eski metin: `mind/dikkat.ts`, `ajanda.ts`, `hafiza.ts`,
    `onayKapisi.ts` aynı `sayı | () => sayı` çevirimini ayrı ayrı yapıyor.
    Tek yardımcıya indirilmeli.
 3. **`world/surfaces/sema.ts` testsiz** (824 satır). Saf yardımcılar

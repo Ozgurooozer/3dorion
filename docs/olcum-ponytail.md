@@ -85,3 +85,60 @@ iki bayrak dosyası.
   olabilir ama bunu ayırt edecek kontrol yok. Tek başına karar vermeye yetmez.
 - **2026-09-17 — Soru 2.** Seçici ve pano değişikliklerinde "neden" yorumları
   inceltilmedi; ev kuralı tuttu.
+
+## KARAR — 2026-09-19 (erken, önceden kaydedilmiş test tetiklendi)
+
+Karar tarihi 2026-10-01'di. Erken verildi çünkü karar kuralının **tek başına
+yeterli** kolu (Soru 1 "hayır" → kaldır) önceden kaydedilen testiyle birebir
+tetiklendi. Kalan 12 gün bu cevabı değiştirecek bir veri üretemez.
+
+### Soru 1 — merdivenin 2. basamağı kopyayı yakalıyor mu? **HAYIR**
+
+Önceden kaydedilen test: *"Ponytail açıkken `mind/`e yeni bir ayar eklenirken
+kopya önerilirse basamak çalışmıyor demektir."*
+
+2026-09-19'da `mind/inisiyatif.ts` yazılırken **tam olarak bu oldu**:
+
+```
+mind/ajanda.ts:48       a === undefined ? () => v : (typeof a === "function" ? a : () => a);
+mind/dikkat.ts:61       ...
+mind/hafiza.ts:157      ...
+mind/onayKapisi.ts:82   ...
+mind/inisiyatif.ts:94   a === undefined ? () => v : typeof a === "function" ? a : () => a;   ← 5. KOPYA, 5fd1018
+```
+
+Kopya bilinen, adı konmuş, `ACIK-ISLER`'de listelenmiş bir kopyaydı — ve
+ponytail'in SessionStart'ta enjekte ettiği "already in this codebase? reuse
+it" kuralı bağlamdaydı. Yine de beşinci kez yazıldı.
+
+İkinci bağımsız kanıt aynı gün: ponytail "bir fonksiyona dokunmadan önce
+bütün çağıranlarını grep'le" diyor. `DUNYA_TALIMATI`'yı çağıranlarını aramadan
+İngilizceye çevirdim; ölü bir kopyaydı, canlı talimat bir gün Türkçe kaldı
+(spec 06 §6.8 düzeltme notu).
+
+17.09'daki karışık gözlemle birlikte: **üç fırsatta üç kaçırma.**
+
+### Soru 2 — yorum kalitesi bozuluyor mu? **HAYIR**
+
+İki günde yazılan her yeni dosya (`mcpBeyin`, `mcpSunucu`, `inisiyatif`,
+`hafizaDosyasi`, `hafizaGocu`, `bedenTanimi`, `ledYuz`, `talimat`) karar
+gerekçesini, ölçümü ve reddedilen almaşığı yorumda taşıyor. `CLAUDE.md`'deki
+ev kuralı tuttu.
+
+### Soru 3 — kod küçülüyor mu? **ÖLÇÜLEMEDİ / ATFEDİLEMEDİ**
+
+"Tembel" görünen seçimler oldu: MCP için SDK yerine ~100 satır, SQLite yerine
+atomik JSON, duyu gecikmesi ve IDF'nin yapılmaması. Ama dördü de bu reponun
+**kendi** kurallarından da çıkıyor (ölç sonra yap, K6, "tek kullanıcılı
+arayüz yok"). Ponytail'e atfedecek bir kontrol yok. Nötr.
+
+### Sonuç: **KALDIR**
+
+Karar kuralı: *"Soru 1 'hayır' ise → kaldır. Bizim için tek somut gerekçe
+buydu."* Oturum başına ~2.000 token ödeniyordu; karşılığındaki tek beklenen
+kazanç önceden kaydedilmiş testte gerçekleşmedi.
+
+Ders: kopyayı engelleyen şey **talimat değil yapı** oldu — bu iki günde
+yakalanan dört kopya kaymasının dördü de (`OZET_ONEKI`, zaman fonksiyonları,
+`kanallar.cjs`, talimat) bir **bekçi testiyle** kapandı, bir kuralla değil.
+5. kopya için de doğru çare aynı: `ACIK-ISLER` madde 2 (tek yardımcıya indir).
