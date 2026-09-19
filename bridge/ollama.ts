@@ -8,7 +8,7 @@
 // Bağımlılık: protocol/ + beyin.ts + fetch. Babylon yok, Electron yok.
 "use strict";
 import type { Beyin, BeyinGirdisi, BeyinCikti, AracCagrisi } from "./beyin.ts";
-import { DUNYA_TALIMATI } from "./beyin.ts";
+import { TEMEL_TALIMAT } from "./talimat.ts";
 
 export interface OllamaAyari {
   model?: string;
@@ -52,8 +52,8 @@ export class OllamaBeyni implements Beyin {
 
   async dusun(girdi: BeyinGirdisi): Promise<BeyinCikti> {
     const mesajlar = [
-      { role: "system", content: girdi.sabit ? `${girdi.talimat ?? DUNYA_TALIMATI}
-${girdi.sabit}` : (girdi.talimat ?? DUNYA_TALIMATI) },
+      { role: "system", content: girdi.sabit ? `${girdi.talimat ?? TEMEL_TALIMAT}
+${girdi.sabit}` : (girdi.talimat ?? TEMEL_TALIMAT) },
       // Gecmis DOGRU temsil edilir: Orion'un sozleri gercekte `dunya_soyle`
       // arac cagrisiydi. Duz `assistant` metni olarak gostermek modele
       // "asistan duz metin yazar" oruntusunu ogretiyor ve cikti bozuluyordu

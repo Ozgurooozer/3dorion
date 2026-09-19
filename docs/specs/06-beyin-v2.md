@@ -299,6 +299,25 @@ alakasızlar eleniyor (öncesinde hep 3 anı gelirdi).
 
 ## 6.8 Bağlam dili: İngilizce çerçeve, Türkçe ses (2026-09-18)
 
+> **DÜZELTME (2026-09-19) — bu bölüm bir gün boyunca YARIM uygulanmıştı.**
+> Talimat metni için değiştirdiğim `bridge/beyin.ts` → `DUNYA_TALIMATI` ölü bir
+> **kopyaydı**: yalnızca `ollama.ts`'in "talimat boş gelirse" yedeğiydi. Canlı
+> köprü her turda `bridge/talimat.ts` → `talimatUret` kullanıyordu ve o
+> **Türkçe kaldı**. Durum satırları, algı özetleri, araç açıklamaları ve zaman
+> ifadeleri gerçekten İngilizceydi — ama talimatın kendisi değildi. Talimat
+> ayrıca var olmayan bir etikete işaret ediyordu ("'Hatırladıkların' listesi";
+> bağlam "You remember:" üretiyordu).
+>
+> **Aşağıdaki sayılar geçerli** — `E3` fixture'ı İngilizce talimatla elle
+> kuruldu, tasarımı ölçüyor. **Geçersiz olan "canlıya uygulandı" iddiasıydı.**
+> §6.9 ve spec 05 §8'in canlı koşuları bu karışık talimatla yapıldı.
+>
+> Fark edilişi: MCP canlı kaydında giden talimat Türkçe görünüyordu.
+> Düzeltme: `talimat.ts` İngilizceye çevrildi (DİL bölümü her turda, en
+> sonda), kopya silindi, yedek `TEMEL_TALIMAT`'a bağlandı; "hafıza etiketi
+> bağlamdan okunur" ve "talimatta Türkçe çerçeve yok" bekçi testleri eklendi.
+> Ders: değişikliği ölçüm aletiyle değil, **canlı kayıtla** doğrula.
+
 **Tetikleyen bulgu.** "Yerel model gözlenen nesneyi söylemiyor" diye not
 düşmüştük. Ham çıktıya bakınca sorun sessizlik değil, **kelime salatası**
 çıktı: `qwen2.5:7b` 10 cevabın 8'inde "ortalama"/"ormanı" diye başlıyor,
