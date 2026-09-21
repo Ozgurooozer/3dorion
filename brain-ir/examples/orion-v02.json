@@ -1,0 +1,22 @@
+{
+  "name": "orion-v02-memory-inhibition-loop",
+  "version": "0.2.0",
+  "nodes": [
+    { "id": "terminal_alarm", "type": "input" },
+    { "id": "oyuncu_yakin", "type": "input" },
+    { "id": "safety", "type": "input" },
+    { "id": "dikkat_memory", "type": "memory", "decay": 0.92, "activation": "linear" },
+    { "id": "threat", "type": "decision", "threshold": 0.7 },
+    { "id": "escape", "type": "action", "threshold": 0.5 },
+    { "id": "feedback", "type": "neuron", "decay": 0.25, "activation": "linear" }
+  ],
+  "connections": [
+    { "from": "terminal_alarm", "to": "dikkat_memory", "weight": 0.9 },
+    { "from": "oyuncu_yakin", "to": "dikkat_memory", "weight": 0.35 },
+    { "from": "dikkat_memory", "to": "threat", "weight": 1.0 },
+    { "from": "safety", "to": "threat", "weight": -0.8 },
+    { "from": "threat", "to": "escape", "weight": 1.0 },
+    { "from": "escape", "to": "feedback", "weight": 0.4 },
+    { "from": "feedback", "to": "dikkat_memory", "weight": 0.2 }
+  ]
+}

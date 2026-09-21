@@ -1,0 +1,16 @@
+{
+  "name": "orion-dikkat-v0",
+  "nodes": [
+    { "id": "terminal_alarm", "type": "input" },
+    { "id": "oyuncu_yakin", "type": "input" },
+    { "id": "dikkat", "type": "neuron", "decay": 0.25 },
+    { "id": "tehdit", "type": "decision", "threshold": 0.7 },
+    { "id": "bak", "type": "action", "threshold": 0.5 }
+  ],
+  "connections": [
+    { "from": "terminal_alarm", "to": "dikkat", "weight": 0.9 },
+    { "from": "oyuncu_yakin", "to": "dikkat", "weight": 0.35 },
+    { "from": "dikkat", "to": "tehdit", "weight": 1.0 },
+    { "from": "tehdit", "to": "bak", "weight": 1.0 }
+  ]
+}
