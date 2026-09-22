@@ -1,0 +1,3 @@
+import { performance } from 'node:perf_hooks';
+import { AliceBob, BeceriMotoru, KucukDunya } from './brain-ir/v03.ts';
+const n=100000,d=new KucukDunya(),m=new BeceriMotoru();m.beceri.level=5;m.beceri.reflex='aktif';m.beceri.confidence=.95;m.beceri.predictionError=.1;const g=d.gozlemle(),r=new AliceBob();const compiled=r.derle(m.beceri,'ileri',g.baglam);let last=r.sec(g,m.beceri);for(let i=0;i<1000;i++)last=r.sec(g,m.beceri);const t=performance.now();for(let i=0;i<n;i++)last=r.sec(g,m.beceri);const ms=performance.now()-t;console.log(JSON.stringify({compiled,last,n,totalMs:ms,avgUs:ms*1000/n},null,2));

@@ -37,26 +37,39 @@ export interface BrainInput {
 export type BrainInputDegeri = number | BrainInput;
 export type BrainInputlari = Record<string, BrainInputDegeri>;
 
+// ── ÇIKTI TİPLERİ: DEĞİŞMEZ ───────────────────────────────────────────────
+//
+// Aşağıdaki üç tip simülatörün ÜRETTİĞİ sonuçtur ve `readonly`dir. Kod bunu
+// zaten `Object.freeze` ile çalışma anında kuruyordu ama tipler
+// değiştirilebilir ilan edilmişti; `Object.freeze` `Readonly<T>` döndürdüğü
+// için atama tutmuyordu (`tsc` 4 hata). Tasarım iddiası belgelerde açık:
+// "immutable BrainTrace" — yani doğru olan kod, yanlış olan tipti. Freeze'leri
+// kaldırmak da hatayı susturur ama deterministik replay'in dayandığı
+// değişmezliği bozar.
+//
+// GİRDİ tipleri (`BrainGrafi`, `BrainDugumu`, `BrainBaglantisi`) bilerek
+// değiştirilebilir kaldı: onları çağıran kurar.
+
 export interface BrainAdimi {
-  tick: number;
-  inputs: Record<string, number>;
-  states: Record<string, number>;
-  outputs: Record<string, number>;
-  trace: BrainTrace[];
+  readonly tick: number;
+  readonly inputs: Readonly<Record<string, number>>;
+  readonly states: Readonly<Record<string, number>>;
+  readonly outputs: Readonly<Record<string, number>>;
+  readonly trace: readonly BrainTrace[];
 }
 
 export interface BrainTrace {
-  tick: number;
-  node: string;
-  previousState: number;
-  excitation: number;
-  inhibition: number;
-  rawState: number;
-  threshold?: number;
-  activated: boolean;
-  causeEvents: string[];
-  causeNodes: string[];
-  action?: string;
+  readonly tick: number;
+  readonly node: string;
+  readonly previousState: number;
+  readonly excitation: number;
+  readonly inhibition: number;
+  readonly rawState: number;
+  readonly threshold?: number;
+  readonly activated: boolean;
+  readonly causeEvents: readonly string[];
+  readonly causeNodes: readonly string[];
+  readonly action?: string;
 }
 
 export interface BrainReplay {
@@ -68,20 +81,20 @@ export interface BrainReplay {
 }
 
 export interface BrainCalisma {
-  steps: BrainAdimi[];
-  final: BrainAdimi;
-  trace: BrainTrace[];
-  replay?: BrainReplay;
+  readonly steps: readonly BrainAdimi[];
+  readonly final: BrainAdimi;
+  readonly trace: readonly BrainTrace[];
+  readonly replay?: BrainReplay;
 }
 
 export interface OrionAksiyon {
-  node: string;
-  arac: string;
-  girdi: Record<string, unknown>;
+  readonly node: string;
+  readonly arac: string;
+  readonly girdi: Readonly<Record<string, unknown>>;
 }
 
 export interface OrionBrainSonucu extends BrainCalisma {
-  aksiyonlar: OrionAksiyon[];
+  readonly aksiyonlar: readonly OrionAksiyon[];
 }
 
 const DUGUM_TURLERI = new Set<DugumTuru>([

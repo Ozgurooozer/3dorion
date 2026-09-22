@@ -1,0 +1,36 @@
+"use strict";
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { ISIK_TEHDIT_GRAPH, OrionGraphBeyni } from "./orionBeyni.ts";
+import type { BeyinGirdisi } from "../bridge/beyin.ts";
+
+const GIRDI: BeyinGirdisi = {
+  ozetler: [],
+  dunya: "",
+  gecmis: [],
+  araclar: [],
+};
+
+test("Orion beyni mevcut Beyin sözleşmesini uygular", async () => {
+  const beyin = new OrionGraphBeyni({ graph: ISIK_TEHDIT_GRAPH });
+
+  assert.equal(beyin.ad, "brain-graph");
+  assert.equal(await beyin.hazirMi(), true);
+  const cikti = await beyin.dusun({ ...GIRDI, dunya: "ışık göründü" });
+
+  assert.equal(cikti.bilgi?.karar, "ignore");
+  assert.deepEqual(cikti.cagrilar, []);
+});
+
+test("karar bir sonraki timestep'te Orion aracına dönüşür", async () => {
+  const beyin = new OrionGraphBeyni({ graph: ISIK_TEHDIT_GRAPH });
+
+  await beyin.dusun({ ...GIRDI, dunya: "ışık göründü" });
+  const cikti = await beyin.dusun(GIRDI);
+
+  assert.equal(cikti.bilgi?.karar, "escape");
+  assert.deepEqual(cikti.cagrilar, [{
+    ad: "dunya_soyle",
+    girdi: { metin: "Tehdit algıladım." },
+  }]);
+});

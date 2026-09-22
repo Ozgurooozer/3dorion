@@ -111,9 +111,17 @@ export class BrainSimulator {
     const history: BrainAdimi[] = [];
     for (let i = 0; i < steps; i++) history.push(this.step(inputs));
     if (history.length > 0) {
-      const result: BrainCalisma = { steps: Object.freeze(history), final: history.at(-1)!, trace: Object.freeze(history.flatMap((x) => x.trace)) };
-      if (replay) result.replay = this.replayKaydi(replay.seed ?? "", replay.inputs ?? Array.from({ length: steps }, () => inputs), runInitialState);
-      return result;
+      // Sonuç TEK SEFERDE kurulur: `replay` sonradan atanıyordu ve bu, çıktı
+      // tiplerinin `readonly` olmasını engelleyen tek yerdi (bkz. ir.ts).
+      const temel = {
+        steps: Object.freeze(history),
+        final: history.at(-1)!,
+        trace: Object.freeze(history.flatMap((x) => x.trace)),
+      };
+      const result: BrainCalisma = replay
+        ? { ...temel, replay: this.replayKaydi(replay.seed ?? "", replay.inputs ?? Array.from({ length: steps }, () => inputs), runInitialState) }
+        : temel;
+      return Object.freeze(result);
     }
     const states: Record<string, number> = {};
     const outputs: Record<string, number> = {};

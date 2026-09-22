@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { BrainSimulator } from "./simulator.ts";
 import { BrainIrBeyni } from "./orion.ts";
 import type { BrainGrafi, BrainInputlari } from "./ir.ts";
-import { araclariUret, cagriyiNiyete } from "../bridge/araclar.ts";
+import { araclariUret, cagriyiNiyete } from "../../bridge/araclar.ts";
 import { OlayDefteri, OlayHafizasi } from "./olayGunlugu.ts";
 
 const GRAF: BrainGrafi = {
@@ -41,7 +41,7 @@ test("sinyal grafik boyunca adım adım ilerler ve izlenebilir", () => {
   assert.equal(calisma.final.outputs.tehdit, 1);
   assert.equal(calisma.final.outputs.bak, 1);
   assert.equal(calisma.steps.length, 3);
-  assert.ok(calisma.steps[0].states.dikkat > 0);
+  assert.ok(calisma.steps[0]!.states.dikkat! > 0);
 });
 
 test("eşik altındaki karar ham state ile aksiyonu tetiklemez", () => {
@@ -91,9 +91,9 @@ test("inhibition pozitif excitation'ı bastırır", () => {
     ],
   };
   const inhibited = new BrainSimulator(grafik).run({ threat: 1, safety: 1 }, 2);
-  const positiveOnly = new BrainSimulator({ ...grafik, connections: [grafik.connections[0]] })
+  const positiveOnly = new BrainSimulator({ ...grafik, connections: [grafik.connections[0]!] })
     .run({ threat: 1, safety: 0 }, 2);
-  assert.ok(Math.abs(inhibited.final.states.escape - 0.1) < 1e-12);
+  assert.ok(Math.abs(inhibited.final.states.escape! - 0.1) < 1e-12);
   assert.equal(inhibited.final.outputs.escape, 0);
   assert.equal(positiveOnly.final.outputs.escape, 1);
   const trace = inhibited.final.trace.find((x) => x.node === "escape")!;
@@ -224,8 +224,8 @@ test("Orion adaptörü alarmı mevcut araç çağrısına çevirir", async () =>
   });
   const sonuc = await beyin.dusun(GIRDI);
   assert.equal(sonuc.cagrilar.length, 1);
-  assert.equal(sonuc.cagrilar[0].ad, "dunya_bak");
-  assert.deepEqual(sonuc.cagrilar[0].girdi, { hedef: { tip: "oyuncu" } });
+  assert.equal(sonuc.cagrilar[0]!.ad, "dunya_bak");
+  assert.deepEqual(sonuc.cagrilar[0]!.girdi, { hedef: { tip: "oyuncu" } });
   assert.equal(beyin.iz()?.aksiyonlar.length, 1);
 });
 
@@ -236,7 +236,7 @@ test("Brain IR arac çıktısı mevcut niyet doğrulamasından geçer", async ()
     adim: 4,
   });
   const sonuc = await beyin.dusun(GIRDI);
-  const niyet = cagriyiNiyete(sonuc.cagrilar[0].ad, sonuc.cagrilar[0].girdi);
+  const niyet = cagriyiNiyete(sonuc.cagrilar[0]!.ad, sonuc.cagrilar[0]!.girdi);
   assert.equal(niyet.ok, true);
   if (niyet.ok) assert.equal(niyet.deger.tur, "bak");
 });
@@ -278,8 +278,8 @@ test("olay hafızası ilgili kaydı seçip tam olaya geri döner", () => {
   hafiza.kaydet({ tur: "beyin_cagrisi", metin: "pencere ışığı gözlemi", veri: {} });
   const ilgili = hafiza.ilgili("terminal alarmı", 3);
   assert.equal(ilgili.length, 1);
-  assert.equal(ilgili[0].id, hedef.id);
-  assert.equal(ilgili[0].olay.veri.risk, "yüksek");
+  assert.equal(ilgili[0]!.id, hedef.id);
+  assert.equal(ilgili[0]!.olay.veri.risk, "yüksek");
   assert.equal(hafiza.hatirla(hedef.id)?.metin, hedef.metin);
 });
 
@@ -297,7 +297,7 @@ test("Orion çağrısı ve üretilen aksiyon olay günlüğüne ayrı kayıt olu
   assert.equal(bilgi.aksiyonOlaylari.length, 1);
   assert.equal(hafiza.dok().length, 2);
   assert.equal(hafiza.cagir(bilgi.olayId)?.tur, "beyin_cagrisi");
-  assert.equal(hafiza.cagir(bilgi.aksiyonOlaylari[0])?.tur, "beyin_aksiyonu");
+  assert.equal(hafiza.cagir(bilgi.aksiyonOlaylari[0]!)?.tur, "beyin_aksiyonu");
 });
 
 test("olay günlüğü bozulsa bile Brain IR kararı kaybolmaz", async () => {

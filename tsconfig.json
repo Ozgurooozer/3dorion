@@ -17,5 +17,13 @@
     "skipLibCheck": true,
     "types": ["node", "vite/client"]
   },
-  "include": ["protocol", "world", "bridge", "mind", "voice", "host"]
+  // brain-lab da taranır: deneysel modül de olsa tip gate'i dışında kalmamalı
+  // (dışarıda kalınca iki eksik import ve readonly uyuşmazlığı sessizce birikmişti).
+  "include": ["protocol", "world", "bridge", "mind", "voice", "host", "brain-lab"],
+  // brain-lab/archive DIŞARIDA: tanımı gereği donmuş eski prototipler
+  // (`brain-lab/ORION-BRAIN-IR-CONTEXT.md` §1). Kanonik yol `brain-ir/`;
+  // arşiv ne çalıştırılıyor ne de geliştiriliyor. Tip kapısına sokmak sürekli
+  // gürültü üretir ve kapıyı kilitler — bugün kilitleyen hatalardan biri
+  // arşive taşınırken bir seviye eksik kalan import yoluydu.
+  "exclude": ["brain-lab/archive"]
 }

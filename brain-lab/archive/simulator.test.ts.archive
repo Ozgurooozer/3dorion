@@ -1,0 +1,140 @@
+"use strict";
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { GraphSimulator, graphDogrula, type BrainGraph } from "./simulator.ts";
+
+function graph(connections: BrainGraph["connections"]): BrainGraph {
+  return {
+    version: 1,
+    nodes: [
+      { id: "input", kind: "input" },
+      { id: "vision", kind: "neuron", decay: 0.5, threshold: 0 },
+      { id: "decision", kind: "decision", threshold: 0.7 },
+    ],
+    connections,
+    inputs: ["input"],
+    outputs: ["decision"],
+  };
+}
+
+test("input -> neuron -> decision akışı çalışır", () => {
+  const simulator = new GraphSimulator(graph([
+    { from: "input", to: "vision", weight: 0.8 },
+    { from: "vision", to: "decision", weight: 1 },
+  ]));
+
+  simulator.adim({ input: 1 });
+  const sonuc = simulator.adim({ input: 0 });
+
+  assert.equal(sonuc.states.vision, 0.4);
+  assert.equal(sonuc.outputs.decision, "escape");
+});
+
+test("state decay sonraki timestep'e taşınır", () => {
+  const simulator = new GraphSimulator(graph([
+    { from: "input", to: "vision", weight: 1 },
+  ]));
+
+  simulator.adim({ input: 1 });
+  const sonuc = simulator.adim({ input: 0 });
+
+  assert.equal(sonuc.states.vision, 0.5);
+});
+
+test("bağlantı sırası sonucu değiştirmez", () => {
+  const ilk = new GraphSimulator(graph([
+    { from: "input", to: "vision", weight: 0.8 },
+    { from: "vision", to: "decision", weight: 1 },
+  ]));
+  const ters = new GraphSimulator(graph([
+    { from: "vision", to: "decision", weight: 1 },
+    { from: "input", to: "vision", weight: 0.8 },
+  ]));
+
+  assert.deepEqual(ters.adim({ input: 1 }), ilk.adim({ input: 1 }));
+});
+
+test("geçersiz graph sessizce çalıştırılmaz", () => {
+  assert.throws(() => graphDogrula({
+    version: 1,
+    nodes: [{ id: "input", kind: "input" }],
+    connections: [{ from: "input", to: "missing", weight: 1 }],
+    inputs: ["input"],
+    outputs: [],
+  }), /missing/);
+});
+
+test("memory node girdiden sonra kontrollü biçimde kalır", () => {
+  const simulator = new GraphSimulator({
+    version: 2,
+    nodes: [
+      { id: "input", kind: "input" },
+      { id: "memory", kind: "memory", decay: 0.92, threshold: 0 },
+    ],
+    connections: [{ from: "input", to: "memory", weight: 1 }],
+    inputs: ["input"],
+    outputs: [],
+  });
+
+  simulator.adim({ input: 1 });
+  const sonuc = simulator.adim({ input: 0 });
+
+  assert.equal(sonuc.states.memory, 0.92);
+});
+
+test("negatif ağırlık inhibition uygular", () => {
+  const simulator = new GraphSimulator({
+    version: 2,
+    nodes: [
+      { id: "threat", kind: "input" },
+      { id: "safety", kind: "input" },
+      { id: "escape", kind: "decision", threshold: 0.7 },
+    ],
+    connections: [
+      { from: "threat", to: "escape", weight: 0.9 },
+      { from: "safety", to: "escape", weight: -0.8 },
+    ],
+    inputs: ["threat", "safety"],
+    outputs: ["escape"],
+  });
+
+  const sonuc = simulator.adim({ threat: 1, safety: 1 });
+
+  assert.equal(sonuc.states.escape, 0.1);
+  assert.equal(sonuc.outputs.escape, "ignore");
+});
+
+test("recurrent loop eski state ile çalışır ve trace üretir", () => {
+  const simulator = new GraphSimulator({
+    version: 2,
+    nodes: [
+      { id: "a", kind: "memory", decay: 0, threshold: 0 },
+      { id: "b", kind: "memory", decay: 0, threshold: 0 },
+    ],
+    connections: [
+      { from: "a", to: "b", weight: 1 },
+      { from: "b", to: "a", weight: 1 },
+    ],
+    inputs: [],
+    outputs: [],
+  });
+
+  simulator.reset({ a: 1 });
+  const sonuc = simulator.adim({});
+
+  assert.equal(sonuc.states.a, 0);
+  assert.equal(sonuc.states.b, 1);
+  assert.equal(sonuc.trace?.step, 1);
+  assert.deepEqual(sonuc.trace?.inputs, {});
+});
+
+test("reset state ve trace sayacını sıfırlar", () => {
+  const simulator = new GraphSimulator(graph([]));
+  simulator.adim({ input: 1 });
+  simulator.reset();
+
+  const sonuc = simulator.adim({ input: 0 });
+
+  assert.equal(sonuc.trace?.step, 1);
+  assert.equal(sonuc.states.vision, 0);
+});

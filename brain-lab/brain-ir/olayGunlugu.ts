@@ -3,7 +3,7 @@
 // Kaynak kayıt olay günlüğüdür. Hafıza yalnızca bu günlüğün ilgili kayıtları
 // seçen izdüşümüdür; tam olay özel numarasıyla tekrar çağrılır.
 "use strict";
-import { Hafiza, type Ani, type AniTuru, type HafizaAyari } from "../mind/hafiza.ts";
+import { Hafiza, type Ani, type AniTuru, type HafizaAyari } from "../../mind/hafiza.ts";
 
 export type OlayTuru = "beyin_cagrisi" | "beyin_aksiyonu" | "beyin_hatasi";
 

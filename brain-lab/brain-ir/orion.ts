@@ -1,7 +1,7 @@
 // brain-ir/orion.ts — Brain IR deneyini mevcut Orion köprüsüne takılan adaptör.
 // Mevcut bridge/world/mind dosyalarını değiştirmez; yalnızca Beyin sözleşmesini uygular.
 "use strict";
-import type { Beyin, BeyinCikti, BeyinGirdisi } from "../bridge/beyin.ts";
+import type { Beyin, BeyinCikti, BeyinGirdisi } from "../../bridge/beyin.ts";
 import { BrainSimulator } from "./simulator.ts";
 import { type BrainGrafi, type BrainInputlari, type OrionAksiyon, type OrionBrainSonucu } from "./ir.ts";
 import type { OlayGunlugu } from "./olayGunlugu.ts";
