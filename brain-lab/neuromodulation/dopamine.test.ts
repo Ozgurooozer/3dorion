@@ -14,8 +14,10 @@ import { DopamineChannel, RunningMeanPredictor, outcomeOf, withDopamine } from "
 const HERE = dirname(fileURLToPath(import.meta.url));
 const CENTER = { x: C.width / 2, y: C.height / 2 };
 const BASAL = -C.basalEnergyCost;
+/** Signature tests isolate the predictor: hunger scaling off (tested on its own below). */
+const PURE = { weights: { hungerGain: 0 } } as const;
 
-const body = (energy: number, health = 1): Observation => ({ rays: [], bump: false, energy, health });
+const body = (energy: number, health = 1): Observation => ({ rays: [], bump: false, energy, health, motion: { forward: 0, turn: 0 } });
 
 /** Feeds a sequence of (energy, health) body states as ticks 0..n-1; returns the signals. */
 function feed(ch: DopamineChannel, states: [number, number][], startTick = 0) {
@@ -47,15 +49,16 @@ test("honesty: the channel reads only observations — no world internals, no br
 });
 
 test("outcome: energy and health change, weighted; non-finite input is refused", () => {
-  assert.equal(outcomeOf(body(0.5, 1), body(0.8, 1)), 0.8 - 0.5);
-  assert.equal(outcomeOf(body(0.5, 1), body(0.5, 0.9), 2), 2 * (0.9 - 1));
+  assert.equal(outcomeOf(body(0.5, 1), body(0.8, 1), { healthWeight: 1, hungerGain: 0 }), 0.8 - 0.5);
+  assert.equal(outcomeOf(body(0.5, 1), body(0.8, 1)), (0.8 - 0.5) * (1 + 0.5), "default: energy scaled by hunger");
+  assert.equal(outcomeOf(body(0.5, 1), body(0.5, 0.9), { healthWeight: 2, hungerGain: 1 }), 2 * (0.9 - 1));
   assert.throws(() => outcomeOf(body(0.5), body(Number.NaN)), RangeError);
   assert.throws(() => new RunningMeanPredictor(0), RangeError);
   assert.throws(() => new RunningMeanPredictor(1.5), RangeError);
 });
 
 test("prediction is taken before learning: the surprise is against the old belief", () => {
-  const ch = new DopamineChannel({ predictor: new RunningMeanPredictor(0.5) });
+  const ch = new DopamineChannel({ ...PURE, predictor: new RunningMeanPredictor(0.5) });
   const [, s1, s2] = feed(ch, [[0.5, 1], [0.7, 1], [0.9, 1]]);
   assert.equal(s1!.prediction, 0);
   assert.ok(Math.abs(s1!.delta - 0.2) < 1e-12);
@@ -65,7 +68,7 @@ test("prediction is taken before learning: the surprise is against the old belie
 // --- signatures of dopamine --------------------------------------------------
 
 test("habituation: a body at rest learns its own metabolism and |δ| fades to ~0", () => {
-  const ch = new DopamineChannel({ keepHistory: true });
+  const ch = new DopamineChannel({ ...PURE, keepHistory: true });
   runEpisode(roomWith([]), withDopamine(still, ch), 400);
   const h = ch.history;
   assert.ok(Math.abs(h[1]!.delta - BASAL) < 1e-12, "first felt tick is a full surprise");
@@ -74,7 +77,7 @@ test("habituation: a body at rest learns its own metabolism and |δ| fades to ~0
 });
 
 test("surprise reward: the first meal after habituation gives a large positive δ", () => {
-  const ch = new DopamineChannel({ keepHistory: true });
+  const ch = new DopamineChannel({ ...PURE, keepHistory: true });
   const room = roomWith([], 0.5); // hungry enough that +foodGain is not capped at 1
   runEpisode(room, withDopamine(still, ch), 300);
   // Place food on the body and let the same channel feel it.
@@ -91,7 +94,7 @@ test("surprise reward: the first meal after habituation gives a large positive �
 });
 
 test("expected reward surprises less: regular meals shrink δ, and missing one dips it below zero", () => {
-  const ch = new DopamineChannel();
+  const ch = new DopamineChannel(PURE);
   const states: [number, number][] = [];
   let e = 0.5;
   for (let t = 0; t < 400; t++) {
@@ -106,7 +109,7 @@ test("expected reward surprises less: regular meals shrink δ, and missing one d
 });
 
 test("pain habituation: standing in the threat, δ starts clearly negative and fades", () => {
-  const ch = new DopamineChannel({ keepHistory: true });
+  const ch = new DopamineChannel({ ...PURE, keepHistory: true });
   runEpisode(roomWith([]), withDopamine(still, ch), 300);
   const hurtRoom = roomWith([{ id: "threat-0", kind: "threat", ...CENTER, r: C.threatRadius }], 0.8);
   const signals = [];
@@ -122,7 +125,7 @@ test("pain habituation: standing in the threat, δ starts clearly negative and f
 });
 
 test("relief rebound: after the body expects pain, pain stopping gives positive δ", () => {
-  const ch = new DopamineChannel();
+  const ch = new DopamineChannel(PURE);
   // 200 ticks at rest, 80 ticks losing health, then health stops falling.
   const states: [number, number][] = [...rest(1, 200)];
   let e = states.at(-1)![0];
@@ -150,7 +153,7 @@ test("non-interference: the wrapped policy acts identically and leaves the world
 test("determinism: a real brain in a real world gives a bit-identical δ series", () => {
   const once = () => {
     const g = { ...sensorimotorScaffold(C), connections: [{ from: "ray2.food", to: "motor.forward", weight: 1 }] };
-    const ch = new DopamineChannel({ keepHistory: true });
+    const ch = new DopamineChannel({ ...PURE, keepHistory: true });
     runEpisode(new Room(3), withDopamine(brainController(new BrainSimulator(g), C).policy, ch), 800);
     return JSON.stringify(ch.history);
   };
@@ -163,4 +166,44 @@ test("episodes: tick 0 never compares against the previous episode's body", () =
   const fresh = ch.observe(body(1), 0); // new episode, full energy: not a +0.8 "reward"
   assert.equal(fresh.delta, 0);
   assert.equal(ch.modulators().dopamine, 0);
+});
+
+// --- hunger and death ------------------------------------------------------------
+
+test("hunger: the same meal is worth more to a hungry body", () => {
+  const meal = 0.3;
+  const hungry = outcomeOf(body(0.2), body(0.2 + meal));
+  const full = outcomeOf(body(0.6), body(0.6 + meal));
+  assert.ok(hungry > full, `hungry ${hungry} vs full ${full}`);
+  assert.ok(Math.abs(hungry - meal * (1 + 0.8)) < 1e-12 && Math.abs(full - meal * (1 + 0.4)) < 1e-12);
+  assert.ok(Math.abs(outcomeOf(body(1), body(0.99)) - (0.99 - 1)) < 1e-15, "at full energy the scale is 1");
+  const off = { healthWeight: 1, hungerGain: 0 };
+  assert.ok(Math.abs(outcomeOf(body(0.2), body(0.5), off) - outcomeOf(body(0.6), body(0.9), off)) < 1e-12, "hungerGain 0 turns scaling off");
+});
+
+test("death: a strongly negative signal, delivered once, that does not move the everyday expectation", () => {
+  const ch = new DopamineChannel({ keepHistory: true });
+  const room = roomWith([], 0.05);
+  const ep = runEpisode(room, withDopamine(still, ch), 100_000, false, ch.hooks());
+  assert.equal(ep.doneCause, "starved");
+  const deaths = ch.history.filter((s) => s.terminal);
+  assert.equal(deaths.length, 1);
+  const d = deaths[0]!;
+  assert.equal(d.terminal, "starved");
+  assert.ok(d.delta < -0.9, `death δ ${d.delta}`);
+  const before = ch.history.at(-2)!;
+  assert.ok(Math.abs(d.prediction - (before.prediction + 0.05 * (before.outcome - before.prediction))) < 1e-12,
+    "the death signal must be judged against the expectation, which death itself does not update");
+  const after = ch.observe(body(1), 0);
+  assert.ok(Math.abs(after.prediction - d.prediction) < 1e-12, "death leaked into the expectation");
+  assert.equal(after.delta, 0);
+});
+
+test("death hook: not called when an episode stops alive at maxTicks, called once when the body dies", () => {
+  let calls = 0;
+  const hooks = { onDeath: () => { calls++; } };
+  runEpisode(roomWith([]), still, 50, false, hooks);
+  assert.equal(calls, 0);
+  runEpisode(roomWith([], 0.002), still, 100, false, hooks);
+  assert.equal(calls, 1);
 });

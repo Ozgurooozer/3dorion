@@ -6,11 +6,11 @@
 // after the stimulus, a sensor→neuron→motor chain two. That is conduction delay, kept on purpose.
 "use strict";
 
-import type { BrainAdimi } from "../brain-ir/ir.ts";
+import type { BrainAdimi, BrainInputlari } from "../brain-ir/ir.ts";
 import type { BrainSimulator } from "../brain-ir/simulator.ts";
 import type { Policy, WorldConfig } from "../world/index.ts";
 import { decodeMotor } from "./decode.ts";
-import { encodeObservation } from "./encode.ts";
+import { encodeObservation, sensorNodeIds } from "./encode.ts";
 import { checkWiring } from "./scaffold.ts";
 
 export interface BrainController {
@@ -21,12 +21,35 @@ export interface BrainController {
   readonly last: BrainAdimi | null;
 }
 
-export function brainController(sim: BrainSimulator, cfg: WorldConfig, opts: { keepSteps?: boolean } = {}): BrainController {
+export interface ControllerOptions {
+  readonly keepSteps?: boolean;
+  /**
+   * Inputs that do not come from the world, merged in every tick — e.g. spontaneous
+   * activity generators. Their node ids must exist in the graph and must not be world senses.
+   */
+  readonly extraInputs?: { readonly ids: readonly string[]; readonly next: () => BrainInputlari };
+}
+
+export function brainController(sim: BrainSimulator, cfg: WorldConfig, opts: ControllerOptions = {}): BrainController {
   checkWiring(sim.graf, cfg);
+  const extra = opts.extraInputs;
+  if (extra) {
+    const have = new Set(sim.graf.nodes.map((n) => n.id));
+    const senses = new Set(sensorNodeIds(cfg));
+    for (const id of extra.ids) {
+      if (!have.has(id)) throw new Error(`extra input ${id} has no node in the brain`);
+      if (senses.has(id)) throw new Error(`extra input ${id} would overwrite a world sense`);
+    }
+  }
   const steps: BrainAdimi[] = [];
   let last: BrainAdimi | null = null;
   const policy: Policy = (observation) => {
-    const step = sim.step(encodeObservation(observation, cfg));
+    const inputs = encodeObservation(observation, cfg);
+    if (extra) {
+      const more = extra.next();
+      for (const id of extra.ids) inputs[id] = more[id] ?? 0;
+    }
+    const step = sim.step(inputs);
     last = step;
     if (opts.keepSteps) steps.push(step);
     return decodeMotor(step.outputs);

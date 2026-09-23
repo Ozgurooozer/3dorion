@@ -19,7 +19,12 @@ export interface EpisodeSummary {
   readonly records: readonly TickRecord[]; // empty unless keepRecords
 }
 
-export function runEpisode(world: World, policy: Policy, maxTicks: number, keepRecords = false): EpisodeSummary {
+export interface EpisodeHooks {
+  /** Called once if the episode ends by death, with the final observation the policy never sees. */
+  readonly onDeath?: (finalObservation: Observation, cause: DoneCause, tick: number) => void;
+}
+
+export function runEpisode(world: World, policy: Policy, maxTicks: number, keepRecords = false, hooks: EpisodeHooks = {}): EpisodeSummary {
   const records: TickRecord[] = [];
   let observation = world.observe();
   let ticks = 0;
@@ -38,5 +43,6 @@ export function runEpisode(world: World, policy: Policy, maxTicks: number, keepR
     observation = result.observation;
     ticks++;
   }
+  if (doneCause !== null) hooks.onDeath?.(observation, doneCause, ticks);
   return { ticks, doneCause, foodEaten, damage, bumps, finalHash: world.hash(), records };
 }

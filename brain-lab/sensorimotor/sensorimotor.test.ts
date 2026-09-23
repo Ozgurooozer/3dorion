@@ -55,6 +55,7 @@ test("encoding: every node value matches a hand computation", () => {
     bump: true,
     energy: 0.25,
     health: 0.9,
+    motion: { forward: -0.4, turn: 0.7 },
   };
   const inputs = encodeObservation(obs, C);
   const expected: Record<string, number> = {};
@@ -67,6 +68,8 @@ test("encoding: every node value matches a hand computation", () => {
     "touch.bump": 1,
     "intero.hunger": 1 - 0.25,
     "intero.injury": 1 - 0.9,
+    "proprio.backward": 0.4,
+    "proprio.left": 0.7,
   });
   assert.deepEqual(inputs, expected);
 });
@@ -91,7 +94,7 @@ test("encoding: over real worlds every value is in [0,1] and each ray lights at 
 test("encoding: sensor list follows the ray config, and a mismatched observation is refused", () => {
   const three = makeConfig({ rayAngles: [-1, 0, 1] });
   assert.equal(sensorNodeIds(three).length, 3 * RAY_KINDS.length + BODY_SENSOR_IDS.length);
-  assert.equal(sensorNodeIds(C).length, 18);
+  assert.equal(sensorNodeIds(C).length, 22);
   assert.throws(() => encodeObservation(new Room(1).observe(), three), /5 rays, config expects 3/);
 });
 

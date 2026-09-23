@@ -14,7 +14,10 @@ type SeenKind = Exclude<RayHit, "none">;
 const KINDS: Record<SeenKind, true> = { wall: true, food: true, threat: true };
 export const RAY_KINDS = Object.freeze(Object.keys(KINDS) as SeenKind[]);
 
-export const BODY_SENSOR_IDS = Object.freeze(["touch.bump", "intero.hunger", "intero.injury"] as const);
+export const BODY_SENSOR_IDS = Object.freeze([
+  "touch.bump", "intero.hunger", "intero.injury",
+  "proprio.forward", "proprio.backward", "proprio.left", "proprio.right",
+] as const);
 
 export const rayNodeId = (ray: number, kind: SeenKind): string => `ray${ray}.${kind}`;
 
@@ -37,5 +40,10 @@ export function encodeObservation(obs: Observation, cfg: WorldConfig): BrainInpu
   // Drives, not raw levels: a full body is silent, a starving or hurt one shouts.
   inputs["intero.hunger"] = 1 - obs.energy;
   inputs["intero.injury"] = 1 - obs.health;
+  // Proprioception as antagonist pairs: sensor nodes pass only non-negative signals.
+  inputs["proprio.forward"] = Math.max(0, obs.motion.forward);
+  inputs["proprio.backward"] = Math.max(0, -obs.motion.forward);
+  inputs["proprio.left"] = Math.max(0, obs.motion.turn);
+  inputs["proprio.right"] = Math.max(0, -obs.motion.turn);
   return inputs;
 }

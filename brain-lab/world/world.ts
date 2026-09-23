@@ -18,7 +18,12 @@ export interface Observation {
   readonly bump: boolean;
   readonly energy: number;
   readonly health: number;
+  /** Proprioception: the body's own motion, each in [-1, 1]. */
+  readonly motion: Motion;
 }
+
+/** forward: speed along the heading / maxSpeed (negative = backing up); turn: last turn command. */
+export interface Motion { readonly forward: number; readonly turn: number }
 
 export type DoneCause = "starved" | "killed";
 

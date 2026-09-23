@@ -3,8 +3,8 @@
 // Nothing consumes it yet; plasticity will (Δw = η·δ·eligibility).
 "use strict";
 
-import type { Observation, Policy } from "../world/index.ts";
-import { outcomeOf } from "./outcome.ts";
+import type { DoneCause, EpisodeHooks, Observation, Policy } from "../world/index.ts";
+import { DEFAULT_OUTCOME_WEIGHTS, outcomeOf, type OutcomeWeights } from "./outcome.ts";
 import { RunningMeanPredictor, type Predictor } from "./predictor.ts";
 
 /** Global/regional modulator channels (ORION-BRAIN-IR-CONTEXT.md §4); only dopamine is live. */
@@ -19,19 +19,24 @@ export interface DopamineSignal {
   readonly outcome: number;
   readonly prediction: number;
   readonly delta: number;
+  /** Set on the signal that reports the body's death. */
+  readonly terminal?: DoneCause;
 }
 
 export class DopamineChannel {
   private readonly predictor: Predictor;
-  private readonly healthWeight: number;
+  private readonly weights: OutcomeWeights;
+  private readonly deathOutcome: number;
   private readonly keepHistory: boolean;
   private prev: Observation | null = null;
   private lastSignal: DopamineSignal | null = null;
   private readonly log: DopamineSignal[] = [];
 
-  constructor(opts: { predictor?: Predictor; healthWeight?: number; keepHistory?: boolean } = {}) {
+  constructor(opts: { predictor?: Predictor; weights?: Partial<OutcomeWeights>; deathOutcome?: number; keepHistory?: boolean } = {}) {
     this.predictor = opts.predictor ?? new RunningMeanPredictor();
-    this.healthWeight = opts.healthWeight ?? 1;
+    this.weights = { ...DEFAULT_OUTCOME_WEIGHTS, ...opts.weights };
+    // Dying is innately bad; its size is a parameter of the lab, not something learned.
+    this.deathOutcome = opts.deathOutcome ?? -1;
     this.keepHistory = opts.keepHistory ?? false;
   }
 
@@ -44,7 +49,7 @@ export class DopamineChannel {
     if (tick === 0 || this.prev === null) {
       signal = { tick, outcome: 0, prediction: this.predictor.predict(), delta: 0 };
     } else {
-      const outcome = outcomeOf(this.prev, obs, this.healthWeight);
+      const outcome = outcomeOf(this.prev, obs, this.weights);
       const prediction = this.predictor.predict(); // before learning: the surprise is against the old belief
       this.predictor.learn(outcome);
       signal = { tick, outcome, prediction, delta: outcome - prediction };
@@ -53,6 +58,26 @@ export class DopamineChannel {
     this.lastSignal = signal;
     if (this.keepHistory) this.log.push(signal);
     return signal;
+  }
+
+  /**
+   * The body died: the final change plus the innate death outcome. Prediction does not learn
+   * from it — death is not "what usually happens", and it must not drag the everyday expectation.
+   */
+  observeDeath(obs: Observation, tick: number, cause: DoneCause): DopamineSignal {
+    const felt = this.prev === null ? 0 : outcomeOf(this.prev, obs, this.weights);
+    const prediction = this.predictor.predict();
+    const outcome = felt + this.deathOutcome;
+    const signal: DopamineSignal = { tick, outcome, prediction, delta: outcome - prediction, terminal: cause };
+    this.prev = null;
+    this.lastSignal = signal;
+    if (this.keepHistory) this.log.push(signal);
+    return signal;
+  }
+
+  /** Hooks for runEpisode so death reaches the channel. */
+  hooks(): EpisodeHooks {
+    return { onDeath: (obs, cause, tick) => { this.observeDeath(obs, tick, cause); } };
   }
 
   get last(): DopamineSignal | null {

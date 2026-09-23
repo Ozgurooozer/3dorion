@@ -25,6 +25,7 @@ export interface RoomState {
   readonly body: Readonly<Body>;
   readonly entities: readonly Readonly<Entity>[];
   readonly lastBump: boolean;
+  readonly lastTurn: number;
   readonly doneCause: DoneCause | null;
 }
 
@@ -36,6 +37,7 @@ export class Room implements World {
   private body: Body;
   private entities: Entity[];
   private lastBump = false;
+  private lastTurn = 0;
   private doneCause: DoneCause | null = null;
 
   constructor(seed: number, config: Partial<WorldConfig> = {}) {
@@ -54,6 +56,7 @@ export class Room implements World {
     room.body = { ...s.body };
     room.entities = s.entities.map((e) => ({ ...e }));
     room.lastBump = s.lastBump;
+    room.lastTurn = s.lastTurn;
     room.doneCause = s.doneCause;
     return room;
   }
@@ -68,6 +71,10 @@ export class Room implements World {
       bump: this.lastBump,
       energy: this.body.energy,
       health: this.body.health,
+      motion: {
+        forward: (this.body.vx * Math.cos(this.body.heading) + this.body.vy * Math.sin(this.body.heading)) / this.config.maxSpeed,
+        turn: this.lastTurn,
+      },
     };
   }
 
@@ -80,6 +87,7 @@ export class Room implements World {
 
     const contact = moveBody(b, action, cfg);
     this.lastBump = contact.bump;
+    this.lastTurn = action.turn;
 
     // Homeostasis: costs first, then food (capped so energy never exceeds 1), then threats.
     const basal = cfg.basalEnergyCost;
@@ -128,6 +136,7 @@ export class Room implements World {
       body: { ...this.body },
       entities: this.entities.map((e) => ({ ...e })),
       lastBump: this.lastBump,
+      lastTurn: this.lastTurn,
       doneCause: this.doneCause,
     };
   }

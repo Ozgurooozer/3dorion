@@ -30,6 +30,7 @@ export function drawBrain(
   ctx.fillText("MOTORLAR", cw - 8, 12);
   ctx.textAlign = "center";
   if (graph.nodes.some((n) => layout.get(n.id)?.column === "inner")) ctx.fillText("ARA NÖRONLAR", cw / 2, 12);
+  if (graph.nodes.some((n) => layout.get(n.id)?.column === "spont")) ctx.fillText("KENDİLİĞİNDEN", cw * 0.66, 12);
 
   for (const e of graph.connections) {
     const a = layout.get(e.from);
@@ -57,7 +58,7 @@ export function drawBrain(
   for (const n of graph.nodes) {
     const p = layout.get(n.id);
     if (!p) continue;
-    const base = p.column === "sensor" ? COLOR.sensor : p.column === "motor" ? COLOR.motor : COLOR.inner;
+    const base = p.column === "sensor" ? COLOR.sensor : p.column === "motor" ? COLOR.motor : p.column === "spont" ? COLOR.spont : COLOR.inner;
     const v = clamp01(Math.abs(out(n.id)));
     ctx.beginPath();
     ctx.arc(p.x, p.y, NODE_R, 0, Math.PI * 2);
@@ -70,8 +71,9 @@ export function drawBrain(
     ctx.stroke();
 
     ctx.fillStyle = v > 0 ? COLOR.text : COLOR.dim;
-    ctx.textAlign = p.column === "motor" ? "right" : "left";
-    const lx = p.column === "motor" ? p.x - NODE_R - 6 : p.x + NODE_R + 6;
+    const labelLeft = p.column === "motor" || p.column === "spont";
+    ctx.textAlign = labelLeft ? "right" : "left";
+    const lx = labelLeft ? p.x - NODE_R - 6 : p.x + NODE_R + 6;
     ctx.fillText(nodeLabel(n.id), lx, p.y + 3.5);
     if (p.column === "sensor" && v > 0) {
       ctx.fillStyle = COLOR.dim;

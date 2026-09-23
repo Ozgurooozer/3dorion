@@ -156,6 +156,33 @@ test("motion follows the equations: thrust, drag and turning, on both axes", () 
   assert.ok((C.maxAccel * C.dt * k) / (1 - k) < C.maxSpeed);
 });
 
+test("proprioception: the body feels its own motion — still, forward, backward, turning", () => {
+  const still = layout({});
+  assert.deepEqual(still.step({ thrust: 0, turn: 0 }).observation.motion, { forward: 0, turn: 0 });
+
+  const ahead = layout({ body: { heading: Math.PI / 2 } });
+  for (let t = 0; t < 20; t++) ahead.step({ thrust: 1, turn: 0 });
+  const m = ahead.observe().motion;
+  const b = ahead.state().body;
+  assert.ok(m.forward > 0.1, `forward ${m.forward}`);
+  assert.ok(Math.abs(m.forward - Math.hypot(b.vx, b.vy) / C.maxSpeed) < 1e-12, "forward must be speed along the heading");
+
+  const back = layout({});
+  for (let t = 0; t < 20; t++) back.step({ thrust: -1, turn: 0 });
+  assert.ok(back.observe().motion.forward < -0.1);
+
+  const turning = layout({});
+  assert.equal(turning.step({ thrust: 0, turn: 0.5 }).observation.motion.turn, 0.5);
+  assert.equal(turning.step({ thrust: 0, turn: -1 }).observation.motion.turn, -1);
+
+  const room = new Room(5);
+  const rng = new Rng(5);
+  for (let t = 0; t < 2000 && !room.done; t++) {
+    const { forward, turn } = room.step({ thrust: rng.range(-1, 1), turn: rng.range(-1, 1) }).observation.motion;
+    assert.ok(Math.abs(forward) <= 1 && Math.abs(turn) <= 1, `motion out of range at ${t}`);
+  }
+});
+
 test("wall hit reports bump and impact speed, and the observation carries the bump", () => {
   const room = layout({ body: { x: C.width - C.bodyRadius - 0.05, heading: 0, vx: 3 } });
   const r = room.step({ thrust: 0, turn: 0 });

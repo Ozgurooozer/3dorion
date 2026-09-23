@@ -35,7 +35,7 @@ test("every preset fits the body and runs 500 ticks without error", () => {
   for (const p of PRESETS) {
     const s = createSession(p.id, 3);
     assert.doesNotThrow(() => checkWiring(s.graph, C), p.id);
-    const ep = runEpisode(s.room, s.policy, 500);
+    const ep = runEpisode(s.room, s.policy, 500, false, s.dopamine.hooks());
     assert.ok(ep.ticks > 0, p.id);
     assert.ok(s.controller.last, `${p.id}: brain never stepped`);
   }
@@ -55,7 +55,7 @@ test("the random baseline is deterministic per seed and differs across seeds", (
 
 test("layout: every node has one position, inside the frame, none overlapping", () => {
   for (const p of PRESETS) {
-    const g = p.graph(C);
+    const g = p.graph(C, 1);
     const pos = layoutBrain(g, C, 620, 620, 30);
     assert.equal(pos.size, g.nodes.length, p.id);
     const pts = [...pos.values()];
@@ -66,12 +66,12 @@ test("layout: every node has one position, inside the frame, none overlapping", 
       }
     }
   }
-  const withInner = { ...PRESETS[0]!.graph(C), nodes: [...PRESETS[0]!.graph(C).nodes, { id: "relay", type: "neuron" as const }] };
+  const withInner = { ...PRESETS[0]!.graph(C, 1), nodes: [...PRESETS[0]!.graph(C, 1).nodes, { id: "relay", type: "neuron" as const }] };
   assert.equal(layoutBrain(withInner, C, 620, 620).get("relay")!.column, "inner");
   const three = makeConfig({ rayAngles: [-1, 0, 1] });
-  assert.equal(layoutBrain(PRESETS[0]!.graph(three), three, 620, 620).size, 3 * 3 + 3 + 4);
+  assert.equal(layoutBrain(PRESETS[0]!.graph(three, 1), three, 620, 620).size, 3 * 3 + 7 + 4);
 });
 
-test("labels: every scaffold node has a Turkish label", () => {
-  for (const n of PRESETS[0]!.graph(C).nodes) assert.notEqual(nodeLabel(n.id), n.id, n.id);
+test("labels: every node of every preset has a Turkish label", () => {
+  for (const p of PRESETS) for (const n of p.graph(C, 1).nodes) assert.notEqual(nodeLabel(n.id), n.id, `${p.id}: ${n.id}`);
 });

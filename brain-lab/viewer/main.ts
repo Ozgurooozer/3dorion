@@ -69,6 +69,7 @@ function stepOnce(): void {
   obs = last.observation;
   tick++;
   foodThisEpisode += last.foodEaten;
+  if (last.done && last.doneCause) session.dopamine.observeDeath(obs, tick, last.doneCause);
   bumpFlash = last.bump ? 1 : bumpFlash;
   const b = session.room.state().body;
   trail.push({ x: b.x, y: b.y });
@@ -134,7 +135,7 @@ function renderInspect(): void {
     `<b>${nodeLabel(node.id)}</b>  (${node.id}, ${node.type})`,
     t ? `tik ${t.tick} · önceki ${t.previousState.toFixed(3)} · uyarma ${t.excitation.toFixed(3)} · bastırma ${t.inhibition.toFixed(3)}` : "henüz adım yok",
     t ? `ham durum ${t.rawState.toFixed(3)}${t.threshold !== undefined ? ` · eşik ${t.threshold}` : ""} · ateşledi: <b>${t.activated ? "evet" : "hayır"}</b>` : "",
-    `gelen bağlantı: ${inEdges.length ? inEdges.map((c) => `${nodeLabel(c.from)} (${c.weight})`).join(", ") : "yok"}`,
+    `gelen bağlantı: ${inEdges.length ? inEdges.map((c) => `${nodeLabel(c.from)} (${c.weight.toFixed(3)})`).join(", ") : "yok"}`,
     t && t.causeNodes.length > 1 ? `nedenler (trace): ${t.causeNodes.filter((c) => c !== node.id).map(nodeLabel).join(", ")}` : "",
   ];
   el.innerHTML = lines.filter(Boolean).join("\n");

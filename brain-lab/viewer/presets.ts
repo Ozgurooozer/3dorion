@@ -4,18 +4,21 @@
 
 import type { BrainGrafi } from "../brain-ir/ir.ts";
 import { BrainSimulator } from "../brain-ir/simulator.ts";
+import { SpontaneousGenerator, bornGraph } from "../development/index.ts";
 import { DopamineChannel, withDopamine } from "../neuromodulation/index.ts";
 import { brainController, sensorimotorScaffold, type BrainController } from "../sensorimotor/index.ts";
 import { DEFAULT_CONFIG, Rng, Room, type Policy, type WorldConfig } from "../world/index.ts";
 
-export type PresetKind = "baseline" | "fixture";
+export type PresetKind = "baseline" | "newborn" | "fixture";
 
 export interface Preset {
   readonly id: string;
   readonly label: string;
   readonly kind: PresetKind;
   readonly note: string;
-  readonly graph: (cfg: WorldConfig) => BrainGrafi;
+  readonly graph: (cfg: WorldConfig, seed: number) => BrainGrafi;
+  /** Spontaneous motor activity (babbling), seeded per episode. */
+  readonly babbling?: boolean;
   /** Optional override of what reaches the body; the brain still runs, so its senses stay visible. */
   readonly override?: (seed: number) => Policy;
 }
@@ -38,6 +41,22 @@ export const PRESETS: readonly Preset[] = Object.freeze([
       const rng = new Rng(seed * 2654435761 >>> 0);
       return () => ({ thrust: rng.range(-1, 1), turn: rng.range(-1, 1) });
     },
+  },
+  {
+    id: "newborn-reflexless",
+    label: "Yenidoğan — reflekssiz",
+    kind: "newborn",
+    note: "Zayıf rastgele doğum bağlantıları + kendiliğinden hareket (babbling). Doğuştan refleks yok. Henüz öğrenmiyor: deneyim topluyor.",
+    graph: (cfg, seed) => bornGraph(cfg, { seed, group: "reflexless" }),
+    babbling: true,
+  },
+  {
+    id: "newborn-reflexive",
+    label: "Yenidoğan — refleksli",
+    kind: "newborn",
+    note: "Reflekssizin aynısı + iki doğuştan refleks: çarpınca sola dön, yaralanınca ileri kaç. Refleksler öğrenmeyle silinebilir.",
+    graph: (cfg, seed) => bornGraph(cfg, { seed, group: "reflexive" }),
+    babbling: true,
   },
   {
     id: "pipe",
@@ -70,8 +89,9 @@ export function createSession(
 ): Session {
   const preset = PRESETS.find((p) => p.id === presetId);
   if (!preset) throw new Error(`unknown preset ${presetId}`);
-  const graph = preset.graph(cfg);
-  const controller = brainController(new BrainSimulator(graph), cfg);
+  const graph = preset.graph(cfg, seed);
+  const babble = preset.babbling ? new SpontaneousGenerator(seed * 7919 + 17).asExtraInputs() : undefined;
+  const controller = brainController(new BrainSimulator(graph), cfg, babble ? { extraInputs: babble } : {});
   const override = preset.override?.(seed);
   const acting: Policy = override
     ? (obs, tick) => { controller.policy(obs, tick); return override(obs, tick); }

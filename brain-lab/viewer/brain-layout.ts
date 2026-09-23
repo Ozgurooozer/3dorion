@@ -6,7 +6,7 @@ import type { BrainGrafi } from "../brain-ir/ir.ts";
 import { MOTOR_NODE_IDS, RAY_KINDS, sensorNodeIds } from "../sensorimotor/index.ts";
 import type { WorldConfig } from "../world/index.ts";
 
-export interface NodePos { readonly x: number; readonly y: number; readonly column: "sensor" | "inner" | "motor" }
+export interface NodePos { readonly x: number; readonly y: number; readonly column: "sensor" | "inner" | "spont" | "motor" }
 
 const GROUP_GAP = 0.6; // extra row-heights between sensor groups
 
@@ -30,6 +30,8 @@ export function layoutBrain(graph: BrainGrafi, cfg: WorldConfig, w: number, h: n
     list.forEach((id, i) => out.set(id, { x, y: pad + ((i + 1) * (h - 2 * pad)) / (list.length + 1), column }));
   };
   place(MOTOR_NODE_IDS.filter((id) => ids.has(id)), w - pad, "motor");
+  // Spontaneous generators sit next to the motors they drive.
+  place(graph.nodes.map((n) => n.id).filter((id) => id.startsWith("spont.")), w * 0.66, "spont");
   place(graph.nodes.map((n) => n.id).filter((id) => !out.has(id)), w / 2, "inner");
   return out;
 }

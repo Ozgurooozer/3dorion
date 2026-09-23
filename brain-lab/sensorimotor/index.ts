@@ -4,4 +4,4 @@
 export { BODY_SENSOR_IDS, RAY_KINDS, encodeObservation, rayNodeId, sensorNodeIds } from "./encode.ts";
 export { MOTOR_NODE_IDS, decodeMotor } from "./decode.ts";
 export { checkWiring, sensorimotorScaffold } from "./scaffold.ts";
-export { brainController, type BrainController } from "./controller.ts";
+export { brainController, type BrainController, type ControllerOptions } from "./controller.ts";
