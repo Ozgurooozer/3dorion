@@ -6,3 +6,4 @@ export { DEFAULT_CONFIG, makeConfig, type WorldConfig } from "./config.ts";
 export { Room, type RoomState } from "./room.ts";
 export { runEpisode, type EpisodeSummary, type Policy, type TickRecord } from "./episode.ts";
 export { Rng } from "./rng.ts";
+export { fnv1a } from "./hash.ts";

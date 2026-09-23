@@ -11,6 +11,7 @@
 import { makeConfig, type WorldConfig } from "./config.ts";
 import { foodKeepouts, sampleFreePosition, spawnEntities, type Entity } from "./entities.ts";
 import { dist } from "./geometry.ts";
+import { fnv1a } from "./hash.ts";
 import { moveBody, newBody, type Body } from "./physics.ts";
 import { Rng } from "./rng.ts";
 import { senseRays } from "./sensors.ts";
@@ -133,13 +134,7 @@ export class Room implements World {
 
   /** FNV-1a over the JSON snapshot (config included): equal hash = bit-identical world. */
   hash(): string {
-    const s = JSON.stringify(this.state());
-    let h = 0x811c9dc5;
-    for (let i = 0; i < s.length; i++) {
-      h ^= s.charCodeAt(i);
-      h = Math.imul(h, 0x01000193);
-    }
-    return (h >>> 0).toString(16).padStart(8, "0");
+    return fnv1a(JSON.stringify(this.state()));
   }
 }
 
