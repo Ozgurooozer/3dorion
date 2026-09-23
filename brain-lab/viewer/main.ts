@@ -45,7 +45,7 @@ const finished: { n: number; seed: number; ticks: number; food: number; cause: s
 function start(newEpisode: boolean): void {
   episode = newEpisode ? episode + 1 : 1;
   if (!newEpisode) finished.length = 0;
-  session = createSession(presetId, baseSeed + episode - 1);
+  session = createSession(presetId, baseSeed + episode - 1, undefined, newEpisode ? session.dopamine : undefined);
   layout = layoutBrain(session.graph, session.room.config, brainCtx.canvas.width, brainCtx.canvas.height, 30);
   obs = session.room.observe();
   tick = 0;
@@ -74,7 +74,12 @@ function stepOnce(): void {
   trail.push({ x: b.x, y: b.y });
   if (trail.length > TRAIL_LENGTH) trail.shift();
   const out = session.controller.last?.outputs ?? {};
-  samples.push({ energy: obs.energy, health: obs.health, motors: MOTOR_NODE_IDS.map((id) => out[id] ?? 0) });
+  samples.push({
+    energy: obs.energy,
+    health: obs.health,
+    dopamine: session.dopamine.last?.delta ?? 0,
+    motors: MOTOR_NODE_IDS.map((id) => out[id] ?? 0),
+  });
   if (samples.length > TIMELINE_LENGTH) samples.shift();
 }
 
@@ -103,11 +108,19 @@ function renderStats(): void {
     stat("dönüş", signed(turn) + (turn > 0 ? " sol" : turn < 0 ? " sağ" : "")),
     stat("yenen yemek", String(foodThisEpisode)),
     stat("çarpma", obs.bump ? "evet" : "hayır"),
+    stat("dopamin δ", dopamineText()),
+    stat("beklenti (tahmin)", (session.dopamine.last?.prediction ?? 0).toFixed(5)),
     stat("tik / bölüm", `${tick} / ${episode}`),
     stat("dünya hash", session.room.hash()),
   ].join("");
 }
 
+const dopamineText = () => {
+  const raw = session.dopamine.last?.delta ?? 0;
+  const d = Math.abs(raw) < 5e-5 ? 0 : raw;
+  const mood = d > 0.05 ? " sürpriz" : d < -0.005 ? " hayal kırıklığı" : "";
+  return (d > 0 ? "+" : "") + d.toFixed(4) + mood;
+};
 const signed = (v: number) => (v > 0 ? "+" : "") + (Math.round(v * 100) / 100).toString();
 
 function renderInspect(): void {

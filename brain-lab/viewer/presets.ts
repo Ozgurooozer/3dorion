@@ -4,6 +4,7 @@
 
 import type { BrainGrafi } from "../brain-ir/ir.ts";
 import { BrainSimulator } from "../brain-ir/simulator.ts";
+import { DopamineChannel, withDopamine } from "../neuromodulation/index.ts";
 import { brainController, sensorimotorScaffold, type BrainController } from "../sensorimotor/index.ts";
 import { DEFAULT_CONFIG, Rng, Room, type Policy, type WorldConfig } from "../world/index.ts";
 
@@ -56,17 +57,25 @@ export interface Session {
   readonly room: Room;
   readonly graph: BrainGrafi;
   readonly controller: BrainController;
+  readonly dopamine: DopamineChannel;
   readonly policy: Policy;
 }
 
-export function createSession(presetId: string, seed: number, cfg: WorldConfig = DEFAULT_CONFIG): Session {
+/** Pass the previous episode's channel to carry expectations over, as a real brain would. */
+export function createSession(
+  presetId: string,
+  seed: number,
+  cfg: WorldConfig = DEFAULT_CONFIG,
+  dopamine: DopamineChannel = new DopamineChannel(),
+): Session {
   const preset = PRESETS.find((p) => p.id === presetId);
   if (!preset) throw new Error(`unknown preset ${presetId}`);
   const graph = preset.graph(cfg);
   const controller = brainController(new BrainSimulator(graph), cfg);
   const override = preset.override?.(seed);
-  const policy: Policy = override
+  const acting: Policy = override
     ? (obs, tick) => { controller.policy(obs, tick); return override(obs, tick); }
     : controller.policy;
-  return { preset, seed, room: new Room(seed, cfg), graph, controller, policy };
+  const policy = withDopamine(acting, dopamine);
+  return { preset, seed, room: new Room(seed, cfg), graph, controller, dopamine, policy };
 }

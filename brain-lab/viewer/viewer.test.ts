@@ -18,7 +18,7 @@ test("not a copy: the viewer imports the world and nerves, and implements no phy
   const all = sources.map((f) => readFileSync(join(HERE, f), "utf8")).join("\n");
   assert.match(all, /from "\.\.\/world\/index\.ts"/);
   assert.match(all, /from "\.\.\/sensorimotor\/index\.ts"/);
-  for (const forbidden of [/class \w*Room\b/, /maxAccel|drag \*|basalEnergyCost/, /rayCircle|rayBoxInside/, /encodeObservation\(/]) {
+  for (const forbidden of [/class \w*Room\b/, /maxAccel|drag \*|basalEnergyCost/, /rayCircle|rayBoxInside/, /encodeObservation\(/, /outcomeOf\(|- prev\.energy/]) {
     assert.doesNotMatch(all, forbidden, `viewer re-implements something: ${forbidden}`);
   }
 });
