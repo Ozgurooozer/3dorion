@@ -6,3 +6,7 @@ dist/
 graphify-out/
 .opencode/
 
+
+# brain-lab experiment records: subjects, ledgers, run logs (large; summaries go to the vault)
+brain-lab/data/*
+!brain-lab/data/preregistration-*.md

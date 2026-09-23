@@ -1,0 +1,53 @@
+# brain-lab — guidance for Claude
+
+A research lab for a decision mechanism that learns, built as a brain map. It is
+independent of 3dorion's production code (`bridge/`, `mind/`, `world/` at the repo root):
+nothing here is wired into Orion.
+
+Purpose (Ozyn, 2026-09-22): "Basit kararlar veren, kendi ekosistemine sahip, dinamik ve
+dinamik olmayan değişkenlerle çevrelenmiş bir karar mekanizması kurmak ve geliştirmek."
+
+## This is science, done the human way
+
+Observation → hypothesis → pre-registration (criteria frozen before running) → experiment
+→ honest report, negative results included → dated entry in `LAB-DEFTERI.md`. Subjects are
+numbered and named with lineage; every learning event is recorded; anyone must be able to
+reproduce a result from the records alone. Never tune on test seeds. Never claim more
+than was measured.
+
+## Direction — do not invent new architectures
+
+Follow the existing line: v0.1 (single-path graph, `archive/`) → v0.2 Brain IR substrate
+(`brain-ir/ir.ts`, `simulator.ts`) → v0.3 Alice/Bob decision layer (`brain-ir/v03.ts`,
+`deliberative.ts`). Build order is `ORION-BRAIN-IR-CONTEXT.md` §6: world → observation→input
+→ output→action → outcome → prediction → dopamine → trace/OLY → plasticity (last). Jev is an
+external observer (`JEV-AI-OBSERVER-INTEGRATION-PLAN.md`), never inside the decision path.
+
+**Behavior is never hand-coded.** The brain learns to use the body. Hand-wired arcs exist
+only as clearly labeled test fixtures.
+
+## Map
+
+| folder | what | may import |
+|---|---|---|
+| `world/` | headless deterministic one-room physics; `World` contract in `world.ts` | only itself |
+| `sensorimotor/` | senses → sensor nodes, motor spikes → thrust/turn, scaffold, controller | `world`, `brain-ir` |
+| `neuromodulation/` | dopamine = outcome − prediction, from the body's own senses | `world` (types) |
+| `viewer/` | `npm run lab` (port 5190): room, brain map, timeline, trace inspector | all of the above |
+| `brain-ir/` | v0.2 substrate + v0.3 Alice/Bob (older, Turkish identifiers) | itself |
+| `archive/` | frozen old prototypes, excluded from typecheck | — |
+
+Dependency direction is enforced by tests (import guards). Nothing below imports the viewer.
+`body-simulator.html` is a stale, disconnected prototype — do not extend it.
+
+## Rules that are easy to break
+
+- Language: conversation and vault pages Turkish; code, comments, commits English.
+- Determinism: all randomness through `world/rng.ts`; same seed → bit-identical world hash.
+- Tests first and adversarial; then a mutation pass (break the code on purpose, every
+  mutant must be caught). `npm run typecheck` 0 errors and `npm test` green before commit.
+- The viewer must run the real code, never a re-implementation (guard test in `viewer/`).
+- Known shortcut (§16 of the knowledge pool): rays report labeled kinds, so the brain is
+  told what a threat is. Target: neutral senses, danger discovered from innate pain
+  (`intero.injury`). Do not deepen this shortcut.
+- Plan first, then code, one approved step at a time.
