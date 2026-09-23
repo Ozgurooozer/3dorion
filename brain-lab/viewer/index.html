@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Beyin Laboratuvarı</title>
+<meta name="description" content="Tek oda fizik dünyası ve Brain IR beyin haritası — gerçek kodla, tik tik canlı.">
+<style>
+  :root {
+    --bg: #0b0f17; --surface: #121926; --elevated: #182131; --border: #243044;
+    --text: #e8edf5; --dim: #7d8aa0; --accent: #5b8def;
+    --food: #4cc38a; --threat: #e5484d; --motor: #f2b84b; --inner: #a37af0;
+    --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0 }
+  body { background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 1280px; margin: 0 auto; padding: 18px 16px 40px; }
+  header { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
+  .eyebrow { font: 600 11px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+  h1 { font-size: 22px; font-weight: 700; margin-top: 2px; }
+  .sub { color: var(--dim); font-size: 13px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px; min-width: 0; }
+  .panel h2 { font: 600 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--dim); margin-bottom: 8px; display: flex; justify-content: space-between; gap: 8px; }
+  canvas { display: block; width: 100%; height: auto; border-radius: 6px; }
+  #brain { cursor: pointer; }
+  .wide { grid-column: 1 / -1; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  button, select, input { font: inherit; color: var(--text); background: var(--elevated); border: 1px solid var(--border); border-radius: 7px; padding: 6px 11px; }
+  button { cursor: pointer; font-weight: 600; }
+  button:hover, select:hover { border-color: var(--accent); }
+  button.on { border-color: var(--accent); color: var(--accent); }
+  input[type=number] { width: 84px; }
+  .speed { display: inline-flex; gap: 2px; }
+  .speed button { padding: 6px 9px; }
+  .note { color: var(--dim); font-size: 12.5px; margin-top: 8px; }
+  .note.fixture { color: var(--motor); }
+  .stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+  .stat { background: var(--elevated); border: 1px solid var(--border); border-radius: 7px; padding: 7px 9px; }
+  .stat .k { font: 11px var(--mono); color: var(--dim); }
+  .stat .v { font: 600 15px var(--mono); }
+  .bar { height: 6px; background: var(--bg); border-radius: 3px; margin-top: 5px; overflow: hidden; }
+  .bar i { display: block; height: 100%; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--dim); margin-top: 8px; }
+  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+  table { width: 100%; border-collapse: collapse; font: 12px var(--mono); }
+  td, th { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--border); }
+  th { color: var(--dim); font-weight: 500; }
+  #inspect { font: 12px var(--mono); color: var(--dim); white-space: pre-wrap; min-height: 90px; }
+  #inspect b { color: var(--text); }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <div class="eyebrow">brain-lab · dünya + Brain IR v0.2</div>
+      <h1>Beyin Laboratuvarı</h1>
+      <div class="sub">Gerçek kod çalışıyor: <code>world/</code> + <code>sensorimotor/</code> + <code>brain-ir/</code>. Davranış kodlanmadı.</div>
+    </div>
+    <div class="controls">
+      <select id="preset" aria-label="Beyin"></select>
+      <label class="sub">seed <input id="seed" type="number" min="1" step="1" value="1"></label>
+    </div>
+  </header>
+
+  <div class="grid">
+    <section class="panel">
+      <h2><span>Oda — üstten</span><span id="episodeTag"></span></h2>
+      <canvas id="room" width="620" height="620"></canvas>
+      <div class="legend">
+        <span><i class="dot" style="background:#e8edf5"></i>beden</span>
+        <span><i class="dot" style="background:var(--food)"></i>yemek</span>
+        <span><i class="dot" style="background:var(--threat)"></i>tehlike</span>
+        <span>ışın rengi = ne gördü · boyu = mesafe</span>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2><span>Beyin haritası</span><span id="brainTag"></span></h2>
+      <canvas id="brain" width="620" height="620"></canvas>
+      <div class="legend">
+        <span><i class="dot" style="background:var(--accent)"></i>sensör</span>
+        <span><i class="dot" style="background:var(--inner)"></i>ara nöron</span>
+        <span><i class="dot" style="background:var(--motor)"></i>motor</span>
+        <span>parlaklık = aktivite · yeşil/kırmızı kenar = uyarma/bastırma · düğüme tıkla</span>
+      </div>
+    </section>
+
+    <section class="panel wide">
+      <h2><span>Zaman şeridi — son 400 tik</span><span class="sub"><span style="color:var(--motor)">━ enerji</span> · <span style="color:var(--food)">━ sağlık</span> · motor ateşlemeleri</span></h2>
+      <canvas id="timeline" width="1240" height="190"></canvas>
+    </section>
+
+    <section class="panel">
+      <h2>Kontrol</h2>
+      <div class="controls">
+        <button id="play">▶ Oynat</button>
+        <button id="step">1 adım</button>
+        <span class="speed" id="speed">
+          <button data-speed="1">1×</button><button data-speed="5">5×</button><button data-speed="20">20×</button><button data-speed="max">maks</button>
+        </span>
+        <button id="reset">Sıfırla</button>
+      </div>
+      <div id="presetNote" class="note"></div>
+      <h2 style="margin-top:14px">Beden</h2>
+      <div class="stats" id="stats"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Düğüm incelemesi (trace)</h2>
+      <div id="inspect">Beyin haritasında bir düğüme tıkla.</div>
+      <h2 style="margin-top:14px">Biten bölümler</h2>
+      <table><thead><tr><th>#</th><th>seed</th><th>tik</th><th>yemek</th><th>son</th></tr></thead><tbody id="episodes"></tbody></table>
+    </section>
+  </div>
+</main>
+<script type="module" src="./main.ts"></script>
+</body>
+</html>

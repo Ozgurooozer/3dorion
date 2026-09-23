@@ -8,6 +8,7 @@
     "test": "node --experimental-strip-types --import ./tools/babylon-cozucu.mjs --test \"*/**/*.test.ts\" \"*/*.test.ts\"",
     "typecheck": "tsc --noEmit",
     "dev": "vite",
+    "lab": "vite brain-lab/viewer --port 5190",
     "build": "vite build",
     "start": "npm run build && electron ."
   },
