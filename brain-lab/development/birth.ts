@@ -8,7 +8,7 @@
 
 import type { BrainBaglantisi, BrainDugumu, BrainGrafi } from "../brain-ir/ir.ts";
 import { ACTIONS, HYP_NODES, OPPOSITE, REGION_TYPE, checkPathways, nodeId } from "../regions/index.ts";
-import { MOTOR_NODE_IDS, sensorNodeIds } from "../sensorimotor/index.ts";
+import { MOTOR_NODE_IDS, RAY_KINDS, rayNodeId, sensorNodeIds } from "../sensorimotor/index.ts";
 import { Rng, type WorldConfig } from "../world/index.ts";
 
 export type InnateGroup = "reflexless" | "reflexive";
@@ -56,16 +56,48 @@ export const INNATE_REFLEXES: readonly BrainBaglantisi[] = Object.freeze([
   { from: "intero.injury", to: "bg.go.forward", weight: 5 },
 ]);
 
+/**
+ * Innate orienting (series 003b, exploratory): each ray is born slightly more strongly wired to
+ * the Go of the action that points where the ray looks — left rays → turn left, the centre ray →
+ * forward, right rays → turn right. The newborn analogue is the rooting reflex (touch a cheek,
+ * the head turns to that side). It is STRUCTURE, not a goal: it is the same for walls, food and
+ * threats, it is too weak to select an action alone, and it sits on the learning pathway, so
+ * experience decides what to approach and what to avoid. "away" mirrors it (the control).
+ */
+export interface Orienting {
+  readonly strength: number;
+  readonly direction: "toward" | "away";
+}
+
 export interface BirthSpec {
   readonly seed: number;
   readonly group: InnateGroup;
   readonly maxInitial?: number;
+  readonly orienting?: Orienting | null;
+}
+
+/**
+ * Strongest orienting allowed: sight alone must never select an action. Measured 2026-09-24
+ * (200 seeds, generators silent, starving body, a wall or food filling both left rays, 60 ticks):
+ * 0.02 → no seed selects (the plain newborn: none either); 0.03 → 4/200; 0.05 → 62–71/200.
+ * An analytic worst case (all random weights at their maximum, NoGo ignored) is not usable:
+ * it forbids even the plain newborn, because in practice NoGo holds the Go cells back.
+ */
+export const MAX_ORIENTING = 0.02;
+
+/** The action a ray at `angle` points to (positive angle = left). */
+export function actionOfAngle(angle: number): "forward" | "left" | "right" {
+  return Math.abs(angle) < 1e-9 ? "forward" : angle > 0 ? "left" : "right";
 }
 
 export function bornGraph(cfg: WorldConfig, spec: BirthSpec): BrainGrafi {
   const maxInitial = spec.maxInitial ?? DEFAULT_MAX_INITIAL;
   if (!(maxInitial >= 0 && maxInitial < INNATE.generatorToGo)) {
     throw new RangeError(`maxInitial ${maxInitial} would let senses outweigh the generators at birth: that is behavior, not a newborn`);
+  }
+  const orienting = spec.orienting ?? null;
+  if (orienting && !(orienting.strength > 0 && orienting.strength <= MAX_ORIENTING)) {
+    throw new RangeError(`orienting strength ${orienting.strength} would select an action on sight alone: that is behavior, not a newborn`);
   }
   const rng = new Rng(spec.seed);
   const node = (id: string, region: keyof typeof REGION_TYPE): BrainDugumu =>
@@ -107,9 +139,21 @@ export function bornGraph(cfg: WorldConfig, spec: BirthSpec): BrainGrafi {
       add(s, nodeId("bg.nogo", a), rng.range(0, maxInitial));
     }
   }
+  if (orienting) {
+    const mirror = { forward: "forward", left: "right", right: "left" } as const;
+    cfg.rayAngles.forEach((angle, i) => {
+      const toward = actionOfAngle(angle);
+      const a = orienting.direction === "toward" ? toward : mirror[toward];
+      for (const kind of RAY_KINDS) {
+        const e = edges.get(`${rayNodeId(i, kind)}->${nodeId("bg.go", a)}`)!;
+        add(e.from, e.to, e.weight + orienting.strength);
+      }
+    });
+  }
   if (spec.group === "reflexive") for (const r of INNATE_REFLEXES) add(r.from, r.to, r.weight);
 
-  const graph: BrainGrafi = { name: `newborn-${spec.group}`, version: "2", nodes, connections: [...edges.values()] };
+  const tag = orienting ? `-orient-${orienting.direction}-${orienting.strength}` : "";
+  const graph: BrainGrafi = { name: `newborn-${spec.group}${tag}`, version: "2", nodes, connections: [...edges.values()] };
   checkPathways(graph); // a birth that breaks its own regions is a bug, not a variation
   return graph;
 }

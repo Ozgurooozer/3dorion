@@ -445,6 +445,51 @@ Kod `793e240` (E5, E10) ve `29f4121` (E7). Veri `data/series-002d-*`.
   %50'sinden fazlasına ulaşır; (c) TD'nin dönüş yönü ≥ 0,7; (d) E7'nin dönüş yönü ~0,5–0,55 (geometri 0,54 ile
   tutarlı). (b) ya da (c) tutmazsa oda sanıldığından zor demektir ve beynimizi yargılamak için ölçüt değişir.
 
+## 2026-09-24 — Seri 003a sonucu: oda kolay, beynimiz yavaş ve yön öğrenmiyor
+
+`[ÖLÇÜLDÜ]` seed 1–10, yemek 10, 10 değerlendirme bölümü (E7 ile aynı dünyalar). Yemek/1000 tik · dönüş yönü:
+
+| aktör | yemek/1000t | kâhinin %'si | dönüş yönü | durgun |
+|---|---|---|---|---|
+| rastgele (eğitilmemiş TD) | 0,67 | %5 | 0,499 | %11 |
+| E7 kardeş (donuk, doğuştan yapı) | 2,07 | %16 | 0,499 | %42 |
+| E7 as-is (40 bölüm) | 2,43 | %19 | **0,483** | %44 |
+| E7 λ 0,9 (40 bölüm) | 3,16 | %25 | **0,506** | %51 |
+| TD α 0,03 λ 0,8 (40 bölüm) | **8,38** | **%67** | 0,655 | %18 |
+| TD aynı, 100 bölüm | 9,05 | %72 | 0,639 | %11 |
+| kâhin (elle yazılmış tavan) | 12,57 | %100 | 1,000 | %0 |
+
+- TD taraması: α 0,03–0,1 arası 5,3–8,4; α 0,3 bozuluyor (1,5–3,9). ε 0 (açgözlü) değerlendirme ε 0,05 ile aynı düzeyde
+  (7,7 / 8,3). TD daha **ilk 10 bölümde** 6,0'a çıkıyor (beynimizin 100 bölümde ulaştığının iki katından fazla);
+  100 bölümlük eğitim eğrisi 6,0 → 14,2'ye kadar çıkıyor (ε 0,1 ile).
+- E7 deneklerinin yeniden ölçümü kayıtlı yemek değerleriyle **birebir aynı** (40 denek) → ölçüm düzenlemesi temiz.
+- **Öngörü karnesi:** (a) kâhin ≥ 3× rastgele ✓ (18,8×); (b) TD E7'yi açıkça geçer ve kâhinin > %50'si ✓ (2,7×, %67);
+  (c) TD dönüş yönü ≥ 0,7 ✗ (0,655; en iyi ayar 0,69 — yakın ama altında); (d) E7 dönüş yönü ~0,5–0,55 ✓ (0,483 / 0,506).
+- **Yorum:** oda zor değil — aynı duyu, aynı beden, aynı ödülle ders kitabı öğrenicisi kâhinin üçte ikisine çıkıyor.
+  Beynimizin kazancının tamamı "ne zaman hareket et/dur"dan geliyor (durgun %51, yaşam uzuyor); **yön hiç öğrenilmemiş**
+  (0,506 = şans). Kardeşin 2,07'si de doğuştan yapıdan (açlıkla hareket, tokken dinlenme): eğitilmemiş TD'nin 3 katı.
+  Basamak 2 için asıl engel yön öğrenmesi.
+- Neden TD öğreniyor da biz öğrenmiyoruz — farklar (henüz sınanmadı): (1) TD eylemin değerini **duyu × eylem** çarpımında
+  tutuyor; bizde de öyle (duyu → Git.eylem) ama eylemi çoğunlukla gürültü üreteci seçiyor, öğrenilen ağırlıklar seçime
+  katılmak için ~0,2'ye çıkmalı; (2) TD her tik tek eylem seçiyor ve kredi onda; bizde seçim eşikli ve ikili, sık sık
+  hiçbir şey seçilmiyor; (3) TD ε ile her eylemi eşit dener, bizim üreteçler açlığa bağlı patlamalar.
+
+## 2026-09-24 — Seri 003b: doğuştan yönelme — koşmadan önce (keşif)
+
+- Kod: `bornGraph(..., { orienting: { strength, direction } })` — her ışının kendi yönündeki eylemin Git'ine (sol ışınlar
+  → sola dön, orta → ileri, sağ → sağa dön) doğuştan ek ağırlık; duvar, yemek, tehlike için **aynı** (hedef değil yapı);
+  öğrenen yolda (silinebilir). Biyolojik karşılık: arama (rooting) refleksi. "away" = ayna kontrolü.
+- Üst sınır ölçüldü: 200 seed, üreteçler susuk, aç beden, iki sol ışını dolduran duvar/yemek, 60 tik — 0,02'de hiçbir
+  seed yalnız görmeyle eylem seçmiyor (eğilimsiz yenidoğan da 0/200); 0,03'te 4/200, 0,05'te 62–71/200.
+  `MAX_ORIENTING = 0,02`. Analitik en kötü durum (NoGo'yu yok sayan) kullanılamadı: eğilimsiz yenidoğanı bile yasaklıyor.
+  Testler: 2 yeni, 8/8 mutant öldü.
+- Plan: E7 λ 0,9 ayarı, seed 1–10 × iki grup, 40 eğitim + 10 değerlendirme, yemek 10; koşullar: O1 yönelme 0,02
+  (toward), O2 ayna 0,02 (away); kardeşler aynı eğilimle doğar. O0 (eğilimsiz) = 003a'daki E7 λ 0,9 ölçümü.
+- **Öngörüler (koşmadan):** eğilim küçük (rastgele başlangıç aralığı 0–0,05), bu yüzden etki küçük olur:
+  (a) O1 kardeşinin dönüş yönü 0,5'ten biraz yukarı (0,5–0,55), O2 kardeşininki biraz aşağı;
+  (b) O1 öğrenenin dönüş yönü ≤ 0,6 — yani eğilim yön öğrenmesini **çözmez**; (c) O1 yemek/1000 tik O0'dan (3,16) en
+  fazla ~%20 farklı. (b) tutarsa sorun başlangıç simetrisi değil, kredi atamadır (sonraki adım o).
+
 ## Açık sorular (güncel)
 
 - Kendiliğinden hareket (motor babbling) ve zayıf rastgele doğum bağlantıları öğrenmeyi başlatır mı?

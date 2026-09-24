@@ -3,7 +3,7 @@
 // Shared by the series-002 scripts so every condition is measured identically.
 "use strict";
 
-import { bornGraph, type InnateGroup } from "../development/index.ts";
+import { bornGraph, type InnateGroup, type Orienting } from "../development/index.ts";
 import { createAgent, type AgentSpec } from "../learning/index.ts";
 import { episodeEvents, type Subject } from "../registry/index.ts";
 import type { EpisodeLine, RegistryStore } from "../registry/store.ts";
@@ -52,8 +52,8 @@ export const evalNoise = (seed: number) => seed * 31 + 999;
 export const trainWorld = (seed: number, ep: number) => seed * 1000 + ep;
 export const evalWorld = (seed: number, ep: number) => seed * 1000 + 500 + ep;
 
-export function birth(store: RegistryStore, world: WorldConfig, seed: number, group: InnateGroup, codeCommit: string, lineage?: Subject["lineage"]): Subject {
-  return store.createSubject({ category: "learner.3f", group, seed, worldConfig: world, birthGraph: bornGraph(world, { seed, group }), lineage, codeCommit });
+export function birth(store: RegistryStore, world: WorldConfig, seed: number, group: InnateGroup, codeCommit: string, lineage?: Subject["lineage"], orienting: Orienting | null = null): Subject {
+  return store.createSubject({ category: "learner.3f", group, seed, worldConfig: world, birthGraph: bornGraph(world, { seed, group, orienting }), lineage, codeCommit });
 }
 
 /** Anything that can live evaluation episodes: a brain, a baseline, a fixture. */
@@ -127,19 +127,22 @@ export function train(store: RegistryStore, s: Subject, world: WorldConfig, epis
 export function runCondition(store: RegistryStore, o: {
   condition: Condition; world: WorldConfig; seeds: number[]; groups: InnateGroup[];
   trainEpisodes: number; evalEpisodes: number; codeCommit: string; label: string;
+  /** Innate orienting for learner AND twin (both are born the same way). */
+  orienting?: Orienting | null;
   twins?: Map<string, { id: string; name: string; eval: Eval }>;
 }) {
   const twins = o.twins ?? new Map<string, { id: string; name: string; eval: Eval }>();
   const rows: Row[] = [];
   for (const group of o.groups) {
     for (const seed of o.seeds) {
-      const key = `${seed}/${group}/${JSON.stringify(o.world)}`;
+      const orienting = o.orienting ?? null;
+      const key = `${seed}/${group}/${JSON.stringify(o.world)}/${JSON.stringify(orienting)}`;
       if (!twins.has(key)) {
-        const t = birth(store, o.world, seed, group, o.codeCommit);
+        const t = birth(store, o.world, seed, group, o.codeCommit, undefined, orienting);
         twins.set(key, { id: t.id, name: t.name, eval: evaluate(store, t, o.world, o.evalEpisodes, o.codeCommit, o.label) });
       }
       const twin = twins.get(key)!;
-      const s = birth(store, o.world, seed, group, o.codeCommit);
+      const s = birth(store, o.world, seed, group, o.codeCommit, undefined, orienting);
       const trainPerK = train(store, s, o.world, o.trainEpisodes, o.condition.spec, o.codeCommit, `${o.label} ${o.condition.code}`);
       const l = evaluate(store, s, o.world, o.evalEpisodes, o.codeCommit, o.label, { critic: o.condition.spec.critic ?? null });
       const ledger = store.openLedger(s.id);

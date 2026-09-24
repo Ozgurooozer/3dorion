@@ -12,7 +12,7 @@ import { checkGraph, graphHash } from "../registry/index.ts";
 import { ACTIONS, checkPathways, isPlastic, pathwayOf } from "../regions/index.ts";
 import { brainController, checkWiring, sensorNodeIds } from "../sensorimotor/index.ts";
 import { DEFAULT_CONFIG as C, Room, runEpisode, type RoomState } from "../world/index.ts";
-import { DEFAULT_MAX_INITIAL, INNATE_REFLEXES, NOISE_IDS, NoiseGenerator, bornGraph, type InnateGroup } from "./index.ts";
+import { DEFAULT_MAX_INITIAL, INNATE_REFLEXES, NOISE_IDS, NoiseGenerator, MAX_ORIENTING, actionOfAngle, bornGraph, type InnateGroup } from "./index.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -148,4 +148,58 @@ test("reflexive newborn: a bump selects a left turn; the reflexless one has no s
   };
   assert.ok(turns("reflexive").includes(1), `reflexive: ${turns("reflexive")}`);
   assert.ok(!turns("reflexless").includes(1), `reflexless: ${turns("reflexless")}`);
+});
+
+// --- innate orienting (series 003b, exploratory) --------------------------------------------
+
+test("orienting: only each ray's Go of its own direction is raised, by exactly the strength, for every kind", () => {
+  const s = 0.02;
+  const plain = bornGraph(C, { seed: 3, group: "reflexless" });
+  const w = (g: typeof plain, from: string, to: string) => g.connections.find((e) => e.from === from && e.to === to)!.weight;
+  for (const direction of ["toward", "away"] as const) {
+    const g = bornGraph(C, { seed: 3, group: "reflexless", orienting: { strength: s, direction } });
+    assert.doesNotThrow(() => { checkGraph(g); checkWiring(g, C); checkPathways(g); });
+    assert.equal(g.connections.length, plain.connections.length, "no new edges: orienting is a weight, not a pathway");
+    assert.notEqual(graphHash(g), graphHash(plain));
+    assert.match(g.name ?? "", new RegExp(`orient-${direction}-${s}`));
+    let raised = 0;
+    for (const e of g.connections) {
+      const d = e.weight - w(plain, e.from, e.to);
+      const ray = /^ray(\d+)\.(wall|food|threat)$/.exec(e.from);
+      const toward = ray ? actionOfAngle(C.rayAngles[Number(ray[1])]!) : null;
+      const mirrored = toward === "left" ? "right" : toward === "right" ? "left" : toward;
+      const expected = ray && e.to === `bg.go.${direction === "toward" ? toward : mirrored}`;
+      if (expected) { raised++; assert.ok(Math.abs(d - s) < 1e-12, `${e.from}->${e.to} +${d}`); }
+      else assert.equal(d, 0, `${e.from}->${e.to} changed`);
+    }
+    assert.equal(raised, C.rayAngles.length * 3);
+  }
+  assert.equal(actionOfAngle(C.rayAngles[4]!), "left");
+  assert.equal(actionOfAngle(C.rayAngles[0]!), "right");
+  assert.equal(actionOfAngle(C.rayAngles[2]!), "forward");
+});
+
+test("orienting stays below selection: at the bound, a starving newborn staring at a wall never acts without its generators", () => {
+  const max = MAX_ORIENTING;
+  assert.ok(max > 0 && max < DEFAULT_MAX_INITIAL);
+  assert.throws(() => bornGraph(C, { seed: 1, group: "reflexless", orienting: { strength: max * 1.01, direction: "toward" } }), /that is behavior/);
+  assert.throws(() => bornGraph(C, { seed: 1, group: "reflexless", orienting: { strength: 0, direction: "toward" } }), /that is behavior/);
+  const silentNoise = Object.fromEntries(NOISE_IDS.map((id) => [id, 0]));
+  // Every left ray sees a wall at zero distance; the body is nearly starved.
+  const inputs = { ...Object.fromEntries(sensorNodeIds(C).map((id) => [id, 0])), ...silentNoise, "intero.hunger": 1, "ray3.wall": 1, "ray4.wall": 1 };
+  const fires = (g: ReturnType<typeof bornGraph>) => {
+    const sim = new BrainSimulator(g);
+    let n = 0;
+    for (let t = 0; t < 60; t++) n += ACTIONS.filter((a) => sim.step(inputs).outputs[`bg.out.${a}`] === 1).length;
+    return n;
+  };
+  let overFires = 0;
+  for (let seed = 1; seed <= 60; seed++) {
+    const g = bornGraph(C, { seed, group: "reflexless", orienting: { strength: max, direction: "toward" } });
+    assert.equal(fires(g), 0, `seed ${seed}`);
+    // The bound is not arbitrary: 2.5× past it (edited by hand, as birth refuses), sight alone selects in some seeds.
+    const over = { ...g, connections: g.connections.map((e) => (/^ray[34]\.wall$/.test(e.from) && e.to === "bg.go.left" ? { ...e, weight: e.weight + 1.5 * max } : e)) };
+    if (fires(over) > 0) overFires++;
+  }
+  assert.ok(overFires > 0, "a stronger bias would already be a reflex");
 });
