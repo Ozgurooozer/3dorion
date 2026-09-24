@@ -111,6 +111,7 @@ function renderStats(): void {
     stat("çarpma", obs.bump ? "evet" : "hayır"),
     stat("dopamin δ", dopamineText()),
     stat("beklenti (tahmin)", (session.dopamine.last?.prediction ?? 0).toFixed(5)),
+    stat("dürtü (tonik)", (session.dopamine.last?.drive ?? 0).toFixed(3), { value: Math.min(1, session.dopamine.last?.drive ?? 0), color: "var(--threat)" }),
     stat("tik / bölüm", `${tick} / ${episode}`),
     stat("dünya hash", session.room.hash()),
   ].join("");

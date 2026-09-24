@@ -4,7 +4,7 @@
 "use strict";
 
 import type { DoneCause, EpisodeHooks, Observation, Policy } from "../world/index.ts";
-import { DEFAULT_OUTCOME_WEIGHTS, outcomeOf, type OutcomeWeights } from "./outcome.ts";
+import { DEFAULT_OUTCOME_WEIGHTS, drive, outcomeOf, type OutcomeWeights } from "./outcome.ts";
 import { RunningMeanPredictor, type Predictor } from "./predictor.ts";
 
 /** Global/regional modulator channels (ORION-BRAIN-IR-CONTEXT.md §4); only dopamine is live. */
@@ -12,6 +12,8 @@ export interface Neuromodulator {
   readonly dopamine: number;
   readonly serotonin?: number;
   readonly acetylcholine?: number;
+  /** Tonic level = current drive; phasic dopamine is the delta above. */
+  readonly tonic?: number;
 }
 
 export interface DopamineSignal {
@@ -19,6 +21,8 @@ export interface DopamineSignal {
   readonly outcome: number;
   readonly prediction: number;
   readonly delta: number;
+  /** Drive after this tick: the tonic level — how strongly the body needs to act. */
+  readonly drive: number;
   /** Set on the signal that reports the body's death. */
   readonly terminal?: DoneCause;
 }
@@ -47,12 +51,12 @@ export class DopamineChannel {
   observe(obs: Observation, tick: number): DopamineSignal {
     let signal: DopamineSignal;
     if (tick === 0 || this.prev === null) {
-      signal = { tick, outcome: 0, prediction: this.predictor.predict(), delta: 0 };
+      signal = { tick, outcome: 0, prediction: this.predictor.predict(), delta: 0, drive: drive(obs, this.weights) };
     } else {
       const outcome = outcomeOf(this.prev, obs, this.weights);
       const prediction = this.predictor.predict(); // before learning: the surprise is against the old belief
       this.predictor.learn(outcome);
-      signal = { tick, outcome, prediction, delta: outcome - prediction };
+      signal = { tick, outcome, prediction, delta: outcome - prediction, drive: drive(obs, this.weights) };
     }
     this.prev = { ...obs, rays: [...obs.rays] };
     this.lastSignal = signal;
@@ -68,7 +72,7 @@ export class DopamineChannel {
     const felt = this.prev === null ? 0 : outcomeOf(this.prev, obs, this.weights);
     const prediction = this.predictor.predict();
     const outcome = felt + this.deathOutcome;
-    const signal: DopamineSignal = { tick, outcome, prediction, delta: outcome - prediction, terminal: cause };
+    const signal: DopamineSignal = { tick, outcome, prediction, delta: outcome - prediction, drive: drive(obs, this.weights), terminal: cause };
     this.prev = null;
     this.lastSignal = signal;
     if (this.keepHistory) this.log.push(signal);
@@ -89,7 +93,7 @@ export class DopamineChannel {
   }
 
   modulators(): Neuromodulator {
-    return { dopamine: this.lastSignal?.delta ?? 0 };
+    return { dopamine: this.lastSignal?.delta ?? 0, tonic: this.lastSignal?.drive ?? 0 };
   }
 }
 
