@@ -274,6 +274,16 @@ Kod `389c10a`, 176 sn. Veri `data/pilot-001b-summary.json`.
 - **Ölçü dersi:** yönelim tek başına yanıltıcı — sürekli dönen beden şansın üstünde puan alıp yemek yiyemiyor.
   Yemek/1000 tik ve yaklaşma ölçüsü eklenmeli.
 
+## 2026-09-24 — Pilot 001c: doğrulama — koşmadan önce (keşif)
+
+- S1 (nedensel sınama): tam kural (Git + Gitme) ölüm değeri −1 / −0,1 / −0,01 ile (C0–C2), seed 4–10 reflekssiz.
+  **Öngörü:** hipotez doğruysa −0,1 ve −0,01'de donma (%100 durgun) kaybolur.
+- S2 (tekrar): Git-yalnız, yeni hücrelerde — C3 seed 1–3 reflekssiz, C4 seed 4–10 refleksli.
+  **Öngörü:** Git-yalnız, kardeşini yemek/1000 tikte hücrelerin çoğunda (≥ 6/7, ≥ 2/3) geçer.
+- Yeni ölçü: yaklaşma (yemek iki ardışık tikte görünürken en yakın yemeğe mesafe azaldı mı) — yerinde
+  dönmek sayılmaz. Birincil ölçü artık yemek/1000 tik; yönelim ikincil.
+- η 0,05, λ 0,8, 30 eğitim + 10 değerlendirme, donuk kardeşlere karşı. Ölüm değeri ajana ayar olarak eklendi.
+
 ## Açık sorular (güncel)
 
 - Kendiliğinden hareket (motor babbling) ve zayıf rastgele doğum bağlantıları öğrenmeyi başlatır mı?

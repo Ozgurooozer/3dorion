@@ -38,6 +38,8 @@ export interface AgentSpec {
   readonly keepSteps?: boolean;
   /** Ablation: if false, dying still produces a dopamine signal but teaches nothing. Default true. */
   readonly teachAtDeath?: boolean;
+  /** Innate value of dying (default −1, see neuromodulation). A lab parameter, varied in pilot 001c. */
+  readonly deathOutcome?: number;
 }
 
 export function createAgent(spec: AgentSpec): Agent {
@@ -45,7 +47,7 @@ export function createAgent(spec: AgentSpec): Agent {
   const graph = structuredClone(spec.ledger.graph);
   const sim = new BrainSimulator(graph);
   const learner = new Learner(graph, spec.ledger, spec.learning);
-  const dopamine = new DopamineChannel();
+  const dopamine = new DopamineChannel(spec.deathOutcome === undefined ? {} : { deathOutcome: spec.deathOutcome });
   const noise = new NoiseGenerator(spec.noiseSeed);
   const controller = brainController(sim, spec.cfg, { keepSteps: spec.keepSteps ?? false, extraInputs: noise.asExtraInputs() });
   let episode = 0;

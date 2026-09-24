@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DEFAULT_CONFIG as C, type Action, type Observation, type Ray } from "../world/index.ts";
-import { LAG, foodSide, orientation, towardFood } from "./measures.ts";
+import { LAG, approach, foodSide, orientation, towardFood } from "./measures.ts";
 
 const none: Ray = { distance: C.rayRange, hit: "none" };
 const obsWithFood = (ray: number | null, distance = 2): Observation => ({
@@ -40,4 +40,10 @@ test("orientation uses the conduction delay: the action at t answers the sight a
   const early = Array.from({ length: T }, (_, t): Action => ({ thrust: 0, turn: t === 2 ? 1 : 0 }));
   assert.deepEqual(orientation(obs, early, C), { seen: 1, toward: 0, index: 0 }, "a same-tick turn cannot be a response");
   assert.equal(orientation(obs.map(() => obsWithFood(null)), actions, C).index, null, "no food in sight → no index");
+});
+
+test("approach: counts food getting closer between consecutive sightings; turning in place never counts", () => {
+  const seq = [obsWithFood(2, 3), obsWithFood(2, 2.5), obsWithFood(2, 2.5), obsWithFood(null), obsWithFood(3, 1), obsWithFood(3, 0.8)];
+  assert.deepEqual(approach(seq), { pairs: 3, closer: 2, index: 2 / 3 });
+  assert.equal(approach([obsWithFood(null), obsWithFood(null)]).index, null);
 });

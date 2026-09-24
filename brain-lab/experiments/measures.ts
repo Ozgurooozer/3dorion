@@ -31,6 +31,28 @@ export function towardFood(side: Side, action: Action): boolean {
   return action.thrust > 0 && action.turn === 0;
 }
 
+/**
+ * Approach: of the consecutive tick pairs where food is in sight both times, how often the
+ * nearest food got closer. Harder to game than orientation: turning on the spot never counts.
+ */
+export function approach(observations: readonly Observation[]): { pairs: number; closer: number; index: number | null } {
+  const nearest = (o: Observation) => {
+    let d = Number.POSITIVE_INFINITY;
+    for (const r of o.rays) if (r.hit === "food" && r.distance < d) d = r.distance;
+    return d;
+  };
+  let pairs = 0;
+  let closer = 0;
+  for (let t = 1; t < observations.length; t++) {
+    const a = nearest(observations[t - 1]!);
+    const b = nearest(observations[t]!);
+    if (!Number.isFinite(a) || !Number.isFinite(b)) continue;
+    pairs++;
+    if (b < a) closer++;
+  }
+  return { pairs, closer, index: pairs > 0 ? closer / pairs : null };
+}
+
 export interface Orientation { readonly seen: number; readonly toward: number; readonly index: number | null }
 
 /** `observations[t]` is what the brain sensed at tick t; `actions[t]` what it did at tick t. */
