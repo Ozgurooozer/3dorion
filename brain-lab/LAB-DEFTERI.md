@@ -341,6 +341,34 @@ Ozyn: "önerini dene, toplantı yap, ekstra testler; bu aşama başlangıç — 
   H4 → E7 ≥ E4. H5 → E8 ≥ E4. H11 → E9 kararlı (ne donma ne aşırılık).
 - En iyi aday → parti 2 (sağlamlık) ve parti 3 (ne öğrenildi, lezyon, karıştırılmış dopamin kontrolü).
 
+## 2026-09-24 — Seri 002a sonucu (mekanizma taraması)
+
+Kod `59a2c27`, 1091 sn, 14 öğrenen/koşul, ortak donuk kardeşler (2,08 yemek/1000 tik, 1346 tik yaşam, %43 durgun).
+
+| koşul | önde | yemek/1000t | yaşam | yaklaşma | durgun | Git | Gitme |
+|---|---|---|---|---|---|---|---|
+| E0 tam kural, nöron geçidi | 0/14 | 0,02 | 808 | 0,005 | %100 | 0,047 | 0,692 |
+| E1 seçime bağlı | 3/14 | 1,78 | 1540 | 0,625 | %76 | 0,116 | 0,148 |
+| E2 E1 + ölüm öğretmez | 0/14 | 0,43 | 308 | 0,529 | %3 | 0,092 | 0,027 |
+| E3 E1 + düşüş tabanı | 3/14 | 1,50 | 676 | 0,558 | %27 | 0,109 | 0,036 |
+| E4 E1 + taban + ölüm öğretmez | 0/14 | 0,43 | 308 | 0,529 | %3 | 0,092 | 0,027 |
+| **E5 Git-yalnız** | **12/14** | 2,53 | 1408 | 0,603 | %47 | 0,120 | 0,026 |
+| E6 Git-yalnız + ölüm öğretmez | 0/14 | 0,43 | 296 | 0,513 | %0 | 0,095 | 0,026 |
+| **E7 E4 + eleştirmen** | **11/14** | 2,35 | 1187 | 0,557 | %42 | 0,164 | 0,067 |
+| E8 E4 + ölçekleme | 8/14 | 2,03 | 903 | 0,542 | %30 | 0,058 | 0,026 |
+| E9 dopamin ölçeklemesi (η 0,003) | 0/14 | 0,00 | 800 | 0,034 | %97 | 0,096 | 0,203 |
+| **E10 E4 + eleştirmen + ölçekleme** | **12/14** | **2,81** | **1645** | 0,590 | %48 | 0,057 | 0,027 |
+
+- **Öngörü karnesi:** H1 kısmen (donmayı azaltıyor — Gitme 0,69 → 0,15 — ama tek başına kardeşi geçmiyor).
+  H2 boşa çıktı: E2 ≡ E4 birebir; günlük düşüşler tabana hiç ulaşmıyor, taban yalnızca ölümü sınırlıyor.
+  H3 eleştirmensiz ✗ (ölüm öğretmeyince hep aşırı hareket), eleştirmenle ✓ (E7). **H4 en güçlü bulgu:** E4 → E7
+  0/14 → 11/14 — eleştirmen, ölüm yerine sürekli ve bilgilendirici bir fren. H5 dengeliyor, kazanç yok (8/14).
+  H6 ✓ (E6 %0 durgun). H11 benim yaklaşığımda ✗ (donma) — bu OpAL*'ın kendisi değil, o sınanmadı.
+- **Seçim (dürüst):** önceden yazılı kurala göre "en iyi" **E5** (medyan fark +0,52). **E10** ortalamada en yüksek
+  (2,81) ve en uzun yaşam (1645); biyolojik olarak en savunulabilir (ölümden öğrenmez, sadece seçilen eylemi
+  öğrenir, eleştirmenli). Plan "en iyi 1–2 aday" diyordu → **E10 ikinci aday olarak, sağlamlık sonuçlarından
+  önce, bu gerekçeyle** eklendi. İkisi de 002b ve 002c'den geçecek.
+
 ## Açık sorular (güncel)
 
 - Kendiliğinden hareket (motor babbling) ve zayıf rastgele doğum bağlantıları öğrenmeyi başlatır mı?
