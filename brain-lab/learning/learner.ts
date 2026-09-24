@@ -23,9 +23,21 @@ export interface LearningParams {
   readonly wMax: number; // weights stay in [0, wMax] (learning pathways are excitatory)
   /** A frozen learner computes everything but changes nothing: the control twin. */
   readonly frozen: boolean;
+  // Ablation switches for diagnostic experiments; the defaults are the full rule.
+  /** Learn on Go edges. */
+  readonly learnGo: boolean;
+  /** Learn on NoGo edges. */
+  readonly learnNoGo: boolean;
+  /** If set, only learning edges whose source sense matches this pattern may change. */
+  readonly senseFilter: string | null;
+  /** "positive": dopamine dips teach nothing (only bursts do). */
+  readonly dopamine: "full" | "positive";
 }
 
-export const DEFAULT_LEARNING: LearningParams = Object.freeze({ eta: 0.1, lambda: 0.9, quantum: 0.001, wMax: 2, frozen: false });
+export const DEFAULT_LEARNING: LearningParams = Object.freeze({
+  eta: 0.1, lambda: 0.9, quantum: 0.001, wMax: 2, frozen: false,
+  learnGo: true, learnNoGo: true, senseFilter: null, dopamine: "full",
+});
 
 interface Synapse { readonly edge: BrainBaglantisi; readonly sign: 1 | -1; e: number; pending: number }
 
@@ -44,7 +56,9 @@ export class Learner {
     }
     if (!ledger.matches(graph)) throw new Error(`${ledger.subjectId}: live brain does not match its ledger before learning starts`);
     this.ledger = ledger;
-    this.synapses = graph.connections.filter((c) => isPlastic(c)).map((edge) => ({
+    const senseOk = p.senseFilter === null ? () => true : ((re) => (id: string) => re.test(id))(new RegExp(p.senseFilter));
+    const pathOk = (to: string) => (regionOf(to)!.region === "bg.nogo" ? p.learnNoGo : p.learnGo);
+    this.synapses = graph.connections.filter((c) => isPlastic(c) && senseOk(c.from) && pathOk(c.to)).map((edge) => ({
       edge,
       sign: regionOf(edge.to)!.region === "bg.nogo" ? -1 : 1,
       e: 0,
@@ -66,6 +80,7 @@ export class Learner {
   applyDopamine(delta: number, tick: number, cause: readonly string[] = ["dopamine"]): LedgerEntry[] {
     if (!Number.isFinite(delta)) throw new RangeError(`dopamine ${delta}`);
     const written: LedgerEntry[] = [];
+    if (this.params.dopamine === "positive") delta = Math.max(0, delta);
     if (this.params.frozen || delta === 0) return written;
     const { eta, quantum, wMax } = this.params;
     for (const s of this.synapses) {

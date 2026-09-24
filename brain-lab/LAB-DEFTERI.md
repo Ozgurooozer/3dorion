@@ -223,6 +223,23 @@ Veri: `brain-lab/data/pilot-001-summary.json` ve RUN kayıtları (git dışı).
   (açlık, hareket) öğrenen yollardan çıkarılması; Gitme için dengeleyici sönüm.
 - Bu olumsuz sonuç yayımlanır; ön-kayıt yazılmadan önce mekanizma düzeltilmeli.
 
+## 2026-09-24 — Pilot 001b: tanı deneyleri — koşmadan önce (keşif)
+
+Ozyn: "sonuçları daha derin incele, ekstra deneyler yap, emin ol." Pilot 001'deki mekanizma
+hipotezi parça parça sınanıyor. Sadece ayar seed'leri (4–10); hiçbir koşul seçilmiyor, hepsi raporlanıyor.
+- Bölüm 1 (gözlem): donuk yenidoğanda dopamin sistematik olarak eksi mi; hareketten hemen sonra
+  (t+1) daha mı eksi? Bu, öğrenmeyen geçici beyinlerle ölçülüyor (kayda girmiyor — hiç öğrenmedikleri için).
+- Bölüm 2: pilot 001 defterlerinde hangi Git/Gitme kenarları büyüdü — duyu türüne göre.
+- Bölüm 3: rastgele (ayrık) politikanın yönelimi — kardeşlerin 0,17'si şans düzeyine göre ne?
+- Bölüm 4 (bozma deneyleri), η 0,05, λ 0,8, 30 eğitim + 10 değerlendirme, aynı donuk kardeşlerle:
+  A0 tam kural (tekrar) · A1 Gitme öğrenmesi yok · A2 ölüm öğretmiyor · A3 iç duyu/hareket duyusu
+  öğrenen yolda değil · A4 sadece dopamin artışı öğretiyor · A5 = A1 + A3.
+- Öngörüler (hipotez doğruysa): Bölüm 1'de ortalama δ < 0 ve hareket sonrası δ < dinlenme sonrası δ;
+  Bölüm 2'de en çok büyüyen Gitme kenarları hep-açık duyulardan (duvar, açlık); A1, A4, A5'te çöküş
+  kaybolur; A2 tek başına çöküşü önlemez; A3 kısmen iyileştirir.
+- Ablasyon anahtarları öğrenme kuralına eklendi (varsayılanları tam kural); her anahtarın sadece kendi
+  mekanizmasını kaldırdığı testle doğrulandı.
+
 ## Açık sorular (güncel)
 
 - Kendiliğinden hareket (motor babbling) ve zayıf rastgele doğum bağlantıları öğrenmeyi başlatır mı?

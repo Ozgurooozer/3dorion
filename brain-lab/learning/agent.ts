@@ -36,6 +36,8 @@ export interface AgentSpec {
   readonly noiseSeed: number;
   readonly learning?: Partial<LearningParams>;
   readonly keepSteps?: boolean;
+  /** Ablation: if false, dying still produces a dopamine signal but teaches nothing. Default true. */
+  readonly teachAtDeath?: boolean;
 }
 
 export function createAgent(spec: AgentSpec): Agent {
@@ -74,6 +76,7 @@ export function createAgent(spec: AgentSpec): Agent {
     onDeath: (obs, cause, t) => {
       tick = t;
       const signal = dopamine.observeDeath(obs, t, cause);
+      if (spec.teachAtDeath === false) return;
       const changed = learner.applyDopamine(signal.delta, t, ["death", cause]);
       if (changed.length > 0) { writes.push(...changed); stage("E2", "first weight change"); }
     },

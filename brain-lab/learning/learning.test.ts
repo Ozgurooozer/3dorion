@@ -156,3 +156,31 @@ test("determinism: the same subject lives the same life — identical ledger, id
   assert.equal(JSON.stringify(a.ledger.entries), JSON.stringify(b.ledger.entries));
   assert.equal(a.food, b.food);
 });
+
+// --- ablation switches (diagnostic experiments) ---------------------------------------
+
+test("ablations: each switch removes exactly its mechanism and nothing else", () => {
+  const plastic = (p: Partial<LearningParams>) => unitLearner(p).learner.plasticCount;
+  const full = plastic({});
+  assert.equal(plastic({ learnNoGo: false }), full / 2, "Go only must keep exactly the Go half");
+  assert.equal(plastic({ learnGo: false }), full / 2);
+  const outside = plastic({ senseFilter: "^(ray|touch)" });
+  assert.equal(outside, full - 6 * 4 * 2, "interoception and proprioception (6 senses: hunger, injury, 4 motion) leave the learning set");
+
+  const { learner, graph } = unitLearner({ eta: 1, dopamine: "positive" });
+  learner.startEpisode(1);
+  const go0 = w(graph, "ray2.food", "bg.go.forward");
+  learner.updateEligibility({ "ray2.food": 1 }, { "bg.go.forward": 1 });
+  assert.equal(learner.applyDopamine(-0.5, 1).length, 0, "a dip taught something under dopamine: positive");
+  assert.equal(w(graph, "ray2.food", "bg.go.forward"), go0);
+  assert.ok(learner.applyDopamine(0.5, 2).length > 0, "a burst must still teach");
+});
+
+test("ablation: without teaching at death, dying changes no weight", () => {
+  const ledger = ledgerFor(7);
+  const agent = createAgent({ cfg: makeConfig({ initialEnergy: 0.05, threatCount: 0, foodCount: 0 }), ledger, noiseSeed: 1, teachAtDeath: false });
+  agent.startEpisode(1);
+  const ep = runEpisode(new Room(7, makeConfig({ initialEnergy: 0.05, threatCount: 0, foodCount: 0 })), agent.policy, 5000, false, agent.hooks);
+  assert.equal(ep.doneCause, "starved");
+  assert.equal(ledger.entries.filter((e) => e.kind === "weight" && e.cause.includes("death")).length, 0);
+});
