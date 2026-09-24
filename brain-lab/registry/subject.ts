@@ -3,7 +3,7 @@
 
 import type { WorldConfig } from "../world/index.ts";
 
-export type Category = "baseline.empty" | "baseline.random" | "baseline.td" | "learner.3f";
+export type Category = "baseline.empty" | "baseline.random" | "baseline.td" | "baseline.oracle" | "learner.3f";
 
 /** Innate wiring condition (Ozyn, 2026-09-23: compare both). "none" for baselines where it does not apply. */
 export type Group = "reflexless" | "reflexive" | "none";

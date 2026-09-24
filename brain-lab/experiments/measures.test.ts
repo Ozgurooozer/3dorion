@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DEFAULT_CONFIG as C, type Action, type Observation, type Ray } from "../world/index.ts";
-import { LAG, approach, foodSide, orientation, towardFood } from "./measures.ts";
+import { LAG, approach, foodSide, orientation, towardFood, turnToward } from "./measures.ts";
 
 const none: Ray = { distance: C.rayRange, hit: "none" };
 const obsWithFood = (ray: number | null, distance = 2): Observation => ({
@@ -46,4 +46,19 @@ test("approach: counts food getting closer between consecutive sightings; turnin
   const seq = [obsWithFood(2, 3), obsWithFood(2, 2.5), obsWithFood(2, 2.5), obsWithFood(null), obsWithFood(3, 1), obsWithFood(3, 0.8)];
   assert.deepEqual(approach(seq), { pairs: 3, closer: 2, index: 2 / 3 });
   assert.equal(approach([obsWithFood(null), obsWithFood(null)]).index, null);
+});
+
+test("turn direction: only side sightings followed by a turn count; a one-sided habit scores chance", () => {
+  const act = (turn: number): Action => ({ thrust: 1, turn });
+  // lag 0: food left, right, ahead, none; turning left every tick
+  const obs = [obsWithFood(4), obsWithFood(0), obsWithFood(2), obsWithFood(null), obsWithFood(3), obsWithFood(1)];
+  assert.deepEqual(turnToward(obs, obs.map(() => act(1)), C, 0), { turns: 4, toward: 2, index: 0.5 }, "always-left habit = chance");
+  const steer = [act(1), act(-1), act(0), act(0), act(1), act(-1)];
+  assert.deepEqual(turnToward(obs, steer, C, 0), { turns: 4, toward: 4, index: 1 });
+  const away = [act(-1), act(1), act(0), act(0), act(-1), act(1)];
+  assert.deepEqual(turnToward(obs, away, C, 0), { turns: 4, toward: 0, index: 0 });
+  assert.deepEqual(turnToward(obs, obs.map(() => act(0)), C, 0), { turns: 0, toward: 0, index: null }, "no turns, no index");
+  // default lag is the brain's conduction delay
+  const late = Array.from({ length: 6 + LAG }, (_, t): Action => act(t === LAG ? 1 : 0));
+  assert.deepEqual(turnToward([...obs, ...obs], late, C), { turns: 1, toward: 1, index: 1 });
 });

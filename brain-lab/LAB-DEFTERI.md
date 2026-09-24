@@ -426,6 +426,25 @@ Kod `793e240` (E5, E10) ve `29f4121` (E7). Veri `data/series-002d-*`.
 - Süreç notu: bu girişi yazan betik Windows yolundaki ters eğik çizgilerde çöktü; önceki commit (413071e) yalnızca
   ön-kayıt taslağını içeriyor, giriş ayrı commit'le eklendi.
 
+## 2026-09-24 — Seri 003a: kıyas öğrenicisi — koşmadan önce (keşif)
+
+- Ozyn kararı: hedef **Basamak 2** ("doğru kararı öğrenir, koşullar değişince de"); ön-kayıt 002 dondurulmadan önce
+  iki keşif: (1) kıyas öğrenicisi, (2) topografik doğum. Sinek bağlantı haritası (Male CNS v1.0) ayrı bir alt ajanda.
+- Kod: `baselines/` — **beyin değil, ölçü çubuğu.** `LinearQ` = ders kitabı SARSA(λ), doğrusal Q (Sutton & Barto §12.7),
+  beyinle aynı 22 duyu + sabit terim, aynı 9 motor komutu, aynı homeostatik ödül, ölümde −1; ε-açgözlü, seed'li.
+  Eğitilmemiş hali = rastgele politika (eşitlikler rastgele bozuluyor, testli). `oracle` = elle yazılmış tavan
+  (en yakın yemeğe dön, yoksa ileri, yakın duvardan dön) — sadece "iyi ne demek" için. 13 test, 11/11 mutant öldü.
+- Yeni ölçü `turnToward` (dönüş yönü): yemek bir YANDA görülüp beden döndüğünde, yemeğe doğru dönme oranı; şans 0,5,
+  tek yöne dönme alışkanlığı da 0,5 verir. Her aktör kendi gecikmesiyle ölçülür (beyin LAG=3, tepkisel politika 0).
+  Ölçüm tek yerde: `harness.measureEpisodes` — beyin ve kıyaslar aynı değerlendirme dünyalarında, aynı ölçülerle.
+- Plan (seed 1–10, yemek 10, aç doğum 0,4, tehdit yok; E7 ile aynı dünyalar): rastgele, kâhin, TD taraması
+  (α {0,03; 0,1; 0,3} × λ {0,8; 0,9}, ε 0,1, 40 eğitim + 10 değerlendirme, değerlendirmede ε 0,05), en iyi TD için
+  100 bölüm eğrisi ve ε 0 değerlendirmesi. E7 denekleri (as-is ve λ 0,9) yeni ölçüyle yeniden değerlendirilir —
+  yemek/1000 tik kayıtlı değerle **birebir aynı çıkmalı** (ölçüm yeniden düzenlemesinin kontrolü).
+- **Öngörüler (koşmadan):** (a) kâhin ≥ 3× rastgele; (b) en iyi TD, E7 λ 0,9'u (3,16) açıkça geçer ve kâhinin
+  %50'sinden fazlasına ulaşır; (c) TD'nin dönüş yönü ≥ 0,7; (d) E7'nin dönüş yönü ~0,5–0,55 (geometri 0,54 ile
+  tutarlı). (b) ya da (c) tutmazsa oda sanıldığından zor demektir ve beynimizi yargılamak için ölçüt değişir.
+
 ## Açık sorular (güncel)
 
 - Kendiliğinden hareket (motor babbling) ve zayıf rastgele doğum bağlantıları öğrenmeyi başlatır mı?

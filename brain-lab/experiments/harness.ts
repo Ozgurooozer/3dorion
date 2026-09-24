@@ -6,10 +6,10 @@
 import { bornGraph, type InnateGroup } from "../development/index.ts";
 import { createAgent, type AgentSpec } from "../learning/index.ts";
 import { episodeEvents, type Subject } from "../registry/index.ts";
-import type { RegistryStore } from "../registry/store.ts";
+import type { EpisodeLine, RegistryStore } from "../registry/store.ts";
 import { isPlastic } from "../regions/index.ts";
-import { Room, runEpisode, type Action, type WorldConfig } from "../world/index.ts";
-import { approach, orientation } from "./measures.ts";
+import { Room, runEpisode, type Action, type EpisodeHooks, type Policy, type WorldConfig } from "../world/index.ts";
+import { LAG, approach, orientation, turnToward } from "./measures.ts";
 
 export const MAX_TICKS = 3000;
 
@@ -19,7 +19,12 @@ export interface Condition {
   readonly spec: Omit<AgentSpec, "cfg" | "ledger" | "noiseSeed">;
 }
 
-export interface Eval { ticks: number; meals: number; perK: number; orientation: number; approach: number; still: number }
+export interface Eval {
+  ticks: number; meals: number; perK: number; orientation: number; approach: number; still: number;
+  /** Share of side-food turns made toward the food (0.5 = chance, also when there were no turns). */
+  turnToward: number;
+  turns: number;
+}
 
 export interface Row {
   readonly seed: number;
@@ -51,28 +56,50 @@ export function birth(store: RegistryStore, world: WorldConfig, seed: number, gr
   return store.createSubject({ category: "learner.3f", group, seed, worldConfig: world, birthGraph: bornGraph(world, { seed, group }), lineage, codeCommit });
 }
 
+/** Anything that can live evaluation episodes: a brain, a baseline, a fixture. */
+export interface Actor {
+  readonly policy: Policy;
+  readonly hooks?: EpisodeHooks;
+  startEpisode?(episode: number): void;
+}
+
+/**
+ * Lives `episodes` episodes on the fixed evaluation worlds of `seed` and measures them — the ONE
+ * place behavior is measured, so a brain and a baseline are compared on identical terms.
+ * `lag` is the actor's sense→motor delay (LAG for the regional brain, 0 for a reactive policy).
+ */
+export function measureEpisodes(actor: Actor, world: WorldConfig, seed: number, episodes: number, lag: number, onEpisode?: (line: Omit<EpisodeLine, "kind">) => void): Eval {
+  const ticks: number[] = [], meals: number[] = [];
+  let seen = 0, toward = 0, pairs = 0, closer = 0, still = 0, all = 0, turns = 0, turnsToward = 0;
+  for (let ep = 1; ep <= episodes; ep++) {
+    actor.startEpisode?.(ep);
+    const worldSeed = evalWorld(seed, ep);
+    const room = new Room(worldSeed, world);
+    const first = room.observe();
+    const { records, ...summary } = runEpisode(room, actor.policy, MAX_TICKS, true, actor.hooks);
+    const obs = [first, ...records.map((r) => r.result.observation)];
+    const actions = records.map((r) => r.action);
+    const o = orientation(obs, actions, world, lag);
+    const a = approach(obs);
+    const d = turnToward(obs, actions, world, lag);
+    seen += o.seen; toward += o.toward; pairs += a.pairs; closer += a.closer; turns += d.turns; turnsToward += d.toward;
+    for (const r of records) { all++; if (!moving(r.action)) still++; }
+    onEpisode?.({ episode: ep, worldSeed, summary, events: episodeEvents(records), extra: { orientation: o, approach: a, turnToward: d } });
+    ticks.push(summary.ticks); meals.push(summary.foodEaten);
+  }
+  const T = ticks.reduce((x, y) => x + y, 0);
+  return {
+    ticks: mean(ticks), meals: mean(meals), perK: (1000 * meals.reduce((x, y) => x + y, 0)) / T,
+    orientation: seen ? toward / seen : 0, approach: pairs ? closer / pairs : 0, still: still / all,
+    turnToward: turns ? turnsToward / turns : 0.5, turns,
+  };
+}
+
 /** Evaluate a subject's current brain with learning frozen. */
 export function evaluate(store: RegistryStore, s: Subject, world: WorldConfig, episodes: number, codeCommit: string, label: string, spec: Partial<AgentSpec> = {}): Eval {
   const agent = createAgent({ ...spec, cfg: world, ledger: store.openLedger(s.id), noiseSeed: evalNoise(s.birth.seed), learning: { ...spec.learning, frozen: true } });
   const run = store.startRun(s.id, `${label} eval (learning frozen)`, {}, { codeCommit });
-  const ticks: number[] = [], meals: number[] = [];
-  let seen = 0, toward = 0, pairs = 0, closer = 0, still = 0, all = 0;
-  for (let ep = 1; ep <= episodes; ep++) {
-    agent.startEpisode(ep);
-    const worldSeed = evalWorld(s.birth.seed, ep);
-    const room = new Room(worldSeed, world);
-    const first = room.observe();
-    const { records, ...summary } = runEpisode(room, agent.policy, MAX_TICKS, true, agent.hooks);
-    const obs = [first, ...records.map((r) => r.result.observation)];
-    const o = orientation(obs, records.map((r) => r.action), world);
-    const a = approach(obs);
-    seen += o.seen; toward += o.toward; pairs += a.pairs; closer += a.closer;
-    for (const r of records) { all++; if (!moving(r.action)) still++; }
-    store.appendEpisode(run.id, { episode: ep, worldSeed, summary, events: episodeEvents(records), extra: { orientation: o, approach: a } });
-    ticks.push(summary.ticks); meals.push(summary.foodEaten);
-  }
-  const T = ticks.reduce((x, y) => x + y, 0);
-  return { ticks: mean(ticks), meals: mean(meals), perK: (1000 * meals.reduce((x, y) => x + y, 0)) / T, orientation: seen ? toward / seen : 0, approach: pairs ? closer / pairs : 0, still: still / all };
+  return measureEpisodes(agent, world, s.birth.seed, episodes, LAG, (line) => store.appendEpisode(run.id, line));
 }
 
 /** Train a subject; returns meals/1000 ticks per 10-episode block. */

@@ -53,6 +53,29 @@ export function approach(observations: readonly Observation[]): { pairs: number;
   return { pairs, closer, index: pairs > 0 ? closer / pairs : null };
 }
 
+export interface TurnToward { readonly turns: number; readonly toward: number; readonly index: number | null }
+
+/**
+ * Direction ("dönüş yönü"): of the ticks where food was seen to one SIDE `lag` ticks earlier and
+ * the body turned, how often it turned toward that side. Chance is 0.5 whatever the body's habits:
+ * a body that always turns left scores 0.5, because food is left and right about equally often.
+ * This isolates "which way", which orientation mixes with "whether to move".
+ * `lag` is the actor's own sense→motor delay: LAG for the regional brain, 0 for a policy that
+ * acts on the observation it is given.
+ */
+export function turnToward(observations: readonly Observation[], actions: readonly Action[], cfg: WorldConfig, lag = LAG): TurnToward {
+  let turns = 0;
+  let toward = 0;
+  for (let t = lag; t < actions.length; t++) {
+    const side = foodSide(observations[t - lag]!, cfg);
+    const turn = actions[t]!.turn;
+    if (side === null || side === "center" || turn === 0) continue;
+    turns++;
+    if ((side === "left") === (turn > 0)) toward++;
+  }
+  return { turns, toward, index: turns > 0 ? toward / turns : null };
+}
+
 export interface Orientation { readonly seen: number; readonly toward: number; readonly index: number | null }
 
 /** `observations[t]` is what the brain sensed at tick t; `actions[t]` what it did at tick t. */
