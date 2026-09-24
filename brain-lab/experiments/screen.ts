@@ -39,6 +39,7 @@ export const SCREEN: Record<string, { what: string; spec: Spec; born?: BirthOpti
   A3: { what: "E7 with λ 0.97", spec: { ...E7, learning: learn({ lambda: 0.97 }) } },
   A4: { what: "E7 + all three (A1+A2+A3)", spec: ALL },
   A5: { what: "A4 + generators → Go 0.3", spec: ALL, born: { generatorToGo: 0.3 } },
+  G3: { what: "E7 + generators → Go 0.3 (the improvement-loop question alone)", spec: E7, born: { generatorToGo: 0.3 } },
 };
 
 const mean = (xs: number[]) => xs.reduce((s, x) => s + x, 0) / xs.length;
