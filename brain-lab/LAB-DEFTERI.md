@@ -716,6 +716,27 @@ Kod `793e240` (E5, E10) ve `29f4121` (E7). Veri `data/series-002d-*`.
   (0,008), **ortalama dürtü 0,469 (kardeş 0,718), hayatta kalma %52 (%11)** → E7'nin gerçek kazancı homeostaz;
   A1 normalize eleştirmen: yönlendirme −0,029, dürtü 0,560, hayatta kalma %35 — daha kötü.
 
+## 2026-09-24 — Tarama sonucu (matematik denetimi + G): hiçbiri E7'yi geçmedi
+
+`[ÖLÇÜLDÜ]` seed 1–5 × iki grup, 40 + 10 bölüm. Kardeş: yönlendirme ~0, dürtü 0,72–0,73, hayatta kalma %11–13.
+
+| kod | değişiklik | yönlendirme | bilgi (bit) | ort. dürtü ↓ | hayatta kalma | yemek/1000t | eleştirmen yemek değeri | yemek → Git kendi / karşı taraf |
+|---|---|---|---|---|---|---|---|---|
+| A0 | E7 (referans) | **0,060** | 0,031 | **0,469** | **%52** | 3,62 | 0,0023 | 0,68 / 0,61 |
+| A1 | normalize eleştirmen | −0,029 | 0,028 | 0,560 | %35 | 3,50 | 0,0063 | 0,31 / 0,38 |
+| A2 | düşüş tabanı yok | 0,015 | 0,013 | 0,610 | %35 | 2,72 | — | — |
+| A3 | λ 0,97 | 0,017 | 0,013 | 0,787 | %14 | 1,69 | — | — |
+| A4 | A1+A2+A3 | −0,020 | 0,032 | 0,635 | %28 | 1,77 | 0,0076 | 0,73 / 0,54 |
+| A5 | A4 + üreteç 0,3 | −0,002 | 0,028 | 0,776 | %9 | 1,82 | — | — |
+| G3 | üreteç 0,3 | 0,031 | 0,019 | 0,523 | %49 | 2,75 | 0,0022 | 0,70 / 0,67 |
+
+- Öngörü karnesi: A1 eleştirmen yemek değeri > 0,02 ✗ (0,006); A1 yönlendirme ≤ 0,1 ✓; "A5 en iyisi" ✗ (en kötülerden);
+  "hiçbiri > 0,2" ✓. Toplantı K9'un yanlışlayıcısı (G'de yönlendirme > 0,2) tetiklenmedi → K5 geçerli.
+- Yorum: tek tek matematik düzeltmeleri yardımcı olmuyor, çoğu homeostazı bozuyor. Normalize eleştirmen de yemek görmeye
+  değer vermiyor — **eleştirmen doğru ölçüyor**: bu politikayla yemek görmek gerçekten yemeği öngörmüyor. Kısır döngü
+  mekanik bir hata değil, yapısal: davranış iyileşmeden değer oluşmuyor, değer oluşmadan davranış iyileşmiyor.
+- E7'nin gerçek kazancı **homeostaz** (dürtü 0,72 → 0,47, hayatta kalma %11 → %52); yön ≈ 0,06 (10'da 6 denek > 0).
+
 ## 2026-09-24 — Seri 004 / M3: iki taraf — koşmadan önce (keşif)
 
 - Kod: yeni bölge `lat` (6 nöron: duvar/yemek/tehlike × sol/sağ). Doğuştan: her taraftaki ışın kendi tarafının hücresini
