@@ -196,6 +196,33 @@ Olumsuz sonuçlar da yazılır. Etiketler: `[ÖLÇÜLDÜ]` canlı ölçüm, `[TE
 - Değerlendirmede öğrenme kapalı; öğrenen ve kardeşi aynı dünyalarda, aynı gürültüyle.
 - Her denek kayıt sisteminde (DNK-…); kardeş, öğrenenin doğumundan klon.
 
+## 2026-09-24 — Pilot 001 sonucu: OLUMSUZ — beyin "hareket etmemeyi" öğrendi
+
+Kod `a171a1b`, 339 sn, 88 denek (DNK-0001…0088; ad listesi bitti, adlar "… 2" ile devam etti).
+Veri: `brain-lab/data/pilot-001-summary.json` ve RUN kayıtları (git dışı).
+
+- `[ÖLÇÜLDÜ]` Aşama A: 9 η×λ kombinasyonunun **hepsinde** öğrenen, donuk kardeşinden kötü; seçilen
+  (η 0,05, λ 0,8) bile medyan yönelim farkı −0,19.
+- `[ÖLÇÜLDÜ]` Aşama B (seed 4–10, 14 çift): öğrenenlerin **28'inin 28'i** değerlendirmede 0 yemek,
+  yönelim 0,000. Donuk kardeşler 2,65–3,80 yemek/bölüm, yönelim 0,14–0,20. Eğitimde öğrenenler ilk
+  10 bölüm 1,7–4,1 yemek, son 10 bölüm 0. Reflekssiz ve refleksli grup aynı.
+- `[ÖLÇÜLDÜ]` Mekanizma (3 öğrenenin defterinden): Gitme ağırlıkları ortalama ~0,027 → 0,86–0,95
+  (~35 kat); Git ağırlıkları 0,027 → 0,016. Ağırlık değişimlerinin ~3,5 katı eksi dopaminden; ~%10'u ölüm anında.
+- **Yorum (hipotez, henüz sınanmadı):**
+  1. Aç bir bedende dürtü her tik artıyor → sonuç neredeyse hep eksi; karesel dürtüde kötüleşme
+     hızlandığı için durumsuz beklenti geride kalıyor → dopamin sistematik olarak eksi.
+  2. Gitme öğrenmesi "eksi dopamin + o an aktif her duyu" ile büyüyor. Duvarlar hep görünüyor,
+     açlık duyusu hep açık → neredeyse her Gitme kenarı büyüyor. En ironik olanı açlık → Gitme:
+     beyin "açken hareket etme"yi öğreniyor, dürtünün tam tersi.
+  3. Ölüm (−1) son anlarda aktif olan Gitme kenarlarını ayrıca büyütüyor.
+- **Ne öğrendik:** üç faktörlü kural bu haliyle, sürekli eksi bir ortamda "harekete ceza"yı seyrek
+  ödülden çok daha hızlı öğreniyor. Durumsuz tahminin sınırlılığı (Adım 5'teki düzeltme) burada
+  ölçülebilir bir başarısızlığa dönüştü.
+- Aday çözümler (ayrı onayla, tek tek sınanmalı): durum-bağımlı değer tahmini (eleştirmen/critic,
+  δ = r + γV(s′) − V(s)) — sistematik eksi yanlılığı kaldırmanın standart yolu; iç duyuların
+  (açlık, hareket) öğrenen yollardan çıkarılması; Gitme için dengeleyici sönüm.
+- Bu olumsuz sonuç yayımlanır; ön-kayıt yazılmadan önce mekanizma düzeltilmeli.
+
 ## Açık sorular (güncel)
 
 - Kendiliğinden hareket (motor babbling) ve zayıf rastgele doğum bağlantıları öğrenmeyi başlatır mı?
