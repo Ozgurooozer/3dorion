@@ -2,8 +2,8 @@
 "use strict";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { DEFAULT_CONFIG as C, type Action, type Observation, type Ray } from "../world/index.ts";
-import { LAG, approach, foodSide, orientation, towardFood, turnToward } from "./measures.ts";
+import { DEFAULT_CONFIG as C, Room, makeConfig, runEpisode, type Action, type Observation, type Ray } from "../world/index.ts";
+import { LAG, approach, foodSide, orientation, steering, steeringIndex, towardFood, turnToward } from "./measures.ts";
 
 const none: Ray = { distance: C.rayRange, hit: "none" };
 const obsWithFood = (ray: number | null, distance = 2): Observation => ({
@@ -61,4 +61,57 @@ test("turn direction: only side sightings followed by a turn count; a one-sided 
   // default lag is the brain's conduction delay
   const late = Array.from({ length: 6 + LAG }, (_, t): Action => act(t === LAG ? 1 : 0));
   assert.deepEqual(turnToward([...obs, ...obs], late, C), { turns: 1, toward: 1, index: 1 });
+});
+
+// --- steering index ------------------------------------------------------------------------
+
+// Food on the left (ray 4), on the right (ray 0), alternating; lag 0 so each action answers its own tick.
+const SIDES = [obsWithFood(4), obsWithFood(0), obsWithFood(4), obsWithFood(0)];
+const turns = (...ts: number[]): Action[] => ts.map((turn) => ({ thrust: 1, turn }));
+
+test("steering: turning toward the food on each side scores 1", () => {
+  assert.equal(steering(SIDES, turns(1, -1, 1, -1), C, 0).index, 1);
+});
+
+test("steering: turning away on each side scores −1", () => {
+  assert.equal(steering(SIDES, turns(-1, 1, -1, 1), C, 0).index, -1);
+});
+
+test("steering: a one-sided habit scores 0, whichever side", () => {
+  assert.equal(steering(SIDES, turns(1, 1, 1, 1), C, 0).index, 0);
+  assert.equal(steering(SIDES, turns(-1, -1, -1, -1), C, 0).index, 0);
+});
+
+test("steering: steering on one side only (left toward left food, never right) scores 0.5", () => {
+  assert.equal(steering(SIDES, turns(1, 0, 1, 0), C, 0).index, 0.5);
+});
+
+test("steering: not turning at all scores 0", () => {
+  assert.equal(steering(SIDES, turns(0, 0, 0, 0), C, 0).index, 0);
+});
+
+test("steering: food seen on one side only gives no index", () => {
+  assert.equal(steering([obsWithFood(4), obsWithFood(3)], turns(1, 1), C, 0).index, null);
+});
+
+test("steering: pooled counts give the index of the pooled behaviour", () => {
+  const a = steering(SIDES, turns(1, -1, 1, -1), C, 0);
+  const b = steering(SIDES, turns(1, 1, 1, 1), C, 0);
+  const pooled = {
+    leftSeen: a.leftSeen + b.leftSeen, rightSeen: a.rightSeen + b.rightSeen,
+    leftTurnWhenLeft: a.leftTurnWhenLeft + b.leftTurnWhenLeft, rightTurnWhenLeft: a.rightTurnWhenLeft + b.rightTurnWhenLeft,
+    leftTurnWhenRight: a.leftTurnWhenRight + b.leftTurnWhenRight, rightTurnWhenRight: a.rightTurnWhenRight + b.rightTurnWhenRight,
+  };
+  assert.equal(steeringIndex(pooled), 0.5);
+});
+
+test("steering vs turnToward in the real room: a food-blind always-left body is 0 on steering but below 0.5 on turnToward", () => {
+  const room = new Room(1500, makeConfig({ initialEnergy: 0.4, threatCount: 0, foodCount: 10 }));
+  const first = room.observe();
+  const { records } = runEpisode(room, () => ({ thrust: 1, turn: 1 }), 3000, true);
+  const obs = [first, ...records.map((r) => r.result.observation)];
+  const actions = records.map((r) => r.action);
+  assert.equal(steering(obs, actions, C, 0).index, 0);
+  const t = turnToward(obs, actions, C, 0).index!;
+  assert.ok(t < 0.5, `turnToward ${t}: the closed-loop bias this index exists to avoid`);
 });

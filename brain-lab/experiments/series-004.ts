@@ -40,6 +40,9 @@ const CONDITIONS: Record<string, { what: string; spec: Spec; born?: BirthOptions
   T0a: { what: "E7 λ0.9, oracle teacher only (gain 0.3)", spec: { ...BASE, teacher: { policy: oraclePolicy(WORLD), gain: 0.3, mix: "only" } } },
   T0b: { what: "E7 λ0.9 + oracle teacher added to reward (gain 0.3)", spec: { ...BASE, teacher: { policy: oraclePolicy(WORLD), gain: 0.3, mix: "add" } } },
   T0c: { what: "E7 λ0.9, oracle teacher only (gain 1)", spec: { ...BASE, teacher: { policy: oraclePolicy(WORLD), gain: 1, mix: "only" } } },
+  // T0a showed the dip floor (−0.05) silences the teacher's "no" (+0.3 vs −0.05): without the floor.
+  T0d: { what: "E7 λ0.9 without dip floor, oracle teacher only (gain 0.3)", spec: { ...BASE, learning: { ...BASE.learning, dipFloor: null }, teacher: { policy: oraclePolicy(WORLD), gain: 0.3, mix: "only" } } },
+  T0e: { what: "E7 λ0.9 without dip floor + oracle teacher added (gain 0.3)", spec: { ...BASE, learning: { ...BASE.learning, dipFloor: null }, teacher: { policy: oraclePolicy(WORLD), gain: 0.3, mix: "add" } } },
   M2: { what: "E7 λ0.9 + expansion layer 64×4 t1", spec: BASE, born: { expansion: KC } },
   M2T: { what: "E7 λ0.9 + expansion layer, oracle teacher only (gain 0.3)", spec: { ...BASE, teacher: { policy: oraclePolicy(WORLD), gain: 0.3, mix: "only" } }, born: { expansion: KC } },
   M2a: { what: "E7 λ0.9 + expansion layer + action compartments", spec: { ...BASE, compartments: { mode: "action" } }, born: { expansion: KC } },
@@ -85,7 +88,7 @@ for (const job of jobs) {
   const f = (g: (r: Row) => number) => mean(rows.map(g));
   const ahead = rows.filter((r) => r.l.perK > r.t.perK).length;
   console.log(`[${((Date.now() - started) / 1000).toFixed(0)}s] ${job} ${line}: ahead ${ahead}/${rows.length} | meals/1000t ${f((r) => r.l.perK).toFixed(2)} vs twin ${f((r) => r.t.perK).toFixed(2)} (median diff ${median(rows.map((r) => r.l.perK - r.t.perK)).toFixed(2)}) | life ${f((r) => r.l.ticks).toFixed(0)} | approach ${f((r) => r.l.approach).toFixed(3)} | still ${(100 * f((r) => r.l.still)).toFixed(0)}%`);
-  console.log(`    turnToward learner ${f((r) => r.l.turnToward).toFixed(3)} vs twin ${f((r) => r.t.turnToward).toFixed(3)} | learner above 0.5: ${rows.filter((r) => r.l.turnToward > 0.5).length}/${rows.length} | train blocks ${[0, 1, 2, 3].map((b) => f((r) => r.trainPerK[b]!).toFixed(2)).join(" → ")}`);
+  console.log(`    steering learner ${f((r) => r.l.steering ?? 0).toFixed(3)} vs twin ${f((r) => r.t.steering ?? 0).toFixed(3)} (above 0: ${rows.filter((r) => (r.l.steering ?? 0) > 0).length}/${rows.length}) | turnToward learner ${f((r) => r.l.turnToward).toFixed(3)} vs twin ${f((r) => r.t.turnToward).toFixed(3)} | learner above 0.5: ${rows.filter((r) => r.l.turnToward > 0.5).length}/${rows.length} | train blocks ${[0, 1, 2, 3].map((b) => f((r) => r.trainPerK[b]!).toFixed(2)).join(" → ")}`);
   writeFileSync(join(DATA, `series-004-${job.replace(":", "-")}-summary.json`), JSON.stringify({ series: "004", exploratory: true, codeCommit, job, what: c.what, born: c.born ?? null, spec: { ...c.spec, deltaTransform: control ?? null, teacher: c.spec.teacher ? { gain: c.spec.teacher.gain, mix: c.spec.teacher.mix, policy: "oracle" } : null }, rows }, null, 2) + "\n");
 }
 console.log("done");

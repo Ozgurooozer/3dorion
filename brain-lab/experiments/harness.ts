@@ -9,7 +9,7 @@ import { episodeEvents, type Subject } from "../registry/index.ts";
 import type { EpisodeLine, RegistryStore } from "../registry/store.ts";
 import { isPlastic, senseToMotorDelay } from "../regions/index.ts";
 import { Room, runEpisode, type Action, type EpisodeHooks, type Policy, type WorldConfig } from "../world/index.ts";
-import { approach, orientation, turnToward } from "./measures.ts";
+import { approach, orientation, steering, steeringIndex, turnToward } from "./measures.ts";
 
 export const MAX_TICKS = 3000;
 
@@ -24,6 +24,8 @@ export interface Eval {
   /** Share of side-food turns made toward the food (0.5 = chance, also when there were no turns). */
   turnToward: number;
   turns: number;
+  /** Habit-free steering index, pooled over episodes (null if food was never seen on both sides). */
+  steering: number | null;
 }
 
 export interface Row {
@@ -79,6 +81,7 @@ export interface Actor {
 export function measureEpisodes(actor: Actor, world: WorldConfig, seed: number, episodes: number, lag: number, onEpisode?: (line: Omit<EpisodeLine, "kind">) => void): Eval {
   const ticks: number[] = [], meals: number[] = [];
   let seen = 0, toward = 0, pairs = 0, closer = 0, still = 0, all = 0, turns = 0, turnsToward = 0;
+  const steer = { leftSeen: 0, rightSeen: 0, leftTurnWhenLeft: 0, rightTurnWhenLeft: 0, leftTurnWhenRight: 0, rightTurnWhenRight: 0 };
   for (let ep = 1; ep <= episodes; ep++) {
     actor.startEpisode?.(ep);
     const worldSeed = evalWorld(seed, ep);
@@ -90,16 +93,18 @@ export function measureEpisodes(actor: Actor, world: WorldConfig, seed: number, 
     const o = orientation(obs, actions, world, lag);
     const a = approach(obs);
     const d = turnToward(obs, actions, world, lag);
+    const st = steering(obs, actions, world, lag);
+    for (const k of Object.keys(steer) as (keyof typeof steer)[]) steer[k] += st[k];
     seen += o.seen; toward += o.toward; pairs += a.pairs; closer += a.closer; turns += d.turns; turnsToward += d.toward;
     for (const r of records) { all++; if (!moving(r.action)) still++; }
-    onEpisode?.({ episode: ep, worldSeed, summary, events: episodeEvents(records), extra: { orientation: o, approach: a, turnToward: d } });
+    onEpisode?.({ episode: ep, worldSeed, summary, events: episodeEvents(records), extra: { orientation: o, approach: a, turnToward: d, steering: st } });
     ticks.push(summary.ticks); meals.push(summary.foodEaten);
   }
   const T = ticks.reduce((x, y) => x + y, 0);
   return {
     ticks: mean(ticks), meals: mean(meals), perK: (1000 * meals.reduce((x, y) => x + y, 0)) / T,
     orientation: seen ? toward / seen : 0, approach: pairs ? closer / pairs : 0, still: still / all,
-    turnToward: turns ? turnsToward / turns : 0.5, turns,
+    turnToward: turns ? turnsToward / turns : 0.5, turns, steering: steeringIndex(steer),
   };
 }
 

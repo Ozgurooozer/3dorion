@@ -57,9 +57,10 @@ export interface TurnToward { readonly turns: number; readonly toward: number; r
 
 /**
  * Direction ("dönüş yönü"): of the ticks where food was seen to one SIDE `lag` ticks earlier and
- * the body turned, how often it turned toward that side. Chance is 0.5 whatever the body's habits:
- * a body that always turns left scores 0.5, because food is left and right about equally often.
- * This isolates "which way", which orientation mixes with "whether to move".
+ * the body turned, how often it turned toward that side. On fixed sequences a one-sided habit scores
+ * 0.5 — but NOT in the closed loop (measured 2026-09-24: food-blind "forward + always left" 0.465,
+ * "always right" 0.498, random 0.49–0.51), because turning moves food across the view. Prefer
+ * `steering`, which is habit-free; this one is kept for comparison with earlier series.
  * `lag` is the actor's own sense→motor delay: LAG for the regional brain, 0 for a policy that
  * acts on the observation it is given.
  */
@@ -74,6 +75,47 @@ export function turnToward(observations: readonly Observation[], actions: readon
     if ((side === "left") === (turn > 0)) toward++;
   }
   return { turns, toward, index: turns > 0 ? toward / turns : null };
+}
+
+/** Counts behind the steering index; kept so indices can be pooled over episodes. */
+export interface Steering {
+  /** Ticks with food seen on the left / right (lag ticks before the action). */
+  readonly leftSeen: number;
+  readonly rightSeen: number;
+  /** Of those, ticks turning left / turning right. */
+  readonly leftTurnWhenLeft: number;
+  readonly rightTurnWhenLeft: number;
+  readonly leftTurnWhenRight: number;
+  readonly rightTurnWhenRight: number;
+  readonly index: number | null;
+}
+
+/**
+ * Steering index ("yönlendirme"), in [−1, 1]:
+ *   ½·[(P(left | food left) − P(left | food right)) + (P(right | food right) − P(right | food left))]
+ * Measured 2026-09-24 that turnToward is NOT habit-free in the closed loop: a food-blind "forward +
+ * always left" body scores 0.465, because food on its turning side is brought to the centre fast
+ * while food on the other side lingers at the side. This index compares each side's probabilities
+ * separately, so a habit cancels out: always-left scores 0, random ~0, perfect steering 1, perfect
+ * steering away −1.
+ */
+export function steering(observations: readonly Observation[], actions: readonly Action[], cfg: WorldConfig, lag = LAG): Steering {
+  const c = { leftSeen: 0, rightSeen: 0, leftTurnWhenLeft: 0, rightTurnWhenLeft: 0, leftTurnWhenRight: 0, rightTurnWhenRight: 0 };
+  for (let t = lag; t < actions.length; t++) {
+    const side = foodSide(observations[t - lag]!, cfg);
+    const turn = actions[t]!.turn;
+    if (side === "left") { c.leftSeen++; if (turn > 0) c.leftTurnWhenLeft++; if (turn < 0) c.rightTurnWhenLeft++; }
+    if (side === "right") { c.rightSeen++; if (turn > 0) c.leftTurnWhenRight++; if (turn < 0) c.rightTurnWhenRight++; }
+  }
+  return { ...c, index: steeringIndex(c) };
+}
+
+/** The index from (possibly pooled) counts; null unless food was seen on both sides. */
+export function steeringIndex(c: Omit<Steering, "index">): number | null {
+  if (c.leftSeen === 0 || c.rightSeen === 0) return null;
+  const toLeft = c.leftTurnWhenLeft / c.leftSeen - c.leftTurnWhenRight / c.rightSeen;
+  const toRight = c.rightTurnWhenRight / c.rightSeen - c.rightTurnWhenLeft / c.leftSeen;
+  return (toLeft + toRight) / 2;
 }
 
 export interface Orientation { readonly seen: number; readonly toward: number; readonly index: number | null }
