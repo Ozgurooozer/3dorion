@@ -308,6 +308,26 @@ hiçbir şey onunla koşulmadı, düzeltmesi `9a8198e`.)
   Git-yalnızda ölüm hâlâ büyük bir fren (−1); frenin biyolojik karşılığı açık bir soru (ölü hayvan
   öğrenmez; gerçekte fren acı/yorgunluk olabilir).
 
+## 2026-09-24 — Seri 002: mekanizmalar (kod) ve literatür
+
+Ozyn: "önerini dene, toplantı yap, ekstra testler; bu aşama başlangıç — tüm hipotezleri sor, test et."
+- **Yeni şüphe (kod okumasından):** Git/Gitme nöronları, hareketleri seçilmese de duyulardan aktif;
+  eski kural bu yüzden seçilmemiş eylemleri de ödüllendiriyor/cezalandırıyordu.
+- **Literatür taraması** (Sonnet alt ajanı, Ozyn isteğiyle; kaynaklar toplantıdan önce ayrıca doğrulanacak):
+  donma, Frank 2005'in Parkinson modelindeki Gitme-baskın hareketsizlik rejimiyle yapısal olarak aynı;
+  seçime bağlı öğrenmenin yayımlanmış bir karşılığı var (2025 Sci Rep — kolinerjik kanal geçidi,
+  kanallar arası karışmayı önlüyor); OpAL* (Jaskir & Frank 2023) aynı model ailesinde Git/Gitme'nin
+  sıfıra çökme/kaçma kararsızlığını dopamin ölçeklemesiyle çözmüş; genel RL literatürü tek büyük
+  terminal cezaya karşı uyarıyor; açlıkla kendiliğinden hareket eden, ham duyudan öğrenen bazal gangliyon
+  bedeni için karşılık bulunamadı.
+- **Eklenen mekanizmalar** (hepsi anahtar, varsayılan = eski kural; 11/11 mutasyon yakalandı):
+  seçime bağlı uygunluk (H1), dopamin düşüş tabanı (H2), ölüm öğretmez (H3, vardı), doğrusal TD
+  eleştirmeni — ağırlıkları deftere yeni "critic" kaydıyla (H4), nöron başına sinaptik ölçekleme (H5),
+  dopamin ölçeklemesi / OpAL* (H11), negatif kontrol için dopamin dönüştürücü (H10).
+- `[TEST]` Eleştirmen, durumsuz tahminin yapamadığını yapıyor: düzenli yemekte sürpriz yarıdan fazla küçülüyor;
+  değer iki adım geriye (duvar → yemek görme → yemek) taşınıyor. İlk mutasyon turunda iki kaçak
+  ("sonraki durumu yok say", "eleştirmen δ'sı kullanılmıyor") → testler eklendi.
+
 ## Açık sorular (güncel)
 
 - Kendiliğinden hareket (motor babbling) ve zayıf rastgele doğum bağlantıları öğrenmeyi başlatır mı?

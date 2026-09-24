@@ -32,26 +32,43 @@ export interface LearningParams {
   readonly senseFilter: string | null;
   /** "positive": dopamine dips teach nothing (only bursts do). */
   readonly dopamine: "full" | "positive";
+  /**
+   * Who counts as "post" in eligibility. "neuron": the Go/NoGo cell itself (active even when its
+   * action is not chosen). "selected": the action's selection unit — learning only on the action
+   * actually taken (OpAL, Collins & Frank 2014); pre is then the sense two ticks earlier
+   * (sense → Go → selection).
+   */
+  readonly gate: "neuron" | "selected";
+  /** Dopamine dips are floored at −dipFloor (dips have a limited range: Bayer & Glimcher 2005). */
+  readonly dipFloor: number | null;
+  /**
+   * At the end of each episode, every Go/NoGo cell scales its learning inputs so their sum returns
+   * to its birth sum, keeping their ratios (synaptic scaling, Turrigiano).
+   */
+  readonly scaling: boolean;
 }
 
 export const DEFAULT_LEARNING: LearningParams = Object.freeze({
   eta: 0.1, lambda: 0.9, quantum: 0.001, wMax: 2, frozen: false,
   learnGo: true, learnNoGo: true, senseFilter: null, dopamine: "full",
+  gate: "neuron", dipFloor: null, scaling: false,
 });
 
-interface Synapse { readonly edge: BrainBaglantisi; readonly sign: 1 | -1; e: number; pending: number }
+interface Synapse { readonly edge: BrainBaglantisi; readonly sign: 1 | -1; readonly selector: string; e: number; pending: number }
 
 export class Learner {
   readonly params: LearningParams;
   private readonly ledger: Ledger;
   private readonly synapses: Synapse[];
   private episode = 0;
+  private older: Readonly<Record<string, number>> = {};
+  private readonly birthSums = new Map<string, number>();
 
   /** `graph` must be the live graph the simulator runs on: weights are changed in place. */
   constructor(graph: BrainGrafi, ledger: Ledger, params: Partial<LearningParams> = {}) {
     this.params = { ...DEFAULT_LEARNING, ...params };
     const p = this.params;
-    if (!(p.eta >= 0) || !(p.lambda >= 0 && p.lambda < 1) || !(p.quantum > 0) || !(p.wMax > 0)) {
+    if (!(p.eta >= 0) || !(p.lambda >= 0 && p.lambda < 1) || !(p.quantum > 0) || !(p.wMax > 0) || (p.dipFloor !== null && !(p.dipFloor >= 0))) {
       throw new RangeError(`bad learning params ${JSON.stringify(p)}`);
     }
     if (!ledger.matches(graph)) throw new Error(`${ledger.subjectId}: live brain does not match its ledger before learning starts`);
@@ -61,9 +78,11 @@ export class Learner {
     this.synapses = graph.connections.filter((c) => isPlastic(c) && senseOk(c.from) && pathOk(c.to)).map((edge) => ({
       edge,
       sign: regionOf(edge.to)!.region === "bg.nogo" ? -1 : 1,
+      selector: `bg.out.${regionOf(edge.to)!.action}`,
       e: 0,
       pending: 0,
     }));
+    for (const s of this.synapses) this.birthSums.set(s.edge.to, (this.birthSums.get(s.edge.to) ?? 0) + s.edge.weight);
   }
 
   get plasticCount(): number {
@@ -73,6 +92,7 @@ export class Learner {
   /** A new episode: eligibility is a memory of this life's recent moments only. */
   startEpisode(episode: number): void {
     this.episode = episode;
+    this.older = {};
     for (const s of this.synapses) { s.e = 0; s.pending = 0; }
   }
 
@@ -81,6 +101,7 @@ export class Learner {
     if (!Number.isFinite(delta)) throw new RangeError(`dopamine ${delta}`);
     const written: LedgerEntry[] = [];
     if (this.params.dopamine === "positive") delta = Math.max(0, delta);
+    if (this.params.dipFloor !== null) delta = Math.max(-this.params.dipFloor, delta);
     if (this.params.frozen || delta === 0) return written;
     const { eta, quantum, wMax } = this.params;
     for (const s of this.synapses) {
@@ -103,12 +124,49 @@ export class Learner {
 
   /** Step 4 of a tick: mark which learning edges just carried a signal into an active target. */
   updateEligibility(previousOutputs: Readonly<Record<string, number>>, outputs: Readonly<Record<string, number>>): void {
-    const { lambda } = this.params;
+    const { lambda, gate } = this.params;
     for (const s of this.synapses) {
-      const pre = previousOutputs[s.edge.from] ?? 0;
-      const post = outputs[s.edge.to] ?? 0;
+      const pre = gate === "selected" ? this.older[s.edge.from] ?? 0 : previousOutputs[s.edge.from] ?? 0;
+      const post = gate === "selected" ? outputs[s.selector] ?? 0 : outputs[s.edge.to] ?? 0;
       s.e = lambda * s.e + pre * post;
     }
+    this.older = previousOutputs;
+  }
+
+  /**
+   * End of an episode. With scaling on, each Go/NoGo cell brings the sum of its learning inputs
+   * back to its birth sum, multiplying all of them by one factor. Changes move in whole quanta
+   * and each is a ledger entry, like any other learning.
+   */
+  endEpisode(tick: number): LedgerEntry[] {
+    const written: LedgerEntry[] = [];
+    if (!this.params.scaling || this.params.frozen) return written;
+    const { quantum, wMax } = this.params;
+    const byCell = new Map<string, Synapse[]>();
+    for (const s of this.synapses) byCell.set(s.edge.to, [...(byCell.get(s.edge.to) ?? []), s]);
+    for (const [cell, syns] of byCell) {
+      const sum = syns.reduce((a, s) => a + s.edge.weight, 0);
+      const target = this.birthSums.get(cell)!;
+      if (sum <= 0 || target <= 0) continue;
+      const factor = target / sum;
+      for (const s of syns) {
+        const quanta = Math.trunc((s.edge.weight * factor - s.edge.weight) / quantum);
+        if (quanta === 0) continue;
+        const before = s.edge.weight;
+        const after = Math.min(wMax, Math.max(0, before + quanta * quantum));
+        if (after === before) continue;
+        written.push(this.ledger.record({
+          kind: "weight", tick, episode: this.episode, cause: ["scaling"], edge: { from: s.edge.from, to: s.edge.to }, before, after,
+        }));
+        s.edge.weight = after;
+      }
+    }
+    return written;
+  }
+
+  /** Sum of learning weights into one Go/NoGo cell (for tests and analysis). */
+  inputSum(cell: string): number {
+    return this.synapses.filter((s) => s.edge.to === cell).reduce((a, s) => a + s.edge.weight, 0);
   }
 
   /** For tests and the viewer: current eligibility of one learning edge. */

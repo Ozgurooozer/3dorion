@@ -283,3 +283,16 @@ test("the real data folder is ignored by git (records stay out of the repo)", ()
   assert.match(gi, /^brain-lab\/data\/\*$/m);
   assert.match(gi, /^!brain-lab\/data\/preregistration-\*\.md$/m);
 });
+
+test("critic entries chain like weights, start at 0, and never touch the graph", () => {
+  const l = new Ledger("DNK-0001", birthGraph());
+  const h = l.hash();
+  l.record({ kind: "critic", tick: 1, episode: 1, cause: ["td"], feature: "ray2.food", before: 0, after: 0.01 });
+  l.record({ kind: "critic", tick: 2, episode: 1, cause: ["td"], feature: "ray2.food", before: 0.01, after: 0.02 });
+  assert.equal(l.criticWeight("ray2.food"), 0.02);
+  assert.equal(l.criticWeight("bias"), 0);
+  assert.equal(l.hash(), h, "critic learning changed the brain graph");
+  assert.throws(() => l.record({ kind: "critic", tick: 3, episode: 1, cause: [], feature: "ray2.food", before: 0.5, after: 1 }), /is 0.02, entry says before=0.5/);
+  const replayed = new Ledger("DNK-0001", birthGraph(), l.entries);
+  assert.equal(replayed.criticWeight("ray2.food"), 0.02);
+});

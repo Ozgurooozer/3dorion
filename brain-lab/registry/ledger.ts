@@ -27,7 +27,9 @@ export type LedgerEntry =
   | (Common & { readonly kind: "edge+"; readonly edge: BrainBaglantisi })
   | (Common & { readonly kind: "edge-"; readonly edge: EdgeRef; readonly before: number })
   | (Common & { readonly kind: "param"; readonly node: string; readonly param: "threshold" | "decay"; readonly before: number | null; readonly after: number })
-  | (Common & { readonly kind: "stage"; readonly from: Stage; readonly to: Stage; readonly reason: string });
+  | (Common & { readonly kind: "stage"; readonly from: Stage; readonly to: Stage; readonly reason: string })
+  /** A learned value-estimate weight (critic, outside the graph); chained like weights, starts at 0. */
+  | (Common & { readonly kind: "critic"; readonly feature: string; readonly before: number; readonly after: number });
 
 type Omit1<T, K extends keyof never> = T extends unknown ? Omit<T, K> : never;
 export type LedgerInput = Omit1<LedgerEntry, "id">;
@@ -66,6 +68,7 @@ export function applyEntry(g: BrainGrafi, e: LedgerEntry): BrainGrafi {
       n[e.param] = e.after;
       break;
     }
+    case "critic": // critic weights live beside the graph; their chain is checked by the Ledger
     case "stage":
       break; // stages change the subject, not the graph; order is checked by the Ledger
   }
@@ -79,6 +82,7 @@ export class Ledger {
   private current: BrainGrafi;
   private readonly log: LedgerEntry[] = [];
   private stageNow: Stage = "E0";
+  private readonly critic = new Map<string, number>();
 
   /** Rebuilds from birth + existing entries; throws if the chain is broken anywhere. */
   constructor(subjectId: string, birthGraph: BrainGrafi, entries: readonly LedgerEntry[] = []) {
@@ -98,6 +102,11 @@ export class Ledger {
 
   get entries(): readonly LedgerEntry[] {
     return this.log;
+  }
+
+  /** Current critic weight for a feature (0 until learned). */
+  criticWeight(feature: string): number {
+    return this.critic.get(feature) ?? 0;
   }
 
   get stage(): Stage {
@@ -125,8 +134,14 @@ export class Ledger {
       if (e.from !== this.stageNow) throw new Error(`${e.id}: stage entry from ${e.from}, but subject is at ${this.stageNow}`);
       if (stageIndex(e.to) !== stageIndex(e.from) + 1) throw new Error(`${e.id}: stages advance one at a time (${e.from} → ${e.to})`);
     }
+    if (e.kind === "critic") {
+      const now = this.critic.get(e.feature) ?? 0;
+      if (now !== e.before) throw new Error(`${e.id} (critic) does not fit: ${e.feature} is ${now}, entry says before=${e.before}`);
+      if (!Number.isFinite(e.after)) throw new Error(`${e.id} (critic) after=${e.after}`);
+    }
     this.current = applyEntry(this.current, e);
     if (e.kind === "stage") this.stageNow = e.to;
+    if (e.kind === "critic") this.critic.set(e.feature, e.after);
     this.log.push(e);
   }
 }
