@@ -701,6 +701,21 @@ Kod `793e240` (E5, E10) ve `29f4121` (E7). Veri `data/series-002d-*`.
 - **Öngörüler (koşmadan):** A1 eleştirmenin yemek değerini belirgin büyütür (> 0,02) ama yönlendirmeyi tek başına
   > 0,1'e çıkarmaz; A4 ve A5 içinde en iyisi A5; hiçbiri yönlendirme > 0,2'ye ulaşmaz (asıl darboğaz seçim, K5).
 
+## 2026-09-24 — Dış kaynaklar (Ozyn'in listesi; "merak güdümlü", "oda önemli")
+
+- İndirildi, okundu, çalıştırılmadı (`data/external/refs/`, ayrıntı `refs/INCELEME.md`): MIMo (bebek modeli, MIT),
+  explauto (Oudeyer, GPL-3 — yalnız okuma), CURIOUS ve IMAGINE (MIT), pymdp (MIT), flygym / NeuroMechFly v2 ve flybody
+  (Apache-2.0), Monty (MIT), c302 + OpenWorm (MIT), Lava (BSD-3/LGPL), Polyworld (APSL-2.0), science_rcn (MIT), iCub (BSD-3).
+- Atlandı (lisans): Nengo/Spaun (ticari olmayan), Cortical Labs cl-sdk (CC BY-NC), Verses AI ve Vicarious ürünleri (kapalı).
+- Üç fikir: (1) **merak = öğrenme ilerlemesi** (explauto: son yarı pencere yetkinlik ortalaması − önceki yarı; keşif
+  ilerlemenin olduğu yere) → rastgele üreteç yerine öğrenmeye bağlı keşif, kısır döngünün adayı; oda çeşitli ve
+  öğrenilebilir olmalı; (2) **yön = iki taraflı asimetri** (flygym'de dönüş sol/sağ CPG genlik farkı; solucanda
+  zamansal karşılaştırma) → eylem temsili ve M3; (3) **MIMo** Basamak 3 için bebek beden adayı (büyüme, yaşa bağlı
+  görme, gecikmeler).
+- Tarama ara sonucu `[ÖLÇÜLDÜ]` (10 denek, yeni ölçüler): A0 E7 yönlendirme 0,060 (kardeş 0,003), bilgi 0,031 bit
+  (0,008), **ortalama dürtü 0,469 (kardeş 0,718), hayatta kalma %52 (%11)** → E7'nin gerçek kazancı homeostaz;
+  A1 normalize eleştirmen: yönlendirme −0,029, dürtü 0,560, hayatta kalma %35 — daha kötü.
+
 ## 2026-09-24 — Seri 004 / M3: iki taraf — koşmadan önce (keşif)
 
 - Kod: yeni bölge `lat` (6 nöron: duvar/yemek/tehlike × sol/sağ). Doğuştan: her taraftaki ışın kendi tarafının hücresini
