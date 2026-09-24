@@ -79,7 +79,7 @@ const twinOf = (seed: number, group: InnateGroup) => {
 
 const results: Record<string, unknown> = {};
 for (const c of CONDS) {
-  const rows = [];
+  const rows: { seed: number; id: string; name: string; learner: Eval; twin: Eval }[] = [];
   for (const seed of c.seeds) {
     const twin = twinOf(seed, c.group);
     const s = born(seed, c.group);
