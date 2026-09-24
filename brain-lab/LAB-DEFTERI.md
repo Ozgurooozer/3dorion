@@ -166,6 +166,19 @@ Olumsuz sonuçlar da yazılır. Etiketler: `[ÖLÇÜLDÜ]` canlı ölçüm, `[TE
   kötüleşen bir acı. Eski "acıya alışma" testi yeni modelin öngörüsüne göre değiştirildi.
 - Mutasyon 7/7 yakalandı.
 
+## 2026-09-24 — Bölgeli beyin, Adım 6: öğrenme kuralı (`learning/`)
+
+- Üç faktör (Frank 2005): kenar başına uygunluk izi e ← λe + önceki·şimdiki; Git kenarı +ηδe,
+  Gitme kenarı −ηδe; sadece yollar tablosunda "öğrenir" olan 176 kenar. Tik içi sıra: dopamin →
+  ağırlık → beyin adımı → uygunluk izi. Ölüm de öğretir (ölüm kancası).
+- Ağırlıklar 0,001'lik kuantumlarla değişir; her kuantum bir LRN satırı. Kuantumun altı hiç uygulanmaz.
+- Evreler kendiliğinden: ilk tik E1, ilk ağırlık değişimi E2 — deftere yazılı.
+- `[TEST]` Uzun yaşamdan sonra doğum + defter = canlı beyin; doğuştan kenarlar hiç değişmiyor;
+  donuk kardeş aynı hayatı yaşıyor ama beyni değişmiyor; aynı denek → birebir aynı defter.
+- `[ÖLÇÜLDÜ]` 4 aç bölümde 5.278 ağırlık kaydı → defter büyük olabilir; pilotta bölüm sayısı buna göre seçilecek.
+- Mutasyon: 11 denemenin ilk turda 10'u yakalandı. Kaçan: "yaşarken dopamin hiç uygulanmıyor" —
+  ölüm anındaki öğrenme testi tatmin ediyordu. Test artık yaşarken öğrenme de arıyor; 11/11.
+
 ## Açık sorular (güncel)
 
 - Kendiliğinden hareket (motor babbling) ve zayıf rastgele doğum bağlantıları öğrenmeyi başlatır mı?

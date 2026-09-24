@@ -33,7 +33,9 @@ only as clearly labeled test fixtures.
 | `world/` | headless deterministic one-room physics; `World` contract in `world.ts` | only itself |
 | `sensorimotor/` | senses → sensor nodes, motor spikes → thrust/turn, scaffold, controller | `world`, `brain-ir` |
 | `neuromodulation/` | dopamine = outcome − prediction, from the body's own senses | `world` (types) |
-| `development/` | birth (weak random wiring; reflexless / reflexive groups) and spontaneous motor bursts (babbling) | `world`, `sensorimotor`, `brain-ir` |
+| `regions/` | region of every node + the pathway table; anything not in the table is refused; only senses → Go/NoGo learn | `brain-ir` (types) |
+| `development/` | regional newborn brain (`INNATE` weights with reasons, born hungry via `initialEnergy`) and generator noise | `world`, `sensorimotor`, `regions`, `brain-ir` |
+| `learning/` | three-factor rule in quanta, every change on the ledger; `createAgent` = one living subject | all of the above, `registry`, `neuromodulation` |
 | `registry/` | subjects (DNK-0001 «Kıvılcım»), learning ledger (LRN-…), runs (RUN-…), world events (EVT-…); disk store in `store.ts` only, data under `brain-lab/data/` (git-ignored) | `world`, `brain-ir` (types) |
 | `viewer/` | `npm run lab` (port 5190): room, brain map, timeline, trace inspector | all of the above |
 | `brain-ir/` | v0.2 substrate + v0.3 Alice/Bob (older, Turkish identifiers) | itself |
@@ -52,6 +54,8 @@ Dependency direction is enforced by tests (import guards). Nothing below imports
 - Known shortcut (§16 of the knowledge pool): rays report labeled kinds, so the brain is
   told what a threat is. Target: neutral senses, danger discovered from innate pain
   (`intero.injury`). Do not deepen this shortcut.
+- Brain design: `TASARIM-BOLGELI-BEYIN.md`. Nature gives the structure (regions, pathways), experience
+  gives the weights. Never add a pathway "to reach a goal".
 - Every change to a subject's brain goes through its `Ledger` (`registry/ledger.ts`). Birth
   graph + ledger must replay to the live brain; a change made any other way breaks the chain.
 - Plan first, then code, one approved step at a time.
