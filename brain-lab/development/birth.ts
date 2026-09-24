@@ -7,7 +7,7 @@
 "use strict";
 
 import type { BrainBaglantisi, BrainDugumu, BrainGrafi } from "../brain-ir/ir.ts";
-import { ACTIONS, HYP_NODES, OPPOSITE, REGION_TYPE, checkPathways, nodeId } from "../regions/index.ts";
+import { ACTIONS, HYP_NODES, OPPOSITE, REGION_TYPE, checkPathways, kcId, nodeId } from "../regions/index.ts";
 import { MOTOR_NODE_IDS, RAY_KINDS, rayNodeId, sensorNodeIds } from "../sensorimotor/index.ts";
 import { Rng, type WorldConfig } from "../world/index.ts";
 
@@ -69,11 +69,25 @@ export interface Orienting {
   readonly direction: "toward" | "away";
 }
 
+/**
+ * Expansion layer (TASARIM-004 M2), after the fly's Kenyon cells: `cells` binary units, each
+ * wired (weight 1, innate) to `inputs` senses drawn at random, firing when the sum reaches
+ * `threshold`. The learning pathways then start from these cells instead of the raw senses —
+ * any conjunction the cells happen to encode ("food on the left AND hungry") can be learned.
+ * Reflexes of the reflexive group stay on the direct sense pathway.
+ */
+export interface Expansion {
+  readonly cells: number;
+  readonly inputs: number;
+  readonly threshold: number;
+}
+
 export interface BirthSpec {
   readonly seed: number;
   readonly group: InnateGroup;
   readonly maxInitial?: number;
   readonly orienting?: Orienting | null;
+  readonly expansion?: Expansion | null;
 }
 
 /**
@@ -96,6 +110,7 @@ export function bornGraph(cfg: WorldConfig, spec: BirthSpec): BrainGrafi {
     throw new RangeError(`maxInitial ${maxInitial} would let senses outweigh the generators at birth: that is behavior, not a newborn`);
   }
   const orienting = spec.orienting ?? null;
+  if (orienting && spec.expansion) throw new Error("orienting biases the direct sense pathway, which an expansion layer replaces");
   if (orienting && !(orienting.strength > 0 && orienting.strength <= MAX_ORIENTING)) {
     throw new RangeError(`orienting strength ${orienting.strength} would select an action on sight alone: that is behavior, not a newborn`);
   }
@@ -132,8 +147,11 @@ export function bornGraph(cfg: WorldConfig, spec: BirthSpec): BrainGrafi {
     add(nodeId("bg.go", a), nodeId("bg.go", OPPOSITE[a]), INNATE.lateral);
     add(nodeId("bg.out", a), nodeId("motor", a), INNATE.outToMotor);
   }
-  // Learning pathways: every sense to every action's Go and NoGo, weak and random.
-  for (const s of senses) {
+  // Learning pathways: every sense (or, with an expansion layer, every expansion cell) to every
+  // action's Go and NoGo, weak and random.
+  const expansion = spec.expansion ?? null;
+  const learningSources = expansion ? wireExpansion(expansion, senses, spec.seed, nodes, add) : senses;
+  for (const s of learningSources) {
     for (const a of ACTIONS) {
       add(s, nodeId("bg.go", a), rng.range(0, maxInitial));
       add(s, nodeId("bg.nogo", a), rng.range(0, maxInitial));
@@ -152,8 +170,32 @@ export function bornGraph(cfg: WorldConfig, spec: BirthSpec): BrainGrafi {
   }
   if (spec.group === "reflexive") for (const r of INNATE_REFLEXES) add(r.from, r.to, r.weight);
 
-  const tag = orienting ? `-orient-${orienting.direction}-${orienting.strength}` : "";
+  const tag = (orienting ? `-orient-${orienting.direction}-${orienting.strength}` : "")
+    + (expansion ? `-kc${expansion.cells}x${expansion.inputs}t${expansion.threshold}` : "");
   const graph: BrainGrafi = { name: `newborn-${spec.group}${tag}`, version: "2", nodes, connections: [...edges.values()] };
   checkPathways(graph); // a birth that breaks its own regions is a bug, not a variation
   return graph;
+}
+
+/**
+ * Adds the expansion cells and their innate input wiring; returns the cells (the new learning
+ * sources). Drawn from its own random stream, so the rest of the newborn does not depend on it.
+ */
+function wireExpansion(e: Expansion, senses: readonly string[], seed: number, nodes: BrainDugumu[], add: (from: string, to: string, w: number) => void): string[] {
+  if (!(Number.isInteger(e.cells) && e.cells > 0) || !(Number.isInteger(e.inputs) && e.inputs > 0 && e.inputs <= senses.length) || !(e.threshold > 0)) {
+    throw new RangeError(`bad expansion ${JSON.stringify(e)}`);
+  }
+  const rng = new Rng(seed * 7919 + 13);
+  const cells: string[] = [];
+  for (let i = 0; i < e.cells; i++) {
+    const id = kcId(i);
+    nodes.push({ id, type: REGION_TYPE.kc, threshold: e.threshold });
+    const pool = [...senses];
+    for (let k = 0; k < e.inputs; k++) {
+      const [pick] = pool.splice(Math.floor(rng.next() * pool.length), 1);
+      add(pick!, id, 1);
+    }
+    cells.push(id);
+  }
+  return cells;
 }

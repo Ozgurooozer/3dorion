@@ -569,6 +569,22 @@ Kod `793e240` (E5, E10) ve `29f4121` (E7). Veri `data/series-002d-*`.
 - Tartışma ve öneri: bkz. konuşma; ilk adım olarak öğretmeni ucuz bir kâhinle deneyip "beynimiz yönü *temsil*
   edebiliyor mu, yoksa sorun kredi atamada mı" sorusunu ayırmak önerildi (Needle kurulumu ayrı onayla).
 
+## 2026-09-24 — Seri 004 / M1 sonucu: bölmeler yönü çözmedi; değerlik bölmesi ters öğretti
+
+`[ÖLÇÜLDÜ]` seed 1–10 × iki grup, E7 λ 0,9 + modül. Referans E7 λ 0,9: 3,16 · 17/20 · dönüş 0,506 · yaklaşma 0,564.
+
+| koşul | yemek/1000t | kardeş | önde | dönüş yönü | 0,5 üstü | yaklaşma | durgun |
+|---|---|---|---|---|---|---|---|
+| M1a eylem bölmeleri | 3,08 | 2,07 | 17/20 | 0,513 | 13/20 | **0,624** | %47 |
+| M1b değerlik bölmeleri | 2,31 | 2,07 | 8/20 | **0,460** | **0/20** | 0,448 | %27 |
+
+- Öngörü karnesi: M1a dönüş > 0,55 ✗ (0,513), yemek > 3,16 ✗ (3,08); M1b dönüş ~0,5 ✗ — daha kötü: **20 deneğin
+  hiçbiri** 0,5'in üstünde değil, yaklaşma 0,448 → yemekten sistematik uzaklaşma. M1b yemek 3,16 ± %20 ✗ (2,31).
+- Yorum: eylem başına öğretme sinyali yaklaşmayı biraz artırdı ama yönü değil. M1b'deki tutarlı ters öğrenme gerçek bir
+  etki (20/20 aynı yönde); olası sebep (sınanmadı): ceza kanalı her hareketin enerji maliyetini görüyor, beklentisi
+  duyuya bağlı; yemeğe dönüp yaklaşma dönemleri maliyetin "beklenenden kötü" olduğu anlara denk gelip Gitme'yi
+  o eylemlerde güçlendiriyor olabilir. Açık soru.
+
 ## 2026-09-24 — T0: öğretmenden öğrenme (tanı) — koşmadan önce (keşif)
 
 - Ozyn T0'ı onayladı; ayrıca "istediğin kadar zamanın var; çalış, araştır, toplantı yap, farklı kombinasyonları dene".
@@ -582,6 +598,21 @@ Kod `793e240` (E5, E10) ve `29f4121` (E7). Veri `data/series-002d-*`.
 - **Öngörüler (koşmadan):** yoğun ve doğru sinyal kredi atamayı çözer → T0a dönüş yönü **> 0,65**, yemek > 4,2.
   Tutmazsa (dönüş yönü ≤ 0,55): sorun temsil/seçim mimarisinde (üreteçler seçimi ele geçiriyor ya da duyu → Git
   doğrusal yolu yetmiyor) → M2/M3 şart. T0c (daha güçlü) T0a'dan daha yüksek yön; T0b T0a'ya yakın.
+
+## 2026-09-24 — Seri 004 / M2: ara katman — koşmadan önce (keşif)
+
+- Kod: yeni bölge `kc` (Kenyon benzeri, ikili karar hücresi, eşikli); yollar P12 (duyu → kc, doğuştan, ağırlık 1),
+  P13/P14 (kc → Git/Gitme, öğrenir). `bornGraph(..., { expansion: { cells, inputs, threshold } })`: her hücre rastgele
+  `inputs` farklı duyu dinler (kendi rastgele akışı — kalan yenidoğan değişmez), öğrenen yol duyulardan değil hücrelerden
+  başlar; refleksler doğrudan yolda kalır. Duyu → motor gecikmesi 4 tik (`senseToMotorDelay`, dönüş ölçüsü buna göre).
+  Görselde "ARA KATMAN" sütunu. Testler 11 yeni; 9/9 mutant öldü (biri yeni testle). E7 geriye dönük: bit-aynı.
+- Eşik ölçüldü (5 yenidoğan × 3000 tik, 8 298 gözlem, 64 hücre): 4 girdi / eşik 1,0 → ortalama **%14 hücre etkin**,
+  %5'i hiç ateşlemiyor, hiçbiri hep ateşlemiyor (3 girdi/1,0: %9; 4/1,2: %7,5; 5/1,0: %19). Seçim: 64 × 4, eşik 1,0.
+  Eşik 1'de tek duyu hücreyi neredeyse hiç ateşlemez → hücreler birleşim kodlar.
+- Koşullar: M2 (E7 λ 0,9 + ara katman), M2T (ara katman + kâhin öğretmen), M2a (ara katman + eylem bölmeleri).
+- **Öngörüler (koşmadan):** M2 tek başına dönüş yönü 0,5–0,55 (sorun temsil değilse değişmez); yemek E7'ye yakın
+  (daha çok bağlantı → daha yavaş öğrenme olabilir). M2T > T0a dönüş yönünde (birleşim temsili öğretmenden daha iyi
+  yararlanır). Asıl ayrım T0 sonucuna bağlı.
 
 ## Açık sorular (güncel)
 

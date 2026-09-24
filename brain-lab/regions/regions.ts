@@ -11,7 +11,7 @@ export const OPPOSITE: Readonly<Record<ActionName, ActionName>> = Object.freeze(
   forward: "back", back: "forward", left: "right", right: "left",
 });
 
-export type Region = "sense" | "hyp" | "noise" | "cpg" | "bg.go" | "bg.nogo" | "bg.out" | "motor";
+export type Region = "sense" | "hyp" | "kc" | "noise" | "cpg" | "bg.go" | "bg.nogo" | "bg.out" | "motor";
 
 export interface NodeRegion {
   readonly region: Region;
@@ -23,6 +23,7 @@ export interface NodeRegion {
 export const REGION_TYPE: Readonly<Record<Region, DugumTuru>> = Object.freeze({
   sense: "sensor",
   hyp: "neuron",
+  kc: "decision",
   noise: "input",
   cpg: "decision",
   "bg.go": "neuron",
@@ -34,12 +35,16 @@ export const REGION_TYPE: Readonly<Record<Region, DugumTuru>> = Object.freeze({
 export const HYP_NODES = Object.freeze(["hyp.hunger", "hyp.pain"] as const);
 
 const SENSE = /^(ray\d+\.\w+|touch\.\w+|intero\.\w+|proprio\.\w+)$/;
+/** Expansion layer (TASARIM-004 M2): Kenyon-like cells, numbered, not per action. */
+const KC = /^kc\.\d+$/;
+export const kcId = (i: number): string => `kc.${i}`;
 const isAction = (s: string): s is ActionName => (ACTIONS as readonly string[]).includes(s);
 
 /** Region of a node id, or null if the id fits no region (such a node is not allowed). */
 export function regionOf(id: string): NodeRegion | null {
   if (SENSE.test(id)) return { region: "sense" };
   if ((HYP_NODES as readonly string[]).includes(id)) return { region: "hyp" };
+  if (KC.test(id)) return { region: "kc" };
   const perAction: [RegExp, Region][] = [
     [/^cpg\.noise\.(\w+)$/, "noise"],
     [/^cpg\.(\w+)$/, "cpg"],
@@ -56,6 +61,6 @@ export function regionOf(id: string): NodeRegion | null {
 }
 
 /** Node id for a per-action region: nodeId("bg.go", "left") → "bg.go.left". */
-export function nodeId(region: Exclude<Region, "sense" | "hyp">, action: ActionName): string {
+export function nodeId(region: Exclude<Region, "sense" | "hyp" | "kc">, action: ActionName): string {
   return region === "noise" ? `cpg.noise.${action}` : `${region}.${action}`;
 }

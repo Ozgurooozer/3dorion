@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import type { BrainAdimi } from "../brain-ir/ir.ts";
 import { BrainSimulator } from "../brain-ir/simulator.ts";
 import { checkGraph, graphHash } from "../registry/index.ts";
-import { ACTIONS, checkPathways, isPlastic, pathwayOf } from "../regions/index.ts";
+import { ACTIONS, checkPathways, isPlastic, pathwayOf, senseToMotorDelay } from "../regions/index.ts";
 import { brainController, checkWiring, sensorNodeIds } from "../sensorimotor/index.ts";
 import { DEFAULT_CONFIG as C, Room, runEpisode, type RoomState } from "../world/index.ts";
 import { DEFAULT_MAX_INITIAL, INNATE_REFLEXES, NOISE_IDS, NoiseGenerator, MAX_ORIENTING, actionOfAngle, bornGraph, type InnateGroup } from "./index.ts";
@@ -202,4 +202,100 @@ test("orienting stays below selection: at the bound, a starving newborn staring 
     if (fires(over) > 0) overFires++;
   }
   assert.ok(overFires > 0, "a stronger bias would already be a reflex");
+});
+
+// --- expansion layer (TASARIM-004 M2) --------------------------------------------------------
+
+const KC_SPEC = { cells: 16, inputs: 4, threshold: 1 };
+const withKc = (seed: number, group: InnateGroup = "reflexless") => bornGraph(C, { seed, group, expansion: KC_SPEC });
+const kcInputs = (g: ReturnType<typeof bornGraph>, cell: string) => g.connections.filter((e) => e.to === cell);
+
+test("expansion null or absent: the newborn is exactly the plain one", () => {
+  assert.equal(graphHash(bornGraph(C, { seed: 5, group: "reflexive", expansion: null })), graphHash(bornGraph(C, { seed: 5, group: "reflexive" })));
+});
+
+test("expansion: the innate part of the brain (drive, generators, selection, motors) is unchanged", () => {
+  const innate = (g: ReturnType<typeof bornGraph>) => JSON.stringify(g.connections.filter((e) => !isPlastic(e) && !e.to.startsWith("kc.")));
+  assert.equal(innate(withKc(5)), innate(bornGraph(C, { seed: 5, group: "reflexless" })));
+});
+
+test("expansion: legal regions, one cell per requested unit, each a thresholded decision cell", () => {
+  const g = withKc(5);
+  assert.doesNotThrow(() => { checkGraph(g); checkWiring(g, C); checkPathways(g); });
+  const cells = g.nodes.filter((n) => n.id.startsWith("kc."));
+  assert.equal(cells.length, KC_SPEC.cells);
+  for (const c of cells) {
+    assert.equal(c.type, "decision", c.id);
+    assert.equal(c.threshold, KC_SPEC.threshold, c.id);
+  }
+});
+
+test("expansion: each cell samples exactly `inputs` different senses, with innate weight 1", () => {
+  const g = withKc(5);
+  const senses = new Set(sensorNodeIds(C));
+  for (const c of g.nodes.filter((n) => n.id.startsWith("kc."))) {
+    const ins = kcInputs(g, c.id);
+    assert.equal(ins.length, KC_SPEC.inputs, c.id);
+    assert.equal(new Set(ins.map((e) => e.from)).size, KC_SPEC.inputs, `${c.id} has a repeated input`);
+    for (const e of ins) {
+      assert.ok(senses.has(e.from), `${c.id} listens to ${e.from}, not a sense`);
+      assert.equal(e.weight, 1);
+      assert.equal(isPlastic(e), false, "the expansion wiring must be innate");
+    }
+  }
+});
+
+test("expansion: learning starts from the cells — every cell reaches every Go and NoGo, weakly", () => {
+  const g = withKc(5);
+  const plastic = g.connections.filter((e) => isPlastic(e));
+  assert.equal(plastic.length, KC_SPEC.cells * ACTIONS.length * 2);
+  for (const e of plastic) {
+    assert.match(e.from, /^kc\.\d+$/, `${e.from}->${e.to} learns but does not start from a cell`);
+    assert.ok(e.weight >= 0 && e.weight <= DEFAULT_MAX_INITIAL, `${e.from}->${e.to} ${e.weight}`);
+  }
+});
+
+test("expansion: the reflexive group keeps its reflexes on the direct sense pathway", () => {
+  const g = withKc(5, "reflexive");
+  for (const r of INNATE_REFLEXES) {
+    const e = g.connections.find((c) => c.from === r.from && c.to === r.to);
+    assert.ok(e, `${r.from}->${r.to} missing`);
+    assert.equal(e.weight, r.weight);
+  }
+});
+
+test("expansion: the graph's name says how the layer was built", () => {
+  assert.match(withKc(5).name ?? "", /kc16x4t1/);
+});
+
+test("expansion: deterministic per seed, different across seeds", () => {
+  assert.equal(graphHash(withKc(5)), graphHash(withKc(5)));
+  const wiring = (seed: number) => JSON.stringify(withKc(seed).connections.filter((e) => e.to.startsWith("kc.")));
+  assert.notEqual(wiring(5), wiring(6));
+});
+
+test("expansion: bad sizes, and orienting on a pathway it replaces, are refused", () => {
+  for (const bad of [{ cells: 0, inputs: 4, threshold: 1 }, { cells: 8, inputs: 0, threshold: 1 }, { cells: 8, inputs: 99, threshold: 1 }, { cells: 8, inputs: 4, threshold: 0 }, { cells: 2.5, inputs: 4, threshold: 1 }]) {
+    assert.throws(() => bornGraph(C, { seed: 1, group: "reflexless", expansion: bad }), RangeError, JSON.stringify(bad));
+  }
+  assert.throws(() => bornGraph(C, { seed: 1, group: "reflexless", expansion: KC_SPEC, orienting: { strength: 0.01, direction: "toward" } }), /replaces/);
+});
+
+test("expansion: a cell fires on a conjunction of its senses, not on one weak sense", () => {
+  const g = withKc(5);
+  const cell = "kc.0";
+  const [a, b] = kcInputs(g, cell).map((e) => e.from);
+  const silent = { ...Object.fromEntries(sensorNodeIds(C).map((id) => [id, 0])), ...Object.fromEntries(NOISE_IDS.map((id) => [id, 0])) };
+  const fires = (inputs: Record<string, number>) => {
+    const sim = new BrainSimulator(g);
+    sim.step(inputs);
+    return sim.step(inputs).outputs[cell] === 1;
+  };
+  assert.equal(fires({ ...silent, [a!]: 0.6 }), false, "one sense at 0.6 is below the threshold");
+  assert.equal(fires({ ...silent, [a!]: 0.6, [b!]: 0.6 }), true, "two senses at 0.6 reach it together");
+});
+
+test("sense-to-motor delay: 3 ticks without the expansion layer, 4 with it", () => {
+  assert.equal(senseToMotorDelay(bornGraph(C, { seed: 1, group: "reflexless" })), 3);
+  assert.equal(senseToMotorDelay(withKc(1)), 4);
 });

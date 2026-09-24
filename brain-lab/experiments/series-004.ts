@@ -13,11 +13,11 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { oraclePolicy } from "../baselines/index.ts";
-import type { InnateGroup } from "../development/index.ts";
+import type { Expansion, InnateGroup } from "../development/index.ts";
 import type { AgentSpec } from "../learning/index.ts";
 import { RegistryStore } from "../registry/store.ts";
 import { makeConfig } from "../world/index.ts";
-import { median, runCondition, type Row } from "./harness.ts";
+import { median, runCondition, type BirthOptions, type Row } from "./harness.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DATA = join(HERE, "../data");
@@ -30,13 +30,19 @@ type Spec = Omit<AgentSpec, "cfg" | "ledger" | "noiseSeed">;
 const e7 = JSON.parse(readFileSync(join(DATA, "series-002b-E7-summary.json"), "utf8")) as { variants: { code: string; spec: Spec }[] };
 const BASE = e7.variants.find((v) => v.code === "E7/lambda 0.9")!.spec;
 
-const CONDITIONS: Record<string, { what: string; spec: Spec }> = {
+/** The expansion layer of M2: 64 cells × 4 senses, threshold 1 (measured: ~14% of cells active per tick). */
+const KC: Expansion = { cells: 64, inputs: 4, threshold: 1 };
+
+const CONDITIONS: Record<string, { what: string; spec: Spec; born?: BirthOptions }> = {
   M1a: { what: "E7 λ0.9 + action compartments", spec: { ...BASE, compartments: { mode: "action" } } },
   M1b: { what: "E7 λ0.9 + valence compartments", spec: { ...BASE, compartments: { mode: "valence" } } },
   // T0 — diagnostic: can the brain learn "which way" from a perfect (hand-coded) teacher at all?
   T0a: { what: "E7 λ0.9, oracle teacher only (gain 0.3)", spec: { ...BASE, teacher: { policy: oraclePolicy(WORLD), gain: 0.3, mix: "only" } } },
   T0b: { what: "E7 λ0.9 + oracle teacher added to reward (gain 0.3)", spec: { ...BASE, teacher: { policy: oraclePolicy(WORLD), gain: 0.3, mix: "add" } } },
   T0c: { what: "E7 λ0.9, oracle teacher only (gain 1)", spec: { ...BASE, teacher: { policy: oraclePolicy(WORLD), gain: 1, mix: "only" } } },
+  M2: { what: "E7 λ0.9 + expansion layer 64×4 t1", spec: BASE, born: { expansion: KC } },
+  M2T: { what: "E7 λ0.9 + expansion layer, oracle teacher only (gain 0.3)", spec: { ...BASE, teacher: { policy: oraclePolicy(WORLD), gain: 0.3, mix: "only" } }, born: { expansion: KC } },
+  M2a: { what: "E7 λ0.9 + expansion layer + action compartments", spec: { ...BASE, compartments: { mode: "action" } }, born: { expansion: KC } },
 };
 
 /** Delayed dopamine: every channel's δ comes 3000 ticks late, from another life. */
@@ -67,7 +73,7 @@ for (const job of jobs) {
     const spec = control ? { ...c.spec, deltaTransform: cross() } : c.spec;
     const r = runCondition(store, {
       condition: { code: job, what: control ? `${c.what}, CROSS` : c.what, spec },
-      world: WORLD, seeds: [seed], groups: [group], trainEpisodes: 40, evalEpisodes: 10, codeCommit, label: "series-004", twins,
+      world: WORLD, seeds: [seed], groups: [group], trainEpisodes: 40, evalEpisodes: 10, codeCommit, label: "series-004", twins, born: c.born,
     });
     rows.push(...r.rows);
     line = r.what;
@@ -76,6 +82,6 @@ for (const job of jobs) {
   const ahead = rows.filter((r) => r.l.perK > r.t.perK).length;
   console.log(`[${((Date.now() - started) / 1000).toFixed(0)}s] ${job} ${line}: ahead ${ahead}/${rows.length} | meals/1000t ${f((r) => r.l.perK).toFixed(2)} vs twin ${f((r) => r.t.perK).toFixed(2)} (median diff ${median(rows.map((r) => r.l.perK - r.t.perK)).toFixed(2)}) | life ${f((r) => r.l.ticks).toFixed(0)} | approach ${f((r) => r.l.approach).toFixed(3)} | still ${(100 * f((r) => r.l.still)).toFixed(0)}%`);
   console.log(`    turnToward learner ${f((r) => r.l.turnToward).toFixed(3)} vs twin ${f((r) => r.t.turnToward).toFixed(3)} | learner above 0.5: ${rows.filter((r) => r.l.turnToward > 0.5).length}/${rows.length} | train blocks ${[0, 1, 2, 3].map((b) => f((r) => r.trainPerK[b]!).toFixed(2)).join(" → ")}`);
-  writeFileSync(join(DATA, `series-004-${job.replace(":", "-")}-summary.json`), JSON.stringify({ series: "004", exploratory: true, codeCommit, job, what: c.what, spec: { ...c.spec, deltaTransform: control ?? null, teacher: c.spec.teacher ? { gain: c.spec.teacher.gain, mix: c.spec.teacher.mix, policy: "oracle" } : null }, rows }, null, 2) + "\n");
+  writeFileSync(join(DATA, `series-004-${job.replace(":", "-")}-summary.json`), JSON.stringify({ series: "004", exploratory: true, codeCommit, job, what: c.what, born: c.born ?? null, spec: { ...c.spec, deltaTransform: control ?? null, teacher: c.spec.teacher ? { gain: c.spec.teacher.gain, mix: c.spec.teacher.mix, policy: "oracle" } : null }, rows }, null, 2) + "\n");
 }
 console.log("done");

@@ -70,6 +70,20 @@ const ROWS: Pathway[] = [
     id: "P11", from: "bg.out", to: "motor", actions: "same", learns: false, sign: "positive",
     why: "The selected action reaches its muscle.",
   },
+  // Expansion layer (TASARIM-004 M2). In the fly, ~6 projection neurons feed each of 4 064 Kenyon
+  // cells at random (Male CNS v1.0, measured), and dopamine teaches the Kenyon → output synapses.
+  {
+    id: "P12", from: "sense", to: "kc", actions: "any", learns: false, sign: "positive",
+    why: "Expansion: each Kenyon-like cell samples a few senses at random and fires on their conjunction (innate, Litwin-Kumar et al. 2017).",
+  },
+  {
+    id: "P13", from: "kc", to: "bg.go", actions: "any", learns: true, sign: "positive",
+    why: "Learning on the expanded code: any combination of senses may come to favour any action.",
+  },
+  {
+    id: "P14", from: "kc", to: "bg.nogo", actions: "any", learns: true, sign: "positive",
+    why: "Learning on the expanded code: any combination of senses may come to suppress any action.",
+  },
 ];
 
 export const PATHWAYS: readonly Pathway[] = Object.freeze(ROWS);
@@ -116,4 +130,12 @@ export function checkPathways(g: BrainGrafi): void {
     else if (!signFits(p.sign, e.weight)) problems.push(`edge ${e.from}->${e.to} has weight ${e.weight}, pathway ${p.id} must be ${p.sign}`);
   }
   if (problems.length > 0) throw new Error(`brain breaks its regions: ${problems.join("; ")}`);
+}
+
+/**
+ * Ticks from a sense to a motor on the learning route (each edge costs one tick):
+ * sense → Go → selection → motor = 3; with an expansion layer, sense → cell → Go → selection → motor = 4.
+ */
+export function senseToMotorDelay(g: BrainGrafi): number {
+  return g.nodes.some((n) => regionOf(n.id)?.region === "kc") ? 4 : 3;
 }

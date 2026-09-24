@@ -41,7 +41,7 @@ const conditions: { code: string; orienting: Orienting }[] = [
 for (const c of conditions) {
   const r = runCondition(store, {
     condition: { code: c.code, what: `E7 λ0.9, orienting ${c.orienting.direction} ${c.orienting.strength}`, spec },
-    world: WORLD, seeds: SEEDS, groups: GROUPS, trainEpisodes: 40, evalEpisodes: 10, codeCommit, label: "series-003b", orienting: c.orienting,
+    world: WORLD, seeds: SEEDS, groups: GROUPS, trainEpisodes: 40, evalEpisodes: 10, codeCommit, label: "series-003b", born: { orienting: c.orienting },
   });
   const rows: Row[] = r.rows;
   const turn = (f: (x: Row) => number) => mean(rows.map(f)).toFixed(3);
