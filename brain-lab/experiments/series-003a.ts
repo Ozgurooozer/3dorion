@@ -15,7 +15,7 @@ import { execSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { LinearQ, oraclePolicy, type LinearQParams } from "../baselines/index.ts";
+import { LinearQ, oraclePolicy, seekerPolicy, type LinearQParams } from "../baselines/index.ts";
 import type { AgentSpec } from "../learning/index.ts";
 import { RegistryStore } from "../registry/store.ts";
 import type { Category, Subject } from "../registry/index.ts";
@@ -67,7 +67,7 @@ function trainTD(seed: number, world: WorldConfig, params: Partial<LinearQParams
 }
 
 const fmt = (e: Eval[]) =>
-  `meals/1000t ${mean(e.map((x) => x.perK)).toFixed(2)} | life ${mean(e.map((x) => x.ticks)).toFixed(0)} | approach ${mean(e.map((x) => x.approach)).toFixed(3)} | turnToward ${mean(e.map((x) => x.turnToward)).toFixed(3)} (turns ${mean(e.map((x) => x.turns)).toFixed(0)}) | still ${(100 * mean(e.map((x) => x.still))).toFixed(0)}%`;
+  `meals/1000t ${mean(e.map((x) => x.perK)).toFixed(2)} | mean drive ${mean(e.map((x) => x.meanDrive)).toFixed(3)} | survival ${mean(e.map((x) => x.survival)).toFixed(2)} | steering ${mean(e.map((x) => x.steering ?? 0)).toFixed(3)} | life ${mean(e.map((x) => x.ticks)).toFixed(0)} | approach ${mean(e.map((x) => x.approach)).toFixed(3)} | turnToward ${mean(e.map((x) => x.turnToward)).toFixed(3)} (turns ${mean(e.map((x) => x.turns)).toFixed(0)}) | still ${(100 * mean(e.map((x) => x.still))).toFixed(0)}%`;
 const out: Record<string, unknown> = {};
 
 // 1. Floor and ceiling.
@@ -82,8 +82,14 @@ const oracle = SEEDS.map((seed) => {
   return { id: s.id, e: measureBaseline(s, "series-003a oracle", { policy: oraclePolicy(WORLD) }) };
 });
 log(`oracle: ${fmt(oracle.map((r) => r.e))}`);
+const seeker = SEEDS.map((seed) => {
+  const s = register("baseline.oracle", seed, WORLD);
+  return { id: s.id, e: measureBaseline(s, "series-003a seeker", { policy: seekerPolicy(WORLD, evalNoise(seed)) }) };
+});
+log(`seeker: ${fmt(seeker.map((r) => r.e))}`);
 out.random = random;
 out.oracle = oracle;
+out.seeker = seeker;
 
 // 2. E7 re-measured: same subjects, same evaluation; meals must match the record exactly.
 type Row = { seed: number; group: string; learner: { id: string }; twin: { id: string }; l: Eval; t: Eval };

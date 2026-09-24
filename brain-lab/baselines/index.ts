@@ -3,4 +3,4 @@
 "use strict";
 
 export { DEFAULT_LINEAR_Q, LinearQ, MOTOR_COMMANDS, type LinearQParams } from "./linear-q.ts";
-export { ORACLE_WALL_DISTANCE, oracleAction, oraclePolicy } from "./oracle.ts";
+export { ORACLE_WALL_DISTANCE, oracleAction, oraclePolicy, seekerPolicy } from "./oracle.ts";

@@ -9,7 +9,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { decodeMotor, sensorNodeIds } from "../sensorimotor/index.ts";
 import { DEFAULT_CONFIG as C, Room, makeConfig, runEpisode, type Observation, type Ray } from "../world/index.ts";
-import { LinearQ, MOTOR_COMMANDS, oracleAction, oraclePolicy } from "./index.ts";
+import { LinearQ, MOTOR_COMMANDS, oracleAction, oraclePolicy, seekerPolicy } from "./index.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const HUNGRY = makeConfig({ initialEnergy: 0.4, threatCount: 0, foodCount: 10 });
@@ -163,4 +163,21 @@ test("oracle steers to the nearest food's side, turns from close walls, and is a
     random += runEpisode(new Room(s, HUNGRY), q.policy, 3000).foodEaten;
   }
   assert.ok(oracle > 2 * random, `oracle ${oracle} vs random ${random}`);
+});
+
+test("seeker: steers like the oracle whenever food is in sight", () => {
+  const seek = seekerPolicy(C, 3);
+  for (const ray of [0, 2, 4]) assert.deepEqual(seek(obs({}, ray), 0), oracleAction(obs({}, ray), C), `food on ray ${ray}`);
+});
+
+test("seeker: without food it holds each random command for 10 ticks", () => {
+  const seek = seekerPolicy(C, 3);
+  const cmds = Array.from({ length: 30 }, (_, t) => JSON.stringify(seek(obs(), t)));
+  for (let block = 0; block < 3; block++) assert.equal(new Set(cmds.slice(block * 10, block * 10 + 10)).size, 1, `block ${block}`);
+});
+
+test("seeker: same seed, same wandering; a different seed wanders differently", () => {
+  const walk = (seed: number) => { const s = seekerPolicy(C, seed); return Array.from({ length: 200 }, (_, t) => JSON.stringify(s(obs(), t))).join(); };
+  assert.equal(walk(4), walk(4));
+  assert.notEqual(walk(4), walk(5));
 });

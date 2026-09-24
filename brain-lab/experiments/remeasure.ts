@@ -50,6 +50,6 @@ for (const file of process.argv.slice(2)) {
   const rows = rowsIn(JSON.parse(readFileSync(join(DATA, file), "utf8")));
   const out = rows.map((r) => ({ learner: r.learner.id, twin: r.twin.id, l: remeasure(r.learner.id, r.l.perK), t: remeasure(r.twin.id, r.t.perK) }));
   const st = (f: (x: (typeof out)[number]) => number | null) => mean(out.map((x) => f(x) ?? 0));
-  console.log(`${file}: ${out.length} rows, meals identical | steering learner ${st((x) => x.l.steering).toFixed(3)} vs twin ${st((x) => x.t.steering).toFixed(3)} | learner above 0: ${out.filter((x) => (x.l.steering ?? 0) > 0).length}/${out.length}`);
+  console.log(`${file}: ${out.length} rows, meals identical | steering learner ${st((x) => x.l.steering).toFixed(3)} vs twin ${st((x) => x.t.steering).toFixed(3)} | learner above 0: ${out.filter((x) => (x.l.steering ?? 0) > 0).length}/${out.length} | mean drive learner ${st((x) => x.l.meanDrive).toFixed(3)} vs twin ${st((x) => x.t.meanDrive).toFixed(3)} | survival ${st((x) => x.l.survival).toFixed(2)} vs ${st((x) => x.t.survival).toFixed(2)}`);
   writeFileSync(join(DATA, `remeasure-${file}`), JSON.stringify({ file, codeCommit, rows: out }, null, 2) + "\n");
 }

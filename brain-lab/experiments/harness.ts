@@ -7,6 +7,7 @@ import { bornGraph, type Expansion, type InnateGroup, type Orienting } from "../
 import { createAgent, type AgentSpec } from "../learning/index.ts";
 import { episodeEvents, type Subject } from "../registry/index.ts";
 import type { EpisodeLine, RegistryStore } from "../registry/store.ts";
+import { drive } from "../neuromodulation/index.ts";
 import { isPlastic, senseToMotorDelay } from "../regions/index.ts";
 import { Room, runEpisode, type Action, type EpisodeHooks, type Policy, type WorldConfig } from "../world/index.ts";
 import { approach, orientation, steering, steeringIndex, turnToward } from "./measures.ts";
@@ -26,6 +27,14 @@ export interface Eval {
   turns: number;
   /** Habit-free steering index, pooled over episodes (null if food was never seen on both sides). */
   steering: number | null;
+  /**
+   * Homeostasis: mean drive (hunger² + injury²) over every tick of every episode, a dead body
+   * counting at its final drive for the rest of the episode — lower is better. A brain that rests
+   * when fed is not punished here, unlike meals/1000 ticks.
+   */
+  meanDrive: number;
+  /** Share of episodes that reached MAX_TICKS alive. */
+  survival: number;
 }
 
 export interface Row {
@@ -81,6 +90,7 @@ export interface Actor {
 export function measureEpisodes(actor: Actor, world: WorldConfig, seed: number, episodes: number, lag: number, onEpisode?: (line: Omit<EpisodeLine, "kind">) => void): Eval {
   const ticks: number[] = [], meals: number[] = [];
   let seen = 0, toward = 0, pairs = 0, closer = 0, still = 0, all = 0, turns = 0, turnsToward = 0;
+  let driveSum = 0, alive = 0;
   const steer = { leftSeen: 0, rightSeen: 0, leftTurnWhenLeft: 0, rightTurnWhenLeft: 0, leftTurnWhenRight: 0, rightTurnWhenRight: 0 };
   for (let ep = 1; ep <= episodes; ep++) {
     actor.startEpisode?.(ep);
@@ -97,6 +107,9 @@ export function measureEpisodes(actor: Actor, world: WorldConfig, seed: number, 
     for (const k of Object.keys(steer) as (keyof typeof steer)[]) steer[k] += st[k];
     seen += o.seen; toward += o.toward; pairs += a.pairs; closer += a.closer; turns += d.turns; turnsToward += d.toward;
     for (const r of records) { all++; if (!moving(r.action)) still++; }
+    for (const o of obs.slice(1)) driveSum += drive(o);
+    driveSum += drive(obs[obs.length - 1]!) * (MAX_TICKS - records.length); // dead: stays at its last drive
+    if (summary.doneCause === null) alive++;
     onEpisode?.({ episode: ep, worldSeed, summary, events: episodeEvents(records), extra: { orientation: o, approach: a, turnToward: d, steering: st } });
     ticks.push(summary.ticks); meals.push(summary.foodEaten);
   }
@@ -105,6 +118,7 @@ export function measureEpisodes(actor: Actor, world: WorldConfig, seed: number, 
     ticks: mean(ticks), meals: mean(meals), perK: (1000 * meals.reduce((x, y) => x + y, 0)) / T,
     orientation: seen ? toward / seen : 0, approach: pairs ? closer / pairs : 0, still: still / all,
     turnToward: turns ? turnsToward / turns : 0.5, turns, steering: steeringIndex(steer),
+    meanDrive: driveSum / (episodes * MAX_TICKS), survival: alive / episodes,
   };
 }
 
