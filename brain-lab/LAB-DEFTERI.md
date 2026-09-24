@@ -240,6 +240,40 @@ hipotezi parça parça sınanıyor. Sadece ayar seed'leri (4–10); hiçbir koş
 - Ablasyon anahtarları öğrenme kuralına eklendi (varsayılanları tam kural); her anahtarın sadece kendi
   mekanizmasını kaldırdığı testle doğrulandı.
 
+## 2026-09-24 — Pilot 001b sonucu: sebep ölüm sinyalinin büyüklüğü; ilk olumlu sonuç Git-yalnız
+
+Kod `389c10a`, 176 sn. Veri `data/pilot-001b-summary.json`.
+- `[ÖLÇÜLDÜ]` Bölüm 1 (donuk yenidoğan, 86.458 tik): ortalama δ ≈ 0 (−0,000004); tiklerin %66'sı eksi
+  ama küçük, yemeklerdeki büyük artılar dengeliyor. Hareket sonrası ortalama δ **artı** (+0,00023),
+  dinlenme sonrası eksi (−0,0003) — yemek hep hareketten sonra geliyor. **"Dopamin sistematik eksi" ve
+  "hareket cezalandırılıyor" hipotezleri çürüdü.**
+- `[ÖLÇÜLDÜ]` Bölüm 2: en çok büyüyen Gitme kenarları açlık (+1,98) ve **yemek görme** ışınları (+1,8–1,96).
+- `[ÖLÇÜLDÜ]` Bölüm 3: rastgele ayrık politikanın yönelimi 0,286 — kardeşlerin 0,176'sı şansın altında
+  (çoğu zaman durdukları için).
+- `[ÖLÇÜLDÜ]` Bölüm 4 (7 çift, kardeş: 1236 tik, 2,51 yemek, 2,02 yemek/1000 tik, %44 durgun):
+
+  | koşul | yaşam (tik) | yemek | yemek/1000 tik | yönelim | durgun |
+  |---|---|---|---|---|---|
+  | A0 tam kural | 808 | 0,01 | 0,02 | 0,000 | %100 |
+  | A1 Gitme yok | **1970** | **5,61** | **2,83** | 0,194 | %58 |
+  | A2 ölüm öğretmiyor | 288 | 0,10 | 0,33 | 0,376 | %0 |
+  | A3 iç duyu yok | 911 | 0,43 | 0,41 | 0,041 | %90 |
+  | A4 sadece artış | 287 | 0,10 | 0,34 | 0,396 | %0 |
+  | A5 A1+A3 | 939 | 2,17 | 2,06 | 0,255 | %33 |
+
+- `[ÖLÇÜLDÜ]` A0'da yemek-ışını → Gitme büyümesinin +131,8'i **ölüm anından**, yaşarken +3,4 (−8,6 azalma).
+  Ölüm δ'sı −1, yaşam sinyalleri 10⁻⁴…0,3 — yaklaşık 3–4 mertebe büyük. Ölüm anında beden sık sık yemeğe
+  bakarken donmuş olduğu için "yemek görünce dur" öğreniliyor: kendini besleyen bir döngü.
+- **Yeni hipotez:** çöküşün sebebi ölüm sinyalinin öteki sinyallere göre ölçeği (ve onu büyüten Gitme yolu).
+  Ceza hiç olmayınca (A2, A4) Git sınırsız büyüyor → hiperaktivite → hızlı açlık ölümü. İkisi de dengesizlik.
+- **İlk olumlu (keşif) sonuç:** A1 (sadece Git öğreniyor, ölüm Git'i freni gibi zayıflatıyor) 7 çiftin 7'sinde
+  kardeşten çok yedi; daha uzun yaşıyor ve daha verimli. A5 < A1 → iç duyuların Git yolunda olması işe yarıyor.
+- **Öngörü puanlaması (dürüst):** A1 ✓. A5 kısmen (çökmedi ama kardeşi geçmedi). A2 ✗ ("tek başına önlemez"
+  demiştim — donmayı önledi ama hiperaktiviteyle başka türlü çöktü). A4 ✗ yarım (donma kalktı, hiperaktivite geldi).
+  A3 ✓ (iyileştirmedi).
+- **Ölçü dersi:** yönelim tek başına yanıltıcı — sürekli dönen beden şansın üstünde puan alıp yemek yiyemiyor.
+  Yemek/1000 tik ve yaklaşma ölçüsü eklenmeli.
+
 ## Açık sorular (güncel)
 
 - Kendiliğinden hareket (motor babbling) ve zayıf rastgele doğum bağlantıları öğrenmeyi başlatır mı?
