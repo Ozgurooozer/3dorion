@@ -25,6 +25,20 @@ export function drive(o: Pick<Observation, "energy" | "health">, w: OutcomeWeigh
   return hunger * hunger + w.healthWeight * injury * injury;
 }
 
+/**
+ * The outcome split by valence, for separate reward and punishment channels (dopamine compartments,
+ * PAM / PPL1 in the fly): each drive term (hunger, injury) that shrank is relief, each that grew
+ * is cost. relief ≥ 0, cost ≤ 0, relief + cost = outcomeOf.
+ */
+export function outcomeParts(prev: Observation, next: Observation, w: OutcomeWeights = DEFAULT_OUTCOME_WEIGHTS): { relief: number; cost: number } {
+  const hb = 1 - prev.energy, ha = 1 - next.energy, ib = 1 - prev.health, ia = 1 - next.health;
+  const parts = [hb * hb - ha * ha, w.healthWeight * (ib * ib - ia * ia)];
+  const relief = parts.reduce((s, p) => s + Math.max(0, p), 0);
+  const cost = parts.reduce((s, p) => s + Math.min(0, p), 0);
+  if (!Number.isFinite(relief) || !Number.isFinite(cost)) throw new RangeError(`outcome parts are not finite (energy ${next.energy}, health ${next.health})`);
+  return { relief, cost };
+}
+
 export function outcomeOf(prev: Observation, next: Observation, w: OutcomeWeights = DEFAULT_OUTCOME_WEIGHTS): number {
   const v = drive(prev, w) - drive(next, w);
   if (!Number.isFinite(v)) throw new RangeError(`outcome is not finite (energy ${next.energy}, health ${next.health})`);

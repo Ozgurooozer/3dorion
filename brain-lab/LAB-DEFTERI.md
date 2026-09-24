@@ -474,6 +474,26 @@ Kod `793e240` (E5, E10) ve `29f4121` (E7). Veri `data/series-002d-*`.
   katılmak için ~0,2'ye çıkmalı; (2) TD her tik tek eylem seçiyor ve kredi onda; bizde seçim eşikli ve ikili, sık sık
   hiçbir şey seçilmiyor; (3) TD ε ile her eylemi eşit dener, bizim üreteçler açlığa bağlı patlamalar.
 
+## 2026-09-24 — Ozyn'in notu ve sinek bağlantı haritası
+
+- **Ozyn (003a'dan sonra):** "Deney 1 gösteriyor ki beyni çok kaba tasarlamışız. Yön öğrenmek ve diğer şeyler daha
+  derin; beyin daha karmaşık." → Tek katmanlı duyu → Git/Gitme öğrenmesi Basamak 2 için yetersiz görünüyor; mimarinin
+  derinliği gündemde (henüz karar yok, tasarım belgesi + toplantı gerekecek).
+- Sinek verisi: Male CNS v1.0 (Janelia FlyEM, Google Research, Cambridge; CC-BY 4.0; male-cns.janelia.org; DOI
+  10.1101/2025.10.09.680999) indirildi, alt ajan inceledi: `data/connectome/RAPOR-male-cns.md` (betikler `scripts/`).
+  `[ÖLÇÜLDÜ]` 211 577 etiketli nöron, 26,0 milyon bağlantı / 125 milyon sinaps; mantar gövdesi: 686 koku projeksiyon
+  nöronu → **4 064 Kenyon hücresi (6× genişleme)** → **97 çıkış nöronu (MBON, 42× daralma)**; dopamin: 316 PAM + 16 PPL1
+  (+8 PPL2), 15 PAM tipi, 8 PPL1 tipi; her KC ~6 projeksiyon nöronundan girdi alıyor, ~15 MBON'a veriyor; dopamin
+  nöronları devreden **geri besleme alıyor** (KC→DAN 281 bin sinaps, MBON→DAN 11 bin); KC→KC 643 bin bağlantı;
+  güçlü bağlantıların %81'i aynı vücut yarısında kalıyor.
+- Bizim beyinle farklar (gözlem, karar değil): (1) sinekte öğrenme ham duyuda değil, büyük seyrek bir ara katmanda
+  (KC → MBON); bizde doğrudan duyu → eylem. (2) sinekte ~15 tipte, bölmelere ayrılmış çok sayıda dopamin sinyali;
+  bizde tek küresel δ. (3) sinekte dopamin nöronları devreden girdi alıyor (tahmin devrenin içinde); bizde eleştirmen
+  ayrı bir doğrusal modül. (4) sinek iki yarımküreli, bağlantılar büyük ölçüde aynı tarafta; bizde "taraf" yok.
+  (5) Literatür (veride değil): mantar gövdesi neyin iyi/kötü olduğunu öğrenir; yönü merkezi kompleks (bu veride
+  2 950 CX nöronu) ve iki taraf arasındaki asimetri çözer — yani sinekte "hangi yön" büyük ölçüde yapı, "neye yaklaş"
+  öğrenme. 003b tam bu ayrımın küçük bir sınaması.
+
 ## 2026-09-24 — Seri 003b: doğuştan yönelme — koşmadan önce (keşif)
 
 - Kod: `bornGraph(..., { orienting: { strength, direction } })` — her ışının kendi yönündeki eylemin Git'ine (sol ışınlar
@@ -489,6 +509,39 @@ Kod `793e240` (E5, E10) ve `29f4121` (E7). Veri `data/series-002d-*`.
   (a) O1 kardeşinin dönüş yönü 0,5'ten biraz yukarı (0,5–0,55), O2 kardeşininki biraz aşağı;
   (b) O1 öğrenenin dönüş yönü ≤ 0,6 — yani eğilim yön öğrenmesini **çözmez**; (c) O1 yemek/1000 tik O0'dan (3,16) en
   fazla ~%20 farklı. (b) tutarsa sorun başlangıç simetrisi değil, kredi atamadır (sonraki adım o).
+
+## 2026-09-24 — Seri 003b sonucu: doğuştan yönelme yönü çözmedi
+
+`[ÖLÇÜLDÜ]` seed 1–10 × iki grup, E7 λ 0,9. O0 = 003a ölçümü.
+
+| koşul | yemek/1000t öğrenen | kardeş | önde | dönüş yönü öğrenen | kardeş |
+|---|---|---|---|---|---|
+| O0 eğilimsiz | 3,16 | 2,07 | 17/20 | 0,506 | 0,499 |
+| O1 yönelme 0,02 | 2,99 | 2,09 | 16/20 | **0,497** | 0,505 |
+| O2 ayna 0,02 | 3,08 | 2,14 | 16/20 | **0,484** | 0,501 |
+
+- Öngörü karnesi: (a) O1 kardeşi 0,5–0,55 ✓ (0,505), O2 kardeşi biraz aşağı ✗ (0,501 — fark yok); (b) O1 öğrenen ≤ 0,6 ✓
+  (0,497); (c) O1 yemek O0'ın %20'si içinde ✓ (2,99 / 3,16).
+- Yorum: izin verilen en büyük eğilim kardeşin yönünü bile değiştirmiyor (0,505) — üreteçlerin seçimi yanında çok küçük.
+  Öğrenme de yönü büyütmüyor: sorun başlangıç simetrisi değil. Kredi atama / öğretme sinyali şüphesi güçlendi → M1.
+
+## 2026-09-24 — Seri 004 / M1: dopamin bölmeleri — koşmadan önce (keşif)
+
+- Tasarım: `TASARIM-004-MODULLER.md`. Kod: `learning/compartments.ts` — "action" (eylem başına bölme, kendi beklentisi
+  Q_a, yalnız eylemi seçildiğinde konuşur: δ_a = r + γ·V(s′) − Q_a(s)) ve "valence" (ödül kanalı: rahatlama, ceza kanalı:
+  maliyet + ölüm; Git yalnız δ⁺, Gitme yalnız δ⁻). `outcomeParts` (rahatlama + maliyet = sonuç; 7⁴ durumluk ızgarada
+  fark ≤ 2ε, ölçülen en büyük 1ε). Öğrenici hücre başına δ alabiliyor; beklenti ağırlıkları deftere bölme önekli.
+  Testler: 28 bölme + 5 ayrıştırma; 15 mutantın 14'ü öldü, kalan eşdeğer (δ = 0 için kısayol). Bölmeler kapalıyken
+  E7 λ 0,9 deneği sıfırdan yeniden eğitildi: 4 denek, kayıtlı değerlendirme ile **bit-aynı**.
+- Ozyn'in test incelemesi (2026-09-24): çok koşullu `assert`'ler, hikâye adları, rastgele örnekleme ve gerekçesiz tolerans
+  eleştirildi — haklı; ayrıca bir test örnekler arasında durum paylaşıyordu ve bu yüzden yanlış yere başarısız oldu.
+  Testler baştan yazıldı: her durum temiz nesne, her doğrulama tek koşul + mesaj, ızgara, ölçülmüş tolerans.
+- Plan: E7 λ 0,9 ayarı (ölüm öğretmez — karşılaştırma için aynı bırakıldı; M1b'de ölüm kanalı bu yüzden susuk),
+  seed 1–10 × iki grup, 40 + 10 bölüm, yemek 10. M1a = + eylem bölmeleri, M1b = + değerlik bölmeleri.
+  Kazanan olursa CROSS (her bölmenin δ'si ayrı ayrı 3000 tik geciktirilir).
+- **Öngörüler (koşmadan):** M1a: dönüş yönü öğrenende **> 0,55** ve kardeşten yüksek; yemek > 3,16 (E7 λ 0,9).
+  M1b: dönüş yönü ~0,5 (değerlik eyleme göre ayrışmaz); yemek 3,16 ± %20. M1a tutmazsa: kredi atama sorunu öğretme
+  sinyalinde değil, seçimde (üreteçler) — sonraki şüpheli orası.
 
 ## Açık sorular (güncel)
 

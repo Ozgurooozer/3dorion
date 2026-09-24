@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 import { BrainSimulator } from "../brain-ir/simulator.ts";
 import { brainController, sensorimotorScaffold } from "../sensorimotor/index.ts";
 import { DEFAULT_CONFIG as C, Rng, Room, runEpisode, type Observation, type Policy, type RoomState } from "../world/index.ts";
-import { DopamineChannel, RunningMeanPredictor, drive, outcomeOf, withDopamine } from "./index.ts";
+import { DopamineChannel, RunningMeanPredictor, drive, outcomeOf, outcomeParts, withDopamine } from "./index.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const CENTER = { x: C.width / 2, y: C.height / 2 };
@@ -209,4 +209,45 @@ test("tonic level: each signal carries the current drive, and the channel report
   assert.ok(Math.abs(s0!.drive - drive(body(0.4, 0.9))) < 1e-12);
   assert.ok(Math.abs(s1!.drive - drive(body(0.5, 0.9))) < 1e-12);
   assert.equal(ch.modulators().tonic, s1!.drive);
+});
+
+// --- outcome split by valence (reward / punishment channels) ----------------------------
+
+test("outcomeParts: eating is relief only", () => {
+  const { relief, cost } = outcomeParts(body(0.4), body(0.7));
+  assert.ok(relief > 0, `relief ${relief}`);
+  assert.equal(cost, 0);
+});
+
+test("outcomeParts: spending energy is cost only", () => {
+  const { relief, cost } = outcomeParts(body(0.5), body(0.49));
+  assert.equal(relief, 0);
+  assert.ok(cost < 0, `cost ${cost}`);
+});
+
+test("outcomeParts: eating while being hurt gives both signals, not one net number", () => {
+  const { relief, cost } = outcomeParts(body(0.4, 0.9), body(0.7, 0.8));
+  assert.ok(relief > 0, `relief ${relief}`);
+  assert.ok(cost < 0, `cost ${cost}`);
+});
+
+test("outcomeParts: on every pair of body states, relief ≥ 0, cost ≤ 0 and relief + cost = outcomeOf", () => {
+  // outcomeOf subtracts two drives; outcomeParts subtracts term by term. Same four squares, added in
+  // a different order, so the last bit can differ: measured on this grid, at most one ε. Values are
+  // at most 2 in size, so one rounding step is at most 2ε.
+  const ROUNDING = 2 * Number.EPSILON;
+  const levels = [0, 0.1, 0.25, 0.5, 0.75, 0.9, 1];
+  for (const e0 of levels) for (const h0 of levels) for (const e1 of levels) for (const h1 of levels) {
+    const before = body(e0, h0), after = body(e1, h1);
+    const where = `energy ${e0}→${e1}, health ${h0}→${h1}`;
+    const { relief, cost } = outcomeParts(before, after);
+    assert.ok(relief >= 0, `relief ${relief} at ${where}`);
+    assert.ok(cost <= 0, `cost ${cost} at ${where}`);
+    const gap = Math.abs(relief + cost - outcomeOf(before, after));
+    assert.ok(gap <= ROUNDING, `relief + cost is off by ${gap} at ${where}`);
+  }
+});
+
+test("outcomeParts: a non-finite body is refused", () => {
+  assert.throws(() => outcomeParts(body(0.5), body(Number.NaN)), RangeError);
 });

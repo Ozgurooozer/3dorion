@@ -96,16 +96,24 @@ export class Learner {
     for (const s of this.synapses) { s.e = 0; s.pending = 0; }
   }
 
-  /** Step 2 of a tick: dopamine meets eligibility. Returns the ledger entries it wrote. */
-  applyDopamine(delta: number, tick: number, cause: readonly string[] = ["dopamine"]): LedgerEntry[] {
-    if (!Number.isFinite(delta)) throw new RangeError(`dopamine ${delta}`);
+  /**
+   * Step 2 of a tick: dopamine meets eligibility. Returns the ledger entries it wrote.
+   * `dopamine` is one global δ, or — with compartments — the δ each Go/NoGo cell listens to.
+   */
+  applyDopamine(dopamine: number | ((cell: string) => number), tick: number, cause: readonly string[] = ["dopamine"]): LedgerEntry[] {
+    const shape = (d: number) => {
+      if (!Number.isFinite(d)) throw new RangeError(`dopamine ${d}`);
+      if (this.params.dopamine === "positive") d = Math.max(0, d);
+      if (this.params.dipFloor !== null) d = Math.max(-this.params.dipFloor, d);
+      return d;
+    };
+    const global = typeof dopamine === "number" ? shape(dopamine) : null;
     const written: LedgerEntry[] = [];
-    if (this.params.dopamine === "positive") delta = Math.max(0, delta);
-    if (this.params.dipFloor !== null) delta = Math.max(-this.params.dipFloor, delta);
-    if (this.params.frozen || delta === 0) return written;
+    if (this.params.frozen || global === 0) return written;
     const { eta, quantum, wMax } = this.params;
     for (const s of this.synapses) {
-      if (s.e === 0) continue;
+      const delta = global ?? shape((dopamine as (cell: string) => number)(s.edge.to));
+      if (s.e === 0 || delta === 0) continue;
       s.pending += s.sign * eta * delta * s.e;
       const quanta = Math.trunc(s.pending / quantum);
       if (quanta === 0) continue;

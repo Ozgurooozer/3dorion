@@ -16,6 +16,7 @@ import { DopamineChannel } from "../neuromodulation/index.ts";
 import type { Ledger, LedgerEntry } from "../registry/index.ts";
 import { brainController, type BrainController } from "../sensorimotor/index.ts";
 import type { EpisodeHooks, Observation, Policy, WorldConfig } from "../world/index.ts";
+import { Compartments, type CompartmentSpec } from "./compartments.ts";
 import { Critic, type CriticParams } from "./critic.ts";
 import { Learner, type LearningParams } from "./learner.ts";
 
@@ -24,6 +25,7 @@ export interface Agent {
   readonly hooks: EpisodeHooks;
   readonly learner: Learner;
   readonly critic: Critic | null;
+  readonly compartments: Compartments | null;
   readonly dopamine: DopamineChannel;
   readonly controller: BrainController;
   readonly graph: BrainGrafi;
@@ -53,7 +55,13 @@ export interface AgentSpec {
    * Optional hook between dopamine and learning (negative controls, e.g. shuffled dopamine).
    * Receives the δ the brain computed; returns the δ the learner gets.
    */
-  readonly deltaTransform?: (delta: number, tick: number) => number;
+  readonly deltaTransform?: (delta: number, tick: number, channel?: string) => number;
+  /**
+   * Dopamine compartments (TASARIM-004 M1): each Go/NoGo cell learns from its own compartment's δ
+   * instead of the global one. "action" mode needs `critic` (it bootstraps on the shared V).
+   * deltaTransform then receives each compartment's δ with the compartment as `channel`.
+   */
+  readonly compartments?: CompartmentSpec | null;
   /**
    * Divide δ by a running estimate of its typical size (mean |δ|, time constant 1/rate), so the
    * scale of the teaching signal does not depend on the scale of rewards — the idea behind OpAL*
@@ -68,6 +76,9 @@ export function createAgent(spec: AgentSpec): Agent {
   const sim = new BrainSimulator(graph);
   const learner = new Learner(graph, spec.ledger, spec.learning);
   const critic = spec.critic ? new Critic(spec.ledger, spec.cfg, spec.critic) : null;
+  const compartments = spec.compartments ? new Compartments(spec.ledger, spec.cfg, spec.compartments) : null;
+  if (compartments?.mode === "action" && !critic) throw new Error("action compartments need a critic (they bootstrap on its V)");
+  if (compartments && spec.rpeNormalization) throw new Error("rpeNormalization is not defined for compartments");
   const frozen = learner.params.frozen;
   const dopamine = new DopamineChannel(spec.deathOutcome === undefined ? {} : { deathOutcome: spec.deathOutcome });
   const noise = new NoiseGenerator(spec.noiseSeed);
@@ -93,6 +104,19 @@ export function createAgent(spec: AgentSpec): Agent {
       const c = critic.step(t === 0 ? null : previousObs, obs, outcome, t, episode, terminal, frozen);
       delta = c.delta;
       writes.push(...c.writes);
+    }
+    if (compartments) {
+      const c = compartments.step({
+        prev: t === 0 ? null : previousObs, now: obs, outcome, previousOutputs: previous, tick: t, episode, terminal, frozen,
+        value: critic ? (o) => critic.value(o) : undefined,
+      });
+      writes.push(...c.writes);
+      const deltas = { ...c.deltas };
+      if (spec.deltaTransform) for (const k of Object.keys(deltas)) deltas[k] = spec.deltaTransform(deltas[k]!, t, k);
+      lastDelta = delta;
+      const changed = learner.applyDopamine((cell) => deltas[compartments.channelOf(cell)]!, t, cause);
+      if (changed.length > 0) { writes.push(...changed); stage("E2", "first weight change"); }
+      return;
     }
     if (spec.rpeNormalization) {
       const rate = spec.rpeNormalization.rate;
@@ -132,6 +156,7 @@ export function createAgent(spec: AgentSpec): Agent {
     hooks,
     learner,
     critic,
+    compartments,
     dopamine,
     controller,
     graph,
@@ -142,6 +167,7 @@ export function createAgent(spec: AgentSpec): Agent {
       previousObs = null;
       learner.startEpisode(n);
       critic?.resetPending();
+      compartments?.resetPending();
     },
     finishEpisode(t: number) {
       writes.push(...learner.endEpisode(t));
