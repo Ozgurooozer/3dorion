@@ -328,6 +328,19 @@ Ozyn: "önerini dene, toplantı yap, ekstra testler; bu aşama başlangıç — 
   değer iki adım geriye (duvar → yemek görme → yemek) taşınıyor. İlk mutasyon turunda iki kaçak
   ("sonraki durumu yok say", "eleştirmen δ'sı kullanılmıyor") → testler eklendi.
 
+## 2026-09-24 — Seri 002a (mekanizma taraması) — koşmadan önce
+
+- Seed 4–10 × iki grup (koşul başına 14 öğrenen), 40 eğitim + 10 değerlendirme, η 0,05 / λ 0,8, 10 yemek,
+  aç doğum. Tüm koşullar aynı donuk kardeşleri paylaşır.
+- Koşullar: E0 tam kural (referans) · E1 seçime bağlı · E2 E1+ölüm öğretmez · E3 E1+düşüş tabanı 0,05 ·
+  E4 E1+taban+ölüm öğretmez · E5 Git-yalnız (önceki en iyi) · E6 Git-yalnız+ölüm öğretmez · E7 E4+eleştirmen ·
+  E8 E4+ölçekleme · E9 E1+ölüm öğretmez+dopamin ölçeklemesi (η 0,003) · E10 E4+eleştirmen+ölçekleme.
+- **"En iyi" tanımı:** (öğrenen − kardeş) yemek/1000 tik medyanı en yüksek olan, ama yalnızca en az 11/14
+  öğrenen kardeşini geçiyorsa; eşitlikte yaklaşma. Hiçbiri 11/14'e ulaşmazsa "en iyi yok".
+- **Öngörüler:** H1 → E1 donmaz ve E0'dan iyi. H2/H3 → E4 ≥ E1. H6 → E6 aşırı hareketli (durgun < %10).
+  H4 → E7 ≥ E4. H5 → E8 ≥ E4. H11 → E9 kararlı (ne donma ne aşırılık).
+- En iyi aday → parti 2 (sağlamlık) ve parti 3 (ne öğrenildi, lezyon, karıştırılmış dopamin kontrolü).
+
 ## Açık sorular (güncel)
 
 - Kendiliğinden hareket (motor babbling) ve zayıf rastgele doğum bağlantıları öğrenmeyi başlatır mı?
