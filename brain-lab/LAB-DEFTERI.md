@@ -369,6 +369,24 @@ Kod `59a2c27`, 1091 sn, 14 öğrenen/koşul, ortak donuk kardeşler (2,08 yemek/
   öğrenir, eleştirmenli). Plan "en iyi 1–2 aday" diyordu → **E10 ikinci aday olarak, sağlamlık sonuçlarından
   önce, bu gerekçeyle** eklendi. İkisi de 002b ve 002c'den geçecek.
 
+## 2026-09-24 — Seri 002b/002c sonucu: sağlam görünüyor ama negatif kontrol başarısız
+
+Kod `1d10af5`. Veri: `data/series-002b-*`, `series-002c-*`.
+- `[ÖLÇÜLDÜ]` Sağlamlık (002b, 20 öğrenen/değişken, seed 1–10 × iki grup): E5 12–20/20, E10 13–18/20 önde;
+  E10 en iyi ayarda 3,54 yemek/1000t (kardeş 2,07); seyrek yemekte (5) avantaj zayıflıyor (E5 12/20, E10 13/20).
+  100 bölümde ikisi de 6/6 önde, ama eğitim eğrisi tekdüze artmıyor (E5 2,15 → 2,49 → … → 1,91; E10 3,45 → 4,01 → … → 3,20).
+- `[ÖLÇÜLDÜ]` Geometri (H8): öğrenilmiş 0,57 vs doğum 0,46 (şans 0,5) — iki adayda da yön öğrenimi zayıf.
+- `[ÖLÇÜLDÜ]` Lezyon (H9): E10 bozulmamış 2,81 → yemek lezyonu 2,27, duvar lezyonu 2,66; E5 2,53 → 2,29 / 2,58.
+- `[ÖLÇÜLDÜ]` **Negatif kontrol (H10) BAŞARISIZ:** 100 tik gecikmeli dopaminle E5 10/14, E10 12/14 önde (öngörü: ≈ kardeş).
+  Ayrıntı: E5 gecikmeli → 2,21 yemek/1000t (kardeş 2,08), yaklaşma kardeş seviyesinde, Git büyümüyor → **E5'in
+  öğrenmesi büyük ölçüde gerçek ve zamanlamaya bağlı.** E10 gecikmeli → 2,97 (orijinal 2,81), yaşam, yaklaşma,
+  Git aynı → **E10'un avantajı anlık zamanlamaya bağlı değil.**
+- Yeni hipotezler: (a) E10 yavaş değişkenleri öğreniyor (açlık → etkinlik); 100 tik yetmez. (b) Avantaj bir
+  mekanizmanın (ölçekleme/eleştirmen) yan etkisi. (c) Ağırlıklar 0'da kesildiği için sıfır ortalamalı dopamin bile
+  ağırlıkları şişiriyor (E5 gecikmeli Git 0,048 vs doğum 0,025).
+- Sınama (002d): dopamin işareti rastgele (SIGN) ve bölümler arası 3000 tik gecikme (CROSS), E5 ve E10.
+  **Öngörüler:** E5 ikisinde de ≈ kardeş. E10 — (a) doğruysa SIGN ≈ kardeş, CROSS biraz kalabilir; (b) doğruysa ikisi de önde.
+
 ## Açık sorular (güncel)
 
 - Kendiliğinden hareket (motor babbling) ve zayıf rastgele doğum bağlantıları öğrenmeyi başlatır mı?
