@@ -1,6 +1,7 @@
 // brain-lab/experiments/series-002d.ts — EXPLORATORY: where does each candidate's advantage come from?
 //
-// Run: node --experimental-strip-types brain-lab/experiments/series-002d.ts
+// Run: node --experimental-strip-types brain-lab/experiments/series-002d.ts [CODE:VARIANT ...]
+//   default: E5:SIGN E5:CROSS E10:SIGN E10:CROSS; e.g. "E7:CROSS" runs one control only.
 //
 // 002c found that dopamine delayed 100 ticks removes most of E5's advantage but none of E10's.
 // Two stronger controls, seeds 4–10 × both groups, 40 training + 10 evaluation episodes:
@@ -59,10 +60,11 @@ function movedByKind(rows: Row[]) {
 
 const started = Date.now();
 const out: Record<string, unknown> = {};
-for (const code of ["E5", "E10"]) {
+const jobs = (process.argv.length > 2 ? process.argv.slice(2) : ["E5:SIGN", "E5:CROSS", "E10:SIGN", "E10:CROSS"]).map((j) => j.split(":") as [string, "SIGN" | "CROSS"]);
+for (const code of [...new Set(jobs.map(([c]) => c))]) {
   const base = a.conditions.find((c) => c.code === code)!;
   out[`${code}/original`] = { moved: movedByKind(base.rows) };
-  for (const variant of ["SIGN", "CROSS"] as const) {
+  for (const variant of jobs.filter(([c]) => c === code).map(([, v]) => v)) {
     const rows: Row[] = [];
     const twins = new Map();
     for (const group of GROUPS) for (const seed of SEEDS) {
@@ -79,5 +81,5 @@ for (const code of ["E5", "E10"]) {
     console.log(`[${((Date.now() - started) / 1000).toFixed(0)}s] ${code} ${variant}: ahead ${ahead}/${rows.length}, meals/1000t ${m((r) => r.l.perK).toFixed(2)} vs twin ${m((r) => r.t.perK).toFixed(2)}, approach ${m((r) => r.l.approach).toFixed(3)}, life ${m((r) => r.l.ticks).toFixed(0)}`);
   }
 }
-writeFileSync(join(DATA, "series-002d-summary.json"), JSON.stringify({ series: "002d", exploratory: true, codeCommit, results: out }, null, 2) + "\n");
+writeFileSync(join(DATA, process.argv.length > 2 ? `series-002d-${process.argv.slice(2).join("_").replace(/:/g, "-")}-summary.json` : "series-002d-summary.json"), JSON.stringify({ series: "002d", exploratory: true, codeCommit, results: out }, null, 2) + "\n");
 for (const [k, v] of Object.entries(out)) console.log(k, JSON.stringify((v as { moved: unknown }).moved));
