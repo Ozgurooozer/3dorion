@@ -179,6 +179,23 @@ Olumsuz sonuçlar da yazılır. Etiketler: `[ÖLÇÜLDÜ]` canlı ölçüm, `[TE
 - Mutasyon: 11 denemenin ilk turda 10'u yakalandı. Kaçan: "yaşarken dopamin hiç uygulanmıyor" —
   ölüm anındaki öğrenme testi tatmin ediyordu. Test artık yaşarken öğrenme de arıyor; 11/11.
 
+## 2026-09-24 — Pilot 001: koşmadan önce verilen kararlar (keşif)
+
+- Soru: aç doğan bölgeli beyin yemeğe yönelmeyi öğreniyor mu? Keşif; iddia değil. Sadece ayar
+  seed'leri (1–10); test seed'lerine (1001+) dokunulmuyor.
+- `[ÖLÇÜLDÜ]` İlk ölçüm: 3 yemekli odada donuk yenidoğan 20 bölümde 1 yemek yedi — ödül öğrenmeye
+  yetmeyecek kadar seyrek. Yemek yoğunluğu donuk yenidoğanlarla (5 seed × 10 bölüm) ölçüldü:
+  3 → 0,70 öğün/bölüm (%64 hiç yok), 6 → 1,84 (%42), **10 → 3,22 (%24)**, 15 → 4,98 (%6), 20 → 6,50 (%4).
+  **10 yemek seçildi**: ödül arada bir, tavana uzak. Seçimde hiçbir öğrenen denek görülmedi.
+- Kuantum 0,005 (0,001'e göre defter 10 kat küçük; 20 bölümde 5.681 → 577 satır).
+- Ölçü: **yönelim** — yemek görüş alanındayken hareketin ona doğru olma oranı; hareket t,
+  görüntü t−3 ile karşılaştırılır (duyu → Git → seçim → motor = 3 tik gecikme).
+- Aşama A (ayar): seed 1–3 × iki grup × η {0,05; 0,1; 0,2} × λ {0,8; 0,9; 0,95}; 30 eğitim + 10
+  değerlendirme bölümü. Seçim kuralı: 6 hücrede (öğrenen − donuk kardeş) yönelim farkının medyanı en büyük olan.
+- Aşama B (pilot): seed 4–10 × iki grup, seçilen η, λ; 60 eğitim + 20 değerlendirme bölümü.
+- Değerlendirmede öğrenme kapalı; öğrenen ve kardeşi aynı dünyalarda, aynı gürültüyle.
+- Her denek kayıt sisteminde (DNK-…); kardeş, öğrenenin doğumundan klon.
+
 ## Açık sorular (güncel)
 
 - Kendiliğinden hareket (motor babbling) ve zayıf rastgele doğum bağlantıları öğrenmeyi başlatır mı?
