@@ -110,6 +110,29 @@ export function steering(observations: readonly Observation[], actions: readonly
   return { ...c, index: steeringIndex(c) };
 }
 
+/**
+ * I(food side; turn) in bits — how much the body's turn tells about which side the food is on
+ * (Shannon mutual information over side ∈ {left, right} × turn ∈ {left, none, right}, from the
+ * steering counts, so it pools over episodes). 0 = the turn carries nothing about the side (random
+ * or one-sided habit); the maximum is H(side), 1 bit when food is seen equally on both sides.
+ * Asked for by the information theorist (meeting 2026-09-24) and Ozyn: the general form of steering.
+ */
+export function sideTurnInformation(c: Omit<Steering, "index">): number | null {
+  if (c.leftSeen === 0 || c.rightSeen === 0) return null;
+  const cells = [
+    [c.leftTurnWhenLeft, c.leftSeen - c.leftTurnWhenLeft - c.rightTurnWhenLeft, c.rightTurnWhenLeft],
+    [c.leftTurnWhenRight, c.rightSeen - c.leftTurnWhenRight - c.rightTurnWhenRight, c.rightTurnWhenRight],
+  ];
+  const n = c.leftSeen + c.rightSeen;
+  const side = cells.map((row) => row.reduce((s, x) => s + x, 0) / n);
+  const turn = [0, 1, 2].map((j) => (cells[0]![j]! + cells[1]![j]!) / n);
+  let bits = 0;
+  cells.forEach((row, i) => row.forEach((x, j) => {
+    if (x > 0) bits += (x / n) * Math.log2(x / n / (side[i]! * turn[j]!));
+  }));
+  return Math.max(0, bits);
+}
+
 /** The index from (possibly pooled) counts; null unless food was seen on both sides. */
 export function steeringIndex(c: Omit<Steering, "index">): number | null {
   if (c.leftSeen === 0 || c.rightSeen === 0) return null;

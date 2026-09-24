@@ -18,9 +18,15 @@ export interface CriticParams {
   readonly alpha: number;
   readonly gamma: number;
   readonly quantum: number;
+  /**
+   * Divide the step by the feature energy ‖x‖² (normalised LMS, as the linear-Q baseline does).
+   * Measured 2026-09-24: ‖x‖² has median 2.6 (p90 4.3), so a fixed α 0.05 is an effective step of
+   * ~0.13 — above the baseline's best (0.03) — and the food weights churned (Σ|Δ| 4.7, net 0.004).
+   */
+  readonly normalize: boolean;
 }
 
-export const DEFAULT_CRITIC: CriticParams = Object.freeze({ alpha: 0.05, gamma: 0.99, quantum: 0.0005 });
+export const DEFAULT_CRITIC: CriticParams = Object.freeze({ alpha: 0.05, gamma: 0.99, quantum: 0.0005, normalize: false });
 
 export class Critic {
   readonly params: CriticParams;
@@ -60,10 +66,12 @@ export class Critic {
   learn(s: Observation, delta: number, tick: number, episode: number): LedgerEntry[] {
     if (!Number.isFinite(delta)) throw new RangeError(`critic δ ${delta}`);
     const writes: LedgerEntry[] = [];
-    const { alpha, quantum } = this.params;
-    for (const [f, x] of Object.entries(this.features(s))) {
+    const { alpha, quantum, normalize } = this.params;
+    const features = Object.entries(this.features(s));
+    const step = normalize ? alpha / Math.max(1, features.reduce((e, [, x]) => e + x * x, 0)) : alpha;
+    for (const [f, x] of features) {
       if (x === 0) continue;
-      const p = (this.pending.get(f) ?? 0) + alpha * delta * x;
+      const p = (this.pending.get(f) ?? 0) + step * delta * x;
       const quanta = Math.trunc(p / quantum);
       this.pending.set(f, p - quanta * quantum);
       if (quanta === 0) continue;

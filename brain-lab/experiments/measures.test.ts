@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DEFAULT_CONFIG as C, Room, makeConfig, runEpisode, type Action, type Observation, type Ray } from "../world/index.ts";
-import { LAG, approach, foodSide, orientation, steering, steeringIndex, towardFood, turnToward } from "./measures.ts";
+import { LAG, approach, foodSide, orientation, sideTurnInformation, steering, steeringIndex, towardFood, turnToward } from "./measures.ts";
 
 const none: Ray = { distance: C.rayRange, hit: "none" };
 const obsWithFood = (ray: number | null, distance = 2): Observation => ({
@@ -114,4 +114,39 @@ test("steering vs turnToward in the real room: a food-blind always-left body is 
   assert.equal(steering(obs, actions, C, 0).index, 0);
   const t = turnToward(obs, actions, C, 0).index!;
   assert.ok(t < 0.5, `turnToward ${t}: the closed-loop bias this index exists to avoid`);
+});
+
+// --- side–turn information -----------------------------------------------------------------
+
+const counts = (ll: number, rl: number, lr: number, rr: number, leftSeen: number, rightSeen: number) =>
+  ({ leftSeen, rightSeen, leftTurnWhenLeft: ll, rightTurnWhenLeft: rl, leftTurnWhenRight: lr, rightTurnWhenRight: rr });
+
+test("side information: perfect steering with food equally on both sides is exactly 1 bit", () => {
+  assert.equal(sideTurnInformation(counts(50, 0, 0, 50, 50, 50)), 1);
+});
+
+test("side information: perfect steering away is also 1 bit (information, not direction)", () => {
+  assert.equal(sideTurnInformation(counts(0, 50, 50, 0, 50, 50)), 1);
+});
+
+test("side information: a one-sided habit carries 0 bits", () => {
+  assert.equal(sideTurnInformation(counts(50, 0, 50, 0, 50, 50)), 0);
+});
+
+test("side information: turning at the same rates whatever the side carries 0 bits", () => {
+  assert.equal(sideTurnInformation(counts(10, 20, 10, 20, 50, 50)), 0);
+});
+
+test("side information: turning left for left food and not turning for right food is still 1 bit", () => {
+  assert.equal(sideTurnInformation(counts(50, 0, 0, 0, 50, 50)), 1);
+});
+
+test("side information: turning left on half the left sightings and never on the right is 0.311 bits", () => {
+  // table [[25, 25, 0], [0, 50, 0]], n 100: ½·log2(2) … computed independently = 0.311278
+  const bits = sideTurnInformation(counts(25, 0, 0, 0, 50, 50))!;
+  assert.ok(Math.abs(bits - 0.311278) < 1e-6, `${bits}`);
+});
+
+test("side information: food seen on one side only gives no value", () => {
+  assert.equal(sideTurnInformation(counts(5, 0, 0, 0, 5, 0)), null);
 });

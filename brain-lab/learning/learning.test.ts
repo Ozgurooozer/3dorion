@@ -318,3 +318,24 @@ test("agent: with a critic, the learner is taught by the critic's δ, not the st
   const differ = withCritic.filter((d, i) => Math.abs(d - (stateless[i] ?? 0)) > 1e-9).length;
   assert.ok(differ > 50, `critic δ reached the learner on only ${differ} ticks`);
 });
+
+test("critic normalize: the step is α/‖x‖², so a crowded moment moves each weight less", () => {
+  const busy: Observation = {
+    rays: DEFAULT_CONFIG.rayAngles.map(() => ({ distance: 1, hit: "wall" as const })),
+    bump: false, energy: 0.4, health: 1, motion: { forward: 0, turn: 0 },
+  };
+  const change = (normalize: boolean) => {
+    const ledger = ledgerFor(3);
+    const critic = new Critic(ledger, DEFAULT_CONFIG, { alpha: 0.1, quantum: 0.00001, normalize });
+    critic.learn(busy, 1, 0, 1);
+    return ledger.criticWeight("bias");
+  };
+  const energy = Object.values(new Critic(ledgerFor(3), DEFAULT_CONFIG).features(busy)).reduce((e, x) => e + x * x, 0);
+  assert.ok(energy > 1, `test needs a crowded moment, energy ${energy}`);
+  assert.ok(Math.abs(change(false) - 0.1) < 1e-4, `fixed step ${change(false)}`);
+  assert.ok(Math.abs(change(true) - 0.1 / energy) < 1e-4, `normalised step ${change(true)}, expected ${0.1 / energy}`);
+});
+
+test("critic normalize is off by default", () => {
+  assert.equal(new Critic(ledgerFor(3), DEFAULT_CONFIG).params.normalize, false);
+});

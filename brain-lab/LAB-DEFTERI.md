@@ -675,6 +675,32 @@ Kod `793e240` (E5, E10) ve `29f4121` (E7). Veri `data/series-002d-*`.
   (çok zayıf üreteç keşfi keser). G3a/G3L'nin G3'ten iyi olması, bölmelerin/iki tarafın ancak döngü kurulunca işe
   yaradığını gösterir.
 
+## 2026-09-24 — Seçim darboğazı toplantısı; M2 sonucu; matematik denetimi (Ozyn)
+
+- Toplantı: vault `forum/beyin0fis/toplantilar/2026-09-24-secim-darbogazi/` — oylama A (tersine tasarım) 40 · D 29 ·
+  B 20 · C 9; K1 ön-kayıt 002 askıda, K2 ölçü kalibrasyonu, K4 iki aşamalı deney, K5 rekabetçi seçim önerisi (Ozyn onayı
+  bekliyor), K8 "robot beyni" ilkesi Ozyn'e.
+- `[ÖLÇÜLDÜ]` M2 (ara katman 64×4): yemek 1,13 (kardeş 1,79), 5/20 önde, yönlendirme −0,013, eğitim 2,11 → 1,42 (düşüyor).
+  Kuyruk K4 gereği durduruldu (M2T, M2a koşmadı); öncelik tarama.
+- **Ozyn'in matematik şüpheleri ve ölçümler** (E7 λ 0,9 deneği, 40 bölüm, yalnız gözlem):
+  1. Bölüm başında silinen kuantum-altı birikim: sinapslarda öğrenmenin **%2,0**'ı, eleştirmende %0,7, eleştirmenin
+     yemek özelliklerinde %1,9 → **çürüdü**. Ama eleştirmenin yemek ağırlıkları toplam 4,7 hareket edip net ~0,004'te
+     kalıyor → aşırı savrulma.
+  2. Eleştirmen adımı normalize değil: ‖x‖² medyan 2,63 (p10 1,30, p90 4,28, en çok 8,06) → etkin adım α·‖x‖² ≈ 0,13;
+     TD'nin en iyisi 0,03, TD 0,1'de düşüyor, 0,3'te bozuluyordu → **destekleniyor**. Kod: `CriticParams.normalize`
+     (α/max(1, ‖x‖²)), 2 test.
+  3. λ 0,9 ≈ 0,5 sn iz; görme → yeme 2–5 sn → taramada λ 0,97 (≈ 1,6 sn).
+  4. Yakınlık kodu: yemek ilk görüldüğünde mesafe medyan 2,77 m (p25 1,86, p75 3,69) → kod medyan 0,45, çeyreğinde
+     0,26 → **kısmen**: zayıf ama sıfır değil. Alternatif kod henüz denenmedi.
+  5. Düşüş tabanı asimetrisi → taramada tabansız.
+- Bilgi ölçüsü (Ozyn + bilgi kuramcısı): I(yemek tarafı; dönüş) bit, 2 × 3 tablo (taraf × sol/yok/sağ), yönlendirme
+  sayımlarından, bölümler üstünden toplanmış. Kusursuz yönlendirme (ya da kusursuz ters) 1 bit, tek yöne alışkanlık 0,
+  bağımsız 0; elle hesaplanan 0,311278 değeriyle testli (6 test).
+- Tarama betiği `experiments/screen.ts` (seed 1–5 × iki grup, 40 + 10): A0 E7, A1 normalize eleştirmen (α 0,03),
+  A2 tabansız, A3 λ 0,97, A4 üçü, A5 üçü + üreteç 0,3.
+- **Öngörüler (koşmadan):** A1 eleştirmenin yemek değerini belirgin büyütür (> 0,02) ama yönlendirmeyi tek başına
+  > 0,1'e çıkarmaz; A4 ve A5 içinde en iyisi A5; hiçbiri yönlendirme > 0,2'ye ulaşmaz (asıl darboğaz seçim, K5).
+
 ## 2026-09-24 — Seri 004 / M3: iki taraf — koşmadan önce (keşif)
 
 - Kod: yeni bölge `lat` (6 nöron: duvar/yemek/tehlike × sol/sağ). Doğuştan: her taraftaki ışın kendi tarafının hücresini

@@ -10,7 +10,7 @@ import type { EpisodeLine, RegistryStore } from "../registry/store.ts";
 import { drive } from "../neuromodulation/index.ts";
 import { isPlastic, senseToMotorDelay } from "../regions/index.ts";
 import { Room, runEpisode, type Action, type EpisodeHooks, type Policy, type WorldConfig } from "../world/index.ts";
-import { approach, orientation, steering, steeringIndex, turnToward } from "./measures.ts";
+import { approach, orientation, sideTurnInformation, steering, steeringIndex, turnToward } from "./measures.ts";
 
 export const MAX_TICKS = 3000;
 
@@ -35,6 +35,8 @@ export interface Eval {
   meanDrive: number;
   /** Share of episodes that reached MAX_TICKS alive. */
   survival: number;
+  /** I(food side; turn) in bits, pooled over episodes (null if food was never seen on both sides). */
+  sideInfo: number | null;
 }
 
 export interface Row {
@@ -119,7 +121,7 @@ export function measureEpisodes(actor: Actor, world: WorldConfig, seed: number, 
     ticks: mean(ticks), meals: mean(meals), perK: (1000 * meals.reduce((x, y) => x + y, 0)) / T,
     orientation: seen ? toward / seen : 0, approach: pairs ? closer / pairs : 0, still: still / all,
     turnToward: turns ? turnsToward / turns : 0.5, turns, steering: steeringIndex(steer),
-    meanDrive: driveSum / (episodes * MAX_TICKS), survival: alive / episodes,
+    meanDrive: driveSum / (episodes * MAX_TICKS), survival: alive / episodes, sideInfo: sideTurnInformation(steer),
   };
 }
 
