@@ -389,3 +389,37 @@ test("bilateral and expansion together: legal, both layers present", () => {
   assert.ok(g.nodes.some((n) => n.id.startsWith("lat.")));
   assert.ok(g.nodes.some((n) => n.id.startsWith("kc.")));
 });
+
+// --- generator strength (series 004, G) --------------------------------------------------------
+
+test("generatorToGo: default and explicit default are the same newborn", () => {
+  assert.equal(graphHash(bornGraph(C, { seed: 3, group: "reflexless", generatorToGo: 0.6 })), graphHash(bornGraph(C, { seed: 3, group: "reflexless" })));
+});
+
+test("generatorToGo: only the generator → Go edges change, to the given weight; the name says so", () => {
+  const plain = bornGraph(C, { seed: 3, group: "reflexless" });
+  const weak = bornGraph(C, { seed: 3, group: "reflexless", generatorToGo: 0.3 });
+  assert.match(weak.name ?? "", /gen0\.3/);
+  for (const e of weak.connections) {
+    const p = plain.connections.find((x) => x.from === e.from && x.to === e.to)!;
+    const isGenerator = /^cpg\.(forward|back|left|right)$/.test(e.from) && e.to.startsWith("bg.go.");
+    assert.equal(e.weight, isGenerator ? 0.3 : p.weight, `${e.from}->${e.to}`);
+  }
+});
+
+test("generatorToGo: zero, negative or above the innate default is refused", () => {
+  for (const g of [0, -0.1, 0.7]) assert.throws(() => bornGraph(C, { seed: 1, group: "reflexless", generatorToGo: g }), RangeError, String(g));
+});
+
+test("generatorToGo 0.3: a hungry newborn still moves", () => {
+  let moved = 0;
+  for (let seed = 1; seed <= 10; seed++) {
+    const room = new Room(seed, { initialEnergy: 0.4, threatCount: 0 });
+    const start = room.state().body;
+    const ctl = brainController(new BrainSimulator(bornGraph(C, { seed, group: "reflexless", generatorToGo: 0.3 })), C, { extraInputs: new NoiseGenerator(seed + 99).asExtraInputs() });
+    runEpisode(room, ctl.policy, 300);
+    const b = room.state().body;
+    if (Math.hypot(b.x - start.x, b.y - start.y) > 1) moved++;
+  }
+  assert.ok(moved >= 8, `only ${moved}/10 moved`);
+});

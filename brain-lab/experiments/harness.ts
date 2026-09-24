@@ -68,10 +68,11 @@ export interface BirthOptions {
   readonly orienting?: Orienting | null;
   readonly expansion?: Expansion | null;
   readonly bilateral?: boolean;
+  readonly generatorToGo?: number;
 }
 
 export function birth(store: RegistryStore, world: WorldConfig, seed: number, group: InnateGroup, codeCommit: string, born: BirthOptions = {}, lineage?: Subject["lineage"]): Subject {
-  const birthGraph = bornGraph(world, { seed, group, orienting: born.orienting ?? null, expansion: born.expansion ?? null, bilateral: born.bilateral ?? false });
+  const birthGraph = bornGraph(world, { seed, group, orienting: born.orienting ?? null, expansion: born.expansion ?? null, bilateral: born.bilateral ?? false, generatorToGo: born.generatorToGo });
   return store.createSubject({ category: "learner.3f", group, seed, worldConfig: world, birthGraph, lineage, codeCommit });
 }
 

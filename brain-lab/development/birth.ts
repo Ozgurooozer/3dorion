@@ -95,6 +95,13 @@ export interface BirthSpec {
    * the cells join the learning sources, weak and random like the rest. Same for every kind.
    */
   readonly bilateral?: boolean;
+  /**
+   * Strength of generator → Go (default INNATE.generatorToGo, 0.6: a generator alone passes
+   * selection). Weaker generators leave room for learned inputs to decide (series 004, G): the
+   * newborn still moves (Go keeps half its state, so 0.3 settles at 0.6), but a burst of noise no
+   * longer overrides what has been learned. Must stay above 0 and at most the default.
+   */
+  readonly generatorToGo?: number;
 }
 
 /**
@@ -121,6 +128,8 @@ export function bornGraph(cfg: WorldConfig, spec: BirthSpec): BrainGrafi {
   if (orienting && !(orienting.strength > 0 && orienting.strength <= MAX_ORIENTING)) {
     throw new RangeError(`orienting strength ${orienting.strength} would select an action on sight alone: that is behavior, not a newborn`);
   }
+  const generatorToGo = spec.generatorToGo ?? INNATE.generatorToGo;
+  if (!(generatorToGo > 0 && generatorToGo <= INNATE.generatorToGo)) throw new RangeError(`generatorToGo ${generatorToGo} outside (0, ${INNATE.generatorToGo}]`);
   const rng = new Rng(spec.seed);
   const node = (id: string, region: keyof typeof REGION_TYPE): BrainDugumu =>
     region === "bg.go" ? { id, type: REGION_TYPE[region], decay: INNATE.goPersistence } : { id, type: REGION_TYPE[region] };
@@ -147,7 +156,7 @@ export function bornGraph(cfg: WorldConfig, spec: BirthSpec): BrainGrafi {
   for (const a of ACTIONS) {
     add(nodeId("noise", a), nodeId("cpg", a), INNATE.noiseToGenerator);
     add("hyp.hunger", nodeId("cpg", a), INNATE.hungerToGenerator);
-    add(nodeId("cpg", a), nodeId("bg.go", a), INNATE.generatorToGo);
+    add(nodeId("cpg", a), nodeId("bg.go", a), generatorToGo);
     add("hyp.hunger", nodeId("bg.go", a), INNATE.hungerToGo);
     add(nodeId("bg.go", a), nodeId("bg.out", a), INNATE.goToOut);
     add(nodeId("bg.nogo", a), nodeId("bg.out", a), INNATE.nogoToOut);
@@ -180,7 +189,8 @@ export function bornGraph(cfg: WorldConfig, spec: BirthSpec): BrainGrafi {
 
   const tag = (orienting ? `-orient-${orienting.direction}-${orienting.strength}` : "")
     + (expansion ? `-kc${expansion.cells}x${expansion.inputs}t${expansion.threshold}` : "")
-    + (spec.bilateral ? "-bilateral" : "");
+    + (spec.bilateral ? "-bilateral" : "")
+    + (generatorToGo !== INNATE.generatorToGo ? `-gen${generatorToGo}` : "");
   const graph: BrainGrafi = { name: `newborn-${spec.group}${tag}`, version: "2", nodes, connections: [...edges.values()] };
   checkPathways(graph); // a birth that breaks its own regions is a bug, not a variation
   return graph;

@@ -50,6 +50,11 @@ const CONDITIONS: Record<string, { what: string; spec: Spec; born?: BirthOptions
   M3T: { what: "E7 λ0.9 + bilateral comparison, oracle teacher only (gain 0.3)", spec: { ...BASE, teacher: { policy: oraclePolicy(WORLD), gain: 0.3, mix: "only" } }, born: { bilateral: true } },
   M3a: { what: "E7 λ0.9 + bilateral comparison + action compartments", spec: { ...BASE, compartments: { mode: "action" } }, born: { bilateral: true } },
   M23: { what: "E7 λ0.9 + expansion layer + bilateral comparison", spec: BASE, born: { expansion: KC, bilateral: true } },
+  // G — the improvement loop: weaker generators, so learned inputs decide sooner.
+  G3: { what: "E7 λ0.9, generators → Go 0.3", spec: BASE, born: { generatorToGo: 0.3 } },
+  G2: { what: "E7 λ0.9, generators → Go 0.2", spec: BASE, born: { generatorToGo: 0.2 } },
+  G3a: { what: "E7 λ0.9, generators → Go 0.3 + action compartments", spec: { ...BASE, compartments: { mode: "action" } }, born: { generatorToGo: 0.3 } },
+  G3L: { what: "E7 λ0.9, generators → Go 0.3 + bilateral comparison", spec: BASE, born: { generatorToGo: 0.3, bilateral: true } },
 };
 
 /** Delayed dopamine: every channel's δ comes 3000 ticks late, from another life. */

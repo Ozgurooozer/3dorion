@@ -648,6 +648,33 @@ Kod `793e240` (E5, E10) ve `29f4121` (E7). Veri `data/series-002d-*`.
   Needle için iki yol: odanın örnekleriyle ince ayar (platformu, 100–10 000 örnek) ya da Needle'ı mekân değil **dil**
   işlerinde Bob bölgesi olarak kullanmak. Karar Ozyn'in.
 
+## 2026-09-24 — T0 bütün koşullar; tavan ve kapasite tanısı; kısır döngü
+
+- `[ÖLÇÜLDÜ]` T0a/T0b/T0c (kâhin öğretmen; yalnız 0,3 / ödüle eklenmiş 0,3 / yalnız 1,0): yemek 0,31 / 0,31 / 0,34,
+  hepsi 0/20 önde, durgun %0, yaşam ~286 tik. Öğretmen hep "ileri" dediği için beyin durmamayı öğreniyor ve aç doğan
+  beden açlıktan ölüyor; düşüş tabanı "hayır"ı kısıyor (T0d/T0e sırada).
+- **Tavan yanlışmış** `[ÖLÇÜLDÜ]` (kâhin değişkeleri, 10 seed × 5 bölüm): kâhin 12,4; 3 tik gecikmeli 13,3; 4 tik 13,8;
+  6 tik 9,9 → **gecikme sorun değil.** "Yemek görünce kâhin, yoksa 10 tiklik rastgele patlamalar" (`seekerPolicy`)
+  **25,8** — kâhinin iki katı: kâhinin araması (düz git, duvarda dön) aynı şeritleri tarıyor. Yerinde dönen kâhin 5,4
+  → dönerken ilerlemek kritik. Yalnız rastgele patlamalar 2,8. Buna göre: TD 8,38 ≈ %32, E7 3,16 ≈ %12.
+- **Kapasite fikstürü** (tasarım değil; öğrenen ağırlıklar elle): yemek ışını → kendi yönünün Git'i w, ayrıca → ileri w.
+  w 1: yemek 4,92, yönlendirme 0,33, durgun %74; w 2: 6,01 / 0,47; w 4: 6,23 / 0,60; w 8: 6,83 / 0,63; yaşam ~2 900
+  (neredeyse hiç ölmüyor). → Mimari yönü **ifade edebiliyor** (ama öğrenme sınırı wMax = 2); **tok beden dinleniyor**
+  (%73 durgun) → yemek/1000 tik homeostatik beyni cezalandırıyor. Yeni ölçüler: ortalama dürtü (açlık² + yara², ölü
+  beden son değerinde bölüm sonuna kadar; düşük iyi) ve hayatta kalma oranı. 4 test.
+- Üreteçleri zayıflatmak (cpg → Git 0,6 → 0,2) elle kurulmuş beyinde yönlendirmeyi yalnız 0,33 → 0,41 yapıyor.
+- **E7 ne öğrendi** `[ÖLÇÜLDÜ]` (20 E7 λ 0,9 deneği): eleştirmen yemek ışınlarına ~0,004 değer vermiş (sabit terim
+  −0,078) → "yemek görmek değerli" **öğrenilmemiş**. Yan yemek ışını → Git değişimi: kendi tarafına dönüş +0,57, karşı
+  tarafa +0,52, ileri +1,10 → "yemek görünce hareket et" öğrenilmiş, taraf ayrımı yok.
+- **Kısır döngü hipotezi:** beden yemeği kovalamadığı için yemek görmek nadiren yemekle biter → eleştirmen yemeği
+  değerli bulmaz → doğru yöne dönmek ödüllenmez → beden kovalamaz. TD bunu kırıyor çünkü öğrendiği değerler davranışı
+  hemen yönetiyor (%90 sömürü); bizde üreteçler tiklerin ~%40'ında kendi başına seçiyor, öğrenilen ağırlık davranışa
+  ancak ~0,2'den sonra karışıyor → **iyileşme döngüsü yok**. Sınama: G koşulları (üreteç → Git 0,3 / 0,2; +bölmeler;
+  +iki taraf). Doğum seçeneği `generatorToGo` (0 < g ≤ 0,6), 4 test; g 0,3'te aç yenidoğanların ≥ 8/10'u hâlâ hareket ediyor.
+- **Öngörüler (G, koşmadan):** G3 yönlendirme > E7'ninki ve > 0,05; ortalama dürtü E7'den düşük. G2 G3'ten iyi değil
+  (çok zayıf üreteç keşfi keser). G3a/G3L'nin G3'ten iyi olması, bölmelerin/iki tarafın ancak döngü kurulunca işe
+  yaradığını gösterir.
+
 ## 2026-09-24 — Seri 004 / M3: iki taraf — koşmadan önce (keşif)
 
 - Kod: yeni bölge `lat` (6 nöron: duvar/yemek/tehlike × sol/sağ). Doğuştan: her taraftaki ışın kendi tarafının hücresini
