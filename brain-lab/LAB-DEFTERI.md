@@ -413,6 +413,19 @@ Kod `793e240` (E5, E10) ve `29f4121` (E7). Veri `data/series-002d-*`.
 - **Ara sonuç:** biyolojik olarak savunulabilir VE gerçekten öğrenen tek aday **E7** (seçime bağlı öğrenme, düşüş
   tabanı, ölüm öğretmez, eleştirmen; ölçekleme yok). E7 henüz sağlamlık/lezyon testinden geçmedi → 002b/002c E7.
 
+## 2026-09-24 — E7 testleri ve toplantı
+
+- `[ÖLÇÜLDÜ]` E7 (seçime bağlı + düşüş tabanı + ölüm öğretmez + eleştirmen): 100 tik gecikmeli dopamin **0/14**
+  (medyan −0,73); yemek lezyonu 2,35 → **2,05** (≈ kardeş 2,08), duvar lezyonu 2,24; geometri 0,54 (doğum 0,46);
+  sağlamlık 8–17/20 (λ 0,9 en iyi: 17/20, 3,16; η×2 9/20; λ 0,7 10/20; seyrek yemek 8/20); 100 bölüm **tek yükselen
+  eğri** 2,49 → 3,99. → E7: sonuca bağlı gerçek öğrenme, ama parametreye duyarlı, seyrek yemekte başarısız, yön zayıf.
+- Toplantı: vault `forum/beyin0fis/toplantilar/2026-09-24-ogrenme-temeli/` — 11 hipotez karnesi, E5/E7/E10 kanıtı,
+  9 persona + konuk, oylama (A: E7 ile ön-kayıt 36 · D: önce daha fazla keşif 32 · B: E5 25 · C: E10 14), kararlar
+  K1–K10. Ofis config/board güncellendi (BY1–BY9 iptal, BY10–BY15 açıldı).
+- Ön-kayıt 002 taslağı: `data/preregistration-002.md` — **dondurulmadı**, Ozyn onayı bekliyor; test seed'lerine dokunulmadı.
+- Süreç notu: bu girişi yazan betik Windows yolundaki ters eğik çizgilerde çöktü; önceki commit (413071e) yalnızca
+  ön-kayıt taslağını içeriyor, giriş ayrı commit'le eklendi.
+
 ## Açık sorular (güncel)
 
 - Kendiliğinden hareket (motor babbling) ve zayıf rastgele doğum bağlantıları öğrenmeyi başlatır mı?
