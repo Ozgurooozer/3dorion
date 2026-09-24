@@ -387,6 +387,32 @@ Kod `1d10af5`. Veri: `data/series-002b-*`, `series-002c-*`.
 - Sınama (002d): dopamin işareti rastgele (SIGN) ve bölümler arası 3000 tik gecikme (CROSS), E5 ve E10.
   **Öngörüler:** E5 ikisinde de ≈ kardeş. E10 — (a) doğruysa SIGN ≈ kardeş, CROSS biraz kalabilir; (b) doğruysa ikisi de önde.
 
+## 2026-09-24 — Seri 002d sonucu: hangi öğrenme gerçek?
+
+Kod `793e240` (E5, E10) ve `29f4121` (E7). Veri `data/series-002d-*`.
+
+| koşul | önde | yemek/1000t (kardeş 2,08) | yemek-ışını → Git değişimi | açlık → Git değişimi |
+|---|---|---|---|---|
+| E5 asıl | 12/14 | 2,53 | **+0,306** | −0,001 |
+| E5 SIGN (rastgele işaret) | 7/14 | 1,60 | +0,257 | +0,057 (her şey şişiyor) |
+| E5 CROSS (bölümler arası gecikme) | 9/14 | 2,27 | −0,009 | −0,007 |
+| E7 asıl | 11/14 | 2,35 | **+0,381** | +0,024 |
+| E7 CROSS | 6/14 | 1,82 | +0,018 | +0,041 |
+| E10 asıl | 12/14 | 2,81 | +0,121 | **−0,266** |
+| E10 SIGN | 4/14 | 1,26 | +0,033 | −0,174 |
+| E10 CROSS | 11/14 | 3,02 | +0,026 | −0,193 |
+
+- **E5 ve E7 gerçekten öğreniyor:** asıl koşulda "yemek görmek → Git" belirgin büyüyor; dopamin başka bölümden
+  gelince bu büyüme ve avantaj kayboluyor. Öngörü "E5 CROSS ≈ kardeş" ✓ (9/14, +0,19 — küçük artık).
+- **E10'un fazladan kazancı öğrenme değil:** üç koşulda da "açlık → Git" düşüyor (beden sakinleşiyor) ve CROSS'ta
+  avantaj sürüyor → sonuçtan bağımsız bir kayma; ölçekleme eklenince ortaya çıkıyor (E7'de yok). Öngörü (b) ✓.
+  Basit açıklama "eleştirmenin δ ortalaması eksi" ölçümle desteklenmedi (ortalama −3·10⁻⁵ ≈ 0; E5'in durumsuz
+  beklentisi −5,6·10⁻⁴). Kaymanın kesin mekanizması açık soru.
+- **Gürültü şişmesi doğrulandı (hipotez c):** rastgele işaretli dopamin, 0'da kesilen ağırlıkları her duyuda şişiriyor
+  ve performansı düşürüyor. SIGN bu yüzden nötr bir kontrol değil; CROSS daha temiz kontrol.
+- **Ara sonuç:** biyolojik olarak savunulabilir VE gerçekten öğrenen tek aday **E7** (seçime bağlı öğrenme, düşüş
+  tabanı, ölüm öğretmez, eleştirmen; ölçekleme yok). E7 henüz sağlamlık/lezyon testinden geçmedi → 002b/002c E7.
+
 ## Açık sorular (güncel)
 
 - Kendiliğinden hareket (motor babbling) ve zayıf rastgele doğum bağlantıları öğrenmeyi başlatır mı?
