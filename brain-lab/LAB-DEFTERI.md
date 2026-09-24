@@ -543,6 +543,46 @@ Kod `793e240` (E5, E10) ve `29f4121` (E7). Veri `data/series-002d-*`.
   M1b: dönüş yönü ~0,5 (değerlik eyleme göre ayrışmaz); yemek 3,16 ± %20. M1a tutmazsa: kredi atama sorunu öğretme
   sinyalinde değil, seçimde (üreteçler) — sonraki şüpheli orası.
 
+## 2026-09-24 — İleride bakılacak iki dış kaynak (Ozyn: "not al, ilerde bakarız")
+
+İkisi de `data/external/` altına indirildi (sığ klon, git dışı); kod okundu, hiçbir şey çalıştırılmadı.
+
+- **AlbertPro** (github.com/thinking0things/AlbertPro, MIT, C. Capone, 2026-08-31): 14 cm, 8 servolu dört ayaklı robot;
+  MuJoCo'da PPO+GAE ile yürümeyi öğreniyor, ağ ESP32'de 100 Hz koşuyor. Ağ 24 → 64 → 8 (2 120 sayı, 8,3 KB). Eylem =
+  eklem ivmesi (ΔΔθ) → yumuşaklık yapıdan. ~849. tur (≈ 2,7 milyon adım) tırıs; ödül 8 terimli, el yapımı.
+  Bizim için: Basamak 3'ün gerçek fiyatı (milyonlarca adım); "omurilik" (ritim) bölgesi için referans; Ozyn'in ESP32
+  LED yüz robotuyla aynı donanım yolu (ESP32 + PCA9685 + Bluetooth). Kara kutu: kayıt/açıklanabilirlik yok.
+- **Needle** (github.com/cactus-compute/needle, Apache 2.0, v3.0.1): 8–29 MB araç çağırma / yapılandırılmış çıkarım
+  modeli, 2–20 katman arası her derinlik kullanılabilir, her cevapta kalibre edilmiş güven puanı; kapsam dışı isteğe
+  boş liste. Bizim için: Jev'in açık/yerel karşılığı; Bob'un "dil ve alet" bölgesi adayı; güven puanı = Daw 2005
+  tarzı hakemlik sinyali. **Telemetri varsayılan açık** (Supabase'e olay adı, sürüm, OS, rastgele kurulum kimliği;
+  istem/çıktı göndermediği kod okunarak doğrulandı) → kullanılırsa `NEEDLE_TELEMETRY=0`.
+
+## 2026-09-24 — Ozyn'in fikri: Needle öğretmen, beyin öğrenci
+
+- Fikir (Ozyn): Needle istenen işi zaten kolayca yapabilir; bizim beyin onun ne yaptığını görüp ondan öğrensin.
+  Sabırla, zaman sınırı olmadan.
+- Karşılıkları: gözlemle/taklitle öğrenme (bebekler), ötücü kuşlarda öğretmen şarkısı + bazal ganglion (Area X) +
+  dopaminle eşleşme öğrenmesi; RL'de gösterimden öğrenme, davranış klonlama, DAgger (Ross ve ark. 2011), politika
+  damıtma. Bizim çizgide: yavaş/düşünen Bob'un hızlı Alice'e öğretmesi = Soar'daki "chunking", bilgi havuzundaki
+  "refleks derleyici" fikri (§13).
+- Tartışma ve öneri: bkz. konuşma; ilk adım olarak öğretmeni ucuz bir kâhinle deneyip "beynimiz yönü *temsil*
+  edebiliyor mu, yoksa sorun kredi atamada mı" sorusunu ayırmak önerildi (Needle kurulumu ayrı onayla).
+
+## 2026-09-24 — T0: öğretmenden öğrenme (tanı) — koşmadan önce (keşif)
+
+- Ozyn T0'ı onayladı; ayrıca "istediğin kadar zamanın var; çalış, araştır, toplantı yap, farklı kombinasyonları dene".
+- Kod: `learning/teacher.ts` — öğretmen her tik "ben ne yapardım" der; beynin **seçtiği** her eylemin bölmesine,
+  öğretmen de onu seçerdiyse +kazanç, seçmezdiyse −kazanç; seçilmeyen eyleme 0 (ötücü kuşta öğretmen şarkısıyla
+  karşılaştırma + Area X dopamini). Öğretmen, beynin eylem yaptığı tikin gözlemini yargılar. "only" = yalnız öğretmen,
+  "add" = ödüle eklenir. Kayıtta her ders "teacher" nedeniyle. 14 test, 9/9 mutant öldü (biri yeni testle).
+  E7 geriye dönük kontrol yeniden: 4 denek bit-aynı.
+- T0'da öğretmen = elle yazılmış kâhin: **tasarım değil, tanı aracı** — soru: beyin "hangi yön"ü temsil edebiliyor mu?
+- Koşullar (seri 004 içinde): T0a yalnız öğretmen, kazanç 0,3 · T0b ödül + öğretmen 0,3 · T0c yalnız öğretmen 1,0.
+- **Öngörüler (koşmadan):** yoğun ve doğru sinyal kredi atamayı çözer → T0a dönüş yönü **> 0,65**, yemek > 4,2.
+  Tutmazsa (dönüş yönü ≤ 0,55): sorun temsil/seçim mimarisinde (üreteçler seçimi ele geçiriyor ya da duyu → Git
+  doğrusal yolu yetmiyor) → M2/M3 şart. T0c (daha güçlü) T0a'dan daha yüksek yön; T0b T0a'ya yakın.
+
 ## Açık sorular (güncel)
 
 - Kendiliğinden hareket (motor babbling) ve zayıf rastgele doğum bağlantıları öğrenmeyi başlatır mı?

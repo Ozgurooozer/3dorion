@@ -14,11 +14,13 @@ import { BrainSimulator } from "../brain-ir/simulator.ts";
 import { NoiseGenerator } from "../development/index.ts";
 import { DopamineChannel } from "../neuromodulation/index.ts";
 import type { Ledger, LedgerEntry } from "../registry/index.ts";
+import { ACTIONS, regionOf } from "../regions/index.ts";
 import { brainController, type BrainController } from "../sensorimotor/index.ts";
 import type { EpisodeHooks, Observation, Policy, WorldConfig } from "../world/index.ts";
 import { Compartments, type CompartmentSpec } from "./compartments.ts";
 import { Critic, type CriticParams } from "./critic.ts";
 import { Learner, type LearningParams } from "./learner.ts";
+import { teacherDeltas, type TeacherSpec } from "./teacher.ts";
 
 export interface Agent {
   readonly policy: Policy;
@@ -68,6 +70,12 @@ export interface AgentSpec {
    * (Jaskir & Frank 2023). null/absent = off.
    */
   readonly rpeNormalization?: { readonly rate: number } | null;
+  /**
+   * Learning from a teacher (teacher.ts): each action the brain took hears whether the teacher would
+   * have taken it. "only": the teacher's signal replaces reward dopamine; "add": it is added to it.
+   * deltaTransform receives it per action as channel "teacher/<action>".
+   */
+  readonly teacher?: (TeacherSpec & { readonly mix: "only" | "add" }) | null;
 }
 
 export function createAgent(spec: AgentSpec): Agent {
@@ -79,6 +87,7 @@ export function createAgent(spec: AgentSpec): Agent {
   const compartments = spec.compartments ? new Compartments(spec.ledger, spec.cfg, spec.compartments) : null;
   if (compartments?.mode === "action" && !critic) throw new Error("action compartments need a critic (they bootstrap on its V)");
   if (compartments && spec.rpeNormalization) throw new Error("rpeNormalization is not defined for compartments");
+  const teacher = spec.teacher ?? null;
   const frozen = learner.params.frozen;
   const dopamine = new DopamineChannel(spec.deathOutcome === undefined ? {} : { deathOutcome: spec.deathOutcome });
   const noise = new NoiseGenerator(spec.noiseSeed);
@@ -105,6 +114,8 @@ export function createAgent(spec: AgentSpec): Agent {
       delta = c.delta;
       writes.push(...c.writes);
     }
+    // The reward signal each Go/NoGo cell hears: one global δ, or its compartment's δ.
+    let reward: number | ((cell: string) => number);
     if (compartments) {
       const c = compartments.step({
         prev: t === 0 ? null : previousObs, now: obs, outcome, previousOutputs: previous, tick: t, episode, terminal, frozen,
@@ -113,19 +124,27 @@ export function createAgent(spec: AgentSpec): Agent {
       writes.push(...c.writes);
       const deltas = { ...c.deltas };
       if (spec.deltaTransform) for (const k of Object.keys(deltas)) deltas[k] = spec.deltaTransform(deltas[k]!, t, k);
-      lastDelta = delta;
-      const changed = learner.applyDopamine((cell) => deltas[compartments.channelOf(cell)]!, t, cause);
-      if (changed.length > 0) { writes.push(...changed); stage("E2", "first weight change"); }
-      return;
+      reward = (cell) => deltas[compartments.channelOf(cell)]!;
+    } else {
+      if (spec.rpeNormalization) {
+        const rate = spec.rpeNormalization.rate;
+        typical = typical === 0 ? Math.abs(delta) : (1 - rate) * typical + rate * Math.abs(delta);
+        delta = typical > 1e-12 ? delta / typical : 0;
+      }
+      if (spec.deltaTransform) delta = spec.deltaTransform(delta, t);
+      reward = delta;
     }
-    if (spec.rpeNormalization) {
-      const rate = spec.rpeNormalization.rate;
-      typical = typical === 0 ? Math.abs(delta) : (1 - rate) * typical + rate * Math.abs(delta);
-      delta = typical > 1e-12 ? delta / typical : 0;
-    }
-    if (spec.deltaTransform) delta = spec.deltaTransform(delta, t);
     lastDelta = delta;
-    const changed = learner.applyDopamine(delta, t, cause);
+    let dopamine = reward;
+    if (teacher) {
+      // The teacher judges the action the brain took on the last tick, from what the body sensed then.
+      const judged = t === 0 || previousObs === null ? null : teacherDeltas(previous, teacher.policy(previousObs, t - 1), teacher.gain);
+      if (judged && spec.deltaTransform) for (const a of ACTIONS) judged[a] = spec.deltaTransform(judged[a], t, `teacher/${a}`);
+      const heard = (cell: string) => (judged ? judged[regionOf(cell)!.action!] : 0);
+      const fromReward = reward;
+      dopamine = teacher.mix === "only" ? heard : (cell) => (typeof fromReward === "number" ? fromReward : fromReward(cell)) + heard(cell);
+    }
+    const changed = learner.applyDopamine(dopamine, t, teacher ? [...cause, "teacher"] : cause);
     if (changed.length > 0) { writes.push(...changed); stage("E2", "first weight change"); }
   };
 
