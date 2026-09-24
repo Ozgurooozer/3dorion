@@ -1,37 +1,53 @@
-// brain-lab/viewer/brain-layout.ts — where each brain node sits on the map:
-// sensors on the left (grouped per ray), motors on the right, everything else in between.
+// brain-lab/viewer/brain-layout.ts — where each node sits on the brain map.
+// Columns are regions, left to right in the order a signal travels:
+//   senses | hunger/pain drive | noise | generator | Go | NoGo | selection | motor
+// and each action (forward, back, left, right) has its own row, so one movement's whole chain
+// reads left to right on a single line.
 "use strict";
 
 import type { BrainGrafi } from "../brain-ir/ir.ts";
-import { MOTOR_NODE_IDS, RAY_KINDS, sensorNodeIds } from "../sensorimotor/index.ts";
+import { ACTIONS, regionOf, type Region } from "../regions/index.ts";
+import { RAY_KINDS, sensorNodeIds } from "../sensorimotor/index.ts";
 import type { WorldConfig } from "../world/index.ts";
 
-export interface NodePos { readonly x: number; readonly y: number; readonly column: "sensor" | "inner" | "spont" | "motor" }
+export type Column = Region | "inner";
+
+export interface NodePos { readonly x: number; readonly y: number; readonly column: Column }
 
 const GROUP_GAP = 0.6; // extra row-heights between sensor groups
+
+/** Horizontal position of each per-action region, as a fraction of the width. */
+const COLUMN_X: Partial<Record<Region, number>> = {
+  hyp: 0.36, noise: 0.46, cpg: 0.56, "bg.go": 0.66, "bg.nogo": 0.76, "bg.out": 0.86,
+};
 
 /** Positions in [0,w]×[0,h] with `pad` margin. Deterministic: same graph → same map. */
 export function layoutBrain(graph: BrainGrafi, cfg: WorldConfig, w: number, h: number, pad = 28): Map<string, NodePos> {
   const out = new Map<string, NodePos>();
   const ids = new Set(graph.nodes.map((n) => n.id));
 
-  // Sensor column: one group per ray, then the body senses as a last group.
   const sensors = sensorNodeIds(cfg).filter((id) => ids.has(id));
   const perGroup = RAY_KINDS.length;
   const groups = Math.ceil(sensors.length / perGroup);
   const rows = sensors.length + (groups - 1) * GROUP_GAP;
   const step = rows > 1 ? (h - 2 * pad) / (rows - 1) : 0;
-  sensors.forEach((id, i) => {
-    const y = pad + (i + Math.floor(i / perGroup) * GROUP_GAP) * step;
-    out.set(id, { x: pad, y, column: "sensor" });
-  });
+  sensors.forEach((id, i) => out.set(id, { x: pad, y: pad + (i + Math.floor(i / perGroup) * GROUP_GAP) * step, column: "sense" }));
 
-  const place = (list: string[], x: number, column: NodePos["column"]) => {
-    list.forEach((id, i) => out.set(id, { x, y: pad + ((i + 1) * (h - 2 * pad)) / (list.length + 1), column }));
-  };
-  place(MOTOR_NODE_IDS.filter((id) => ids.has(id)), w - pad, "motor");
-  // Spontaneous generators sit next to the motors they drive.
-  place(graph.nodes.map((n) => n.id).filter((id) => id.startsWith("spont.")), w * 0.66, "spont");
-  place(graph.nodes.map((n) => n.id).filter((id) => !out.has(id)), w / 2, "inner");
+  const actionY = (i: number) => pad + ((i + 1) * (h - 2 * pad)) / (ACTIONS.length + 1);
+  const inner: string[] = [];
+  const hyp: string[] = [];
+  for (const n of graph.nodes) {
+    if (out.has(n.id)) continue;
+    const r = regionOf(n.id);
+    if (!r) { inner.push(n.id); continue; }
+    if (r.region === "hyp") { hyp.push(n.id); continue; }
+    if (r.region === "sense") { inner.push(n.id); continue; }
+    const row = ACTIONS.indexOf(r.action!);
+    const x = r.region === "motor" ? w - pad : (COLUMN_X[r.region] ?? 0.5) * w;
+    out.set(n.id, { x, y: actionY(row), column: r.region });
+  }
+  // Drive nodes between the rows, near the top: they reach every action.
+  hyp.forEach((id, i) => out.set(id, { x: COLUMN_X.hyp! * w, y: pad + ((i + 0.5) * (h - 2 * pad)) / (ACTIONS.length + 1), column: "hyp" }));
+  inner.forEach((id, i) => out.set(id, { x: w / 2, y: h - pad - i * 22, column: "inner" }));
   return out;
 }

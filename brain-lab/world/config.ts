@@ -8,6 +8,8 @@ export interface WorldConfig {
   readonly height: number;
   readonly dt: number;
   readonly bodyRadius: number;
+  /** Energy at birth, in (0, 1]. Newborns start hungry (0.4) in experiments; 1 keeps old tests. */
+  readonly initialEnergy: number;
   readonly maxAccel: number; // m/s² at |thrust| = 1
   readonly drag: number; // 1/s: velocity *= (1 - drag·dt) each tick
   readonly maxSpeed: number;
@@ -31,6 +33,7 @@ export const DEFAULT_CONFIG: WorldConfig = Object.freeze({
   height: 10,
   dt: 0.05, // 20 Hz, same tick as 3dorion's world engine
   bodyRadius: 0.3,
+  initialEnergy: 1,
   maxAccel: 4,
   drag: 1.5,
   maxSpeed: 4,
@@ -62,6 +65,7 @@ export function makeConfig(overrides: Partial<WorldConfig> = {}): WorldConfig {
   for (const a of c.rayAngles) if (!Number.isFinite(a)) throw new RangeError(`config.rayAngles has ${a}`);
   if (!Number.isInteger(c.foodCount) || !Number.isInteger(c.threatCount)) throw new RangeError("entity counts must be integers");
   if (c.dt <= 0 || c.bodyRadius <= 0) throw new RangeError("dt and bodyRadius must be > 0");
+  if (c.initialEnergy <= 0 || c.initialEnergy > 1) throw new RangeError(`initialEnergy must be in (0, 1], got ${c.initialEnergy}`);
   if (c.width <= 2 * c.bodyRadius || c.height <= 2 * c.bodyRadius) throw new RangeError("room smaller than the body");
   if (c.drag * c.dt >= 1) throw new RangeError("drag·dt >= 1 would reverse velocity");
   // Guards the day the room gets thin obstacles: one tick may never move further than the body is wide.

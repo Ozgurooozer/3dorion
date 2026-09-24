@@ -1,151 +1,151 @@
-// brain-lab/development/development.test.ts — newborns: spontaneous movement gives experience,
-// birth wiring is weak and random, innate reflexes exist only in the reflexive group.
+// brain-lab/development/development.test.ts — the newborn regional brain: hunger moves it,
+// a sated one rests, selection keeps antagonists apart, birth wiring is weak and legal.
 "use strict";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import type { BrainAdimi } from "../brain-ir/ir.ts";
 import { BrainSimulator } from "../brain-ir/simulator.ts";
 import { checkGraph, graphHash } from "../registry/index.ts";
+import { ACTIONS, checkPathways, isPlastic, pathwayOf } from "../regions/index.ts";
 import { brainController, checkWiring, sensorNodeIds } from "../sensorimotor/index.ts";
 import { DEFAULT_CONFIG as C, Room, runEpisode, type RoomState } from "../world/index.ts";
-import {
-  DEFAULT_MAX_WEIGHT, INNATE_REFLEXES, SPONTANEOUS_IDS, SpontaneousGenerator, bornGraph, spontaneousTarget,
-} from "./index.ts";
+import { DEFAULT_MAX_INITIAL, INNATE_REFLEXES, NOISE_IDS, NoiseGenerator, bornGraph, type InnateGroup } from "./index.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const SILENT = { pOn: 0, pOff: 1 };
 
-function newborn(seed: number, group: "reflexless" | "reflexive", babble = true) {
-  const graph = bornGraph(C, { seed, group });
-  const gen = new SpontaneousGenerator(seed + 1000, babble ? undefined : SILENT);
-  const ctl = brainController(new BrainSimulator(graph), C, { keepSteps: true, extraInputs: gen.asExtraInputs() });
-  return { graph, ctl };
+function live(seed: number, group: InnateGroup, energy: number, ticks = 300) {
+  const room = new Room(seed, { initialEnergy: energy, threatCount: 0 });
+  const start = room.state().body;
+  const ctl = brainController(new BrainSimulator(bornGraph(C, { seed, group })), C, {
+    keepSteps: true,
+    extraInputs: new NoiseGenerator(seed + 99).asExtraInputs(),
+  });
+  runEpisode(room, ctl.policy, ticks);
+  const b = room.state().body;
+  return { steps: ctl.steps, moved: Math.hypot(b.x - start.x, b.y - start.y) };
 }
 
-const travelled = (room: Room, start: { x: number; y: number }) => Math.hypot(room.state().body.x - start.x, room.state().body.y - start.y);
+const rate = (steps: readonly BrainAdimi[], prefix: string) =>
+  steps.reduce((s, st) => s + ACTIONS.filter((a) => st.outputs[`${prefix}.${a}`] === 1).length / ACTIONS.length, 0) / steps.length;
 
-test("dependencies: world, sensorimotor, brain-ir and registry never import development", () => {
-  for (const dir of ["../world", "../sensorimotor", "../brain-ir", "../registry", "../neuromodulation"]) {
+const together = (st: BrainAdimi) =>
+  (st.outputs["motor.forward"] === 1 && st.outputs["motor.back"] === 1) || (st.outputs["motor.left"] === 1 && st.outputs["motor.right"] === 1);
+
+test("dependencies: nothing below development imports it", () => {
+  for (const dir of ["../world", "../sensorimotor", "../brain-ir", "../registry", "../neuromodulation", "../regions"]) {
     for (const f of readdirSync(join(HERE, dir)).filter((n) => n.endsWith(".ts"))) {
       assert.doesNotMatch(readFileSync(join(HERE, dir, f), "utf8"), /development\//, `${dir}/${f} imports development`);
     }
   }
 });
 
-// --- spontaneous activity ------------------------------------------------------
+// --- noise ----------------------------------------------------------------------------
 
-test("spontaneous bursts: deterministic per seed, silent at pOn 0, and match their rates over time", () => {
-  const a = new SpontaneousGenerator(5);
-  const b = new SpontaneousGenerator(5);
-  for (let t = 0; t < 200; t++) assert.deepEqual(a.next(), b.next());
-  const quiet = new SpontaneousGenerator(5, SILENT);
-  for (let t = 0; t < 500; t++) assert.ok(Object.values(quiet.next()).every((v) => v === 0));
-
-  const g = new SpontaneousGenerator(9, { pOn: 0.05, pOff: 0.2 });
-  let on = 0;
-  let bursts = 0;
-  let prev = 0;
-  const N = 40_000;
-  for (let t = 0; t < N; t++) {
-    const v = g.next()["spont.forward"] as number;
-    on += v;
-    if (v === 1 && prev === 0) bursts++;
-    prev = v;
-  }
-  const expectedOn = 0.05 / (0.05 + 0.2);
-  assert.ok(Math.abs(on / N - expectedOn) < 0.02, `on-fraction ${on / N} vs ${expectedOn}`);
-  assert.ok(Math.abs(on / bursts - 1 / 0.2) < 0.4, `mean burst ${on / bursts} vs 5`);
-  assert.throws(() => new SpontaneousGenerator(1, { pOn: 1.2, pOff: 0.1 }), RangeError);
+test("noise: deterministic, in [0,1], spread like a uniform variable, and correlated in time", () => {
+  const a = new NoiseGenerator(5);
+  const b = new NoiseGenerator(5);
+  for (let t = 0; t < 100; t++) assert.deepEqual(a.next(), b.next());
+  const g = new NoiseGenerator(8);
+  const xs: number[] = [];
+  for (let t = 0; t < 30_000; t++) xs.push(g.next()[NOISE_IDS[0]!] as number);
+  assert.ok(xs.every((x) => x >= 0 && x <= 1));
+  const mean = xs.reduce((s, x) => s + x, 0) / xs.length;
+  const sd = Math.sqrt(xs.reduce((s, x) => s + (x - mean) ** 2, 0) / xs.length);
+  let lag = 0;
+  for (let i = 1; i < xs.length; i++) lag += (xs[i]! - mean) * (xs[i - 1]! - mean);
+  const autocorr = lag / (xs.length - 1) / (sd * sd);
+  assert.ok(Math.abs(mean - 0.5) < 0.02, `mean ${mean}`);
+  assert.ok(sd > 0.2 && sd < 0.32, `spread ${sd} (uniform is 0.289)`);
+  assert.ok(autocorr > 0.6, `autocorrelation ${autocorr}: noise must come in bursts`);
+  assert.throws(() => new NoiseGenerator(1, { smoothing: 1 }), RangeError);
 });
 
-test("controller: extra inputs must have nodes and may not overwrite a world sense", () => {
-  const graph = bornGraph(C, { seed: 1, group: "reflexless" });
-  const sim = () => new BrainSimulator(graph);
-  assert.throws(() => brainController(sim(), C, { extraInputs: { ids: ["spont.ghost"], next: () => ({}) } }), /has no node/);
-  assert.throws(() => brainController(sim(), C, { extraInputs: { ids: ["ray2.food"], next: () => ({}) } }), /overwrite a world sense/);
-});
+// --- birth ----------------------------------------------------------------------------
 
-// --- birth ----------------------------------------------------------------------
-
-test("birth: a valid, deterministic brain; random weights stay weak; reflexes only in the reflexive group", () => {
-  for (const seed of [1, 2, 3, 40]) {
+test("birth: legal regions, deterministic, weak learning pathways, reflexes only in the reflexive group", () => {
+  const reflexKeys = new Set(INNATE_REFLEXES.map((r) => `${r.from}->${r.to}`));
+  for (const seed of [1, 2, 40]) {
     for (const group of ["reflexless", "reflexive"] as const) {
       const g = bornGraph(C, { seed, group });
-      assert.doesNotThrow(() => { checkGraph(g); checkWiring(g, C); });
-      assert.equal(graphHash(bornGraph(C, { seed, group })), graphHash(g), "birth is not deterministic");
-      const reflexKeys = new Set(INNATE_REFLEXES.map((r) => `${r.from}->${r.to}`));
-      for (const e of g.connections) {
+      assert.doesNotThrow(() => { checkGraph(g); checkWiring(g, C); checkPathways(g); });
+      assert.equal(graphHash(bornGraph(C, { seed, group })), graphHash(g));
+      const plastic = g.connections.filter((e) => isPlastic(e));
+      assert.equal(plastic.length, sensorNodeIds(C).length * ACTIONS.length * 2, "every sense must reach every Go and NoGo");
+      for (const e of plastic) {
         const key = `${e.from}->${e.to}`;
-        if (e.from.startsWith("spont.")) assert.equal(e.to, spontaneousTarget(e.from));
-        else if (group === "reflexive" && reflexKeys.has(key)) assert.ok(Math.abs(e.weight) > DEFAULT_MAX_WEIGHT);
-        else assert.ok(Math.abs(e.weight) <= DEFAULT_MAX_WEIGHT, `${key} ${e.weight} is not weak`);
+        if (group === "reflexive" && reflexKeys.has(key)) assert.ok(e.weight > DEFAULT_MAX_INITIAL);
+        else assert.ok(e.weight >= 0 && e.weight <= DEFAULT_MAX_INITIAL, `${key} ${e.weight} not weak`);
       }
-      const has = (k: string) => g.connections.some((e) => `${e.from}->${e.to}` === k && Math.abs(e.weight) > DEFAULT_MAX_WEIGHT);
-      for (const k of reflexKeys) assert.equal(has(k), group === "reflexive", `${group} ${seed}: reflex ${k}`);
-      assert.equal(g.connections.filter((e) => e.from.startsWith("spont.")).length, SPONTANEOUS_IDS.length);
+      for (const k of reflexKeys) {
+        const w = g.connections.find((e) => `${e.from}->${e.to}` === k)!.weight;
+        assert.equal(w > DEFAULT_MAX_INITIAL, group === "reflexive", `${group}: ${k}`);
+      }
+      for (const r of INNATE_REFLEXES) assert.equal(pathwayOf(r)?.learns, true, "reflexes must sit on a learning pathway");
     }
   }
-  // Compare wiring, not the whole graph: the graph's name carries the seed and would hide a seed-blind birth.
   const wiring = (seed: number) => JSON.stringify(bornGraph(C, { seed, group: "reflexless" }).connections);
   assert.notEqual(wiring(1), wiring(2), "different seeds must give different wiring");
-  assert.throws(() => bornGraph(C, { seed: 1, group: "reflexless", maxWeight: 0.6 }), /that is behavior/);
-  const dense = bornGraph(C, { seed: 1, group: "reflexless", density: 1 });
-  assert.equal(dense.connections.length, sensorNodeIds(C).length * 4 + SPONTANEOUS_IDS.length);
+  assert.throws(() => bornGraph(C, { seed: 1, group: "reflexless", maxInitial: 0.7 }), /that is behavior/);
 });
 
-test("measured, not assumed: weak random wiring alone rarely moves a newborn", () => {
+// --- behavior of the newborn (measured 2026-09-24; see LAB-DEFTERI) -----------------------
+
+test("a sated newborn rests: no generator, no motor, no movement", () => {
+  for (let seed = 1; seed <= 5; seed++) {
+    const { steps, moved } = live(seed, "reflexless", 1);
+    assert.equal(rate(steps, "cpg"), 0);
+    assert.equal(rate(steps, "motor"), 0);
+    assert.equal(moved, 0);
+  }
+});
+
+test("hunger moves the newborn, and more hunger means more spontaneous activity", () => {
+  const cpgAt = (energy: number) => {
+    let r = 0;
+    for (let seed = 1; seed <= 8; seed++) r += rate(live(seed, "reflexless", energy, 200).steps, "cpg");
+    return r / 8;
+  };
+  const levels = [0.8, 0.7, 0.6, 0.4].map(cpgAt); // hunger 0.2 → 0.6
+  console.log(`  [measured] generator firing at hunger 0.2/0.3/0.4/0.6: ${levels.map((x) => (100 * x).toFixed(1) + "%").join(" / ")}`);
+  for (let i = 1; i < levels.length; i++) assert.ok(levels[i]! > levels[i - 1]!, "firing must rise with hunger");
+  assert.ok(levels[3]! > 0.2 && levels[3]! < 0.7, `born-hungry firing ${levels[3]} outside the expected band`);
   let movedFar = 0;
-  let motorTicks = 0;
-  let ticks = 0;
-  for (let seed = 1; seed <= 20; seed++) {
-    const room = new Room(seed);
-    const start = room.state().body;
-    const { ctl } = newborn(seed, "reflexless", false);
-    const ep = runEpisode(room, ctl.policy, 600);
-    ticks += ep.ticks;
-    motorTicks += ctl.steps.filter((s) => ["motor.forward", "motor.back", "motor.left", "motor.right"].some((m) => s.outputs[m] === 1)).length;
-    if (travelled(room, start) > 1) movedFar++;
-  }
-  // Recorded for the notebook; the bound only guards against birth wiring turning into behavior.
-  console.log(`  [measured] no babbling: motors active on ${(100 * motorTicks / ticks).toFixed(1)}% of ticks, ${movedFar}/20 moved >1 m`);
-  assert.ok(movedFar <= 5, `${movedFar}/20 newborns travel without babbling: birth wiring acts like behavior`);
+  for (let seed = 1; seed <= 10; seed++) if (live(seed, "reflexless", 0.4).moved > 1) movedFar++;
+  assert.ok(movedFar >= 8, `only ${movedFar}/10 hungry newborns moved`);
 });
 
-test("babbling gives experience: newborns move, touch walls, and the trace names the generator", () => {
-  let moved = 0;
-  let bumps = 0;
-  for (let seed = 1; seed <= 20; seed++) {
-    const room = new Room(seed);
-    const start = room.state().body;
-    const { ctl } = newborn(seed, "reflexless", true);
-    const ep = runEpisode(room, ctl.policy, 600);
-    bumps += ep.bumps;
-    if (travelled(room, start) > 1) moved++;
-    if (seed === 1) {
-      const fired = ctl.steps.flatMap((s) => s.trace).find((t) => t.node === "motor.left" && t.activated)!;
-      assert.ok(fired, "no left turn in 600 ticks of babbling");
-      assert.ok(fired.causeNodes.includes("spont.left"), "trace does not show the spontaneous cause");
-    }
+test("selection keeps antagonists apart: forward+back or left+right reach the motors on <1% of ticks", () => {
+  let co = 0;
+  let n = 0;
+  for (let seed = 1; seed <= 10; seed++) {
+    for (const st of live(seed, "reflexless", 0.4).steps) { n++; if (together(st)) co++; }
   }
-  console.log(`  [measured] with babbling: ${moved}/20 moved >1 m, ${bumps} wall contacts in total`);
-  assert.ok(moved >= 15, `only ${moved}/20 babbling newborns moved`);
+  console.log(`  [measured] antagonists together on ${(100 * co / n).toFixed(2)}% of ticks (hunger 0.6)`);
+  assert.ok(co / n < 0.01, `${(100 * co / n).toFixed(2)}% of ticks`);
 });
 
-test("reflexive newborn: a bump turns it left next tick; the reflexless one has no such reflex", () => {
+test("the trace explains a movement: motor ← selection ← generator ← noise and hunger", () => {
+  const { steps } = live(1, "reflexless", 0.4);
+  const fired = steps.flatMap((s) => s.trace).find((t) => t.node === "motor.left" && t.activated)!;
+  assert.ok(fired, "no left movement in 300 hungry ticks");
+  for (const cause of ["bg.out.left", "bg.go.left", "cpg.left", "cpg.noise.left", "hyp.hunger", "intero.hunger"]) {
+    assert.ok(fired.causeNodes.includes(cause), `trace misses ${cause}: ${fired.causeNodes.join(",")}`);
+  }
+});
+
+test("reflexive newborn: a bump selects a left turn; the reflexless one has no such reflex", () => {
   const atWall = (): Room => {
     const s = new Room(1, { foodCount: 0, threatCount: 0 }).state();
-    return Room.fromState({ ...s, body: { ...s.body, x: C.width - C.bodyRadius - 0.01, heading: 0, vx: 2 } } as RoomState);
+    return Room.fromState({ ...s, body: { ...s.body, x: C.width - C.bodyRadius - 0.01, heading: 0, vx: 2, energy: 1 } } as RoomState);
   };
-  const turnsAfterBump = (group: "reflexless" | "reflexive") => {
-    const room = atWall();
-    const { ctl } = newborn(3, group, false);
-    const ep = runEpisode(room, ctl.policy, 4, true);
-    return ep.records.map((r) => r.action.turn);
+  const turns = (group: InnateGroup) => {
+    // Sated (energy 1): no spontaneous activity, so any turn comes from the reflex alone.
+    const ctl = brainController(new BrainSimulator(bornGraph(C, { seed: 3, group })), C, { extraInputs: new NoiseGenerator(1).asExtraInputs() });
+    return runEpisode(atWall(), ctl.policy, 6, true).records.map((r) => r.action.turn);
   };
-  const reflexive = turnsAfterBump("reflexive");
-  assert.ok(reflexive.slice(1).includes(1), `reflexive turns: ${reflexive}`);
-  const reflexless = turnsAfterBump("reflexless");
-  assert.ok(!reflexless.includes(1), `reflexless turns: ${reflexless}`);
+  assert.ok(turns("reflexive").includes(1), `reflexive: ${turns("reflexive")}`);
+  assert.ok(!turns("reflexless").includes(1), `reflexless: ${turns("reflexless")}`);
 });

@@ -9,7 +9,7 @@ export interface Body extends Vec { vx: number; vy: number; heading: number; ene
 export interface WallContact { readonly bump: boolean; readonly impactSpeed: number }
 
 export function newBody(cfg: WorldConfig): Body {
-  return { x: cfg.width / 2, y: cfg.height / 2, vx: 0, vy: 0, heading: 0, energy: 1, health: 1 };
+  return { x: cfg.width / 2, y: cfg.height / 2, vx: 0, vy: 0, heading: 0, energy: cfg.initialEnergy, health: 1 };
 }
 
 /** Turn, accelerate along the heading, drag, cap speed, integrate, then resolve walls. Mutates b. */

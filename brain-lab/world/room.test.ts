@@ -86,6 +86,8 @@ test("config: invalid physics is rejected before a world can exist", () => {
     { basalEnergyCost: -1 },
     { foodGain: Number.NaN },
     { rayAngles: [0, Number.POSITIVE_INFINITY] },
+    { initialEnergy: 0 },
+    { initialEnergy: 1.5 },
   ];
   for (const b of bad) assert.throws(() => makeConfig(b), RangeError, JSON.stringify(b));
   assert.ok(Object.isFrozen(makeConfig()) && Object.isFrozen(makeConfig().rayAngles));
@@ -104,6 +106,7 @@ test("config: overrides shape the world, and the config is part of its identity"
   assert.equal(kinds.filter((k) => k === "food").length, 5);
   assert.equal(kinds.filter((k) => k === "threat").length, 3);
   assert.notEqual(new Room(1, { foodGain: 0.31 }).hash(), new Room(1).hash(), "config missing from hash");
+  assert.equal(new Room(1, { initialEnergy: 0.4 }).observe().energy, 0.4, "born hungry");
   const wide = new Room(1, { rayAngles: [0, Math.PI / 2, Math.PI] });
   assert.equal(wide.observe().rays.length, 3);
 });

@@ -31,20 +31,28 @@ const FIXED_TR: Record<string, string> = {
   "proprio.backward": "hareket geri",
   "proprio.left": "dönüş sol",
   "proprio.right": "dönüş sağ",
-  "spont.forward": "kendiliğinden ileri",
-  "spont.back": "kendiliğinden geri",
-  "spont.left": "kendiliğinden sol",
-  "spont.right": "kendiliğinden sağ",
   "motor.forward": "ileri",
   "motor.back": "geri",
   "motor.left": "sol",
   "motor.right": "sağ",
 };
 
+const ACTION_TR: Record<string, string> = { forward: "ileri", back: "geri", left: "sol", right: "sağ" };
+const REGION_TR: [RegExp, string][] = [
+  [/^cpg\.noise\.(\w+)$/, "gürültü"], [/^cpg\.(\w+)$/, "üreteç"], [/^bg\.go\.(\w+)$/, "git"],
+  [/^bg\.nogo\.(\w+)$/, "gitme"], [/^bg\.out\.(\w+)$/, "seçim"],
+];
+
 /** Turkish on-screen label for a node id; unknown ids are shown as-is. */
 export function nodeLabel(id: string): string {
   const fixed = FIXED_TR[id];
   if (fixed) return fixed;
+  if (id === "hyp.hunger") return "açlık dürtüsü";
+  if (id === "hyp.pain") return "acı dürtüsü";
+  for (const [re, name] of REGION_TR) {
+    const m = re.exec(id);
+    if (m) return `${name} ${ACTION_TR[m[1]!] ?? m[1]}`;
+  }
   const m = /^ray(\d+)\.(\w+)$/.exec(id);
   if (m) return `ışın${m[1]} ${RAY_KIND_TR[m[2]!] ?? m[2]}`;
   return id;

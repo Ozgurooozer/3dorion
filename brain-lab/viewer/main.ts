@@ -1,5 +1,5 @@
 // brain-lab/viewer/main.ts — runs the real world + brain in the browser and draws them.
-// URL params reproduce a moment: ?preset=pipe&seed=3&ticks=120 (run 120 ticks, then pause).
+// URL params reproduce a moment: ?preset=newborn-reflexless&seed=3&ticks=120 (run 120 ticks, then pause).
 "use strict";
 
 import { MOTOR_NODE_IDS } from "../sensorimotor/index.ts";
@@ -22,7 +22,7 @@ const brainCtx = ctx2d("brain");
 const timelineCtx = ctx2d("timeline");
 
 const params = new URLSearchParams(location.search);
-let presetId = PRESETS.some((p) => p.id === params.get("preset")) ? params.get("preset")! : "pipe";
+let presetId = PRESETS.some((p) => p.id === params.get("preset")) ? params.get("preset")! : "newborn-reflexless";
 let baseSeed = Math.max(1, Math.floor(Number(params.get("seed") ?? 1)) || 1);
 let speed: number | "max" = params.get("speed") === "max" ? "max" : Number(params.get("speed") ?? 1) || 1;
 
