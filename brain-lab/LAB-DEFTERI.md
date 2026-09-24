@@ -284,6 +284,30 @@ Kod `389c10a`, 176 sn. Veri `data/pilot-001b-summary.json`.
   dönmek sayılmaz. Birincil ölçü artık yemek/1000 tik; yönelim ikincil.
 - η 0,05, λ 0,8, 30 eğitim + 10 değerlendirme, donuk kardeşlere karşı. Ölüm değeri ajana ayar olarak eklendi.
 
+## 2026-09-24 — Pilot 001c sonucu: ölçek hipotezi nedensel olarak doğrulandı; Git-yalnız tekrarlandı
+
+Kod `9a8198e`, 136 sn. Veri `data/pilot-001c-summary.json`. (Not: `e21ab10` tip hatasıyla commit'lenmişti;
+hiçbir şey onunla koşulmadı, düzeltmesi `9a8198e`.)
+
+| koşul | yaşam (öğr./kardeş) | yemek/1000 tik | önde | yaklaşma | durgun |
+|---|---|---|---|---|---|
+| C0 tam kural, ölüm −1 | 808 / 1236 | 0,02 / 2,02 | 0/7 | 0,022 / 0,541 | %100 / %44 |
+| C1 tam kural, ölüm −0,1 | 640 / 1236 | 1,86 / 2,02 | 4/7 | 0,592 / 0,541 | %18 / %44 |
+| C2 tam kural, ölüm −0,01 | 371 / 1236 | 0,85 / 2,02 | 1/7 | 0,535 / 0,541 | %5 / %44 |
+| C3 Git-yalnız, seed 1–3 | 1907 / 1118 | 2,83 / 2,05 | 3/3 | 0,606 / 0,495 | %61 / %42 |
+| C4 Git-yalnız, refleksli | 1381 / 1456 | 2,53 / 2,14 | 5/7 | 0,609 / 0,528 | %43 / %42 |
+
+- **Tekrarlanabilirlik:** C0, 001b'deki A0'ı birebir tekrarladı (808 tik, %100 durgun).
+- **Nedensel sonuç:** tam kuralda ölüm değeri tek başına davranışı bir uçtan öbürüne taşıyor: −1 donma,
+  −0,1 kardeşe yakın, −0,01 aşırı hareketlilik (kısa yaşam). Öngörü "donma kaybolur" ✓. Ama tam kural
+  denenen hiçbir değerde kardeşi net geçmedi → Git/Gitme dengesi bu haliyle kararsız.
+- **Git-yalnız:** 001b + 001c birlikte **17 çiftin 15'inde** kardeşten verimli (yemek/1000 tik);
+  keşif amaçlı işaret testi p ≈ 0,001. Yaklaşma üç Git-yalnız koşulun üçünde de yüksek → avantaj
+  sadece uzun yaşamdan değil, yemeğe gerçekten yaklaşmaktan. Öngörüler: C3 ✓, C4 ✗ (5/7, ≥ 6/7 demiştim).
+- **Sınırlar (dürüst):** hepsi ayar seed'leri, 30 eğitim bölümü, tek ortam, tehlike yok; keşif — iddia değil.
+  Git-yalnızda ölüm hâlâ büyük bir fren (−1); frenin biyolojik karşılığı açık bir soru (ölü hayvan
+  öğrenmez; gerçekte fren acı/yorgunluk olabilir).
+
 ## Açık sorular (güncel)
 
 - Kendiliğinden hareket (motor babbling) ve zayıf rastgele doğum bağlantıları öğrenmeyi başlatır mı?
