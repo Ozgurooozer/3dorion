@@ -614,6 +614,40 @@ Kod `793e240` (E5, E10) ve `29f4121` (E7). Veri `data/series-002d-*`.
   (daha çok bağlantı → daha yavaş öğrenme olabilir). M2T > T0a dönüş yönünde (birleşim temsili öğretmenden daha iyi
   yararlanır). Asıl ayrım T0 sonucuna bağlı.
 
+## 2026-09-24 — T0a sonucu ve bir ölçüm hatası: dönüş yönü alışkanlıktan etkileniyor
+
+- `[ÖLÇÜLDÜ]` T0a (yalnız kâhin öğretmen, kazanç 0,3, E7'nin düşüş tabanı −0,05 ile): yemek **0,31** (kardeş 2,07),
+  0/20 önde, yaşam 286 tik, **durgun %0**, dönüş yönü 0,462 (0/20 > 0,5). Öngörü (> 0,65) ✗ — ama sonuç öğretmenin
+  değil düzeneğin sorunu: (1) düşüş tabanı öğretmenin "evet"ini (+0,3) geçirip "hayır"ını (−0,05'e) kısıyor;
+  (2) kâhin neredeyse her tik "ileri" diyor → beyin hiç durmamayı öğreniyor, aç doğan beden 286 tikte açlıktan ölüyor.
+  T0d/T0e düşüş tabanı olmadan koşulacak.
+- **Ölçüm hatası bulundu** `[ÖLÇÜLDÜ]`: `turnToward` kapalı döngüde alışkanlıktan bağımsız DEĞİL. Yemeği hiç görmeyen
+  politikalar (20 bölüm): "ileri + hep sol" **0,465**, "ileri + hep sağ" 0,498, yerinde sola dönme 0,494, rastgele
+  0,49–0,51. Sebep: dönülen taraftaki yemek hızla ortaya gelir, öbür taraftaki uzun süre yanda kalır. Aynı politika
+  yaklaşmada 0,557 alıyor (E7: 0,564) → **yaklaşma da öğrenmenin temiz ölçüsü değil.** Sonuç: M1b (0,460) ve T0a (0,462)
+  "yemekten kaçmayı öğrendi" değil, büyük olasılıkla "tek yöne dönme alışkanlığı edindi".
+- Yeni ölçü `steering` (yönlendirme endeksi): ½·[(P(sol|yemek sol) − P(sol|yemek sağ)) + (P(sağ|yemek sağ) − P(sağ|yemek sol))].
+  Alışkanlık 0, rastgele ~0, kusursuz 1, ters −1; gerçek odada "hep sol" tam 0 (testli). 8 test, 5/5 mutant öldü.
+  `experiments/remeasure.ts`: eski deneklerin hepsi yeni ölçüyle yeniden değerlendirilir; yemek değeri kayıttan farklı
+  çıkarsa durur (deterministik değerlendirme).
+
+## 2026-09-24 — T1: Needle öğretmen olabilir mi? (keşif)
+
+- Kurulum: `data/external/needle-venv`, PyPI `cactus-needle==3.0.1` (klondaki sürüm 3.0.2 motor istiyor, HF'de yayınlanmamış).
+  Telemetri kodu klondakiyle birebir aynı (fark yok); `NEEDLE_TELEMETRY=0` + `DO_NOT_TRACK=1` ile çalıştırıldı.
+  `~/.cactus_needle/telemetry_id` dosyası 2026-09-13 tarihli — bu makinede Needle daha önce telemetri açıkken
+  kullanılmış; bugünkü çalıştırmalar oluşturmadı. Motor HF'den (Cactus-Compute/needle3) indirilen derlenmiş kod.
+- Hız `[ÖLÇÜLDÜ]`: karar başına ~230–1500 ms (bir kez 10,8 s). Her tik sormak bir seri için 100+ saat → Needle'a her kaba
+  "sahne" bir kez soruldu, cevaplar tabloya (`data/needle-table.json`): yemek yok/sol/önde/sağ × yakın/uzak × duvar
+  yakın/açık × aç/tok = 28 sahne; araç açıklamalarına "ne zaman" yazıldı (Needle'ın kendi rehberi).
+- Sonuç `[ÖLÇÜLDÜ]`: 28 sahnenin **hiçbirinde "ileri"** yok (yemek tam öndeyken bile dönüyor); yakın yemekte hep sağa
+  (yemek solda olsa da); doğru olanlar uzak-sol ve bütün sağ sahneler ≈ 14/28. Güven yanlışlarda da yüksek (0,91–0,98).
+  İleri hiç demeyen bir öğretmenle beden yer değiştirmez → bu haliyle bu odada öğretmen olamaz.
+- Yorum: Needle telefon uygulaması araç çağırmak için eğitilmiş; mekânsal akıl yürütme alanı dışında ve orada aşırı emin
+  (Jev ekosisteminde ölçülen alan-dışı aşırı güvenle aynı). Öğretmen fikri geçerli kalıyor (T0d/T0e bunu kâhinle sınar);
+  Needle için iki yol: odanın örnekleriyle ince ayar (platformu, 100–10 000 örnek) ya da Needle'ı mekân değil **dil**
+  işlerinde Bob bölgesi olarak kullanmak. Karar Ozyn'in.
+
 ## 2026-09-24 — Seri 004 / M3: iki taraf — koşmadan önce (keşif)
 
 - Kod: yeni bölge `lat` (6 nöron: duvar/yemek/tehlike × sol/sağ). Doğuştan: her taraftaki ışın kendi tarafının hücresini
