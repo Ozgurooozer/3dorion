@@ -614,6 +614,19 @@ Kod `793e240` (E5, E10) ve `29f4121` (E7). Veri `data/series-002d-*`.
   (daha çok bağlantı → daha yavaş öğrenme olabilir). M2T > T0a dönüş yönünde (birleşim temsili öğretmenden daha iyi
   yararlanır). Asıl ayrım T0 sonucuna bağlı.
 
+## 2026-09-24 — Seri 004 / M3: iki taraf — koşmadan önce (keşif)
+
+- Kod: yeni bölge `lat` (6 nöron: duvar/yemek/tehlike × sol/sağ). Doğuştan: her taraftaki ışın kendi tarafının hücresini
+  +1 uyarır, karşı tarafınkini −1 baskılar; orta ışın bağlı değil → hücre "kendi tarafı ne kadar fazla görüyor"u verir
+  (relu). Yollar P15 (duyu → lat, doğuştan), P16/P17 (lat → Git/Gitme, öğrenir). Doğrudan duyu yolu **kalır** (M3 ekler,
+  değiştirmez); öğrenen ağırlıklar rastgele akışın sonuna eklenir → düz yenidoğanın ağırlıkları birebir aynı kalır
+  (testli). Hangi farkın hangi dönüşe bağlanacağı öğrenilir. Testler 8 yeni, 6/6 mutant öldü.
+- Süreç notu: bir testteki düzenli ifadenin `\\d`'si bash heredoc'ta `\d`'ye indi ve şablon dizgisinde "d" oldu; test
+  yanlış yerde patladı, Edit ile düzeltildi (hafızadaki kaçış dizisi kazası — yine).
+- Koşullar: M3 (iki taraf), M3T (iki taraf + kâhin öğretmen), M3a (iki taraf + eylem bölmeleri), M23 (ara katman + iki taraf).
+- **Öngörüler (koşmadan):** M3 dönüş yönü > 0,55 (fark sinyali doğrudan "hangi taraf" diyor; öğrenilecek tek şey işaret).
+  M3T > M3. M23 ~ M3.
+
 ## Açık sorular (güncel)
 
 - Kendiliğinden hareket (motor babbling) ve zayıf rastgele doğum bağlantıları öğrenmeyi başlatır mı?

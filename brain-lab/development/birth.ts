@@ -7,7 +7,7 @@
 "use strict";
 
 import type { BrainBaglantisi, BrainDugumu, BrainGrafi } from "../brain-ir/ir.ts";
-import { ACTIONS, HYP_NODES, OPPOSITE, REGION_TYPE, checkPathways, kcId, nodeId } from "../regions/index.ts";
+import { ACTIONS, HYP_NODES, OPPOSITE, REGION_TYPE, checkPathways, kcId, latId, nodeId } from "../regions/index.ts";
 import { MOTOR_NODE_IDS, RAY_KINDS, rayNodeId, sensorNodeIds } from "../sensorimotor/index.ts";
 import { Rng, type WorldConfig } from "../world/index.ts";
 
@@ -88,6 +88,13 @@ export interface BirthSpec {
   readonly maxInitial?: number;
   readonly orienting?: Orienting | null;
   readonly expansion?: Expansion | null;
+  /**
+   * Bilateral comparison (TASARIM-004 M3): per kind of thing seen, a left and a right cell; each
+   * side's rays excite their own side's cell and inhibit the other's (the centre ray neither), so a
+   * cell fires by how much more its side sees. Which difference drives which action is learned:
+   * the cells join the learning sources, weak and random like the rest. Same for every kind.
+   */
+  readonly bilateral?: boolean;
 }
 
 /**
@@ -150,7 +157,8 @@ export function bornGraph(cfg: WorldConfig, spec: BirthSpec): BrainGrafi {
   // Learning pathways: every sense (or, with an expansion layer, every expansion cell) to every
   // action's Go and NoGo, weak and random.
   const expansion = spec.expansion ?? null;
-  const learningSources = expansion ? wireExpansion(expansion, senses, spec.seed, nodes, add) : senses;
+  const learningSources = expansion ? wireExpansion(expansion, senses, spec.seed, nodes, add) : [...senses];
+  if (spec.bilateral) learningSources.push(...wireBilateral(cfg, nodes, add));
   for (const s of learningSources) {
     for (const a of ACTIONS) {
       add(s, nodeId("bg.go", a), rng.range(0, maxInitial));
@@ -171,7 +179,8 @@ export function bornGraph(cfg: WorldConfig, spec: BirthSpec): BrainGrafi {
   if (spec.group === "reflexive") for (const r of INNATE_REFLEXES) add(r.from, r.to, r.weight);
 
   const tag = (orienting ? `-orient-${orienting.direction}-${orienting.strength}` : "")
-    + (expansion ? `-kc${expansion.cells}x${expansion.inputs}t${expansion.threshold}` : "");
+    + (expansion ? `-kc${expansion.cells}x${expansion.inputs}t${expansion.threshold}` : "")
+    + (spec.bilateral ? "-bilateral" : "");
   const graph: BrainGrafi = { name: `newborn-${spec.group}${tag}`, version: "2", nodes, connections: [...edges.values()] };
   checkPathways(graph); // a birth that breaks its own regions is a bug, not a variation
   return graph;
@@ -196,6 +205,26 @@ function wireExpansion(e: Expansion, senses: readonly string[], seed: number, no
       add(pick!, id, 1);
     }
     cells.push(id);
+  }
+  return cells;
+}
+
+/** Adds the bilateral comparison cells and their innate wiring; returns them (new learning sources). */
+function wireBilateral(cfg: WorldConfig, nodes: BrainDugumu[], add: (from: string, to: string, w: number) => void): string[] {
+  const cells: string[] = [];
+  for (const kind of RAY_KINDS) {
+    for (const side of ["left", "right"] as const) {
+      const id = latId(kind, side);
+      nodes.push({ id, type: REGION_TYPE.lat });
+      cells.push(id);
+    }
+    cfg.rayAngles.forEach((angle, i) => {
+      const side = actionOfAngle(angle);
+      if (side === "forward") return; // the centre ray sees both sides equally
+      const other = side === "left" ? "right" : "left";
+      add(rayNodeId(i, kind), latId(kind, side), 1);
+      add(rayNodeId(i, kind), latId(kind, other), -1);
+    });
   }
   return cells;
 }

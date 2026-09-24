@@ -56,10 +56,11 @@ export const evalWorld = (seed: number, ep: number) => seed * 1000 + 500 + ep;
 export interface BirthOptions {
   readonly orienting?: Orienting | null;
   readonly expansion?: Expansion | null;
+  readonly bilateral?: boolean;
 }
 
 export function birth(store: RegistryStore, world: WorldConfig, seed: number, group: InnateGroup, codeCommit: string, born: BirthOptions = {}, lineage?: Subject["lineage"]): Subject {
-  const birthGraph = bornGraph(world, { seed, group, orienting: born.orienting ?? null, expansion: born.expansion ?? null });
+  const birthGraph = bornGraph(world, { seed, group, orienting: born.orienting ?? null, expansion: born.expansion ?? null, bilateral: born.bilateral ?? false });
   return store.createSubject({ category: "learner.3f", group, seed, worldConfig: world, birthGraph, lineage, codeCommit });
 }
 

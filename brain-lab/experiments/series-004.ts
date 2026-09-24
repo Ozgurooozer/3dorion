@@ -43,6 +43,10 @@ const CONDITIONS: Record<string, { what: string; spec: Spec; born?: BirthOptions
   M2: { what: "E7 λ0.9 + expansion layer 64×4 t1", spec: BASE, born: { expansion: KC } },
   M2T: { what: "E7 λ0.9 + expansion layer, oracle teacher only (gain 0.3)", spec: { ...BASE, teacher: { policy: oraclePolicy(WORLD), gain: 0.3, mix: "only" } }, born: { expansion: KC } },
   M2a: { what: "E7 λ0.9 + expansion layer + action compartments", spec: { ...BASE, compartments: { mode: "action" } }, born: { expansion: KC } },
+  M3: { what: "E7 λ0.9 + bilateral comparison", spec: BASE, born: { bilateral: true } },
+  M3T: { what: "E7 λ0.9 + bilateral comparison, oracle teacher only (gain 0.3)", spec: { ...BASE, teacher: { policy: oraclePolicy(WORLD), gain: 0.3, mix: "only" } }, born: { bilateral: true } },
+  M3a: { what: "E7 λ0.9 + bilateral comparison + action compartments", spec: { ...BASE, compartments: { mode: "action" } }, born: { bilateral: true } },
+  M23: { what: "E7 λ0.9 + expansion layer + bilateral comparison", spec: BASE, born: { expansion: KC, bilateral: true } },
 };
 
 /** Delayed dopamine: every channel's δ comes 3000 ticks late, from another life. */

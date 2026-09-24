@@ -299,3 +299,93 @@ test("sense-to-motor delay: 3 ticks without the expansion layer, 4 with it", () 
   assert.equal(senseToMotorDelay(bornGraph(C, { seed: 1, group: "reflexless" })), 3);
   assert.equal(senseToMotorDelay(withKc(1)), 4);
 });
+
+// --- bilateral comparison (TASARIM-004 M3) ---------------------------------------------------
+
+const withLat = (seed: number, group: InnateGroup = "reflexless") => bornGraph(C, { seed, group, bilateral: true });
+
+test("bilateral off or absent: the newborn is exactly the plain one", () => {
+  assert.equal(graphHash(bornGraph(C, { seed: 5, group: "reflexive", bilateral: false })), graphHash(bornGraph(C, { seed: 5, group: "reflexive" })));
+});
+
+test("bilateral: everything the plain newborn has stays as it was, including its learning weights", () => {
+  const plain = bornGraph(C, { seed: 5, group: "reflexless" });
+  const lat = withLat(5);
+  for (const e of plain.connections) {
+    const same = lat.connections.find((x) => x.from === e.from && x.to === e.to);
+    assert.ok(same, `${e.from}->${e.to} disappeared`);
+    assert.equal(same.weight, e.weight, `${e.from}->${e.to}`);
+  }
+});
+
+test("bilateral: one neuron per kind and side, legal regions, name says so", () => {
+  const g = withLat(5);
+  assert.doesNotThrow(() => { checkGraph(g); checkWiring(g, C); checkPathways(g); });
+  const cells = g.nodes.filter((n) => n.id.startsWith("lat."));
+  assert.deepEqual(cells.map((n) => n.id).sort(), ["lat.food.left", "lat.food.right", "lat.threat.left", "lat.threat.right", "lat.wall.left", "lat.wall.right"]);
+  for (const c of cells) assert.equal(c.type, "neuron", c.id);
+  assert.match(g.name ?? "", /bilateral/);
+});
+
+test("bilateral: each side's rays excite their own side's cell and inhibit the other; the centre ray is not wired", () => {
+  const g = withLat(5);
+  const w = (from: string, to: string) => g.connections.find((e) => e.from === from && e.to === to)?.weight;
+  C.rayAngles.forEach((angle, i) => {
+    const side = actionOfAngle(angle);
+    for (const kind of ["wall", "food", "threat"]) {
+      const ray = `ray${i}.${kind}`;
+      if (side === "forward") {
+        assert.equal(w(ray, `lat.${kind}.left`), undefined, `${ray} (centre) → left`);
+        assert.equal(w(ray, `lat.${kind}.right`), undefined, `${ray} (centre) → right`);
+      } else {
+        const other = side === "left" ? "right" : "left";
+        assert.equal(w(ray, `lat.${kind}.${side}`), 1, `${ray} → own side`);
+        assert.equal(w(ray, `lat.${kind}.${other}`), -1, `${ray} → other side`);
+      }
+    }
+  });
+});
+
+test("bilateral: a cell hears only its own kind of thing", () => {
+  const g = withLat(5);
+  for (const e of g.connections.filter((x) => x.to.startsWith("lat."))) {
+    const kind = e.to.split(".")[1];
+    assert.match(e.from, new RegExp(`^ray\\d+\\.${kind}$`), `${e.from} → ${e.to}`);
+  }
+});
+
+test("bilateral: the cells are learning sources — each reaches every Go and NoGo, weakly", () => {
+  const g = withLat(5);
+  const fromLat = g.connections.filter((e) => e.from.startsWith("lat."));
+  assert.equal(fromLat.length, 6 * ACTIONS.length * 2);
+  for (const e of fromLat) {
+    assert.equal(isPlastic(e), true, `${e.from}->${e.to}`);
+    assert.ok(e.weight >= 0 && e.weight <= DEFAULT_MAX_INITIAL, `${e.from}->${e.to} ${e.weight}`);
+  }
+});
+
+test("bilateral: food on the left lights only the left food cell; food ahead lights neither", () => {
+  const g = withLat(5);
+  const silent = { ...Object.fromEntries(sensorNodeIds(C).map((id) => [id, 0])), ...Object.fromEntries(NOISE_IDS.map((id) => [id, 0])) };
+  const cellsAfter = (inputs: Record<string, number>) => {
+    const sim = new BrainSimulator(g);
+    sim.step(inputs);
+    return sim.step(inputs).outputs;
+  };
+  const left = cellsAfter({ ...silent, "ray4.food": 0.8 });
+  assert.ok(left["lat.food.left"]! > 0, "left food cell should fire");
+  assert.equal(left["lat.food.right"], 0);
+  assert.equal(left["lat.wall.left"], 0, "a wall cell must not answer to food");
+  const ahead = cellsAfter({ ...silent, "ray2.food": 0.8 });
+  assert.equal(ahead["lat.food.left"], 0);
+  assert.equal(ahead["lat.food.right"], 0);
+  const both = cellsAfter({ ...silent, "ray4.food": 0.8, "ray0.food": 0.3 });
+  assert.ok(Math.abs(both["lat.food.left"]! - 0.5) < 1e-12, `more on the left: the cell reports the difference, got ${both["lat.food.left"]}`);
+});
+
+test("bilateral and expansion together: legal, both layers present", () => {
+  const g = bornGraph(C, { seed: 5, group: "reflexless", bilateral: true, expansion: { cells: 8, inputs: 4, threshold: 1 } });
+  assert.doesNotThrow(() => checkPathways(g));
+  assert.ok(g.nodes.some((n) => n.id.startsWith("lat.")));
+  assert.ok(g.nodes.some((n) => n.id.startsWith("kc.")));
+});

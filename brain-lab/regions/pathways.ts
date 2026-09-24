@@ -84,6 +84,20 @@ const ROWS: Pathway[] = [
     id: "P14", from: "kc", to: "bg.nogo", actions: "any", learns: true, sign: "positive",
     why: "Learning on the expanded code: any combination of senses may come to suppress any action.",
   },
+  // Bilateral comparison (TASARIM-004 M3): the fly's strong connections stay mostly on their own
+  // side (81%, Male CNS v1.0, measured); tropotaxis compares the two sides.
+  {
+    id: "P15", from: "sense", to: "lat", actions: "any", learns: false, sign: "any",
+    why: "Each side's rays excite their own side's comparison cell and inhibit the other side's (innate): the cell reports which side sees more.",
+  },
+  {
+    id: "P16", from: "lat", to: "bg.go", actions: "any", learns: true, sign: "positive",
+    why: "Learning which side-difference favours which action.",
+  },
+  {
+    id: "P17", from: "lat", to: "bg.nogo", actions: "any", learns: true, sign: "positive",
+    why: "Learning which side-difference suppresses which action.",
+  },
 ];
 
 export const PATHWAYS: readonly Pathway[] = Object.freeze(ROWS);

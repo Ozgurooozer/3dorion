@@ -106,14 +106,16 @@ test("forbidden: crossed actions, wrong pairs, goal-shaped shortcuts, wrong sign
   assert.throws(() => checkPathways({ nodes: mistyped, connections: [] }), /cpg\.left is neuron, region cpg needs decision/);
 });
 
-test("plasticity: only edges into selection (from senses or the expansion layer) learn; every innate pathway is fixed", () => {
+test("plasticity: only edges into selection (from senses, the expansion layer or the side comparison) learn; every innate pathway is fixed", () => {
   assert.equal(isPlastic({ from: "ray0.food", to: "bg.go.left" }), true);
   assert.equal(isPlastic({ from: "proprio.forward", to: "bg.nogo.back" }), true);
   assert.equal(isPlastic({ from: "kc.7", to: "bg.go.right" }), true);
   assert.equal(isPlastic({ from: "kc.7", to: "bg.nogo.forward" }), true);
   assert.equal(isPlastic({ from: "ray0.food", to: "kc.7" }), false, "the expansion itself is innate");
+  assert.equal(isPlastic({ from: "lat.food.left", to: "bg.go.left" }), true);
+  assert.equal(isPlastic({ from: "ray4.food", to: "lat.food.left" }), false, "the side comparison itself is innate");
   for (const [from, to] of [["intero.hunger", "hyp.hunger"], ["hyp.hunger", "cpg.left"], ["cpg.left", "bg.go.left"], ["bg.out.left", "motor.left"], ["ray0.food", "motor.left"]]) {
     assert.equal(isPlastic({ from: from!, to: to! }), false, `${from}->${to}`);
   }
-  assert.deepEqual(PATHWAYS.filter((p) => p.learns).map((p) => p.id), ["P1", "P2", "P13", "P14"]);
+  assert.deepEqual(PATHWAYS.filter((p) => p.learns).map((p) => p.id), ["P1", "P2", "P13", "P14", "P16", "P17"]);
 });

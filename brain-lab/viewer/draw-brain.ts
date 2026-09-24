@@ -13,6 +13,7 @@ const COLUMN_COLOR: Record<Column, string> = {
   sense: COLOR.sensor,
   hyp: COLOR.threat,
   kc: COLOR.spont,
+  lat: COLOR.sensor,
   noise: COLOR.none,
   cpg: COLOR.spont,
   "bg.go": COLOR.excite,
@@ -23,7 +24,7 @@ const COLUMN_COLOR: Record<Column, string> = {
 };
 
 const COLUMN_TITLE: Partial<Record<Column, string>> = {
-  kc: "ARA KATMAN", hyp: "DÜRTÜ", noise: "GÜRÜLTÜ", cpg: "ÜRETEÇ", "bg.go": "GİT", "bg.nogo": "GİTME", "bg.out": "SEÇİM",
+  kc: "ARA KATMAN", lat: "SOL/SAĞ", hyp: "DÜRTÜ", noise: "GÜRÜLTÜ", cpg: "ÜRETEÇ", "bg.go": "GİT", "bg.nogo": "GİTME", "bg.out": "SEÇİM",
 };
 
 export function drawBrain(
