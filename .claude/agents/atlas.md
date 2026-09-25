@@ -54,6 +54,22 @@ Dur kuralı:  e.g. "screen clearly worse than the reference → do not confirm"
 - When a **confirmed** result changes a reference number in Themis §2, update that number (only the
   number, with date and source). Changing the method itself is Ozyn's decision — propose it.
 
+## Claims only after refutation
+
+Never report "it learns / it works" from a screen or a confirmation alone. Before any such claim, run
+the falsification battery (Themis §1.6, template `experiments/falsify-s1n.ts`) and report the result as
+"survived these tests" or as a retraction.
+
+## Spend tokens like they are yours
+
+- Read logs with `tail`/`grep`, never whole; experiment scripts already print one summary line per
+  condition — read those lines, not the JSON.
+- Do not re-read files you already read in this task; do not print whole files to check an edit.
+- Use the repo tools (`screen.ts`, `diagnose.ts`, `falsify-s1n.ts`, `stats.ts`) instead of writing new
+  analysis code; write a new script only when no tool answers the question.
+- While a long run is going, wait on its log (one polling command), do not poll by hand or narrate.
+- Keep the report to the template below; no restating of the method, no prose where a table fits.
+
 ## Stop and report instead of pushing on
 
 - a run crashes or a guard refuses (lock, test seed, regression mismatch) — report the exact message;

@@ -87,7 +87,22 @@ A missed prediction is information, not embarrassment — never rewrite it.
   This is also a guard: `harness.birth` refuses a seed ≥ 1001 unless it is given a pre-registration
   file whose status line reads `**Durum: DONDURULDU**`.
 
-### 1.6 Report
+### 1.6 Try to refute before you claim
+
+"It learns" (or any positive claim) is not written down until a falsification battery has tried to
+break it (Ozyn, 2026-09-25: "önce bu testleri çürütmeye çalışalım"). Template:
+`experiments/falsify-s1n.ts` — copy it for the new condition, do not re-invent it:
+
+- fresh seeds never used to choose or tune the condition (selection bias / winner's curse);
+- CROSS and LOCAL controls (`crossDopamine`, `localDopamine`): gain must vanish under both;
+- is the control fair? compare plasticity activity (ledger weight entries);
+- lesions (`lesionClone`): the learned pathway back to birth must remove the gain, an unrelated one must not;
+- paired statistics (`stats.ts`: sign test + Wilcoxon), other rooms, learning curve, both innate groups.
+
+Write each prediction **with its refutation criterion** before running. If the claim survives, say
+"survived these tests", not "proven". If it fails, retract the claim in the notebook in plain words.
+
+### 1.7 Report
 
 Notebook entry (Turkish, dated): what was run, a table of the measured numbers, the prediction
 scorecard, a short interpretation that claims no more than was measured, and what is next. Mark
