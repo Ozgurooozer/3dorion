@@ -737,6 +737,25 @@ Kod `793e240` (E5, E10) ve `29f4121` (E7). Veri `data/series-002d-*`.
   mekanik bir hata değil, yapısal: davranış iyileşmeden değer oluşmuyor, değer oluşmadan davranış iyileşmiyor.
 - E7'nin gerçek kazancı **homeostaz** (dürtü 0,72 → 0,47, hayatta kalma %11 → %52); yön ≈ 0,06 (10'da 6 denek > 0).
 
+## 2026-09-25 — S1: rekabetçi seçim — Ozyn onayı; kod; kapasite; tarama öncesi
+
+- Ozyn (TASARIM-005): K5 evet (S1'den başla), K8 **serbest** (bölge içi öğrenme kuralında çalışan mühendislik
+  yöntemleri kullanılabilir), oda: **ikinci öğrenilecek şey eklenecek** (S1'den sonra).
+- Kod: `learning/selection.ts` — eksen başına rekabet (itme {ileri, geri, dur}, dönüş {sol, sağ, dur}); önem =
+  Σ (Git − Gitme)·duyu + vigor·açlık + gürültü·(renkli gürültü − ½); dur = restBias; kazanan en yüksek önem, %5 keşif.
+  Öğrenen ağırlıklar canlı grafikten okunur (defterdeki her değişiklik seçimi anında etkiler). Eligibility doğrudan:
+  bu tikin duyusu × bu tikte seçilen eylem (`Learner.updateEligibilityDirect`). Ajan seçeneği `selection`; ölçüm
+  gecikmesi seçimle 0 tik; kardeş de aynı seçimle değerlendirilir. 20 test, 12 mutantın 11'i öldü (kalan eşdeğer:
+  explore 0'da `<` / `<=`, olasılık 2⁻³²).
+- Kalibrasyon `[ÖLÇÜLDÜ]` (5 seed × 5 bölüm, yenidoğan): vigor 1 → durgun %11, hayatta kalma %4; **vigor 0,5 / dur 0,3 →
+  durgun %22, hayatta kalma %12** (grafik yenidoğan %48 / %8) → varsayılan.
+- **Kapasite** `[ÖLÇÜLDÜ]` (elle yemek → Git ağırlıkları, fikstür): seçimle w 0,3 → yönlendirme **0,26**, dürtü 0,16,
+  hayatta kalma %80; w 1 → 0,66 / 0,06 / %96; w 2 → **0,79** / 0,03 / %96. Grafik beyin w 2'de 0,52 / 0,12 / %88.
+  → Öğrenilen küçük değerler artık davranışa dönüşüyor: iyileşme döngüsünün önkoşulu sağlandı.
+- Tarama: S1 (E7 öğrenmesi + seçim), S1n (+ tabansız), S1a (+ eylem bölmeleri), S1c (+ normalize eleştirmen).
+- **Öngörüler (koşmadan; TASARIM-005 ölçütü):** S1 yönlendirme > 0,2, ortalama dürtü < 0,47, eleştirmenin yemek
+  değeri > 0,02. S1a ve S1c S1'den iyi (döngü kurulunca eylem başına öğretme ve düzgün eleştirmen işe yarar).
+
 ## 2026-09-24 — Seri 004 / M3: iki taraf — koşmadan önce (keşif)
 
 - Kod: yeni bölge `lat` (6 nöron: duvar/yemek/tehlike × sol/sağ). Doğuştan: her taraftaki ışın kendi tarafının hücresini

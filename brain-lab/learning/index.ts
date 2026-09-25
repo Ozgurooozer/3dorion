@@ -6,3 +6,4 @@ export { createAgent, type Agent, type AgentSpec } from "./agent.ts";
 export { Critic, DEFAULT_CRITIC, type CriticParams } from "./critic.ts";
 export { Compartments, type CompartmentMode, type CompartmentSpec } from "./compartments.ts";
 export { actionsOf, teacherDeltas, type TeacherSpec } from "./teacher.ts";
+export { AXES, CompetitiveSelector, DEFAULT_SELECTION, type Choice, type SelectionParams } from "./selection.ts";

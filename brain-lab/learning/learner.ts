@@ -142,6 +142,18 @@ export class Learner {
   }
 
   /**
+   * Eligibility for competitive selection (TASARIM-005 S1): the selector reads the senses of this
+   * tick and picks actions on this tick, so pre is the sense now and post is 1 for the actions taken.
+   */
+  updateEligibilityDirect(senses: Readonly<Record<string, number>>, selected: Readonly<Record<string, 0 | 1>>): void {
+    const { lambda } = this.params;
+    for (const s of this.synapses) {
+      const action = s.selector.slice("bg.out.".length);
+      s.e = lambda * s.e + (senses[s.edge.from] ?? 0) * (selected[action] ?? 0);
+    }
+  }
+
+  /**
    * End of an episode. With scaling on, each Go/NoGo cell brings the sum of its learning inputs
    * back to its birth sum, multiplying all of them by one factor. Changes move in whole quanta
    * and each is a ledger entry, like any other learning.

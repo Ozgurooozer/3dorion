@@ -130,7 +130,9 @@ export function evaluate(store: RegistryStore, s: Subject, world: WorldConfig, e
   const ledger = store.openLedger(s.id);
   const agent = createAgent({ ...spec, cfg: world, ledger, noiseSeed: evalNoise(s.birth.seed), learning: { ...spec.learning, frozen: true } });
   const run = store.startRun(s.id, `${label} eval (learning frozen)`, {}, { codeCommit });
-  return measureEpisodes(agent, world, s.birth.seed, episodes, senseToMotorDelay(ledger.graph), (line) => store.appendEpisode(run.id, line));
+  // A selector acts on the tick it senses; the graph needs its conduction delay.
+  const lag = spec.selection ? 0 : senseToMotorDelay(ledger.graph);
+  return measureEpisodes(agent, world, s.birth.seed, episodes, lag, (line) => store.appendEpisode(run.id, line));
 }
 
 /** Train a subject; returns meals/1000 ticks per 10-episode block. */
@@ -167,15 +169,17 @@ export function runCondition(store: RegistryStore, o: {
   for (const group of o.groups) {
     for (const seed of o.seeds) {
       const born = o.born ?? {};
-      const key = `${seed}/${group}/${JSON.stringify(o.world)}/${JSON.stringify(born)}`;
+      // The twin behaves through the same machinery as the learner (selection), it just never learns.
+      const selection = o.condition.spec.selection ?? null;
+      const key = `${seed}/${group}/${JSON.stringify(o.world)}/${JSON.stringify(born)}/${JSON.stringify(selection)}`;
       if (!twins.has(key)) {
         const t = birth(store, o.world, seed, group, o.codeCommit, born);
-        twins.set(key, { id: t.id, name: t.name, eval: evaluate(store, t, o.world, o.evalEpisodes, o.codeCommit, o.label) });
+        twins.set(key, { id: t.id, name: t.name, eval: evaluate(store, t, o.world, o.evalEpisodes, o.codeCommit, o.label, { selection }) });
       }
       const twin = twins.get(key)!;
       const s = birth(store, o.world, seed, group, o.codeCommit, born);
       const trainPerK = train(store, s, o.world, o.trainEpisodes, o.condition.spec, o.codeCommit, `${o.label} ${o.condition.code}`);
-      const l = evaluate(store, s, o.world, o.evalEpisodes, o.codeCommit, o.label, { critic: o.condition.spec.critic ?? null });
+      const l = evaluate(store, s, o.world, o.evalEpisodes, o.codeCommit, o.label, { critic: o.condition.spec.critic ?? null, selection: o.condition.spec.selection ?? null });
       const ledger = store.openLedger(s.id);
       const plastic = ledger.graph.connections.filter((c) => isPlastic(c));
       rows.push({

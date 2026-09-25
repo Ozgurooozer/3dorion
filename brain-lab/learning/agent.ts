@@ -15,11 +15,12 @@ import { NoiseGenerator } from "../development/index.ts";
 import { DopamineChannel } from "../neuromodulation/index.ts";
 import type { Ledger, LedgerEntry } from "../registry/index.ts";
 import { ACTIONS, regionOf } from "../regions/index.ts";
-import { brainController, type BrainController } from "../sensorimotor/index.ts";
+import { brainController, encodeObservation, type BrainController } from "../sensorimotor/index.ts";
 import type { EpisodeHooks, Observation, Policy, WorldConfig } from "../world/index.ts";
 import { Compartments, type CompartmentSpec } from "./compartments.ts";
 import { Critic, type CriticParams } from "./critic.ts";
 import { Learner, type LearningParams } from "./learner.ts";
+import { CompetitiveSelector, type Choice, type SelectionParams } from "./selection.ts";
 import { teacherDeltas, type TeacherSpec } from "./teacher.ts";
 
 export interface Agent {
@@ -33,6 +34,9 @@ export interface Agent {
   readonly graph: BrainGrafi;
   /** δ that reached the learner on the last tick (after any critic). */
   readonly lastDelta: number;
+  /** With competitive selection: the selector and its last choice (salience, exploration). */
+  readonly selector: CompetitiveSelector | null;
+  readonly lastChoice: Choice | null;
   /** Call before each episode (numbered from 1). */
   startEpisode(episode: number): void;
   /** Call after each episode: end-of-episode plasticity (scaling). */
@@ -76,6 +80,12 @@ export interface AgentSpec {
    * deltaTransform receives it per action as channel "teacher/<action>".
    */
   readonly teacher?: (TeacherSpec & { readonly mix: "only" | "add" }) | null;
+  /**
+   * Competitive selection (TASARIM-005 S1): actions are chosen by selection.ts from the learned
+   * Go − NoGo values of the senses, per axis, instead of by the graph's generators and bg.out cells.
+   * Eligibility then pairs this tick's senses with this tick's choice. null/absent = the graph decides.
+   */
+  readonly selection?: Partial<SelectionParams> | null;
 }
 
 export function createAgent(spec: AgentSpec): Agent {
@@ -88,6 +98,7 @@ export function createAgent(spec: AgentSpec): Agent {
   if (compartments?.mode === "action" && !critic) throw new Error("action compartments need a critic (they bootstrap on its V)");
   if (compartments && spec.rpeNormalization) throw new Error("rpeNormalization is not defined for compartments");
   const teacher = spec.teacher ?? null;
+  const selector = spec.selection ? new CompetitiveSelector(graph, spec.noiseSeed, spec.selection) : null;
   const frozen = learner.params.frozen;
   const dopamine = new DopamineChannel(spec.deathOutcome === undefined ? {} : { deathOutcome: spec.deathOutcome });
   const noise = new NoiseGenerator(spec.noiseSeed);
@@ -99,6 +110,7 @@ export function createAgent(spec: AgentSpec): Agent {
   let writes: LedgerEntry[] = [];
   let lastDelta = 0;
   let typical = 0; // running mean |δ| for rpeNormalization
+  let lastChoice: Choice | null = null;
 
   const stage = (to: "E1" | "E2", reason: string) => {
     const from = spec.ledger.stage;
@@ -154,6 +166,14 @@ export function createAgent(spec: AgentSpec): Agent {
     const signal = dopamine.observe(obs, t); // 1
     teach(obs, signal.outcome, signal.delta, t, false, ["dopamine"]); // 2
     previousObs = obs;
+    if (selector) {
+      const senses = encodeObservation(obs, spec.cfg) as Record<string, number>;
+      const choice = selector.choose(senses); // 3
+      lastChoice = choice;
+      learner.updateEligibilityDirect(senses, choice.selected); // 4
+      previous = CompetitiveSelector.asOutputs(choice);
+      return choice.action;
+    }
     const action = controller.policy(obs, t); // 3
     const outputs = controller.last!.outputs;
     learner.updateEligibility(previous, outputs); // 4
@@ -180,6 +200,8 @@ export function createAgent(spec: AgentSpec): Agent {
     controller,
     graph,
     get lastDelta() { return lastDelta; },
+    get lastChoice() { return lastChoice; },
+    selector,
     startEpisode(n: number) {
       episode = n;
       previous = {};

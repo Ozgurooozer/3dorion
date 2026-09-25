@@ -40,6 +40,11 @@ export const SCREEN: Record<string, { what: string; spec: Spec; born?: BirthOpti
   A4: { what: "E7 + all three (A1+A2+A3)", spec: ALL },
   A5: { what: "A4 + generators → Go 0.3", spec: ALL, born: { generatorToGo: 0.3 } },
   G3: { what: "E7 + generators → Go 0.3 (the improvement-loop question alone)", spec: E7, born: { generatorToGo: 0.3 } },
+  // TASARIM-005 S1: competitive selection (learned Go − NoGo decides per axis; direct eligibility).
+  S1: { what: "E7 learning + competitive selection", spec: { ...E7, selection: {} } },
+  S1n: { what: "S1 without dip floor", spec: { ...E7, selection: {}, learning: learn({ dipFloor: null }) } },
+  S1a: { what: "S1 + action compartments", spec: { ...E7, selection: {}, compartments: { mode: "action" } } },
+  S1c: { what: "S1 + normalised critic", spec: { ...E7, selection: {}, critic: NORM } },
 };
 
 const mean = (xs: number[]) => xs.reduce((s, x) => s + x, 0) / xs.length;
