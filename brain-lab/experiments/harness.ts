@@ -3,6 +3,7 @@
 // Shared by the series-002 scripts so every condition is measured identically.
 "use strict";
 
+import { readFileSync } from "node:fs";
 import { bornGraph, type Expansion, type InnateGroup, type Orienting } from "../development/index.ts";
 import { createAgent, type AgentSpec } from "../learning/index.ts";
 import { episodeEvents, type Subject } from "../registry/index.ts";
@@ -75,7 +76,22 @@ export interface BirthOptions {
   readonly generatorToGo?: number;
 }
 
-export function birth(store: RegistryStore, world: WorldConfig, seed: number, group: InnateGroup, codeCommit: string, born: BirthOptions = {}, lineage?: Subject["lineage"]): Subject {
+/** Seeds from here up are test seeds: used once, only under a frozen pre-registration. */
+export const TEST_SEED_FLOOR = 1001;
+
+/**
+ * Refuses a test seed unless `preregistration` names a pre-registration file whose status line reads
+ * "**Durum: DONDURULDU**" (frozen). Until 2026-09-25 this was only a rule; now birth cannot break it.
+ */
+export function assertSeedAllowed(seed: number, preregistration?: string | null): void {
+  if (seed < TEST_SEED_FLOOR) return;
+  if (!preregistration) throw new Error(`seed ${seed} is a test seed (≥ ${TEST_SEED_FLOOR}); it needs a frozen pre-registration`);
+  const text = readFileSync(preregistration, "utf8");
+  if (!/^\*\*Durum: DONDURULDU/m.test(text)) throw new Error(`${preregistration} is not frozen ("**Durum: DONDURULDU**" missing); test seed ${seed} refused`);
+}
+
+export function birth(store: RegistryStore, world: WorldConfig, seed: number, group: InnateGroup, codeCommit: string, born: BirthOptions = {}, lineage?: Subject["lineage"], preregistration?: string | null): Subject {
+  assertSeedAllowed(seed, preregistration);
   const birthGraph = bornGraph(world, { seed, group, orienting: born.orienting ?? null, expansion: born.expansion ?? null, bilateral: born.bilateral ?? false, generatorToGo: born.generatorToGo });
   return store.createSubject({ category: "learner.3f", group, seed, worldConfig: world, birthGraph, lineage, codeCommit });
 }
@@ -166,6 +182,8 @@ export function runCondition(store: RegistryStore, o: {
   trainEpisodes: number; evalEpisodes: number; codeCommit: string; label: string;
   /** How learner AND twin are born (both the same way). */
   born?: BirthOptions;
+  /** A frozen pre-registration file; required for test seeds (≥ TEST_SEED_FLOOR). */
+  preregistration?: string | null;
   twins?: Map<string, { id: string; name: string; eval: Eval }>;
 }) {
   const twins = o.twins ?? new Map<string, { id: string; name: string; eval: Eval }>();
@@ -177,11 +195,11 @@ export function runCondition(store: RegistryStore, o: {
       const selection = o.condition.spec.selection ?? null;
       const key = `${seed}/${group}/${JSON.stringify(o.world)}/${JSON.stringify(born)}/${JSON.stringify(selection)}`;
       if (!twins.has(key)) {
-        const t = birth(store, o.world, seed, group, o.codeCommit, born);
+        const t = birth(store, o.world, seed, group, o.codeCommit, born, undefined, o.preregistration);
         twins.set(key, { id: t.id, name: t.name, eval: evaluate(store, t, o.world, o.evalEpisodes, o.codeCommit, o.label, { selection }) });
       }
       const twin = twins.get(key)!;
-      const s = birth(store, o.world, seed, group, o.codeCommit, born);
+      const s = birth(store, o.world, seed, group, o.codeCommit, born, undefined, o.preregistration);
       const trainPerK = train(store, s, o.world, o.trainEpisodes, o.condition.spec, o.codeCommit, `${o.label} ${o.condition.code}`);
       const l = evaluate(store, s, o.world, o.evalEpisodes, o.codeCommit, o.label, { critic: o.condition.spec.critic ?? null, selection: o.condition.spec.selection ?? null });
       const ledger = store.openLedger(s.id);

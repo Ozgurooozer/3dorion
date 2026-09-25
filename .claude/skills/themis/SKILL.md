@@ -52,6 +52,9 @@ Before adding a module "because biology has it", run the cheap diagnostics:
 - **What the critic values** — `ledger.criticWeight("ray*.food")`. (0.004: seeing food was never
   valued — the vicious circle.)
 
+The last two are one command: `node --experimental-strip-types brain-lab/experiments/diagnose.ts
+<summary.json> …` (read-only, safe during a run).
+
 Two minutes of diagnosis told more than every module run together. Every biological part enters with
 a stated function and a measurement; three times in a row an added part made things worse.
 
@@ -81,6 +84,8 @@ A missed prediction is information, not embarrassment — never rewrite it.
   `CODE@confirm:CROSS` (dopamine from another episode). "It learned" needs both: better than the frozen
   twin AND gone under CROSS. E10 beat its twin 12/14 and was mostly a non-learning drift.
 - Test seeds (1001+) are never touched without Ozyn's explicit approval of a frozen pre-registration.
+  This is also a guard: `harness.birth` refuses a seed ≥ 1001 unless it is given a pre-registration
+  file whose status line reads `**Durum: DONDURULDU**`.
 
 ### 1.6 Report
 
@@ -124,8 +129,9 @@ selector acts on the tick it senses (evaluation lag 0), the graph brain needs it
 - **Backslashes through heredoc/Python/`node -e`** turn into control characters or vanish (`\n`, `\d`,
   `C:\vault`). Write such text with the Write/Edit tools; scan before commit:
   `grep -c -P '[\x00-\x08\x0B\x0C\x0E-\x1F]' file` must be 0.
-- **Two experiment processes at once** race on `brain-lab/data/registry.json` (subject numbers). Run
-  experiments strictly one after another; queue with `until grep -q "^done" log; do sleep 60; done`.
+- **Two experiment processes at once** race on `brain-lab/data/registry.json` (subject numbers). Now a
+  guard: a writer takes `data/.writer.lock` and a second live writer is refused. Queue runs with
+  `until grep -q "^done" log; do sleep 60; done`; read during a run with `RegistryStore(DATA, { readOnly: true })`.
 - **Background processes**: after stopping a task, check no `node` experiment is left running
   (`Get-CimInstance Win32_Process -Filter "Name='node.exe'"`).
 - Chaining a script and `git commit` with `;` commits even when the script failed — use `&&`.
@@ -134,7 +140,21 @@ selector acts on the tick it senses (evaluation lag 0), the graph brain needs it
 - Known shortcut (§16): rays report labelled kinds. Do not deepen it — prefer switching on what the
   world already has over adding a new labelled kind.
 
-## 5. Principles and authority
+## 5. Structure over instructions
+
+This repo learned it the hard way (root `CLAUDE.md`, "Kopya kod — kural değil, bekçi"): a rule in a
+document is forgotten, a guard in code is not. When a rule here matters enough that breaking it would
+corrupt data or a conclusion, turn it into a guard with a test (done so far: registry writer lock,
+test-seed guard, bit-identical regression checks, calibration tests of every measure). When you add a
+guard, name it here.
+
+## 6. Delegating to Atlas
+
+For batches of runs, give the **atlas** agent a task card (question, conditions, stage, predictions,
+budget, stop rule — see `.claude/agents/atlas.md`). Its report lands in `brain-lab/data/atlas-reports/`
+with evidence paths; before relaying a number to Ozyn, check at least one against its source file.
+
+## 7. Principles and authority
 
 - Behaviour is never hand-coded; the brain learns to use the body. Hand-wired arcs exist only as
   labelled fixtures (capacity tests, oracle, seeker).

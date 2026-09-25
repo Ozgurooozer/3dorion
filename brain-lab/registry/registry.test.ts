@@ -13,7 +13,7 @@ import { DEFAULT_CONFIG as C, Room, runEpisode } from "../world/index.ts";
 import {
   Ledger, NAMES, describe, episodeEvents, graphHash, ledgerId, nameFor, parseId, subjectId, type LedgerInput,
 } from "./index.ts";
-import { RegistryStore } from "./store.ts";
+import { RegistryStore, WRITER_LOCK } from "./store.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -295,4 +295,56 @@ test("critic entries chain like weights, start at 0, and never touch the graph",
   assert.throws(() => l.record({ kind: "critic", tick: 3, episode: 1, cause: [], feature: "ray2.food", before: 0.5, after: 1 }), /is 0.02, entry says before=0.5/);
   const replayed = new Ledger("DNK-0001", birthGraph(), l.entries);
   assert.equal(replayed.criticWeight("ray2.food"), 0.02);
+});
+
+// --- writer lock and read-only access ----------------------------------------------------------
+
+test("lock: a registry held by another live process is refused to a second writer", () => {
+  const { root, done } = tempStore();
+  writeFileSync(join(root, WRITER_LOCK), JSON.stringify({ pid: process.ppid }));
+  assert.throws(() => new RegistryStore(root), /being written by process/);
+  done();
+});
+
+test("lock: a lock left by a dead process is taken over", () => {
+  const { root, done } = tempStore();
+  writeFileSync(join(root, WRITER_LOCK), JSON.stringify({ pid: 2_000_000_000 }));
+  assert.doesNotThrow(() => new RegistryStore(root));
+  assert.equal(JSON.parse(readFileSync(join(root, WRITER_LOCK), "utf8")).pid, process.pid);
+  done();
+});
+
+test("lock: the same process may open its registry more than once", () => {
+  const { root, done } = tempStore();
+  assert.doesNotThrow(() => new RegistryStore(root));
+  done();
+});
+
+test("read-only: opens while another process holds the lock, and reads", () => {
+  const { store, root, done } = tempStore();
+  const s = newSubject(store);
+  writeFileSync(join(root, WRITER_LOCK), JSON.stringify({ pid: process.ppid }));
+  const reader = new RegistryStore(root, { readOnly: true });
+  assert.equal(reader.loadSubject(s.id).id, s.id);
+  assert.ok(reader.openLedger(s.id).matches(store.openLedger(s.id).graph));
+  done();
+});
+
+test("read-only: every write is refused", () => {
+  const { store, root, done } = tempStore();
+  const s = newSubject(store);
+  const reader = new RegistryStore(root, { readOnly: true });
+  assert.throws(() => newSubject(reader, 2), /read-only/);
+  assert.throws(() => reader.startRun(s.id, "x"), /read-only/);
+  assert.throws(() => reader.saveLedger(store.openLedger(s.id)), /read-only/);
+  const run = store.startRun(s.id, "y");
+  assert.throws(() => reader.appendEpisode(run.id, { episode: 1, worldSeed: 1, summary: { ticks: 0, doneCause: null, foodEaten: 0, damage: 0, bumps: 0, finalHash: "" }, events: [] }), /read-only/);
+  done();
+});
+
+test("read-only: a folder without a registry is refused, not created", () => {
+  const root = mkdtempSync(join(tmpdir(), "brainlab-empty-"));
+  assert.throws(() => new RegistryStore(root, { readOnly: true }), /no registry/);
+  assert.deepEqual(readdirSync(root), []);
+  rmSync(root, { recursive: true, force: true });
 });

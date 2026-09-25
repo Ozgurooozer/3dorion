@@ -9,7 +9,7 @@
 // Default root is brain-lab/data/, which git ignores (Ozyn, 2026-09-23).
 "use strict";
 
-import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { BrainGrafi } from "../brain-ir/ir.ts";
 import type { EpisodeSummary, WorldConfig } from "../world/index.ts";
@@ -59,14 +59,62 @@ const writeJson = (p: string, v: unknown) => writeFileSync(p, JSON.stringify(v, 
 const readLines = <T>(p: string): T[] =>
   existsSync(p) ? readFileSync(p, "utf8").split("\n").filter((l) => l.trim() !== "").map((l) => JSON.parse(l) as T) : [];
 
+/** Name of the writer lock file inside the registry root. */
+export const WRITER_LOCK = ".writer.lock";
+
+const alive = (pid: number): boolean => {
+  try { process.kill(pid, 0); return true; } catch (e) { return (e as NodeJS.ErrnoException).code === "EPERM"; }
+};
+
+export interface StoreOptions {
+  /**
+   * Read-only: no lock taken, every write refused. For diagnosis and inspection while an experiment
+   * is running. Default false.
+   */
+  readonly readOnly?: boolean;
+}
+
 export class RegistryStore {
   readonly root: string;
+  readonly readOnly: boolean;
 
-  constructor(root: string) {
+  /**
+   * A writer takes the registry's lock: two processes writing at once would race on registry.json
+   * and hand out the same subject number (measured risk, 2026-09-24 — until then only a rule).
+   * A lock left by a dead process is taken over; one held by a live process is refused.
+   */
+  constructor(root: string, opts: StoreOptions = {}) {
     this.root = root;
+    this.readOnly = opts.readOnly ?? false;
+    if (this.readOnly) {
+      if (!existsSync(this.indexPath)) throw new Error(`no registry at ${root}`);
+      return;
+    }
     mkdirSync(join(root, "subjects"), { recursive: true });
     mkdirSync(join(root, "runs"), { recursive: true });
+    this.lock();
     if (!existsSync(this.indexPath)) writeJson(this.indexPath, { version: 1, nextSubject: 1, nextRun: 1, subjects: [] } satisfies RegistryIndex);
+  }
+
+  private lock(): void {
+    const p = join(this.root, WRITER_LOCK);
+    const mine = JSON.stringify({ pid: process.pid, since: new Date().toISOString() }) + "\n";
+    try {
+      writeFileSync(p, mine, { flag: "wx" }); // exclusive: two starting processes cannot both create it
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code !== "EEXIST") throw e;
+      const holder = (JSON.parse(readFileSync(p, "utf8")) as { pid: number }).pid;
+      if (holder === process.pid) return;
+      if (alive(holder)) throw new Error(`registry ${this.root} is being written by process ${holder}; run experiments one at a time (or open it read-only)`);
+      writeFileSync(p, mine); // the holder is dead: a stale lock, taken over
+    }
+    process.once("exit", () => {
+      try { if ((JSON.parse(readFileSync(p, "utf8")) as { pid: number }).pid === process.pid) unlinkSync(p); } catch { /* already gone */ }
+    });
+  }
+
+  private writable(): void {
+    if (this.readOnly) throw new Error(`registry ${this.root} was opened read-only`);
   }
 
   private get indexPath() { return join(this.root, "registry.json"); }
@@ -78,6 +126,7 @@ export class RegistryStore {
   }
 
   createSubject(input: NewSubject): Subject {
+    this.writable();
     checkGraph(input.birthGraph);
     const idx = this.index();
     const n = idx.nextSubject;
@@ -144,6 +193,7 @@ export class RegistryStore {
 
   /** Appends the ledger's entries that are not on disk yet, and updates the stage. */
   saveLedger(ledger: Ledger): number {
+    this.writable();
     const p = join(this.dir(ledger.subjectId), "ledger.jsonl");
     const disk = readLines<LedgerEntry>(p);
     const onDisk = disk.length;
@@ -166,6 +216,7 @@ export class RegistryStore {
   }
 
   startRun(subject: string, purpose: string, meta: Record<string, unknown> = {}, opts: { date?: string; codeCommit?: string | null } = {}): RunHeader {
+    this.writable();
     this.loadSubject(subject);
     const idx = this.index();
     const header: RunHeader = {
@@ -184,6 +235,7 @@ export class RegistryStore {
   }
 
   appendEpisode(run: string, line: Omit<EpisodeLine, "kind">): void {
+    this.writable();
     const p = join(this.root, "runs", `${run}.jsonl`);
     if (!existsSync(p)) throw new Error(`no run ${run}`);
     appendFileSync(p, JSON.stringify({ kind: "episode", ...line }) + "\n");
