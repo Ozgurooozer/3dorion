@@ -3,101 +3,83 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Deney Panosu</title>
-<meta name="description" content="brain-lab deney sonuçları: koşullar, ikiz kontroller, çürütme paketleri ve deneklerin ne öğrendiği.">
+<title>Deney Sonuçları</title>
+<meta name="description" content="brain-lab deney sonuçları: her deneyin kararı, ikiz kontroller, çürütme paketleri ve deneklerin ne öğrendiği; her sayının açıklamasıyla.">
+<link rel="stylesheet" href="./lab.css">
 <style>
-  :root {
-    --bg: #0b0f17; --surface: #121926; --elevated: #182131; --border: #243044;
-    --text: #e8edf5; --dim: #7d8aa0; --accent: #5b8def;
-    --good: #4cc38a; --bad: #e5484d; --warn: #f2b84b; --inner: #a37af0; --twin: #7d8aa0;
-    --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0 }
-  body { background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  main { max-width: 1320px; margin: 0 auto; padding: 18px 16px 48px; }
-  header { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
-  .eyebrow { font: 600 11px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
-  h1 { font-size: 22px; font-weight: 700; margin-top: 2px; }
-  .sub { color: var(--dim); font-size: 13px; max-width: 760px; }
-  nav a { color: var(--accent); text-decoration: none; font: 600 12px var(--mono); border: 1px solid var(--border); border-radius: 7px; padding: 6px 11px; background: var(--elevated); }
-  nav a:hover { border-color: var(--accent); }
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; min-width: 0; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid > .panel + .panel { margin-top: 0; }
   .wide { grid-column: 1 / -1; }
-  .panel h2 { font: 600 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--dim); margin-bottom: 10px; display: flex; justify-content: space-between; gap: 8px; align-items: center; flex-wrap: wrap; }
-  .panel h2 .hint { text-transform: none; letter-spacing: 0; font-weight: 400; }
-  table { width: 100%; border-collapse: collapse; font: 12px var(--mono); }
-  td, th { text-align: left; padding: 5px 7px; border-bottom: 1px solid var(--border); white-space: nowrap; }
-  th { color: var(--dim); font-weight: 500; position: sticky; top: 0; background: var(--surface); }
-  td.num, th.num { text-align: right; }
-  tbody tr { cursor: pointer; }
-  tbody tr:hover td { background: var(--elevated); }
-  tr.sel td { background: #1d2a40; }
-  .scroll { max-height: 420px; overflow: auto; }
-  .tag { display: inline-block; font: 600 10px var(--mono); padding: 1px 6px; border-radius: 4px; border: 1px solid var(--border); color: var(--dim); }
+  .scroll { max-height: 440px; overflow: auto; }
+  #groups td, #groups th, #subjects td, #subjects th { white-space: nowrap; }
+  #groups tbody tr, #subjects tbody tr { cursor: pointer; }
+  #groups tbody tr:hover td, #subjects tbody tr:hover td { background: var(--elevated); }
+  tr.sel td { background: var(--accent-bg); }
+  .tag { display: inline-block; font: 600 11px var(--mono); padding: 1px 6px; border-radius: 4px; border: 1px solid var(--border); color: var(--dim); }
   .tag.cross, .tag.local { color: var(--warn); border-color: #5a4a22; }
-  .tag.none { color: var(--good); border-color: #1f4a37; }
-  .good { color: var(--good); } .bad { color: var(--bad); } .dim { color: var(--dim); }
-  select, input { font: inherit; color: var(--text); background: var(--elevated); border: 1px solid var(--border); border-radius: 7px; padding: 5px 9px; }
-  svg { display: block; width: 100%; height: auto; }
-  svg text { fill: var(--dim); font: 11px var(--mono); }
-  svg .label { fill: var(--text); }
-  .note { color: var(--dim); font-size: 12.5px; margin-top: 8px; }
-  .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--dim); margin-top: 6px; }
-  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
-  .kv { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-bottom: 10px; }
-  .kv div { background: var(--elevated); border: 1px solid var(--border); border-radius: 7px; padding: 6px 9px; }
-  .kv .k { font: 11px var(--mono); color: var(--dim); }
+  .kv { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; margin-bottom: 12px; }
+  .kv > div { background: var(--elevated); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; }
+  .kv .k { font-size: 12px; color: var(--dim); }
   .kv .v { font: 600 14px var(--mono); }
-  .empty { color: var(--dim); font-style: italic; padding: 12px 0; }
-  @media (max-width: 960px) { .grid { grid-template-columns: 1fr; } }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--soft); margin-top: 8px; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+  .empty { color: var(--dim); font-style: italic; }
+  .sub2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 1000px) { .grid, .sub2 { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
 <main>
-  <header>
+  <div class="top">
     <div>
-      <div class="eyebrow">brain-lab · deney panosu</div>
-      <h1>Deneyler</h1>
-      <div class="sub">Her satır bir koşul: öğrenen denekler ve aynı doğumlu, öğrenmeyen <b>ikiz kontrolleri</b>. Veri <code>data/results.jsonl</code>'dan salt-okunur gelir; deney koşarken de açık kalabilir. Ortalama dürtü düşük = beden iyi yaşıyor; yönlendirme 0 = yön yok, 1 = kusursuz.</div>
+      <div class="eyebrow">brain-lab</div>
+      <h1>Sonuçlar</h1>
+      <div class="lead">Bütün deneylerin sayıları. Her satır bir deney: öğrenen denekler ve her birinin aynı doğmuş, öğrenmeyen <b>ikizi</b><span data-tip="ikiz"></span>. Bir sayının ne demek olduğunu merak edersen yanındaki <b>?</b> işaretine bak. İzlemek istersen <a href="./deney-odasi.html">Deney Odası</a>'na geç.</div>
     </div>
-    <nav><a href="./index.html">← Oda ve beyin</a></nav>
-  </header>
+    <nav class="tabs" id="tabs"></nav>
+  </div>
 
   <section class="grid">
     <div class="panel wide">
-      <h2>Koşullar <span class="hint">satıra tıkla → denekler aşağıda</span></h2>
+      <h2>Deneyler</h2>
+      <div class="explain">Satıra tıkla: o deneyin denekleri aşağıda açılır. <b>Karar</b> sütunu, öğrenenlerin ikizlerinden anlamlı şekilde tok yaşayıp yaşamadığını söyler (eşleştirilmiş Wilcoxon, p &lt; 0,05)<span data-tip="p"></span>. Kontrol satırlarında (CROSS, LOCAL) beklenen, kazancın <b>kaybolmasıdır</b>. Dürtü sütununda yeşil = öğrenen ikizinden iyi.</div>
       <div class="scroll"><table id="groups"></table></div>
     </div>
 
     <div class="panel">
-      <h2>Ortalama dürtü: ikiz → öğrenen <span class="hint" id="pairTitle"></span></h2>
+      <h2>İkiz → öğrenen <span class="dim" id="pairTitle" style="font-weight:400;font-size:13px"></span></h2>
+      <div class="explain">Her çizgi bir denek: solda ikizinin, sağda kendisinin ortalama dürtüsü<span data-tip="durtu"></span>. Çizgi <b>aşağı iniyorsa</b> öğrenen daha tok yaşadı (iyi). Kalın beyaz çizgi ortalama.</div>
       <svg id="pairs" viewBox="0 0 520 320"></svg>
       <div class="legend"><span><i class="dot" style="background:var(--good)"></i>öğrenen daha iyi</span><span><i class="dot" style="background:var(--bad)"></i>öğrenen daha kötü</span></div>
     </div>
     <div class="panel">
-      <h2>Denekler <span class="hint">DNK'ya tıkla → ne öğrendi</span></h2>
+      <h2>Denekler</h2>
+      <div class="explain">Bu deneyin denekleri. Satıra tıkla: aşağıda o beynin ne öğrendiği açılır. Her deneği ikiziyle yan yana izlemek için alttaki bağlantıyı kullan.</div>
       <div class="scroll" style="max-height:340px"><table id="subjects"></table></div>
     </div>
 
     <div class="panel wide">
       <h2>Çürütme paketi <select id="falsifyCode"></select></h2>
+      <div class="explain">Bir öğrenme iddiasını <b>yıkmaya</b> çalışan deneyler<span data-tip="bilim"></span>. Her sütun, taze seed'lerde aynı denekler için ortalama dürtü; altındaki p, o sütunun öğrenenden farkının anlamlılığı. İddia ayaktaysa: <b>ikiz</b>, <b>CROSS</b><span data-tip="cross"></span> ve <b>LOCAL</b><span data-tip="local"></span> öğrenenden belirgin kötü (yüksek sütun, küçük p) olmalı; <b>lezyonlar</b><span data-tip="lezyon"></span> kazancın nereden geldiğini gösterir: "öğrenilen her şey" silinince denek ikiz seviyesine dönmeli.</div>
       <svg id="falsify" viewBox="0 0 1260 300"></svg>
-      <div class="note" id="falsifyNote"></div>
+      <div class="note explain" id="falsifyNote" style="margin-top:8px"></div>
     </div>
 
     <div class="panel wide">
-      <h2>Denek: ne öğrendi <span class="hint" id="subjectTitle">bir denek seç</span></h2>
+      <h2>Denek: ne öğrendi <span class="dim" id="subjectTitle" style="font-weight:400;font-size:13px">bir denek seç</span></h2>
       <div class="kv" id="subjectKv"></div>
-      <div class="grid">
+      <div class="sub2">
         <div>
-          <div class="note" style="margin:0 0 6px">Öğrenilen ağırlık değişimi (Git − Gitme), duyu × eylem. Yeşil = bu duyu bu eyleme iter, kırmızı = frenler.</div>
+          <h3>Öğrenilen bağlantılar<span data-tip="gitgitme"></span></h3>
+          <div class="explain">Satırlar duyular, sütunlar hareketler. Her kutu, o duyudan o harekete giden bağlantının doğumdan bu yana değişimi (Git − Gitme). <b class="good">Yeşil</b> = bu duyu bu hareketi yaptırıyor; <b class="bad">kırmızı</b> = frenliyor; soluk = değişmedi. Işın 0–1 sağa, 2 tam öne, 3–4 sola bakar<span data-tip="beden"></span>.</div>
           <svg id="heatmap" viewBox="0 0 520 560"></svg>
         </div>
         <div>
-          <div class="note" style="margin:0 0 6px">Öğrenme eğrisi: eğitim bölümü başına 1000 tikte yemek.</div>
+          <h3>Öğrenme eğrisi<span data-tip="egitim"></span></h3>
+          <div class="explain">Eğitimdeki 40 odanın her birinde 1000 tik başına yenen yemek. İnce çizgi oda oda, kalın çizgi 5 odalık ortalama. Yükseliyorsa beden eğitim sırasında daha iyi yemek bulur hale geliyor.</div>
           <svg id="curve" viewBox="0 0 520 240"></svg>
-          <div class="note" style="margin:14px 0 6px">Eleştirmenin yemek görmeye verdiği değer, ışın başına (sağ → sol).</div>
+          <h3>Eleştirmenin yemeğe verdiği değer<span data-tip="elestirmen"></span></h3>
+          <div class="explain">Her ışında yemek görmenin, eleştirmene göre ne kadar "iyi haber" olduğu. Yön öğrenmek için bunun belirgin pozitif olması gerekir; bugün binde birler düzeyinde, yani neredeyse sıfır. Asıl sorunumuz bu.</div>
           <svg id="critic" viewBox="0 0 520 120"></svg>
         </div>
       </div>

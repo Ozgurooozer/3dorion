@@ -1,0 +1,70 @@
+/* brain-lab/viewer/lab.css — shared look of the lab pages (Deney Odası, Sonuçlar, Rehber). */
+:root {
+  --bg: #0b0f17; --surface: #121926; --elevated: #182131; --border: #243044; --border-strong: #33415a;
+  --text: #e8edf5; --soft: #b8c2d3; --dim: #7d8aa0; --accent: #5b8def;
+  --good: #4cc38a; --bad: #e5484d; --warn: #f2b84b; --inner: #a37af0; --twin: #7d8aa0;
+  --good-bg: #13291f; --bad-bg: #2d1518; --warn-bg: #2d2412; --accent-bg: #16233d;
+  --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--text); font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 1380px; margin: 0 auto; padding: 16px 16px 64px; }
+a { color: var(--accent); }
+code { font: 13px var(--mono); background: var(--elevated); padding: 1px 5px; border-radius: 4px; }
+
+/* header + navigation */
+.top { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
+.eyebrow { font: 600 11px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+h1 { font-size: 26px; font-weight: 700; margin-top: 2px; }
+.lead { color: var(--soft); max-width: 780px; margin-top: 4px; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tabs a { text-decoration: none; color: var(--soft); font-weight: 600; font-size: 14px; border: 1px solid var(--border); border-radius: 8px; padding: 7px 13px; background: var(--surface); }
+.tabs a:hover { border-color: var(--accent); color: var(--text); }
+.tabs a.here { background: var(--accent-bg); border-color: var(--accent); color: var(--text); }
+
+/* panels */
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; min-width: 0; }
+.panel + .panel { margin-top: 14px; }
+.panel h2 { font-size: 17px; font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.panel h2 .step { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 14px; }
+.panel .explain { color: var(--soft); font-size: 14px; margin-bottom: 12px; }
+.panel h3 { font-size: 14px; font-weight: 700; margin: 14px 0 6px; }
+.dim { color: var(--dim); } .good { color: var(--good); } .bad { color: var(--bad); } .warn { color: var(--warn); }
+
+/* hover hint linking to the guide */
+a.tip { display: inline-grid; place-items: center; width: 17px; height: 17px; border-radius: 50%; border: 1px solid var(--border-strong); color: var(--dim); font: 700 11px system-ui; text-decoration: none; vertical-align: 1px; margin-left: 4px; flex: none; }
+a.tip:hover { border-color: var(--accent); color: var(--accent); }
+
+/* buttons */
+button, select { font: inherit; font-size: 14px; color: var(--text); background: var(--elevated); border: 1px solid var(--border-strong); border-radius: 8px; padding: 7px 13px; cursor: pointer; }
+button:hover, select:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+button.on { border-color: var(--accent); color: var(--accent); }
+button:disabled { opacity: .45; cursor: default; }
+
+/* verdict chips */
+.chip { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 9px; border-radius: 999px; border: 1px solid; white-space: nowrap; }
+.chip.learned { color: var(--good); border-color: #2a6b4d; background: var(--good-bg); }
+.chip.no-difference { color: var(--soft); border-color: var(--border-strong); background: var(--elevated); }
+.chip.worse { color: var(--bad); border-color: #7a2a2e; background: var(--bad-bg); }
+.chip.too-few { color: var(--warn); border-color: #6b5520; background: var(--warn-bg); }
+.chip.control { color: var(--warn); border-color: #6b5520; background: var(--warn-bg); }
+
+/* tables */
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+td, th { text-align: left; padding: 7px 9px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { color: var(--dim); font-weight: 600; font-size: 13px; }
+td.num, th.num { text-align: right; font-family: var(--mono); font-size: 13px; }
+
+/* notes */
+.callout { border: 1px solid var(--border); border-left: 4px solid var(--accent); background: var(--elevated); border-radius: 8px; padding: 10px 14px; color: var(--soft); font-size: 14px; }
+.callout b { color: var(--text); }
+.callout.good { border-left-color: var(--good); } .callout.bad { border-left-color: var(--bad); } .callout.warn { border-left-color: var(--warn); }
+.callout ul { margin: 6px 0 0 18px; }
+.callout li + li { margin-top: 4px; }
+svg { display: block; width: 100%; height: auto; }
+svg text { fill: var(--dim); font: 12px system-ui, sans-serif; }
+svg .label { fill: var(--text); }
+.loading { color: var(--dim); font-style: italic; padding: 10px 0; }
+.error { border-color: var(--bad); color: var(--bad); }

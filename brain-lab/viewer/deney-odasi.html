@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deney Odası</title>
+<meta name="description" content="Öğrenen bir beyni, hiç öğrenmemiş ikiziyle aynı odada yan yana izle; deneyin ne dediğini sade bir dille oku.">
+<link rel="stylesheet" href="./lab.css">
+<style>
+  .how { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+  .how div { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; color: var(--soft); font-size: 14px; }
+  .how b { display: block; color: var(--text); font-size: 15px; margin-bottom: 2px; }
+  .layout { display: grid; grid-template-columns: 360px 1fr; gap: 14px; align-items: start; }
+  .side { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; }
+
+  .cond { width: 100%; text-align: left; display: block; border: 1px solid var(--border); background: var(--elevated); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer; color: var(--text); }
+  .cond:hover { border-color: var(--border-strong); }
+  .cond.sel { border-color: var(--accent); background: var(--accent-bg); }
+  .cond .row1 { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+  .cond .name { font-weight: 700; }
+  .cond .what { color: var(--soft); font-size: 13px; margin-top: 2px; }
+  .cond .meta { color: var(--dim); font-size: 12px; margin-top: 4px; }
+
+  .subj { width: 100%; display: grid; grid-template-columns: 1fr 120px; gap: 8px; align-items: center; text-align: left; border: 1px solid var(--border); background: var(--elevated); border-radius: 8px; padding: 7px 10px; margin-bottom: 6px; cursor: pointer; color: var(--text); font-size: 13px; }
+  .subj.sel { border-color: var(--accent); background: var(--accent-bg); }
+  .subj .who b { font-family: var(--mono); font-size: 12.5px; }
+  .subj .who span { display: block; color: var(--dim); font-size: 12px; }
+  .mini { display: grid; gap: 3px; }
+  .mini i { display: block; height: 7px; border-radius: 4px; }
+  .mini .lbl { font-size: 11px; color: var(--dim); display: flex; justify-content: space-between; }
+
+  .arena { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .contestant { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: var(--elevated); }
+  .contestant.learner { border-top: 4px solid var(--good); }
+  .contestant.twin { border-top: 4px solid var(--twin); }
+  .contestant .role { font: 700 12px var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+  .contestant.learner .role { color: var(--good); }
+  .contestant.twin .role { color: var(--twin); }
+  .contestant .who { font-weight: 700; margin-top: 2px; }
+  .contestant .roleText { color: var(--soft); font-size: 13px; margin-bottom: 8px; }
+  canvas { display: block; width: 100%; height: auto; border-radius: 8px; background: #0b0f17; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 10px; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; }
+  .stat .k { color: var(--dim); font-size: 12px; display: flex; align-items: center; }
+  .stat .v { font: 700 20px var(--mono); }
+  .stat .v.small { font-size: 14px; font-family: system-ui; padding-top: 5px; }
+  .bar { height: 8px; background: var(--bg); border-radius: 4px; margin-top: 6px; overflow: hidden; }
+  .bar i { display: block; height: 100%; border-radius: 4px; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
+  .controls .sep { width: 1px; height: 26px; background: var(--border); margin: 0 4px; }
+  .controls .clock { margin-left: auto; font: 13px var(--mono); color: var(--soft); }
+  .result { margin-top: 12px; }
+  .result.hidden { display: none; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--soft); margin-top: 8px; }
+  .legend i { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+  .sentences li { margin: 4px 0 0 18px; }
+  .sentences .v { font-family: var(--mono); font-size: 12.5px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 1100px) { .layout { grid-template-columns: 1fr; } .side { position: static; max-height: none; } }
+  @media (max-width: 760px) { .how, .arena, .two { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <div class="top">
+    <div>
+      <div class="eyebrow">brain-lab</div>
+      <h1>Deney Odası</h1>
+      <div class="lead">Öğrenen bir beyni, <b>hiç öğrenmemiş ikiziyle</b> aynı odada yan yana izle. İkisi de aynı doğdu; tek fark, öğrenenin 40 odada deneyim kazanmış olması. Gördüğün her oda, deneyde ölçülen odanın birebir aynısı.</div>
+    </div>
+    <nav class="tabs" id="tabs"></nav>
+  </div>
+
+  <div class="how">
+    <div><b>1 · Deney seç</b>Soldan bir deney seç. Her kartta o deneyin ne denediği ve sonucu yazıyor.</div>
+    <div><b>2 · Denek seç</b>O deneyin deneklerinden birini seç. Çubuklar, öğrenenin ve ikizinin ne kadar aç yaşadığını gösterir.</div>
+    <div><b>3 · İzle ve karşılaştır</b>▶ ile başlat. İki beden aynı odada yaşar; oda bitince kim daha iyi yaşadı, sayılarıyla yazılır.</div>
+  </div>
+
+  <div class="layout">
+    <aside class="side">
+      <section class="panel">
+        <h2><span class="step">1</span> Deney seç</h2>
+        <div class="explain">Kodların anlamı ve kararların nasıl verildiği <a href="./guide.html#kosullar" target="_blank">Rehber</a>'de.</div>
+        <div id="conditions" class="loading">Deneyler okunuyor…</div>
+      </section>
+      <section class="panel">
+        <h2><span class="step">2</span> Denek seç</h2>
+        <div class="explain">Çubuk ne kadar kısaysa denek o kadar tok yaşadı (ortalama dürtü<span data-tip="durtu"></span>).</div>
+        <div id="subjects" class="loading">Önce bir deney seç.</div>
+      </section>
+    </aside>
+
+    <div>
+      <section class="panel">
+        <h2><span class="step">3</span> İzle <span class="dim" id="roomTitle" style="font-weight:400;font-size:14px"></span></h2>
+        <div class="controls">
+          <button class="primary" id="play" disabled>▶ Başlat</button>
+          <span class="dim" style="font-size:13px">Hız:</span>
+          <span id="speeds"></span>
+          <span class="sep"></span>
+          <button id="finish" disabled title="Bu odanın geri kalanını beklemeden hesapla">Odayı bitir ⏭</button>
+          <button id="next" disabled>Sonraki oda →</button>
+          <span class="clock" id="clock"></span>
+        </div>
+        <div class="arena">
+          <div class="contestant learner">
+            <div class="role">Öğrenen</div>
+            <div class="who" id="learnerWho">—</div>
+            <div class="roleText" id="learnerRole">40 odada öğrendi; şimdi öğrenmesi dondurulmuş, yalnızca öğrendiğini kullanıyor.</div>
+            <canvas id="learnerCanvas" width="560" height="560"></canvas>
+            <div class="stats" id="learnerStats"></div>
+          </div>
+          <div class="contestant twin">
+            <div class="role">İkizi (kontrol)<span data-tip="ikiz"></span></div>
+            <div class="who" id="twinWho">—</div>
+            <div class="roleText">Aynı seed'le, aynı beyinle doğdu ama hiç öğrenmedi. Ne yapıyorsa doğuştan yapıyor.</div>
+            <canvas id="twinCanvas" width="560" height="560"></canvas>
+            <div class="stats" id="twinStats"></div>
+          </div>
+        </div>
+        <div class="legend">
+          <span><i style="background:#4cc38a"></i>yemek</span>
+          <span><i style="background:#e5484d"></i>tehlike bölgesi</span>
+          <span><i style="background:#e8edf5"></i>beden (içindeki çizgi: baktığı yön)</span>
+          <span>5 görüş ışını: <b class="good">yeşil</b> = yemek görüyor, gri = duvar</span>
+          <span><i style="background:#5b8def"></i>mavi soluk iz: son 12 saniyede gittiği yol</span>
+        </div>
+        <div class="callout result hidden" id="result"></div>
+        <div class="callout" style="margin-top:12px">
+          <b>Neye bakmalısın?</b>
+          <ul>
+            <li><b>Açken hareket, tokken dinlenme.</b> Öğrenen, tokluk çubuğu yüksekken sık sık durur, düşünce harekete geçer. Bunu kendi öğrendi: 40 odada, açken kıpırdamanın ve tokken durmanın bedeni daha iyi hissettirdiğini keşfetti.</li>
+            <li><b>İkiz</b> ya açlıktan ölene kadar amaçsızca dolaşır ya da hiç kıpırdamaz. Ne yapıyorsa doğuştan yapıyor.</li>
+            <li><b>Yön.</b> Bir ışın yemek görünce (yeşil) beden o tarafa dönüyor mu? Bunu <i>yönlendirme</i><span data-tip="yonlendirme"></span> ölçüsü sayar. Kendi başına öğrenen S1n'de bu henüz yok; şu an çözmeye çalıştığımız asıl sorun bu.</li>
+          </ul>
+        </div>
+        <h3>Oynanan odalar</h3>
+        <table id="score"></table>
+      </section>
+
+      <div class="two" style="margin-top:14px">
+        <section class="panel">
+          <h2>Bu deney ne diyor?</h2>
+          <div class="explain" id="verdictExplain">Öğrenenlerin hepsi kendi ikizleriyle karşılaştırılır.</div>
+          <div id="verdict"></div>
+          <table id="measures" style="margin-top:12px"></table>
+        </section>
+        <section class="panel">
+          <h2>Bu denek ne öğrendi?</h2>
+          <div class="explain">Beyindeki en güçlü öğrenilmiş değişiklikler, cümle olarak. Her biri bir duyudan bir hareketin Git ya da Gitme hücresine giden bağlantı<span data-tip="gitgitme"></span>.</div>
+          <div id="learned" class="loading">Bir denek seç.</div>
+        </section>
+      </div>
+
+      <section class="panel" style="margin-top:14px">
+        <h2>Yemek bulma: nerede duruyoruz?<span data-tip="yemek"></span></h2>
+        <div class="explain">1000 tikte (50 saniyede) yenen yemek. Gri çubuklar aynı odalarda ölçülmüş karşılaştırma noktaları; renkliler bu deney. Hedef önce <b>TD öğrenicisini</b> (aynı imkanlarla ders kitabı algoritması) geçmek, sonra <b>tavana</b> yaklaşmak.</div>
+        <svg id="references" viewBox="0 0 900 260"></svg>
+        <div class="explain" id="referencesNote" style="margin-top:6px"></div>
+      </section>
+    </div>
+  </div>
+</main>
+<script type="module" src="./deney-odasi.ts"></script>
+</body>
+</html>

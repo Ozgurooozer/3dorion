@@ -13,7 +13,9 @@ import { isPlastic, senseToMotorDelay } from "../regions/index.ts";
 import { Rng, Room, runEpisode, type Action, type EpisodeHooks, type Policy, type WorldConfig } from "../world/index.ts";
 import { approach, orientation, sideTurnInformation, steering, steeringIndex, turnToward } from "./measures.ts";
 
-export const MAX_TICKS = 3000;
+import { MAX_TICKS, evalNoise, evalWorld, trainNoise, trainWorld } from "./seeds.ts";
+
+export { MAX_TICKS, evalNoise, evalWorld, trainNoise, trainWorld };
 
 export interface Condition {
   readonly code: string;
@@ -63,10 +65,6 @@ export const median = (xs: number[]) => {
 };
 const moving = (a: Action) => a.thrust !== 0 || a.turn !== 0;
 
-export const trainNoise = (seed: number) => seed * 31 + 7;
-export const evalNoise = (seed: number) => seed * 31 + 999;
-export const trainWorld = (seed: number, ep: number) => seed * 1000 + ep;
-export const evalWorld = (seed: number, ep: number) => seed * 1000 + 500 + ep;
 
 /** How a condition's subjects are born, beyond seed and group (learner and twin alike). */
 export interface BirthOptions {

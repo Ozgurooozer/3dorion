@@ -942,6 +942,36 @@ değerlendirme aynı seçimle. Öğrenen dürtüsü 0,480, kardeş 0,845.
 - **Öngörüler (koşmadan):** M3 dönüş yönü > 0,55 (fark sinyali doğrudan "hangi taraf" diyor; öğrenilecek tek şey işaret).
   M3T > M3. M23 ~ M3.
 
+## 2026-09-25 — Deney Odası; motorlar arası yuvarlama farkı; defter hızı
+
+- **Ozyn'in eleştirisi:** ilk deney panosu "aşırı kullanışsız", "hiçbir şey anlaşılmıyor, test edemiyorum, sadece veriler
+  var". Doğru: sayfa sayı döküyordu, hiçbir şeyi denetlemeye ya da anlamaya izin vermiyordu. Yeniden yapıldı:
+  - **Deney Odası** (`viewer/deney-odasi.html`, `npm run lab` ilk bunu açar). Bir deney, sonra bir denek seçiliyor.
+    Öğrenen ile ikizi, deneyde ölçülen 10 değerlendirme odasını yan yana yaşıyor. Her oda bitince öğrenenin ve ikizin
+    ortalama dürtüsü, yemeği ve hayatta kalıp kalmadığı yazılıyor. Kayıtla eşleşme de odanın son dünya imzasıyla
+    denetleniyor.
+  - **Rehber** (`viewer/guide.html`): her terim ve sayı için ne olduğu, nasıl okunduğu, hedef ve gerekçesi. Tek kaynak
+    `viewer/guide.ts`. Sayfalardaki "?" işaretleri buraya bağlı; bir test, bağlanan her terimin rehberde olduğunu
+    denetliyor.
+  - **Sonuçlar** sayfası: her deneye bir karar etiketi eklendi (eşleştirilmiş Wilcoxon, p < 0,05; kontrol satırlarında
+    beklenen, kazancın kaybolması). Her sütun başlığında açıklama var.
+- `[ÖLÇÜLDÜ]` **Motorlar arası yuvarlama farkı.** DNK-2747'nin oda 1'i Node'da (v26.4.0) ve Edge'in tarayıcı motorunda
+  koşturuldu. İlk ayrılık 706. tikte çıktı: `body.vx` 0,20811514376685938 ile …936, yani son bitte fark var. Konum,
+  yön ve enerji o tikte aynıydı. Kaynak `Math.cos`: iki JavaScript motoru son biti farklı yuvarlıyor.
+  - Sonuç: dünya **aynı motor içinde** bit bit tekrarlanabilir, motorlar arasında değil. Oda 2'nin son hali farklı
+    çıktı; yemek sayısı ve süre aynı kaldı.
+  - Karar: beyinler sunucuda, deneyin koştuğu Node motorunda yaşıyor. Tarayıcı yalnız "film"i çiziyor
+    (`viewer/arena.ts` `filmRoom`).
+  - Denetim: DNK-2747 ve ikizi, 10 odanın 10'unda kayıtla birebir aynı çıktı. Ortalama dürtü öğrenen 0,04, ikiz 0,64;
+    `results.jsonl` ile aynı.
+  - İleride: koşu kayıtlarına Node sürümü de yazılmalı (şu an yalnız commit yazılıyor). Bir kayıt başka bir Node
+    sürümünde yeniden oynatılırsa son bitte ayrılabilir.
+- `[ÖLÇÜLDÜ]` **Defter hızı.** 666.370 kayıtlı bir defterin açılması 55,2 s'den 1,3 s'ye indi. Eskiden her kayıtta bütün
+  beyin kopyalanıp denetleniyordu. Artık ağırlık kayıtları kenar dizini üzerinden yerinde uygulanıyor; yapısal kayıtlar
+  eskisi gibi tam kopya + denetimden geçiyor. Dışarıya verilen grafik yine hiç değişmiyor.
+  - Gerçek veride beyin imzası eski ve yeni kodda aynı (`633062a8`). 10 yeni test yazıldı, 6/6 mutant öldü.
+- Panonun tüm yeni kodu: 1116/1116 test, mutasyon 18/18 + 19/19 + 6/6.
+
 ## Açık sorular (güncel)
 
 - Kendiliğinden hareket (motor babbling) ve zayıf rastgele doğum bağlantıları öğrenmeyi başlatır mı?

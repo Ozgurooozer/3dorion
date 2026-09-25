@@ -34,17 +34,24 @@ export type LedgerEntry =
 type Omit1<T, K extends keyof never> = T extends unknown ? Omit<T, K> : never;
 export type LedgerInput = Omit1<LedgerEntry, "id">;
 
+const misfit = (e: LedgerEntry, why: string): never => { throw new Error(`${e.id} (${e.kind}) does not fit the brain: ${why}`); };
+
+/** The one check of a weight entry against the edge it names (undefined = the brain has no such edge). */
+function checkWeight(e: LedgerEntry & { kind: "weight" }, c: BrainBaglantisi | undefined): BrainBaglantisi {
+  if (!c) return misfit(e, `no edge ${edgeKey(e.edge)}`);
+  if (c.weight !== e.before) misfit(e, `edge ${edgeKey(e.edge)} is ${c.weight}, entry says before=${e.before}`);
+  if (!Number.isFinite(e.after)) misfit(e, `after=${e.after}`);
+  return c;
+}
+
 /** Applies one entry to a graph, returning a new graph. Throws if the entry does not fit. */
 export function applyEntry(g: BrainGrafi, e: LedgerEntry): BrainGrafi {
   const next: BrainGrafi = { ...g, nodes: g.nodes.map((n) => ({ ...n })), connections: g.connections.map((c) => ({ ...c })) };
   const find = (ref: EdgeRef) => next.connections.find((c) => c.from === ref.from && c.to === ref.to);
-  const fail = (why: string): never => { throw new Error(`${e.id} (${e.kind}) does not fit the brain: ${why}`); };
+  const fail = (why: string): never => misfit(e, why);
   switch (e.kind) {
     case "weight": {
-      const c = find(e.edge) ?? fail(`no edge ${edgeKey(e.edge)}`);
-      if (c.weight !== e.before) fail(`edge ${edgeKey(e.edge)} is ${c.weight}, entry says before=${e.before}`);
-      if (!Number.isFinite(e.after)) fail(`after=${e.after}`);
-      c.weight = e.after;
+      checkWeight(e, find(e.edge)).weight = e.after;
       break;
     }
     case "node+":
@@ -79,7 +86,14 @@ export function applyEntry(g: BrainGrafi, e: LedgerEntry): BrainGrafi {
 export class Ledger {
   readonly subjectId: string;
   readonly birthGraph: BrainGrafi;
+  /**
+   * The brain now, owned by the ledger. Weight entries (almost all of them) change it in place through
+   * `edges`; structural entries go through applyEntry, which copies and re-checks the whole graph.
+   * Outside code only ever sees `graph`, a copy taken after the last change, which is never mutated.
+   */
   private current: BrainGrafi;
+  private edges = new Map<string, BrainBaglantisi>();
+  private snapshot: BrainGrafi | null = null;
   private readonly log: LedgerEntry[] = [];
   private stageNow: Stage = "E0";
   private readonly critic = new Map<string, number>();
@@ -89,7 +103,7 @@ export class Ledger {
     checkGraph(birthGraph);
     this.subjectId = subjectId;
     this.birthGraph = canonicalGraph(birthGraph);
-    this.current = this.birthGraph;
+    this.current = this.adopt(structuredClone(this.birthGraph));
     entries.forEach((e, i) => {
       if (parseId("LRN", e.id) !== i + 1) throw new Error(`${subjectId}: entry ${i + 1} has id ${e.id}; the ledger has a gap or reorder`);
       this.accept(e);
@@ -97,7 +111,12 @@ export class Ledger {
   }
 
   get graph(): BrainGrafi {
-    return this.current;
+    return (this.snapshot ??= structuredClone(this.current));
+  }
+
+  private adopt(g: BrainGrafi): BrainGrafi {
+    this.edges = new Map(g.connections.map((c) => [edgeKey(c), c]));
+    return g;
   }
 
   get entries(): readonly LedgerEntry[] {
@@ -139,7 +158,9 @@ export class Ledger {
       if (now !== e.before) throw new Error(`${e.id} (critic) does not fit: ${e.feature} is ${now}, entry says before=${e.before}`);
       if (!Number.isFinite(e.after)) throw new Error(`${e.id} (critic) after=${e.after}`);
     }
-    this.current = applyEntry(this.current, e);
+    if (e.kind === "weight") checkWeight(e, this.edges.get(edgeKey(e.edge))).weight = e.after;
+    else if (e.kind !== "stage" && e.kind !== "critic") this.current = this.adopt(applyEntry(this.current, e));
+    if (e.kind !== "stage" && e.kind !== "critic") this.snapshot = null;
     if (e.kind === "stage") this.stageNow = e.to;
     if (e.kind === "critic") this.critic.set(e.feature, e.after);
     this.log.push(e);

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab Rehberi</title>
+<meta name="description" content="brain-lab'daki her terim ve her sayı: ne anlama geliyor, nasıl okunur, neyi hedefliyoruz ve neden.">
+<link rel="stylesheet" href="./lab.css">
+<style>
+  .layout { display: grid; grid-template-columns: 250px 1fr; gap: 14px; align-items: start; }
+  .toc { position: sticky; top: 12px; }
+  .toc a { display: block; color: var(--soft); text-decoration: none; font-size: 14px; padding: 3px 0; }
+  .toc a:hover { color: var(--text); }
+  .toc .sec { color: var(--text); font-weight: 700; margin-top: 10px; }
+  .toc .sec:first-child { margin-top: 0; }
+  .toc .term { padding-left: 12px; font-size: 13px; }
+  .term-card { border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin-top: 10px; background: var(--elevated); scroll-margin-top: 12px; }
+  .term-card:target { border-color: var(--accent); background: var(--accent-bg); }
+  .term-card h3 { font-size: 17px; margin: 0 0 2px; }
+  .term-card .short { color: var(--text); font-weight: 600; margin-bottom: 8px; }
+  .term-card p { color: var(--soft); margin-top: 6px; }
+  .facts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+  .fact { border-radius: 8px; padding: 8px 12px; font-size: 14px; }
+  .fact .k { font: 700 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 2px; }
+  .fact.read { background: var(--surface); border: 1px solid var(--border); }
+  .fact.read .k { color: var(--accent); }
+  .fact.target { background: var(--good-bg); border: 1px solid #2a6b4d; }
+  .fact.target .k { color: var(--good); }
+  section.panel > .intro { color: var(--soft); margin-bottom: 4px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } .toc { position: static; } .facts { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <div class="top">
+    <div>
+      <div class="eyebrow">brain-lab</div>
+      <h1>Rehber</h1>
+      <div class="lead">Sayfalarda gördüğün her terim ve her sayı: ne anlama geliyor, nasıl okunur, neyi hedefliyoruz ve neden. Sayfalardaki <b>?</b> işaretleri buraya getirir.</div>
+    </div>
+    <nav class="tabs" id="tabs"></nav>
+  </div>
+  <div class="layout">
+    <nav class="panel toc" id="toc"></nav>
+    <div id="sections"></div>
+  </div>
+</main>
+<script type="module" src="./guide-page.ts"></script>
+</body>
+</html>

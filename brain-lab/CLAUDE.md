@@ -45,7 +45,7 @@ only as clearly labeled test fixtures.
 | `development/` | regional newborn brain (`INNATE` weights with reasons, born hungry via `initialEnergy`) and generator noise | `world`, `sensorimotor`, `regions`, `brain-ir` |
 | `learning/` | three-factor rule in quanta, every change on the ledger; `createAgent` = one living subject | all of the above, `registry`, `neuromodulation` |
 | `registry/` | subjects (DNK-0001 «Kıvılcım»), learning ledger (LRN-…), runs (RUN-…), world events (EVT-…); disk store in `store.ts` only, data under `brain-lab/data/` (git-ignored) | `world`, `brain-ir` (types) |
-| `viewer/` | `npm run lab` (port 5190): room, brain map, timeline, trace inspector | all of the above |
+| `viewer/` | `npm run lab` (port 5190): Deney Odası (a learner and its twin replaying the measured rooms, filmed on the server), Sonuçlar (verdicts, falsification, what a subject learned), Rehber (every term explained, `guide.ts`), room + brain map | all of the above |
 | `brain-ir/` | v0.2 substrate + v0.3 Alice/Bob (older, Turkish identifiers) | itself |
 | `archive/` | frozen old prototypes, excluded from typecheck | — |
 

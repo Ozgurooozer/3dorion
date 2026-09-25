@@ -4,24 +4,18 @@
 
 import { signTest, wilcoxon } from "../experiments/stats.ts";
 import type { EvalView, GroupSummary, LearnedMatrix, ResultRow } from "./dashboard-data.ts";
+import { verdict } from "./plain.ts";
 import { nodeLabel } from "./theme.ts";
+import { api, byId, esc, showError, tabs, tip } from "./ui.ts";
 
 // --- small helpers ------------------------------------------------------------------------------
 
 const SVG_NS = "http://www.w3.org/2000/svg";
-const byId = <T extends Element>(id: string): T => {
-  const e = document.getElementById(id);
-  if (!e) throw new Error(`missing element #${id}`);
-  return e as unknown as T;
-};
 const f2 = (x: number) => x.toFixed(2);
 const f3 = (x: number) => x.toFixed(3);
 const pct = (x: number) => `${Math.round(100 * x)}%`;
 const mean = (xs: readonly number[]) => (xs.length ? xs.reduce((s, x) => s + x, 0) / xs.length : 0);
 const pValue = (p: number) => (p < 0.001 ? p.toExponential(1) : p.toFixed(3));
-
-/** Text from the data is always escaped before it goes into HTML. */
-const esc = (s: unknown) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
 function svgEl<K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string, string | number>, text?: string): SVGElementTagNameMap[K] {
   const e = document.createElementNS(SVG_NS, tag);
@@ -37,13 +31,6 @@ function withTitle<E extends SVGElement>(e: E, title: string): E {
 
 function clear(node: Element): void {
   while (node.firstChild) node.removeChild(node.firstChild);
-}
-
-async function api<T>(path: string): Promise<T> {
-  const r = await fetch(path);
-  const body = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(`${path}: ${r.status} ${(body as { error?: string }).error ?? ""}`);
-  return body as T;
 }
 
 /** Paired test line: "k/n in favour · Wilcoxon p". Positive differences favour the learner. */
@@ -84,8 +71,11 @@ function groupRow(g: GroupSummary): string {
   const better = g.learner.meanDrive < g.twin.meanDrive;
   const control = g.control === "none" ? "—" : g.control;
   const room = `${g.food} yemek${g.threats ? ` · ${g.threats} tehlike` : ""}`;
+  const v = verdict(rows.filter((r) => groupKey(r) === g.key).map((r) => r.t.meanDrive - r.l.meanDrive), g.control);
+  const chipClass = g.control !== "none" && v.kind === "no-difference" ? "control" : v.kind;
   return `<tr data-key="${esc(g.key)}" class="${g.key === selectedKey ? "sel" : ""}">
     <td><b>${esc(g.code)}</b></td>
+    <td><span class="chip ${chipClass}" title="${esc(v.text)}">${esc(v.title)}</span></td>
     <td>${esc(COMMAND_TR[g.command] ?? g.command)}</td>
     <td><span class="tag ${esc(g.control.toLowerCase())}">${esc(control)}</span></td>
     <td>${esc(room)}</td>
@@ -108,9 +98,9 @@ function renderGroups(): void {
     table.innerHTML = `<tr><td class="empty">Henüz sonuç yok — <code>npm run exp -- tara KOD</code></td></tr>`;
     return;
   }
-  const head = `<thead><tr><th>koşul</th><th>aşama</th><th>kontrol</th><th>oda</th><th class="num">denek</th>
-    <th class="num">dürtü öğrenen</th><th class="num">ikiz</th><th class="num">öğrenen iyi</th><th class="num">hayatta</th>
-    <th class="num">yönlendirme</th><th class="num">bilgi (bit)</th><th class="num">yemek/1000t</th><th class="num">zarar/1000t</th><th>son</th></tr></thead>`;
+  const head = `<thead><tr><th>deney</th><th>karar${tip("p")}</th><th>aşama${tip("tazeseed")}</th><th>kontrol${tip("cross")}</th><th>oda${tip("oda")}</th><th class="num">denek</th>
+    <th class="num">dürtü öğrenen${tip("durtu")}</th><th class="num">ikiz${tip("ikiz")}</th><th class="num">öğrenen iyi${tip("iyi-sayisi")}</th><th class="num">hayatta${tip("hayatta")}</th>
+    <th class="num">yönlendirme${tip("yonlendirme")}</th><th class="num">bilgi (bit)${tip("bilgi")}</th><th class="num">yemek/1000t${tip("yemek")}</th><th class="num">zarar/1000t${tip("zarar")}</th><th>son</th></tr></thead>`;
   const newestFirst = [...groups].sort((a, b) => b.lastDate.localeCompare(a.lastDate));
   table.innerHTML = `${head}<tbody>${newestFirst.map(groupRow).join("")}</tbody>`;
   table.querySelectorAll<HTMLElement>("tbody tr").forEach((tr) => tr.addEventListener("click", () => selectGroup(tr.dataset.key!)));
@@ -161,7 +151,7 @@ function renderSubjects(members: readonly ResultRow[]): void {
       <td class="num dim">${f3(r.t.meanDrive)}</td><td class="num">${f3(r.l.steering ?? 0)}</td><td class="num">${pct(r.l.survival)}</td>
     </tr>`).join("");
   table.innerHTML = `<thead><tr><th>denek</th><th>seed</th><th>grup</th><th class="num">dürtü</th><th class="num">ikiz</th><th class="num">yönlendirme</th><th class="num">hayatta</th></tr></thead><tbody>${body}</tbody>`;
-  table.querySelectorAll<HTMLElement>("tbody tr").forEach((tr) => tr.addEventListener("click", () => void loadSubject(tr.dataset.id!)));
+  table.querySelectorAll<HTMLElement>("tbody tr").forEach((tr) => tr.addEventListener("click", () => { loadSubject(tr.dataset.id!).catch(showError); }));
 }
 
 // --- falsification battery ----------------------------------------------------------------------
@@ -243,7 +233,7 @@ interface SubjectView {
 async function loadSubject(id: string): Promise<void> {
   const v = await api<SubjectView>(`/api/subject/${encodeURIComponent(id)}`);
   const s = v.subject;
-  byId<HTMLElement>("subjectTitle").textContent = `${s.id} «${s.name}»`;
+  byId<HTMLElement>("subjectTitle").innerHTML = `${esc(s.id)} «${esc(s.name)}» · <a href="./deney-odasi.html?denek=${encodeURIComponent(s.id)}">Deney Odası'nda ikiziyle izle →</a>`;
   const facts: [string, string][] = [
     ["denek", `${s.id} «${s.name}»`], ["kategori", s.category], ["grup", GROUP_TR[s.group] ?? s.group], ["evre", s.stage],
     ["seed", String(s.birth.seed)], ["doğum", s.birth.date], ["soy", s.lineage.parent ? `${s.lineage.how} ← ${s.lineage.parent}` : "doğum"],
@@ -320,15 +310,9 @@ function renderCritic(values: readonly number[]): void {
 
 // --- start --------------------------------------------------------------------------------------
 
-function showError(e: unknown): void {
-  const box = document.createElement("div");
-  box.className = "panel";
-  box.style.cssText = "border-color:var(--bad);margin-bottom:12px";
-  box.textContent = `Veri okunamadı: ${e instanceof Error ? e.message : String(e)}`;
-  document.querySelector("main")!.prepend(box);
-}
-
 async function start(): Promise<void> {
+  byId("tabs").innerHTML = tabs("deneyler.html");
+  document.querySelectorAll<HTMLElement>("[data-tip]").forEach((e) => { e.outerHTML = tip(e.dataset.tip!); });
   const results = await api<{ groups: GroupSummary[]; rows: ResultRow[] }>("/api/results");
   groups = results.groups;
   rows = results.rows;

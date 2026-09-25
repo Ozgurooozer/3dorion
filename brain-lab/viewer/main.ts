@@ -85,7 +85,7 @@ function stepOnce(): void {
 }
 
 function render(): void {
-  drawRoom(roomCtx, session.room, obs, trail, bumpFlash);
+  drawRoom(roomCtx, session.room.state(), obs.rays, trail, bumpFlash);
   drawBrain(brainCtx, session.graph, layout, session.controller.last, selected);
   drawTimeline(timelineCtx, samples);
   renderStats();

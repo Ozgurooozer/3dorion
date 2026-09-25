@@ -13,8 +13,9 @@ import type { BrainGrafi } from "../brain-ir/ir.ts";
 import { sensorimotorScaffold } from "../sensorimotor/index.ts";
 import { DEFAULT_CONFIG as C, Room, runEpisode } from "../world/index.ts";
 import {
-  Ledger, NAMES, describe, episodeEvents, graphHash, ledgerId, nameFor, parseId, subjectId, type LedgerInput,
+  Ledger, NAMES, applyEntry, describe, episodeEvents, graphHash, ledgerId, nameFor, parseId, subjectId, type LedgerInput,
 } from "./index.ts";
+import { canonicalGraph } from "./graph.ts";
 import { INDEX_LOCK, RegistryStore } from "./store.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -31,6 +32,8 @@ const birthGraph = (): BrainGrafi => ({
     { from: "touch.bump", to: "motor.left", weight: 0.05 },
   ],
 });
+
+const canonicalBirth = () => canonicalGraph(birthGraph());
 
 const newSubject = (store: RegistryStore, seed = 1) =>
   store.createSubject({ category: "learner.3f", group: "reflexless", seed, worldConfig: C, birthGraph: birthGraph(), date: "2026-09-24" });
@@ -422,4 +425,85 @@ test("parallel writers: 12 threads hammering the index lock at once never fail (
     assert.equal(store.list().length, 240, `round ${round}`);
     done();
   }
+});
+
+// --- Ledger replay speed path (2026-09-25): weight entries change the brain in place through an edge index;
+// these tests hold it to the old copy-and-check path and to the "a graph you were given never changes" rule.
+
+/** A mixed history: weights, a new edge and its weight, a removal, a parameter, a critic weight, a stage. */
+const mixedHistory = (): LedgerInput[] => [
+  { kind: "stage", tick: 0, episode: 1, cause: [], from: "E0", to: "E1", reason: "first tick" },
+  w(0.1, 0.25),
+  { kind: "edge+", tick: 2, episode: 1, cause: ["growth"], edge: { from: "ray1.food", to: "motor.right", weight: 0.5 } },
+  { kind: "weight", tick: 3, episode: 1, cause: [], edge: { from: "ray1.food", to: "motor.right" }, before: 0.5, after: 0.75 },
+  { kind: "edge-", tick: 4, episode: 1, cause: ["prune"], edge: { from: "touch.bump", to: "motor.left" }, before: 0.05 },
+  { kind: "param", tick: 5, episode: 1, cause: ["tune"], node: "motor.forward", param: "threshold", before: null, after: 0.4 },
+  { kind: "critic", tick: 6, episode: 1, cause: [], feature: "ray2.food", before: 0, after: 0.125 },
+  w(0.25, 0.5, 7),
+];
+
+test("ledger replay gives the same brain as applying every entry with a full copy", () => {
+  const l = new Ledger("DNK-0001", birthGraph());
+  for (const e of mixedHistory()) l.record(e);
+  const reference = l.entries.reduce(applyEntry, canonicalBirth());
+  assert.equal(l.hash(), graphHash(reference));
+});
+
+test("ledger rebuilt from its entries has the same brain as the one that recorded them", () => {
+  const l = new Ledger("DNK-0001", birthGraph());
+  for (const e of mixedHistory()) l.record(e);
+  assert.equal(new Ledger("DNK-0001", birthGraph(), l.entries).hash(), l.hash());
+});
+
+test("a graph read from the ledger does not change when a later weight entry is recorded", () => {
+  const l = new Ledger("DNK-0001", birthGraph());
+  const before = l.graph;
+  l.record(w(0.1, 0.25));
+  assert.equal(before.connections.find((c) => c.from === "ray2.food")!.weight, 0.1);
+});
+
+test("a graph read from the ledger shows a weight entry recorded before the read", () => {
+  const l = new Ledger("DNK-0001", birthGraph());
+  l.record(w(0.1, 0.25));
+  assert.equal(l.graph.connections.find((c) => c.from === "ray2.food")!.weight, 0.25);
+});
+
+test("changing a graph read from the ledger does not change the ledger's brain", () => {
+  const l = new Ledger("DNK-0001", birthGraph());
+  const hash = l.hash();
+  l.graph.connections[0]!.weight = 9;
+  assert.equal(l.hash(), hash);
+});
+
+test("a weight entry that does not fit leaves the brain unchanged", () => {
+  const l = new Ledger("DNK-0001", birthGraph());
+  const hash = l.hash();
+  assert.throws(() => l.record(w(0.3, 0.4)), /entry says before=0\.3/);
+  assert.equal(l.hash(), hash);
+});
+
+test("a weight entry on an edge that was removed is refused", () => {
+  const l = new Ledger("DNK-0001", birthGraph());
+  l.record({ kind: "edge-", tick: 1, episode: 1, cause: [], edge: { from: "ray2.food", to: "motor.forward" }, before: 0.1 });
+  assert.throws(() => l.record(w(0.1, 0.2, 2)), /no edge ray2\.food->motor\.forward/);
+});
+
+test("a weight entry on an edge added later is accepted", () => {
+  const l = new Ledger("DNK-0001", birthGraph());
+  l.record({ kind: "edge+", tick: 1, episode: 1, cause: [], edge: { from: "ray0.wall", to: "motor.back", weight: 0.5 } });
+  l.record({ kind: "weight", tick: 2, episode: 1, cause: [], edge: { from: "ray0.wall", to: "motor.back" }, before: 0.5, after: 0.25 });
+  assert.equal(l.graph.connections.find((c) => c.from === "ray0.wall")!.weight, 0.25);
+});
+
+test("the ledger's birth graph stays as born after weight entries", () => {
+  const l = new Ledger("DNK-0001", birthGraph());
+  l.record(w(0.1, 0.25));
+  assert.equal(l.birthGraph.connections.find((c) => c.from === "ray2.food")!.weight, 0.1);
+});
+
+test("a graph read again after a weight entry shows the new weight (no stale copy)", () => {
+  const l = new Ledger("DNK-0001", birthGraph());
+  void l.graph;
+  l.record(w(0.1, 0.25));
+  assert.equal(l.graph.connections.find((c) => c.from === "ray2.food")!.weight, 0.25);
 });

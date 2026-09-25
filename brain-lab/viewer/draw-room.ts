@@ -2,14 +2,17 @@
 // World y is flipped so a positive turn ("left") turns left on screen.
 "use strict";
 
-import type { Observation, Room } from "../world/index.ts";
+import type { Ray } from "../world/index.ts";
+import type { RoomState } from "../world/room.ts";
 import { COLOR, alpha } from "./theme.ts";
 
 export interface Point { x: number; y: number }
 
-export function drawRoom(ctx: CanvasRenderingContext2D, room: Room, obs: Observation, trail: readonly Point[], bumpFlash: number): void {
+/** What drawing a room needs: a live Room's state() or a filmed frame (arena.ts) both provide it. */
+export type RoomView = Pick<RoomState, "config" | "entities"> & { readonly body: Pick<RoomState["body"], "x" | "y" | "heading"> };
+
+export function drawRoom(ctx: CanvasRenderingContext2D, s: RoomView, rays: readonly Ray[], trail: readonly Point[], bumpFlash: number): void {
   const { width: cw, height: ch } = ctx.canvas;
-  const s = room.state();
   const cfg = s.config;
   const pad = 16;
   const k = Math.min((cw - 2 * pad) / cfg.width, (ch - 2 * pad) / cfg.height);
@@ -65,7 +68,7 @@ export function drawRoom(ctx: CanvasRenderingContext2D, room: Room, obs: Observa
 
   // rays: color = what was seen, length = distance
   const b = s.body;
-  obs.rays.forEach((ray, i) => {
+  rays.forEach((ray, i) => {
     const a = b.heading + cfg.rayAngles[i]!;
     const ex = b.x + Math.cos(a) * ray.distance;
     const ey = b.y + Math.sin(a) * ray.distance;
