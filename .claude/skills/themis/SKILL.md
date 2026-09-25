@@ -78,11 +78,19 @@ A missed prediction is information, not embarrassment — never rewrite it.
 
 ### 1.5 Screen, then confirm
 
-- **Screen**: `node --experimental-strip-types brain-lab/experiments/screen.ts CODE …` — seeds 1–5 ×
-  both innate groups, 40 training + 10 evaluation episodes, a few minutes per condition.
-- Only what looks promising goes to **confirmation**: `CODE@confirm` (20 subjects) **and**
-  `CODE@confirm:CROSS` (dopamine from another episode). "It learned" needs both: better than the frozen
-  twin AND gone under CROSS. E10 beat its twin 12/14 and was mostly a non-learning drift.
+One command, parallel on worker threads (results equal a sequential run — tested):
+`npm run exp -- liste | tara KOD… | dogrula KOD… | curut KOD | teshis dosya…` (`--isci N`, `--egitim N`,
+`--degerlendirme N`). Conditions are defined once in `experiments/conditions.ts`; add new ones there.
+Every subject row lands in `data/results.jsonl` — query it with DuckDB
+(`duckdb -c "SELECT … FROM read_json_auto('brain-lab/data/results.jsonl')"`), filter out short test runs
+by `trainEpisodes`.
+
+- **Screen** (`tara`): seeds 1–5 × both innate groups, 40 training + 10 evaluation episodes.
+- Only what looks promising goes to **confirmation** (`dogrula`): 20 subjects **and** the CROSS control
+  (dopamine from another episode). "It learned" needs both: better than the frozen twin AND gone under
+  CROSS. E10 beat its twin 12/14 and was mostly a non-learning drift.
+- The **twin** ("ikiz kontrol"): same birth, same evaluation worlds and noise, learning off — what the
+  learner gains over it is what learning added.
 - Test seeds (1001+) are never touched without Ozyn's explicit approval of a frozen pre-registration.
   This is also a guard: `harness.birth` refuses a seed ≥ 1001 unless it is given a pre-registration
   file whose status line reads `**Durum: DONDURULDU**`.
@@ -90,8 +98,9 @@ A missed prediction is information, not embarrassment — never rewrite it.
 ### 1.6 Try to refute before you claim
 
 "It learns" (or any positive claim) is not written down until a falsification battery has tried to
-break it (Ozyn, 2026-09-25: "önce bu testleri çürütmeye çalışalım"). Template:
-`experiments/falsify-s1n.ts` — copy it for the new condition, do not re-invent it:
+break it (Ozyn, 2026-09-25: "önce bu testleri çürütmeye çalışalım"). It is one command for any
+condition — `npm run exp -- curut KOD` — do not re-invent it (the first version, `falsify-s1n.ts`, is kept
+as the record of the S1n run). It covers:
 
 - fresh seeds never used to choose or tune the condition (selection bias / winner's curse);
 - CROSS and LOCAL controls (`crossDopamine`, `localDopamine`): gain must vanish under both;
@@ -147,9 +156,11 @@ selector acts on the tick it senses (evaluation lag 0), the graph brain needs it
 - **Backslashes through heredoc/Python/`node -e`** turn into control characters or vanish (`\n`, `\d`,
   `C:\vault`). Write such text with the Write/Edit tools; scan before commit:
   `grep -c -P '[\x00-\x08\x0B\x0C\x0E-\x1F]' file` must be 0.
-- **Two experiment processes at once** race on `brain-lab/data/registry.json` (subject numbers). Now a
-  guard: a writer takes `data/.writer.lock` and a second live writer is refused. Queue runs with
-  `until grep -q "^done" log; do sleep 60; done`; read during a run with `RegistryStore(DATA, { readOnly: true })`.
+- **Parallel writers** once could race on `brain-lab/data/registry.json` (subject numbers). Now a guard:
+  every index change runs under `data/.index.lock` (atomic directory); tested with concurrent processes
+  and a 12-thread stress run. On Windows a lock being removed answers EPERM, not EEXIST — it is handled as
+  "busy" (the bug that crashed the first parallel run). Still prefer one `npm run exp` at a time: it
+  already uses every core. Read during a run with `RegistryStore(DATA, { readOnly: true })`.
 - **Background processes**: after stopping a task, check no `node` experiment is left running
   (`Get-CimInstance Win32_Process -Filter "Name='node.exe'"`).
 - Chaining a script and `git commit` with `;` commits even when the script failed — use `&&`.
@@ -162,9 +173,9 @@ selector acts on the tick it senses (evaluation lag 0), the graph brain needs it
 
 This repo learned it the hard way (root `CLAUDE.md`, "Kopya kod — kural değil, bekçi"): a rule in a
 document is forgotten, a guard in code is not. When a rule here matters enough that breaking it would
-corrupt data or a conclusion, turn it into a guard with a test (done so far: registry writer lock,
-test-seed guard, bit-identical regression checks, calibration tests of every measure). When you add a
-guard, name it here.
+corrupt data or a conclusion, turn it into a guard with a test (done so far: registry index lock for
+parallel writers, test-seed guard, bit-identical regression checks, parallel = sequential test,
+calibration tests of every measure). When you add a guard, name it here.
 
 ## 6. Delegating to Atlas
 
