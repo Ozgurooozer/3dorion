@@ -856,6 +856,24 @@ zamanlamasına bağlı: taze seed'lerde, iki odada daha, iki grupta; CROSS ve LO
 olabilir — öğrenen daha uzun yaşadığı için daha çok kayıt yazıyor olabilir (tik başına oran ölçülmedi). Bu kuşku giderilmeden
 "zamanlamaya bağlı" demek güçlü bir iddia.
 
+## 2026-09-25 — Ek lezyonlar: kazanç tek bir yolda değil
+
+`[ÖLÇÜLDÜ]` Aynı 20 taze-seed öğreneni; öğrenilmiş ağırlıklar seçilen duyulardan doğuma döndürüldü (defterli klon),
+değerlendirme aynı seçimle. Öğrenen dürtüsü 0,480, kardeş 0,845.
+
+| sökülen | dürtü | öğrenenden kötü | Wilcoxon p |
+|---|---|---|---|
+| iç duyu (açlık, yara) | 0,488 | 11/20 | 0,87 |
+| beden duyusu (propriosepsiyon) | 0,572 | 13/20 | 0,058 |
+| dokunma | 0,467 | 9/20 | 0,85 |
+| tüm ışınlar (duvar, yemek, tehlike) | 0,606 | 10/20 | 0,26 |
+| **öğrenilen her şey** | **0,845** (= kardeş) | 17/20 | 0,00026 |
+
+- Hiçbir tek duyu grubu kazancı götürmüyor; hepsi birlikte sökülünce beyin tam olarak kardeşe dönüyor (sağlama ✓: kazancın
+  tamamı öğrenilen ağırlıklarda). En büyük pay ışınlar (~%35) ve beden duyusu (~%25; p = 0,058 sınırda).
+- Yorum (sınanmadı): öğrenilen, "yemeğe dön" gibi tek bir kural değil; birçok duyuya dağılmış, birbirini yedekleyen bir
+  "ne zaman hareket et / ne zaman dur" düzenlemesi. Bu, yönlendirmenin şans düzeyinde kalmasıyla tutarlı.
+
 ## 2026-09-24 — Seri 004 / M3: iki taraf — koşmadan önce (keşif)
 
 - Kod: yeni bölge `lat` (6 nöron: duvar/yemek/tehlike × sol/sağ). Doğuştan: her taraftaki ışın kendi tarafının hücresini
