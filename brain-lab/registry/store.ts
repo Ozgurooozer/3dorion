@@ -9,7 +9,7 @@
 // Default root is brain-lab/data/, which git ignores (Ozyn, 2026-09-23).
 "use strict";
 
-import { appendFileSync, existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmdirSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { BrainGrafi } from "../brain-ir/ir.ts";
 import type { EpisodeSummary, WorldConfig } from "../world/index.ts";
@@ -59,58 +59,78 @@ const writeJson = (p: string, v: unknown) => writeFileSync(p, JSON.stringify(v, 
 const readLines = <T>(p: string): T[] =>
   existsSync(p) ? readFileSync(p, "utf8").split("\n").filter((l) => l.trim() !== "").map((l) => JSON.parse(l) as T) : [];
 
-/** Name of the writer lock file inside the registry root. */
-export const WRITER_LOCK = ".writer.lock";
+/** Lock directory that serialises every read-modify-write of registry.json. */
+export const INDEX_LOCK = ".index.lock";
 
-const alive = (pid: number): boolean => {
-  try { process.kill(pid, 0); return true; } catch (e) { return (e as NodeJS.ErrnoException).code === "EPERM"; }
-};
+/** Synchronous sleep (no event loop needed): the registry API is synchronous. */
+const sleep = (ms: number) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 
 export interface StoreOptions {
   /**
-   * Read-only: no lock taken, every write refused. For diagnosis and inspection while an experiment
-   * is running. Default false.
+   * Read-only: every write refused. For diagnosis and inspection while experiments are running.
+   * Default false.
    */
   readonly readOnly?: boolean;
+  /** How long to wait for the index lock before giving up (ms). Default 30 000. */
+  readonly lockTimeoutMs?: number;
+  /** A lock older than this is taken to be left by a crashed process and removed (ms). Default 10 000. */
+  readonly staleLockMs?: number;
 }
 
 export class RegistryStore {
   readonly root: string;
   readonly readOnly: boolean;
+  private readonly lockTimeoutMs: number;
+  private readonly staleLockMs: number;
 
   /**
-   * A writer takes the registry's lock: two processes writing at once would race on registry.json
-   * and hand out the same subject number (measured risk, 2026-09-24 — until then only a rule).
-   * A lock left by a dead process is taken over; one held by a live process is refused.
+   * Many processes may write to one registry at once (parallel experiments): subject folders and run
+   * files are unique per number, and every change to registry.json — handing out a subject or run
+   * number, recording a stage — happens under INDEX_LOCK, a directory created atomically. Two writers
+   * can therefore never get the same number (tested with concurrent processes). The index is written
+   * to a temporary file and renamed, so a reader never sees half a file.
    */
   constructor(root: string, opts: StoreOptions = {}) {
     this.root = root;
     this.readOnly = opts.readOnly ?? false;
+    this.lockTimeoutMs = opts.lockTimeoutMs ?? 30_000;
+    this.staleLockMs = opts.staleLockMs ?? 10_000;
     if (this.readOnly) {
       if (!existsSync(this.indexPath)) throw new Error(`no registry at ${root}`);
       return;
     }
     mkdirSync(join(root, "subjects"), { recursive: true });
     mkdirSync(join(root, "runs"), { recursive: true });
-    this.lock();
-    if (!existsSync(this.indexPath)) writeJson(this.indexPath, { version: 1, nextSubject: 1, nextRun: 1, subjects: [] } satisfies RegistryIndex);
+    this.withIndex((idx) => idx); // creates the index on first use
   }
 
-  private lock(): void {
-    const p = join(this.root, WRITER_LOCK);
-    const mine = JSON.stringify({ pid: process.pid, since: new Date().toISOString() }) + "\n";
-    try {
-      writeFileSync(p, mine, { flag: "wx" }); // exclusive: two starting processes cannot both create it
-    } catch (e) {
-      if ((e as NodeJS.ErrnoException).code !== "EEXIST") throw e;
-      const holder = (JSON.parse(readFileSync(p, "utf8")) as { pid: number }).pid;
-      if (holder === process.pid) return;
-      if (alive(holder)) throw new Error(`registry ${this.root} is being written by process ${holder}; run experiments one at a time (or open it read-only)`);
-      writeFileSync(p, mine); // the holder is dead: a stale lock, taken over
+  /** Runs `change` on the index under the lock, writes back what it returns, then returns `result`. */
+  private withIndex<T>(change: (idx: RegistryIndex) => RegistryIndex, result?: () => T): T {
+    const lock = join(this.root, INDEX_LOCK);
+    const started = Date.now();
+    for (;;) {
+      try { mkdirSync(lock); break; } catch (e) {
+        if ((e as NodeJS.ErrnoException).code !== "EEXIST") throw e;
+        try { if (Date.now() - statSync(lock).mtimeMs > this.staleLockMs) { rmdirSync(lock); continue; } } catch { continue; }
+        if (Date.now() - started > this.lockTimeoutMs) throw new Error(`registry ${this.root} is busy: index lock held for more than ${this.lockTimeoutMs} ms`);
+        sleep(5);
+      }
     }
-    process.once("exit", () => {
-      try { if ((JSON.parse(readFileSync(p, "utf8")) as { pid: number }).pid === process.pid) unlinkSync(p); } catch { /* already gone */ }
-    });
+    try {
+      const before: RegistryIndex = existsSync(this.indexPath) ? this.index() : { version: 1, nextSubject: 1, nextRun: 1, subjects: [] };
+      const after = change(before);
+      const tmp = `${this.indexPath}.${process.pid}.tmp`;
+      writeJson(tmp, after);
+      for (let i = 0; ; i++) {
+        try { renameSync(tmp, this.indexPath); break; } catch (e) {
+          if (i > 50 || (e as NodeJS.ErrnoException).code !== "EPERM") throw e; // a reader holds the file for a moment (Windows)
+          sleep(5);
+        }
+      }
+      return result ? result() : (undefined as T);
+    } finally {
+      rmdirSync(lock);
+    }
   }
 
   private writable(): void {
@@ -128,36 +148,38 @@ export class RegistryStore {
   createSubject(input: NewSubject): Subject {
     this.writable();
     checkGraph(input.birthGraph);
-    const idx = this.index();
-    const n = idx.nextSubject;
-    const subject: Subject = {
-      id: subjectId(n),
-      name: nameFor(n),
-      category: input.category,
-      group: input.group,
-      lineage: input.lineage ?? { parent: null, how: "birth" },
-      birth: {
-        seed: input.seed,
-        date: input.date ?? today(),
-        worldConfig: input.worldConfig,
-        graphHash: graphHash(input.birthGraph),
-        codeCommit: input.codeCommit ?? null,
-      },
-      stage: "E0",
-    };
-    if (subject.lineage.parent !== null && !idx.subjects.some((s) => s.id === subject.lineage.parent)) {
-      throw new Error(`parent ${subject.lineage.parent} is not in the registry`);
-    }
-    const d = this.dir(subject.id);
-    if (existsSync(d)) throw new Error(`${subject.id} already exists on disk; registry index is out of sync`);
-    mkdirSync(d);
-    writeJson(join(d, "subject.json"), subject);
-    writeJson(join(d, "birth-graph.json"), canonicalGraph(input.birthGraph));
-    writeFileSync(join(d, "ledger.jsonl"), "");
-    idx.nextSubject = n + 1;
-    idx.subjects.push({ id: subject.id, name: subject.name, category: subject.category, group: subject.group, stage: "E0" });
-    writeJson(this.indexPath, idx);
-    return subject;
+    const lineage = input.lineage ?? { parent: null, how: "birth" as const };
+    let subject: Subject | null = null;
+    this.withIndex((idx) => {
+      const n = idx.nextSubject;
+      if (lineage.parent !== null && !idx.subjects.some((s) => s.id === lineage.parent)) {
+        throw new Error(`parent ${lineage.parent} is not in the registry`);
+      }
+      const made: Subject = {
+        id: subjectId(n),
+        name: nameFor(n),
+        category: input.category,
+        group: input.group,
+        lineage,
+        birth: {
+          seed: input.seed,
+          date: input.date ?? today(),
+          worldConfig: input.worldConfig,
+          graphHash: graphHash(input.birthGraph),
+          codeCommit: input.codeCommit ?? null,
+        },
+        stage: "E0",
+      };
+      const d = this.dir(made.id);
+      if (existsSync(d)) throw new Error(`${made.id} already exists on disk; registry index is out of sync`);
+      mkdirSync(d);
+      writeJson(join(d, "subject.json"), made);
+      writeJson(join(d, "birth-graph.json"), canonicalGraph(input.birthGraph));
+      writeFileSync(join(d, "ledger.jsonl"), "");
+      subject = made;
+      return { ...idx, nextSubject: n + 1, subjects: [...idx.subjects, { id: made.id, name: made.name, category: made.category, group: made.group, stage: "E0" }] };
+    });
+    return subject!;
   }
 
   /** A new subject born with the parent's current brain; the parent is untouched. */
@@ -207,10 +229,7 @@ export class RegistryStore {
     const s = this.loadSubject(ledger.subjectId);
     if (s.stage !== ledger.stage) {
       writeJson(join(this.dir(s.id), "subject.json"), { ...s, stage: ledger.stage });
-      const idx = this.index();
-      const row = idx.subjects.find((r) => r.id === s.id)!;
-      row.stage = ledger.stage;
-      writeJson(this.indexPath, idx);
+      this.withIndex((idx) => ({ ...idx, subjects: idx.subjects.map((r) => (r.id === s.id ? { ...r, stage: ledger.stage } : r)) }));
     }
     return fresh.length;
   }
@@ -218,20 +237,14 @@ export class RegistryStore {
   startRun(subject: string, purpose: string, meta: Record<string, unknown> = {}, opts: { date?: string; codeCommit?: string | null } = {}): RunHeader {
     this.writable();
     this.loadSubject(subject);
-    const idx = this.index();
-    const header: RunHeader = {
-      kind: "run",
-      id: runId(idx.nextRun),
-      subject,
-      purpose,
-      date: opts.date ?? today(),
-      codeCommit: opts.codeCommit ?? null,
-      meta,
-    };
-    idx.nextRun += 1;
-    writeJson(this.indexPath, idx);
-    writeFileSync(join(this.root, "runs", `${header.id}.jsonl`), JSON.stringify(header) + "\n");
-    return header;
+    let header: RunHeader | null = null;
+    this.withIndex((idx) => {
+      const made: RunHeader = { kind: "run", id: runId(idx.nextRun), subject, purpose, date: opts.date ?? today(), codeCommit: opts.codeCommit ?? null, meta };
+      writeFileSync(join(this.root, "runs", `${made.id}.jsonl`), JSON.stringify(made) + "\n", { flag: "wx" });
+      header = made;
+      return { ...idx, nextRun: idx.nextRun + 1 };
+    });
+    return header!;
   }
 
   appendEpisode(run: string, line: Omit<EpisodeLine, "kind">): void {

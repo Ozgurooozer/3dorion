@@ -3,17 +3,18 @@
 "use strict";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { spawn } from "node:child_process";
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import type { BrainGrafi } from "../brain-ir/ir.ts";
 import { sensorimotorScaffold } from "../sensorimotor/index.ts";
 import { DEFAULT_CONFIG as C, Room, runEpisode } from "../world/index.ts";
 import {
   Ledger, NAMES, describe, episodeEvents, graphHash, ledgerId, nameFor, parseId, subjectId, type LedgerInput,
 } from "./index.ts";
-import { RegistryStore, WRITER_LOCK } from "./store.ts";
+import { INDEX_LOCK, RegistryStore } from "./store.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -297,33 +298,74 @@ test("critic entries chain like weights, start at 0, and never touch the graph",
   assert.equal(replayed.criticWeight("ray2.food"), 0.02);
 });
 
-// --- writer lock and read-only access ----------------------------------------------------------
+// --- index lock (parallel writers) and read-only access ----------------------------------------
 
-test("lock: a registry held by another live process is refused to a second writer", () => {
-  const { root, done } = tempStore();
-  writeFileSync(join(root, WRITER_LOCK), JSON.stringify({ pid: process.ppid }));
-  assert.throws(() => new RegistryStore(root), /being written by process/);
+/** Starts `writers` node processes that each create `each` subjects and start one run per subject. */
+function concurrentWriters(root: string, writers: number, each: number) {
+  const storeUrl = pathToFileURL(join(HERE, "store.ts")).href;
+  const graphUrl = pathToFileURL(join(HERE, "../sensorimotor/index.ts")).href;
+  const worldUrl = pathToFileURL(join(HERE, "../world/index.ts")).href;
+  const code = [
+    `import { RegistryStore } from ${JSON.stringify(storeUrl)};`,
+    `import { sensorimotorScaffold } from ${JSON.stringify(graphUrl)};`,
+    `import { DEFAULT_CONFIG } from ${JSON.stringify(worldUrl)};`,
+    `const store = new RegistryStore(${JSON.stringify(root)});`,
+    `for (let i = 0; i < ${each}; i++) {`,
+    `  const s = store.createSubject({ category: "baseline.empty", group: "none", seed: i, worldConfig: DEFAULT_CONFIG, birthGraph: sensorimotorScaffold(DEFAULT_CONFIG) });`,
+    `  store.startRun(s.id, "concurrency test");`,
+    `}`,
+  ].join("\n");
+  return Array.from({ length: writers }, () =>
+    spawn(process.execPath, ["--experimental-strip-types", "--input-type=module", "-e", code], { stdio: ["ignore", "ignore", "pipe"] }));
+}
+
+test("parallel writers: 4 processes × 15 subjects get 60 distinct numbers and a consistent index", async () => {
+  const { store, root, done } = tempStore();
+  const children = concurrentWriters(root, 4, 15);
+  const errors: string[] = [];
+  await Promise.all(children.map((c) => new Promise<void>((resolve) => {
+    c.stderr!.on("data", (d) => errors.push(String(d)));
+    c.on("exit", (code) => { if (code !== 0) errors.push(`exit ${code}`); resolve(); });
+  })));
+  assert.deepEqual(errors, [], errors.join("\n"));
+  const rows = store.list();
+  assert.equal(rows.length, 60, "every subject is in the index");
+  assert.equal(new Set(rows.map((r) => r.id)).size, 60, "no number handed out twice");
+  assert.equal(readdirSync(join(root, "subjects")).length, 60, "one folder per subject");
+  assert.equal(readdirSync(join(root, "runs")).length, 60, "one run file per run, none overwritten");
+  const index = JSON.parse(readFileSync(join(root, "registry.json"), "utf8"));
+  assert.equal(index.nextSubject, 61);
+  assert.equal(index.nextRun, 61);
   done();
 });
 
-test("lock: a lock left by a dead process is taken over", () => {
+test("index lock: a lock left by a crashed writer (older than staleLockMs) is removed and work goes on", () => {
   const { root, done } = tempStore();
-  writeFileSync(join(root, WRITER_LOCK), JSON.stringify({ pid: 2_000_000_000 }));
-  assert.doesNotThrow(() => new RegistryStore(root));
-  assert.equal(JSON.parse(readFileSync(join(root, WRITER_LOCK), "utf8")).pid, process.pid);
+  mkdirSync(join(root, INDEX_LOCK));
+  const store = new RegistryStore(root, { staleLockMs: 0 });
+  assert.doesNotThrow(() => newSubject(store));
   done();
 });
 
-test("lock: the same process may open its registry more than once", () => {
+test("index lock: a fresh lock held by someone else makes a writer wait, then give up with a clear message", () => {
   const { root, done } = tempStore();
-  assert.doesNotThrow(() => new RegistryStore(root));
+  const store = new RegistryStore(root, { lockTimeoutMs: 50, staleLockMs: 60_000 });
+  mkdirSync(join(root, INDEX_LOCK)); // someone else is mid-update
+  assert.throws(() => newSubject(store), /busy: index lock held/);
   done();
 });
 
-test("read-only: opens while another process holds the lock, and reads", () => {
+test("index lock: the lock is released after a failed change (a clone of an unknown parent)", () => {
+  const { store, root, done } = tempStore();
+  assert.throws(() => store.createSubject({ category: "learner.3f", group: "reflexless", seed: 1, worldConfig: C, birthGraph: birthGraph(), lineage: { parent: "DNK-9999", how: "clone" } }), /not in the registry/);
+  assert.equal(readdirSync(root).includes(INDEX_LOCK), false);
+  done();
+});
+
+test("read-only: opens and reads while the index lock is held", () => {
   const { store, root, done } = tempStore();
   const s = newSubject(store);
-  writeFileSync(join(root, WRITER_LOCK), JSON.stringify({ pid: process.ppid }));
+  mkdirSync(join(root, INDEX_LOCK));
   const reader = new RegistryStore(root, { readOnly: true });
   assert.equal(reader.loadSubject(s.id).id, s.id);
   assert.ok(reader.openLedger(s.id).matches(store.openLedger(s.id).graph));
