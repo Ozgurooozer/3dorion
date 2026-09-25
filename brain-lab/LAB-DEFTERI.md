@@ -919,6 +919,12 @@ değerlendirme aynı seçimle. Öğrenen dürtüsü 0,480, kardeş 0,845.
   seyrek homeostatik ödülden (yemek anı) "hangi yöne döndüm" bilgisi çıkarılamıyor. Eleştirmen yemek görmeye değer
   vermediği için (≈ 0,001) köprü kurulmuyor.
 - Ödül + öğretmen (T1add) yalnız öğretmenden kötü: ödülün gürültüsü öğretmenin sinyalini sulandırıyor.
+- Teşhis (`diagnose.ts`): yan yemek ışını → Git, kendi tarafı / karşı taraf: **T1only 1,32 / 0,28 (10/10)**, T1add
+  1,24 / 0,27 (10/10), S1n 0,59 / 0,39 (8/10). Eleştirmenin yemek değeri üçünde de ~0.
+- Süreç notu: paralel hata yeniden üretimi sırasındaki 1 bölümlük deneme koşuları `screen-S1n-summary.json`'ın üzerine
+  yazmıştı (teşhis yanlış sayı gösterdi: 0,020 / 0,012). S1n taraması yeniden koşuldu — bit-aynı sonuç — ve bekçi eklendi:
+  standart dışı bölüm sayılı koşular ayrı dosya adına yazılır. `results.jsonl`'da S1n taraması artık iki kez var (aynı
+  sayılar); sorgularda `learner` üzerinden tekilleştirilmeli.
 - Sonraki adayların sırası buna göre: S2 (merak / öğrenme ilerlemesi, iç ödül) ya da yemeğe yaklaşmayı ödüllendiren
   içsel bir tahmin sinyali (eleştirmenin köprüsünü kurmak) — S3 (iki taraf) artık öncelikli değil. Öğretmen burada
   tasarım değil, teşhis aracı (kâhin elle yazılı); Bob bölgesi olarak öğretmen fikri ayrıca değerlendirilebilir.
