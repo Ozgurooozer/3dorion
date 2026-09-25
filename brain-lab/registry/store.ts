@@ -9,7 +9,7 @@
 // Default root is brain-lab/data/, which git ignores (Ozyn, 2026-09-23).
 "use strict";
 
-import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmdirSync, statSync, writeFileSync } from "node:fs";
+import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync, readSync, readdirSync, renameSync, rmdirSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { BrainGrafi } from "../brain-ir/ir.ts";
 import type { EpisodeSummary, WorldConfig } from "../world/index.ts";
@@ -261,6 +261,23 @@ export class RegistryStore {
     const p = join(this.root, "runs", `${run}.jsonl`);
     if (!existsSync(p)) throw new Error(`no run ${run}`);
     appendFileSync(p, JSON.stringify({ kind: "episode", ...line }) + "\n");
+  }
+
+  /** Every run of a subject, oldest first (headers are read from the first 4 KB of each run file). */
+  listRuns(subject: string): { header: RunHeader; episodes: EpisodeLine[] }[] {
+    const dir = join(this.root, "runs");
+    const ids: string[] = [];
+    const buf = Buffer.alloc(4096);
+    for (const f of readdirSync(dir).filter((n) => n.endsWith(".jsonl")).sort()) {
+      const fd = openSync(join(dir, f), "r");
+      try {
+        const n = readSync(fd, buf, 0, buf.length, 0);
+        const first = buf.subarray(0, n).toString("utf8").split("\n")[0]!;
+        const header = JSON.parse(first) as RunHeader;
+        if (header.kind === "run" && header.subject === subject) ids.push(header.id);
+      } catch { /* not a run file or a header longer than 4 KB: skipped */ } finally { closeSync(fd); }
+    }
+    return ids.map((id) => this.readRun(id));
   }
 
   readRun(run: string): { header: RunHeader; episodes: EpisodeLine[] } {
