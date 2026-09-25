@@ -66,6 +66,9 @@ export const CONDITIONS: Readonly<Record<string, ConditionDef>> = Object.freeze(
   // Diagnosis of direction (next step, 2026-09-25): S1n taught by the hand-coded oracle — can the
   // selector-driven brain learn "which way" at all when told?
   K1n: { what: "room 3 (scarce: 5 food, energy 0.8): S1n", spec: () => S1N, world: ROOM3 },
+  // Series 006 (TASARIM-006): S1n + the cue memory ("yemek hafızası") in the scarce room.
+  K2: { what: "room 3 (scarce): S1n + cue memory (κ 1)", spec: () => ({ ...S1N, cue: {} }), world: ROOM3 },
+  K2x: { what: "room 3 (scarce): S1n + cue memory (κ 3)", spec: () => ({ ...S1N, cue: { weight: 3 } }), world: ROOM3 },
   KT1: { what: "room 3 (scarce): S1n, oracle teacher only (gain 0.3)", spec: (w) => ({ ...S1N, teacher: { policy: oraclePolicy(w), gain: 0.3, mix: "only" as const } }), world: ROOM3 },
   T1only: { what: "S1n, oracle teacher only (gain 0.3)", spec: (w) => ({ ...S1N, teacher: { policy: oraclePolicy(w), gain: 0.3, mix: "only" as const } }) },
   T1add: { what: "S1n + oracle teacher added to reward (gain 0.3)", spec: (w) => ({ ...S1N, teacher: { policy: oraclePolicy(w), gain: 0.3, mix: "add" as const } }) },

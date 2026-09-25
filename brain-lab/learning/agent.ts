@@ -19,6 +19,7 @@ import { brainController, encodeObservation, type BrainController } from "../sen
 import type { EpisodeHooks, Observation, Policy, WorldConfig } from "../world/index.ts";
 import { Compartments, type CompartmentSpec } from "./compartments.ts";
 import { Critic, type CriticParams } from "./critic.ts";
+import { CueMemory, type CueParams } from "./cue-memory.ts";
 import { Learner, type LearningParams } from "./learner.ts";
 import { CompetitiveSelector, type Choice, type SelectionParams } from "./selection.ts";
 import { teacherDeltas, type TeacherSpec } from "./teacher.ts";
@@ -28,6 +29,8 @@ export interface Agent {
   readonly hooks: EpisodeHooks;
   readonly learner: Learner;
   readonly critic: Critic | null;
+  /** The cue memory (TASARIM-006), or null when switched off. */
+  readonly cue: CueMemory | null;
   readonly compartments: Compartments | null;
   readonly dopamine: DopamineChannel;
   readonly controller: BrainController;
@@ -86,6 +89,11 @@ export interface AgentSpec {
    * Eligibility then pairs this tick's senses with this tick's choice. null/absent = the graph decides.
    */
   readonly selection?: Partial<SelectionParams> | null;
+  /**
+   * The cue memory (TASARIM-006, "yemek hafızası"): what was seen shortly before an outcome gains value, and
+   * the change of that value is added to the δ that teaches Go/NoGo. null/absent = off (bit-identical brain).
+   */
+  readonly cue?: Partial<CueParams> | null;
 }
 
 export function createAgent(spec: AgentSpec): Agent {
@@ -97,6 +105,8 @@ export function createAgent(spec: AgentSpec): Agent {
   const compartments = spec.compartments ? new Compartments(spec.ledger, spec.cfg, spec.compartments) : null;
   if (compartments?.mode === "action" && !critic) throw new Error("action compartments need a critic (they bootstrap on its V)");
   if (compartments && spec.rpeNormalization) throw new Error("rpeNormalization is not defined for compartments");
+  const cue = spec.cue ? new CueMemory(spec.ledger, spec.cfg, spec.cue) : null;
+  if (cue && compartments) throw new Error("the cue memory is not defined for compartments (it shapes the one global δ)");
   const teacher = spec.teacher ?? null;
   const selector = spec.selection ? new CompetitiveSelector(graph, spec.noiseSeed, spec.selection) : null;
   const frozen = learner.params.frozen;
@@ -124,6 +134,12 @@ export function createAgent(spec: AgentSpec): Agent {
     if (critic) {
       const c = critic.step(t === 0 ? null : previousObs, obs, outcome, t, episode, terminal, frozen);
       delta = c.delta;
+      writes.push(...c.writes);
+    }
+    if (cue) {
+      // The change of cue value, added before any normalisation or transform, as part of the brain's own δ.
+      const c = cue.step(t === 0 ? null : previousObs, obs, outcome, t, episode, terminal, frozen);
+      delta += c.shaping;
       writes.push(...c.writes);
     }
     // The reward signal each Go/NoGo cell hears: one global δ, or its compartment's δ.
@@ -195,6 +211,7 @@ export function createAgent(spec: AgentSpec): Agent {
     hooks,
     learner,
     critic,
+    cue,
     compartments,
     dopamine,
     controller,
@@ -209,6 +226,7 @@ export function createAgent(spec: AgentSpec): Agent {
       learner.startEpisode(n);
       critic?.resetPending();
       compartments?.resetPending();
+      cue?.resetEpisode();
     },
     finishEpisode(t: number) {
       writes.push(...learner.endEpisode(t));

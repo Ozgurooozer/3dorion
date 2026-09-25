@@ -1087,7 +1087,47 @@ taraması iki kez koşulmuştu (aynı seed'ler, bit-aynı beyinler); ilk sayımd
 - **Pano yeni cetvele geçti:** karar artık bağlı bedene göre veriliyor. Eski koşuların bağlı ölçümleri `data/yoked-005a.jsonl`'den eşleniyor; kayıtların kendisi değişmedi. Deney Odası üç bedeni yan yana oynatıyor: öğrenen, bağlı beden, ikiz. Açılışta K1n (kıt oda) seçili; DNK-2778 10 odanın 10'unda yaşadı (116 yemek), bağlı bedeni 2'sinde (27 yemek), ikizi hiçbirinde (11 yemek).
 - Refleksli / reflekssiz bu odada benzer. K1n'de dürtüde refleksli 5/5, reflekssiz 4/5; n 5 ile ayrım yapılamaz.
 
+## 2026-09-25 — Seri 006: yemek hafızası (işaret değeri) — koşmadan önce
+
+- Ozyn onayladı: "Yemek yenince az önce yemeği gören ışınlara değer yazılsın." Tasarım: `TASARIM-006-YEMEK-HAFIZASI.md`.
+- **Teşhis** `[ÖLÇÜLDÜ]` (`experiments/diagnose-critic.ts`), eleştirmen ağırlıkları, 10 öğrenenin ortalaması:
+
+| grup | K1n bitiş | K1n toplam oynama | S1n bitiş | S1n toplam oynama |
+|---|---|---|---|---|
+| yemek ışınları | +0,026 | 2,24 | +0,017 | 4,81 |
+| duvar ışınları | −0,011 | 2,75 | +0,002 | 5,06 |
+| bias | −0,027 | 3,14 | −0,043 | 5,09 |
+| hareket duyusu | +0,018 | 3,50 | +0,023 | 6,78 |
+
+  Eleştirmen çalkalanıyor, anlam biriktirmiyor.
+  - Sebep 1: TD(0), kredi yalnız bir adım geriye gidiyor.
+  - Sebep 2: her duyudan birden öğreniyor.
+- **Ozyn'in sorusu:** "Beyin öğrendiğini hafızada tutuyor mu?"
+  - Alışkanlık hafızası (bağlantı güçleri, defter) kalıcı ve eksiksiz.
+  - Değer hafızası var ama çalışmıyor (yukarıdaki teşhis).
+  - Çalışma hafızası (görüşten çıkan yemeği hatırlamak) yok; açık sorulara eklendi.
+- **Kural özeti:** işaretler yalnız ışınlar (yemek, duvar, tehlike; hangisinin değerli olduğunu kural buluyor).
+  λ 0,95 izli TD(λ), adım işaret enerjisine bölünmüş. Öğretmeye katkısı potansiyele dayalı biçimlendirme:
+  κ·(γΦ(s′) − Φ(s)).
+- **Koşullar** (kıt oda, seed 1–5 × iki grup, 40 + 10 bölüm, bağlı kontrol otomatik):
+  - K2: S1n + işaret hafızası, κ 1
+  - K2x: κ 3
+  - Karşılaştırma: K1n (aynı doğumlar, aynı seed'ler).
+- **Öngörüler (koşmadan):**
+  - (a) Hafıza anlam biriktirir: öğrenilmiş yemek ışını değerlerinin toplamı > +0,1 ve duvar ışınlarınınkinden
+    büyük, ≥ 8/10 öğrenende.
+  - (b) **Asıl öngörü, dönüş:** K2'nin yönlendirmesi bağlı bedenine göre anlamlı yüksek (Wilcoxon p < 0,05) ve
+    ortalaması ≥ 0,15.
+  - (c) K2 hayatta kalma ≥ %50 (K1n %39).
+  - (d) Aynı doğumlu K1n öğreneniyle eşleştirildiğinde K2 dürtüde ≥ 7/10 iyi.
+  - (e) K2x, K2'den daha çok döner ama dürtüde daha kötü olabilir (fazla biçimlendirme açlığa rağmen işaret
+    kovalatabilir); yön öngörüsü yok.
+  - **Çürütme ölçütü:** (b) tutmazsa fikir bu haliyle yön öğretmiyor demektir; "hafıza anlam biriktirdi ama davranışa
+    geçmedi" (a tutar, b tutmaz) ile "hafıza da oluşmadı" (a da tutmaz) ayrı yazılır.
+
 ## Açık sorular (güncel)
+
+- Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
 
 - Kendiliğinden hareket (motor babbling) ve zayıf rastgele doğum bağlantıları öğrenmeyi başlatır mı?
 - Doğuştan refleks yardımcı mı, engel mi? (reflekssiz / refleksli karşılaştırması planlandı)
