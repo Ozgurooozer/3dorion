@@ -1241,6 +1241,38 @@ taraması iki kez koşulmuştu (aynı seed'ler, bit-aynı beyinler); ilk sayımd
   Hafızanın kendisi artık çalışıyor. Bundan sonraki adım, hafızanın davranışa nasıl bağlanacağı; bu bir mimari
   kararı, Ozyn'e / toplantıya.
 
+## 2026-09-25 — Mimari gözden geçirme öncesi: Ozyn'in fikirleri (karar değil, not)
+
+Seri 006'dan sonra Ozyn büyük resmi sordu: "Jev'den daha iyi bir yapı, ileride robot hafızası için yola çıktık; doğru
+yolda mıyız?" Sonra fikirlerini verdi. Hepsi mimari belgesine (TASARIM-007) ve toplantıya girdi olacak.
+
+- **Amaç yeniden:** biyolojik bir şey kurmuyoruz, yalnız esinleniyoruz. Son haftalarda yapı bir "kurallar zincirine"
+  döndü (taban, bölmeler, seçici, işaret hafızası: her biri bir öncekini yamadı).
+- **Üç parçalı beyin:**
+  - Alice: refleks, hızlı.
+  - Bob: düşünen, yavaş. Küçük model; Needle adayı. İleride üstüne bir derin düşünme katmanı (küçük LLM) gelecek.
+  - Hafıza.
+- **Keşif → kullanmayı öğren → refleks:** Bob'un yeni bir durumda verdiği karar, işe yararsa Alice'e refleks olarak
+  işlenmeli. Refleks bozulursa çürümeli (çürüme zaten var). Doğru yerlerde birden fazla Needle olabilir.
+- **İnsan öğretmen:** deneyde boş beyinde sinirlere tıklayarak Ozyn (ya da Claude) döngüye girip öğretmen olabilmeli.
+- **Hafıza, kararları etkilemeli.** Bugün beyin gördüğünü unutuyor, neyin nerede olduğunu bilmiyor, her seferinde
+  yeniden dönüyor.
+  - Gördüklerini "beyninde hayal edip" hatırlayabilmeli.
+  - Bir şey yer değiştirirse bunu fark edebilmeli.
+  - Bunun için iyi bir matematik gerekiyor.
+- **Hafıza mimarisi:** modüler olmalı, bir çekirdeği olmalı. Basit hafızadan karmaşık hafızaya ilerlenmeli.
+
+**Claude'un eklediği teknik notlar** (tasarım belgesinde ayrıntılanacak):
+- Beden kendi konumunu bilmiyor; hareket duyusu (proprio: hız, dönüş) var. Konum tahmini için yol entegrasyonu
+  (dead reckoning) gerekiyor. Sapmayı duvara çarpmalar düzeltebilir.
+- "Hayal etmek" = hafızadaki haritadan ışınların şu an ne görmesi gerektiğini tahmin etmek (iç ışın izleme).
+  Gerçekle fark = sürpriz. Hatırlanan yerde yemek yoksa "yenmiş ya da yer değiştirmiş".
+- Hafızanın içeriğini dünyanın gerçek haliyle kıyaslayarak **tam olarak notlayabiliriz**; simülasyonun büyük avantajı.
+- Hafıza içeriği bir durumdur, öğrenme değildir. Defterle izin ayrımı netleşmeli: öğrenilen parametreler deftere,
+  hafıza içeriği koşu izine.
+- Hafızanın karara etkisi elle yazılmamalı. Hafıza, Alice'e ve Bob'a "hatırlanan duyular" verir (örneğin en yakın
+  hatırlanan yemeğin yönü ve uzaklığı); onları kullanmayı beyin öğrenir.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
