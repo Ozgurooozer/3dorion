@@ -37,6 +37,8 @@ export interface Eval {
   survival: number;
   /** I(food side; turn) in bits, pooled over episodes (null if food was never seen on both sides). */
   sideInfo: number | null;
+  /** Health lost per 1000 ticks lived (threat zones); 0 in a room without threats. */
+  harmPerK: number;
 }
 
 export interface Row {
@@ -92,6 +94,7 @@ export interface Actor {
  */
 export function measureEpisodes(actor: Actor, world: WorldConfig, seed: number, episodes: number, lag: number, onEpisode?: (line: Omit<EpisodeLine, "kind">) => void): Eval {
   const ticks: number[] = [], meals: number[] = [];
+  let harm = 0;
   let seen = 0, toward = 0, pairs = 0, closer = 0, still = 0, all = 0, turns = 0, turnsToward = 0;
   let driveSum = 0, alive = 0;
   const steer = { leftSeen: 0, rightSeen: 0, leftTurnWhenLeft: 0, rightTurnWhenLeft: 0, leftTurnWhenRight: 0, rightTurnWhenRight: 0 };
@@ -114,10 +117,11 @@ export function measureEpisodes(actor: Actor, world: WorldConfig, seed: number, 
     driveSum += drive(obs[obs.length - 1]!) * (MAX_TICKS - records.length); // dead: stays at its last drive
     if (summary.doneCause === null) alive++;
     onEpisode?.({ episode: ep, worldSeed, summary, events: episodeEvents(records), extra: { orientation: o, approach: a, turnToward: d, steering: st } });
-    ticks.push(summary.ticks); meals.push(summary.foodEaten);
+    ticks.push(summary.ticks); meals.push(summary.foodEaten); harm += summary.damage;
   }
   const T = ticks.reduce((x, y) => x + y, 0);
   return {
+    harmPerK: (1000 * harm) / T,
     ticks: mean(ticks), meals: mean(meals), perK: (1000 * meals.reduce((x, y) => x + y, 0)) / T,
     orientation: seen ? toward / seen : 0, approach: pairs ? closer / pairs : 0, still: still / all,
     turnToward: turns ? turnsToward / turns : 0.5, turns, steering: steeringIndex(steer),

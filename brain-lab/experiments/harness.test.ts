@@ -3,7 +3,7 @@
 "use strict";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { oraclePolicy } from "../baselines/index.ts";
+import { oraclePolicy, seekerPolicy } from "../baselines/index.ts";
 import { drive } from "../neuromodulation/index.ts";
 import { Room, makeConfig, runEpisode } from "../world/index.ts";
 import { MAX_TICKS, evalWorld, measureEpisodes } from "./harness.ts";
@@ -33,4 +33,22 @@ test("mean drive: the oracle stays closer to its setpoint than a body that never
   const oracle = measureEpisodes({ policy: oraclePolicy(HUNGRY) }, HUNGRY, 1, 3, 0).meanDrive;
   const idle = measureEpisodes(still, HUNGRY, 1, 3, 0).meanDrive;
   assert.ok(oracle < idle, `oracle ${oracle} vs idle ${idle}`);
+});
+
+test("harm: health lost per 1000 ticks, equal to the episodes' own damage counts", () => {
+  const dangerous = makeConfig({ initialEnergy: 1, threatCount: 4, foodCount: 2 });
+  // A wanderer that ignores danger (fresh, same seed, for both runs).
+  const e = measureEpisodes({ policy: seekerPolicy(dangerous, 5) }, dangerous, 1, 3, 0);
+  let damage = 0, ticks = 0;
+  const wanderer = seekerPolicy(dangerous, 5);
+  for (let ep = 1; ep <= 3; ep++) {
+    const s = runEpisode(new Room(evalWorld(1, ep), dangerous), wanderer, MAX_TICKS);
+    damage += s.damage; ticks += s.ticks;
+  }
+  assert.ok(damage > 0, "the test room must actually hurt the body");
+  assert.ok(Math.abs(e.harmPerK - (1000 * damage) / ticks) < 1e-12, `${e.harmPerK} vs ${(1000 * damage) / ticks}`);
+});
+
+test("harm: a room without threats never harms", () => {
+  assert.equal(measureEpisodes({ policy: () => ({ thrust: 1, turn: 1 }) }, HUNGRY, 1, 3, 0).harmPerK, 0);
 });

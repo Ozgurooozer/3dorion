@@ -15,7 +15,7 @@ import { fileURLToPath } from "node:url";
 import type { InnateGroup } from "../development/index.ts";
 import type { AgentSpec } from "../learning/index.ts";
 import { RegistryStore } from "../registry/store.ts";
-import { makeConfig } from "../world/index.ts";
+import { makeConfig, type WorldConfig } from "../world/index.ts";
 import { runCondition, type BirthOptions, type Row } from "./harness.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -32,7 +32,11 @@ const learn = (patch: object): Spec["learning"] => ({ ...E7.learning, ...patch }
 const NORM = { alpha: 0.03, normalize: true };
 const ALL: Spec = { ...E7, critic: NORM, learning: learn({ dipFloor: null, lambda: 0.97 }) };
 
-export const SCREEN: Record<string, { what: string; spec: Spec; born?: BirthOptions }> = {
+/** The second room (Ozyn, 2026-09-25: "tabiki ekle"): the threat zones the world always had, now switched on —
+ * a second, opposite thing to learn (approach food, keep out of what hurts), felt only through innate pain. */
+const ROOM2 = makeConfig({ initialEnergy: 0.4, threatCount: 2, foodCount: 10 });
+
+export const SCREEN: Record<string, { what: string; spec: Spec; born?: BirthOptions; world?: WorldConfig }> = {
   A0: { what: "E7 λ0.9 (reference)", spec: E7 },
   A1: { what: "E7 + normalised critic (α 0.03/‖x‖²)", spec: { ...E7, critic: NORM } },
   A2: { what: "E7 without dip floor", spec: { ...E7, learning: learn({ dipFloor: null }) } },
@@ -45,6 +49,8 @@ export const SCREEN: Record<string, { what: string; spec: Spec; born?: BirthOpti
   S1n: { what: "S1 without dip floor", spec: { ...E7, selection: {}, learning: learn({ dipFloor: null }) } },
   S1a: { what: "S1 + action compartments", spec: { ...E7, selection: {}, compartments: { mode: "action" } } },
   S1c: { what: "S1 + normalised critic", spec: { ...E7, selection: {}, critic: NORM } },
+  R0: { what: "room 2 (2 threats): E7", spec: E7, world: ROOM2 },
+  R1: { what: "room 2 (2 threats): S1", spec: { ...E7, selection: {} }, world: ROOM2 },
 };
 
 const mean = (xs: number[]) => xs.reduce((s, x) => s + x, 0) / xs.length;
@@ -54,12 +60,12 @@ for (const code of process.argv.slice(2)) {
   if (!c) throw new Error(`unknown condition ${code}; known: ${Object.keys(SCREEN).join(", ")}`);
   const r = runCondition(store, {
     condition: { code: `screen/${code}`, what: c.what, spec: c.spec },
-    world: WORLD, seeds: SEEDS, groups: GROUPS, trainEpisodes: 40, evalEpisodes: 10, codeCommit, label: "screen", born: c.born,
+    world: c.world ?? WORLD, seeds: SEEDS, groups: GROUPS, trainEpisodes: 40, evalEpisodes: 10, codeCommit, label: "screen", born: c.born,
   });
   const rows: Row[] = r.rows;
   const f = (g: (x: Row) => number | null) => mean(rows.map((x) => g(x) ?? 0));
   console.log(`[${((Date.now() - started) / 1000).toFixed(0)}s] ${code} ${c.what}`);
-  console.log(`    steering ${f((x) => x.l.steering).toFixed(3)} (twin ${f((x) => x.t.steering).toFixed(3)}, above 0: ${rows.filter((x) => (x.l.steering ?? 0) > 0).length}/${rows.length}) | side info ${f((x) => x.l.sideInfo).toFixed(4)} bits (twin ${f((x) => x.t.sideInfo).toFixed(4)}) | mean drive ${f((x) => x.l.meanDrive).toFixed(3)} (twin ${f((x) => x.t.meanDrive).toFixed(3)}) | survival ${f((x) => x.l.survival).toFixed(2)} (twin ${f((x) => x.t.survival).toFixed(2)}) | meals/1000t ${f((x) => x.l.perK).toFixed(2)} (twin ${f((x) => x.t.perK).toFixed(2)}) | still ${(100 * f((x) => x.l.still)).toFixed(0)}%`);
+  console.log(`    steering ${f((x) => x.l.steering).toFixed(3)} (twin ${f((x) => x.t.steering).toFixed(3)}, above 0: ${rows.filter((x) => (x.l.steering ?? 0) > 0).length}/${rows.length}) | side info ${f((x) => x.l.sideInfo).toFixed(4)} bits (twin ${f((x) => x.t.sideInfo).toFixed(4)}) | mean drive ${f((x) => x.l.meanDrive).toFixed(3)} (twin ${f((x) => x.t.meanDrive).toFixed(3)}) | survival ${f((x) => x.l.survival).toFixed(2)} (twin ${f((x) => x.t.survival).toFixed(2)}) | meals/1000t ${f((x) => x.l.perK).toFixed(2)} (twin ${f((x) => x.t.perK).toFixed(2)}) | harm/1000t ${f((x) => x.l.harmPerK).toFixed(2)} (twin ${f((x) => x.t.harmPerK).toFixed(2)}) | still ${(100 * f((x) => x.l.still)).toFixed(0)}%`);
   writeFileSync(join(DATA, `screen-${code}-summary.json`), JSON.stringify({ screen: code, exploratory: true, codeCommit, what: c.what, born: c.born ?? null, spec: c.spec, rows }, null, 2) + "\n");
 }
 console.log("done");
