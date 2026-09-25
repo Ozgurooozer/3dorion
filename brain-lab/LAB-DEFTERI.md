@@ -901,6 +901,28 @@ değerlendirme aynı seçimle. Öğrenen dürtüsü 0,480, kardeş 0,845.
   **> 0,3**; T1add da > 0,2. T1only yönlendirme < 0,1 kalırsa → sorun temsilde/seçimde, sıradaki aday S3 (iki taraflı
   dönüş). T1only'de beden yine durmadan açlıktan ölebilir (kâhin hep "ileri" der) — dürtü kötü olabilir; T1add bunu dengeler.
 
+## 2026-09-25 — T1 sonucu: yön öğrenilebilir; sorun kredi atamada
+
+`[ÖLÇÜLDÜ]` tarama, seed 1–5 × iki grup, S1n seçimi.
+
+| | yönlendirme (> ikiz) | bilgi (bit) | ort. dürtü ↓ | hayatta | yemek/1000t |
+|---|---|---|---|---|---|
+| ikiz | 0,007 | 0,004 | 0,848 | %3 | 2,24 |
+| S1n (yalnız ödül) | 0,131 (7/10) | 0,077 | 0,190 | %83 | 5,46 |
+| **T1only** (yalnız kâhin öğretmen, 0,3) | **0,241 (10/10, p = 0,002)** | **0,175** | 0,233 | %66 | **17,23** |
+| T1add (ödül + öğretmen) | 0,177 (9/10, p = 0,006) | 0,116 | 0,335 | %64 | 11,16 |
+
+- Öngörü karnesi: T1only > 0,3 ✗ (0,241); T1add > 0,2 ✗ (0,177); "T1only < 0,1 ise sorun temsilde" — **olmadı**.
+  T1only'nin açlıktan öleceği endişesi ✗ (hayatta %66 — seçim artık tokken dinlenmeyi koruyor).
+- **Teşhis:** aynı beyin, aynı seçim, aynı öğrenme kuralıyla, yoğun ve doğru bir sinyal verildiğinde yönü öğreniyor
+  (10/10) ve TD'nin iki katı yiyor (17,2 vs 8,4; tavan 25,8). → **Temsil ve seçim yeterli; darboğaz kredi atamada:**
+  seyrek homeostatik ödülden (yemek anı) "hangi yöne döndüm" bilgisi çıkarılamıyor. Eleştirmen yemek görmeye değer
+  vermediği için (≈ 0,001) köprü kurulmuyor.
+- Ödül + öğretmen (T1add) yalnız öğretmenden kötü: ödülün gürültüsü öğretmenin sinyalini sulandırıyor.
+- Sonraki adayların sırası buna göre: S2 (merak / öğrenme ilerlemesi, iç ödül) ya da yemeğe yaklaşmayı ödüllendiren
+  içsel bir tahmin sinyali (eleştirmenin köprüsünü kurmak) — S3 (iki taraf) artık öncelikli değil. Öğretmen burada
+  tasarım değil, teşhis aracı (kâhin elle yazılı); Bob bölgesi olarak öğretmen fikri ayrıca değerlendirilebilir.
+
 ## 2026-09-24 — Seri 004 / M3: iki taraf — koşmadan önce (keşif)
 
 - Kod: yeni bölge `lat` (6 nöron: duvar/yemek/tehlike × sol/sağ). Doğuştan: her taraftaki ışın kendi tarafının hücresini
