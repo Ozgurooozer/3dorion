@@ -4,6 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import { Worker } from "node:worker_threads";
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -389,4 +390,36 @@ test("read-only: a folder without a registry is refused, not created", () => {
   assert.throws(() => new RegistryStore(root, { readOnly: true }), /no registry/);
   assert.deepEqual(readdirSync(root), []);
   rmSync(root, { recursive: true, force: true });
+});
+
+// A race test is probabilistic. With the EPERM handling removed it caught the bug in 1 of 3 runs at 3 rounds
+// × 12 threads × 10 subjects; at 8 rounds × 20 subjects, in 2 of 3 runs. A green run is evidence, not proof.
+test("parallel writers: 12 threads hammering the index lock at once never fail (Windows EPERM race, 2026-09-25)", async () => {
+  for (let round = 0; round < 8; round++) {
+    const { store, root, done } = tempStore();
+    const storeUrl = pathToFileURL(join(HERE, "store.ts")).href;
+    const graphUrl = pathToFileURL(join(HERE, "../sensorimotor/index.ts")).href;
+    const worldUrl = pathToFileURL(join(HERE, "../world/index.ts")).href;
+    const code = [
+      `import { parentPort } from "node:worker_threads";`,
+      `import { RegistryStore } from ${JSON.stringify(storeUrl)};`,
+      `import { sensorimotorScaffold } from ${JSON.stringify(graphUrl)};`,
+      `import { DEFAULT_CONFIG } from ${JSON.stringify(worldUrl)};`,
+      `try {`,
+      `  const store = new RegistryStore(${JSON.stringify(root)});`,
+      `  for (let i = 0; i < 20; i++) store.startRun(store.createSubject({ category: "baseline.empty", group: "none", seed: i, worldConfig: DEFAULT_CONFIG, birthGraph: sensorimotorScaffold(DEFAULT_CONFIG) }).id, "stress");`,
+      `  parentPort.postMessage("ok");`,
+      `} catch (e) { parentPort.postMessage(String(e)); }`,
+    ].join("\n");
+    const errors: string[] = [];
+    await Promise.all(Array.from({ length: 12 }, () => new Promise<void>((resolve) => {
+      const w = new Worker(code, { eval: true, type: "module" } as never);
+      w.on("message", (m) => { if (m !== "ok") errors.push(String(m)); });
+      w.on("error", (e) => errors.push(String(e)));
+      w.on("exit", () => resolve());
+    })));
+    assert.deepEqual(errors, [], `round ${round}: ${errors.join("; ")}`);
+    assert.equal(store.list().length, 240, `round ${round}`);
+    done();
+  }
 });

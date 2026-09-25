@@ -110,10 +110,13 @@ export class RegistryStore {
     const started = Date.now();
     for (;;) {
       try { mkdirSync(lock); break; } catch (e) {
-        if ((e as NodeJS.ErrnoException).code !== "EEXIST") throw e;
-        try { if (Date.now() - statSync(lock).mtimeMs > this.staleLockMs) { rmdirSync(lock); continue; } } catch { continue; }
-        if (Date.now() - started > this.lockTimeoutMs) throw new Error(`registry ${this.root} is busy: index lock held for more than ${this.lockTimeoutMs} ms`);
-        sleep(5);
+        // Windows answers EPERM/EACCES/EBUSY, not EEXIST, while another writer's lock is being removed
+        // (measured 2026-09-25: 2 of 240 writers failed in a 12-thread stress run) — that is "busy" too.
+        const code = (e as NodeJS.ErrnoException).code;
+        if (code !== "EEXIST" && code !== "EPERM" && code !== "EACCES" && code !== "EBUSY") throw e;
+        try { if (Date.now() - statSync(lock).mtimeMs > this.staleLockMs) { rmdirSync(lock); continue; } } catch { /* vanished or being removed: retry */ }
+        if (Date.now() - started > this.lockTimeoutMs) throw new Error(`registry ${this.root} is busy: index lock held for more than ${this.lockTimeoutMs} ms (last: ${code})`);
+        sleep(2);
       }
     }
     try {
@@ -129,7 +132,13 @@ export class RegistryStore {
       }
       return result ? result() : (undefined as T);
     } finally {
-      rmdirSync(lock);
+      for (let i = 0; ; i++) {
+        try { rmdirSync(lock); break; } catch (e) {
+          const code = (e as NodeJS.ErrnoException).code;
+          if (i > 100 || (code !== "EPERM" && code !== "EBUSY" && code !== "EACCES")) throw e;
+          sleep(2);
+        }
+      }
     }
   }
 
