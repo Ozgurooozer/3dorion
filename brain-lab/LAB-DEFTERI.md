@@ -1261,6 +1261,14 @@ yolda mıyız?" Sonra fikirlerini verdi. Hepsi mimari belgesine (TASARIM-007) ve
   - Bir şey yer değiştirirse bunu fark edebilmeli.
   - Bunun için iyi bir matematik gerekiyor.
 - **Hafıza mimarisi:** modüler olmalı, bir çekirdeği olmalı. Basit hafızadan karmaşık hafızaya ilerlenmeli.
+- **İki göz:** "İki gözümüz olursa bu bize derinlik, uzaklık olayını verir." Claude'un notu:
+  - Bugünkü ışınlar uzaklığı doğrudan ölçüyor, lidar gibi. Bu, §16'daki etiketli duyu kestirmesine benzer bir
+    kolaylık. Bugün iki göz derinlik eklemez.
+  - Duyular gerçekçileşirse iki göz gerçek değer kazanır: gözler yalnız yön ve görünüş verir, uzaklığı vermez.
+    Uzaklık iki gözün farkından hesaplanır (üçgenleme: uzaklık ≈ göz arası mesafe / açı farkı).
+  - İki göz ayrıca görüş alanını genişletir ve sol/sağ karşılaştırmasını doğal kılar (M3 iki taraf bölgesi).
+  - Hafızanın haritası da iki gözle daha sağlam kurulur.
+  - Duyu gerçekçiliği adımıyla birlikte TASARIM-007'de ele alınacak.
 
 **Claude'un eklediği teknik notlar** (tasarım belgesinde ayrıntılanacak):
 - Beden kendi konumunu bilmiyor; hareket duyusu (proprio: hız, dönüş) var. Konum tahmini için yol entegrasyonu
