@@ -972,6 +972,91 @@ değerlendirme aynı seçimle. Öğrenen dürtüsü 0,480, kardeş 0,845.
   - Gerçek veride beyin imzası eski ve yeni kodda aynı (`633062a8`). 10 yeni test yazıldı, 6/6 mutant öldü.
 - Panonun tüm yeni kodu: 1116/1116 test, mutasyon 18/18 + 19/19 + 6/6.
 
+## 2026-09-25 — Seri 005a: bağlı kontrol (yoked) — koşmadan önce
+
+- **Ozyn'in eleştirisi (doğru):** "Rastgele motor bile yeterince çalışınca yemek yiyebiliyor, bu böyle olmamalı."
+  Denekler izlendiğinde yemeğe yönelmiyor, rastgele dolaşıyor görünüyor.
+  - Odada 10 yemek var ve yenen yemek hemen başka yerde çıkıyor. Böyle bir odada dolaşan her beden yemeğe çarpar.
+  - İkiz ise çoğunlukla kıpırdamıyor. Bu yüzden "ikizden iyi" demek "hareket etmeyi öğrendi" demekten fazlası
+    değil. Panodaki "Öğrendi" etiketi bu yüzden abartılıydı.
+- **Yeni kontrol, bağlı beden** (`experiments/yoked.ts`, nörobilimdeki yoked control). Değerlendirme odası k'da
+  deneğin oda k+1'deki hareketlerini gözü kapalı tekrar oynar: hareket miktarı, patlamalar ve duraklamalar aynı,
+  gördüğüyle bağı yok. Testler: 11, hepsi geçti.
+- **Soru:** Mevcut denekler bağlı bedenlerini geçiyor mu? Aynı donmuş beyinler aynı 10 değerlendirme odasında yeniden
+  yaşatılıyor. Yeniden ölçümün kayıtlı değerle birebir aynı çıkması şart (denetim).
+- **Öngörüler (koşmadan):**
+  - (a) S1n, yemek/1000 tikte bağlı bedenini anlamlı geçemez (Wilcoxon p > 0,05): yemek kazancı yalnız hareketten.
+  - (b) S1n, ortalama dürtüde bağlı bedenini geçer (p < 0,05): duraklamalarını açlığına göre zamanlıyor, bağlı beden
+    rastgele zamanda duruyor. Bu, iç duyuyu kullanan gerçek bir öğrenme olur ama yemekle ilgili değildir.
+  - (c) T1only, yemek/1000 tikte bağlı bedenini açıkça geçer (≥ 9/10, p < 0,01), çünkü yönlendirmesi 0,24.
+  - (d) Bağlı bedenlerin yönlendirmesi ~0 (|ortalama| < 0,03). Kontrolün kendisinin denetimi.
+  - (e) Refleksli S1n, bağlı bedenini reflekssizden daha sık geçer. Çarpınca dönme refleksi duyuya bağlı bir
+    davranış, bağlı bedende yok.
+
+## 2026-09-25 — Seri 005a sonucu: denekler yemeğe dair tek bir karar öğrenmiş — "önündeyse ileri"
+
+`[ÖLÇÜLDÜ]` Her donmuş beyin, 10 değerlendirme odasında yeniden yaşatıldı. Yeniden ölçüm, kayıtlı değerle 60/60 birebir
+aynı çıktı. Bağlı beden aynı hareketleri başka odada, kör olarak tekrar oynadı. Denek başına bir satır sayıldı: S1n
+taraması iki kez koşulmuştu (aynı seed'ler, bit-aynı beyinler); ilk sayımda n yanlışlıkla 20'ydi, düzeltildi.
+
+| koşul | yemek/1000t öğr · bağlı | yemek/1000 hareketli tik | dürtü öğr · bağlı | yönelme öğr · bağlı | yönlendirme öğr · bağlı | çarpma/1000t |
+|---|---|---|---|---|---|---|
+| S1n tara (n 10) | 5,46 · 2,68 (9/10, p 0,006) | 15,1 · 7,1 (9/10) | 0,19 · 0,59 (9/10) | 0,33 · 0,17 (10/10, p 0,002) | 0,13 · 0,01 (7/10, p 0,05) | 50 · 49 |
+| S1n taze seed (n 20) | 3,36 · 1,95 (14/20, p 0,014) | 10,6 · 5,9 (14/20) | 0,48 · 0,70 (16/20) | 0,28 · 0,16 (19/20, p 1e-5) | 0,05 · 0,00 (p 0,13) | 94 · 104 |
+| T1only (n 10) | 17,2 · 8,1 (10/10) | 18,3 · 8,8 | 0,23 · 0,41 | 0,58 · 0,28 | 0,24 · 0,00 (10/10) | 63 · 58 |
+| T1add (n 10) | 11,2 · 6,5 (9/10) | 13,8 · 7,9 | 0,34 · 0,47 | 0,48 · 0,26 | 0,18 · −0,01 (9/10) | 67 · 69 |
+
+- **Öngörü karnesi:**
+  - (a) ✗ S1n, yemekte bağlı bedenini geçiyor (9/10; taze seed'de 14/20).
+  - (b) ✓ Dürtüde de geçiyor.
+  - (c) ✓ T1only 10/10, p 0,002.
+  - (d) ✓ Bağlı bedenlerin yönlendirmesi en fazla |0,016|; kontrol sağlam.
+  - (e) ✗ Refleksli grup taze seed'de bağlı bedenini yemekte geçemiyor (5/10), reflekssiz geçiyor (9/10).
+  - Ara hipotezim ("kazanç duvardan kaçmaktan") de ✗: çarpma sayıları eşit.
+- **Okuma:**
+  - S1n yemek başına iki kat verimli, çünkü yemek görüş alanındayken ona doğru hareketi bağlı bedenin iki katı sık
+    yapıyor (yönelme). Bu yönelme neredeyse tamamen "yemek tam öndeyse ileri git". Yana dönme yönlendirmesi taze
+    seed'lerde şansta. Öğrenilen bağlantılarda da ışın 2 yemek → ileri +2 görünüyor.
+  - Yani Ozyn'in gözlemi dönüşler için doğru: dönüşler yemeğe göre rastgele. "Hiçbir şey öğrenmemiş" ise tam doğru
+    değil; tek bir karar öğrenilmiş. Buna açlığa göre hareket etme/durma eşlik ediyor.
+  - Refleksli grup: taramada iyi (çarpma 26/1000t), taze seed'lerde duvara çok çarpıyor (118/1000t) ve yemekte bağlı
+    bedenini geçemiyor. Refleks bazı doğumlarda işe yarıyor, bazılarında yaramıyor. Ozyn'in "fena değil ama eksik"
+    gözlemiyle tutarlı; ayrı izlenecek.
+- **Panodaki "Öğrendi" etiketi** yalnız ikize göre verilmişti. Ölçüt değişecek: bağlı bedene göre ve ne öğrendiğini
+  söyleyerek.
+
+## 2026-09-25 — Seri 005b ayarı: rastgelenin kazanamadığı oda
+
+`[ÖLÇÜLDÜ]` Beyinsiz, elle yazılmış gövdeler; seed 1–10 × 10 değerlendirme odası; tehlike yok.
+- kör: 10 tiklik rastgele patlamalar.
+- ön: kör + "yemek tam öndeyse ileri", yani S1n'in öğrendiği.
+- arayıcı: gördüğü yemeğe döner.
+- kâhin.
+
+| yemek | enerji | kör yemek · hayatta | ön | arayıcı | kâhin |
+|---|---|---|---|---|---|
+| 10 | 0,4 | 2,68 · %3 | 19,7 · %99 | 26,8 · %100 | 12,6 · %51 |
+| 5 | 0,4 | 1,26 · %0 | 10,9 · %81 | 14,9 · %89 | 4,2 · %12 |
+| 3 | 0,4 | 0,64 · %0 | 6,7 · %46 | 8,8 · %60 | 1,9 · %4 |
+| 5 | 0,8 | 1,43 · %1 | 10,8 · %81 | 15,2 · %92 | 3,9 · %12 |
+| 3 | 0,8 | 0,81 · %0 | 6,5 · %60 | 8,9 · %65 | 1,6 · %4 |
+
+- **Büyük bulgu:** 10 yemekli odada "önündeyse ileri + kör dolaşma" tavana yakın (19,7 · %99). Oda yana dönmeyi hiç
+  gerektirmiyor. Beyin en kolay işe yarayan kararı öğrendi ve orada kaldı; öğrenmeye çalıştığımız şeyi oda
+  istemiyordu.
+- 5 yemekte kör beden ölüyor (%0–1). Görüşü kullanan gövdeler yaşıyor. Yana dönmenin katkısı hâlâ küçük:
+  ön %81, arayıcı %89–92.
+- Ozyn'in enerji önerisi: 0,8 enerji kör bedeni kurtarmıyor (%1), öğrenmeye zaman kazandırıyor → uygun.
+- **Seçim (koşmadan önce konan ölçüt: kör hayatta ≤ %5 ve arayıcı hayatta ≥ %80):** yemek 5, enerji 0,8, tehlike yok →
+  **ROOM3** ("kıt oda"). Yana dönmeyi gerçekten zorunlu kılan oda ayrı bir iş; bu oda "rastgele kazanamaz" şartını
+  karşılıyor.
+- **Seri 005b öngörüleri (koşmadan; S1n ve T1only, ROOM3, seed 1–5 × iki grup, bağlı kontrol otomatik):**
+  - (a) S1n öğrenenleri dürtüde bağlı bedenlerini geçer (≥ 8/10).
+  - (b) S1n hayatta kalma > %30.
+  - (c) S1n yana dönme yönlendirmesi yine şans düzeyinde kalır (< 0,05).
+  - (d) T1only her ölçüde S1n'den iyi.
+  - (e) Refleksli ve reflekssiz ayrı raporlanır; yön öngörüsü yok.
+
 ## Açık sorular (güncel)
 
 - Kendiliğinden hareket (motor babbling) ve zayıf rastgele doğum bağlantıları öğrenmeyi başlatır mı?

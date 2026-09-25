@@ -123,6 +123,10 @@ test("arena API answers 404 for a subject that does not exist", () => {
   assert.equal(ask(handler, "/api/arena/DNK-9999").status, 404);
 });
 
+test("an experiment row carries the learner's yoked body", () => {
+  assert.notEqual(experiment!.y, null);
+});
+
 // --- films ------------------------------------------------------------------------------------------
 
 const film1 = filmRoom(new Contestant(view.learner, view.world, view.seed));

@@ -14,6 +14,7 @@ import { Rng, Room, runEpisode, type Action, type EpisodeHooks, type Policy, typ
 import { approach, orientation, sideTurnInformation, steering, steeringIndex, turnToward } from "./measures.ts";
 
 import { MAX_TICKS, evalNoise, evalWorld, trainNoise, trainWorld } from "./seeds.ts";
+import { recordingActor, yokedActor } from "./yoked.ts";
 
 export { MAX_TICKS, evalNoise, evalWorld, trainNoise, trainWorld };
 
@@ -36,6 +37,8 @@ export interface Eval {
    * when fed is not punished here, unlike meals/1000 ticks.
    */
   meanDrive: number;
+  /** Ticks in contact with a wall per 1000 ticks: how much of its moving the body spends against walls. */
+  bumpsPerK: number;
   /** Share of episodes that reached MAX_TICKS alive. */
   survival: number;
   /** I(food side; turn) in bits, pooled over episodes (null if food was never seen on both sides). */
@@ -51,6 +54,8 @@ export interface Row {
   readonly twin: { id: string; name: string };
   readonly l: Eval;
   readonly t: Eval;
+  /** The learner's yoked body (yoked.ts): its own movements, blind, in the other rooms; null with 1 room. */
+  readonly y: Eval | null;
   readonly go: number;
   readonly nogo: number;
   readonly weightEntries: number;
@@ -108,7 +113,7 @@ export interface Actor {
  */
 export function measureEpisodes(actor: Actor, world: WorldConfig, seed: number, episodes: number, lag: number, onEpisode?: (line: Omit<EpisodeLine, "kind">) => void): Eval {
   const ticks: number[] = [], meals: number[] = [];
-  let harm = 0;
+  let harm = 0, bumps = 0;
   let seen = 0, toward = 0, pairs = 0, closer = 0, still = 0, all = 0, turns = 0, turnsToward = 0;
   let driveSum = 0, alive = 0;
   const steer = { leftSeen: 0, rightSeen: 0, leftTurnWhenLeft: 0, rightTurnWhenLeft: 0, leftTurnWhenRight: 0, rightTurnWhenRight: 0 };
@@ -131,11 +136,11 @@ export function measureEpisodes(actor: Actor, world: WorldConfig, seed: number, 
     driveSum += drive(obs[obs.length - 1]!) * (MAX_TICKS - records.length); // dead: stays at its last drive
     if (summary.doneCause === null) alive++;
     onEpisode?.({ episode: ep, worldSeed, summary, events: episodeEvents(records), extra: { orientation: o, approach: a, turnToward: d, steering: st } });
-    ticks.push(summary.ticks); meals.push(summary.foodEaten); harm += summary.damage;
+    ticks.push(summary.ticks); meals.push(summary.foodEaten); harm += summary.damage; bumps += summary.bumps;
   }
   const T = ticks.reduce((x, y) => x + y, 0);
   return {
-    harmPerK: (1000 * harm) / T,
+    harmPerK: (1000 * harm) / T, bumpsPerK: (1000 * bumps) / T,
     ticks: mean(ticks), meals: mean(meals), perK: (1000 * meals.reduce((x, y) => x + y, 0)) / T,
     orientation: seen ? toward / seen : 0, approach: pairs ? closer / pairs : 0, still: still / all,
     turnToward: turns ? turnsToward / turns : 0.5, turns, steering: steeringIndex(steer),
@@ -145,12 +150,24 @@ export function measureEpisodes(actor: Actor, world: WorldConfig, seed: number, 
 
 /** Evaluate a subject's current brain with learning frozen. */
 export function evaluate(store: RegistryStore, s: Subject, world: WorldConfig, episodes: number, codeCommit: string, label: string, spec: Partial<AgentSpec> = {}): Eval {
+  return evaluateWithYoked(store, s, world, episodes, codeCommit, label, spec, false).subject;
+}
+
+/**
+ * Evaluate a subject (as evaluate) and, when `yoked`, also its yoked body: the subject's own recorded
+ * movements replayed blind in the other evaluation rooms (yoked.ts). The yoked body is not a subject and
+ * leaves no run; it is measured on the same rooms with the same measures.
+ */
+export function evaluateWithYoked(store: RegistryStore, s: Subject, world: WorldConfig, episodes: number, codeCommit: string, label: string, spec: Partial<AgentSpec> = {}, yoked = true): { subject: Eval; yoked: Eval | null } {
   const ledger = store.openLedger(s.id);
   const agent = createAgent({ ...spec, cfg: world, ledger, noiseSeed: evalNoise(s.birth.seed), learning: { ...spec.learning, frozen: true } });
   const run = store.startRun(s.id, `${label} eval (learning frozen)`, {}, { codeCommit });
   // A selector acts on the tick it senses; the graph needs its conduction delay.
   const lag = spec.selection ? 0 : senseToMotorDelay(ledger.graph);
-  return measureEpisodes(agent, world, s.birth.seed, episodes, lag, (line) => store.appendEpisode(run.id, line));
+  const rec = recordingActor(agent);
+  const subject = measureEpisodes(rec.actor, world, s.birth.seed, episodes, lag, (line) => store.appendEpisode(run.id, line));
+  // The yoked body's turns are judged against what it sees at the same lag, so its steering is comparable.
+  return { subject, yoked: yoked && episodes > 1 ? measureEpisodes(yokedActor(rec.actions), world, s.birth.seed, episodes, lag) : null };
 }
 
 /** Train a subject; returns meals/1000 ticks per 10-episode block. */
@@ -199,11 +216,12 @@ export function runCondition(store: RegistryStore, o: {
       const twin = twins.get(key)!;
       const s = birth(store, o.world, seed, group, o.codeCommit, born, undefined, o.preregistration);
       const trainPerK = train(store, s, o.world, o.trainEpisodes, o.condition.spec, o.codeCommit, `${o.label} ${o.condition.code}`);
-      const l = evaluate(store, s, o.world, o.evalEpisodes, o.codeCommit, o.label, { critic: o.condition.spec.critic ?? null, selection: o.condition.spec.selection ?? null });
+      const both = evaluateWithYoked(store, s, o.world, o.evalEpisodes, o.codeCommit, o.label, { critic: o.condition.spec.critic ?? null, selection: o.condition.spec.selection ?? null });
+      const l = both.subject;
       const ledger = store.openLedger(s.id);
       const plastic = ledger.graph.connections.filter((c) => isPlastic(c));
       rows.push({
-        seed, group, learner: { id: s.id, name: s.name }, twin: { id: twin.id, name: twin.name }, l, t: twin.eval,
+        seed, group, learner: { id: s.id, name: s.name }, twin: { id: twin.id, name: twin.name }, l, t: twin.eval, y: both.yoked,
         go: mean(plastic.filter((c) => c.to.startsWith("bg.go.")).map((c) => c.weight)),
         nogo: mean(plastic.filter((c) => c.to.startsWith("bg.nogo.")).map((c) => c.weight)),
         weightEntries: ledger.entries.filter((e) => e.kind === "weight").length,

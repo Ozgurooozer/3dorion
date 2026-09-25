@@ -27,6 +27,12 @@ export interface ConditionDef {
 export const ROOM1 = makeConfig({ initialEnergy: 0.4, threatCount: 0, foodCount: 10 });
 /** Room 2 (Ozyn, 2026-09-25): the threat zones switched on — approach food, keep out of what hurts. */
 export const ROOM2 = makeConfig({ initialEnergy: 0.4, threatCount: 2, foodCount: 10 });
+/**
+ * Room 3, the scarce room (series 005b, 2026-09-25): 5 food, born at energy 0.8, no threats. Chosen by
+ * calibration so blind movement cannot win (random bursts survive 1% of rooms) while using sight does
+ * (the seeker survives 92%): in room 1 blind wandering plus "food ahead → forward" came near the ceiling.
+ */
+export const ROOM3 = makeConfig({ initialEnergy: 0.8, threatCount: 0, foodCount: 5 });
 export const room = (food: number, threats = 0) => makeConfig({ initialEnergy: 0.4, threatCount: threats, foodCount: food });
 
 /**
@@ -59,6 +65,8 @@ export const CONDITIONS: Readonly<Record<string, ConditionDef>> = Object.freeze(
   R1n: { what: "room 2 (2 threats): S1n", spec: () => S1N, world: ROOM2 },
   // Diagnosis of direction (next step, 2026-09-25): S1n taught by the hand-coded oracle — can the
   // selector-driven brain learn "which way" at all when told?
+  K1n: { what: "room 3 (scarce: 5 food, energy 0.8): S1n", spec: () => S1N, world: ROOM3 },
+  KT1: { what: "room 3 (scarce): S1n, oracle teacher only (gain 0.3)", spec: (w) => ({ ...S1N, teacher: { policy: oraclePolicy(w), gain: 0.3, mix: "only" as const } }), world: ROOM3 },
   T1only: { what: "S1n, oracle teacher only (gain 0.3)", spec: (w) => ({ ...S1N, teacher: { policy: oraclePolicy(w), gain: 0.3, mix: "only" as const } }) },
   T1add: { what: "S1n + oracle teacher added to reward (gain 0.3)", spec: (w) => ({ ...S1N, teacher: { policy: oraclePolicy(w), gain: 0.3, mix: "add" as const } }) },
 });

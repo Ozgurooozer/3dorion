@@ -68,7 +68,7 @@ function record(command: string, code: string, control: Control, world: WorldCon
   const lines = rows.map((r) => JSON.stringify({
     date, codeCommit, command, code, control: control ?? "none", food: world.foodCount, threats: world.threatCount,
     trainEpisodes: o.train, evalEpisodes: o.evaluate,
-    seed: r.seed, group: r.group, learner: r.learner.id, twin: r.twin.id, l: r.l, t: r.t,
+    seed: r.seed, group: r.group, learner: r.learner.id, twin: r.twin.id, l: r.l, t: r.t, y: r.y,
     weightEntries: r.weightEntries, criticEntries: r.criticEntries, trainPerK: r.trainPerK,
   }));
   appendFileSync(join(DATA, "results.jsonl"), lines.join("\n") + "\n");
@@ -81,6 +81,21 @@ async function run(jobs: Job[], o: Options, codeCommit: string): Promise<JobResu
     if (Date.now() - last > 15_000 || done === total) { last = Date.now(); process.stderr.write(`  ${done}/${total} iş, ${((Date.now() - started) / 1000).toFixed(0)} sn\n`); }
   });
   return results;
+}
+
+/**
+ * The yoked comparison (yoked.ts, series 005a): the learner against its own movements replayed blind. Beating
+ * the twin only shows the learner moves; beating the yoked body shows it uses what it senses. Per group too.
+ */
+function reportYoked(rows: Row[]): void {
+  for (const [label, rs] of [["hepsi", rows], ["reflekssiz", rows.filter((r) => r.group === "reflexless")], ["refleksli", rows.filter((r) => r.group === "reflexive")]] as const) {
+    const withY = rs.filter((r) => r.y !== null);
+    if (withY.length < 2) continue;
+    console.log(`  [${label}] bağlı    ${evalLine(withY.map((r) => r.y!))}`);
+    console.log(`  [${label}] ${pairLine("dürtü (bağlı − öğrenen)", withY.map((r) => r.y!.meanDrive - r.l.meanDrive))}`);
+    console.log(`  [${label}] ${pairLine("yönelme (öğrenen − bağlı)", withY.map((r) => r.l.orientation - r.y!.orientation))}`);
+    console.log(`  [${label}] ${pairLine("yönlendirme (öğrenen − bağlı)", withY.map((r) => (r.l.steering ?? 0) - (r.y!.steering ?? 0)))}`);
+  }
 }
 
 async function screenOrConfirm(command: "tara" | "dogrula", codes: string[], o: Options, codeCommit: string) {
@@ -97,6 +112,7 @@ async function screenOrConfirm(command: "tara" | "dogrula", codes: string[], o: 
     console.log(`  ikiz      ${evalLine(byControl[0]!.map((r) => r.t))}`);
     console.log(`  ${pairLine("dürtü (ikiz − öğrenen)", byControl[0]!.map((r) => r.t.meanDrive - r.l.meanDrive))}`);
     console.log(`  ${pairLine("yönlendirme (öğrenen − ikiz)", byControl[0]!.map((r) => (r.l.steering ?? 0) - (r.t.steering ?? 0)))}`);
+    reportYoked(byControl[0]!);
     if (byControl[1]) {
       console.log(`  CROSS     ${evalLine(byControl[1].map((r) => r.l))}`);
       console.log(`  ${pairLine("dürtü (CROSS − öğrenen)", byControl[0]!.map((r, i) => byControl[1]![i]!.l.meanDrive - r.l.meanDrive))}`);
