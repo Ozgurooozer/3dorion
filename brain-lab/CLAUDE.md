@@ -15,6 +15,14 @@ numbered and named with lineage; every learning event is recorded; anyone must b
 reproduce a result from the records alone. Never tune on test seeds. Never claim more
 than was measured.
 
+## Method and helpers
+
+- **Themis** (`.claude/skills/themis/SKILL.md`, repo root) — the lab's working method: calibrate measures,
+  diagnose before treating, predict before running, screen → confirm with CROSS, honest scorecard, test
+  rules. Load it for any brain-lab work.
+- **Atlas** (`.claude/agents/atlas.md`) — the delegated experiment carrier: runs batches end to end,
+  diagnoses, writes the notebook entry, reports in Turkish. It never makes design decisions.
+
 ## Direction — do not invent new architectures
 
 Follow the existing line: v0.1 (single-path graph, `archive/`) → v0.2 Brain IR substrate
