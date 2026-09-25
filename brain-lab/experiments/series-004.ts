@@ -17,7 +17,7 @@ import type { Expansion, InnateGroup } from "../development/index.ts";
 import type { AgentSpec } from "../learning/index.ts";
 import { RegistryStore } from "../registry/store.ts";
 import { makeConfig } from "../world/index.ts";
-import { median, runCondition, type BirthOptions, type Row } from "./harness.ts";
+import { crossDopamine, median, runCondition, type BirthOptions, type Row } from "./harness.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DATA = join(HERE, "../data");
@@ -57,17 +57,6 @@ const CONDITIONS: Record<string, { what: string; spec: Spec; born?: BirthOptions
   G3L: { what: "E7 λ0.9, generators → Go 0.3 + bilateral comparison", spec: BASE, born: { generatorToGo: 0.3, bilateral: true } },
 };
 
-/** Delayed dopamine: every channel's δ comes 3000 ticks late, from another life. */
-const cross = (): NonNullable<AgentSpec["deltaTransform"]> => {
-  const buffers = new Map<string, number[]>();
-  return (d, _tick, channel = "global") => {
-    const buf = buffers.get(channel) ?? [];
-    buffers.set(channel, buf);
-    buf.push(d);
-    return buf.length > 3000 ? buf.shift()! : 0;
-  };
-};
-
 const mean = (xs: number[]) => xs.reduce((s, x) => s + x, 0) / xs.length;
 const started = Date.now();
 const jobs = process.argv.slice(2);
@@ -82,7 +71,7 @@ for (const job of jobs) {
   const twins = new Map();
   // One agent per subject, so the CROSS buffer must be fresh per subject: run subjects one by one.
   for (const group of GROUPS) for (const seed of SEEDS) {
-    const spec = control ? { ...c.spec, deltaTransform: cross() } : c.spec;
+    const spec = control ? { ...c.spec, deltaTransform: crossDopamine() } : c.spec;
     const r = runCondition(store, {
       condition: { code: job, what: control ? `${c.what}, CROSS` : c.what, spec },
       world: WORLD, seeds: [seed], groups: [group], trainEpisodes: 40, evalEpisodes: 10, codeCommit, label: "series-004", twins, born: c.born,

@@ -16,7 +16,7 @@ import type { InnateGroup } from "../development/index.ts";
 import type { AgentSpec } from "../learning/index.ts";
 import { RegistryStore } from "../registry/store.ts";
 import { makeConfig, type WorldConfig } from "../world/index.ts";
-import { runCondition, type BirthOptions, type Row } from "./harness.ts";
+import { crossDopamine, runCondition, type BirthOptions, type Row } from "./harness.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DATA = join(HERE, "../data");
@@ -49,23 +49,36 @@ export const SCREEN: Record<string, { what: string; spec: Spec; born?: BirthOpti
   S1n: { what: "S1 without dip floor", spec: { ...E7, selection: {}, learning: learn({ dipFloor: null }) } },
   S1a: { what: "S1 + action compartments", spec: { ...E7, selection: {}, compartments: { mode: "action" } } },
   S1c: { what: "S1 + normalised critic", spec: { ...E7, selection: {}, critic: NORM } },
+  R1n: { what: "room 2 (2 threats): S1n", spec: { ...E7, selection: {}, learning: learn({ dipFloor: null }) }, world: ROOM2 },
   R0: { what: "room 2 (2 threats): E7", spec: E7, world: ROOM2 },
   R1: { what: "room 2 (2 threats): S1", spec: { ...E7, selection: {} }, world: ROOM2 },
 };
 
 const mean = (xs: number[]) => xs.reduce((s, x) => s + x, 0) / xs.length;
 const started = Date.now();
-for (const code of process.argv.slice(2)) {
+// CODE runs the 10-subject screen; CODE@confirm the 20-subject confirmation (seeds 1–10);
+// a :CROSS suffix adds the delayed-dopamine control (fresh delay line per subject).
+for (const job of process.argv.slice(2)) {
+  const [head, control] = job.split(":") as [string, string | undefined];
+  const [code, stage] = head.split("@") as [string, string | undefined];
   const c = SCREEN[code];
   if (!c) throw new Error(`unknown condition ${code}; known: ${Object.keys(SCREEN).join(", ")}`);
-  const r = runCondition(store, {
-    condition: { code: `screen/${code}`, what: c.what, spec: c.spec },
-    world: c.world ?? WORLD, seeds: SEEDS, groups: GROUPS, trainEpisodes: 40, evalEpisodes: 10, codeCommit, label: "screen", born: c.born,
-  });
-  const rows: Row[] = r.rows;
+  if (control !== undefined && control !== "CROSS") throw new Error(`unknown control ${control}`);
+  if (stage !== undefined && stage !== "confirm") throw new Error(`unknown stage ${stage}`);
+  const seeds = stage === "confirm" ? [...SEEDS, 6, 7, 8, 9, 10] : SEEDS;
+  const rows: Row[] = [];
+  const twins = new Map();
+  for (const group of GROUPS) for (const seed of seeds) {
+    const spec = control ? { ...c.spec, deltaTransform: crossDopamine() } : c.spec;
+    const r = runCondition(store, {
+      condition: { code: `screen/${job}`, what: c.what, spec },
+      world: c.world ?? WORLD, seeds: [seed], groups: [group], trainEpisodes: 40, evalEpisodes: 10, codeCommit, label: "screen", born: c.born, twins,
+    });
+    rows.push(...r.rows);
+  }
   const f = (g: (x: Row) => number | null) => mean(rows.map((x) => g(x) ?? 0));
-  console.log(`[${((Date.now() - started) / 1000).toFixed(0)}s] ${code} ${c.what}`);
-  console.log(`    steering ${f((x) => x.l.steering).toFixed(3)} (twin ${f((x) => x.t.steering).toFixed(3)}, above 0: ${rows.filter((x) => (x.l.steering ?? 0) > 0).length}/${rows.length}) | side info ${f((x) => x.l.sideInfo).toFixed(4)} bits (twin ${f((x) => x.t.sideInfo).toFixed(4)}) | mean drive ${f((x) => x.l.meanDrive).toFixed(3)} (twin ${f((x) => x.t.meanDrive).toFixed(3)}) | survival ${f((x) => x.l.survival).toFixed(2)} (twin ${f((x) => x.t.survival).toFixed(2)}) | meals/1000t ${f((x) => x.l.perK).toFixed(2)} (twin ${f((x) => x.t.perK).toFixed(2)}) | harm/1000t ${f((x) => x.l.harmPerK).toFixed(2)} (twin ${f((x) => x.t.harmPerK).toFixed(2)}) | still ${(100 * f((x) => x.l.still)).toFixed(0)}%`);
-  writeFileSync(join(DATA, `screen-${code}-summary.json`), JSON.stringify({ screen: code, exploratory: true, codeCommit, what: c.what, born: c.born ?? null, spec: c.spec, rows }, null, 2) + "\n");
+  console.log(`[${((Date.now() - started) / 1000).toFixed(0)}s] ${job} ${c.what}${control ? " — CROSS" : ""} (${rows.length} subjects)`);
+  console.log(`    steering ${f((x) => x.l.steering).toFixed(3)} (twin ${f((x) => x.t.steering).toFixed(3)}, above 0: ${rows.filter((x) => (x.l.steering ?? 0) > 0).length}/${rows.length}) | side info ${f((x) => x.l.sideInfo).toFixed(4)} bits (twin ${f((x) => x.t.sideInfo).toFixed(4)}) | mean drive ${f((x) => x.l.meanDrive).toFixed(3)} (twin ${f((x) => x.t.meanDrive).toFixed(3)}; learner lower in ${rows.filter((x) => x.l.meanDrive < x.t.meanDrive).length}/${rows.length}) | survival ${f((x) => x.l.survival).toFixed(2)} (twin ${f((x) => x.t.survival).toFixed(2)}) | meals/1000t ${f((x) => x.l.perK).toFixed(2)} (twin ${f((x) => x.t.perK).toFixed(2)}) | harm/1000t ${f((x) => x.l.harmPerK).toFixed(2)} (twin ${f((x) => x.t.harmPerK).toFixed(2)}) | still ${(100 * f((x) => x.l.still)).toFixed(0)}%`);
+  writeFileSync(join(DATA, `screen-${job.replace(/[:@]/g, "-")}-summary.json`), JSON.stringify({ screen: job, exploratory: true, codeCommit, what: c.what, born: c.born ?? null, control: control ?? null, spec: { ...c.spec, deltaTransform: control ?? null }, rows }, null, 2) + "\n");
 }
 console.log("done");

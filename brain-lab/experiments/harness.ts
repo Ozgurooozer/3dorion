@@ -205,3 +205,18 @@ export function runCondition(store: RegistryStore, o: {
   const line = `${c.code} ${c.what}: ahead ${ahead}/${rows.length} | meals/1000t ${L((e) => e.perK).toFixed(2)} vs ${Tw((e) => e.perK).toFixed(2)} (median diff ${medianPerKDiff.toFixed(2)}) | life ${L((e) => e.ticks).toFixed(0)} vs ${Tw((e) => e.ticks).toFixed(0)} | approach ${L((e) => e.approach).toFixed(3)} vs ${Tw((e) => e.approach).toFixed(3)} | still ${(100 * L((e) => e.still)).toFixed(0)}% vs ${(100 * Tw((e) => e.still)).toFixed(0)}% | Go ${mean(rows.map((r) => r.go)).toFixed(3)} NoGo ${mean(rows.map((r) => r.nogo)).toFixed(3)}`;
   return { code: c.code, what: c.what, spec: JSON.parse(JSON.stringify(c.spec)), rows, ahead, medianPerKDiff, medianApproachDiff, line, twins };
 }
+
+/**
+ * CROSS control (meeting 2026-09-24, K1): dopamine delayed 3000 ticks, so it comes from another
+ * episode — timing and size kept, every link between this moment's action and its outcome gone.
+ * Each channel (global, compartment, teacher) has its own delay line. One per subject: build it fresh.
+ */
+export function crossDopamine(delay = 3000): NonNullable<AgentSpec["deltaTransform"]> {
+  const buffers = new Map<string, number[]>();
+  return (d, _tick, channel = "global") => {
+    const buf = buffers.get(channel) ?? [];
+    buffers.set(channel, buf);
+    buf.push(d);
+    return buf.length > delay ? buf.shift()! : 0;
+  };
+}

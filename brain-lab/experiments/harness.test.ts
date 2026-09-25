@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { oraclePolicy, seekerPolicy } from "../baselines/index.ts";
 import { drive } from "../neuromodulation/index.ts";
 import { Room, makeConfig, runEpisode } from "../world/index.ts";
-import { MAX_TICKS, evalWorld, measureEpisodes } from "./harness.ts";
+import { MAX_TICKS, crossDopamine, evalWorld, measureEpisodes } from "./harness.ts";
 
 const HUNGRY = makeConfig({ initialEnergy: 0.4, threatCount: 0, foodCount: 10 });
 const still = { policy: () => ({ thrust: 0, turn: 0 }) };
@@ -51,4 +51,18 @@ test("harm: health lost per 1000 ticks, equal to the episodes' own damage counts
 
 test("harm: a room without threats never harms", () => {
   assert.equal(measureEpisodes({ policy: () => ({ thrust: 1, turn: 1 }) }, HUNGRY, 1, 3, 0).harmPerK, 0);
+});
+
+test("CROSS: each channel's dopamine comes back exactly `delay` ticks later, and zero until then", () => {
+  const cross = crossDopamine(3);
+  const out = [1, 2, 3, 4, 5].map((d, t) => cross(d, t, "left"));
+  assert.deepEqual(out, [0, 0, 0, 1, 2]);
+});
+
+test("CROSS: channels have separate delay lines", () => {
+  const cross = crossDopamine(1);
+  assert.equal(cross(7, 0, "pos"), 0);
+  assert.equal(cross(9, 0, "neg"), 0, "neg must not receive pos's value");
+  assert.equal(cross(0, 1, "pos"), 7);
+  assert.equal(cross(0, 1, "neg"), 9);
 });
