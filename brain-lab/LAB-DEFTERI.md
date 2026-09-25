@@ -756,6 +756,26 @@ Kod `793e240` (E5, E10) ve `29f4121` (E7). Veri `data/series-002d-*`.
 - **Öngörüler (koşmadan; TASARIM-005 ölçütü):** S1 yönlendirme > 0,2, ortalama dürtü < 0,47, eleştirmenin yemek
   değeri > 0,02. S1a ve S1c S1'den iyi (döngü kurulunca eylem başına öğretme ve düzgün eleştirmen işe yarar).
 
+## 2026-09-25 — S1 tarama sonucu: ilk gerçek ilerleme
+
+`[ÖLÇÜLDÜ]` seed 1–5 × iki grup, 40 + 10 bölüm; kardeşler aynı seçimle (öğrenmeden) değerlendirildi.
+
+| kod | yönlendirme (> 0) | bilgi (bit) | ort. dürtü ↓ | hayatta kalma | yemek/1000t | eleştirmen yemek | yemek → Git kendi / karşı |
+|---|---|---|---|---|---|---|---|
+| kardeş (seçimle) | 0,007 | 0,004 | 0,848 | %3 | 2,24 | — | — |
+| A0 E7 (grafik) | 0,060 (6/10) | 0,031 | 0,469 | %52 | 3,62 | 0,0023 | 0,68 / 0,61 |
+| **S1** seçim | 0,104 (6/10) | **0,121** | 0,267 | %70 | 4,66 | 0,0051 | 0,57 / 0,41 |
+| S1a + eylem bölmeleri | −0,049 (3/10) | 0,056 | 0,673 | %23 | 1,91 | 0,0075 | 0,24 / 0,23 |
+| S1c + normalize eleştirmen | −0,022 (5/10) | 0,082 | 0,437 | %51 | 5,47 | 0,0043 | 0,63 / 0,69 |
+| **S1n** + tabansız | **0,131 (8/10)** | 0,077 | **0,190** | **%83** | 5,46 | 0,0033 | **0,59 / 0,39** |
+
+- Öngörü karnesi (TASARIM-005 ölçütü): S1 dürtü < 0,47 ✓ (0,27); yönlendirme > 0,2 ✗ (0,10 / S1n 0,13); eleştirmen
+  yemek değeri > 0,02 ✗ (~0,005). "S1a ve S1c S1'den iyi" ✗ — ikisi de kötüleştirdi (üçüncü kez: eklenen parça zarar).
+- Yorum: rekabetçi seçim homeostazı büyük ölçüde iyileştirdi ve **taraf ayrımı ilk kez öğreniliyor** (kendi tarafı
+  0,59 vs karşı 0,39). Eleştirmen hâlâ yemeğe değer vermiyor → ayrım yemek anındaki ödülden, eleştirmen köprüsünden değil.
+  Düşüş tabanı S1'de zararlı (E7'de değildi): tabansız S1n en iyi.
+- Sonraki: S1n doğrulama (20 denek + CROSS), sonra oda 2 (R1n), sonra S2 (merak).
+
 ## 2026-09-24 — Seri 004 / M3: iki taraf — koşmadan önce (keşif)
 
 - Kod: yeni bölge `lat` (6 nöron: duvar/yemek/tehlike × sol/sağ). Doğuştan: her taraftaki ışın kendi tarafının hücresini
