@@ -55,6 +55,12 @@ const pairLine = (label: string, diffs: number[]) => {
 
 const subjects = (code: string, seeds: number[], control: Control, o: Options, label: string, world?: WorldConfig): SubjectJob[] =>
   GROUPS.flatMap((group) => seeds.map((seed) => ({ kind: "subject" as const, code, control, seed, group, world, trainEpisodes: o.train, evalEpisodes: o.evaluate, label })));
+/**
+ * Summary file name. A run with non-standard episode counts (a quick test) gets its own name, so it can
+ * never overwrite the standard summary of the same condition (it did once: 2026-09-25).
+ */
+const summaryName = (stem: string, o: Options) =>
+  `${stem}${o.train === 40 && o.evaluate === 10 ? "" : `-e${o.train}x${o.evaluate}`}-summary.json`;
 const rowsOf = (results: JobResult[]) => results.map((r) => { if (r.kind !== "subject") throw new Error("expected a subject result"); return r.row; });
 
 function record(command: string, code: string, control: Control, world: WorldConfig, rows: Row[], codeCommit: string, o: Options) {
@@ -96,7 +102,7 @@ async function screenOrConfirm(command: "tara" | "dogrula", codes: string[], o: 
       console.log(`  ${pairLine("dürtü (CROSS − öğrenen)", byControl[0]!.map((r, i) => byControl[1]![i]!.l.meanDrive - r.l.meanDrive))}`);
     }
     controls.forEach((c, i) => record(command, code, c, world, byControl[i]!, codeCommit, o));
-    const file = `${command === "tara" ? "screen" : "confirm"}-${code}-summary.json`;
+    const file = summaryName(`${command === "tara" ? "screen" : "confirm"}-${code}`, o);
     writeFileSync(join(DATA, file), JSON.stringify({ command, code, what: def.what, codeCommit, controls, rows: byControl[0], control: byControl[1] ?? null }, null, 2) + "\n");
     console.log(`  → data/${file}`);
   }
@@ -144,7 +150,7 @@ async function falsify(code: string, o: Options, codeCommit: string) {
     const rows = main.filter((r) => r.group === g);
     console.log(`  grup ${g}: ${pairLine("dürtü (ikiz − öğrenen)", rows.map((r) => r.t.meanDrive - r.l.meanDrive))} | yönlendirme ${f3(mean(rows.map((r) => r.l.steering ?? 0)))}`);
   }
-  const file = `falsify-${code}-summary.json`;
+  const file = summaryName(`falsify-${code}`, o);
   writeFileSync(join(DATA, file), JSON.stringify({ code, what: def.what, codeCommit, main, cross, local, lesions: lesions.map(([label, pattern], k) => ({ label, pattern, evals: lesionEvals.slice(k * n, (k + 1) * n) })), rooms: roomRows }, null, 2) + "\n");
   console.log(`  → data/${file}`);
 }
