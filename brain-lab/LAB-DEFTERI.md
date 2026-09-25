@@ -798,6 +798,28 @@ Kod `793e240` (E5, E10) ve `29f4121` (E7). Veri `data/series-002d-*`.
   E7 oda 2'de kardeşten kötü. → İki zıt şeyi birlikte öğrenmek zor; oda 2 doğrulama + CROSS gerekli.
 - Doğrulama koşusu kayıt kilidinden önce başladığı için kilitsiz koştu (eski kod); sonraki koşular kilitli.
 
+## 2026-09-25 — "S1n öğreniyor" iddiasını çürütme denemesi — koşmadan önce
+
+Ozyn: "Birşeyden emin olmak büyük bir adım. Bilim için önce bu testleri çürütmeye çalışalım." Haklı: S1n, dört aday
+arasından seed 1–5'te en iyi olduğu için seçildi ve aynı bölgede (1–10) doğrulandı — kazananın laneti riski.
+
+- Araçlar: `experiments/stats.ts` (işaret testi ve Wilcoxon işaretli sıralar; bağsız n ≤ 30'da kesin dağılım — değerler
+  bağımsız olarak tüm işaret desenleri sayılarak hesaplandı, 13 test), `localDopamine` (LOCAL kontrol: dopamin aynı
+  bölümden 200 tik geç — yavaş değişkenler korunur, eylem–sonuç bağı kırılır), `lesionClone` (öğrenilmiş ağırlıkları
+  doğum değerine döndüren, defterli klon). 8/8 + 1 mutant öldü. Betik: `experiments/falsify-s1n.ts`.
+- **Öngörüler — iddia doğruysa** (çürütme ölçütü parantezde):
+  - F1 taze seed'ler 11–20 × iki grup: öğrenen dürtüsü kardeşten düşük ≥ 15/20 ve Wilcoxon p < 0,01; yönlendirme > 0
+    ≥ 14/20 (çürütür: ≤ 12/20 ya da p > 0,05).
+  - F2 LOCAL: kazancın çoğu kaybolur — LOCAL dürtüsü ≥ 0,6 (kardeş ~0,84; S1n ~0,3) (çürütür: LOCAL ≈ öğrenen →
+    öğrenme yavaş eşleşmelerden).
+  - F3 CROSS adil mi: CROSS'ta defter ağırlık kaydı öğrenenin en az %30'u (değilse CROSS zayıf bir kontrol; F2 önem kazanır).
+  - F4 yemek lezyonu dürtüyü kardeşe yaklaştırır (≥ 0,6), duvar lezyonu öğrenenin 0,1'i içinde kalır (çürütür: yemek
+    lezyonu etkisiz → kazanç başka yerden).
+  - F5 öğrenen–CROSS, öğrenen–LOCAL, öğrenen–yemek lezyonu farkları p < 0,01; duvar lezyonu p > 0,05.
+  - F6 yemek 5 ve 15: öğrenen dürtüsü kardeşten düşük ≥ 7/10 her odada (yemek 5'te E7 başarısızdı — orada tutmayabilir).
+  - F7 eğitim yemeği son blokta ilk bloktan yüksek.
+  - F8 iki grupta da öğrenen dürtüsü kardeşten düşük ≥ 7/10.
+
 ## 2026-09-24 — Seri 004 / M3: iki taraf — koşmadan önce (keşif)
 
 - Kod: yeni bölge `lat` (6 nöron: duvar/yemek/tehlike × sol/sağ). Doğuştan: her taraftaki ışın kendi tarafının hücresini

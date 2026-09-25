@@ -14,7 +14,7 @@ import { bornGraph } from "../development/index.ts";
 import { Ledger } from "../registry/index.ts";
 import { RegistryStore } from "../registry/store.ts";
 import { diagnoseLedger } from "./diagnose.ts";
-import { MAX_TICKS, TEST_SEED_FLOOR, assertSeedAllowed, birth, crossDopamine, evalWorld, measureEpisodes } from "./harness.ts";
+import { MAX_TICKS, TEST_SEED_FLOOR, assertSeedAllowed, birth, crossDopamine, evalWorld, lesionClone, localDopamine, measureEpisodes } from "./harness.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -136,4 +136,39 @@ test("diagnose: learned side changes and critic values are read back from the le
   assert.ok(Math.abs(d.otherSideGo - 0.025) < 1e-12, `other ${d.otherSideGo}`);
   assert.ok(Math.abs(d.criticFood - 0.01) < 1e-12, `critic food ${d.criticFood} (0.05 over 5 rays)`);
   assert.equal(d.forwardGo, 0);
+});
+
+// --- LOCAL control and lesion --------------------------------------------------------------------
+
+test("LOCAL: dopamine comes back `delay` ticks later within the episode, zero until then", () => {
+  const local = localDopamine(2);
+  assert.deepEqual([5, 6, 7, 8].map((d, t) => local(d, t, "global")), [0, 0, 5, 6]);
+});
+
+test("LOCAL: a new episode (tick 0) empties the delay line — nothing crosses episodes", () => {
+  const local = localDopamine(2);
+  [1, 2, 3].forEach((d, t) => local(d, t, "global"));
+  assert.deepEqual([9, 9, 9].map((d, t) => local(d, t, "global")), [0, 0, 9]);
+});
+
+test("lesion: the clone's matching learned weights are back at birth, the rest untouched, all on its ledger", () => {
+  const root = mkdtempSync(join(tmpdir(), "brainlab-lesion-"));
+  const store = new RegistryStore(root);
+  const parent = birth(store, HUNGRY, 1, "reflexless", "test");
+  const ledger = store.openLedger(parent.id);
+  const w = (l: Ledger, from: string, to: string) => l.graph.connections.find((e) => e.from === from && e.to === to)!.weight;
+  const move = (from: string, to: string, by: number) =>
+    ledger.record({ kind: "weight", tick: 1, episode: 1, cause: ["test"], edge: { from, to }, before: w(ledger, from, to), after: w(ledger, from, to) + by });
+  move("ray4.food", "bg.go.left", 0.5);
+  move("ray4.wall", "bg.go.right", 0.3);
+  store.saveLedger(ledger);
+  const clone = lesionClone(store, parent.id, /\.food$/, "test");
+  const lesioned = store.openLedger(clone.id);
+  const born = store.openLedger(parent.id).birthGraph;
+  const birthW = (from: string, to: string) => born.connections.find((e) => e.from === from && e.to === to)!.weight;
+  assert.equal(w(lesioned, "ray4.food", "bg.go.left"), birthW("ray4.food", "bg.go.left"), "food edge back at birth");
+  assert.equal(w(lesioned, "ray4.wall", "bg.go.right"), w(store.openLedger(parent.id), "ray4.wall", "bg.go.right"), "wall edge keeps what it learned");
+  assert.ok(lesioned.entries.some((e) => e.kind === "weight" && e.cause.includes("lesion")), "the reset is on the clone's ledger");
+  assert.equal(store.loadSubject(clone.id).lineage.parent, parent.id);
+  assert.equal(w(store.openLedger(parent.id), "ray4.food", "bg.go.left"), birthW("ray4.food", "bg.go.left") + 0.5, "the parent is untouched");
 });

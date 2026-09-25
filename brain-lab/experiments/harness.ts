@@ -238,3 +238,39 @@ export function crossDopamine(delay = 3000): NonNullable<AgentSpec["deltaTransfo
     return buf.length > delay ? buf.shift()! : 0;
   };
 }
+
+/**
+ * LOCAL control (falsification of S1n, 2026-09-25): dopamine from the same episode, `delay` ticks
+ * late. Slow variables still line up (hunger level, being in a food-rich part of the room), the link
+ * between this moment's action and its outcome is gone. If learning survives LOCAL, it was learning
+ * slow correlations, not action → outcome. The line is emptied at every episode start (tick 0).
+ */
+export function localDopamine(delay = 200): NonNullable<AgentSpec["deltaTransform"]> {
+  const buffers = new Map<string, number[]>();
+  return (d, tick, channel = "global") => {
+    if (tick === 0) buffers.set(channel, []);
+    const buf = buffers.get(channel) ?? [];
+    buffers.set(channel, buf);
+    buf.push(d);
+    return buf.length > delay ? buf.shift()! : 0;
+  };
+}
+
+/**
+ * Lesion: a clone of a subject whose learned weights on the plastic edges from senses matching
+ * `from` are set back to the parent's birth values. The clone is a registered subject (lineage
+ * "clone") and every reset is a ledger entry with cause "lesion", so the lesioned brain replays.
+ */
+export function lesionClone(store: RegistryStore, parentId: string, from: RegExp, codeCommit: string): Subject {
+  const birthOfParent = new Map(store.openLedger(parentId).birthGraph.connections.map((e) => [`${e.from}->${e.to}`, e.weight]));
+  const clone = store.clone(parentId, { codeCommit });
+  const ledger = store.openLedger(clone.id);
+  for (const e of ledger.graph.connections) {
+    if (!isPlastic(e) || !from.test(e.from)) continue;
+    const birthWeight = birthOfParent.get(`${e.from}->${e.to}`)!;
+    if (e.weight === birthWeight) continue;
+    ledger.record({ kind: "weight", tick: 0, episode: 0, cause: ["lesion", from.source], edge: { from: e.from, to: e.to }, before: e.weight, after: birthWeight });
+  }
+  store.saveLedger(ledger);
+  return clone;
+}
