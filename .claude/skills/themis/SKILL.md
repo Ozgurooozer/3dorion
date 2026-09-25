@@ -125,7 +125,9 @@ Secondary: meals/1000 ticks, life, still %. Legacy (biased, keep only for old co
 Reference numbers (room 1: 10 food, no threats, born hungry 0.4): random 0.67 meals/1000t · seeker
 ceiling 25.8 · TD SARSA(λ) 8.38 · E7 twin (graph) drive 0.72, survival 11% · E7 drive 0.47, survival
 52%, steering 0.06 · S1n (competitive selection, no dip floor), confirmed 2026-09-25 (20 subjects + CROSS):
-drive 0.32 (twin 0.84, CROSS 0.81), survival 67%, steering 0.13 (16/20 > 0; CROSS 0.004).
+drive 0.32 (twin 0.84, CROSS 0.81), survival 67%, steering 0.13 (16/20 > 0; CROSS 0.004). Falsification
+(fresh seeds 11–20): drive gain survived (0.48 vs 0.85, p 0.0003; gone under CROSS and LOCAL); **steering did not**
+(0.048, p 0.52) — the 0.13 was selection bias.
 
 The twin must behave through the **same machinery** as the learner (e.g. the same selector); a
 selector acts on the tick it senses (evaluation lag 0), the graph brain needs its conduction delay.

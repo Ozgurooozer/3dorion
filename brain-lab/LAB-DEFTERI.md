@@ -820,6 +820,42 @@ arasından seed 1–5'te en iyi olduğu için seçildi ve aynı bölgede (1–10
   - F7 eğitim yemeği son blokta ilk bloktan yüksek.
   - F8 iki grupta da öğrenen dürtüsü kardeşten düşük ≥ 7/10.
 
+## 2026-09-25 — Çürütme denemesi sonucu: "öğreniyor" kısmen ayakta, "yön öğreniyor" çürüdü
+
+`[ÖLÇÜLDÜ]` `falsify-s1n.ts`, taze seed'ler 11–20 × iki grup (S1n'in hiç görmediği).
+
+| | ort. dürtü ↓ | hayatta kalma | yönlendirme | bilgi (bit) | yemek/1000t |
+|---|---|---|---|---|---|
+| kardeş | 0,845 | %2 | 0,015 | 0,003 | 2,20 |
+| **öğrenen** | **0,480** | **%45** | 0,048 | 0,119 | 3,36 |
+| CROSS | 0,827 | %6 | 0,000 | 0,003 | 1,28 |
+| LOCAL (aynı bölüm, 200 tik geç) | 0,878 | %1 | −0,001 | 0,003 | 0,70 |
+| yemek lezyonu | 0,574 | %34 | 0,001 | 0,013 | 2,55 |
+| duvar lezyonu | 0,490 | %43 | 0,091 | 0,074 | 4,63 |
+
+Eşleştirilmiş testler (20 denek, pozitif = öğrenen iyi): dürtü öğrenen–kardeş 17/20, Wilcoxon p = 0,00026 · öğrenen–CROSS
+17/20, p = 0,0014 · öğrenen–LOCAL 18/20, p = 0,0001 · **yönlendirme öğrenen–kardeş 10/20, p = 0,52** · yemek lezyonu 13/20,
+p = 0,33 · duvar lezyonu 11/20, p = 0,93. Diğer odalar: yemek 5'te 9/10 (p = 0,014), yemek 15'te 7/10 (p = 0,027).
+Gruplar: reflekssiz 10/10 (yönlendirme 0,10), refleksli 7/10 (yönlendirme −0,005). Defter kaydı/denek: öğrenen 37 152,
+CROSS 8 833 (%24), LOCAL 3 506 (%9). Eğitim yemeği blokları 4,07 → 3,98 → 3,86 → 3,58.
+
+**Öngörü karnesi:** F1 dürtü ✓ (17/20, p < 0,001) · F1 yönlendirme ✗ (10/20; ölçüt ≥ 14/20) · F2 LOCAL ✓ (0,878 ≥ 0,6) ·
+F3 CROSS adil mi ✗ (%24 < %30; LOCAL %9) · F4 yemek lezyonu ✗ (0,574 < 0,6; p = 0,33) · F4 duvar lezyonu ✓ · F5 kontroller ✓,
+yemek lezyonu ✗ · F6 ✓ (ikisi de ≥ 7/10) · F7 ✗ (yemek/1000t düşüyor — ama bu ölçü tokken dinlenmeyi cezalandırıyor,
+eğri için yanlış ölçü seçmişim) · F8 ✓ (refleksli sınırda).
+
+**Geri alınanlar (açıkça):**
+- "S1n yönü öğreniyor" — **çürüdü.** Taze seed'lerde yönlendirme 0,048, kardeşten farkı şans düzeyinde (p = 0,52). 1–10'daki
+  0,13 büyük olasılıkla seçim yanlılığıydı (kazananın laneti).
+- "Kazanç yemek → Git bağlantılarında" — **çürüdü.** Yemek lezyonu kazancın yalnız ~%25'ini götürüyor, anlamlı değil.
+
+**Ayakta kalan (bu testlerden geçti, "kanıtlandı" değil):** S1n'in homeostazı iyileştirmesi gerçek ve eylem–sonuç
+zamanlamasına bağlı: taze seed'lerde, iki odada daha, iki grupta; CROSS ve LOCAL'de tamamen kayboluyor.
+
+**Açık kuşku (F3):** kontrollerde plastisite öğrenenin %9–24'ü. Kontroller "yanlış zamanlı öğrenme" değil kısmen "az öğrenme"
+olabilir — öğrenen daha uzun yaşadığı için daha çok kayıt yazıyor olabilir (tik başına oran ölçülmedi). Bu kuşku giderilmeden
+"zamanlamaya bağlı" demek güçlü bir iddia.
+
 ## 2026-09-24 — Seri 004 / M3: iki taraf — koşmadan önce (keşif)
 
 - Kod: yeni bölge `lat` (6 nöron: duvar/yemek/tehlike × sol/sağ). Doğuştan: her taraftaki ışın kendi tarafının hücresini
