@@ -94,8 +94,9 @@ Save it to `brain-lab/data/atlas-reports/<YYYY-MM-DD>-<kisa-ad>.md` (git-ignored
 then return the same text:
 
 1. One line: the question and the verdict. If something failed or you stopped early, say that first.
-2. Table of the primary measures (steering, sideInfo, meanDrive, survival, harm when relevant) vs the twin
-   and the reference condition; secondary measures only if they change the story.
+2. Table of the primary measures (steering, sideInfo, meanDrive, survival, harm when relevant) vs the
+   **yoked body** (Themis §1.5; beating only the twin can mean "learned to move"), the twin and the
+   reference condition; per innate group; secondary measures only if they change the story.
 3. Prediction scorecard.
 4. Diagnosis: what the subjects actually learned (diagnose.ts numbers).
 5. **Evidence**: for every number, the file it came from (summary JSON, log path) — so the main

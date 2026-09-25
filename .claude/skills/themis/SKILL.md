@@ -87,8 +87,17 @@ by `trainEpisodes`.
 
 - **Screen** (`tara`): seeds 1–5 × both innate groups, 40 training + 10 evaluation episodes.
 - Only what looks promising goes to **confirmation** (`dogrula`): 20 subjects **and** the CROSS control
-  (dopamine from another episode). "It learned" needs both: better than the frozen twin AND gone under
+  (dopamine from another episode). "It learned" needs: better than its **yoked body** AND gone under
   CROSS. E10 beat its twin 12/14 and was mostly a non-learning drift.
+- The **yoked body** ("bağlı beden", `experiments/yoked.ts`, 2026-09-25): the learner's own actions replayed
+  blind in its other evaluation rooms. Every new learner gets one automatically (`Row.y`, results.jsonl `y`;
+  the `tara` report compares learner vs yoked per group). Why: the frozen twin barely moves, so beating it
+  can only mean "learned to move" — Ozyn: "rastgele motor bile yeterince çalışınca yemek yiyebiliyor".
+  Beating the yoked body means the learner uses what it senses.
+- **Choose a room blind movement cannot win** before judging a learner in it: calibrate blind bursts,
+  "food ahead → forward" and the seeker first (`experiments/calibrate-005b.ts`). In room 1 blind bursts
+  plus "food ahead → forward" reach 19.7 of the seeker's 26.8 meals — room 1 never asked for turning.
+  Room 3 (`ROOM3`, 5 food, energy 0.8): blind survives 1 %, "ahead" 81 %, seeker 92 %.
 - The **twin** ("ikiz kontrol"): same birth, same evaluation worlds and noise, learning off — what the
   learner gains over it is what learning added.
 - Test seeds (1001+) are never touched without Ozyn's explicit approval of a frozen pre-registration.
@@ -129,7 +138,12 @@ Primary — use these to judge:
 | `survival` | share of episodes alive at 3000 ticks | |
 | `harmPerK` | health lost per 1000 ticks (room 2, threats on) | |
 
-Secondary: meals/1000 ticks, life, still %. Legacy (biased, keep only for old comparisons): turnToward, approach.
+Each of these is read **against the yoked body** first (paired Wilcoxon), the twin second.
+`orientation` (share of food-in-sight ticks with the move toward it) is meaningful only against the yoked
+body: S1n 0.28 vs yoked 0.16 (fresh seeds, 19/20) — almost all "food ahead → forward".
+
+Secondary: meals/1000 ticks, meals per moving tick, bumpsPerK, life, still %. Legacy (biased, keep only
+for old comparisons): turnToward, approach.
 
 Reference numbers (room 1: 10 food, no threats, born hungry 0.4): random 0.67 meals/1000t · seeker
 ceiling 25.8 · TD SARSA(λ) 8.38 · E7 twin (graph) drive 0.72, survival 11% · E7 drive 0.47, survival
@@ -173,7 +187,9 @@ selector acts on the tick it senses (evaluation lag 0), the graph brain needs it
 
 This repo learned it the hard way (root `CLAUDE.md`, "Kopya kod — kural değil, bekçi"): a rule in a
 document is forgotten, a guard in code is not. When a rule here matters enough that breaking it would
-corrupt data or a conclusion, turn it into a guard with a test (done so far: registry index lock for
+corrupt data or a conclusion, turn it into a guard with a test (done so far: yoked body on every learner
+and verdicts judged against it (`viewer/plain.ts judge`), arena films checked bit-for-bit against the
+record (the browser's Math.cos differs in the last bit — brains replay on the server), registry index lock for
 parallel writers, test-seed guard, bit-identical regression checks, parallel = sequential test,
 calibration tests of every measure). When you add a guard, name it here.
 
