@@ -1125,6 +1125,46 @@ taraması iki kez koşulmuştu (aynı seed'ler, bit-aynı beyinler); ilk sayımd
   - **Çürütme ölçütü:** (b) tutmazsa fikir bu haliyle yön öğretmiyor demektir; "hafıza anlam biriktirdi ama davranışa
     geçmedi" (a tutar, b tutmaz) ile "hafıza da oluşmadı" (a da tutmaz) ayrı yazılır.
 
+## 2026-09-25 — Seri 006 sonucu (K2/K2x): başarısız — hafıza öğrenmedi, savruldu
+
+`[ÖLÇÜLDÜ]` Kıt oda, seed 1–5 × iki grup, 40 + 10 bölüm; kod `7566021`.
+
+| | dürtü | hayatta | yemek/1000t | yönlendirme | bağlı bedene göre dürtü |
+|---|---|---|---|---|---|
+| K2 (κ 1) öğrenen | 0,866 | %0 | 0,33 | 0,027 | 5/10, p 0,85 |
+| K2x (κ 3) öğrenen | 0,885 | %0 | 0,33 | 0,016 | 4/10, p 0,61 |
+| K1n öğrenen (karşılaştırma) | 0,425 | %39 | 2,12 | 0,114 | 9/10, p 0,02 |
+| ikiz (ortak) | 0,755 | %0 | 1,00 | 0,006 | — |
+
+- Öğrenenler ikizden bile kötü: dürtüde 0/10.
+- **Teşhis** (`diagnose-critic.ts K2 cue/`): hafıza değerleri savruldu.
+  - Duvar ışınları eğitim boyunca toplam 279 birim oynadı, −2,35'te bitti.
+  - Yemek ışınları 118 oynadı, −0,39'da bitti.
+  - Karşılaştırma: eleştirmen K1n'de 2,7 ve 2,2 oynamıştı.
+- **Sebep: benim tasarım hatam, fikrin değil.** İz birikimliydi (e ← λe + x). Sürekli görünen bir duvarın izi
+  1/(1−λ) = 20 katına çıktı, adım 20 kat büyüdü, değerler salındı. Biçimlendirme bu gürültüyü doğrudan öğretmeye taşıdı.
+- **Öngörü karnesi:** (a) ✗ (0/10), (b) ✗, (c) ✗, (d) ✗ (tersine). Fikir bu uygulamayla sınanamadı.
+  "Hafıza oluşmadı" durumu.
+- **Düzeltme:** yerine koyan iz (e ← max(λe, x); Singh & Sutton 1996). Sürekli görülen bir şey bir kez görülmüş
+  sayılır, iz en fazla 1 olur.
+  - Seçenek olarak eklendi (`CueParams.trace`). K2/K2x kayıtları eski ayarla yeniden üretilebilir kaldı
+    (gerileme kontrolü: K2 3/3, K1n 2/2 birebir aynı).
+  - Testler 47; mutasyon 4/4.
+
+## 2026-09-25 — Seri 006b (K3/K3x, yerine koyan iz) — koşmadan önce
+
+- Koşullar: K3 (κ 1) ve K3x (κ 3); kıt oda, seed 1–5 × iki grup.
+- Öngörüler seri 006'dakilerle aynı ölçütler:
+  - (a) Yemek ışınlarının hafıza değeri > +0,1 ve duvar ışınlarınınkinden büyük, ≥ 8/10.
+  - (b) Yönlendirme bağlı bedene göre p < 0,05 ve ortalama ≥ 0,15.
+  - (c) Hayatta kalma ≥ %50.
+  - (d) Aynı doğumlu K1n'e göre dürtüde ≥ 7/10 iyi.
+- Ek öngörü (e′): değerler artık savrulmaz. Duvar ışınlarının toplam oynaması K1n eleştirmenininkiyle (2,7) aynı
+  mertebede kalır (< 10).
+- **Çürütme:**
+  - (e′) tutmazsa değer öğrenmesi hâlâ kararsızdır; biçimlendirme sınanamaz.
+  - (e′) tutar ama (b) tutmazsa hafıza oluşmuş ama dönüşe geçmemiştir.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.

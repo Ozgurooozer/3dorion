@@ -77,11 +77,27 @@ test("a cue seen several ticks before the outcome still gains value (the trace r
   assert.ok(weight(ledger, "ray1.food") > 0, `value ${weight(ledger, "ray1.food")}`);
 });
 
-test("a cue seen on two ticks in a row earns more than a cue seen once (sightings add up in the trace)", () => {
+test("a cue seen on two ticks in a row counts as seen once (the replacing trace is bounded)", () => {
   const once = fresh(), twice = fresh();
   live(once.memory, [BLIND, seeing(2), BLIND], 0.3);
   live(twice.memory, [seeing(2), seeing(2), BLIND], 0.3);
+  assert.equal(weight(twice.ledger, "ray2.food"), weight(once.ledger, "ray2.food"));
+});
+
+test("with the accumulating trace (series 006, K2) sightings add up", () => {
+  const once = fresh({ trace: "accumulating" }), twice = fresh({ trace: "accumulating" });
+  live(once.memory, [BLIND, seeing(2), BLIND], 0.3);
+  live(twice.memory, [seeing(2), seeing(2), BLIND], 0.3);
   assert.ok(weight(twice.ledger, "ray2.food") > weight(once.ledger, "ray2.food"));
+});
+
+test("a cue in constant view keeps a trace of at most 1 (no 1/(1−λ) pile-up)", () => {
+  const { ledger, memory } = fresh({ lambda: 0.95 });
+  const wall = seeing(0, "wall", 0); // x = 1
+  for (let i = 0; i < 200; i++) memory.step(wall, wall, 0, i + 1, 1);
+  memory.step(wall, BLIND, 0.3, 201, 1);
+  // One step with e = 1, Σx² = 1 and δ = 0.3 moves the value by α·0.3 = 0.015 — the whole history adds no more.
+  assert.ok(Math.abs(weight(ledger, "ray0.wall") - 0.015) < 1e-6, `value ${weight(ledger, "ray0.wall")}`);
 });
 
 test("TD(0) would not have credited it: with λ 0 a cue seen 4 ticks earlier gains nothing", () => {
@@ -211,6 +227,7 @@ test("the cue memory does not touch the critic's own weights (no prefix clash)",
 const BAD: readonly [string, Partial<CueParams>][] = [
   ["lambda < 0", { lambda: -0.1 }], ["lambda > 1", { lambda: 1.1 }], ["gamma > 1", { gamma: 1.5 }],
   ["alpha < 0", { alpha: -1 }], ["quantum 0", { quantum: 0 }], ["weight NaN", { weight: NaN }],
+  ["an unknown trace", { trace: "sticky" as "replacing" }],
 ];
 for (const [label, params] of BAD) {
   test(`a cue memory refuses ${label}`, () => {

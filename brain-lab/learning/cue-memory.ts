@@ -3,7 +3,8 @@
 //
 //   x_f(s)  the ray senses only (food, wall and threat on every ray; 1 − distance/range) — which of them
 //           matter is found by the rule, not chosen by us
-//   e_f ← λ·e_f + x_f(s)                          the trace: "seen a moment ago" (λ 0.95: half-life ~14 ticks)
+//   e_f ← max(λ·e_f, x_f(s))                      the trace: "seen a moment ago" (λ 0.95: half-life ~14 ticks);
+//                                                  replacing, bounded by 1 (see CueParams.trace)
 //   Φ(s) = Σ v_f · x_f(s)                          the value of what is in sight
 //   δc   = r + γ·Φ(s′) − Φ(s)                      r: the body's innate outcome (relief of drive; harm < 0)
 //   v_f  ← v_f + α·δc·e_f / max(1, Σ x(s)²)        TD(λ) restricted to cues, normalised step
@@ -32,9 +33,16 @@ export interface CueParams {
   readonly weight: number;
   /** Ledger resolution: a value changes in steps of this size, each step one entry. */
   readonly quantum: number;
+  /**
+   * How a sighting enters the trace. "replacing": e ← max(λ·e, x), so a cue seen all the time counts as
+   * seen once (Singh & Sutton 1996). "accumulating": e ← λ·e + x, the first version (series 006, K2): a wall
+   * in constant view built a trace ~1/(1−λ) = 20 times one sighting, the step grew 20-fold and the values
+   * churned (wall rays moved 279 in total, ended at −2.3) — the brain got worse than its twin.
+   */
+  readonly trace: "replacing" | "accumulating";
 }
 
-export const DEFAULT_CUE: CueParams = Object.freeze({ lambda: 0.95, gamma: 0.99, alpha: 0.05, weight: 1, quantum: 0.0005 });
+export const DEFAULT_CUE: CueParams = Object.freeze({ lambda: 0.95, gamma: 0.99, alpha: 0.05, weight: 1, quantum: 0.0005, trace: "replacing" as const });
 export const CUE_PREFIX = "cue/";
 const RAY_SENSE = /^ray\d+\./;
 
@@ -47,7 +55,7 @@ export class CueMemory {
 
   constructor(ledger: Ledger, cfg: WorldConfig, params: Partial<CueParams> = {}) {
     const p = { ...DEFAULT_CUE, ...params };
-    const ok = p.lambda >= 0 && p.lambda <= 1 && p.gamma >= 0 && p.gamma <= 1 && p.alpha >= 0 && p.quantum > 0 && Number.isFinite(p.weight);
+    const ok = p.lambda >= 0 && p.lambda <= 1 && p.gamma >= 0 && p.gamma <= 1 && p.alpha >= 0 && p.quantum > 0 && Number.isFinite(p.weight) && (p.trace === "replacing" || p.trace === "accumulating");
     if (!ok) throw new RangeError(`bad cue memory params ${JSON.stringify(p)}`);
     this.params = p;
     this.ledger = ledger;
@@ -77,7 +85,11 @@ export class CueMemory {
     const { lambda, gamma, weight } = this.params;
     const x = this.cues(prev);
     for (const [f, e] of this.trace) this.trace.set(f, lambda * e);
-    for (const [f, v] of Object.entries(x)) this.trace.set(f, (this.trace.get(f) ?? 0) + v);
+    const accumulate = this.params.trace === "accumulating";
+    for (const [f, v] of Object.entries(x)) {
+      const e = this.trace.get(f) ?? 0;
+      this.trace.set(f, accumulate ? e + v : Math.max(e, v));
+    }
     const before = this.value(prev);
     const after = terminal ? 0 : this.value(now);
     const delta = r + gamma * after - before;

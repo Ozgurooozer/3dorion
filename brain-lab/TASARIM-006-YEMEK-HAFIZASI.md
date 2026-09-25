@@ -37,7 +37,7 @@ yazılır; defter kuralı aynen geçerli.
   - Yemeği biz seçmiyoruz; hangi işaretin değerli olduğunu kural buluyor.
   - Tehlike de aynı kuralla eksi değer alabilir: yaralanma çıktıyı eksiye çeker. Böylece ceza da etiketlenmeden
     keşfedilebilir (Ozyn: "cezayı da kendisi keşfetsin"). Bu odada sınanmaz; oda 2 için hazır.
-- **Hafıza izi (az önce görülen):** `e_f ← λ·e_f + x_f(s)`, λ 0,95. Yarı ömrü ~14 tik (0,7 sn), etkisi ~2–3 sn.
+- **Hafıza izi (az önce görülen):** `e_f ← max(λ·e_f, x_f(s))` (yerine koyan iz; ilk sürüm birikimliydi, `e_f ← λ·e_f + x_f(s)`, K2'de savruldu, bkz. defter 2026-09-25), λ 0,95. Yarı ömrü ~14 tik (0,7 sn), etkisi ~2–3 sn.
   Her odanın başında sıfırlanır.
 - **Değer:** `Φ(s) = Σ v_f · x_f(s)`
 - **Öğrenme (işaretlere sınırlı TD(λ)):** `δc = r + γ·Φ(s′) − Φ(s)`, `v_f ← v_f + α·δc·e_f / max(1, Σx²)`.
