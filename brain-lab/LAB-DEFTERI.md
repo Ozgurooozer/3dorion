@@ -1203,6 +1203,44 @@ taraması iki kez koşulmuştu (aynı seed'ler, bit-aynı beyinler); ilk sayımd
 - Not: iki art arda başarısızlık, Themis'in "tabanı sorgula" uyarısını hatırlatıyor. K4 de başarısız olursa bir
   sonraki adım yeni bir deneme değil, bir toplantı/tasarım gözden geçirmesi olmalı.
 
+## 2026-09-25 — Seri 006c sonucu (K4/K4x): hafıza doğru öğrendi, ama öğretmeye bağlanış biçimi hareketi bastırıyor
+
+`[ÖLÇÜLDÜ]` Kıt oda, seed 1–5 × iki grup; kod `eeda696`.
+
+| | dürtü | hayatta | yemek/1000t | yönlendirme | durgun | yemek → kendi tarafının Git'i / karşı taraf |
+|---|---|---|---|---|---|---|
+| K4 (κ 1) | 0,620 | %9 | 0,47 | 0,013 | %86 | 0,052 / 0,002 (8/10'da kendi > karşı) |
+| K4x (κ 3) | 0,672 | %3 | 0,19 | −0,002 | — | — |
+| K1n (hafızasız) | 0,425 | %39 | 2,12 | 0,114 | %73 | 0,342 / 0,213 (6/10) |
+| ikiz | 0,755 | %0 | 1,00 | 0,006 | — | — |
+
+- **Hafızanın kendisi artık doğru öğreniyor:**
+  - Yemek ışınlarının değeri +0,198; duvarlarınki +0,032.
+  - 7/10 öğrenende yemek > 0,1 ve duvardan büyük.
+  - Hiçbir öğrenende yemek eksi değil.
+  - Yemeğin **tarafı** ilk kez ağırlıklarda görünüyor: yemek → kendi tarafının Git'i 0,052, karşı taraf 0,002.
+- **Ama beyin daha az hareket ediyor:** durgun %86, K1n'de %73. Öğrenilen ağırlıklar çok küçük kalıyor:
+  yemek → ileri 0,13, K1n'de 0,60.
+- **Olası sebep (sınanmadı):** biçimlendirme "yemeği gözden kaçırmayı" eksiyle cezalandırıyor. Hareket eden beden
+  sık sık yemeği gözden kaçırıyor, bu eksiler hareketlerin Gitme'sini büyütüyor. Potansiyele dayalı biçimlendirme
+  toplamda nötr; ama uygunluk izli bir öğrenicide eksiler ve artılar farklı hareketlere düştüğü için nötr
+  kalmıyor.
+- **Öngörü karnesi:**
+  - (a) ✗ (7/10; eşik 8).
+  - (b) ✗.
+  - (c) ✗ (%9).
+  - (d) ✗ (5/10).
+  - (f) ✓: yemek hiç eksi değil.
+  - (g) ✗: K4, K1n'den 0,195 kötü.
+- **Önceden konan kural gereği burada duruluyor:** üç varyant (K2, K3, K4) koşuldu. Her biri bir tasarım hatasını
+  buldu ve düzeltti:
+  - K2: birikimli iz savruldu.
+  - K3: maliyetten öğrenmek yemeği kötü yaptı.
+  - K4: biçimlendirme hareketi bastırıyor.
+
+  Hafızanın kendisi artık çalışıyor. Bundan sonraki adım, hafızanın davranışa nasıl bağlanacağı; bu bir mimari
+  kararı, Ozyn'e / toplantıya.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
