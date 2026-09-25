@@ -9,7 +9,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DEFAULT_CONFIG } from "../world/index.ts";
 import { GUIDE, TERMS } from "./guide.ts";
-import { MIN_PAIRS, learnedSentences, rayName, senseWhen, verdict } from "./plain.ts";
+import { MIN_PAIRS, judge, learnedSentences, ofThem, rayName, senseWhen, verdict } from "./plain.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -21,23 +21,23 @@ const mixed = [0.1, -0.11, 0.12, -0.13, 0.14, -0.15, 0.16, -0.17, 0.18, -0.19];
 // --- verdict --------------------------------------------------------------------------------------
 
 test("verdict says a condition learned when every learner beat its twin", () => {
-  assert.equal(verdict(allBetter(10), "none").kind, "learned");
+  assert.equal(verdict(allBetter(10), "none", "yoked").kind, "learned");
 });
 
 test("verdict says no difference when learners beat and lose to their twins in turn", () => {
-  assert.equal(verdict(mixed, "none").kind, "no-difference");
+  assert.equal(verdict(mixed, "none", "yoked").kind, "no-difference");
 });
 
 test("verdict does not call a gain that is positive on average but not significant 'learned'", () => {
   const gains = [0.3, -0.1, 0.2, -0.15, 0.1, -0.2, 0.25, -0.1];
-  assert.equal(verdict(gains, "none").kind, "no-difference");
+  assert.equal(verdict(gains, "none", "yoked").kind, "no-difference");
 });
 
 test("verdict does not call a condition worse when the average gain is exactly zero", () => {
   // 19 small gains and one loss of the same total (binary fractions: the mean is exactly 0), yet the
   // ranks are lopsided enough for Wilcoxon to be significant.
   const gains = [...Array.from({ length: 19 }, () => 0.0625), -1.1875];
-  assert.equal(verdict(gains, "none").kind, "no-difference");
+  assert.equal(verdict(gains, "none", "yoked").kind, "no-difference");
 });
 
 test("the zero-mean case above is significant, so it really exercises the sign rule", async () => {
@@ -46,15 +46,15 @@ test("the zero-mean case above is significant, so it really exercises the sign r
 });
 
 test("verdict says worse when every learner lost to its twin", () => {
-  assert.equal(verdict(allWorse(10), "none").kind, "worse");
+  assert.equal(verdict(allWorse(10), "none", "yoked").kind, "worse");
 });
 
 test("verdict refuses to judge fewer pairs than the smallest that can reach significance", () => {
-  assert.equal(verdict(allBetter(MIN_PAIRS - 1), "none").kind, "too-few");
+  assert.equal(verdict(allBetter(MIN_PAIRS - 1), "none", "yoked").kind, "too-few");
 });
 
 test("the smallest number of pairs verdict judges can reach significance", () => {
-  assert.equal(verdict(allBetter(MIN_PAIRS), "none").kind, "learned");
+  assert.equal(verdict(allBetter(MIN_PAIRS), "none", "yoked").kind, "learned");
 });
 
 test("one pair fewer than the minimum could not have reached significance anyway", async () => {
@@ -63,20 +63,80 @@ test("one pair fewer than the minimum could not have reached significance anyway
 });
 
 test("verdict reads a control without a gain as the expected result", () => {
-  assert.equal(verdict(mixed, "CROSS").title, "Kontrol: kazanç yok (beklenen)");
+  assert.equal(verdict(mixed, "CROSS", "yoked").title, "Kontrol: kazanç yok (beklenen)");
 });
 
 test("verdict reads a control that kept the gain as a warning", () => {
-  assert.equal(verdict(allBetter(10), "CROSS").title, "Kontrol kazancı silmedi");
+  assert.equal(verdict(allBetter(10), "CROSS", "yoked").title, "Kontrol kazancı silmedi");
 });
 
 test("verdict text counts the learners that beat their twins", () => {
-  assert.match(verdict([...allBetter(7), ...allWorse(3)], "none").text, /10 denekten 7'inde/);
+  assert.match(verdict([...allBetter(7), ...allWorse(3)], "none", "yoked").text, /10 denekten 7'sinde öğrenen bağlı bedeninden/);
 });
 
 test("verdict carries the p value of the paired test", () => {
-  assert.ok(verdict(allBetter(10), "none").p! < 0.01);
+  assert.ok(verdict(allBetter(10), "none", "yoked").p! < 0.01);
 });
+
+test("verdict against the twin only never says more than 'better than the twin'", () => {
+  assert.equal(verdict(allBetter(10), "none", "twin").kind, "twin-only");
+});
+
+test("verdict against the twin says the run predates the yoked control", () => {
+  assert.match(verdict(allBetter(10), "none", "twin").text, /bağlı kontrolden önce/);
+});
+
+// --- judge: choosing the baseline --------------------------------------------------------------------
+
+const member = (lDrive: number, tDrive: number, yDrive: number | null, lSteer = 0, ySteer = 0) => ({
+  l: { meanDrive: lDrive, steering: lSteer }, t: { meanDrive: tDrive },
+  y: yDrive === null ? null : { meanDrive: yDrive, steering: ySteer },
+});
+// Learners better than both twin and yoked body by a margin that grows with i (distinct ranks).
+const beatsBoth = Array.from({ length: 10 }, (_, i) => member(0.2, 0.8, 0.5 + i / 100));
+
+test("judge compares with the yoked body when every subject has one", () => {
+  assert.equal(judge(beatsBoth, "none").kind, "learned");
+});
+
+test("judge falls back to the twin when one subject lacks a yoked body", () => {
+  assert.equal(judge([...beatsBoth.slice(1), member(0.2, 0.8, null)], "none").kind, "twin-only");
+});
+
+test("judge sees no gain when learners only beat the twin, not their yoked bodies", () => {
+  const onlyMoves = Array.from({ length: 10 }, (_, i) => member(0.5, 0.8, i % 2 ? 0.5 + i / 100 : 0.5 - i / 100));
+  assert.equal(judge(onlyMoves, "none").kind, "no-difference");
+});
+
+test("judge says the turns are random when steering is no better than the yoked body's", () => {
+  assert.match(judge(beatsBoth, "none").text, /yana dönüşleri yemeğe göre rastgele/);
+});
+
+test("judge says the learners turn toward food when their steering beats the yoked bodies'", () => {
+  const turning = Array.from({ length: 10 }, (_, i) => member(0.2, 0.8, 0.5 + i / 100, 0.2 + i / 100, 0));
+  assert.match(judge(turning, "none").text, /Yemeğe doğru da dönüyor/);
+});
+
+test("judge does not say the learners turn toward food when their steering is only higher on average", () => {
+  // Steering above the yoked body's in 5 of 10 subjects, below in the others: positive mean, not significant.
+  const noisy = Array.from({ length: 10 }, (_, i) => member(0.2, 0.8, 0.5 + i / 100, i % 2 ? 0.3 + i / 100 : -0.1 - i / 100, 0));
+  assert.match(judge(noisy, "none").text, /yana dönüşleri yemeğe göre rastgele/);
+});
+
+test("judge adds no turning sentence to a control condition", () => {
+  assert.doesNotMatch(judge(beatsBoth, "CROSS").text, /dönüş/);
+});
+
+// Turkish: "n denekten k'…" — the suffix follows how k is read aloud.
+const OF_THEM: readonly [number, string][] = [
+  [0, "0'ında"], [1, "1'inde"], [2, "2'sinde"], [3, "3'ünde"], [4, "4'ünde"], [5, "5'inde"], [6, "6'sında"], [7, "7'sinde"],
+  [8, "8'inde"], [9, "9'unda"], [10, "10'unda"], [17, "17'sinde"], [20, "20'sinde"], [40, "40'ında"], [100, "100'ünde"],
+];
+for (const [k, text] of OF_THEM) {
+  test(`ofThem(${k}) is ${text}`, () => {
+    assert.equal(ofThem(k), text);
+  });
+}
 
 // --- ray names --------------------------------------------------------------------------------------
 
@@ -141,14 +201,18 @@ test("guide section ids do not clash with term ids (both are page anchors)", () 
   assert.deepEqual(clash, []);
 });
 
+/**
+ * Every guide id the pages name: tip("id"), guideLink("id"), data-tip="id", and the page helpers that take a
+ * label then an id — line("…", "id"), head("…", "id"), statBox("…", "id"). A new helper must be added here.
+ */
+const LINK = /(?:tip|guideLink)\("([^"]+)"|data-tip="([^"]+)"|(?:line|head|statBox)\("[^"]*", "([^"]+)"/g;
+const PAGES = ["deney-odasi.ts", "deney-odasi.html", "deneyler.ts", "deneyler.html"];
+const linked = new Set(PAGES.flatMap((f) => [...readFileSync(join(HERE, f), "utf8").matchAll(LINK)].map((m) => (m[1] ?? m[2] ?? m[3])!)));
+
 test("every term the lab pages link to exists in the guide", () => {
-  const pages = ["deney-odasi.ts", "deney-odasi.html", "deneyler.ts", "deneyler.html"];
-  const used = new Set(pages.flatMap((f) => [...readFileSync(join(HERE, f), "utf8").matchAll(/(?:tip|guideLink)\("([^"]+)"|data-tip="([^"]+)"/g)].map((m) => (m[1] ?? m[2])!)));
-  const missing = [...used].filter((id) => !TERMS.has(id));
-  assert.deepEqual(missing, []);
+  assert.deepEqual([...linked].filter((id) => !TERMS.has(id)), []);
 });
 
-test("the pages link to the guide's terms at all (the check above is not vacuous)", () => {
-  const text = readFileSync(join(HERE, "deney-odasi.ts"), "utf8");
-  assert.ok(/tip\("durtu"/.test(text));
+test("the link check sees the terms the pages name through their helpers (it is not vacuous)", () => {
+  for (const id of ["durtu", "bagli", "yonelme", "aclik", "ikiz"]) assert.ok(linked.has(id), id);
 });

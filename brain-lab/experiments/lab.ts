@@ -66,7 +66,7 @@ const rowsOf = (results: JobResult[]) => results.map((r) => { if (r.kind !== "su
 function record(command: string, code: string, control: Control, world: WorldConfig, rows: Row[], codeCommit: string, o: Options) {
   const date = new Date().toISOString();
   const lines = rows.map((r) => JSON.stringify({
-    date, codeCommit, command, code, control: control ?? "none", food: world.foodCount, threats: world.threatCount,
+    date, codeCommit, command, code, control: control ?? "none", food: world.foodCount, threats: world.threatCount, energy: world.initialEnergy,
     trainEpisodes: o.train, evalEpisodes: o.evaluate,
     seed: r.seed, group: r.group, learner: r.learner.id, twin: r.twin.id, l: r.l, t: r.t, y: r.y,
     weightEntries: r.weightEntries, criticEntries: r.criticEntries, trainPerK: r.trainPerK,

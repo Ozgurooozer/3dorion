@@ -14,6 +14,8 @@ export interface EvalView {
   readonly sideInfo: number | null;
   readonly perK: number;
   readonly harmPerK: number;
+  /** Share of food-in-sight ticks with the move toward it (forward if ahead, turn if aside). */
+  readonly orientation: number;
 }
 
 /** One line of data/results.jsonl. */
@@ -25,6 +27,8 @@ export interface ResultRow {
   readonly control: string;
   readonly food: number;
   readonly threats: number;
+  /** Energy the body is born with; recorded since 2026-09-25 (older rows: filled from the condition's room by api.ts). */
+  readonly energy?: number;
   readonly trainEpisodes?: number;
   readonly evalEpisodes?: number;
   readonly seed: number;
@@ -33,6 +37,8 @@ export interface ResultRow {
   readonly twin: string;
   readonly l: EvalView;
   readonly t: EvalView;
+  /** The learner's yoked body (experiments/yoked.ts); absent for runs before 2026-09-25 not yet re-measured. */
+  readonly y?: EvalView | null;
   readonly trainPerK: readonly number[];
 }
 
@@ -43,9 +49,12 @@ export interface GroupSummary {
   readonly control: string;
   readonly food: number;
   readonly threats: number;
+  readonly energy: number;
   readonly n: number;
   readonly learner: EvalView;
   readonly twin: EvalView;
+  /** Mean of the yoked bodies, when every subject of the group has one; otherwise null. */
+  readonly yoked: EvalView | null;
   /** Subjects whose mean drive is below their twin's (the learner lives closer to its setpoint). */
   readonly driveBetter: number;
   readonly lastDate: string;
@@ -59,7 +68,15 @@ const meanEval = (es: readonly EvalView[]): EvalView => ({
   sideInfo: mean(es.map((e) => e.sideInfo ?? 0)),
   perK: mean(es.map((e) => e.perK)),
   harmPerK: mean(es.map((e) => e.harmPerK ?? 0)),
+  orientation: mean(es.map((e) => e.orientation ?? 0)),
 });
+
+/** Birth energy of every run recorded before energy was recorded (all rooms then were born at 0.4). */
+export const DEFAULT_ENERGY = 0.4;
+
+/** The one grouping of result rows: same command, condition, control and room (food, threats, birth energy). */
+export const groupKey = (r: Pick<ResultRow, "command" | "code" | "control" | "food" | "threats" | "energy">): string =>
+  `${r.command}|${r.code}|${r.control}|${r.food}|${r.threats}|${r.energy ?? DEFAULT_ENERGY}`;
 
 /**
  * Standard runs only (40 training + 10 evaluation episodes; quick test runs are left out), one row per
@@ -70,7 +87,7 @@ export function standardRows(rows: readonly ResultRow[]): ResultRow[] {
   const out: ResultRow[] = [];
   for (const r of rows) {
     if ((r.trainEpisodes ?? 40) !== 40 || (r.evalEpisodes ?? 10) !== 10) continue;
-    const k = `${r.command}|${r.code}|${r.control}|${r.food}|${r.threats}|${r.seed}|${r.group}`;
+    const k = `${groupKey(r)}|${r.seed}|${r.group}`;
     if (seen.has(k)) continue;
     seen.add(k);
     out.push(r);
@@ -82,12 +99,13 @@ export function standardRows(rows: readonly ResultRow[]): ResultRow[] {
 export function summarize(rows: readonly ResultRow[]): GroupSummary[] {
   const groups = new Map<string, ResultRow[]>();
   for (const r of standardRows(rows)) {
-    const key = `${r.command}|${r.code}|${r.control}|${r.food}|${r.threats}`;
+    const key = groupKey(r);
     groups.set(key, [...(groups.get(key) ?? []), r]);
   }
   return [...groups.entries()].map(([key, rs]) => ({
-    key, command: rs[0]!.command, code: rs[0]!.code, control: rs[0]!.control, food: rs[0]!.food, threats: rs[0]!.threats,
+    key, command: rs[0]!.command, code: rs[0]!.code, control: rs[0]!.control, food: rs[0]!.food, threats: rs[0]!.threats, energy: rs[0]!.energy ?? DEFAULT_ENERGY,
     n: rs.length, learner: meanEval(rs.map((r) => r.l)), twin: meanEval(rs.map((r) => r.t)),
+    yoked: rs.every((r) => r.y) ? meanEval(rs.map((r) => r.y!)) : null,
     driveBetter: rs.filter((r) => r.l.meanDrive < r.t.meanDrive).length,
     lastDate: rs.map((r) => r.date).sort().at(-1)!,
   }));

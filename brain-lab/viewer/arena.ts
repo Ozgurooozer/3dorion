@@ -10,8 +10,9 @@
 "use strict";
 
 import type { BrainGrafi } from "../brain-ir/ir.ts";
+import type { Actor } from "../experiments/harness.ts";
 import { MAX_TICKS, evalNoise, evalWorld } from "../experiments/seeds.ts";
-import { createAgent, type Agent, type AgentSpec } from "../learning/index.ts";
+import { createAgent, type AgentSpec } from "../learning/index.ts";
 import { drive } from "../neuromodulation/index.ts";
 import { Ledger, type LedgerInput } from "../registry/ledger.ts";
 import { Room, type DoneCause, type Observation, type Ray, type WorldConfig } from "../world/index.ts";
@@ -63,12 +64,26 @@ function ledgerOf(b: BrainRecord): Ledger {
   return ledger;
 }
 
-/** One subject living its evaluation rooms, learning frozen, one tick per step(). */
+/**
+ * What a contestant is: a subject's frozen brain, or any other body with a policy (the yoked body, which
+ * replays the learner's actions blind; experiments/yoked.ts). Only a brain has recorded rooms to check.
+ */
+export type Source = BrainRecord | { readonly id: string; readonly name: string; readonly actor: Actor; readonly recorded: readonly RecordedEpisode[] };
+
+/** A subject's frozen brain as an actor, exactly as experiments/harness.ts evaluates it. */
+export function brainActor(brain: BrainRecord, cfg: WorldConfig, seed: number): Actor {
+  return createAgent({
+    cfg, ledger: ledgerOf(brain), noiseSeed: evalNoise(seed),
+    learning: { frozen: true }, selection: brain.spec.selection ?? null, critic: brain.spec.critic ?? null,
+  });
+}
+
+/** One body living its evaluation rooms (a brain with learning frozen, or any actor), one tick per step(). */
 export class Contestant {
-  readonly brain: BrainRecord;
+  readonly brain: Source;
   private readonly cfg: WorldConfig;
   private readonly seed: number;
-  private readonly agent: Agent;
+  private readonly agent: Actor;
   private roomNow: Room;
   private obsNow: Observation;
   private episodeNow = 0;
@@ -79,14 +94,11 @@ export class Contestant {
   private resultNow: EpisodeResult | null = null;
 
   /** `seed` is the subject's birth seed: it picks the evaluation rooms and the noise, as in the experiment. */
-  constructor(brain: BrainRecord, cfg: WorldConfig, seed: number) {
+  constructor(brain: Source, cfg: WorldConfig, seed: number) {
     this.brain = brain;
     this.cfg = cfg;
     this.seed = seed;
-    this.agent = createAgent({
-      cfg, ledger: ledgerOf(brain), noiseSeed: evalNoise(seed),
-      learning: { frozen: true }, selection: brain.spec.selection ?? null, critic: brain.spec.critic ?? null,
-    });
+    this.agent = "actor" in brain ? brain.actor : brainActor(brain, cfg, seed);
     this.roomNow = this.enter(1);
     this.obsNow = this.roomNow.observe();
   }
@@ -98,7 +110,7 @@ export class Contestant {
     this.driveSum = 0;
     this.causeNow = null;
     this.resultNow = null;
-    this.agent.startEpisode(episode);
+    this.agent.startEpisode?.(episode);
     return new Room(evalWorld(this.seed, episode), this.cfg);
   }
 
@@ -123,7 +135,7 @@ export class Contestant {
     this.driveSum += drive(r.observation);
     this.causeNow = r.doneCause;
     if (this.ticksNow >= MAX_TICKS || this.roomNow.done) {
-      if (this.causeNow !== null) this.agent.hooks.onDeath?.(this.obsNow, this.causeNow, this.ticksNow);
+      if (this.causeNow !== null) this.agent.hooks?.onDeath?.(this.obsNow, this.causeNow, this.ticksNow);
       const rest = drive(this.obsNow) * (MAX_TICKS - this.ticksNow); // dead: stays at its last drive
       this.resultNow = { episode: this.episodeNow, meanDrive: (this.driveSum + rest) / MAX_TICKS, foodEaten: this.mealsNow, ticks: this.ticksNow, doneCause: this.causeNow, finalHash: this.roomNow.hash() };
     }

@@ -21,7 +21,7 @@ import { learnedMatrix, learningCurve, standardRows, summarize, type EvalView, t
 // can compare with assert.equal instead of a tolerance.
 
 const evalView = (meanDrive: number, over: Partial<EvalView> = {}): EvalView => ({
-  meanDrive, survival: 1, steering: 0, sideInfo: 0, perK: 0, harmPerK: 0, ...over,
+  meanDrive, survival: 1, steering: 0, sideInfo: 0, perK: 0, harmPerK: 0, orientation: 0, ...over,
 });
 
 const row = (over: Partial<ResultRow> = {}): ResultRow => ({
@@ -280,5 +280,57 @@ test("api shows what a subject learned, its critic values and its training curve
     assert.equal(v.criticFood[2], 0.125, "critic value of ray 2 seeing food");
     assert.deepEqual(v.curve, [3], "curve from the training run only");
     assert.equal(v.ledgerEntries, 2, "ledger entries");
+  });
+});
+
+// --- yoked bodies and birth energy (series 005a/005b) ----------------------------------------------------
+
+test("rows that differ only in birth energy are different rooms, so different groups", () => {
+  assert.equal(summarize([row({ energy: 0.4 }), row({ energy: 0.8 })]).length, 2);
+});
+
+test("a row without recorded energy groups with rows born at the old default energy", () => {
+  assert.equal(summarize([row({ seed: 1, energy: undefined }), row({ seed: 2, energy: 0.4 })]).length, 1);
+});
+
+test("a group's yoked mean is present when every subject has a yoked body", () => {
+  const [g] = summarize([row({ seed: 1, y: evalView(0.5) }), row({ seed: 2, y: evalView(0.75) })]);
+  assert.equal(g!.yoked!.meanDrive, 0.625);
+});
+
+test("a group's yoked mean is absent when a subject lacks a yoked body", () => {
+  const [g] = summarize([row({ seed: 1, y: evalView(0.5) }), row({ seed: 2 })]);
+  assert.equal(g!.yoked, null);
+});
+
+test("api results merge a yoked re-measurement into an older row that has none", () => {
+  withDataDir((root) => {
+    writeFileSync(join(root, "results.jsonl"), JSON.stringify(row({ learner: "DNK-0007" })) + "\n");
+    writeFileSync(join(root, "yoked-005a.jsonl"), JSON.stringify({ learner: "DNK-0007", y: evalView(0.625) }) + "\n");
+    const body = ask(root, "/api/results").body as { rows: ResultRow[] };
+    assert.equal(body.rows[0]!.y!.meanDrive, 0.625);
+  });
+});
+
+test("api results keep a row's own yoked body over a re-measurement file", () => {
+  withDataDir((root) => {
+    writeFileSync(join(root, "results.jsonl"), JSON.stringify(row({ learner: "DNK-0007", y: evalView(0.25) })) + "\n");
+    writeFileSync(join(root, "yoked-005a.jsonl"), JSON.stringify({ learner: "DNK-0007", y: evalView(0.625) }) + "\n");
+    const body = ask(root, "/api/results").body as { rows: ResultRow[] };
+    assert.equal(body.rows[0]!.y!.meanDrive, 0.25);
+  });
+});
+
+test("api results fill an older row's birth energy from its condition's room (K1n: the scarce room)", () => {
+  withDataDir((root) => {
+    writeFileSync(join(root, "results.jsonl"), JSON.stringify(row({ code: "K1n", food: 5 })) + "\n");
+    assert.equal((ask(root, "/api/results").body as { rows: ResultRow[] }).rows[0]!.energy, 0.8);
+  });
+});
+
+test("api results fill an older row's birth energy with the old default when its condition has no room", () => {
+  withDataDir((root) => {
+    writeFileSync(join(root, "results.jsonl"), JSON.stringify(row({ code: "S1n", food: 5 })) + "\n");
+    assert.equal((ask(root, "/api/results").body as { rows: ResultRow[] }).rows[0]!.energy, 0.4);
   });
 });

@@ -23,16 +23,50 @@ export interface Section {
   readonly terms: readonly Term[];
 }
 
+export interface MealReference { readonly who: string; readonly perK: number; readonly survival: number | null; readonly note: string }
+
+/** A room's reference points: hand-written or classic bodies measured on that room's evaluation rooms, seeds 1–10. */
+export interface RoomReferences {
+  readonly room: { readonly food: number; readonly threats: number; readonly energy: number };
+  readonly name: string;
+  readonly refs: readonly MealReference[];
+}
+
+const BLIND = "10 tiklik rastgele hareket patlamaları; hiçbir şey görmez. Yalnız hareket etmek bu kadarını getirir.";
+const AHEAD = "kör patlamalar + 'yemek tam öndeyse ileri git'. S1n'in öğrendiği kararın elle yazılmış hali.";
+const SEEKER = "elle yazılmış: gördüğü yemeğe döner ve gider, görmezse kör patlamalar. Tavan.";
+
 /**
- * Reference points for meals per 1000 ticks, all measured in room 1 (10 food, no threats, born hungry), seeds
- * 1–10, 10 evaluation rooms — the same rooms as the experiments (LAB-DEFTERI.md 2026-09-24, series 003a and T0).
+ * Reference points for meals per 1000 ticks per room (LAB-DEFTERI.md: series 003a, T0 and 005b calibration).
+ * Room 1 shows the problem Ozyn saw: blind wandering plus "food ahead → forward" comes near the ceiling there,
+ * so the room never asked the brain to turn. Room 3 (scarce) is where blind movement dies.
  */
-export const MEAL_REFERENCES: readonly { readonly who: string; readonly perK: number; readonly note: string }[] = [
-  { who: "Rastgele hareket", perK: 0.67, note: "hiçbir şey bilmeyen beden; alt sınır" },
-  { who: "Yeni doğmuş beyin (öğrenmeden)", perK: 2.07, note: "doğuştan yapı: açken kıpırdar, tokken dinlenir" },
-  { who: "TD öğrenicisi (ders kitabı)", perK: 8.38, note: "aynı duyu, aynı beden, aynı ödülle 40 bölüm öğrenen klasik algoritma" },
-  { who: "Kusursuz arayıcı (tavan)", perK: 25.8, note: "elle yazılmış: yemek görünce ona gider, görmezse rastgele arar" },
+export const MEAL_REFERENCES: readonly RoomReferences[] = [
+  {
+    room: { food: 10, threats: 0, energy: 0.4 }, name: "Oda 1 (10 yemek, doğum enerjisi 0,4)",
+    refs: [
+      { who: "Rastgele hareket", perK: 0.67, survival: null, note: "her tik rastgele komut; alt sınır" },
+      { who: "Yeni doğmuş beyin (öğrenmeden)", perK: 2.07, survival: null, note: "doğuştan yapı: açken kıpırdar, tokken dinlenir" },
+      { who: "Kör gezgin", perK: 2.68, survival: 0.03, note: BLIND },
+      { who: "TD öğrenicisi (ders kitabı)", perK: 8.38, survival: null, note: "aynı duyu, aynı beden, aynı ödülle 40 bölüm öğrenen klasik algoritma" },
+      { who: "Önündeyse ileri (elle)", perK: 19.7, survival: 0.99, note: AHEAD },
+      { who: "Arayıcı (tavan)", perK: 26.84, survival: 1, note: SEEKER },
+    ],
+  },
+  {
+    room: { food: 5, threats: 0, energy: 0.8 }, name: "Oda 3, kıt oda (5 yemek, doğum enerjisi 0,8)",
+    refs: [
+      { who: "Kör gezgin", perK: 1.43, survival: 0.01, note: BLIND },
+      { who: "Önündeyse ileri (elle)", perK: 10.75, survival: 0.81, note: AHEAD },
+      { who: "Arayıcı (tavan)", perK: 15.21, survival: 0.92, note: SEEKER },
+    ],
+  },
 ];
+
+/** The reference points measured in a room, if any. */
+export function referencesFor(room: { food: number; threats: number; energy: number }): RoomReferences | undefined {
+  return MEAL_REFERENCES.find((r) => r.room.food === room.food && r.room.threats === room.threats && r.room.energy === room.energy);
+}
 
 const S = (id: string, title: string, intro: string, terms: Term[]): Section => ({ id, title, intro, terms });
 
@@ -42,8 +76,8 @@ export const GUIDE: readonly Section[] = [
       id: "hedef",
       term: "Basamak 2 hedefi",
       short: "Beyin doğru kararı kendi deneyiminden öğrenmeli; koşullar değişince de.",
-      long: "Beyne hiçbir davranış elle yazılmıyor. Beden aç doğuyor, odada yemek var; beyin yalnızca kendi bedeninden gelen iyi/kötü hissiyle (dopamin) neyin işe yaradığını öğrenmek zorunda.\n\nBu hedefi ölçülebilir parçalara böldük: (1) öğrenen denek, hiç öğrenmemiş ikizinden daha iyi yaşıyor mu; (2) bu fark gerçekten öğrenmeden mi geliyor (çürütme kontrolleri); (3) doğru yöne karar veriyor mu (yönlendirme); (4) oda değişince (az/çok yemek, tehlike) de sürüyor mu; (5) klasik bir öğreniciyle (TD) ve ulaşılabilecek en iyiyle (tavan) kıyasla nerede.",
-      target: "Beşi birden: ikizden anlamlı iyi, kontroller kazancı yok ediyor, yönlendirme belirgin şekilde 0'dan büyük, farklı odalarda da tutuyor, TD'yi geçiyor.",
+      long: "Beyne hiçbir davranış elle yazılmıyor. Beden aç doğuyor, odada yemek var; beyin yalnızca kendi bedeninden gelen iyi/kötü hissiyle (dopamin) neyin işe yaradığını öğrenmek zorunda.\n\nBu hedefi ölçülebilir parçalara böldük: (1) öğrenen denek, kendi hareketlerini kör tekrar eden bağlı bedeninden daha iyi yaşıyor mu (hareketsiz ikizi geçmek yetmez); (2) bu fark gerçekten öğrenmeden mi geliyor (çürütme kontrolleri); (3) doğru yöne karar veriyor mu (yönlendirme); (4) oda değişince (az/çok yemek, tehlike) de sürüyor mu; (5) klasik bir öğreniciyle (TD) ve ulaşılabilecek en iyiyle (tavan) kıyasla nerede.",
+      target: "Beşi birden: bağlı bedenden anlamlı iyi, kontroller kazancı yok ediyor, yönlendirme belirgin şekilde 0'dan büyük, farklı odalarda da tutuyor, TD'yi geçiyor.",
     },
     {
       id: "bilim",
@@ -57,7 +91,7 @@ export const GUIDE: readonly Section[] = [
       id: "oda",
       term: "Oda",
       short: "10×10 metrelik kapalı alan; yemekler (yeşil) ve bazen tehlike bölgeleri (kırmızı).",
-      long: "Fiziği olan, tamamen belirlenimci bir oda: aynı seed her seferinde bit bit aynı odayı ve aynı olayları üretir. Yemek yenince başka bir yerde yenisi çıkar. Oda 1'de 10 yemek var, tehlike yok; oda 2'de ayrıca 2 tehlike bölgesi var (içinde kalan beden yaralanır).",
+      long: "Fiziği olan, tamamen belirlenimci bir oda: aynı seed her seferinde bit bit aynı odayı ve aynı olayları üretir. Yemek yenince başka bir yerde yenisi çıkar. Oda 1'de 10 yemek var, tehlike yok; oda 2'de ayrıca 2 tehlike bölgesi var (içinde kalan beden yaralanır). Oda 3 (kıt oda) 5 yemekli ve beden 0,8 enerjiyle doğar: orada kör dolaşan beden ölür (%1 yaşar), görüşünü kullanan yaşar; bu yüzden öğrenmeyi sınamak için kullanıyoruz.",
     },
     {
       id: "beden",
@@ -68,7 +102,7 @@ export const GUIDE: readonly Section[] = [
     {
       id: "aclik",
       term: "Açlık ve tokluk (enerji)",
-      short: "Enerji 1 = tam tok, 0 = açlıktan ölüm. Beden 0,4 enerjiyle (aç) doğar.",
+      short: "Enerji 1 = tam tok, 0 = açlıktan ölüm. Beden aç doğar: oda 1'de 0,4, kıt odada 0,8 enerjiyle.",
       long: "Her an biraz enerji harcanır, hareket ederken daha fazla. Bir yemek +0,3 enerji verir. Enerji 0'a inerse beden ölür ve o oda biter.",
       read: "0–1 arası; yüksek iyi.",
     },
@@ -89,7 +123,14 @@ export const GUIDE: readonly Section[] = [
       term: "İkiz (kontrol)",
       short: "Öğrenenle aynı doğan ama hiç öğrenmeyen beyin; kıyasın temeli.",
       long: "Her öğrenen deneğin bir ikizi var: aynı seed'le, aynı yapıyla doğar ve aynı odalarda ölçülür, ama öğrenmesi kapalıdır. Böylece öğrenenle ikizi arasındaki fark yalnızca öğrenmenin etkisidir: doğuştan gelen yetenek, şans ya da odanın kolaylığı ikisinde de aynıdır.",
-      target: "Öğrenen, ikizinden iyi olmalı. İkiz ne kadar iyi yapıyorsa o kadarı öğrenme değil, doğuştan.",
+      target: "İkizi geçmek gerekli ama yetmez: ikiz çoğunlukla kıpırdamadığı için onu geçmek yalnızca 'hareket etmeyi öğrendi' demek olabilir. Asıl ölçü bağlı beden.",
+    },
+    {
+      id: "bagli",
+      term: "Bağlı beden (kör kontrol)",
+      short: "Öğrenenin kendi hareketlerini başka bir odada, gözü kapalı tekrar oynayan beden.",
+      long: "Nörobilimdeki 'yoked control'. Bağlı beden, öğrenenin bir odada yaptığı hareketlerin aynısını (aynı miktar, aynı patlamalar, aynı duraklamalar) başka bir odada yapar; ama gördüğü şeyle hiçbir bağı yoktur. Neden gerekli: yemek bol olan bir odada dolaşan her beden yemeğe çarpar (Ozyn: 'rastgele motor bile yeterince çalışınca yemek yiyebiliyor'). Öğrenen yalnızca hareket etmeyi öğrendiyse, bağlı bedeni kadar iyi olur. Ondan iyiyse gördüğünü ya da hissettiğini gerçekten kullanıyordur.\n\nİlk ölçüm (seri 005a): S1n bağlı bedenini geçiyor, çünkü yemek tam önündeyken ileri gitmeyi öğrenmiş; ama yana dönüşleri yemeğe göre rastgele.",
+      target: "Öğrenen, bağlı bedeninden anlamlı tok yaşamalı (p < 0,05) ve yemek yandayken o tarafa bağlı bedeninden sık dönmeli.",
     },
     {
       id: "grup",
@@ -133,6 +174,14 @@ export const GUIDE: readonly Section[] = [
       long: "Toplam yenen yemek / toplam yaşanan tik × 1000. Yaşanan süreye göre ölçeklenir, erken ölen beden kısa ömründe ne yaptıysa o sayılır.\n\nKarşılaştırma noktaları (aynı odalar, ölçüldü): rastgele hareket 0,67 · yeni doğmuş beyin 2,07 · TD öğrenicisi 8,38 · kusursuz arayıcı 25,8.",
       read: "0 ve üstü. Yüksek iyi, ama tek başına yetmez: tok bir beden dinlenir ve az yer.",
       target: "Önce TD'yi (8,38) geçmek: aynı imkanlarla ders kitabı algoritmasından iyi olmak. Uzun vadede tavana (25,8) yaklaşmak.",
+    },
+    {
+      id: "yonelme",
+      term: "Yemeğe yönelme",
+      short: "Yemek görüş alanındayken ona doğru hareketi yapma oranı (öndeyse ileri, yandaysa o tarafa dönme).",
+      long: "Yemeğin görüldüğü her an için, beden yemeğe doğru hareketi yaptı mı? Yemek tam öndeyse ileri gitmek, yandaysa o tarafa dönmek 'doğru hareket' sayılır. Yönlendirmeden farkı: yönlendirme yalnızca yana dönüşlere bakar ve alışkanlığı ayıklar; yönelme 'önündeyse ileri'yi de sayar.\n\nSeri 005a: S1n'in yönelmesi bağlı bedeninin iki katı (0,33'e 0,17), ama bunun neredeyse tamamı 'önündeyse ileri'den geliyor; yönlendirme şansta.",
+      read: "0–1 arası. Yüksek iyi. Anlamı ancak bağlı bedenle kıyasta: kör hareket de bazen tesadüfen doğru hareketi yapar.",
+      target: "Bağlı bedeninden anlamlı yüksek; yönlendirmeyle birlikte artmalı.",
     },
     {
       id: "yonlendirme",
@@ -243,7 +292,9 @@ export const GUIDE: readonly Section[] = [
   S("kosullar", "Deney kodları", "Tablolardaki kısa kodların anlamı.", [
     { id: "E7", term: "E7", short: "Temel öğrenme kuralı (eski seçimle).", long: "Seçilen harekete bağlı üç faktörlü öğrenme, eleştirmen, ölümden öğrenmeme. S serisinin öncesi." },
     { id: "S1", term: "S1", short: "E7 + rekabetçi seçim.", long: "Hareketler her an yarışıyor. İlk kez beden ikizinden belirgin iyi yaşamaya başladı." },
-    { id: "S1n", term: "S1n", short: "S1, olumsuz dopamin tabanı kaldırılmış.", long: "Kötü sonuçlardan da tam güçle öğrenir. Şu anki en iyi 'kendi başına öğrenen' beyin: ikizinden anlamlı iyi yaşıyor ve çürütme kontrollerinden sağ çıktı; ama yönü öğrenmiyor." },
+    { id: "S1n", term: "S1n", short: "S1, olumsuz dopamin tabanı kaldırılmış; şu an en iyi kendi başına öğrenen beyin.", long: "Kötü sonuçlardan da tam güçle öğrenir. Bağlı bedenini geçiyor (taze seed'lerde dürtüde 16/20): yemek tam önündeyken ileri gitmeyi ve açken hareket edip tokken durmayı öğrenmiş. Ama yemek yandayken o tarafa dönmüyor; dönüşleri yemeğe göre rastgele. İzlerken 'rastgele dolaşıyor' görünmesinin sebebi bu." },
+    { id: "K1n", term: "K1n", short: "S1n, kıt odada (5 yemek, enerji 0,8).", long: "Rastgelenin kazanamadığı odada S1n: odaların %39'unda hayatta kalıyor (bağlı bedeni %7, ikizi %0). Ama elle yazılmış 'önündeyse ileri' kuralı aynı odada %81 yaşıyor; beyin bu basit kuralın bile çok altında." },
+    { id: "KT1", term: "KT1", short: "Kıt odada, yalnız öğretmenden öğrenen S1n.", long: "Teşhis: %72 hayatta, yemeğe dönme 10 denekten 10'unda. Aynı beyin yapısı yönü taşıyabiliyor; eksik olan, bu öğretme sinyalini beynin kendi içinden üretmek." },
     { id: "T1only", term: "T1only", short: "S1n, yalnız öğretmenden öğrenir (ödül yok).", long: "Teşhis: öğretmen sinyali tek başına yeterli mi? Evet: yönlendirme 0,24, 10 denekten 10'unda; yemek/1000 tik 17,2." },
     { id: "T1add", term: "T1add", short: "S1n, ödül + öğretmen birlikte.", long: "Teşhis: öğretmen ödüle eklenince yön öğreniliyor mu? Kısmen: yönlendirme 0,18, 10 denekten 8'inde; ödül sinyali öğretmeninkiyle yarışıyor." },
     { id: "R1n", term: "R0 / R1 / R1n", short: "Aynı koşullar, tehlike bölgeli odada (oda 2).", long: "Koşullar değişince öğrenmenin sürüp sürmediğini ve tehlikeden kaçınmanın öğrenilip öğrenilmediğini sınar." },

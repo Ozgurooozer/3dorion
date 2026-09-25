@@ -1057,6 +1057,36 @@ taraması iki kez koşulmuştu (aynı seed'ler, bit-aynı beyinler); ilk sayımd
   - (d) T1only her ölçüde S1n'den iyi.
   - (e) Refleksli ve reflekssiz ayrı raporlanır; yön öngörüsü yok.
 
+## 2026-09-25 — Seri 005b sonucu: kıt odada S1n rastgeleyi geçiyor ama basit kuralın çok altında
+
+`[ÖLÇÜLDÜ]` ROOM3 (5 yemek, enerji 0,8), seed 1–5 × iki grup, 40 eğitim + 10 değerlendirme; kod `9ca10ca`.
+
+| | dürtü | hayatta | yemek/1000t | yönlendirme |
+|---|---|---|---|---|
+| S1n öğrenen (K1n) | 0,425 | %39 | 2,12 | 0,114 |
+| S1n bağlı beden | 0,647 | %7 | 0,73 | −0,002 |
+| KT1 öğrenen (yalnız öğretmen) | 0,153 | %72 | 9,46 | 0,258 |
+| KT1 bağlı beden | 0,536 | %19 | 4,15 | −0,007 |
+| ikiz (ortak) | 0,755 | %0 | 1,00 | 0,006 |
+| elle: kör / ön / arayıcı (ayar) | — | %1 / %81 / %92 | 1,4 / 10,8 / 15,2 | — |
+
+- K1n öğrenen, bağlı bedenine karşı:
+  - dürtü 9/10 (p 0,02)
+  - yönelme 9/10 (p 0,004)
+  - yönlendirme 7/10 (p 0,16, anlamsız)
+- KT1: her ölçüde 10/10 (p 0,002).
+- **Öngörü karnesi:**
+  - (a) ✓ 9/10.
+  - (b) ✓ %39.
+  - (c) ✗ Yönlendirme 0,114 çıktı. Ama bağlı bedene göre anlamlı değil; belirsiz.
+  - (d) ✓
+- **Okuma:** Rastgelenin kazanamadığı odada da S1n bir şey öğreniyor ve duyusunu kullanıyor. Ama "önündeyse ileri"
+  kuralının bile çok altında kalıyor: %39'a karşı %81. Öğretmenli beyin %72'ye çıkıyor; yani aynı yapı yönü
+  taşıyabiliyor. Eksik olan, bu öğretme sinyalini beynin kendi içinden üretmek. Ozyn'in sözüyle: "yemek yenince
+  yemeğe dair bilgisi gelişmeli". Eleştirmenin yemek görmeye verdiği değer bugün ~0.
+- **Pano yeni cetvele geçti:** karar artık bağlı bedene göre veriliyor. Eski koşuların bağlı ölçümleri `data/yoked-005a.jsonl`'den eşleniyor; kayıtların kendisi değişmedi. Deney Odası üç bedeni yan yana oynatıyor: öğrenen, bağlı beden, ikiz. Açılışta K1n (kıt oda) seçili; DNK-2778 10 odanın 10'unda yaşadı (116 yemek), bağlı bedeni 2'sinde (27 yemek), ikizi hiçbirinde (11 yemek).
+- Refleksli / reflekssiz bu odada benzer. K1n'de dürtüde refleksli 5/5, reflekssiz 4/5; n 5 ile ayrım yapılamaz.
+
 ## Açık sorular (güncel)
 
 - Kendiliğinden hareket (motor babbling) ve zayıf rastgele doğum bağlantıları öğrenmeyi başlatır mı?

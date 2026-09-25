@@ -7,6 +7,8 @@
 "use strict";
 
 import { readFileSync, writeFileSync } from "node:fs";
+// Also writes data/yoked-005a.jsonl, one { learner, y } per subject: the yoked measurement of older learners
+// (recorded before Row.y existed), which the dashboard API merges into their results rows.
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createAgent } from "../learning/index.ts";
@@ -83,6 +85,7 @@ function report(label: string, ms: Measured[]) {
 }
 
 const summary: unknown[] = [];
+const perSubject: string[] = [];
 for (const set of SETS) {
   // One subject per seed and group: a condition run twice with the same seeds gives identical brains
   // (deterministic), and counting both would double n (S1n tara was run twice).
@@ -90,7 +93,9 @@ for (const set of SETS) {
   const chosen = rows.filter((r) => r.code === set.code && r.command === set.command && r.control === "none" && r.food === 10 && r.threats === 0
     && (r.trainEpisodes ?? 40) === 40 && (r.evalEpisodes ?? 10) === ROOMS && !seen.has(`${r.seed}/${r.group}`) && seen.add(`${r.seed}/${r.group}`));
   const measured = chosen.map(measure);
+  for (const m of measured) perSubject.push(JSON.stringify({ learner: m.learner, sameAsRecorded: m.sameAsRecorded, y: m.y }));
   summary.push(report(`${set.code} ${set.command}`, measured));
   for (const group of ["reflexless", "reflexive"]) summary.push(report(`${set.code} ${set.command} · ${group}`, measured.filter((m) => m.group === group)));
 }
 writeFileSync(join(DATA, "series-005a-summary.json"), JSON.stringify(summary, null, 2));
+writeFileSync(join(DATA, "yoked-005a.jsonl"), perSubject.join("\n") + "\n");

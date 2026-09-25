@@ -90,6 +90,21 @@ for (const n of [2, 1]) {
   });
 }
 
+test("arena API films the learner's yoked body in every room", () => {
+  const films = [1, 2].map((n) => ask<{ yoked: Film | null }>(handler, `/api/arena/${experiment!.learner.id}/room/${n}`).body.yoked);
+  assert.ok(films.every((f) => f !== null));
+});
+
+test("the arena's yoked body lives the experiment's yoked body's rooms (same mean drive)", () => {
+  const drives = [1, 2].map((n) => ask<{ yoked: Film }>(handler, `/api/arena/${experiment!.learner.id}/room/${n}`).body.yoked.result.meanDrive);
+  // Summed per room, then averaged: rounding differs from the harness's pooled sum by < 1e-12 (see above).
+  assert.ok(Math.abs(drives.reduce((a, b) => a + b, 0) / EVAL_ROOMS - experiment!.y!.meanDrive) < 1e-12);
+});
+
+test("the yoked body's film has no record to match (it is not a subject)", () => {
+  assert.equal(ask<{ yoked: Film }>(handler, `/api/arena/${experiment!.learner.id}/room/1`).body.yoked.matches, null);
+});
+
 test("arena API refuses a room beyond the measured ones", () => {
   assert.equal(ask(handler, `/api/arena/${experiment!.learner.id}/room/${EVAL_ROOMS + 1}`).status, 404);
 });

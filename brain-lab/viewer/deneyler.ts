@@ -3,8 +3,8 @@
 "use strict";
 
 import { signTest, wilcoxon } from "../experiments/stats.ts";
-import type { EvalView, GroupSummary, LearnedMatrix, ResultRow } from "./dashboard-data.ts";
-import { verdict } from "./plain.ts";
+import { groupKey, type EvalView, type GroupSummary, type LearnedMatrix, type ResultRow } from "./dashboard-data.ts";
+import { judge } from "./plain.ts";
 import { nodeLabel } from "./theme.ts";
 import { api, byId, esc, showError, tabs, tip } from "./ui.ts";
 
@@ -57,7 +57,6 @@ function valueAxis(svg: SVGSVGElement, ticks: readonly number[], y: (v: number) 
 const COMMAND_TR: Readonly<Record<string, string>> = { tara: "tarama", dogrula: "doğrulama", curut: "çürütme" };
 const ACTION_TR: Readonly<Record<string, string>> = { forward: "ileri", back: "geri", left: "sol", right: "sağ" };
 const GROUP_TR: Readonly<Record<string, string>> = { reflexless: "reflekssiz", reflexive: "refleksli", none: "—" };
-const groupKey = (r: Pick<ResultRow, "command" | "code" | "control" | "food" | "threats">) => `${r.command}|${r.code}|${r.control}|${r.food}|${r.threats}`;
 
 // --- state --------------------------------------------------------------------------------------
 
@@ -70,8 +69,8 @@ let selectedKey = "";
 function groupRow(g: GroupSummary): string {
   const better = g.learner.meanDrive < g.twin.meanDrive;
   const control = g.control === "none" ? "—" : g.control;
-  const room = `${g.food} yemek${g.threats ? ` · ${g.threats} tehlike` : ""}`;
-  const v = verdict(rows.filter((r) => groupKey(r) === g.key).map((r) => r.t.meanDrive - r.l.meanDrive), g.control);
+  const room = `${g.food} yemek${g.threats ? ` · ${g.threats} tehlike` : ""} · enerji ${g.energy}`;
+  const v = judge(rows.filter((r) => groupKey(r) === g.key), g.control);
   const chipClass = g.control !== "none" && v.kind === "no-difference" ? "control" : v.kind;
   return `<tr data-key="${esc(g.key)}" class="${g.key === selectedKey ? "sel" : ""}">
     <td><b>${esc(g.code)}</b></td>
@@ -81,6 +80,7 @@ function groupRow(g: GroupSummary): string {
     <td>${esc(room)}</td>
     <td class="num">${g.n}</td>
     <td class="num ${better ? "good" : "bad"}">${f3(g.learner.meanDrive)}</td>
+    <td class="num">${g.yoked ? f3(g.yoked.meanDrive) : "—"}</td>
     <td class="num dim">${f3(g.twin.meanDrive)}</td>
     <td class="num">${g.driveBetter}/${g.n}</td>
     <td class="num">${pct(g.learner.survival)}</td>
@@ -99,7 +99,7 @@ function renderGroups(): void {
     return;
   }
   const head = `<thead><tr><th>deney</th><th>karar${tip("p")}</th><th>aşama${tip("tazeseed")}</th><th>kontrol${tip("cross")}</th><th>oda${tip("oda")}</th><th class="num">denek</th>
-    <th class="num">dürtü öğrenen${tip("durtu")}</th><th class="num">ikiz${tip("ikiz")}</th><th class="num">öğrenen iyi${tip("iyi-sayisi")}</th><th class="num">hayatta${tip("hayatta")}</th>
+    <th class="num">dürtü öğrenen${tip("durtu")}</th><th class="num">bağlı${tip("bagli")}</th><th class="num">ikiz${tip("ikiz")}</th><th class="num">öğrenen iyi${tip("iyi-sayisi")}</th><th class="num">hayatta${tip("hayatta")}</th>
     <th class="num">yönlendirme${tip("yonlendirme")}</th><th class="num">bilgi (bit)${tip("bilgi")}</th><th class="num">yemek/1000t${tip("yemek")}</th><th class="num">zarar/1000t${tip("zarar")}</th><th>son</th></tr></thead>`;
   const newestFirst = [...groups].sort((a, b) => b.lastDate.localeCompare(a.lastDate));
   table.innerHTML = `${head}<tbody>${newestFirst.map(groupRow).join("")}</tbody>`;

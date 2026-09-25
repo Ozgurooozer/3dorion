@@ -13,9 +13,10 @@ function card(t: Term): string {
     t.target ? `<div class="fact target"><div class="k">Hedef ve neden</div>${esc(t.target)}</div>` : "",
   ].join("");
   const refs = t.id === "yemek"
-    ? `<table style="margin-top:10px"><thead><tr><th>karşılaştırma noktası</th><th class="num">yemek / 1000 tik</th><th>ne</th></tr></thead><tbody>${
-      MEAL_REFERENCES.map((r) => `<tr><td>${esc(r.who)}</td><td class="num">${num(r.perK)}</td><td class="dim">${esc(r.note)}</td></tr>`).join("")
-    }</tbody></table>`
+    ? MEAL_REFERENCES.map((room) => `<h4 style="margin:14px 0 4px">${esc(room.name)}</h4>
+      <table><thead><tr><th>karşılaştırma noktası</th><th class="num">yemek / 1000 tik</th><th class="num">hayatta</th><th>ne</th></tr></thead><tbody>${
+        room.refs.map((r) => `<tr><td>${esc(r.who)}</td><td class="num">${num(r.perK)}</td><td class="num">${r.survival === null ? "—" : `%${Math.round(100 * r.survival)}`}</td><td class="dim">${esc(r.note)}</td></tr>`).join("")
+      }</tbody></table>`).join("")
     : "";
   return `<article class="term-card" id="${esc(t.id)}">
     <h3>${esc(t.term)}</h3>

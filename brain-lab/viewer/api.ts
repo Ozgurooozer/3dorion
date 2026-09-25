@@ -5,7 +5,7 @@
 //   GET /api/falsify/<code>     that summary (controls, lesions, rooms)
 //   GET /api/subject/<DNK-id>   identity, learned matrix, critic food values, training curve
 //   GET /api/arena/<DNK-id>           which learner, which twin, which condition, how many measured rooms
-//   GET /api/arena/<DNK-id>/room/<n>  room n lived by the learner and its twin, filmed tick by tick (arena.ts)
+//   GET /api/arena/<DNK-id>/room/<n>  room n lived by the learner, its yoked body and its twin, filmed tick by tick
 // Every answer is JSON; an error is { error } with status 404 (unknown) or 500 (could not read).
 "use strict";
 
@@ -15,9 +15,10 @@ import { join } from "node:path";
 import type { Plugin } from "vite";
 import { RegistryStore } from "../registry/store.ts";
 import { CONDITIONS } from "../experiments/conditions.ts";
-import { Contestant, filmRoom, type BrainRecord, type Film, type RecordedEpisode } from "./arena.ts";
+import { Contestant, brainActor, filmRoom, type BrainRecord, type Film, type RecordedEpisode } from "./arena.ts";
+import { recordingActor, yokedActor } from "../experiments/yoked.ts";
 import type { WorldConfig } from "../world/index.ts";
-import { learnedMatrix, learningCurve, standardRows, summarize, type ResultRow } from "./dashboard-data.ts";
+import { DEFAULT_ENERGY, learnedMatrix, learningCurve, standardRows, summarize, type EvalView, type ResultRow } from "./dashboard-data.ts";
 
 type Next = () => void;
 export type Handler = (req: IncomingMessage, res: ServerResponse, next: Next) => void;
@@ -30,10 +31,28 @@ function send(res: ServerResponse, status: number, body: unknown): void {
   res.end(JSON.stringify(body));
 }
 
+const jsonLines = <T>(p: string): T[] => readFileSync(p, "utf8").split("\n").filter((l) => l.trim() !== "").map((l) => JSON.parse(l) as T);
+const YOKED_FILE = /^yoked-[\w-]+\.jsonl$/;
+
+/**
+ * data/results.jsonl, with the yoked bodies of older learners merged in: rows written before Row.y existed
+ * get theirs from a re-measurement file (data/yoked-*.jsonl, one { learner, y } per line; series 005a).
+ * The records themselves are never rewritten.
+ */
 function readResults(dataRoot: string): ResultRow[] {
   const p = join(dataRoot, "results.jsonl");
   if (!existsSync(p)) return [];
-  return readFileSync(p, "utf8").split("\n").filter((l) => l.trim() !== "").map((l) => JSON.parse(l) as ResultRow);
+  const yoked = new Map<string, EvalView>();
+  for (const f of readdirSync(dataRoot).filter((n) => YOKED_FILE.test(n))) {
+    for (const line of jsonLines<{ learner: string; y: EvalView }>(join(dataRoot, f))) yoked.set(line.learner, line.y);
+  }
+  return jsonLines<ResultRow>(p).map((r) => ({
+    ...r,
+    y: r.y ?? yoked.get(r.learner) ?? null,
+    // Rows before 2026-09-25 do not record birth energy: it is the condition's room's (lab runs of a
+    // condition always use its room; the falsification rooms were built with the same 0.4).
+    energy: r.energy ?? CONDITIONS[r.code]?.world?.initialEnergy ?? DEFAULT_ENERGY,
+  }));
 }
 
 function subjectView(dataRoot: string, id: string) {
@@ -103,12 +122,30 @@ export function loadArena(dataRoot: string, learnerId: string): { meta: ArenaMet
   };
 }
 
-/** A learner and its twin living their rooms on the server, with every room filmed so far. */
+/** A learner, its yoked body and its twin living their rooms on the server, with every room filmed so far. */
 interface ArenaSession {
   readonly meta: ArenaMeta;
   readonly learner: Contestant;
+  /** Null when the experiment measured fewer than 2 rooms (a yoked body replays another room's actions). */
+  readonly yoked: Contestant | null;
   readonly twin: Contestant;
-  readonly films: { readonly learner: Film; readonly twin: Film }[];
+  readonly films: { readonly learner: Film; readonly yoked: Film | null; readonly twin: Film }[];
+}
+
+/**
+ * The learner's yoked body, as experiments/harness.ts evaluateWithYoked makes it: the learner first lives
+ * all measured rooms once (its actions recorded), then the yoked body replays them blind.
+ */
+function yokedContestant(a: NonNullable<ReturnType<typeof loadArena>>): Contestant | null {
+  const { world, seed, rooms } = a.meta;
+  if (rooms < 2) return null;
+  const rec = recordingActor(brainActor(a.learner, world, seed));
+  const probe = new Contestant({ id: a.learner.id, name: a.learner.name, actor: rec.actor, recorded: [] }, world, seed);
+  for (let n = 1; n <= rooms; n++) {
+    if (n > 1) probe.nextRoom();
+    probe.finishRoom();
+  }
+  return new Contestant({ id: `${a.learner.id}-bagli`, name: "bağlı beden", actor: yokedActor(rec.actions), recorded: [] }, world, seed);
 }
 
 /** Sessions kept in memory (a filmed room is ~1–2 MB); the oldest is dropped beyond this. */
@@ -122,7 +159,7 @@ function arenaSessions(dataRoot: string) {
     const a = loadArena(dataRoot, id);
     if (!a) return null;
     const s: ArenaSession = {
-      meta: a.meta, films: [],
+      meta: a.meta, films: [], yoked: yokedContestant(a),
       learner: new Contestant(a.learner, a.meta.world, a.meta.seed), twin: new Contestant(a.twin, a.meta.world, a.meta.seed),
     };
     sessions.set(id, s);
@@ -132,8 +169,8 @@ function arenaSessions(dataRoot: string) {
   /** Room n (1-based), living the rooms before it first, as the measurement did. */
   const room = (s: ArenaSession, n: number) => {
     while (s.films.length < n) {
-      if (s.films.length) { s.learner.nextRoom(); s.twin.nextRoom(); }
-      s.films.push({ learner: filmRoom(s.learner), twin: filmRoom(s.twin) });
+      if (s.films.length) { s.learner.nextRoom(); s.yoked?.nextRoom(); s.twin.nextRoom(); }
+      s.films.push({ learner: filmRoom(s.learner), yoked: s.yoked ? filmRoom(s.yoked) : null, twin: filmRoom(s.twin) });
     }
     return s.films[n - 1]!;
   };
