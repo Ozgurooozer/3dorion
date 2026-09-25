@@ -874,6 +874,20 @@ değerlendirme aynı seçimle. Öğrenen dürtüsü 0,480, kardeş 0,845.
 - Yorum (sınanmadı): öğrenilen, "yemeğe dön" gibi tek bir kural değil; birçok duyuya dağılmış, birbirini yedekleyen bir
   "ne zaman hareket et / ne zaman dur" düzenlemesi. Bu, yönlendirmenin şans düzeyinde kalmasıyla tutarlı.
 
+## 2026-09-25 — Laboratuvar paralel; F3 kuşkusu (plastisite) — tik başına ölçüm ve karıştırma kontrolü
+
+- `npm run exp -- tara|dogrula|curut|teshis|liste`, koşul kataloğu `experiments/conditions.ts`, iş havuzu (worker
+  thread'ler; paralel = sıralı, testli), sonuç tablosu `data/results.jsonl` (DuckDB ile sorgu). `curut S1n` eski
+  betiğin bütün sayılarını birebir tekrarladı; 386 sn (eski paket + ek lezyonlar ~1 835 sn).
+- `[ÖLÇÜLDÜ]` Tik başına plastisite (DuckDB, taze-seed koşuları): öğrenen 0,512 kayıt/tik (73 586 eğitim tiki),
+  CROSS 0,219 (39 964), LOCAL 0,099 (37 462). → Kontroller hem yarı süre yaşıyor hem tik başına daha az kayıt yazıyor
+  (ilişkisiz dopaminde bekleyen değişimler birbirini götürür — beklenen, ama "kazanç yalnız değişim miktarından mı?"
+  sorusunu açık bırakıyor).
+- Yeni kontrol `shuffledClone` (KARIŞIK): öğrenenin öğrendiği değişimler öğrenen bağlantılara rastgele dağıtılır —
+  aynı miktar ve dağılım, yanlış bağlantılar. 2 test. `curut` paketine eklendi.
+- **Öngörü (koşmadan):** kazanç neyin öğrenildiğine bağlıysa KARIŞIK dürtüsü ikize yaklaşır (≥ 0,7) ve öğrenenden kötüdür
+  ≥ 15/20 (çürütür: KARIŞIK ≈ öğrenen → kazanç yalnız değişim miktarından).
+
 ## 2026-09-24 — Seri 004 / M3: iki taraf — koşmadan önce (keşif)
 
 - Kod: yeni bölge `lat` (6 nöron: duvar/yemek/tehlike × sol/sağ). Doğuştan: her taraftaki ışın kendi tarafının hücresini

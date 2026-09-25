@@ -14,7 +14,7 @@ import { bornGraph } from "../development/index.ts";
 import { Ledger } from "../registry/index.ts";
 import { RegistryStore } from "../registry/store.ts";
 import { diagnoseLedger } from "./diagnose.ts";
-import { MAX_TICKS, TEST_SEED_FLOOR, assertSeedAllowed, birth, crossDopamine, evalWorld, lesionClone, localDopamine, measureEpisodes } from "./harness.ts";
+import { MAX_TICKS, TEST_SEED_FLOOR, assertSeedAllowed, birth, crossDopamine, evalWorld, lesionClone, localDopamine, measureEpisodes, shuffledClone } from "./harness.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -171,4 +171,39 @@ test("lesion: the clone's matching learned weights are back at birth, the rest u
   assert.ok(lesioned.entries.some((e) => e.kind === "weight" && e.cause.includes("lesion")), "the reset is on the clone's ledger");
   assert.equal(store.loadSubject(clone.id).lineage.parent, parent.id);
   assert.equal(w(store.openLedger(parent.id), "ray4.food", "bg.go.left"), birthW("ray4.food", "bg.go.left") + 0.5, "the parent is untouched");
+});
+
+test("shuffle: the clone carries the same learned changes as the parent, dealt to other edges", () => {
+  const root = mkdtempSync(join(tmpdir(), "brainlab-shuffle-"));
+  const store = new RegistryStore(root);
+  const parent = birth(store, HUNGRY, 1, "reflexless", "test");
+  const ledger = store.openLedger(parent.id);
+  const w = (l: Ledger, from: string, to: string) => l.graph.connections.find((e) => e.from === from && e.to === to)!.weight;
+  const moves: [string, string, number][] = [["ray4.food", "bg.go.left", 0.5], ["ray0.food", "bg.go.right", 0.3], ["intero.hunger", "bg.nogo.back", 0.2]];
+  for (const [from, to, by] of moves) ledger.record({ kind: "weight", tick: 1, episode: 1, cause: ["test"], edge: { from, to }, before: w(ledger, from, to), after: w(ledger, from, to) + by });
+  store.saveLedger(ledger);
+  const clone = store.openLedger(shuffledClone(store, parent.id, 7, "test").id);
+  const born = clone.birthGraph; // the clone is born with the parent's learned brain
+  const parentBirth = store.openLedger(parent.id).birthGraph;
+  const change = (l: Ledger) => l.graph.connections
+    .filter((e) => /^bg\.(go|nogo)\./.test(e.to) && /^(ray|touch|intero|proprio)/.test(e.from))
+    .map((e) => e.weight - parentBirth.connections.find((c) => c.from === e.from && c.to === e.to)!.weight);
+  const sorted = (xs: number[]) => xs.map((x) => Math.round(x * 1e9) / 1e9).sort((a, b) => a - b);
+  assert.deepEqual(sorted(change(clone)), sorted(change(store.openLedger(parent.id))), "same multiset of changes");
+  assert.notEqual(w(clone, "ray4.food", "bg.go.left"), w(store.openLedger(parent.id), "ray4.food", "bg.go.left"), "the big change moved elsewhere");
+  assert.ok(clone.entries.every((e) => e.kind !== "weight" || e.cause[0] === "shuffle"));
+  assert.ok(born.connections.length > 0);
+});
+
+test("shuffle: same seed, same clone; different seed, different clone", () => {
+  const root = mkdtempSync(join(tmpdir(), "brainlab-shuffle2-"));
+  const store = new RegistryStore(root);
+  const parent = birth(store, HUNGRY, 2, "reflexless", "test");
+  const ledger = store.openLedger(parent.id);
+  const e0 = ledger.graph.connections.find((e) => e.from === "ray4.food" && e.to === "bg.go.left")!;
+  ledger.record({ kind: "weight", tick: 1, episode: 1, cause: ["test"], edge: { from: e0.from, to: e0.to }, before: e0.weight, after: e0.weight + 0.9 });
+  store.saveLedger(ledger);
+  const weights = (id: string) => JSON.stringify(store.openLedger(id).graph.connections.map((e) => e.weight));
+  assert.equal(weights(shuffledClone(store, parent.id, 3, "t").id), weights(shuffledClone(store, parent.id, 3, "t").id));
+  assert.notEqual(weights(shuffledClone(store, parent.id, 3, "t").id), weights(shuffledClone(store, parent.id, 4, "t").id));
 });

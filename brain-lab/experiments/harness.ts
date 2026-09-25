@@ -10,7 +10,7 @@ import { episodeEvents, type Subject } from "../registry/index.ts";
 import type { EpisodeLine, RegistryStore } from "../registry/store.ts";
 import { drive } from "../neuromodulation/index.ts";
 import { isPlastic, senseToMotorDelay } from "../regions/index.ts";
-import { Room, runEpisode, type Action, type EpisodeHooks, type Policy, type WorldConfig } from "../world/index.ts";
+import { Rng, Room, runEpisode, type Action, type EpisodeHooks, type Policy, type WorldConfig } from "../world/index.ts";
 import { approach, orientation, sideTurnInformation, steering, steeringIndex, turnToward } from "./measures.ts";
 
 export const MAX_TICKS = 3000;
@@ -271,6 +271,30 @@ export function lesionClone(store: RegistryStore, parentId: string, from: RegExp
     if (e.weight === birthWeight) continue;
     ledger.record({ kind: "weight", tick: 0, episode: 0, cause: ["lesion", from.source], edge: { from: e.from, to: e.to }, before: e.weight, after: birthWeight });
   }
+  store.saveLedger(ledger);
+  return clone;
+}
+
+/**
+ * SHUFFLED control (2026-09-25, F3 doubt): a clone whose learned weight changes are dealt out to the
+ * learning edges at random (seeded permutation) — the same amount and distribution of change, on the
+ * wrong edges. If the gain survives, it came from how much the brain changed, not from what it learned.
+ * Every weight set is a ledger entry with cause "shuffle"; weights stay within the learning range.
+ */
+export function shuffledClone(store: RegistryStore, parentId: string, seed: number, codeCommit: string): Subject {
+  const parent = store.openLedger(parentId);
+  const birthW = new Map(parent.birthGraph.connections.map((e) => [`${e.from}->${e.to}`, e.weight]));
+  const plastic = parent.graph.connections.filter((e) => isPlastic(e));
+  const changes = plastic.map((e) => e.weight - birthW.get(`${e.from}->${e.to}`)!);
+  const rng = new Rng(seed);
+  for (let i = changes.length - 1; i > 0; i--) { const j = Math.floor(rng.next() * (i + 1)); [changes[i], changes[j]] = [changes[j]!, changes[i]!]; }
+  const clone = store.clone(parentId, { codeCommit });
+  const ledger = store.openLedger(clone.id);
+  plastic.forEach((e, i) => {
+    const target = Math.max(0, birthW.get(`${e.from}->${e.to}`)! + changes[i]!);
+    const now = ledger.graph.connections.find((c) => c.from === e.from && c.to === e.to)!.weight;
+    if (target !== now) ledger.record({ kind: "weight", tick: 0, episode: 0, cause: ["shuffle", String(seed)], edge: { from: e.from, to: e.to }, before: now, after: target });
+  });
   store.saveLedger(ledger);
   return clone;
 }

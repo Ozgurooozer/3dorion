@@ -13,7 +13,7 @@ import type { InnateGroup } from "../development/index.ts";
 import { RegistryStore } from "../registry/store.ts";
 import type { WorldConfig } from "../world/index.ts";
 import { ROOM1, condition } from "./conditions.ts";
-import { crossDopamine, evaluate, lesionClone, localDopamine, runCondition, type Eval, type Row } from "./harness.ts";
+import { crossDopamine, evaluate, lesionClone, localDopamine, runCondition, shuffledClone, type Eval, type Row } from "./harness.ts";
 
 export type Control = "CROSS" | "LOCAL" | null;
 
@@ -34,7 +34,7 @@ export interface LesionJob {
   readonly kind: "lesion";
   readonly code: string;
   readonly learner: string;
-  /** Source pattern of the learned edges to reset, as a RegExp source. */
+  /** Source pattern of the learned edges to reset, as a RegExp source ("shuffle": deal all learned changes out at random instead). */
   readonly pattern: string;
   readonly world?: WorldConfig;
   readonly evalEpisodes: number;
@@ -53,7 +53,9 @@ export function runJob(job: Job, ctx: JobContext): JobResult {
   const world = job.world ?? def.world ?? ROOM1;
   const spec = def.spec(world);
   if (job.kind === "lesion") {
-    const clone = lesionClone(store, job.learner, new RegExp(job.pattern), ctx.codeCommit);
+    const clone = job.pattern === "shuffle"
+      ? shuffledClone(store, job.learner, 1, ctx.codeCommit)
+      : lesionClone(store, job.learner, new RegExp(job.pattern), ctx.codeCommit);
     return { kind: "lesion", clone: clone.id, eval: evaluate(store, clone, world, job.evalEpisodes, ctx.codeCommit, job.label, { selection: spec.selection ?? null, critic: spec.critic ?? null }) };
   }
   const transform = job.control === "CROSS" ? crossDopamine() : job.control === "LOCAL" ? localDopamine() : undefined;

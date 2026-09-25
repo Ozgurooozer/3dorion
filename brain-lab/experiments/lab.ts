@@ -114,7 +114,7 @@ async function falsify(code: string, o: Options, codeCommit: string) {
   record("curut", code, null, world, main, codeCommit, o);
   record("curut", code, "CROSS", world, cross, codeCommit, o);
   record("curut", code, "LOCAL", world, local, codeCommit, o);
-  const lesions: [string, string][] = [["yemek ışınları", "^ray\\d+\\.food$"], ["duvar ışınları", "^ray\\d+\\.wall$"], ["tüm ışınlar", "^ray\\d+\\."], ["beden duyusu", "^proprio\\."], ["öğrenilen her şey", "."]];
+  const lesions: [string, string][] = [["yemek ışınları", "^ray\\d+\\.food$"], ["duvar ışınları", "^ray\\d+\\.wall$"], ["tüm ışınlar", "^ray\\d+\\."], ["beden duyusu", "^proprio\\."], ["öğrenilen her şey", "."], ["karıştırılmış öğrenme (aynı değişimler, yanlış bağlantılar)", "shuffle"]];
   const lesionJobs: Job[] = lesions.flatMap(([, pattern]) => main.map((r) => ({ kind: "lesion" as const, code, learner: r.learner.id, pattern, evalEpisodes: o.evaluate, label: "lab curut lesion" })));
   const lesionEvals = (await run(lesionJobs, o, codeCommit)).map((r) => { if (r.kind !== "lesion") throw new Error("expected a lesion result"); return r.eval; });
   const rooms = [5, 15].map((food) => room(food, world.threatCount));
