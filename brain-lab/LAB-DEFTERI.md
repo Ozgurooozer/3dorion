@@ -888,6 +888,19 @@ değerlendirme aynı seçimle. Öğrenen dürtüsü 0,480, kardeş 0,845.
 - **Öngörü (koşmadan):** kazanç neyin öğrenildiğine bağlıysa KARIŞIK dürtüsü ikize yaklaşır (≥ 0,7) ve öğrenenden kötüdür
   ≥ 15/20 (çürütür: KARIŞIK ≈ öğrenen → kazanç yalnız değişim miktarından).
 
+## 2026-09-25 — KARIŞIK kontrol sonucu ve T1 (S1n + öğretmen) — koşmadan önce
+
+- `[ÖLÇÜLDÜ]` KARIŞIK (20 taze-seed S1n öğreneni): dürtü **0,700** (öğrenen 0,480, ikiz 0,845); öğrenenden kötü 15/20,
+  Wilcoxon p = 0,019; ikizden iyi 12/20, p = 0,036. Öngörü ✓ ama sınırda (0,700 ≥ 0,7; 15/20 ≥ 15/20).
+  → Kazancın ~%60'ı **hangi bağlantının** öğrendiğine bağlı; ~%40'ı yalnız değişimin miktarından/genel yönünden
+  (muhtemelen genel bir hareket eğilimi). "Öğreniyor" iddiası ayakta, ama kısmen "daha hareketli oldu" etkisi de var.
+- **T1 — yön teşhisi** (3. adım): S1n seçimiyle kâhin öğretmen. İlk öğretmen denemesinde (T0) seçim öğreneni davranışa
+  çeviremiyordu; artık çeviriyor (kapasite w 0,3 → yönlendirme 0,26). Koşullar: T1only (yalnız öğretmen, kazanç 0,3),
+  T1add (ödül + öğretmen). Tarama, seed 1–5 × iki grup.
+- **Öngörüler (koşmadan) ve ne anlama gelecekleri:** yön temsil edilebiliyorsa (sorun kredi atamada) T1only yönlendirme
+  **> 0,3**; T1add da > 0,2. T1only yönlendirme < 0,1 kalırsa → sorun temsilde/seçimde, sıradaki aday S3 (iki taraflı
+  dönüş). T1only'de beden yine durmadan açlıktan ölebilir (kâhin hep "ileri" der) — dürtü kötü olabilir; T1add bunu dengeler.
+
 ## 2026-09-24 — Seri 004 / M3: iki taraf — koşmadan önce (keşif)
 
 - Kod: yeni bölge `lat` (6 nöron: duvar/yemek/tehlike × sol/sağ). Doğuştan: her taraftaki ışın kendi tarafının hücresini
