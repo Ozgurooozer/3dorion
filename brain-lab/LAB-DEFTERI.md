@@ -776,6 +776,28 @@ Kod `793e240` (E5, E10) ve `29f4121` (E7). Veri `data/series-002d-*`.
   Düşüş tabanı S1'de zararlı (E7'de değildi): tabansız S1n en iyi.
 - Sonraki: S1n doğrulama (20 denek + CROSS), sonra oda 2 (R1n), sonra S2 (merak).
 
+## 2026-09-25 — S1n doğrulama (20 denek + CROSS) ve oda 2
+
+`[ÖLÇÜLDÜ]` S1n = E7 öğrenmesi + rekabetçi seçim, düşüş tabanı yok. Doğrulama seed 1–10 × iki grup; oda 2 tarama
+(seed 1–5 × iki grup; 10 yemek + 2 tehlike bölgesi). Teşhis `diagnose.ts`.
+
+| koşul | yönlendirme (> 0) | bilgi (bit) | ort. dürtü ↓ (öğrenen < kardeş) | hayatta kalma | zarar/1000t | yemek → Git kendi / karşı (kendi > karşı) |
+|---|---|---|---|---|---|---|
+| kardeş (seçimle, öğrenmeyen) | 0,003 | 0,003 | 0,842 | %3 | — | — |
+| **S1n doğrulama** | **0,133 (16/20)** | 0,067 | **0,318 (16/20)** | **%67** | — | **0,435 / 0,267 (16/20)** |
+| S1n CROSS (dopamin başka bölümden) | 0,004 (13/20) | 0,010 | 0,813 (10/20) | %6 | — | 0,014 / 0,010 (11/20) |
+| oda 2 kardeş | ~0,01 | 0,010 | 0,94 | %1 | 0,43 | — |
+| **R1n** oda 2, S1n | 0,023 (5/10) | 0,099 | **0,661 (8/10)** | **%24** | **0,06** | 0,55 / 0,51 (6/10) |
+| R0 oda 2, E7 | −0,007 (3/10) | 0,035 | 0,960 (2/10) | %6 | 0,62 | 0,31 / 0,36 (3/10) |
+
+- **S1n gerçekten öğreniyor:** kardeşten iyi (dürtü 16/20, yönlendirme 16/20 > 0) VE CROSS'ta kazanç tamamen kayboluyor
+  (dürtü 0,813 ≈ kardeş 0,842; taraf ağırlıkları ~0). İki kontrolün ikisinden de geçen ilk mekanizma.
+  Taraf ayrımı 20 deneğin 16'sında. Eleştirmen hâlâ yemeğe değer vermiyor (0,0014).
+- **Oda 2 (tehlike açık):** S1n zararı kardeşin ~1/7'sine indiriyor (0,06 vs 0,43), hayatta kalma %1 → %24 — kaçınma
+  öğreniliyor gibi; ama yemekte zayıflıyor (2,12 vs kardeş 3,34) ve yön öğrenmesi oda 2'de neredeyse yok (0,023).
+  E7 oda 2'de kardeşten kötü. → İki zıt şeyi birlikte öğrenmek zor; oda 2 doğrulama + CROSS gerekli.
+- Doğrulama koşusu kayıt kilidinden önce başladığı için kilitsiz koştu (eski kod); sonraki koşular kilitli.
+
 ## 2026-09-24 — Seri 004 / M3: iki taraf — koşmadan önce (keşif)
 
 - Kod: yeni bölge `lat` (6 nöron: duvar/yemek/tehlike × sol/sağ). Doğuştan: her taraftaki ışın kendi tarafının hücresini
