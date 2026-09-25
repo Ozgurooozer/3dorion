@@ -22,9 +22,11 @@ function seeing(ray: number | null, hit: Ray["hit"] = "food", distance = 1): Obs
 const BLIND = seeing(null);
 
 // A small quantum so single steps are visible; everything else as designed.
+// The rule's tests feed outcomes by hand, so they learn from the outcome as given ("signed"); what the
+// memory learns from in a living body ("relief", the default) is tested on its own below.
 function fresh(params: Partial<CueParams> = {}) {
   const ledger = new Ledger("DNK-0001", bornGraph(C, { seed: 1, group: "reflexless" }));
-  return { ledger, memory: new CueMemory(ledger, C, { quantum: 1e-6, ...params }) };
+  return { ledger, memory: new CueMemory(ledger, C, { quantum: 1e-6, outcome: "signed", ...params }) };
 }
 const weight = (ledger: Ledger, feature: string) => ledger.criticWeight(CUE_PREFIX + feature);
 
@@ -128,6 +130,37 @@ test("the trace starts empty in each room: a cue from the last room earns nothin
   assert.equal(weight(ledger, "ray2.food"), 0);
 });
 
+// --- what the memory learns from: relief (a meal), not the cost of living ------------------------------------
+
+/** The same body before and after: `energyBefore` → `energyAfter`, seeing food on ray 2 before. */
+const meal = (energyBefore: number, energyAfter: number): [Observation, Observation] =>
+  [{ ...seeing(2), energy: energyBefore }, { ...BLIND, energy: energyAfter }];
+
+test("by default the memory learns from relief: a cue seen before a meal gains value", () => {
+  const { ledger, memory } = fresh({ outcome: "relief" });
+  const [before, after] = meal(0.4, 0.7);
+  memory.step(before, after, 0, 1, 1);
+  assert.ok(weight(ledger, "ray2.food") > 0, `value ${weight(ledger, "ray2.food")}`);
+});
+
+test("by default the memory ignores the cost of living: a cue seen while energy only drains gains no negative value", () => {
+  const { ledger, memory } = fresh({ outcome: "relief" });
+  const [before, after] = meal(0.5, 0.4985);
+  memory.step(before, after, -0.001, 1, 1);
+  assert.equal(weight(ledger, "ray2.food"), 0);
+});
+
+test("with the signed outcome (K2, K3) the cost of living makes a seen cue negative", () => {
+  const { ledger, memory } = fresh({ outcome: "signed" });
+  const [before, after] = meal(0.5, 0.4985);
+  memory.step(before, after, -0.001, 1, 1);
+  assert.ok(weight(ledger, "ray2.food") < 0, `value ${weight(ledger, "ray2.food")}`);
+});
+
+test("the default outcome is relief", () => {
+  assert.equal(DEFAULT_CUE.outcome, "relief");
+});
+
 // --- learning converges instead of churning ----------------------------------------------------------------------
 
 test("a step is divided by the energy of the cues in sight (two cues at x = 1: half the step each)", () => {
@@ -227,7 +260,7 @@ test("the cue memory does not touch the critic's own weights (no prefix clash)",
 const BAD: readonly [string, Partial<CueParams>][] = [
   ["lambda < 0", { lambda: -0.1 }], ["lambda > 1", { lambda: 1.1 }], ["gamma > 1", { gamma: 1.5 }],
   ["alpha < 0", { alpha: -1 }], ["quantum 0", { quantum: 0 }], ["weight NaN", { weight: NaN }],
-  ["an unknown trace", { trace: "sticky" as "replacing" }],
+  ["an unknown trace", { trace: "sticky" as "replacing" }], ["an unknown outcome", { outcome: "both" as "relief" }],
 ];
 for (const [label, params] of BAD) {
   test(`a cue memory refuses ${label}`, () => {

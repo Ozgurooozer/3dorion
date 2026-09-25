@@ -1165,6 +1165,44 @@ taraması iki kez koşulmuştu (aynı seed'ler, bit-aynı beyinler); ilk sayımd
   - (e′) tutmazsa değer öğrenmesi hâlâ kararsızdır; biçimlendirme sınanamaz.
   - (e′) tutar ama (b) tutmazsa hafıza oluşmuş ama dönüşe geçmemiştir.
 
+## 2026-09-25 — Seri 006b sonucu (K3/K3x): iz düzeldi, ama yemek "kötü" öğrenildi
+
+`[ÖLÇÜLDÜ]` Kıt oda, seed 1–5 × iki grup; kod `d020c49`.
+
+| | dürtü | hayatta | yemek/1000t | yönlendirme | yönelme, bağlı bedene göre |
+|---|---|---|---|---|---|
+| K3 (κ 1) | 0,786 | %7 | 0,32 | 0,000 | 9/10, p 0,027 |
+| K3x (κ 3) | 0,889 | %0 | 0,21 | 0,022 | 4/10 |
+| K1n (karşılaştırma) | 0,425 | %39 | 2,12 | 0,114 | 9/10, p 0,004 |
+
+- **Teşhis:**
+  - Hafıza değerleri artık savrulmuyor: duvar ışınları toplam 2,1 oynadı; K2'de 279.
+  - Ama yemek ışınları **−0,27**'de bitti (7,1 oynadı). Yemek ışını değeri > 0,1 olan öğrenen: 1/10.
+- **Öngörü karnesi:**
+  - (e′) ✓: savrulma bitti.
+  - (a) ✗, (b) ✗, (c) ✗, (d) ✗.
+- **Sebep:** hafıza her bedensel maliyetten öğreniyordu (hareketin enerjisi, açlığın yavaş artışı). Kıt odada yemek
+  görmenin ardından çoğunlukla onu kovalamanın maliyeti geliyor, yemek ise nadiren. Yemek "kötü" öğrenildi,
+  biçimlendirme bedeni yemekten uzaklaştırdı, daha az yedi. Kısır döngü ters yönde işledi.
+  - Bu, onaylanan fikirden benim sapmamdı. Onaylanan: "yemek yenince, az önce gören ışınlara değer yazılsın".
+- **Düzeltme:** `CueParams.outcome`.
+  - "relief" (yeni varsayılan): yalnız bir dürtünün azalmasından, yani yemekten öğrenir. Yemeksiz görülen işaret
+    0'a doğru söner, cezalandırılmaz.
+  - "signed": K2 ve K3'ün ayarı, kayıtlar yeniden üretilebilir kaldı (gerileme K2 2/2, K3 2/2).
+  - Zarar ileride ayrı bir, kaçınma belleğine bırakıldı.
+  - Testler 52; mutasyon 4/4.
+
+## 2026-09-25 — Seri 006c (K4/K4x, yalnız yemekten öğrenen hafıza) — koşmadan önce
+
+- Koşullar: K4 (κ 1) ve K4x (κ 3); kıt oda, seed 1–5 × iki grup.
+- Öngörüler (a)–(d) seri 006'dakiyle aynı. Ek olarak:
+  - (f) Yemek ışınlarının hafıza değeri ≥ 0 kalır (hiçbir öğrenende < −0,05 değil).
+  - (g) K4 dürtüde en azından K1n kadar iyi: ortalama farkı ≤ +0,05. Hafıza en kötü ihtimalle zararsız olmalı.
+- **Çürütme:** (g) tutmazsa biçimlendirme, doğru işaretli değerle bile homeostazı bozuyor demektir. O zaman
+  sorun değerde değil, biçimlendirmenin öğretmeye katılma biçimindedir.
+- Not: iki art arda başarısızlık, Themis'in "tabanı sorgula" uyarısını hatırlatıyor. K4 de başarısız olursa bir
+  sonraki adım yeni bir deneme değil, bir toplantı/tasarım gözden geçirmesi olmalı.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.

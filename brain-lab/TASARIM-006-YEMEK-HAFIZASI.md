@@ -41,7 +41,7 @@ yazılır; defter kuralı aynen geçerli.
   Her odanın başında sıfırlanır.
 - **Değer:** `Φ(s) = Σ v_f · x_f(s)`
 - **Öğrenme (işaretlere sınırlı TD(λ)):** `δc = r + γ·Φ(s′) − Φ(s)`, `v_f ← v_f + α·δc·e_f / max(1, Σx²)`.
-  - r: bedenin hissettiği doğuştan sonuç (dürtünün azalması). Yemek artı, yara eksi, bazal açlık hafif eksi.
+  - r: yalnız bir dürtünün azalması, yani yemeğin verdiği rahatlama. İlk iki sürüm tüm sonuçtan (hareket ve açlık maliyeti dahil) öğrendi; kıt odada yemek "kötü" öğrenildi (K3, bkz. defter). Zarar ileride ayrı bir kaçınma belleğine.
   - Ölümde Φ(s′) = 0.
   - Adım, işaretlerin enerjisine bölünür (normalleştirilmiş LMS). Teşhiste görülen çalkantıya karşı.
 - **Öğretmeye katkısı:** Go/NoGo'yu öğreten δ'ya `κ·(γ·Φ(s′) − Φ(s))` eklenir.
