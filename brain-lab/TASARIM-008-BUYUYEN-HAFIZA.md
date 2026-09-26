@@ -280,6 +280,15 @@ Bu bölüm §6 ve §7'yi A3 için somutlaştırır. İki karar bağlayıcı:
 - **Kredi zayıf:** Eleştirmen yemek görmeye neredeyse değer vermiyor (ağırlık 0,005–0,009). Hatırlanan duyunun kredisi
   bu yüzden öğünde geliyor: son hatırlamadan medyan 60–90 tik sonra. λ 0,9 ile o ana izin ortalama ~%14'ü kalıyor.
 
+**Literatür** (arXiv taraması, onaydan sonra; ayrıntısı LAB-DEFTERI 2026-09-26):
+- K1'in 0'da budanma kuralının emsali Deep Rewiring (Bellec ve ark. 2017, arXiv 1711.05136): bir bağlantı yalnız parametresi
+  pozitifken var olur.
+- Kredi açığı için:
+  - izin zaman sabiti eylemden ödüle geçen süreye uymalı (Gerstner ve ark. 2018, arXiv 1801.05219);
+  - basamaklı izler (arXiv 2506.14598);
+  - hatıraya kredi taşıma (Temporal Value Transport, arXiv 1810.06721).
+- Bunlar, tarama başarısız olursa (K5) Ozyn'e gidecek seçeneklerdir.
+
 **Öneriler:**
 1. **Kapı (K7a):**
    - Açlık ≥ 0,2 (bölgeli beynin "tok" sınırı) ve hiçbir ışın yemek görmüyorsa kapı açıktır.

@@ -2172,6 +2172,40 @@ Hafızayı kullanan bir beyin, dürtüsünü 0,07–0,10 düşürebilir; hayatta
 4. **A3.3:** İyi olan için doğrulama (20 denek + CROSS) ve çürütme.
 5. **A3b:** Alice'in kuralı (S1n ile aktör-eleştirmen), ayrı adım.
 
+### Literatür (arXiv taraması, 2026-09-26, onaydan sonra)
+
+Ozyn sordu: "arXiv araştırıldı mı?" Hayır, araştırılmamıştı. Toplantının kaynakları hafızadan yazılmıştı; gerçek
+yayınlardı ama canlı arama yapılmamıştı. Onaydan sonra tarandı:
+
+- **Deep Rewiring** (Bellec ve ark. 2017, arXiv 1711.05136):
+  - Bir bağlantı yalnız parametresi pozitifken var olur. Güncelleme işaretini değiştirecekse bağlantı "uykuya" geçer ve
+    silinir.
+  - K1'in 0'da budanma kuralının doğrudan emsali.
+  - Fark: orada uyuyan bağlantı öğrenmez; yerine rastgele bir uyuyan bağlantı 0 ağırlıkla uyandırılır. Bizde doğmamış
+    sinaps izini tutuyor; B'nin sıfır ağırlıklı D'ye denk olmasının sebebi bu.
+- **Ödülle yeniden bağlanma** (Kappel ve ark. 2018, arXiv 1704.04238): Olası bağlantıların yalnız bir kısmı her an işlevsel.
+  Bağlantılar dopamin benzeri bir ödülle yönlenen olasılıklı kurallarla sürekli değişiyor.
+- **Uygunluk izi, davranış zaman ölçeğinde** (Gerstner ve ark. 2018, arXiv 1801.05219):
+  - İzin zaman sabiti, eylemden ödüle geçen süreye kabaca uymalı.
+  - Bizde λ 0,9'un zaman sabiti ~10 tik (0,5 s); hatırlamadan öğüne ise medyan 60–92 tik geçiyor.
+  - Teşhis 2'deki kredi açığının literatürdeki karşılığı bu.
+- **Basamaklı uygunluk izleri** (Ralambomihanta ve ark. 2025, arXiv 2506.14598):
+  - Sıradan izler, gecikme boyunca olan her şeyi birbirine karıştırıyor.
+  - Önerilen basamaklı iz, saniyelerden dakikalara uzanan gecikmelerde zamanca kesin kredi veriyor.
+- **Temporal Value Transport** (Hung ve ark. 2018, arXiv 1810.06721):
+  - Kredi, bir hatıranın geri çağrıldığı ana taşınıyor.
+  - Bizim büyüme çekirdeği, çağrılan hatıranın ne zaman yeniden görüldüğünü ve ne zaman yendiğini zaten biliyor. Benzer bir
+    taşıma, kredi açığını doğrudan kapatabilir.
+- **MERLIN** (Wayne ve ark. 2018, arXiv 1803.10760):
+  - Hafıza tek başına yetmiyor; doğru bilgi doğru biçimde saklanmalı.
+  - Kapasite fikstürü bizim biçimin işe yaradığını gösterdi.
+
+**Onaylı kararlara etkisi:**
+- Karar değişikliği önermiyorum. K1'in bir emsali var. Kredi açığı için literatür üç yol gösteriyor: daha uzun ya da
+  basamaklı iz ve hatıraya kredi taşıma.
+- Bu yollar K5 gereği, tarama başarısız olursa teşhisten sonra Ozyn'e gidecek seçeneklere eklendi.
+- Şimdi uygulanmaları tek değişken kuralını (K6) bozardı.
+
 ### Öngörüler (A3.2 taraması; karşılaştırma aynı seed'lerdeki kayıtlı K1n, dürtü 0,425)
 
 - **(a)** B'nin dürtüsü K1n'den düşük: ortalamada ve 10 seed/grup çiftinin en az 7'sinde.
