@@ -1,8 +1,8 @@
 # Tasarım 007: Mimari gözden geçirme (Alice, Bob, Hafıza)
 
 Tarih: 2026-09-25 · Durum: **ONAYLANDI** (Ozyn, 2026-09-26: "onayladım"; kararlar olduğu gibi). Toplantı: vault `forum/beyin0fis/toplantilar/2026-09-25-mimari-gozden-gecirme` (K1–K8, bağlayıcı).
-**Not (2026-09-26):** Taslak TASARIM-008 (büyüyen hafıza, Ozyn'in modeli) bu belgenin §4, §5'teki H2 ve H3, §6 ve §12
-bölümlerini değiştirmeyi öneriyor. Ozyn onayı bekliyor.
+**Not (2026-09-26):** Bu belgenin §4, §5'teki H2 ve H3, §6 ve §12 bölümlerinin yerini TASARIM-008 (büyüyen hafıza,
+Ozyn'in modeli) aldı. TASARIM-008 onaylandı (Ozyn, 2026-09-26). Geri kalan her şey geçerli.
 Kaynak: Ozyn'in fikirleri (LAB-DEFTERI.md, 2026-09-25 "Mimari gözden geçirme öncesi") ve seri 005–006'nın ölçümleri.
 Kapsam: yalnız 2D laboratuvar. 3D ofis kapsam dışı (Ozyn, 2026-09-25).
 

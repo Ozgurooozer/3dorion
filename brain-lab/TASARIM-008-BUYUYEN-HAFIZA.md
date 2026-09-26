@@ -1,7 +1,7 @@
 # Tasarım 008: Büyüyen hafıza
 
-Tarih: 2026-09-26 · Durum: **TASLAK, Ozyn onayı bekliyor.** Kod yazılmadı. Toplantı: vault
-`forum/beyin0fis/toplantilar/2026-09-26-buyuyen-hafiza`.
+Tarih: 2026-09-26 · Durum: **ONAYLANDI** (Ozyn, 2026-09-26: "onay"; toplantının K1–K9 kararları olduğu gibi).
+Toplantı: vault `forum/beyin0fis/toplantilar/2026-09-26-buyuyen-hafiza`.
 Kaynak: Ozyn'in hafıza modeli (LAB-DEFTERI.md, 2026-09-26) ve A1 ölçümleri.
 Bu belge TASARIM-007'nin §4 (hafıza çekirdeği), §5 (H2 ızgara, H3), §6 (kapı) ve §12 (yol haritası) bölümlerinin yerini
 alır. Geri kalan her şey geçerli.
