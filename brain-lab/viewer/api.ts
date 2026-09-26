@@ -15,6 +15,7 @@ import { join } from "node:path";
 import type { Plugin } from "vite";
 import { RegistryStore } from "../registry/store.ts";
 import { CONDITIONS } from "../experiments/conditions.ts";
+import { recordedEvaluation } from "../experiments/harness.ts";
 import { Contestant, brainActor, filmRoom, type BrainRecord, type Film, type RecordedEpisode } from "./arena.ts";
 import { recordingActor, yokedActor } from "../experiments/yoked.ts";
 import type { WorldConfig } from "../world/index.ts";
@@ -75,7 +76,7 @@ function brainRecord(store: RegistryStore, id: string, spec: BrainRecord["spec"]
   const ledger = store.openLedger(id);
   const features = new Set(ledger.entries.flatMap((e) => (e.kind === "critic" ? [e.feature] : [])));
   const critic = Object.fromEntries([...features].map((f) => [f, ledger.criticWeight(f)]));
-  const evalRun = store.listRuns(id).filter((r) => r.header.purpose.endsWith("eval (learning frozen)")).at(-1);
+  const evalRun = recordedEvaluation(store, id);
   const recorded: RecordedEpisode[] = (evalRun?.episodes ?? []).map((e) => ({
     episode: e.episode, worldSeed: e.worldSeed, foodEaten: e.summary.foodEaten, ticks: e.summary.ticks,
     doneCause: e.summary.doneCause, finalHash: e.summary.finalHash,

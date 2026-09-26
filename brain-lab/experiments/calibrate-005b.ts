@@ -13,35 +13,18 @@
 import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { oraclePolicy, seekerPolicy } from "../baselines/index.ts";
-import { Rng, makeConfig, type Action, type Policy, type WorldConfig } from "../world/index.ts";
+import { burstPolicy, centrePolicy, oraclePolicy, seekerPolicy } from "../baselines/index.ts";
+import { makeConfig, type Policy, type WorldConfig } from "../world/index.ts";
 import { measureEpisodes, type Eval } from "./harness.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SEEDS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 const ROOMS = 10;
-const BURST = 10;
 
-/** Random bursts of BURST ticks of any command; `sees` may override a tick (the body's only use of sight). */
-function bursts(seed: number, sees: (obs: Parameters<Policy>[0]) => Action | null = () => null): Policy {
-  const rng = new Rng(seed);
-  let burst: Action = { thrust: 0, turn: 0 };
-  let left = 0;
-  return (obs) => {
-    const seen = sees(obs);
-    if (seen) return seen;
-    if (left-- <= 0) {
-      left = BURST - 1;
-      burst = { thrust: Math.floor(rng.next() * 3) - 1, turn: Math.floor(rng.next() * 3) - 1 };
-    }
-    return burst;
-  };
-}
-
-const CENTRE_RAY = 2;
+// The blind and centre bodies moved to baselines/bursts.ts (2026-09-26) so the A1 memory measurement uses the same ones.
 const BODIES: Record<string, (cfg: WorldConfig, seed: number) => Policy> = {
-  blind: (_cfg, seed) => bursts(seed),
-  centre: (_cfg, seed) => bursts(seed, (obs) => (obs.rays[CENTRE_RAY]!.hit === "food" ? { thrust: 1, turn: 0 } : null)),
+  blind: (_cfg, seed) => burstPolicy(seed),
+  centre: (cfg, seed) => centrePolicy(cfg, seed),
   seeker: (cfg, seed) => seekerPolicy(cfg, seed),
   oracle: (cfg) => oraclePolicy(cfg),
 };

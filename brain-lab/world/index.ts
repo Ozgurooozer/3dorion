@@ -7,3 +7,4 @@ export { Room, type RoomState } from "./room.ts";
 export { runEpisode, type EpisodeHooks, type EpisodeSummary, type Policy, type TickRecord } from "./episode.ts";
 export { Rng } from "./rng.ts";
 export { fnv1a } from "./hash.ts";
+export { wrapAngle } from "./geometry.ts";

@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 import { bornGraph, type Expansion, type InnateGroup, type Orienting } from "../development/index.ts";
 import { createAgent, type AgentSpec } from "../learning/index.ts";
 import { episodeEvents, type Subject } from "../registry/index.ts";
-import type { EpisodeLine, RegistryStore } from "../registry/store.ts";
+import type { EpisodeLine, RegistryStore, RunHeader } from "../registry/store.ts";
 import { drive } from "../neuromodulation/index.ts";
 import { isPlastic, senseToMotorDelay } from "../regions/index.ts";
 import { Rng, Room, runEpisode, type Action, type EpisodeHooks, type Policy, type WorldConfig } from "../world/index.ts";
@@ -148,6 +148,17 @@ export function measureEpisodes(actor: Actor, world: WorldConfig, seed: number, 
   };
 }
 
+/** The end of the purpose line of every frozen evaluation run: how the run is written and found again. */
+export const EVAL_PURPOSE = "eval (learning frozen)";
+
+/**
+ * A subject's last recorded frozen evaluation (its rooms in order, each with the final world hash), or null.
+ * Whoever replays a subject's rooms (the Deney Odası, the A1 memory measurement) checks against this record.
+ */
+export function recordedEvaluation(store: RegistryStore, id: string): { header: RunHeader; episodes: EpisodeLine[] } | null {
+  return store.listRuns(id).filter((r) => r.header.purpose.endsWith(EVAL_PURPOSE)).at(-1) ?? null;
+}
+
 /** Evaluate a subject's current brain with learning frozen. */
 export function evaluate(store: RegistryStore, s: Subject, world: WorldConfig, episodes: number, codeCommit: string, label: string, spec: Partial<AgentSpec> = {}): Eval {
   return evaluateWithYoked(store, s, world, episodes, codeCommit, label, spec, false).subject;
@@ -161,7 +172,7 @@ export function evaluate(store: RegistryStore, s: Subject, world: WorldConfig, e
 export function evaluateWithYoked(store: RegistryStore, s: Subject, world: WorldConfig, episodes: number, codeCommit: string, label: string, spec: Partial<AgentSpec> = {}, yoked = true): { subject: Eval; yoked: Eval | null } {
   const ledger = store.openLedger(s.id);
   const agent = createAgent({ ...spec, cfg: world, ledger, noiseSeed: evalNoise(s.birth.seed), learning: { ...spec.learning, frozen: true } });
-  const run = store.startRun(s.id, `${label} eval (learning frozen)`, {}, { codeCommit });
+  const run = store.startRun(s.id, `${label} ${EVAL_PURPOSE}`, {}, { codeCommit });
   // A selector acts on the tick it senses; the graph needs its conduction delay.
   const lag = spec.selection ? 0 : senseToMotorDelay(ledger.graph);
   const rec = recordingActor(agent);
