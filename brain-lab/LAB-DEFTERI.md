@@ -2112,7 +2112,12 @@ Ozyn "A3'e geç" dedi. A3, hafızanın davranışı ilk kez değiştirdiği adı
 **Soru:** Beyin hatırladığı yemeği kullanmayı öğrenip dürtüsünü hafızasız K1n'in altına indirebilir mi? Kural sinapslarının
 ilk başarıda doğması (B), doğuştan var olmasından (D) iyi mi?
 
-Ayrıntılar TASARIM-008 §16'da öneri olarak duruyor; Ozyn onayı bekliyor.
+Ayrıntılar TASARIM-008 §16'da. Vault toplantısında oylandı (`2026-09-26-a3-kural-dogumu`) ve Ozyn onayladı (2026-09-26):
+- B, ilk kazanılan kuantumda doğar.
+- Kapı eşiği 0,2.
+- Tarama başarısız olursa önce teşhis yapılır.
+
+Aşağıdaki öngörüler bu ayrıntılarla yazıldı; onay onları değiştirmedi.
 
 ### Teşhis `[ÖLÇÜLDÜ]`
 

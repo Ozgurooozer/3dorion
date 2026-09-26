@@ -261,9 +261,9 @@ TASARIM-007 §12'nin A2–A6'sı yeniden tanımlanır; aynı anda tek değişken
    - (c) (b) + sürpriz.
 4. **S4:** Hatıranın yeri doğduğu yerde mi sabit kalsın, yoksa her yeniden görülüşte ortalamaya mı çekilsin?
 
-## 16. A3 ayrıntıları (öneri, 2026-09-26; Ozyn onayı bekliyor)
+## 16. A3 ayrıntıları (ONAYLANDI: Ozyn, 2026-09-26, toplantının K1–K6 kararlarıyla)
 
-Toplantı: vault `forum/beyin0fis/toplantilar/2026-09-26-a3-kural-dogumu`. Önerilen kararlar (K1–K6, onay bekliyor):
+Toplantı: vault `forum/beyin0fis/toplantilar/2026-09-26-a3-kural-dogumu`. Kararlar (K1–K6, Ozyn onayladı):
 - B, ilk kazanılan kuantumda doğar. Oylama K 33 · İ 32 · T 29.
 - Kapı eşiği 0,2. Oylama 38 · 28 · 18.
 - Tarama başarısız olursa önce teşhis. Oylama 37 · 27 · 23.
