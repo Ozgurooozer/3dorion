@@ -149,12 +149,12 @@ export function referenceLives(bodies: Record<string, (seed: number) => Policy>,
  * A condition's recorded learners (harness.recordedLearners) in their recorded evaluation rooms, their frozen brains
  * evaluated as the experiment did. Each life says whether the room ended in its recorded final world hash.
  */
-export function learnerLives(code: string, store: RegistryStore, resultLines: readonly string[]): Life[] {
+export function learnerLives(code: string, store: RegistryStore, resultLines: readonly string[], command: "tara" | "curut" = "tara"): Life[] {
   const def = condition(code);
   const world = def.world ?? ROOM1;
   const spec = def.spec(world);
   const lives: Life[] = [];
-  for (const row of recordedLearners(resultLines, code, world)) {
+  for (const row of recordedLearners(resultLines, code, world, command)) {
     const subject = store.loadSubject(row.learner);
     const recorded = recordedEvaluation(store, row.learner);
     if (!recorded) throw new Error(`${row.learner} has no recorded evaluation`);
@@ -176,11 +176,14 @@ export function learnerLives(code: string, store: RegistryStore, resultLines: re
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const code = process.argv[2] ?? "K1n";
+  // Which recorded learners: the screened ones (tara, default) or a falsification run's fresh-seed learners (curut).
+  const command = (process.argv[3] ?? "tara") as "tara" | "curut";
+  if (command !== "tara" && command !== "curut") throw new Error(`the third argument is tara or curut, got ${command}`);
   const WORLD = condition(code).world ?? ROOM1;
   const REFERENCE = referenceBodies(WORLD);
   const resultLines = readFileSync(join(DATA, "results.jsonl"), "utf8").split("\n");
   const store = new RegistryStore(DATA, { readOnly: true });
-  const lives: Life[] = [...referenceLives(REFERENCE, WORLD, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]), ...learnerLives(code, store, resultLines)];
+  const lives: Life[] = [...referenceLives(REFERENCE, WORLD, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]), ...learnerLives(code, store, resultLines, command)];
 
   // --- analysis --------------------------------------------------------------------------------------------------------
 
@@ -275,7 +278,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   console.log(`(f) en büyük yön hatası ${headingMax}; temassız ${noContact.length} hayatta V1 = V2 = V3: ${sameWithoutContact ? "evet" : "HAYIR"}`);
   console.log(`(g) seçilen ${chosen}; ${code}'de gerçek hata / σ (RMS, q ${f(q, 2)}): ${f(ratio, 2)}`);
 
-  const out = code === "K1n" ? "pose-a1b" : `pose-a1b-${code}`;
+  const out = (code === "K1n" ? "pose-a1b" : `pose-a1b-${code}`) + (command === "tara" ? "" : `-${command}`);
   writeFileSync(join(DATA, `${out}-lives.jsonl`), lives.map((l) => JSON.stringify(l)).join("\n") + "\n");
   writeFileSync(join(DATA, `${out}-summary.json`), JSON.stringify({ chosen, q, gate: Object.fromEntries(NAMES.map((n) => [n, gate(n)])), lives3000: k3.length, checks }, null, 2) + "\n");
   console.log(`\nyazıldı: data/${out}-summary.json, data/${out}-lives.jsonl`);

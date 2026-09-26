@@ -170,13 +170,13 @@ export function referenceMemoryLives(bodies: Record<string, (seed: number) => Po
  * A condition's recorded learners (harness.recordedLearners) in their recorded evaluation rooms, frozen, the memory
  * switched on; the growth goes to an in-memory copy of each ledger, never saved.
  */
-export function learnerMemoryLives(code: string, store: RegistryStore, resultLines: readonly string[]): Graded {
+export function learnerMemoryLives(code: string, store: RegistryStore, resultLines: readonly string[], command: "tara" | "curut" = "tara"): Graded {
   const def = condition(code);
   const world = def.world ?? ROOM1;
   const lives: Life[] = [];
   const replays: Graded["replays"] = [];
   let refused = 0;
-  for (const row of recordedLearners(resultLines, code, world)) {
+  for (const row of recordedLearners(resultLines, code, world, command)) {
     const subject = store.loadSubject(row.learner);
     const recorded = recordedEvaluation(store, row.learner);
     if (!recorded) throw new Error(`${row.learner} has no recorded evaluation`);
@@ -220,12 +220,15 @@ export function aggregate(ls: Life[]) {
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const code = process.argv[2] ?? "K1n";
+  // Which recorded learners: the screened ones (tara, default) or a falsification run's fresh-seed learners (curut).
+  const command = (process.argv[3] ?? "tara") as "tara" | "curut";
+  if (command !== "tara" && command !== "curut") throw new Error(`the third argument is tara or curut, got ${command}`);
   const WORLD: WorldConfig = condition(code).world ?? ROOM1;
   const REFERENCE = referenceBodies(WORLD);
   const resultLines = readFileSync(join(DATA, "results.jsonl"), "utf8").split("\n");
   const store = new RegistryStore(DATA, { readOnly: true });
   const refs = referenceMemoryLives(REFERENCE, WORLD, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-  const subjects = learnerMemoryLives(code, store, resultLines);
+  const subjects = learnerMemoryLives(code, store, resultLines, command);
   const lives = [...refs.lives, ...subjects.lives];
   const replays = [...refs.replays, ...subjects.replays];
   const refusedBirths = refs.refused + subjects.refused;
@@ -251,7 +254,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   console.log(`davranış değişmedi (${code} odaları kayıttaki son dünya özetiyle): ${matched}/${learnerLifeCount}`);
   console.log(`G2 tavanda reddedilen doğum: ${refusedBirths}; bir odada en çok canlı hatıra: ${Math.max(...groups.map((gname) => table[gname]!.mostAlive))}`);
 
-  const out = code === "K1n" ? "memory-a2" : `memory-a2-${code}`;
+  const out = (code === "K1n" ? "memory-a2" : `memory-a2-${code}`) + (command === "tara" ? "" : `-${command}`);
   writeFileSync(join(DATA, `${out}-lives.jsonl`), lives.map((l) => JSON.stringify(l)).join("\n") + "\n");
   writeFileSync(join(DATA, `${out}-summary.json`), JSON.stringify({ table, replays: { exact, of: replays.length }, matched: `${matched}/${learnerLifeCount}`, refusedBirths }, null, 2) + "\n");
   console.log(`\nyazıldı: data/${out}-summary.json, data/${out}-lives.jsonl`);

@@ -36,8 +36,15 @@ export interface GrowthParams {
   readonly surpriseGap: number;
   /** Fading with time, per tick: w·(1 − timeFade)^ticks — only a backup for memories never confirmed nor refuted. */
   readonly timeFade: number;
-  /** A meal kills the memory nearest the body within this distance (m): body + food radius + room for pose error. */
+  /** A meal kills food memories within this distance (m) of the body: body + food radius + room for pose error. */
   readonly eatenRadius: number;
+  /**
+   * Which of them: "nearest" — the one nearest the body (A2 as measured); "reach" — every food memory within reach,
+   * so a second memory of the same food, or one the pose put a little off, dies with it (the memory of a food right
+   * next to it too, until that food is seen again). The falsification of 2026-09-26 found "nearest" letting a food's
+   * second memory live on in 10-food rooms (G5 94 %).
+   */
+  readonly eatenRule: "nearest" | "reach";
   /** A memory weaker than this dies. */
   readonly floor: number;
   /** At most this many live food memories; a birth beyond it is refused (and counted). */
@@ -56,6 +63,7 @@ export const DEFAULT_GROWTH: GrowthParams = Object.freeze({
   surpriseGap: 5,
   timeFade: 0.001,
   eatenRadius: 0.85,
+  eatenRule: "nearest",
   floor: 0.1,
   cap: 30,
 });
@@ -82,8 +90,10 @@ export class FoodMemory {
   constructor(ledger: Ledger, graph: BrainGrafi, cfg: WorldConfig, params: Partial<GrowthParams> = {}) {
     const p = { ...DEFAULT_GROWTH, ...params };
     for (const [k, v] of Object.entries(p)) {
-      if (!Number.isFinite(v) || v < 0) throw new RangeError(`bad growth params: ${k} must be a finite number >= 0, got ${v}`);
+      if (k === "eatenRule") continue;
+      if (typeof v !== "number" || !Number.isFinite(v) || v < 0) throw new RangeError(`bad growth params: ${k} must be a finite number >= 0, got ${v}`);
     }
+    if (p.eatenRule !== "nearest" && p.eatenRule !== "reach") throw new RangeError(`bad growth params: eatenRule must be "nearest" or "reach", got ${String(p.eatenRule)}`);
     if (p.birthStrength <= p.floor || p.birthStrength > 1) throw new RangeError(`bad growth params: birthStrength must be in (floor, 1], got ${p.birthStrength}`);
     for (const k of ["confirmRate", "surpriseFade", "timeFade"] as const) if (p[k] > 1) throw new RangeError(`bad growth params: ${k} must be at most 1, got ${p[k]}`);
     if (!Number.isInteger(p.cap) || !Number.isInteger(p.maxSightings) || p.maxSightings < 1) throw new RangeError("bad growth params: cap and maxSightings must be integers, maxSightings >= 1");
@@ -129,8 +139,12 @@ export class FoodMemory {
     const ate = this.lastEnergy !== null && obs.energy > this.lastEnergy;
     this.lastEnergy = obs.energy;
 
-    // 1. A meal: the food nearest the body is gone.
-    if (ate) {
+    // 1. A meal: the food the body just ate is gone — by the eaten rule, every food memory within reach, or the one nearest.
+    if (ate && p.eatenRule === "reach") {
+      for (const n of [...this.liveNodes.values()]) {
+        if (Math.hypot(n.memory!.x - pose.x, n.memory!.y - pose.y) <= p.eatenRadius) out.push(this.kill(n, tick, episode, ["eaten"]));
+      }
+    } else if (ate) {
       let nearest: BrainDugumu | null = null;
       let best = p.eatenRadius;
       for (const n of this.liveNodes.values()) {

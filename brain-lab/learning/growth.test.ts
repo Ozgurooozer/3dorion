@@ -191,6 +191,23 @@ test("a meal kills the memory nearest the body, within reach; a memory out of re
   assert.deepEqual(food.live.map((m) => m.id), ["mem.food.2"]);
 });
 
+/** Two memories within reach of a meal at (0.5, 0.2) — at (1, 0) and (0.87, 0.5), 0.54 and 0.47 m away — and one far. */
+function mealScene(eatenRule: GrowthParams["eatenRule"]) {
+  const { food } = fresh({ eatenRule });
+  food.step(seeing({ [AHEAD]: 0.75, [AHEAD + 1]: 0.75, [AHEAD + 2]: 2.75 }, 0.5), at(), 0, 1);
+  assert.equal(food.live.length, 3, "three memories before the meal");
+  food.step(blind(0.8), at(0.5, 0.2), 1, 1);
+  return food.live.map((m) => m.id);
+}
+
+test("the reach rule: a meal kills every food memory within reach; one out of reach survives", () => {
+  assert.deepEqual(mealScene("reach"), ["mem.food.3"]);
+});
+
+test("the nearest rule: a meal kills only the food memory nearest the body", () => {
+  assert.deepEqual(mealScene("nearest"), ["mem.food.1", "mem.food.3"]);
+});
+
 test("without a meal, a body standing on a remembered place does not kill it", () => {
   const { food } = fresh();
   food.step(seeing({ [AHEAD]: 0.75 }, 0.5), at(), 0, 1);
@@ -255,6 +272,7 @@ test("bad growth parameters are refused", () => {
     ["negative vigilance", { vigilance: -1 }], ["NaN floor", { floor: Number.NaN }],
     ["birth below the floor", { birthStrength: 0.05 }], ["birth above 1", { birthStrength: 1.5 }],
     ["confirm rate above 1", { confirmRate: 2 }], ["fractional cap", { cap: 2.5 }], ["no sightings", { maxSightings: 0 }],
+    ["unknown eaten rule", { eatenRule: "all" as GrowthParams["eatenRule"] }],
   ];
   for (const [why, p] of bad) assert.throws(() => fresh(p), RangeError, why);
 });

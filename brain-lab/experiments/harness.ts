@@ -164,18 +164,18 @@ export interface RecordedLearner { readonly seed: number; readonly group: Innate
 
 /**
  * A condition's recorded standard learners, read from the lines of the results table (data/results.jsonl): screened
- * (`tara`) without a control, 40 training and 10 evaluation rooms, in the condition's room (food and threat counts).
+ * (`tara`; or the main learners of a falsification run, `curut`, on fresh seeds) without a control, 40 training and 10 evaluation rooms, in the condition's room (food and threat counts).
  * One per seed and group, in table order; a later row of the same seed and group (a re-run batch, e.g. S1n's twice
  * screened seeds 1–5) replaces the earlier one. Shared by the memory measurements (pose-a1.ts, memory-a2.ts), so
  * both replay the same subjects.
  */
-export function recordedLearners(lines: readonly string[], code: string, world: WorldConfig): RecordedLearner[] {
+export function recordedLearners(lines: readonly string[], code: string, world: WorldConfig, command: "tara" | "curut" = "tara"): RecordedLearner[] {
   interface Line { code: string; command: string; control: string; seed: number; group: InnateGroup; learner: string; trainEpisodes?: number; evalEpisodes?: number; food?: number; threats?: number }
   const bySubject = new Map<string, RecordedLearner>();
   for (const text of lines) {
     if (text.trim() === "") continue;
     const r = JSON.parse(text) as Line;
-    if (r.code !== code || r.command !== "tara" || r.control !== "none") continue;
+    if (r.code !== code || r.command !== command || r.control !== "none") continue;
     if ((r.trainEpisodes ?? 40) !== 40 || (r.evalEpisodes ?? 10) !== 10) continue;
     if (r.food !== world.foodCount || r.threats !== world.threatCount) continue;
     bySubject.set(`${r.seed}/${r.group}`, { seed: r.seed, group: r.group, learner: r.learner });

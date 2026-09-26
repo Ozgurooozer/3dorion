@@ -227,6 +227,16 @@ test("recorded learners: another condition, a falsification run, a control, a sh
   for (const line of others) assert.deepEqual(recordedLearners([line], "S1n", HUNGRY), [], line);
 });
 
+test("recorded learners: asked for a falsification run, its fresh-seed learners are chosen, not its controls or other rooms", () => {
+  const lines = [
+    resultLine({ command: "curut", seed: 11, learner: "DNK-0011" }), resultLine({ command: "curut", seed: 11, control: "CROSS", learner: "DNK-0012" }),
+    resultLine({ command: "curut", seed: 12, control: "LOCAL", learner: "DNK-0013" }), resultLine({ command: "curut", seed: 12, food: 15, learner: "DNK-0014" }),
+    resultLine({ learner: "DNK-0001" }),
+  ];
+  assert.deepEqual(recordedLearners(lines, "S1n", HUNGRY, "curut").map((r) => r.learner), ["DNK-0011"]);
+  assert.deepEqual(recordedLearners(lines, "S1n", HUNGRY).map((r) => r.learner), ["DNK-0001"], "the default is still the screened learners");
+});
+
 test("recorded learners: a re-run of the same seed and group replaces the earlier row, keeping its place in the order", () => {
   const lines = [resultLine({ learner: "DNK-0001" }), resultLine({ seed: 2, group: "reflexive", learner: "DNK-0002" }), resultLine({ learner: "DNK-0003" }), ""];
   assert.deepEqual(recordedLearners(lines, "S1n", HUNGRY).map((r) => r.learner), ["DNK-0003", "DNK-0002"]);

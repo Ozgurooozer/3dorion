@@ -1930,6 +1930,41 @@ kuralının öldürdüğü hatıraların hepsi zamanında öldü. Kaçanlar üç
 4. K1n'e özgü sayılar (0,097 m; %99 / %96 / %98) yeni K1n denekleriyle, taze seed'lerde ölçülmedi. İstenirse
    `curut K1n` ya da K1n'in seed 11–20 taraması.
 
+## 2026-09-26 — Açıkları kapatma: yenme kuralı, zamanla sönme, taze K1n denekleri — koşmadan önce
+
+Çürütme denemesinden sonra Ozyn "önce açıkları kapat" dedi.
+
+**1. Yenme kuralı.** Yeni seçenek `eatenRule: "reach"`: yemek yenince erişimdeki (0,85 m) bütün yemek hatıraları ölür.
+A2'deki kural `"nearest"` (bedene en yakın tek hatıra) şimdilik varsayılan.
+- **Seçim:** Referans bedenler (kör, merkez, arayıcı), seed 1–10, oda 1, 2 ve 3. Seçim ölçütü G5; isabet ve kapsama
+  2 puandan fazla düşmemeli.
+- **Doğrulama:** Seçilen kural seed 11–20'de doğrulanır.
+- **Öngörüler:**
+  - (a) "reach" ile kör bedenin G5'i oda 1 ve 2'de ≥ %97 olur (11–20'de "nearest" ile %94,3 / %94,7 idi).
+  - (b) Hiçbir oda ve bedende G5 düşmez.
+  - (c) İsabet ±2 puan içinde kalır.
+  - (d) Kapsama en çok 2 puan düşer. Yemeğin yanındaki komşu yemeğin hatırası da ölür, ama beden oradayken onu hemen
+    yeniden görür.
+- **Çürütme:**
+  - G5 oda 1'de %95'in altında kalırsa kalan kaçaklar erişim dışındadır (konum); rapor edilir.
+  - Kapsama 5 puandan fazla düşerse "reach" fazla sert demektir; "nearest" kalır.
+
+**2. Zamanla sönme** yedek olarak kalıyor; kod değişmiyor. Çürütmede bu odalarda ölçülebilir bir şey değiştirmedi
+(T5, en çok 0,6 puan). Görevi, hiç görülmeyen ve yalanlanmayan hatırayı söndürmek; uzun yalnızlıklarda (A6) sınanacak.
+
+**3. Taze K1n denekleri:** `npm run exp -- curut K1n`, seed 11–20 × iki grup, 20 öğrenen. CROSS, LOCAL, lezyonlar ve
+başka odalar da koşulur. K1n'in öğrenme iddiası ilk kez çürütme bataryasından geçecek.
+- **Öğrenme öngörüleri:**
+  - (e) Dürtü kazancı ikize göre ayakta kalır (p < 0,01; en az 15/20).
+  - (f) CROSS ve LOCAL kazancı siler.
+  - (g) "Öğrenilen her şey" lezyonu kazancı siler; "yemek ışınları" lezyonu kazancın çoğunu siler.
+  - (h) Yönlendirme anlamlı çıkmaz (S1n taze seed'lerde 0,05; p 0,52).
+- **Hafıza ve konum öngörüleri** (bu 20 deneğin kayıtlı değerlendirme odaları, hafıza açık, salt okunur):
+  - (i) Konum hatası 3000 tikte < 0,2 m (seed 1–5'te 0,097).
+  - (j) İsabet > %95, kapsama > %90, G5 ≥ %95.
+  - (k) Her oda kaydındaki son dünya özetiyle biter.
+- **Çürütme:** Konum > 0,3 m ya da isabet < %90 çıkarsa K1n sayıları o 10 deneğe özgüydü.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
