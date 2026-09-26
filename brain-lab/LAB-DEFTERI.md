@@ -1775,6 +1775,161 @@ eğitim + 10 değerlendirme odası, `memory: {}` açık. Kayıtla karşılaştı
 - (7a) Gerçek konumla merkez ve arayıcıda isabet ≥ %95, kapsama ≥ %95.
 - Çürütme: %95'in altı → büyüme kuralları hareketli bedende kendi başına da hatıra kaybediyor; C6 çürür.
 
+## 2026-09-26 — Çürütme denemesi sonucu: beş iddia sağ çıktı; G5 kalabalık odada %95'in hemen altında
+
+`[ÖLÇÜLDÜ]` Kod `df76fe8`. Kayıt değişmedi: T4 salt okunur, T6 geçici bir kayıtta koştu. Dur kuralları tetiklenmedi.
+
+Çıktılar:
+- T1, T2, T3, T3x, T5 ve T7: `data/curutme-hafiza/`. Karalama betiği `scripts/curutme.mjs`; notlayıcılar repodan
+  içe alındı, kopya yok. Loglar `logs/` altında.
+- T4: `data/pose-a1b-S1n-*` ve `data/memory-a2-S1n-*`.
+- T6: `logs/T6-*`.
+
+**Konum: V2 (sıfırla) ile V3 (duvarı bul), ortalama son hata:**
+
+| sınav | beden | V2 → V3 (m) | V3/V2 | temaslı hayatta V3 iyi | işaret p | hata/σ (q 1,52) |
+|---|---|---|---|---|---|---|
+| T1 ROOM3, seed 11–20 | kör | 0,697 → 0,416 | 0,60 | 77/97 (%79) | 7e-10 | 1,24 |
+| | merkez | 1,462 → 0,889 | 0,61 | 81/100 | 3e-10 | 1,10 |
+| | arayıcı | 1,477 → 0,959 | 0,65 | 73/100 | 5e-6 | 1,11 |
+| T2 ROOM1 | kör | 0,742 → 0,459 | 0,62 | 68/86 (%79) | 1e-9 | 1,30 |
+| | merkez | 1,410 → 0,800 | 0,57 | 85/100 | 5e-13 | 0,82 |
+| | arayıcı | 1,277 → 0,721 | 0,56 | 78/100 | 2e-8 | 0,82 |
+| T2 ROOM2 | kör | 0,517 → 0,323 | 0,62 | 57/77 (%74) | 2e-6 | 1,14 |
+| | merkez | 1,059 → 0,677 | 0,64 | 69/97 (%71) | 4e-5 | 0,91 |
+| | arayıcı | 1,075 → 0,581 | 0,54 | 79/96 (%82) | 4e-11 | 0,98 |
+| T3 ROOM3 | rastgele | 0,008 → 0,002 | 0,24 | 5/5 | 0,06 | 0,52 |
+| | kâhin | 0,473 → 0,277 | 0,58 | 78/100 | 2e-10 | 0,69 |
+| T3x (sonradan) | titrek | 1,269 → 0,702 | 0,55 | 80/93 (%86) | 8e-17 | 1,88 |
+| T4 S1n öğrenenleri | 100 hayat | 0,408 → 0,158 | 0,39 | | | 0,66 |
+
+- **Duvar bulucu:** Bu denemedeki bütün koşularda 430 722 temas tiki var; 301 664'ünde duvar bulundu, **yanlış duvar
+  0** (A1b'de 54 848'de 0). Kâhin tek başına 182 897 temas tiki verdi: duvar dibinde yerinde dönüyor.
+- **T3'teki rastgele beden zayıf bir sınav oldu.** Her tik yeni komut, bedeni merkezde titretiyor: 100 hayatın
+  yalnız 5'i duvara değdi (43 temas tiki). Bu yüzden sonradan etiketli bir beden eklendi (T3x). T3x 10 tik aynı itişi
+  koruyor ve her tik yeni bir dönüş seçiyor. Dur kuralı ona da uygulandı: 9 850 temas tiki, yanlış duvar 0.
+- **S1n öğrenenleri (T4):** 3000 tikte (83 hayat) V2 0,491 → V3 0,190 m. 100/100 oda kayıttaki son dünya özetiyle
+  bitti; S1n'de temas tiklerinin %88'inde duvar bulundu.
+- Yön hatası her koşuda, her tikte 0. Temassız hayatlarda (toplam 186) V1 = V2 = V3 birebir.
+- **Tek tek hayatlarda V3 her zaman iyi değil:** temaslı hayatların %8–29'unda V2'den kötü. İddia (C1) ortalama
+  üstüne olduğu için bu onu çürütmüyor.
+
+**Yemek hafızası (G3 isabet / G4 kapsama / G5 yenen yemeğin hatırası 20 tikte öldü, %):**
+
+| sınav | kör | merkez | arayıcı |
+|---|---|---|---|
+| T1 ROOM3, seed 11–20 | 92,0 / 90,9 / 96,9 | 57,2 / 56,4 / 95,2 | 56,6 / 57,9 / 95,9 |
+| T2 ROOM1 | 81,9 / 80,3 / **94,3** | 63,7 / 63,1 / 91,8 | 67,8 / 67,8 / 94,1 |
+| T2 ROOM2 | 86,2 / 84,9 / **94,7** | 65,8 / 64,0 / 91,6 | 74,6 / 73,6 / 93,7 |
+| T7 ROOM3, gerçek konum (fikstür) | 100,0 / 99,8 / 98,8 | 99,2 / 99,8 / 97,8 | 98,6 / 99,7 / 97,6 |
+
+- **T4, S1n öğrenenleri:** 94,3 / 92,9 / 97,3. 100/100 oda kayıtla aynı; G1 40/40.
+- Her referans koşusunda G1 30/30; tavanda doğum reddedilmedi.
+- T4 aracının ek çıktısı (seed 1–10, ROOM1 referans bedenleri): kural yine V3, q = 1,42. G5 kör / merkez / arayıcı
+  94 / 91 / 94; T2 ile tutarlı.
+
+**T5, kural lezyonları** (ROOM3, seed 11–20; lezyonsuz koşuya göre fark, puan, G3 / G4 / G5):
+
+| kaldırılan kural | kör | merkez | arayıcı |
+|---|---|---|---|
+| yenme (`eatenRadius: 0`) | −0,7 / 0,0 / −31,9 (G5 %65,0) | −7,9 / +0,2 / −45,4 (%49,9) | −13,2 / +0,2 / −51,2 (%44,7) |
+| sürpriz (`surpriseRadius: 0`) | −1,0 / +6,2 / −14,5 | −10,1 / +3,4 / −10,7 | −13,6 / +2,7 / −8,9 |
+| zamanla sönme (`timeFade: 0`) | +0,2 / +0,5 / −0,6 | −0,1 / +0,3 / −0,2 | −0,1 / +0,2 / −0,1 |
+| doğrulama (`confirmRate: 0`) | −0,7 / −3,4 / −0,1 | −0,2 / −1,5 / +1,0 | −0,3 / −1,5 / +0,4 |
+
+- Sürpriz yalnız isabeti korumuyor, G5'e de katkı veriyor: yenme kuralının kaçırdığı hatırayı da öldürüyor.
+
+**T6:** 10 K1n deneği hafıza açık, sıfırdan yeniden eğitildi; 10/10 kayıtla birebir.
+- Büyüme dışındaki her defter kaydı sırası ve değeriyle aynı.
+- Sonuç satırının her sayısı aynı (öğrenen, kardeş, bağlı beden, kayıt sayıları, eğitim eğrisi); hafıza açık ikinci
+  değerlendirme de aynı.
+- Büyüme gerçekten oldu: eğitimde denek başına 273–769 hatıra doğdu, 2 390–4 848 değişim yazıldı. Defter büyümeyle
+  birlikte doğumdan yeniden oynadı.
+- Eğitim sonunda 2–5 hatıra nöronu beyinde kalıyor. Hafıza kapalı değerlendirmede bunlar sessiz duruyor; sonuç yine
+  aynı.
+- Kontrol (hafıza kapalı, koşmadan önce): 10/10.
+
+**G5 teşhisi** (karalama betiği `scripts/g5-teshis.mjs`, gerçeği okuyan fikstür). Yenen yemeğin üstündeki her hatıra,
+yenme tikinde kuralın ne yaptığına göre ayrıldı. Toplamlar notlayıcıyı 9 grupta da birebir yeniden üretti. Yenme
+kuralının öldürdüğü hatıraların hepsi zamanında öldü. Kaçanlar üç yoldan geliyor (20 tikten uzun yaşayan hatıra sayısı):
+
+| oda | beden | kaçan / yenen yemeğin üstündeki hatıra | aynı yemeğin ikinci hatırası | kural başka yemeğin hatırasını öldürdü | tahmini konumun erişiminde hatıra yok |
+|---|---|---|---|---|---|
+| ROOM3 | kör | 5 / 162 | 5 | 0 | 0 |
+| ROOM1 | kör | 17 / 298 | 11 | 5 | 1 |
+| ROOM2 | kör | 13 / 247 | 6 | 6 | 1 |
+| ROOM1 | merkez | 301 / 3658 | 104 | 165 | 32 |
+| ROOM1 | arayıcı | 325 / 5475 | 132 | 140 | 53 |
+
+- Neden: yenme kuralı bir yemekte tek bir hatıra öldürüyor, o da bedene en yakın olanı. Aynı yemeğin ikinci hatırası
+  ve komşu yemeğin hatırası kalıyor. 10 yemekli odada yemekler sık, hatıralar kalabalık (bir odada en çok 15–20).
+- Gerçek konumla da G5 %97,6–98,8'de kalıyor (T7). Kaybın küçük bir kısmı konumdan değil, bu kuraldan.
+
+**Öngörü karnesi:**
+- T1:
+  - (1a) ✓ V3/V2 0,60 / 0,61 / 0,65.
+  - (1b) ✓ %79 / %81 / %73; p ≤ 5e-6.
+  - (1c) ✓ 1,24 / 1,10 / 1,11.
+  - (1d) ✓ 0.
+  - (1e) ✓
+  - (1f) ✓ %92,0 / %90,9 / %96,9.
+  - (1g) ✓ %95,2 / %95,9; 30/30.
+- T2:
+  - (2a) ✓ altısında da V3 < V2.
+  - (2b) ✓ 0.
+  - (2c) Yarı: kör isabet ✓ %81,9 / %86,2; **G5 ✗ %94,3 / %94,7** (öngörü ≥ %95). Önceden yazılan çürütme ölçütüne
+    (kör isabet < %70) varılmadı.
+- T3:
+  - (3a) ✓ 0. Rastgele beden duvara pek değmediği için kâhin ve T3x taşıdı.
+  - (3b) ✓
+  - (3c) ✗ Kâhinde 3000 tikte V3 0,446 m (10 hayat; V2 0,822).
+  - (3d) ✓
+- T4:
+  - (4a) ✓ 100/100, iki koşuda.
+  - (4b) ✓ 0,190 m.
+  - (4c) ✓ %94,3 / %92,9 / %97,3.
+  - (4d) ✓ 0; G1 40/40.
+- T5:
+  - (5a) ✓ G5 %65,0 / %49,9 / %44,7.
+  - (5b) ✓ merkez −10,1, arayıcı −13,6; kör −1,0.
+  - (5c) ✓ Değişim en çok 0,6 puan. Önceden yazılan kurala göre **zamanla sönme bu odalarda "belki gereksiz"**
+    (belgede de yalnız yedek).
+  - (5d) ✗ Kapsama −3,4 / −1,5 / −1,5; öngörü her bedende ≥ 5 puan düşüştü. Doğrulamanın etkisi küçük: tanıma göre
+    ölçülebilir değişim yalnız körde (−3,4).
+- T6: (6a) ✓ 10/10 · (6b) ✓ 10/10 · (6c) ✓
+- T7: (7a) ✓ merkez %99,2 / %99,8, arayıcı %98,6 / %99,7.
+
+**İddialar:**
+- **C1 bu sınavlardan sağ çıktı.** Taze seed'lerde, üç odada, üç yeni bedende ve başka öğrenenlerde V3 ortalamada
+  V2'den iyi.
+  - Oran referans ve yeni bedenlerde 0,54–0,65, S1n öğrenenlerinde 0,39.
+  - İşaret testi rastgele beden dışında hep p ≤ 4e-5. Rastgele bedende temaslı hayat yalnız 5; orada oran 0,24.
+  - Tek tek hayatlarda %8–29'unda V3 kötü.
+  - K1n'in kendi sayısı (0,097 m) yeni K1n denekleriyle ölçülmedi; S1n'de 0,190 m.
+- **C2 sağ çıktı.** Yön hatası 0 (neredeyse her tik dönen bedende de); temassız hayatlar birebir.
+- **C3 sağ çıktı.** Duvar bulunan 301 664 temas tikinde 0 yanlış. "Değme" notlayıcıda 1e-9 m payla tanımlı.
+- **C4:** K1n'in sayıları yeni K1n denekleriyle yeniden ölçülmedi. Başka öğrenenlerde (S1n) kapılar tuttu.
+  - Kalabalık odada genelleme G5'te tutmadı: kör bedende %94,3 / %94,7, hareketli bedenlerde %91,6–94,1.
+  - Sebep teşhis edildi: yemek başına tek ölüm.
+  - Bu, "G5 ≥ %95 her odada" genellemesinin geri çekilmesi demek; K1n iddiası çürümedi.
+- **C5 eğitim ölçeğinde sağ çıktı.** 40 eğitim odası boyunca büyüyen hafıza tek bir öğrenme kaydını değiştirmedi.
+- **C6 taze seed'lerde sağ çıktı.** Gerçek konumla isabet %98,6–99,2, kapsama %99,7–99,8.
+- Güven dürüst kaldı: bu denemede hata / σ 0,52–1,88, hepsi 0,5–2 aralığında.
+  - Kıt odada (T1) 1,10–1,24: σ hatayı biraz küçük gösteriyor.
+  - Öteki odalarda 0,82–1,30. K1n'de 0,60, S1n'de 0,66.
+
+**Sonraki adım, Ozyn'in kararı:**
+1. A3 bu hafızaya dayanabilir: hafıza davranmıyor (C5) ve hareketli bedendeki açık konumdan (C6).
+2. **Yenme kuralı:** "yemek başına en yakın tek hatıra" kalabalık odada hatıra kaçırıyor. Seçenekler:
+   - erişimdeki bütün yemek hatıralarını öldürmek;
+   - yemeğin görüldüğü yere en yakın olanı öldürmek.
+
+   Bu bir tasarım değişikliği; G5 10 yemekli odada ölçülerek seçilmeli.
+3. **Zamanla sönme** bu odalarda ölçülebilir hiçbir şey değiştirmiyor. Yedek olarak kalsın mı (A6'da oda değişimi,
+   uzun yalnızlık), yoksa çıksın mı?
+4. K1n'e özgü sayılar (0,097 m; %99 / %96 / %98) yeni K1n denekleriyle, taze seed'lerde ölçülmedi. İstenirse
+   `curut K1n` ya da K1n'in seed 11–20 taraması.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
