@@ -2250,6 +2250,49 @@ Bedenler (K1n odası):
 Çürütme: Fikstürün ulaşma payı K1n'inkinden yüksek değilse, ölçü hafızanın kullanılmasını yakalamıyor demektir. O zaman
 A3.1'den önce ölçü yeniden tasarlanır.
 
+## 2026-09-26 — A3.0 kalibrasyonu sonucu: ilk ölçü çürütme ölçütüne takıldı; yerine "hatırlama yönlendirmesi"
+
+`[ÖLÇÜLDÜ]` Kod `437a31d` (ilk koşu) ve `eb7cfaa` (yeniden tasarım). Çıktı `data/recall-a3-calibration.json`.
+
+| beden | kapı açık (G7) | hatırlama yönlendirmesi (G6m) | ulaşma payı (ilk G6m) | yemek/1000 tik |
+|---|---|---|---|---|
+| dönen beden | %57,4 | 0,000 | %0,0 | 0 |
+| kör patlamalar | %66,8 | −0,019 | %11,9 | 1,45 |
+| "hep sola" | %58,0 | 0,000 | %0,1 | 0,06 |
+| arayıcı | %13,3 | −0,139 | %46,7 | 15,22 |
+| K1n (kayıtlı, seed 1–5) | %42,1 | 0,004 | %35,3 | 2,81 |
+| fikstür, w 1 | %37,2 | 0,134 | %32,4 | 2,92 |
+
+**İlk ölçünün karnesi (ulaşma payı):**
+- (k1) ✓ Dönen beden tam %0, öğün 0.
+- (k2) ✓ Kör beden %11,9, "hep sola" %0,1.
+- (k3) Yarısı ✓: K1n kör bedenden yüksek, ama fikstürden düşük değil.
+- (k4) ✗ Fikstür (%32,4) K1n'i (%35,3) geçmedi. Tutan tek kısmı: fikstürün kapı payı daha düşük (%37,2'ye %42,1).
+- Çürütme ölçütü tuttu: bu ölçü hafızanın kullanılmasını yakalamıyor.
+
+**Teşhis** (salt okunur, karalama betiği):
+- Bölümlerin %88–91'i, aynı hedefe açık başka bir bölüm varken başlıyor. Yemek ışınların arasına girip çıktıkça kapı açılıp
+  kapanıyor; bir hatıra onlarca kısa bölüm üretiyor ve pay bu kopyalarla karışıyor.
+- Yalnız ilk bölümlerde fikstür önde: %39,8'e %34,3.
+- Fikstür, açık kapıda hatırlanan tarafa tiklerin %12'sinde dönüyor, K1n %7,5'inde. Dürtüyü düşüren şey "yemeğe varma
+  payı" değil.
+
+**Yeni ölçü: hatırlama yönlendirmesi.**
+- Kalibre edilmiş, alışkanlıktan arınmış yönlendirme endeksi (`measures.ts` → `steeringIndex`) olduğu gibi kullanılıyor.
+- Görülen yemeğin tarafı yerine hatırlanan düğümün tarafı sayılıyor; ortadaki ışın sayılmıyor.
+- Hatırlanan her tikte, gecikme 0 (seçici duyduğu tikte seçiyor).
+- Yeniden tasarımdan önce karalama betiğiyle denendi. Depodaki kod aynı sayıları birebir verdi.
+- Bilinen cevaplar tuttu:
+  - Sabit dönme alışkanlığı tam 0.
+  - Hafızayı kullanmayan K1n 0,004.
+  - Fikstür, ağırlıkla tekdüze artıyor: w 0,5'te 0,077, w 1'de 0,134, w 2'de 0,261.
+- Arayıcının −0,139'u, yemeği gözden kaybedince öbür yana dönmesinden geliyor; hafızası yok.
+- Ulaşma payı ikincil teşhis olarak kaldı.
+
+**A3.2 için yeni öngörü** (koşmadan önce):
+- **(f)** B'nin hatırlama yönlendirmesi K1n'inkinden (0,004) büyük ama fikstürünkinden (w 1: 0,134) küçük: 0,03 ile 0,134
+  arasında.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
