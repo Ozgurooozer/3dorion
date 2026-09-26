@@ -2293,6 +2293,77 @@ A3.1'den önce ölçü yeniden tasarlanır.
 - **(f)** B'nin hatırlama yönlendirmesi K1n'inkinden (0,004) büyük ama fikstürünkinden (w 1: 0,134) küçük: 0,03 ile 0,134
   arasında.
 
+## 2026-09-26 — A3.2 sonucu: kural doğru yöne büyüyor ama çok yavaş; hafıza değerlendirmede kullanılmıyor
+
+`[ÖLÇÜLDÜ]` A3.1 kodu `7e3aacc`; değerlendirme düzeltmesi `56362f9`. `npm run exp -- tara H3B H3D` ve
+`recall-a3.ts tara`; çıktılar `data/screen-H3B-summary.json`, `data/screen-H3D-summary.json`, `data/recall-a3-screen.json`.
+
+**Önce bir hata.** İlk tarama (`7e3aacc`) öğrenenleri hatırlamayla eğitti, ama hatırlamasız değerlendirdi:
+- `runCondition` öğrenenin değerlendirmesine yalnız eleştirmen ve seçimi, ikizinkine yalnız seçimi geçiriyordu; lezyon
+  klonları da öyleydi.
+- Hafıza A3'e kadar davranışı hiç değiştirmediği için bu görünmedi.
+- H3B ile H3D'nin ikizleri birebir aynı çıktı; hatayı bu ele verdi. Birinin hiç kural sinapsı yoktu, ötekinin doğuştan
+  sinapsları vardı; ikisi aynı yaşayamazdı.
+- **Düzeltme** (`56362f9`): Değerlendirme ayarı tek kaynaktan (`evaluationSpec`, `twinSpec`) geliyor, hafıza dahil.
+  Bekçi testler ekli. Tarama yeniden koşuldu.
+- İlk koşunun satırları kayıtta duruyor.
+
+**Hata, temiz bir kontrole dönüştü.** Eğitim kodu iki koşu arasında değişmedi: 10/10 denekte eğitim eğrileri ve defter
+sayıları birebir aynı. Aynı beyinler bir kez hatırlamasız, bir kez hatırlamalı değerlendirilmiş oldu; bu, değerlendirmede
+hatırlamanın eşleştirilmiş bir lezyonu.
+
+| | K1n (kayıtlı) | H3B (büyüyen) | H3D (doğuştan) |
+|---|---|---|---|
+| dürtü (düşük iyi) | 0,425 | 0,351 | 0,554 |
+| hayatta | %39 | %48 | %22 |
+| yemek / 1000 tik | 2,81 | 3,35 | 2,18 |
+| G7 kapı açık | %42,1 | %37,1 | %49,8 |
+| G6m hatırlama yönlendirmesi | 0,004 | 0,020 | −0,000 |
+| ulaşma payı (ikincil) | %35,3 | %30,6 | %17,4 |
+| kural ağırlığı: kendi tarafına / öbür tarafa | — | 0,018 / 0,006 | 0,025 / 0,026 |
+| kendi tarafına > öbür tarafa | — | 10/10 | 4/10 |
+| 20 kural sinapsının ortalaması | — | 0,017 | 0,031 |
+| **değerlendirmede hatırlamanın katkısı** (hatırlamasız − hatırlamalı dürtü) | — | **+0,003** (5 iyi, 5 kötü) | **−0,0003** (4 iyi, 6 kötü) |
+
+Eşleştirilmiş karşılaştırmalar (aynı seed ve grup):
+- H3B, K1n'den iyi: 7/10 (işaret p 0,34; Wilcoxon p 0,28).
+- H3D, K1n'den iyi: 3/10.
+- H3B, H3D'den iyi: 8/10 (p 0,11).
+- H3B ikizini 10/10, kendi hareketlerinin körlemesine tekrarını 9/10 geçiyor.
+
+**Sonuçlar iki kutuplu.** Bir denek ya "yolu bulup" 0,02 civarında yaşıyor ya da 0,6–0,7 civarında açlıktan ölüyor.
+- Denek başına dürtü, seed 1–5 reflekssiz, sonra refleksli.
+- K1n: 0,022 · 0,662 · 0,708 · 0,682 · 0,031 · 0,105 · 0,647 · 0,698 · 0,011 · 0,680.
+- H3B: 0,017 · 0,603 · 0,029 · 0,695 · 0,025 · 0,016 · 0,223 · 0,671 · 0,540 · 0,693.
+- İki koşul arasındaki fark, birkaç deneğin kutup değiştirmesinden geliyor. Bu değişim iki yönde de oluyor.
+
+**Öngörü karnesi:**
+- **(a)** Biçimce ✓ (0,351'e 0,425; 7/10), ama içi boş. Fark anlamlı değil. Hatırlama lezyonu kazancın hafızadan
+  gelmediğini gösteriyor.
+- **(b)** ✗ H3B'nin dürtüsü 0,351, eşik 0,375'ti. Ama kazanç hafızadan değil, bu yüzden öngörünün sorusu cevapsız kaldı.
+- **(c)** ✗ |B − D| = 0,203. İkisinde de hatırlama değerlendirmede etkisiz; fark eğitim yollarından geliyor. D'nin küçük
+  rastgele kural ağırlıkları eğitimde seçimleri doğumdan itibaren başka yöne itiyor, hayatlar ayrışıyor.
+- **(d)** ✓ Yön doğru öğreniliyor: H3B'de kendi tarafına > öbür tarafa 10/10, ortalama 0,017.
+- **(e)** ✓ Kapı payı K1n'den düşük (%37,1'e %42,1). Ama H3D'de yüksek; lezyon sonucu varken bunu hafızaya bağlamıyorum.
+- **(f)** ✗ Hatırlama yönlendirmesi 0,020; öngörü 0,03–0,134 idi.
+
+**Yorum:**
+- Kural büyümesi doğru yöne çalışıyor: doğan sinapslar hatırlanan tarafa dönüşü seçiyor.
+- Ama çok yavaş: 40 odada ortalama 0,02'ye çıkıyor. Kapasite fikstüründe etki ancak ~0,25'te görünüyordu; aradaki fark
+  ~15 kat.
+- Bu, teşhis 2'nin öngördüğü kredi açığı. Eleştirmen yemek görmeye değer vermediği için kural ancak öğünde kredi alıyor,
+  o ana kadar da izin çoğu sönmüş oluyor.
+- "Beyin hafızayı kullanmayı öğrendi" iddiası desteklenmiyor. Doğrulama (A3.3) şimdilik anlamsız.
+
+**Sonraki: K5 gereği seçenekler Ozyn'e.** Sessizce hiçbiri denenmedi:
+1. **B2, tek atış (chunking):** Öğünde, izi eşiği aşan çift anlamlı bir ağırlıkla hemen doğar; iki parametre, seed 1–10'da
+   seçilir.
+2. **Daha uzun iz:** Yalnız kural sinapsları için λ 0,97 (öğünde izin ~%32'si kalır). Gerstner ve ark. 2018: iz, eylemden
+   ödüle geçen süreye uymalı.
+3. **Hatıraya kredi taşıma** (Temporal Value Transport benzeri): Çağrılmış bir hatıra yenince, o hatırlama anındaki izlere
+   kredi verilir. Büyüme çekirdeği bu anı zaten biliyor. Yeni bir mekanizma; tasarım ister.
+4. **A3b'yi öne almak:** Yemek görmeye değer veren bir aktör-eleştirmen, krediyi ikincil pekiştirmeyle köprüleyebilir.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
