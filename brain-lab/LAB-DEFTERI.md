@@ -1965,6 +1965,146 @@ başka odalar da koşulur. K1n'in öğrenme iddiası ilk kez çürütme bataryas
   - (k) Her oda kaydındaki son dünya özetiyle biter.
 - **Çürütme:** Konum > 0,3 m ya da isabet < %90 çıkarsa K1n sayıları o 10 deneğe özgüydü.
 
+## 2026-09-26 — Yenme kuralı sonucu: "reach" varsayılan oldu (G5 %93,7 → %97,4)
+
+`[ÖLÇÜLDÜ]` Kod `9099065`. Karalama betiği `eaten-rule.mjs`, memory-a2.ts'in dışa açılmış notlayıcılarıyla koşuldu.
+Çıktılar: `data/curutme-hafiza/eaten-rule-{choose,confirm}.json`.
+
+| seed | kural | havuzlanmış G5 | isabet / kapsamada en kötü düşüş |
+|---|---|---|---|
+| 1–10 (seçim) | nearest → reach | %93,4 → %97,2 | 0,4 puan |
+| 11–20 (doğrulama) | nearest → reach | %93,7 → %97,4 | 0,5 puan |
+
+Seed 11–20, kör beden (isabet / kapsama / G5):
+
+| oda | nearest | reach |
+|---|---|---|
+| oda 1 | %81,9 / %80,3 / %94,3 | %82,0 / %80,2 / %98,3 |
+| oda 2 | %86,2 / %84,9 / %94,7 | %86,4 / %84,9 / %96,7 |
+| oda 3 | %92,0 / %90,9 / %96,9 | %92,0 / %90,9 / %99,4 |
+
+- Her odada ve her bedende G5 yükseldi, isabet ya aynı kaldı ya da 1,7 puana kadar arttı.
+- Bütün beyinler defterlerinden yeniden kuruldu.
+- "nearest" sayıları iki kez yeniden üretildi (A2'nin seed 1–10'u ve Atlas'ın 11–20'si); araç tutarlı.
+
+**Öngörü karnesi:**
+- (a) Yarısı ✓: kör bedende oda 1 %98,3 ✓; oda 2 %96,7 ✗ (öngörü ≥ %97).
+- (b) ✓ Hiçbir G5 düşmedi.
+- (c) ✓ İsabet ±2 puan içinde.
+- (d) ✓ Kapsama en çok 0,5 puan düştü.
+- Çürütme eşiklerine varılmadı.
+
+**Karar** (önceden yazılan ölçüte göre): `DEFAULT_GROWTH.eatenRule = "reach"` (commit `ddac3d7`). Varsayılanların tamamı
+bir testle sabitlendi.
+
+## 2026-09-26 — Açıkları kapatma sonucu: K1n'in dürtü kazancı taze seed'lerde ayakta; konum ve hafıza 20 yeni denekte tuttu
+
+`[ÖLÇÜLDÜ]`
+- **Öğrenme bataryası:** kod `ddac3d7`, `npm run exp -- curut K1n`, çıktı `data/falsify-K1n-summary.json`.
+- **Konum ve hafıza ölçümü:** kod `3a6d3cf`, `pose-a1.ts K1n curut` ve `memory-a2.ts K1n curut`, çıktılar
+  `data/pose-a1b-curut-*` ve `data/memory-a2-curut-*`.
+
+### 1. K1n'in öğrenme iddiası (taze seed 11–20 × iki grup, 20 öğrenen)
+
+| | dürtü (düşük iyi) | hayatta | yönlendirme |
+|---|---|---|---|
+| öğrenen | 0,317 | %55 | 0,117 |
+| ikiz (öğrenmesiz) | 0,743 | %1 | 0,004 |
+| CROSS | 0,702 | %2 | 0,008 |
+| LOCAL | 0,698 | %1 | 0,002 |
+
+- **İkize karşı:** Öğrenen 20 deneğin 19'unda ikizinden iyi (işaret p 4,0·10⁻⁵; Wilcoxon p 5,7·10⁻⁶).
+- **Kontrollere karşı:** Öğrenen CROSS'u 18/20, LOCAL'i 17/20 geçiyor. İki kontrol de kazancın yaklaşık %90'ını
+  siliyor.
+- **Kontrol adil mi:** Öğrenenin denek başına defter kaydı 19 115, CROSS'un 4 530, LOCAL'in 2 823; kontroller daha az
+  değişiyor. Bu yüzden "karıştırılmış öğrenme" lezyonu belirleyici: aynı değişimler yanlış bağlantılara konunca kazancın
+  %94'ü gidiyor. Kazanç değişimin miktarından değil, doğru bağlantıdan geliyor.
+
+Lezyonlar: öğrenilmiş bağlantılar doğum değerine döndürüldü. Silinen pay = (lezyon − öğrenen) / (ikiz − öğrenen).
+
+| lezyon | dürtü | silinen kazanç | işaret p |
+|---|---|---|---|
+| öğrenilen her şey | 0,743 | %100 | 4,0·10⁻⁵ |
+| karıştırılmış öğrenme | 0,717 | %94 | 0,012 |
+| tüm ışınlar | 0,648 | %78 | 0,041 |
+| yemek ışınları | 0,488 | %40 | 0,0026 |
+| duvar ışınları | 0,414 | %23 | 0,0004 |
+| beden duyusu | 0,330 | %3 | 0,26 (etkisiz) |
+
+Başka odalar (seed 11–15) ve gruplar. Batarya S1n için kurulduğundan iki oda da aç doğumlu (0,4). "5 yemek" odası
+K1n'in odası, yalnız beden aç doğuyor.
+
+| | öğrenen | ikiz | lehte | işaret p | Wilcoxon p |
+|---|---|---|---|---|---|
+| 5 yemek, aç doğum | 0,713 | 0,908 | 9/10 | 0,021 | 0,014 |
+| 15 yemek, aç doğum | 0,312 | 0,665 | 7/10 | 0,34 | 0,027 |
+| reflekssiz grup | | | 10/10 | 0,002 | 0,002 |
+| refleksli grup | | | 9/10 | 0,021 | 0,004 |
+
+**Öngörü karnesi:**
+- (e) ✓ 19/20, p 4,0·10⁻⁵.
+- (f) ✓ CROSS ve LOCAL kazancın yaklaşık %90'ını siliyor.
+- (g) Yarısı ✓.
+  - "Öğrenilen her şey" lezyonu kazancı tamamen siliyor ✓.
+  - "Yemek ışınları" lezyonu kazancın yalnız %40'ını siliyor ✗; öngörü "çoğunu" idi.
+  - Kazanç yemek ve duvar ışınlarına yayılmış; bütün ışınlar birlikte %78.
+- (h) ✓ Yönlendirme 0,117; 12/20; işaret p 0,50, Wilcoxon p 0,076: anlamlı değil.
+
+**Yorum:**
+- K1n'in dürtü kazancı taze seed'lerde çürütme bataryasından sağ çıktı. Öğrenme gerçek: CROSS, LOCAL ve karıştırma onu
+  siliyor.
+- "Hangi yöne" öğrenilmedi; S1n'de de öyleydi.
+- Kazancın yalnız %40'ı yemek ışınlarından geliyor. Beden duvar ışınlarından da bir şey öğrenmiş. Ne öğrendiği ölçülmedi;
+  bu bir sonraki teşhisin sorusu, iddia değil.
+
+### 2. Konum ve hafıza, aynı 20 taze denekte
+
+**Önce bir araç hatası.** İlk koşuda (kod `ddac3d7`) "kayıtla aynı hayat" 100/200 çıktı; (k) tutmadı.
+- **Neden:** Sonuç tablosundan denek seçen `recordedLearners` doğum enerjisine bakmıyordu.
+  - Bataryanın "başka oda" testindeki 5 yemekli odada beden aç doğuyor (0,4). K1n'in odasında da 5 yemek var ama beden
+    0,8 enerjiyle doğuyor. Yemek ve tehlike sayısı aynı olduğu için filtre ikisini ayıramadı.
+  - Başka-oda satırları tabloya sonra yazıldığı için seed 11–15'in ana öğrenenlerinin yerine geçti.
+  - On yanlış denek, doğmadıkları odada oynatıldı.
+- **Ne bozuldu:** Hafıza kodu değil, ölçüm aracı. Ama ilk koşunun sayıları "taze K1n denekleri" diye okunamaz. Karışık
+  çıktılar `data/*-curut-mixed-*` ve `data/fresh-K1n-mixed-2026-09-26.log` adıyla saklandı.
+- **Düzeltme** (commit `3a6d3cf`):
+  - Tablo filtresi doğum enerjisine de bakıyor.
+  - Bir bekçi deneği yalnız doğduğu dünyada oynatıyor; kendi doğum kaydıyla karşılaştırıyor.
+  - İkinci bekçi, kaydıyla aynı bitmeyen bir odada ölçümü durduruyor ve deneği adıyla söylüyor.
+  - 14 yeni test yazıldı; bozma denemesinde 11 bozuk sürümün hepsi yakalandı.
+
+Doğru 20 denekle yeniden ölçüm:
+
+| ölçü | seed 1–5 (A1b/A2, 10 denek) | seed 11–20 (taze, 20 denek) | öngörü |
+|---|---|---|---|
+| konum hatası, 3000 tikte (V3) | 0,097 m (39 hayat) | 0,115 m (111 hayat) | (i) < 0,2 m ✓ |
+| yanlış bulunan duvar | 0 | 0 | |
+| isabet (G3) | %98,9 | %98,0 | (j) > %95 ✓ |
+| kapsama (G4) | %96,5 | %95,7 | (j) > %90 ✓ |
+| yenen yemeğin hatırası 20 tikte öldü (G5) | %98,4 ("nearest" kuralı) | %99,8 ("reach" kuralı; 1 696 hatıra) | (j) ≥ %95 ✓ |
+| kayıtla aynı hayat | 100/100 | 200/200 | (k) ✓ |
+| defterden yeniden kurma (G1) | 40/40 | 50/50 | |
+
+- **Konum hatasının dağılımı** (taze deneklerde 3000 tike ulaşan 111 hayat): medyan 0,05 m; hayatların %90'ı 0,36 m
+  altında; en kötüsü 0,68 m. Hayatların %96'sı 0,5 m altında.
+- **(k):** İlk koşuda ✗ (araç hatası), düzeltilmiş koşuda ✓.
+- **Çürütme eşikleri** (konum > 0,3 m ya da isabet < %90) aşılmadı. K1n'in konum ve hafıza sayıları o 10 deneğe özgü
+  değil.
+- **Bir sapma:** Konum güveni (hata / σ oranı) taze deneklerde 0,29; seed 1–5'te 0,60 idi. Hedef 0,5–2, yani güven fazla
+  temkinli. Bu denekler temas tiklerinin %91'inde duvarı buluyor ve orada hata büyümüyor, σ ise her temasta büyüyor.
+  Bilinen not (A1b); kovalanmıyor.
+
+### Sonraki
+
+Ozyn'in seçtiği sırayla sıradaki adım A3: kapı, hatırlanan duyular ve kural büyümesi (doğuştan sinapslı kontrolle).
+Önce A3'ün öngörüleri ve ölçüleri deftere yazılacak, kod ondan sonra.
+
+Not edildi, kovalanmıyor:
+- Duvar ışınlarından ne öğrenildiği (kazancın %23'ü).
+- Bataryanın "başka oda" testi K1n'de aç doğum odalarını kullanıyor. K1n'in kendi doğum enerjisiyle (0,8) başka yemek
+  sayıları denenmedi.
+- σ, bulunan duvarlı temasta daha yavaş büyüyebilir (güven oranı).
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.

@@ -150,7 +150,9 @@ ceiling 25.8 · TD SARSA(λ) 8.38 · E7 twin (graph) drive 0.72, survival 11% ·
 52%, steering 0.06 · S1n (competitive selection, no dip floor), confirmed 2026-09-25 (20 subjects + CROSS):
 drive 0.32 (twin 0.84, CROSS 0.81), survival 67%, steering 0.13 (16/20 > 0; CROSS 0.004). Falsification
 (fresh seeds 11–20): drive gain survived (0.48 vs 0.85, p 0.0003; gone under CROSS and LOCAL); **steering did not**
-(0.048, p 0.52) — the 0.13 was selection bias.
+(0.048, p 0.52) — the 0.13 was selection bias. K1n (S1n in room 3, the scarce room: 5 food, born at 0.8),
+falsification 2026-09-26 (fresh seeds 11–20): drive 0.32 vs twin 0.74 (19/20, p 4·10⁻⁵), gone under CROSS, LOCAL and
+the shuffled lesion; steering 0.12 not significant; the food-ray lesion removes only 40% of the gain (wall rays 23%).
 
 The twin must behave through the **same machinery** as the learner (e.g. the same selector); a
 selector acts on the tick it senses (evaluation lag 0), the graph brain needs its conduction delay.
@@ -178,6 +180,11 @@ selector acts on the tick it senses (evaluation lag 0), the graph brain needs it
 - **Background processes**: after stopping a task, check no `node` experiment is left running
   (`Get-CimInstance Win32_Process -Filter "Name='node.exe'"`).
 - Chaining a script and `git commit` with `;` commits even when the script failed — use `&&`.
+- **A filter that matches only part of a room.** The falsification battery's "other room" of 5 food is born hungry
+  (0.4); K1n's scarce room also has 5 food but is born at 0.8. The results-table filter checked food and threats only,
+  so ten other-room learners were replayed as K1n's fresh learners, in a room they were not born into (2026-09-26).
+  The script printed "100/200 lives match the record" and went on. Now guarded (§5). Read every "X/Y" line of a run
+  before its numbers.
 - E7's quirks travel with it: its dip floor silenced a teacher's "no" and hurt S1; death does not
   teach, so a punishment channel stays silent. Question the base before building on it.
 - Known shortcut (§16): rays report labelled kinds. Do not deepen it — prefer switching on what the
@@ -191,7 +198,9 @@ corrupt data or a conclusion, turn it into a guard with a test (done so far: yok
 and verdicts judged against it (`viewer/plain.ts judge`), arena films checked bit-for-bit against the
 record (the browser's Math.cos differs in the last bit — brains replay on the server), registry index lock for
 parallel writers, test-seed guard, bit-identical regression checks, parallel = sequential test,
-calibration tests of every measure). When you add a guard, name it here.
+calibration tests of every measure, and the memory measurements' replay guards `assertBornInto` (a recorded subject is
+replayed only in the world of its birth record) and `assertReplayed` (a room that does not end in its recorded final
+world hash stops the measurement), `experiments/harness.ts`). When you add a guard, name it here.
 
 ## 6. Delegating to Atlas
 

@@ -96,6 +96,9 @@ tehlike sonra gelir.
   ("beklediğim yerde yok"), güç hızla düşer: `w ← w·(1 − β)`.
 - **Zaman:** Hiç doğrulanmayan hatıra yavaşça söner: `w ← w·(1 − λ)`.
 - **Yendi:** Yemek yenince bedenin yanındaki yemek hatırası ölür; o yemek artık orada değil.
+  - Düzeltme (2026-09-26, çürütmeden sonra): Erişimdeki (0,85 m) bütün yemek hatıraları ölür. A2'deki "yalnız en
+    yakın" kuralı, aynı yemeğin ikinci hatırasını yaşatıyordu. Yeni kural 1–10 seed'lerinde seçildi, 11–20'de
+    doğrulandı: G5 %93,7'den %97,4'e çıktı.
 - Güç değişimleri öğrenmedeki gibi kuantumludur; deftere yalnız anlamlı değişiklik düşer.
 
 **A2 için not** (2026-09-26, geri bildirimden; öneri, kesin biçimi A2'nin tasarımında belirlenir):
@@ -209,6 +212,9 @@ TASARIM-007 §12'nin A2–A6'sı yeniden tanımlanır; aynı anda tek değişken
    Doğum, pekişme, sönme ve ölüm kuralları. Davranış değişmez; G1–G5.
    - Ölçüldü (2026-09-26): K1n'de isabet %99, kapsama %96, yenen yemeğin hatırası 20 tikte öldü %98.
    - Hareketli bedende isabet ve kapsama ~%60 kaldı; açığın tamamı konum kaymasından (kusursuz konumla %98–100).
+   - Çürütme ve açıkları kapatma (2026-09-26, LAB-DEFTERI):
+     - Yenme kuralı "erişimdeki hepsi" oldu.
+     - Taze K1n deneklerinde (seed 11–20, 20 öğrenen) konum 0,115 m, isabet %98, kapsama %96, G5 %99,8.
 3. **A3.** Kapı, hatırlanan duyular ve kural büyümesi. İlk davranış değişikliği; G6–G7. Alice'in kuralı kıyaslanır (K5).
 4. **A4.** Öğretmen kanalı ve insan arayüzü (TASARIM-007 §8, aynı).
 5. **A5.** Tam tarama: Bob, büyümüş hafızada planlar; refleks derleme; kapı eğrisi.
