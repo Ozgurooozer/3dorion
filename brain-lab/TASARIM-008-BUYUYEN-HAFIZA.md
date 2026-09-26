@@ -216,6 +216,9 @@ TASARIM-007 §12'nin A2–A6'sı yeniden tanımlanır; aynı anda tek değişken
      - Yenme kuralı "erişimdeki hepsi" oldu.
      - Taze K1n deneklerinde (seed 11–20, 20 öğrenen) konum 0,115 m, isabet %98, kapsama %96, G5 %99,8.
 3. **A3.** Kapı, hatırlanan duyular ve kural büyümesi. İlk davranış değişikliği; G6–G7. Alice'in kuralı kıyaslanır (K5).
+   - A3.0 ✓ ve A3.1 ✓ (2026-09-26, §16). A3.2 (LAB-DEFTERI 2026-09-26): kural doğru yöne büyüyor ama 40 odada 0,02'ye
+     çıkıyor, fikstürde ~0,25 gerekiyordu. Değerlendirmede hatırlamanın katkısı +0,003; beyin hafızayı henüz kullanmıyor.
+     Kredi açığı için seçenekler Ozyn'e gitti.
 4. **A4.** Öğretmen kanalı ve insan arayüzü (TASARIM-007 §8, aynı).
 5. **A5.** Tam tarama: Bob, büyümüş hafızada planlar; refleks derleme; kapı eğrisi.
 6. **A6.** Oda değişimi: yeniden öğrenme, eski hatıraların ve kuralların çürümesi.
