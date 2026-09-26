@@ -289,12 +289,12 @@ export const GUIDE: readonly Section[] = [
       long: "Önceki tasarımda seçim eşikliydi ve sık sık hiçbir hareket seçilmiyordu. S1 ile her an Git−Gitme dengesi en güçlü olan hareket seçiliyor (ya da dinlenme). Bu, 'ne zaman hareket, ne zaman dinlen' öğrenmesini mümkün kıldı.",
     },
   ]),
-  S("hafiza", "Hafıza", "Beynin gördüğünü ve yaşadığını hatırlayan parçası. Basitten karmaşığa kuruluyor (TASARIM-007); ilk modül konum.", [
+  S("hafiza", "Hafıza", "Beynin gördüğünü ve yaşadığını hatırlayan parçası. Basitten karmaşığa kuruluyor (TASARIM-008); ilk modüller konum ve yemek hafızası.", [
     {
       id: "konum",
       term: "Konum hafızası (H1)",
       short: "Beynin yalnız kendi hareket duyusundan hesapladığı 'neredeyim' bilgisi; Deney Odası'nda mor kesikli halka.",
-      long: "Beden kendi yerini de odanın haritasını da bilmez; yalnız hareket duyusu var: ne kadar hızlı ileri gittiği ve ne kadar döndüğü. Konum hafızası bunları her tik toplayarak 'başladığım yerden şu kadar ilerideyim, şu yöne bakıyorum' der. Buna yol entegrasyonu denir; denizcilerin haritasız, pusula ve hızla yaptığı hesap. Her odada sıfırdan başlar.\n\nDeney Odası'nda dolu beyaz daire gerçek beden, mor kesikli halka hafızanın bedeni sandığı yer. Halkanın etrafındaki mor hale hafızanın belirsizliğidir. Bu hafıza henüz karar vermiyor, yalnız dinliyor (A1). Sonraki adımda (A2) üstüne 'nerede ne gördüm' haritası kurulacak.",
+      long: "Beden kendi yerini de odanın haritasını da bilmez; yalnız hareket duyusu var: ne kadar hızlı ileri gittiği ve ne kadar döndüğü. Konum hafızası bunları her tik toplayarak 'başladığım yerden şu kadar ilerideyim, şu yöne bakıyorum' der. Buna yol entegrasyonu denir; denizcilerin haritasız, pusula ve hızla yaptığı hesap. Her odada sıfırdan başlar.\n\nDeney Odası'nda dolu beyaz daire gerçek beden, mor kesikli halka hafızanın bedeni sandığı yer. Halkanın etrafındaki mor hale hafızanın belirsizliğidir. Bu hafıza henüz karar vermiyor, yalnız dinliyor (A1). Yemek hafızası (A2) bu konumun üstüne kuruldu: beden gördüğü yemeğin yerini bu konuma göre hatırlıyor.",
       read: "Halka bedenin üstündeyse hafıza doğru biliyor. Duvara değmeden hiç ayrılmaz; beden duvar boyunca kayınca ayrılabilir.",
       target: "3000 tikin sonunda ortalama 0,5 m'den az hata (A1 kapısı). Harita bu konumun üstüne kurulacak; konum yanlışsa harita da yanlış olur.",
     },
@@ -319,6 +319,14 @@ export const GUIDE: readonly Section[] = [
       long: "Hafıza çekirdeğinin kuralı: her bilgi ne zaman, nereden geldiği ve ne kadar güvenilir olduğuyla saklanır. Konum için güven, belirsizlikten (σ, metre) hesaplanır: güven = 1 / (1 + (σ / 0,5)²). σ yalnız bedenin duvara değdiği anlarda, duvara hangi hızla girdiğiyle orantılı büyür. Serbest hareket güveni düşürmez, çünkü orada hesap tam.\n\nGüvenin dürüst olup olmadığını ölçtük. K1n öğrenenlerinde gerçek hata, σ'nın ortalama 0,60 katı çıktı: güven hatayı biraz büyük gösteriyor, bu güvenli yön.",
       read: "%100 = emin. %50 = belirsizlik yarım metre. İleride düşük güvenli bilgi karar vermeyecek (getirme eşiği).",
       target: "Gerçek hata / σ oranı 0,5 ile 2 arasında (dürüst güven). Ölçülen 0,60 (A1b).",
+    },
+    {
+      id: "yemekhafizasi",
+      term: "Yemek hafızası (hafıza nöronları)",
+      short: "Beden bir yemek görünce beyninde o yemek için yeni bir nöron doğar; Deney Odası'nda mor kesikli daire.",
+      long: "Hafıza, beyinde yeni nöronlar ve sinapslar demek (Ozyn'in modeli, TASARIM-008). Beden bir yemek görünce, konum hafızasının dediği yere göre yemeğin nerede olduğunu hesaplar. Orada hatırladığı bir yemek yoksa yeni bir hafıza nöronu doğar; varsa o hatıra pekişir. Hatıra üç yoldan söner. Birincisi yalanlanması: beden baktığı yerde yemeği göremez ('beklediğim yerde yok'). İkincisi yenmesi: beden yemeği yiyince o yemeğin hatırası ölür. Üçüncüsü, yedek olarak, hiç doğrulanmayan hatıranın zamanla solması. Yeni bir odaya girilince bütün hatıralar ölür. Her doğum, değişim ve ölüm deftere yazılır; beyin defterden birebir yeniden kurulabilir.\n\nDeney Odası'nda her mor kesikli daire bir hafıza nöronudur: beynin 'şurada yemek var' dediği yer. Parlak daire güçlü hatıra, soluk daire zayıf hatıra. Bu hatıralar henüz karar vermiyor, yalnız tutuluyor (A2). Sonraki adımda (A3) beden açken ve yemek görmüyorken hafızaya danışacak.",
+      read: "Mor daireler yeşil yemeklerin üstündeyse beyin doğru hatırlıyor. Yeşil bir yemeğin yanında mor daire yoksa o yemeği henüz görmemiş ya da unutmuş.",
+      target: "Canlı hatıraların %80'inden fazlası gerçek bir yemeğe 0,5 m'den yakın olmalı (isabet); son 100 tikte görülen yemeklerin %80'inden fazlası hatırlanmalı (kapsama); yenen yemeğin hatırası 20 tik içinde ölmeli. Ölçülen (A2): K1n öğrenenlerinde isabet %99, kapsama %96, yenen yemeğin hatırası %98'inde 20 tik içinde öldü. Çok hareket eden bedenlerde isabet ve kapsama ~%60: konum kaydıkça hatıra da kayıyor (kusursuz konumla %98–100).",
     },
   ]),
   S("kosullar", "Deney kodları", "Tablolardaki kısa kodların anlamı.", [

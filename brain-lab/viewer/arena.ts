@@ -12,10 +12,11 @@
 import type { BrainGrafi } from "../brain-ir/ir.ts";
 import type { Actor } from "../experiments/harness.ts";
 import { MAX_TICKS, evalNoise, evalWorld } from "../experiments/seeds.ts";
-import { createAgent, type AgentSpec } from "../learning/index.ts";
+import { FoodMemory, createAgent, type AgentSpec } from "../learning/index.ts";
 import { MemoryCore, PoseModule, inRoom, poseConfidence } from "../memory/index.ts";
 import { drive } from "../neuromodulation/index.ts";
 import { Ledger, type LedgerInput } from "../registry/ledger.ts";
+import { sensorimotorScaffold } from "../sensorimotor/index.ts";
 import { Room, type DoneCause, type Observation, type Ray, type WorldConfig } from "../world/index.ts";
 import type { RoomState } from "../world/room.ts";
 
@@ -94,10 +95,18 @@ export interface MemoryView {
   readonly confidence: number;
 }
 
+/** A food the body's memory remembers (TASARIM-008, A2), in the room's frame, with its strength now (faded with time). */
+export interface FoodView {
+  readonly x: number;
+  readonly y: number;
+  readonly strength: number;
+}
+
 /**
  * One body living its evaluation rooms (a brain with learning frozen, or any actor), one tick per step(). A pose
  * memory listens to every observation the body gets, from the room's first to its last; it only listens (A1:
- * the brain does not read it yet), so the life is the same as the experiment's.
+ * the brain does not read it yet), so the life is the same as the experiment's. So does a food memory (A2), growing
+ * its memory neurons on a scratch record of its own: the subject's ledger is never touched.
  */
 export class Contestant {
   readonly brain: Source;
@@ -106,6 +115,7 @@ export class Contestant {
   private readonly agent: Actor;
   private readonly pose: PoseModule;
   private readonly memory: MemoryCore;
+  private readonly food: FoodMemory;
   private startNow: { x: number; y: number; heading: number } = { x: 0, y: 0, heading: 0 };
   private roomNow: Room;
   private obsNow: Observation;
@@ -124,9 +134,17 @@ export class Contestant {
     this.agent = "actor" in brain ? brain.actor : brainActor(brain, cfg, seed);
     this.pose = new PoseModule(cfg);
     this.memory = new MemoryCore([this.pose]);
+    const scratch = new Ledger(`${brain.id}-arena`, sensorimotorScaffold(cfg, "arena"));
+    this.food = new FoodMemory(scratch, structuredClone(scratch.graph), cfg);
     this.roomNow = this.enter(1);
     this.obsNow = this.roomNow.observe();
-    this.memory.observe(this.obsNow, 0);
+    this.listen();
+  }
+
+  /** The memory hears the observation the body just got: the pose first, then the food memory. */
+  private listen(): void {
+    this.memory.observe(this.obsNow, this.ticksNow);
+    this.food.step(this.obsNow, this.pose.pose, this.ticksNow, this.episodeNow);
   }
 
   private enter(episode: number): Room {
@@ -138,6 +156,7 @@ export class Contestant {
     this.resultNow = null;
     this.agent.startEpisode?.(episode);
     this.memory.reset();
+    this.food.newRoom(0, episode);
     const room = new Room(evalWorld(this.seed, episode), this.cfg);
     const b = room.state().body;
     this.startNow = { x: b.x, y: b.y, heading: b.heading };
@@ -162,6 +181,14 @@ export class Contestant {
     return { x: at.x, y: at.y, heading: at.heading, sigma: p.sigma, error: Math.hypot(at.x - b.x, at.y - b.y), confidence: poseConfidence(p.sigma) };
   }
 
+  /** The foods the memory remembers now, in the room's frame, with their strength faded to this tick. */
+  get foodView(): FoodView[] {
+    return this.food.live.map((m) => {
+      const at = inRoom({ x: m.memory.x, y: m.memory.y, heading: 0, side: 0, sigma: 0 }, this.startNow);
+      return { x: at.x, y: at.y, strength: this.food.strengthAt(m.memory, this.ticksNow) };
+    });
+  }
+
   /** One tick; does nothing once the room is over. Mirrors world/episode.ts runEpisode exactly. */
   step(): void {
     if (this.resultNow) return;
@@ -169,7 +196,7 @@ export class Contestant {
     const r = this.roomNow.step(action);
     this.obsNow = r.observation;
     this.ticksNow++;
-    this.memory.observe(this.obsNow, this.ticksNow);
+    this.listen();
     this.mealsNow += r.foodEaten;
     this.driveSum += drive(r.observation);
     this.causeNow = r.doneCause;
@@ -191,7 +218,7 @@ export class Contestant {
     this.finishRoom();
     this.roomNow = this.enter(this.episodeNow + 1);
     this.obsNow = this.roomNow.observe();
-    this.memory.observe(this.obsNow, 0);
+    this.listen();
   }
 
   /** The recorded evaluation episode of the current room, if the experiment measured it. */
@@ -223,11 +250,15 @@ export interface Frame {
   readonly scene: number;
   /** Where the body's pose memory thinks it is at this tick (A1). */
   readonly memory: MemoryView;
+  /** Index into Film.memoryScenes: the foods the body's memory remembers at this tick (A2). */
+  readonly foods: number;
 }
 
 export interface Film {
   readonly episode: number;
   readonly scenes: readonly RoomState["entities"][];
+  /** What the food memory remembers, as it changes: a new entry whenever a memory is born, changes, fades a step or dies. */
+  readonly memoryScenes: readonly (readonly FoodView[])[];
   /** frames[0] is the room as entered (tick 0), then one frame per tick until the room is over. */
   readonly frames: readonly Frame[];
   /** Exact, computed on the server: the numbers the verdict and the record check use. */
@@ -244,17 +275,26 @@ export function filmRoom(c: Contestant): Film {
   if (c.ticks !== 0) throw new Error(`filmRoom needs a room at tick 0, this one is at tick ${c.ticks}`);
   const scenes: RoomState["entities"][] = [];
   let sceneKey = "";
+  const memoryScenes: FoodView[][] = [];
+  let memoryKey = "";
+  // Remembered places to the centimetre and strengths to the hundredth: a new memory scene then comes with a birth, a
+  // change or a death, and about once a second while memories fade, not every tick.
+  const r2 = (v: number) => Number(v.toFixed(2));
   const frame = (): Frame => {
     const s = c.room.state();
     const key = JSON.stringify(s.entities);
     if (key !== sceneKey) { scenes.push(s.entities.map((e) => ({ ...e, x: round(e.x), y: round(e.y) }))); sceneKey = key; }
     const o = c.observation;
     const m = c.memoryView;
+    const remembered = c.foodView.map((f) => ({ x: r2(f.x), y: r2(f.y), strength: r2(f.strength) }));
+    const rememberedKey = JSON.stringify(remembered);
+    if (rememberedKey !== memoryKey) { memoryScenes.push(remembered); memoryKey = rememberedKey; }
     return {
       tick: c.ticks, x: round(s.body.x), y: round(s.body.y), heading: round(s.body.heading),
       energy: round(o.energy), health: round(o.health), drive: round(drive(o)), meals: c.meals,
       rays: o.rays.map((r) => ({ hit: r.hit, distance: round(r.distance) })), scene: scenes.length - 1,
       memory: { x: round(m.x), y: round(m.y), heading: round(m.heading), sigma: round(m.sigma), error: round(m.error), confidence: round(m.confidence) },
+      foods: memoryScenes.length - 1,
     };
   };
   const frames: Frame[] = [frame()];
@@ -263,5 +303,5 @@ export function filmRoom(c: Contestant): Film {
     frames.push(frame());
   }
   const recorded = c.recorded ?? null;
-  return { episode: c.episode, scenes, frames, result: c.result!, recorded, matches: matchesRecord(c.result!, recorded ?? undefined) };
+  return { episode: c.episode, scenes, memoryScenes, frames, result: c.result!, recorded, matches: matchesRecord(c.result!, recorded ?? undefined) };
 }

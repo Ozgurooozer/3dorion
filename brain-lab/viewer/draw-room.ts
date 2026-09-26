@@ -14,12 +14,16 @@ export type RoomView = Pick<RoomState, "config" | "entities"> & { readonly body:
 /** Where the body's memory thinks the body is (arena films, TASARIM-007 A1), and its doubt σ in metres. */
 export interface Ghost { readonly x: number; readonly y: number; readonly heading: number; readonly sigma: number }
 
+/** A food the body's memory remembers (arena films, TASARIM-008 A2), and how strongly (0–1). */
+export interface RememberedFood { readonly x: number; readonly y: number; readonly strength: number }
+
 /**
  * `ghost`, when given, is drawn as a dashed ring where the memory thinks the body is; a halo around it as wide as
  * the memory's doubt σ (the body's centre is probably within σ of the ring's), and a thin line to the real body
- * when the two are apart.
+ * when the two are apart. `remembered` foods are drawn as dashed circles the size of a food, the stronger the
+ * memory the brighter.
  */
-export function drawRoom(ctx: CanvasRenderingContext2D, s: RoomView, rays: readonly Ray[], trail: readonly Point[], bumpFlash: number, ghost: Ghost | null = null): void {
+export function drawRoom(ctx: CanvasRenderingContext2D, s: RoomView, rays: readonly Ray[], trail: readonly Point[], bumpFlash: number, ghost: Ghost | null = null, remembered: readonly RememberedFood[] = []): void {
   const { width: cw, height: ch } = ctx.canvas;
   const cfg = s.config;
   const pad = 16;
@@ -94,6 +98,21 @@ export function drawRoom(ctx: CanvasRenderingContext2D, s: RoomView, rays: reado
       ctx.fill();
     }
   });
+
+  // remembered foods: where the brain's memory neurons say food is — a ring a little wider than a food, so a right
+  // memory wraps the real food
+  for (const f of remembered) {
+    const a = 0.25 + 0.75 * Math.max(0, Math.min(1, f.strength));
+    ctx.beginPath();
+    ctx.arc(X(f.x), Y(f.y), cfg.foodRadius * 1.4 * k, 0, Math.PI * 2);
+    ctx.fillStyle = alpha(COLOR.memory, 0.2 * a);
+    ctx.fill();
+    ctx.strokeStyle = alpha(COLOR.memory, a);
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 3]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
 
   // the memory's doubt, under the body
   if (ghost && ghost.sigma > 0) {

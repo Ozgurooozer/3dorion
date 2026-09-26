@@ -107,7 +107,7 @@
           <button id="finish" disabled title="Bu odanın geri kalanını beklemeden hesapla">Odayı bitir ⏭</button>
           <button id="next" disabled>Sonraki oda →</button>
           <span class="sep"></span>
-          <label class="toggle" title="Mor kesikli halka: hafızanın, yalnız kendi hareketinden hesaplayıp bedeni sandığı yer"><input type="checkbox" id="showMemory" checked> Hafızanın sandığı yer<span data-tip="konum"></span></label>
+          <label class="toggle" title="Mor kesikli halka: hafızanın bedeni sandığı yer. Mor kesikli daireler: beynin hatırladığı yemekler."><input type="checkbox" id="showMemory" checked> Hafızayı göster<span data-tip="konum"></span></label>
           <span class="clock" id="clock"></span>
         </div>
         <div class="arena">
@@ -140,6 +140,7 @@
           <span>5 görüş ışını: <b class="good">yeşil</b> = yemek görüyor, gri = duvar</span>
           <span><i style="background:#5b8def"></i>mavi soluk iz: son 12 saniyede gittiği yol</span>
           <span><i style="background:transparent;border:2px dashed #a37af0;width:9px;height:9px"></i>mor kesikli halka: hafızanın bedeni sandığı yer; etrafındaki mor hale ne kadar kalınsa o kadar emin değil</span>
+          <span><i style="background:rgba(163,122,240,.25);border:2px dashed #a37af0;width:9px;height:9px"></i>mor kesikli daire: beynin yemek hatırladığı yer (bir hafıza nöronu); soluk = zayıf hatıra</span>
         </div>
         <div class="callout result hidden" id="result"></div>
         <div class="callout" style="margin-top:12px">
@@ -148,7 +149,8 @@
             <li><b>Öğrenen ile bağlı beden.</b> İkisi aynı miktarda, aynı biçimde hareket ediyor. Fark yalnızca öğrenenin gördüğüne göre karar vermesi. Yemek tam önündeyken öğrenen ileri gidiyor mu, bağlı beden yanından geçip gidiyor mu?</li>
             <li><b>Yandaki yemek.</b> Bir yan ışın yemek görünce (yeşil) öğrenen o tarafa dönüyor mu? S1n'de bu henüz yok: yana dönüşleri yemeğe göre rastgele. Şu an çözmeye çalıştığımız asıl sorun bu (<i>yönlendirme</i><span data-tip="yonlendirme"></span>).</li>
             <li><b>Kıt oda (K1n).</b> 5 yemekli odada kör dolaşan beden neredeyse hep ölür. Öğrenen orada yaşıyorsa, bunu gözüyle yapıyordur.</li>
-            <li><b>Konum hafızası (yeni, A1).</b> Mor kesikli halka, beynin yalnız kendi hareketinden hesapladığı "buradayım" bilgisi<span data-tip="konum"></span>. Beden duvara değmedikçe halka tam bedenin üstünde kalır. Duvar boyunca kaydıkça ayrılır ve güveni düşer<span data-tip="konumguveni"></span>. Bu hafıza henüz karar vermiyor, yalnız dinliyor; sonraki adımda üstüne "nerede ne gördüm" haritası kurulacak.</li>
+            <li><b>Konum hafızası (yeni, A1).</b> Mor kesikli halka, beynin yalnız kendi hareketinden hesapladığı "buradayım" bilgisi<span data-tip="konum"></span>. Beden duvara değmedikçe halka tam bedenin üstünde kalır. Duvar boyunca kaydıkça ayrılır ve güveni düşer<span data-tip="konumguveni"></span>. Bu hafıza henüz karar vermiyor, yalnız dinliyor.</li>
+            <li><b>Yemek hafızası (yeni, A2).</b> Beden bir yemek görünce o yerde mor kesikli bir daire belirir: beyinde o yemek için yeni bir nöron doğdu<span data-tip="yemekhafizasi"></span>. Yemeği yeniden görünce daire parlar. Yemeği yiyince ya da baktığı yerde bulamayınca söner ve kaybolur. Mor daireler yeşil yemeklerin üstündeyse beyin doğru hatırlıyor. Bu hatıralar henüz karar vermiyor; sonraki adımda (A3) aç ve yemek görmüyorken hafızaya danışacak.</li>
           </ul>
         </div>
         <h3>Oynanan odalar</h3>

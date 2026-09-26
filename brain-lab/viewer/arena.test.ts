@@ -198,6 +198,44 @@ test("a body that runs into a wall loses confidence in its film (the doubt the m
   assert.ok(film.frames.at(-1)!.memory.confidence < 1, `last frame confidence ${film.frames.at(-1)!.memory.confidence}`);
 });
 
+test("every frame shows one memory scene, and a new scene comes only when what is remembered changes", () => {
+  assert.ok(film1.frames.every((f) => f.foods >= 0 && f.foods < film1.memoryScenes.length), "every index is a scene");
+  for (let i = 1; i < film1.memoryScenes.length; i++) {
+    assert.notDeepEqual(film1.memoryScenes[i], film1.memoryScenes[i - 1], `scenes ${i - 1} and ${i} are the same`);
+  }
+  assert.ok(film1.memoryScenes.length < film1.frames.length / 2, `${film1.memoryScenes.length} scenes for ${film1.frames.length} frames`);
+});
+
+test("the memory scene of every frame is what the body's memory remembered at that tick", () => {
+  const again = new Contestant(view.learner, view.world, view.seed); // the same body, the same room, lived tick by tick
+  const r2 = (v: number) => Number(v.toFixed(2)); // the film's display rounding
+  for (const f of film1.frames) {
+    if (f.tick > 0) again.step();
+    const now = again.foodView.map((m) => ({ x: r2(m.x), y: r2(m.y), strength: r2(m.strength) }));
+    assert.deepEqual(film1.memoryScenes[f.foods], now, `tick ${f.tick}`);
+  }
+});
+
+test("a body that sees food remembers it in its film, where the food is", () => {
+  const seeing = film1.frames.find((f) => f.rays.some((r) => r.hit === "food"));
+  assert.ok(seeing, "the learner saw food in its room");
+  const remembered = film1.memoryScenes[seeing.foods]!;
+  assert.ok(remembered.length > 0, `tick ${seeing.tick}: nothing remembered`);
+  const foods = film1.scenes[seeing.scene]!.filter((e) => e.kind === "food");
+  // A remembered place lies within 0.5 m of a real food (the A2 precision radius); measured K1n precision 99 %.
+  assert.ok(remembered.some((m) => foods.some((f) => Math.hypot(m.x - f.x, m.y - f.y) <= 0.5)), `tick ${seeing.tick}: ${JSON.stringify(remembered)}`);
+});
+
+test("a new room starts with nothing remembered from the last one (K6)", () => {
+  const c = new Contestant(view.learner, view.world, view.seed);
+  c.finishRoom();
+  assert.ok(c.foodView.length > 0, "the first room ended with memories");
+  c.nextRoom();
+  // On the new room's first tick only what the rays see right now can be remembered.
+  const seen = c.observation.rays.filter((r) => r.hit === "food").length;
+  assert.ok(c.foodView.length <= seen, `${c.foodView.length} memories, ${seen} rays on food`);
+});
+
 test("a film refuses a room that was already partly lived", () => {
   const c = new Contestant(view.twin, view.world, view.seed);
   c.step();

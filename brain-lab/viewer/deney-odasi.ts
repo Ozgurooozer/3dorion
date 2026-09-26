@@ -197,7 +197,7 @@ let running = false;
 let loadingRoom = false;
 let speed: number = SPEEDS[1];
 let owed = 0;
-/** Draw where each body's pose memory thinks it is (A1). */
+/** Draw what each body's memory knows: where it thinks it is (A1) and which foods it remembers (A2). */
 let showMemory = true;
 const played: { room: number; l: Film; y: Film | null; t: Film }[] = [];
 
@@ -289,6 +289,8 @@ function renderStats(side: Side, f: Frame): void {
     // The bar is full at 1 m; the A1 gate (0.5 m) is at its middle.
     statBox("Konum hatası", "konumhatasi", `${num(f.memory.error)} m`, { v: f.memory.error, color: "var(--inner)" }),
     statBox("Konum güveni", "konumguveni", pct(f.memory.confidence), { v: f.memory.confidence, color: "var(--inner)" }),
+    statBox("Hatırlanan yemek", "yemekhafizasi", String(side.film!.memoryScenes[f.foods]!.length)),
+    statBox("Odadaki yemek", "yemek", String(side.film!.scenes[f.scene]!.filter((e) => e.kind === "food").length)),
   ].join("");
 }
 
@@ -297,7 +299,8 @@ function draw(): void {
   for (const s of sides) {
     if (!s.film) continue;
     const f = frameAt(s.film, tickNow);
-    drawRoom(s.ctx, { config: meta.world, entities: s.film.scenes[f.scene]!, body: f }, f.rays, s.trail, 0, showMemory ? f.memory : null);
+    drawRoom(s.ctx, { config: meta.world, entities: s.film.scenes[f.scene]!, body: f }, f.rays, s.trail, 0,
+      showMemory ? f.memory : null, showMemory ? s.film.memoryScenes[f.foods]! : []);
     renderStats(s, f);
   }
   byId("clock").textContent = `tik ${tickNow} / ${MAX_TICKS} · ${num(tickNow / TICKS_PER_SECOND, 0)} / ${MAX_TICKS / TICKS_PER_SECOND} sn`;
