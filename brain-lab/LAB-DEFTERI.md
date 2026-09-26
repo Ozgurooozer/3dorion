@@ -1626,6 +1626,55 @@ Ozyn, A1b'nin ardından sırayı onayladı: önce yemek hatıraları (TASARIM-00
 - G4 düşükse doğum ya da doğrulama kuralı eksiktir.
 - G5 tutmazsa yenme ya da sürpriz kuralı hatalıdır.
 
+## 2026-09-26 — A2 sonucu: beyin gördüğü yemekleri hatırlıyor (K1n'de isabet %99); hareketli bedende konum kayması hatırayı kaydırıyor
+
+`[ÖLÇÜLDÜ]` Kod `7287a29`; ölçüm `experiments/memory-a2.ts`, çıktı `data/memory-a2-*`.
+- K1n'nin kayıtlı 100 odası ve referans bedenler (kıt oda, seed 1–10 × 10 oda) ölçüldü.
+- Kayıtlı denekler için büyüme yalnız bellekteki defterde tutuldu; kayıt değişmedi.
+
+| grup | G3 isabet | G4 kapsama | G5 yenen yemeğin hatırası 20 tikte öldü | en çok canlı hatıra | büyüme kaydı / oda |
+|---|---|---|---|---|---|
+| kör | %88 | %86 | %97 (134 hatıra) | 9 | 81 |
+| merkez | %61 | %59 | %95 (1850) | 9 | 229 |
+| arayıcı | %57 | %56 | %96 (2575) | 8 | 304 |
+| **K1n** | **%99** | **%96** | **%98** (609) | 9 | 97 |
+
+- **G1:** 40/40 beyin, doğum grafiği ve defterden birebir yeniden kuruldu; hafıza nöronları dahil.
+- **Davranış:** 100/100 K1n odası kayıttaki son dünya özetiyle bitti. Hafıza yalnız dinliyor.
+- **G2:** Tavanda hiç doğum reddedilmedi. Bir odada en çok 9 canlı hatıra oldu.
+- **Notlayıcı düzeltmesi** (koşmadan önce): G5 ilk yazılışında yenen yemeğin üstündeki hatıraları o tikin canlı
+  listesinden alıyordu. Kural doğru çalışıp hatırayı aynı tikte öldürünce onu hiç saymıyordu. Bir önceki tikin
+  listesinden alınacak şekilde düzeltildi.
+
+**Teşhis** (karalama betiği; kusursuz konum, gerçeği okuyan fikstür):
+
+| beden | gerçek konum hesabıyla: G3 / G4 | kusursuz konumla: G3 / G4 |
+|---|---|---|
+| kör | %88 / %86 | %100 / %100 |
+| merkez | %61 / %59 | %99 / %100 |
+| arayıcı | %57 / %56 | %98 / %100 |
+
+- Büyüme kuralları doğru çalışıyor. Hareketli bedenlerdeki açığın tamamı konum kaymasından geliyor (A1b: 3000 tikte
+  0,8 m).
+- Birinci sütun, ölçüm betiğinin sayılarını birebir yeniden üretti; notlama tutarlı.
+
+**Öngörü karnesi:**
+- G1 ✓ %100.
+- G2 ✓ En çok 9 (öngörü ≤ ~15); tavana varılmadı.
+- G3: K1n ✓ %99 (öngörü > %80). Hareketli bedende öngörü > %60'tı: merkez ✓ %61, arayıcı ✗ %57.
+- G4: Öngörü > %80'di. K1n ✓ %96, kör ✓ %86; merkez ✗ %59, arayıcı ✗ %56.
+- G5 ✓ %95–98 (öngörü ≥ %95).
+- Davranış ✓ 100/100.
+- Defter yükü: Öngörü oda başına < 200 kayıttı. K1n ✓ 97, kör ✓ 81; merkez ✗ 229, arayıcı ✗ 304. Kaymış konumla
+  aynı yemek yeniden doğuyor ve ölüyor.
+
+**Yorum:**
+- Beyin artık gördüğü yemeği gördüğü yerde hatırlıyor. Yeniden görünce pekiştiriyor, yiyince ya da orada bulamayınca
+  unutuyor. Hepsi beyin ağında doğan ve ölen nöronlarla oluyor ve defterde.
+- K1n denekleri için hafıza neredeyse kusursuz: bir sonraki adım (A3: kapı ve hatırlanan duyular) buna dayanabilir.
+- Çok hareket eden bedende hatıranın doğruluğunu konum belirliyor. Konumu düzeltmenin yolu duvarları hatırlamak
+  (A1b'nin teşhisi). Bu, TASARIM-008'deki "duvarlar sonra" maddesinin önemini artırıyor.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.

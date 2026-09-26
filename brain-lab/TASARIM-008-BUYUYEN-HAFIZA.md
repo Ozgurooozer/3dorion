@@ -205,8 +205,10 @@ TASARIM-007 §12'nin A2–A6'sı yeniden tanımlanır; aynı anda tek değişken
 
 1. **A1 ✓** Konum (0,47 m). **A1b ✓** Temas hesabı: K1n'de 3000 tikte 0,10 m; çok hareket eden bedende 0,8 m. Kalan
    hata, temas anında arkada kalan duvarlardan geliyor; hatırlanan duvarlar düzeltebilir.
-2. **A2.** Büyüme altyapısı ve yemek hafızası nöronları. Büyüyen ağ, `mem` bölgesi, yol satırları, `node-` kaydı.
+2. **A2 ✓** Büyüme altyapısı ve yemek hafızası nöronları. Büyüyen ağ, `mem` bölgesi, yol satırları, `node-` kaydı.
    Doğum, pekişme, sönme ve ölüm kuralları. Davranış değişmez; G1–G5.
+   - Ölçüldü (2026-09-26): K1n'de isabet %99, kapsama %96, yenen yemeğin hatırası 20 tikte öldü %98.
+   - Hareketli bedende isabet ve kapsama ~%60 kaldı; açığın tamamı konum kaymasından (kusursuz konumla %98–100).
 3. **A3.** Kapı, hatırlanan duyular ve kural büyümesi. İlk davranış değişikliği; G6–G7. Alice'in kuralı kıyaslanır (K5).
 4. **A4.** Öğretmen kanalı ve insan arayüzü (TASARIM-007 §8, aynı).
 5. **A5.** Tam tarama: Bob, büyümüş hafızada planlar; refleks derleme; kapı eğrisi.
