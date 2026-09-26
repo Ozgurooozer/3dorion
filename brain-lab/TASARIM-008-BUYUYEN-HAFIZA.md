@@ -263,6 +263,11 @@ TASARIM-007 §12'nin A2–A6'sı yeniden tanımlanır; aynı anda tek değişken
 
 ## 16. A3 ayrıntıları (öneri, 2026-09-26; Ozyn onayı bekliyor)
 
+Toplantı: vault `forum/beyin0fis/toplantilar/2026-09-26-a3-kural-dogumu`. Önerilen kararlar (K1–K6, onay bekliyor):
+- B, ilk kazanılan kuantumda doğar. Oylama K 33 · İ 32 · T 29.
+- Kapı eşiği 0,2. Oylama 38 · 28 · 18.
+- Tarama başarısız olursa önce teşhis. Oylama 37 · 27 · 23.
+
 Bu bölüm §6 ve §7'yi A3 için somutlaştırır. İki karar bağlayıcı:
 - K5: kural sinapsları ilk başarıda doğar; aynı hafızayla, sinapsları doğuştan var olan (D) bir kontrol koşulur.
 - K7: kapının ilk ölçütü "açım ve yemek görmüyorum".
