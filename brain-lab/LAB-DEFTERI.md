@@ -1281,6 +1281,75 @@ yolda mıyız?" Sonra fikirlerini verdi. Hepsi mimari belgesine (TASARIM-007) ve
 - Hafızanın karara etkisi elle yazılmamalı. Hafıza, Alice'e ve Bob'a "hatırlanan duyular" verir (örneğin en yakın
   hatırlanan yemeğin yönü ve uzaklığı); onları kullanmayı beyin öğrenir.
 
+## 2026-09-26 — TASARIM-007 onaylandı; A1 (H1 konum): "ben neredeyim?" — koşmadan önce
+
+Ozyn TASARIM-007'yi ve toplantının K1–K8 kararlarını olduğu gibi onayladı ("onayladım", 2026-09-26). İlk adım A1.
+
+**Soru:** Hafıza, yalnız bedenin hareket duyusundan (`motion.forward`, `motion.turn`) konumunu, 3000 tikin sonunda
+gerçek konumdan ortalama 0,5 m'den az sapmayla bilebilir mi? Davranış değişmez; tahmin gerçek konumla notlanır.
+
+**Fizik okuması** (kodu okuyarak, koşmadan önce):
+- **Yön:** Dönüş duyusu dönüş komutunun kendisi; dönüşte atalet yok. Yön tahmini birebir doğru olmalı. Bu, dünyanın
+  bir kolaylığı: gerçek bir bedende dönüş duyusu gürültülüdür.
+- **Hız:** Hız duyusu hızın yalnız **ileri bileşeni**. Dönen beden eski hızını bir süre korur ve yana kayar: sürtünme
+  her tik hızı 0,925 ile çarpar, zaman sabiti ~0,65 s. Tam hızda (2,47 m/s) tek bir dönüş tiki yaklaşık 0,24 m'lik
+  bir yan kayma bırakır; ileri hız duyusu bunu görmez.
+  - TASARIM-007'deki formül yalnız ileri hızı topluyor, bu yüzden eksik.
+  - Belgedeki "sapma küçük beklenir" cümlesi yanlıştı. Claude'un fizik okuma hatası; belge sonuçla birlikte
+    düzeltilecek.
+- **Kayma hesaplanabilir:** Yan hız, önceki tikin ileri hızı F, dönüş açısı Δ ve sürtünme çarpanı k = 0,925 ile
+  güncellenir: `s ← k·(s·cos Δ − F·sin Δ)`. Duvara değmeyen bir bedende bu, konumu kayan nokta hassasiyetinde vermeli.
+  - Kullanılan sabitler (tik süresi, azami hız, dönüş hızı, sürtünme) bedenin kendi sabitleri. Doğuştan bilgi sayılır,
+    kasın ne kadar güçlü olduğunu bilmek gibi.
+- **Duvar teması:** Duvar, hızın duvara doğru bileşenini siler. Beden hangi duvara hangi açıyla değdiğini hareket
+  duyusundan bilemez. Eğik çarpan beden duvar boyunca kayar; bu kayma modelin dışında kalır.
+- **K1n'nin temas oranı yüksek** `[ÖLÇÜLDÜ]` (results.jsonl, K1n değerlendirmesi):
+  - 3000 tiki yaşayan denekler (DNK-2778, 2781, 2783, 2784): 1000 tikte 23–134 temas tiki.
+  - Temas etmeyen üç denek (2780, 2782, 2786) 1800 tikten önce ölüyor.
+  - Kapı kümesi fiilen 4 denek, ~39 hayat.
+
+**Değişkenler (hepsi anahtar; hafıza davranışı değiştirmez):**
+
+| | kayma modeli | temasta yan hız |
+|---|---|---|
+| V0 | yok (TASARIM-007 formülü) | — |
+| V1 | var | korunur |
+| V2 | var | sıfırlanır |
+
+- **Seçim ve sınama ayrı:** V1/V2 seçimi referans bedenlerde yapılır (kör, merkez, arayıcı; kıt oda, seed 1–10).
+  Kapı K1n öğrenenlerinde ölçülür.
+- **Güven:** Konumun belirsizliği yalnız temas tiklerinde büyür: σ² ← σ² + (q · v · dt)². Burada v, bedenin temastan
+  önceki hızıdır (ileri ve yan). q, referans bedenlerde ölçülür. Güven = 1 / (1 + (σ / 0,5 m)²).
+  - Düzeltme (aynı gün, ölçümden önce, kodu yazarken): İlk yazılan "her temas tikinde sabit q", duvara yaslanıp duran
+    bedenin güvenini boşuna düşürürdü. Duran beden hiç hata biriktirmez.
+
+**Ölçü:**
+- **Konum hatası (m):** Kendi başlangıç çerçevesindeki tahmin odanın çerçevesine taşınır, gerçek konuma uzaklığı
+  ölçülür.
+- **Yön hatası (°).**
+- **Kapı:** 3000 tiki yaşayan hayatlarda ortalama konum hatası < 0,5 m.
+- **Ekler:** her hayatın sonundaki hata, 1000 tikteki hata, denek başına dağılım.
+- **Aynı hayat kontrolü:** Değerlendirme hayatları kayıttakilerle aynı olmalı (her odanın son dünya özeti kayıtla eşit).
+
+**Öngörüler:**
+- (a) Yön hatası her bedende, her tikte tam 0.
+- (b) Hiç duvara değmeyen hayatlarda V1'in hatası < 1e-6 m, yalnız kayan nokta. Aynı şey 1000 m'lik açık bir
+  odada, rastgele dönen bir bedenle 3000 tik boyunca da geçerli. Orada V0'ın hatası > 0,1 m.
+- (c) V0 kapıdan kalır: K1n'de 3000 tikte ortalama hata > 1 m.
+- (d) V1'in bütün hatası duvar temasından gelir. Temassız hayatta 0; temaslı hayatlarda hata temas sayısıyla artar.
+- (e) V1 de kapıdan kalır: K1n'de 3000 tikte ortalama hata > 0,5 m, çünkü temas çok. Tahminim ~1 m; güvenim orta.
+- (f) V1 ile V2 arasındaki fark küçük (< %25).
+- (g) Hafıza takılıyken yaşanan hayat birebir aynı (eylemler, dünya özeti) ve deftere tek satır yazılmıyor.
+- (h) Güven dürüst: K1n'de gerçek hata / σ oranı 0,5–2 arasında.
+
+**Çürütme ve sonrası:**
+- (b) tutmazsa kayma türetmesi yanlıştır; önce o düzeltilir.
+- (e) tutmazsa, yani V1 kapıyı geçerse, temas sanıldığı kadar zararsızdır ve A1 tamamdır.
+- (e) tutarsa A1 kapısı saf yol entegrasyonuyla geçilemiyor demektir. İki yol var; hangisi, Ozyn'in kararı:
+  - Temas anında ışınların gördüğü duvar noktalarından duvarın yönünü çıkarıp kaymayı hesaplamak. Hâlâ H1, yeni duyu
+    yok.
+  - Düzeltmeyi A2'nin haritasına bırakmak.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.

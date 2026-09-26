@@ -1,6 +1,6 @@
 # Tasarım 007: Mimari gözden geçirme (Alice, Bob, Hafıza)
 
-Tarih: 2026-09-25 · Durum: **TASLAK, Ozyn onayı bekliyor.** Kod yazılmadı. Toplantı: vault `forum/beyin0fis/toplantilar/2026-09-25-mimari-gozden-gecirme` (K1–K8, öneri).
+Tarih: 2026-09-25 · Durum: **ONAYLANDI** (Ozyn, 2026-09-26: "onayladım"; kararlar olduğu gibi). Toplantı: vault `forum/beyin0fis/toplantilar/2026-09-25-mimari-gozden-gecirme` (K1–K8, bağlayıcı).
 Kaynak: Ozyn'in fikirleri (LAB-DEFTERI.md, 2026-09-25 "Mimari gözden geçirme öncesi") ve seri 005–006'nın ölçümleri.
 Kapsam: yalnız 2D laboratuvar. 3D ofis kapsam dışı (Ozyn, 2026-09-25).
 

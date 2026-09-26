@@ -43,6 +43,7 @@ only as clearly labeled test fixtures.
 | `neuromodulation/` | dopamine = outcome − prediction, from the body's own senses | `world` (types) |
 | `regions/` | region of every node + the pathway table; anything not in the table is refused; only senses → Go/NoGo learn | `brain-ir` (types) |
 | `development/` | regional newborn brain (`INNATE` weights with reasons, born hungry via `initialEnergy`) and generator noise | `world`, `sensorimotor`, `regions`, `brain-ir` |
+| `memory/` | the memory core (TASARIM-007 §4: working memory, every entry stamped with tick, source and confidence, retrieval threshold, reset per room, never on the ledger) and its modules: H1 pose by path integration (`pose.ts`) | `world` (public types) only |
 | `learning/` | three-factor rule in quanta, every change on the ledger; `createAgent` = one living subject | all of the above, `registry`, `neuromodulation` |
 | `registry/` | subjects (DNK-0001 «Kıvılcım»), learning ledger (LRN-…), runs (RUN-…), world events (EVT-…); disk store in `store.ts` only, data under `brain-lab/data/` (git-ignored) | `world`, `brain-ir` (types) |
 | `viewer/` | `npm run lab` (port 5190): Deney Odası (a learner and its twin replaying the measured rooms, filmed on the server), Sonuçlar (verdicts, falsification, what a subject learned), Rehber (every term explained, `guide.ts`), room + brain map | all of the above |
