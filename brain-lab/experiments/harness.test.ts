@@ -14,7 +14,8 @@ import { bornGraph } from "../development/index.ts";
 import { Ledger } from "../registry/index.ts";
 import { RegistryStore } from "../registry/store.ts";
 import { diagnoseLedger } from "./diagnose.ts";
-import { MAX_TICKS, TEST_SEED_FLOOR, assertBornInto, assertReplayed, assertSeedAllowed, birth, crossDopamine, evalWorld, lesionClone, localDopamine, measureEpisodes, recordedLearners, recordedRows, shuffledClone } from "./harness.ts";
+import { MAX_TICKS, TEST_SEED_FLOOR, assertBornInto, assertReplayed, assertSeedAllowed, birth, crossDopamine, evalWorld, evaluate, evaluationSpec, lesionClone, localDopamine, measureEpisodes, recordedLearners, recordedRows, runCondition, shuffledClone, twinSpec } from "./harness.ts";
+import { condition } from "./conditions.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -295,4 +296,44 @@ test("replayed: one room that ended elsewhere stops the measurement, naming the 
 
 test("replayed: a room never compared (no record) counts as not replayed", () => {
   assert.throws(() => assertReplayed("DNK-0001", [{ room: 3, matches: null }]), /DNK-0001: room 3 did not end/);
+});
+
+// --- what reaches a frozen evaluation (2026-09-26: H3B/H3D were once trained with recall and evaluated without it) ---
+
+test("evaluation carries what acts — selection, the memory with its recall, the critic — and nothing that only teaches", () => {
+  const spec = { selection: {}, critic: {}, memory: { recall: {} }, learning: { eta: 0.05 }, cue: {}, teachAtDeath: false };
+  assert.deepEqual(evaluationSpec(spec), { critic: {}, selection: {}, memory: { recall: {} } });
+  assert.deepEqual(twinSpec(spec), { selection: {}, memory: { recall: {} } });
+});
+
+test("a condition without memory is evaluated as before: memory null", () => {
+  assert.deepEqual(evaluationSpec({ selection: {}, critic: {} }), { critic: {}, selection: {}, memory: null });
+  assert.deepEqual(twinSpec({ selection: {} }), { selection: {}, memory: null });
+});
+
+/** One H3D subject and its twin, born with strong innate rule synapses so that recall surely changes what they do. */
+function strongRecallRun() {
+  const store = new RegistryStore(mkdtempSync(join(tmpdir(), "brainlab-evalspec-")));
+  const def = condition("H3D");
+  const world = def.world!;
+  const cond = { code: "H3D", what: def.what, spec: def.spec(world) };
+  const born = { recall: { rules: "innate" as const, maxInitial: 0.5 } };
+  const [row] = runCondition(store, { condition: cond, world, seeds: [2], groups: ["reflexless"], trainEpisodes: 1, evalEpisodes: 2, codeCommit: "test", label: "test", born }).rows;
+  return { store, world, spec: cond.spec, row: row! };
+}
+
+test("a condition with recall is evaluated with it: the learner's recorded evaluation is the one with its memory", () => {
+  const { store, world, spec, row } = strongRecallRun();
+  const s = store.loadSubject(row.learner.id);
+  const withMemory = evaluate(store, s, world, 2, "test", "test", evaluationSpec(spec));
+  const without = evaluate(store, s, world, 2, "test", "test", { critic: spec.critic ?? null, selection: spec.selection ?? null });
+  assert.deepEqual(row.l, withMemory, "the recorded evaluation is the one with the memory");
+  assert.notDeepEqual(withMemory, without, "and the memory changes it (the check is not empty)");
+});
+
+test("the twin is evaluated with the condition's memory too", () => {
+  const { store, world, spec, row } = strongRecallRun();
+  const t = store.loadSubject(row.twin.id);
+  assert.deepEqual(row.t, evaluate(store, t, world, 2, "test", "test", twinSpec(spec)));
+  assert.notDeepEqual(row.t, evaluate(store, t, world, 2, "test", "test", { selection: spec.selection ?? null }), "the memory changes the twin too");
 });

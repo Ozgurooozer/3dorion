@@ -268,6 +268,22 @@ export function train(store: RegistryStore, s: Subject, world: WorldConfig, epis
   return blocks;
 }
 
+/**
+ * What of a condition's spec reaches a frozen evaluation: the machinery that acts — selection, the memory with its
+ * recall (A3: recalled senses act through rule synapses), and the critic (it records nothing while frozen). Parts that
+ * only teach (learning rates, teacher, cue memory, compartments, dopamine transforms) cannot act while learning is
+ * frozen and stay out. Until 2026-09-26 the memory stayed out too: H3B and H3D (commit 7e3aacc) were trained with
+ * recall and evaluated without it, which no one saw while the memory did not act.
+ */
+export function evaluationSpec(spec: Condition["spec"]): Partial<AgentSpec> {
+  return { critic: spec.critic ?? null, selection: spec.selection ?? null, memory: spec.memory ?? null };
+}
+
+/** The twin's evaluation: the learner's machinery without the critic (a twin never learns, nothing reads it). */
+export function twinSpec(spec: Condition["spec"]): Partial<AgentSpec> {
+  return { selection: spec.selection ?? null, memory: spec.memory ?? null };
+}
+
 export function runCondition(store: RegistryStore, o: {
   condition: Condition; world: WorldConfig; seeds: number[]; groups: InnateGroup[];
   trainEpisodes: number; evalEpisodes: number; codeCommit: string; label: string;
@@ -282,17 +298,17 @@ export function runCondition(store: RegistryStore, o: {
   for (const group of o.groups) {
     for (const seed of o.seeds) {
       const born = o.born ?? {};
-      // The twin behaves through the same machinery as the learner (selection), it just never learns.
-      const selection = o.condition.spec.selection ?? null;
-      const key = `${seed}/${group}/${JSON.stringify(o.world)}/${JSON.stringify(born)}/${JSON.stringify(selection)}`;
+      // The twin behaves through the same machinery as the learner (selection, memory), it just never learns.
+      const tSpec = twinSpec(o.condition.spec);
+      const key = `${seed}/${group}/${JSON.stringify(o.world)}/${JSON.stringify(born)}/${JSON.stringify(tSpec.selection)}/${JSON.stringify(tSpec.memory)}`;
       if (!twins.has(key)) {
         const t = birth(store, o.world, seed, group, o.codeCommit, born, undefined, o.preregistration);
-        twins.set(key, { id: t.id, name: t.name, eval: evaluate(store, t, o.world, o.evalEpisodes, o.codeCommit, o.label, { selection }) });
+        twins.set(key, { id: t.id, name: t.name, eval: evaluate(store, t, o.world, o.evalEpisodes, o.codeCommit, o.label, tSpec) });
       }
       const twin = twins.get(key)!;
       const s = birth(store, o.world, seed, group, o.codeCommit, born, undefined, o.preregistration);
       const trainPerK = train(store, s, o.world, o.trainEpisodes, o.condition.spec, o.codeCommit, `${o.label} ${o.condition.code}`);
-      const both = evaluateWithYoked(store, s, o.world, o.evalEpisodes, o.codeCommit, o.label, { critic: o.condition.spec.critic ?? null, selection: o.condition.spec.selection ?? null });
+      const both = evaluateWithYoked(store, s, o.world, o.evalEpisodes, o.codeCommit, o.label, evaluationSpec(o.condition.spec));
       const l = both.subject;
       const ledger = store.openLedger(s.id);
       const plastic = ledger.graph.connections.filter((c) => isPlastic(c));

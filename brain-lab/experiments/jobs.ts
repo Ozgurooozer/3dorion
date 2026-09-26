@@ -13,7 +13,7 @@ import type { InnateGroup } from "../development/index.ts";
 import { RegistryStore } from "../registry/store.ts";
 import type { WorldConfig } from "../world/index.ts";
 import { ROOM1, condition } from "./conditions.ts";
-import { crossDopamine, evaluate, lesionClone, localDopamine, runCondition, shuffledClone, type Eval, type Row } from "./harness.ts";
+import { crossDopamine, evaluate, evaluationSpec, lesionClone, localDopamine, runCondition, shuffledClone, type Eval, type Row } from "./harness.ts";
 
 export type Control = "CROSS" | "LOCAL" | null;
 
@@ -56,7 +56,7 @@ export function runJob(job: Job, ctx: JobContext): JobResult {
     const clone = job.pattern === "shuffle"
       ? shuffledClone(store, job.learner, 1, ctx.codeCommit)
       : lesionClone(store, job.learner, new RegExp(job.pattern), ctx.codeCommit);
-    return { kind: "lesion", clone: clone.id, eval: evaluate(store, clone, world, job.evalEpisodes, ctx.codeCommit, job.label, { selection: spec.selection ?? null, critic: spec.critic ?? null }) };
+    return { kind: "lesion", clone: clone.id, eval: evaluate(store, clone, world, job.evalEpisodes, ctx.codeCommit, job.label, evaluationSpec(spec)) };
   }
   const transform = job.control === "CROSS" ? crossDopamine() : job.control === "LOCAL" ? localDopamine() : undefined;
   const r = runCondition(store, {
