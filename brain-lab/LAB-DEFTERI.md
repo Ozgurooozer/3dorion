@@ -2227,6 +2227,29 @@ yayınlardı ama canlı arama yapılmamıştı. Onaydan sonra tarandı:
 **Beklentim:** Etki küçük olacak. Fikstür hafızanın işe yaradığını gösteriyor, ama kredi öğüne kadar zayıflıyor. Taramada
 etki çıkmazsa, bu da teşhis 2'nin öngördüğü bir bulgu olur.
 
+### A3.0 kalibrasyonu — koşmadan önce
+
+Kod `b92dc71`: `experiments/recall-a3.ts`. Ölçüler:
+- **G7:** kapının açık olduğu tiklerin payı.
+- **G6m (hatırlanan yemeğe ulaşma):** Hatırlanan bir yemeğin çağrıldığı her kesintisiz tik dizisi bir bölümdür. Hedef,
+  dizinin ilk tikinde çağrılan hatıranın gerçek odadaki yeridir. Bölüm, hedefin 0,5 m yakınındaki bir yemek 200 tik içinde
+  yenirse ulaşılmış sayılır; süre dolarsa ya da beden ölürse kaçırılmış sayılır. Oda beden hayattayken biterse bölüm
+  sayılmaz.
+
+Bedenler (K1n odası):
+- dönen beden, kör patlamalar, "hep sola" dönen alışkanlık, arayıcı: seed 1–10 × 10 oda;
+- K1n'in kayıtlı öğrenenleri: seed 1–5 × iki grup, kayıtlı odaları;
+- etiketli fikstür: aynı K1n beyinleri, elle konmuş kural sinapslarıyla (w 1).
+
+Öngörüler:
+- **(k1)** Dönen beden: ulaşma tam %0, öğün 0.
+- **(k2)** Kör beden ve "hep sola": ulaşma < %30.
+- **(k3)** K1n: kör bedenden yüksek, fikstürden düşük.
+- **(k4)** Fikstür: ulaşma K1n'den en az 10 puan yüksek; kapı açık payı K1n'den düşük.
+
+Çürütme: Fikstürün ulaşma payı K1n'inkinden yüksek değilse, ölçü hafızanın kullanılmasını yakalamıyor demektir. O zaman
+A3.1'den önce ölçü yeniden tasarlanır.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
