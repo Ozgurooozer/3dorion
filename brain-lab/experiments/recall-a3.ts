@@ -2,10 +2,17 @@
 // memory use, calibrated on known policies before anything learns (Themis §1.1).
 //
 //   G7   gate share — ticks with the gate open (hungry, no food seen) over ticks lived
-//   G6m  reach share ("hatırlanan yemeğe ulaşma") — a run of ticks with a memory recalled starts one recall episode; the
-//        memory recalled on its first tick is the episode's target, placed in the true room. The episode is reached when
-//        a food within REACH_RADIUS of the target is eaten within REACH_WINDOW ticks, and failed when the window passes
-//        or the body dies first. An episode still open when the room ends alive is left out (censored).
+//   G6m  recall steering ("hatırlama yönlendirmesi") — the habit-free steering index of measures.ts (steeringIndex), with
+//        the side of the recalled node (the outer and inner rays of a side; the middle ray is not counted) in place of
+//        the side food is seen on, over the ticks a memory is recalled; lag 0 (selection acts on the tick it senses).
+//        A constant turning habit scores exactly 0, turning toward what is recalled 1, away −1.
+//   reach share (secondary, "hatırlanan yemeğe ulaşma") — a run of ticks with a memory recalled starts one recall
+//        episode; the memory recalled on its first tick is the episode's target, placed in the true room. The episode is
+//        reached when a food within REACH_RADIUS of the target is eaten within REACH_WINDOW ticks, and failed when the
+//        window passes or the body dies first. An episode still open when the room ends alive is left out (censored).
+//        It was the first G6m and failed its calibration (2026-09-26): the gate flickers as food slips between rays, so
+//        one memory makes dozens of short episodes (88–91% start while another aims at the same food), and the hand-set
+//        fixture that lowers drive by 0.10 did not raise the share (32.4% vs K1n's 35.3%). Kept as a diagnostic.
 // The recall is recall.ts's, the same functions the brain uses; each body recalls from its own memory (a scratch one for
 // bodies without a brain), so the measure asks: would what this body remembered have brought it back to a meal?
 //
@@ -36,6 +43,7 @@ import { sensorimotorScaffold } from "../sensorimotor/index.ts";
 import { Room, runEpisode, type Action, type EpisodeHooks, type EpisodeSummary, type Observation, type Policy, type WorldConfig } from "../world/index.ts";
 import { condition } from "./conditions.ts";
 import { MAX_TICKS, assertBornInto, assertReplayed, assertSeedAllowed, evalNoise, evalWorld, recordedEvaluation, recordedLearners } from "./harness.ts";
+import { steeringIndex, type Steering } from "./measures.ts";
 import { referenceBodies } from "./pose-a1.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -86,7 +94,17 @@ export class RecallEpisodes {
   }
 }
 
-export interface RecallGrade extends EpisodeCounts { ticks: number; gateTicks: number; recallTicks: number; meals: number; died: boolean }
+/** Steering counts over recall ticks, in the shape measures.ts's steeringIndex reads (side = the recalled node's side). */
+export type RecallSteer = { -readonly [K in keyof Omit<Steering, "index">]: number };
+const noSteer = (): RecallSteer => ({ leftSeen: 0, rightSeen: 0, leftTurnWhenLeft: 0, rightTurnWhenLeft: 0, leftTurnWhenRight: 0, rightTurnWhenRight: 0 });
+
+/** Adds one recall tick: the side the recalled node stands for (the middle ray is neither side) and the turn taken. */
+export function countRecallTurn(c: RecallSteer, side: "left" | "right" | "forward", turn: number): void {
+  if (side === "left") { c.leftSeen++; if (turn > 0) c.leftTurnWhenLeft++; if (turn < 0) c.rightTurnWhenLeft++; }
+  if (side === "right") { c.rightSeen++; if (turn > 0) c.leftTurnWhenRight++; if (turn < 0) c.rightTurnWhenRight++; }
+}
+
+export interface RecallGrade extends EpisodeCounts { ticks: number; gateTicks: number; recallTicks: number; meals: number; died: boolean; steer: RecallSteer }
 
 /** What a body's memory holds right after it lived `obs`, and the action it chose. */
 export interface MemoryNow { action: Action; live: readonly LiveMemory[]; pose: Pose; strength: (m: MemoryRecord) => number }
@@ -96,6 +114,7 @@ export function gradeRecall(room: Room, step: (obs: Observation, t: number) => M
   const cfg = room.config;
   const start = room.state().body;
   const episodes = new RecallEpisodes();
+  const steer = noSteer();
   let gateTicks = 0, recallTicks = 0, meals = 0;
   let before = room.state().entities.filter((e) => e.kind === "food").map((e) => ({ ...e }));
   let recalling = false;
@@ -115,6 +134,7 @@ export function gradeRecall(room: Room, step: (obs: Observation, t: number) => M
     if (open) gateTicks++;
     if (recalled) {
       recallTicks++;
+      countRecallTurn(steer, actionOfAngle(cfg.rayAngles[recalled.ray]!), now.action.turn);
       if (!recalling) {
         const m = now.live.find((x) => x.id === recalled.id)!;
         episodes.start(t, inRoom({ x: m.memory.x, y: m.memory.y, heading: 0, side: 0, sigma: 0 }, start));
@@ -125,7 +145,7 @@ export function gradeRecall(room: Room, step: (obs: Observation, t: number) => M
   }, MAX_TICKS, false, hooks);
   const died = summary.doneCause !== null;
   episodes.end(died);
-  return { summary, grade: { ...episodes.counts, ticks: summary.ticks, gateTicks, recallTicks, meals, died } };
+  return { summary, grade: { ...episodes.counts, ticks: summary.ticks, gateTicks, recallTicks, meals, died, steer } };
 }
 
 export interface RecallLife extends RecallGrade { body: string; subject: string | null; seed: number; room: number }
@@ -209,14 +229,18 @@ export function learnerRecallLives(code: string, store: RegistryStore, resultLin
   return lives;
 }
 
-/** Pooled over lives: the gate share (G7), the reach share (G6m) and what it rests on. */
+/** Pooled over lives: the gate share (G7), the recall steering (G6m), the reach share (secondary) and what they rest on. */
 export function aggregateRecall(ls: readonly RecallLife[]) {
-  const sum = (k: keyof RecallGrade) => ls.reduce((s, l) => s + Number(l[k]), 0);
+  const sum = (k: Exclude<keyof RecallGrade, "steer">) => ls.reduce((s, l) => s + Number(l[k]), 0);
   const judged = sum("reached") + sum("failed");
+  const steer = noSteer();
+  for (const l of ls) for (const k of Object.keys(steer) as (keyof RecallSteer)[]) steer[k] += l.steer[k];
   return {
     lives: ls.length,
     gateShare: sum("gateTicks") / sum("ticks"),
     recallShare: sum("recallTicks") / Math.max(1, sum("gateTicks")),
+    steering: steeringIndex(steer),
+    steer,
     episodesPerK: (1000 * sum("episodes")) / sum("ticks"),
     reachShare: judged > 0 ? sum("reached") / judged : NaN,
     judged,
@@ -242,11 +266,11 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const f = (x: number, d = 2) => (Number.isNaN(x) ? "—" : x.toFixed(d).replace(".", ","));
   const pct = (x: number) => (Number.isNaN(x) ? "—" : `%${f(100 * x, 1)}`);
   console.log(`\n=== A3.0: hafızayı kullanma ölçüleri, kalibrasyon (K1n odası: ${world.foodCount} yemek, doğum enerjisi ${world.initialEnergy}; kapı açlık ≥ ${DEFAULT_RECALL.hunger}) ===`);
-  console.log("beden          hayat | kapı açık (G7) | açıkken hatıra | bölüm/1000t | ulaşma (G6m)       | kesilen | yemek/1000t");
+  console.log("beden          hayat | kapı açık (G7) | açıkken hatıra | yönlendirme (G6m) | ulaşma (ikincil)      | yemek/1000t");
   const table: Record<string, ReturnType<typeof aggregateRecall>> = {};
   for (const body of [...new Set(lives.map((l) => l.body))]) {
     const a = (table[body] = aggregateRecall(lives.filter((l) => l.body === body)));
-    console.log(`${body.padEnd(14)} ${String(a.lives).padStart(5)} | ${pct(a.gateShare).padStart(14)} | ${pct(a.recallShare).padStart(14)} | ${f(a.episodesPerK).padStart(11)} | ${pct(a.reachShare).padStart(7)} (${String(a.judged).padStart(5)} bölüm) | ${String(a.censored).padStart(7)} | ${f(a.mealsPerK).padStart(11)}`);
+    console.log(`${body.padEnd(14)} ${String(a.lives).padStart(5)} | ${pct(a.gateShare).padStart(14)} | ${pct(a.recallShare).padStart(14)} | ${f(a.steering ?? NaN, 3).padStart(17)} | ${pct(a.reachShare).padStart(7)} (${String(a.judged).padStart(5)} bölüm) | ${f(a.mealsPerK).padStart(11)}`);
   }
   writeFileSync(join(DATA, "recall-a3-calibration.json"), JSON.stringify({ weight: W, hunger: DEFAULT_RECALL.hunger, table }, null, 2) + "\n");
   console.log("\nyazıldı: data/recall-a3-calibration.json");

@@ -13,7 +13,7 @@ import { pathwayOf } from "../regions/index.ts";
 import { Room } from "../world/index.ts";
 import { condition } from "./conditions.ts";
 import { TEST_SEED_FLOOR, birth, evalWorld } from "./harness.ts";
-import { REACH_RADIUS, REACH_WINDOW, RecallEpisodes, aggregateRecall, fixtureLedger, gradeRecall, referenceRecallLives, type RecallLife } from "./recall-a3.ts";
+import { REACH_RADIUS, REACH_WINDOW, RecallEpisodes, aggregateRecall, countRecallTurn, fixtureLedger, gradeRecall, referenceRecallLives, type RecallLife } from "./recall-a3.ts";
 import { FoodMemory } from "../learning/index.ts";
 import { MemoryCore, PoseModule } from "../memory/index.ts";
 import { sensorimotorScaffold } from "../sensorimotor/index.ts";
@@ -169,8 +169,9 @@ test("the recall measurement refuses a test seed for its reference bodies", () =
 });
 
 test("the shares are pooled sums, not means of per-room shares", () => {
+  const steer = { leftSeen: 0, rightSeen: 0, leftTurnWhenLeft: 0, rightTurnWhenLeft: 0, leftTurnWhenRight: 0, rightTurnWhenRight: 0 };
   const life = (ticks: number, gateTicks: number, recallTicks: number, reached: number, failed: number): RecallLife => ({
-    ticks, gateTicks, recallTicks, episodes: reached + failed + 1, reached, failed, censored: 1, meals: 2, died: false, body: "x", subject: null, seed: 1, room: 1,
+    ticks, gateTicks, recallTicks, episodes: reached + failed + 1, reached, failed, censored: 1, meals: 2, died: false, steer, body: "x", subject: null, seed: 1, room: 1,
   });
   const a = aggregateRecall([life(100, 50, 25, 1, 0), life(300, 50, 50, 1, 3)]);
   assert.equal(a.gateShare, 100 / 400);
@@ -180,6 +181,72 @@ test("the shares are pooled sums, not means of per-room shares", () => {
   assert.equal(a.censored, 2);
   assert.equal(a.episodesPerK, (1000 * 7) / 400);
   assert.equal(a.mealsPerK, (1000 * 4) / 400);
+});
+
+// --- recall steering (G6m) ---------------------------------------------------------------------------------------------
+
+test("a recall tick counts its side and turn: left and right sides with every turn, the middle ray never (grid)", () => {
+  for (const side of ["left", "right", "forward"] as const) {
+    for (const turn of [-1, 0, 1]) {
+      const c = { leftSeen: 0, rightSeen: 0, leftTurnWhenLeft: 0, rightTurnWhenLeft: 0, leftTurnWhenRight: 0, rightTurnWhenRight: 0 };
+      countRecallTurn(c, side, turn);
+      const expected = {
+        leftSeen: side === "left" ? 1 : 0, rightSeen: side === "right" ? 1 : 0,
+        leftTurnWhenLeft: side === "left" && turn > 0 ? 1 : 0, rightTurnWhenLeft: side === "left" && turn < 0 ? 1 : 0,
+        leftTurnWhenRight: side === "right" && turn > 0 ? 1 : 0, rightTurnWhenRight: side === "right" && turn < 0 ? 1 : 0,
+      };
+      assert.deepEqual(c, expected, `${side}, turn ${turn}`);
+    }
+  }
+});
+
+/**
+ * A body that only moves on the scripted ticks, with a scripted memory: left of the pose on ticks 10–11, right on 30–31.
+ * Its turns there (9° a tick) keep it within 36° of where it started, so the room is one where no food lies within a
+ * ray's reach within 100° of the start heading: no food comes into view and the gate stays open.
+ */
+function scriptedSides(turn: (memorySide: "left" | "right" | null) => number) {
+  const reach = WORLD.rayRange + WORLD.foodRadius;
+  const room = [...Array(300).keys()].map((i) => new Room(evalWorld(1, i + 1), WORLD)).find((r) => {
+    const b = r.state().body;
+    return r.state().entities.filter((e) => e.kind === "food").every((e) => {
+      const bearing = Math.atan2(e.y - b.y, e.x - b.x) - b.heading;
+      return Math.hypot(e.x - b.x, e.y - b.y) > reach || Math.abs(Math.atan2(Math.sin(bearing), Math.cos(bearing))) > (100 * Math.PI) / 180;
+    });
+  });
+  assert.ok(room, "a room with no food within reach within 100° of the start heading exists among the first 300");
+  const at = (y: number) => ({ id: "mem.food.1", memory: { what: "food" as const, x: 0, y, strength: 1, updated: 0, sightings: 1, born: 0, confirmed: 0 } });
+  const side = (t: number) => (t >= 10 && t < 12 ? "left" : t >= 30 && t < 32 ? "right" : null);
+  return gradeRecall(room!, (_obs, t) => {
+    const s = side(t);
+    return { action: { thrust: 0, turn: turn(s) }, live: s === "left" ? [at(1)] : s === "right" ? [at(-1)] : [], pose: { x: 0, y: 0, heading: 0, side: 0, sigma: 0 }, strength: (r) => r.strength };
+  }).grade;
+}
+
+test("recall steering: turning toward the recalled side every time scores exactly 1", () => {
+  const g = scriptedSides((s) => (s === "left" ? 1 : s === "right" ? -1 : 0));
+  assert.equal(g.steer.leftSeen, 2);
+  assert.equal(g.steer.rightSeen, 2);
+  assert.equal(aggregateRecall([{ ...g, body: "x", subject: null, seed: 1, room: 1 }]).steering, 1);
+});
+
+test("recall steering: a habit of turning left whatever is recalled scores exactly 0", () => {
+  const g = scriptedSides((s) => (s === null ? 0 : 1));
+  assert.equal(g.steer.leftSeen + g.steer.rightSeen, 4, "every scripted recall was counted");
+  assert.equal(aggregateRecall([{ ...g, body: "x", subject: null, seed: 1, room: 1 }]).steering, 0);
+});
+
+test("recall steering: turning away from the recalled side every time scores exactly −1", () => {
+  const g = scriptedSides((s) => (s === "left" ? -1 : s === "right" ? 1 : 0));
+  assert.equal(aggregateRecall([{ ...g, body: "x", subject: null, seed: 1, room: 1 }]).steering, -1);
+});
+
+test("recall steering pools counts over lives: one life's left recalls and another's right ones make one index", () => {
+  const leftOnly = { leftSeen: 4, rightSeen: 0, leftTurnWhenLeft: 4, rightTurnWhenLeft: 0, leftTurnWhenRight: 0, rightTurnWhenRight: 0 };
+  const rightOnly = { leftSeen: 0, rightSeen: 4, leftTurnWhenLeft: 0, rightTurnWhenLeft: 0, leftTurnWhenRight: 0, rightTurnWhenRight: 4 };
+  const life = (steer: typeof leftOnly): RecallLife => ({ ticks: 10, gateTicks: 5, recallTicks: 4, episodes: 1, reached: 0, failed: 0, censored: 1, meals: 0, died: false, steer, body: "x", subject: null, seed: 1, room: 1 });
+  assert.equal(aggregateRecall([life(leftOnly)]).steering, null, "one side alone has no index");
+  assert.equal(aggregateRecall([life(leftOnly), life(rightOnly)]).steering, 1);
 });
 
 // --- the labelled fixture --------------------------------------------------------------------------------------------
