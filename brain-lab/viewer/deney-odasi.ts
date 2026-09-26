@@ -197,6 +197,8 @@ let running = false;
 let loadingRoom = false;
 let speed: number = SPEEDS[1];
 let owed = 0;
+/** Draw where each body's pose memory thinks it is (A1). */
+let showMemory = true;
 const played: { room: number; l: Film; y: Film | null; t: Film }[] = [];
 
 /** The frame a side shows at `tick`: a body that died earlier stays at its last frame. */
@@ -284,6 +286,9 @@ function renderStats(side: Side, f: Frame): void {
     statBox("Durum", "tik", state, undefined, true),
     statBox("Sağlık", "zarar", num(f.health), { v: f.health, color: "var(--good)" }),
     statBox("Yaşadığı süre", "tik", `${num(f.tick / TICKS_PER_SECOND, 0)} sn`, { v: f.tick / MAX_TICKS, color: "var(--accent)" }),
+    // The bar is full at 1 m; the A1 gate (0.5 m) is at its middle.
+    statBox("Konum hatası", "konumhatasi", `${num(f.memory.error)} m`, { v: f.memory.error, color: "var(--inner)" }),
+    statBox("Konum güveni", "konumguveni", pct(f.memory.confidence), { v: f.memory.confidence, color: "var(--inner)" }),
   ].join("");
 }
 
@@ -292,7 +297,7 @@ function draw(): void {
   for (const s of sides) {
     if (!s.film) continue;
     const f = frameAt(s.film, tickNow);
-    drawRoom(s.ctx, { config: meta.world, entities: s.film.scenes[f.scene]!, body: f }, f.rays, s.trail, 0);
+    drawRoom(s.ctx, { config: meta.world, entities: s.film.scenes[f.scene]!, body: f }, f.rays, s.trail, 0, showMemory ? f.memory : null);
     renderStats(s, f);
   }
   byId("clock").textContent = `tik ${tickNow} / ${MAX_TICKS} · ${num(tickNow / TICKS_PER_SECOND, 0)} / ${MAX_TICKS / TICKS_PER_SECOND} sn`;
@@ -333,7 +338,10 @@ function roomOver(): void {
   const box = byId("result");
   box.className = `callout result ${l.matches === false || t.matches === false ? "bad" : "good"}`;
   const next = meta && roomNow < meta.rooms ? " Devam etmek için <b>Sonraki oda →</b>." : " Ölçülen odaların hepsi bitti.";
-  box.innerHTML = `<b>Oda ${roomNow} bitti.</b> ${who("Öğrenen", l)}; ${y ? `${who("bağlı beden", y)}; ` : ""}${who("ikiz", t)}. ${winner}${next}<br><span style="font-size:13px">${check}</span>`;
+  const lastMemory = (f: Film) => f.frames.at(-1)!.memory;
+  const wrong = (name: string, f: Film) => `${name} ${num(lastMemory(f).error)} m (güven ${pct(lastMemory(f).confidence)})`;
+  const memoryLine = `Konum hafızası${tip("konum")} odanın sonunda ne kadar yanılıyordu: ${[wrong("öğrenen", l), ...(y ? [wrong("bağlı beden", y)] : []), wrong("ikiz", t)].join(", ")}.`;
+  box.innerHTML = `<b>Oda ${roomNow} bitti.</b> ${who("Öğrenen", l)}; ${y ? `${who("bağlı beden", y)}; ` : ""}${who("ikiz", t)}. ${winner}${next}<br><span style="font-size:13px">${check}</span><br><span style="font-size:13px">${memoryLine}</span>`;
 }
 
 function renderScore(): void {
@@ -415,6 +423,7 @@ async function start(): Promise<void> {
   byId("play").addEventListener("click", () => setRunning(!running));
   byId("finish").addEventListener("click", finishRoom);
   byId("next").addEventListener("click", nextRoom);
+  byId<HTMLInputElement>("showMemory").addEventListener("change", (e) => { showMemory = (e.target as HTMLInputElement).checked; draw(); });
   // A finished room: the play button moves on to the next one.
   byId("play").addEventListener("click", () => { if (!running && tickNow >= roomLength() && roomNow > 0) nextRoom(); });
   requestAnimationFrame((t) => frame(t, t));

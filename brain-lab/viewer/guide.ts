@@ -289,6 +289,38 @@ export const GUIDE: readonly Section[] = [
       long: "Önceki tasarımda seçim eşikliydi ve sık sık hiçbir hareket seçilmiyordu. S1 ile her an Git−Gitme dengesi en güçlü olan hareket seçiliyor (ya da dinlenme). Bu, 'ne zaman hareket, ne zaman dinlen' öğrenmesini mümkün kıldı.",
     },
   ]),
+  S("hafiza", "Hafıza", "Beynin gördüğünü ve yaşadığını hatırlayan parçası. Basitten karmaşığa kuruluyor (TASARIM-007); ilk modül konum.", [
+    {
+      id: "konum",
+      term: "Konum hafızası (H1)",
+      short: "Beynin yalnız kendi hareket duyusundan hesapladığı 'neredeyim' bilgisi; Deney Odası'nda mor kesikli halka.",
+      long: "Beden kendi yerini de odanın haritasını da bilmez; yalnız hareket duyusu var: ne kadar hızlı ileri gittiği ve ne kadar döndüğü. Konum hafızası bunları her tik toplayarak 'başladığım yerden şu kadar ilerideyim, şu yöne bakıyorum' der. Buna yol entegrasyonu denir; denizcilerin haritasız, pusula ve hızla yaptığı hesap. Her odada sıfırdan başlar.\n\nDeney Odası'nda dolu beyaz daire gerçek beden, mor kesikli halka hafızanın bedeni sandığı yer. Halkanın etrafındaki mor hale hafızanın belirsizliğidir. Bu hafıza henüz karar vermiyor, yalnız dinliyor (A1). Sonraki adımda (A2) üstüne 'nerede ne gördüm' haritası kurulacak.",
+      read: "Halka bedenin üstündeyse hafıza doğru biliyor. Duvara değmeden hiç ayrılmaz; beden duvar boyunca kayınca ayrılabilir.",
+      target: "3000 tikin sonunda ortalama 0,5 m'den az hata (A1 kapısı). Harita bu konumun üstüne kurulacak; konum yanlışsa harita da yanlış olur.",
+    },
+    {
+      id: "yankayma",
+      term: "Yana kayma",
+      short: "Dönen beden eski hızını bir süre korur ve yana kayar; ileri hız duyusu bunu görmez.",
+      long: "Beden dönerken hızının bir kısmı eski yönde kalır ve sürtünmeyle yavaş yavaş söner; buzda dönen bir araba gibi, çok daha hafif. Hareket duyusu hızın yalnız ileri bileşenini bildirir, yana kaymayı bildirmez. İlk tasarımdaki formül bu yüzden eksikti: K1n öğrenenlerinde 3000 tik sonunda 2,6 m sapıyordu. Yana kayma, bedenin kendi sürtünmesinden hesaplanabiliyor. Duvara değmeyen bir bedende konum artık kayan nokta hassasiyetinde doğru: 3000 tikte 0,000000000001 m hata.",
+    },
+    {
+      id: "konumhatasi",
+      term: "Konum hatası",
+      short: "Hafızanın bedeni sandığı yer ile gerçek yeri arasındaki uzaklık (metre).",
+      long: "Simülasyonda gerçek konumu bildiğimiz için hafızayı tam olarak notlayabiliyoruz; gerçek bir robotta bu mümkün değil. Beden bu sayıyı görmez, yalnız biz görürüz.\n\nHatanın tamamı duvar temasından geliyor. Duvar, hızın duvara doğru bölümünü siler ve beden hangi duvara hangi açıyla değdiğini hareket duyusundan bilemez. Bu yüzden duvar boyunca kayan beden, hafızanın göremediği bir yöne kayar.",
+      read: "0 = tam doğru. Oda 10 m; 0,5 m, iki harita hücresi kadar.",
+      target: "3000 tikte ortalama 0,5 m'den az. Ölçülen (A1): K1n öğrenenlerinde 0,47 m, kapı sınırda geçti. Çok hareket eden bedenlerde (arayıcı) 1,4 m. Bu yüzden duvar temasının daha iyi hesaplanması açık iş.",
+    },
+    {
+      id: "konumguveni",
+      term: "Konum güveni",
+      short: "Hafızanın konumundan ne kadar emin olduğu (0–1); yalnız duvar temasında düşer.",
+      long: "Hafıza çekirdeğinin kuralı: her bilgi ne zaman, nereden geldiği ve ne kadar güvenilir olduğuyla saklanır. Konum için güven, belirsizlikten (σ, metre) hesaplanır: güven = 1 / (1 + (σ / 0,5)²). σ yalnız bedenin duvara değdiği anlarda, duvara hangi hızla girdiğiyle orantılı büyür. Serbest hareket güveni düşürmez, çünkü orada hesap tam.\n\nGüvenin dürüst olup olmadığını ölçtük. K1n öğrenenlerinde gerçek hata, σ'nın ortalama 0,73 katı çıktı: güven hatayı biraz büyük gösteriyor, bu güvenli yön.",
+      read: "%100 = emin. %50 = belirsizlik yarım metre. İleride düşük güvenli bilgi karar vermeyecek (getirme eşiği).",
+      target: "Gerçek hata / σ oranı 0,5 ile 2 arasında (dürüst güven). Ölçülen 0,73.",
+    },
+  ]),
   S("kosullar", "Deney kodları", "Tablolardaki kısa kodların anlamı.", [
     { id: "E7", term: "E7", short: "Temel öğrenme kuralı (eski seçimle).", long: "Seçilen harekete bağlı üç faktörlü öğrenme, eleştirmen, ölümden öğrenmeme. S serisinin öncesi." },
     { id: "S1", term: "S1", short: "E7 + rekabetçi seçim.", long: "Hareketler her an yarışıyor. İlk kez beden ikizinden belirgin iyi yaşamaya başladı." },

@@ -20,6 +20,8 @@ export const COLOR = Object.freeze({
   energy: "#f2b84b",
   health: "#4cc38a",
   none: "#56627a",
+  /** The memory's own picture of the body (A1): where it thinks the body is. */
+  memory: "#a37af0",
 });
 
 const RAY_KIND_TR: Record<string, string> = { wall: "duvar", food: "yemek", threat: "tehlike" };

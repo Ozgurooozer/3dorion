@@ -170,6 +170,34 @@ test("a film's scene index changes exactly on the ticks a meal was eaten", () =>
   assert.deepEqual(moved, ate);
 });
 
+test("a film's pose memory starts on the body, fully sure", () => {
+  const f = film1.frames[0]!;
+  assert.deepEqual({ x: f.memory.x, y: f.memory.y, error: f.memory.error, confidence: f.memory.confidence }, { x: f.x, y: f.y, error: 0, confidence: 1 });
+});
+
+test("a film's memory error is the distance between the memory and the body shown in the same frame", () => {
+  // Four values rounded to 4 digits each: the recomputed distance may differ by up to ~2e-4.
+  const worst = Math.max(...film1.frames.map((f) => Math.abs(Math.hypot(f.memory.x - f.x, f.memory.y - f.y) - f.memory.error)));
+  assert.ok(worst <= 2e-4, `largest mismatch ${worst}`);
+});
+
+test("the memory is shown at the same tick as the body: circling on open floor, it stays on the body in every frame", () => {
+  // Full thrust, full left turn: a circle of radius ≈ 0.8 m around the room's centre, never near a wall. One tick
+  // of lag between memory and body would show as ≈ 0.12 m at this speed.
+  const circling = { id: "circle", name: "daire", actor: { policy: () => ({ thrust: 1, turn: 1 }) }, recorded: [] };
+  const film = filmRoom(new Contestant(circling, view.world, view.seed));
+  assert.ok(film.frames.length > 100, `${film.frames.length} frames`);
+  assert.ok(Math.max(...film.frames.map((f) => f.memory.error)) <= 1e-4, "error while circling");
+  assert.ok(film.frames.every((f) => f.memory.confidence === 1), "no wall was touched, so no doubt");
+});
+
+test("a body that runs into a wall loses confidence in its film (the doubt the memory reports is shown)", () => {
+  const charging = { id: "charge", name: "duvara koşan", actor: { policy: () => ({ thrust: 1, turn: 0 }) }, recorded: [] };
+  const film = filmRoom(new Contestant(charging, view.world, view.seed));
+  assert.equal(film.frames[0]!.memory.confidence, 1);
+  assert.ok(film.frames.at(-1)!.memory.confidence < 1, `last frame confidence ${film.frames.at(-1)!.memory.confidence}`);
+});
+
 test("a film refuses a room that was already partly lived", () => {
   const c = new Contestant(view.twin, view.world, view.seed);
   c.step();

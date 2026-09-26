@@ -52,6 +52,8 @@
   .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
   .controls .sep { width: 1px; height: 26px; background: var(--border); margin: 0 4px; }
   .controls .clock { margin-left: auto; font: 13px var(--mono); color: var(--soft); }
+  .controls .toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--inner); cursor: pointer; }
+  .controls .toggle input { accent-color: var(--inner); }
   .result { margin-top: 12px; }
   .result.hidden { display: none; }
   .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--soft); margin-top: 8px; }
@@ -104,6 +106,8 @@
           <span class="sep"></span>
           <button id="finish" disabled title="Bu odanın geri kalanını beklemeden hesapla">Odayı bitir ⏭</button>
           <button id="next" disabled>Sonraki oda →</button>
+          <span class="sep"></span>
+          <label class="toggle" title="Mor kesikli halka: hafızanın, yalnız kendi hareketinden hesaplayıp bedeni sandığı yer"><input type="checkbox" id="showMemory" checked> Hafızanın sandığı yer<span data-tip="konum"></span></label>
           <span class="clock" id="clock"></span>
         </div>
         <div class="arena">
@@ -135,6 +139,7 @@
           <span><i style="background:#e8edf5"></i>beden (içindeki çizgi: baktığı yön)</span>
           <span>5 görüş ışını: <b class="good">yeşil</b> = yemek görüyor, gri = duvar</span>
           <span><i style="background:#5b8def"></i>mavi soluk iz: son 12 saniyede gittiği yol</span>
+          <span><i style="background:transparent;border:2px dashed #a37af0;width:9px;height:9px"></i>mor kesikli halka: hafızanın bedeni sandığı yer; etrafındaki mor hale ne kadar kalınsa o kadar emin değil</span>
         </div>
         <div class="callout result hidden" id="result"></div>
         <div class="callout" style="margin-top:12px">
@@ -143,6 +148,7 @@
             <li><b>Öğrenen ile bağlı beden.</b> İkisi aynı miktarda, aynı biçimde hareket ediyor. Fark yalnızca öğrenenin gördüğüne göre karar vermesi. Yemek tam önündeyken öğrenen ileri gidiyor mu, bağlı beden yanından geçip gidiyor mu?</li>
             <li><b>Yandaki yemek.</b> Bir yan ışın yemek görünce (yeşil) öğrenen o tarafa dönüyor mu? S1n'de bu henüz yok: yana dönüşleri yemeğe göre rastgele. Şu an çözmeye çalıştığımız asıl sorun bu (<i>yönlendirme</i><span data-tip="yonlendirme"></span>).</li>
             <li><b>Kıt oda (K1n).</b> 5 yemekli odada kör dolaşan beden neredeyse hep ölür. Öğrenen orada yaşıyorsa, bunu gözüyle yapıyordur.</li>
+            <li><b>Konum hafızası (yeni, A1).</b> Mor kesikli halka, beynin yalnız kendi hareketinden hesapladığı "buradayım" bilgisi<span data-tip="konum"></span>. Beden duvara değmedikçe halka tam bedenin üstünde kalır. Duvar boyunca kaydıkça ayrılır ve güveni düşer<span data-tip="konumguveni"></span>. Bu hafıza henüz karar vermiyor, yalnız dinliyor; sonraki adımda üstüne "nerede ne gördüm" haritası kurulacak.</li>
           </ul>
         </div>
         <h3>Oynanan odalar</h3>

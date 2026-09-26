@@ -13,6 +13,7 @@ import type { BrainGrafi } from "../brain-ir/ir.ts";
 import type { Actor } from "../experiments/harness.ts";
 import { MAX_TICKS, evalNoise, evalWorld } from "../experiments/seeds.ts";
 import { createAgent, type AgentSpec } from "../learning/index.ts";
+import { MemoryCore, PoseModule, inRoom, poseConfidence } from "../memory/index.ts";
 import { drive } from "../neuromodulation/index.ts";
 import { Ledger, type LedgerInput } from "../registry/ledger.ts";
 import { Room, type DoneCause, type Observation, type Ray, type WorldConfig } from "../world/index.ts";
@@ -78,12 +79,34 @@ export function brainActor(brain: BrainRecord, cfg: WorldConfig, seed: number): 
   });
 }
 
-/** One body living its evaluation rooms (a brain with learning frozen, or any actor), one tick per step(). */
+/**
+ * Where the memory listening to a body thinks the body is (memory/pose.ts, TASARIM-007 A1), in the room's frame,
+ * with how wrong it is (the page knows the true body; the memory never does) and how sure it is.
+ */
+export interface MemoryView {
+  readonly x: number;
+  readonly y: number;
+  readonly heading: number;
+  /** Standard deviation of the position, m. */
+  readonly sigma: number;
+  /** Distance from the true body, m. */
+  readonly error: number;
+  readonly confidence: number;
+}
+
+/**
+ * One body living its evaluation rooms (a brain with learning frozen, or any actor), one tick per step(). A pose
+ * memory listens to every observation the body gets, from the room's first to its last; it only listens (A1:
+ * the brain does not read it yet), so the life is the same as the experiment's.
+ */
 export class Contestant {
   readonly brain: Source;
   private readonly cfg: WorldConfig;
   private readonly seed: number;
   private readonly agent: Actor;
+  private readonly pose: PoseModule;
+  private readonly memory: MemoryCore;
+  private startNow: { x: number; y: number; heading: number } = { x: 0, y: 0, heading: 0 };
   private roomNow: Room;
   private obsNow: Observation;
   private episodeNow = 0;
@@ -99,8 +122,11 @@ export class Contestant {
     this.cfg = cfg;
     this.seed = seed;
     this.agent = "actor" in brain ? brain.actor : brainActor(brain, cfg, seed);
+    this.pose = new PoseModule(cfg);
+    this.memory = new MemoryCore([this.pose]);
     this.roomNow = this.enter(1);
     this.obsNow = this.roomNow.observe();
+    this.memory.observe(this.obsNow, 0);
   }
 
   private enter(episode: number): Room {
@@ -111,7 +137,11 @@ export class Contestant {
     this.causeNow = null;
     this.resultNow = null;
     this.agent.startEpisode?.(episode);
-    return new Room(evalWorld(this.seed, episode), this.cfg);
+    this.memory.reset();
+    const room = new Room(evalWorld(this.seed, episode), this.cfg);
+    const b = room.state().body;
+    this.startNow = { x: b.x, y: b.y, heading: b.heading };
+    return room;
   }
 
   get room(): Room { return this.roomNow; }
@@ -124,6 +154,14 @@ export class Contestant {
   get result(): EpisodeResult | null { return this.resultNow; }
   get finished(): boolean { return this.resultNow !== null; }
 
+  /** The memory's pose now, in the room's frame, graded against the true body. */
+  get memoryView(): MemoryView {
+    const p = this.pose.pose;
+    const at = inRoom(p, this.startNow);
+    const b = this.roomNow.state().body;
+    return { x: at.x, y: at.y, heading: at.heading, sigma: p.sigma, error: Math.hypot(at.x - b.x, at.y - b.y), confidence: poseConfidence(p.sigma) };
+  }
+
   /** One tick; does nothing once the room is over. Mirrors world/episode.ts runEpisode exactly. */
   step(): void {
     if (this.resultNow) return;
@@ -131,6 +169,7 @@ export class Contestant {
     const r = this.roomNow.step(action);
     this.obsNow = r.observation;
     this.ticksNow++;
+    this.memory.observe(this.obsNow, this.ticksNow);
     this.mealsNow += r.foodEaten;
     this.driveSum += drive(r.observation);
     this.causeNow = r.doneCause;
@@ -152,6 +191,7 @@ export class Contestant {
     this.finishRoom();
     this.roomNow = this.enter(this.episodeNow + 1);
     this.obsNow = this.roomNow.observe();
+    this.memory.observe(this.obsNow, 0);
   }
 
   /** The recorded evaluation episode of the current room, if the experiment measured it. */
@@ -181,6 +221,8 @@ export interface Frame {
   readonly rays: readonly Ray[];
   /** Index into Film.scenes: where the food and threats are at this tick (they move only when food is eaten). */
   readonly scene: number;
+  /** Where the body's pose memory thinks it is at this tick (A1). */
+  readonly memory: MemoryView;
 }
 
 export interface Film {
@@ -207,10 +249,12 @@ export function filmRoom(c: Contestant): Film {
     const key = JSON.stringify(s.entities);
     if (key !== sceneKey) { scenes.push(s.entities.map((e) => ({ ...e, x: round(e.x), y: round(e.y) }))); sceneKey = key; }
     const o = c.observation;
+    const m = c.memoryView;
     return {
       tick: c.ticks, x: round(s.body.x), y: round(s.body.y), heading: round(s.body.heading),
       energy: round(o.energy), health: round(o.health), drive: round(drive(o)), meals: c.meals,
       rays: o.rays.map((r) => ({ hit: r.hit, distance: round(r.distance) })), scene: scenes.length - 1,
+      memory: { x: round(m.x), y: round(m.y), heading: round(m.heading), sigma: round(m.sigma), error: round(m.error), confidence: round(m.confidence) },
     };
   };
   const frames: Frame[] = [frame()];

@@ -11,7 +11,15 @@ export interface Point { x: number; y: number }
 /** What drawing a room needs: a live Room's state() or a filmed frame (arena.ts) both provide it. */
 export type RoomView = Pick<RoomState, "config" | "entities"> & { readonly body: Pick<RoomState["body"], "x" | "y" | "heading"> };
 
-export function drawRoom(ctx: CanvasRenderingContext2D, s: RoomView, rays: readonly Ray[], trail: readonly Point[], bumpFlash: number): void {
+/** Where the body's memory thinks the body is (arena films, TASARIM-007 A1), and its doubt σ in metres. */
+export interface Ghost { readonly x: number; readonly y: number; readonly heading: number; readonly sigma: number }
+
+/**
+ * `ghost`, when given, is drawn as a dashed ring where the memory thinks the body is; a halo around it as wide as
+ * the memory's doubt σ (the body's centre is probably within σ of the ring's), and a thin line to the real body
+ * when the two are apart.
+ */
+export function drawRoom(ctx: CanvasRenderingContext2D, s: RoomView, rays: readonly Ray[], trail: readonly Point[], bumpFlash: number, ghost: Ghost | null = null): void {
   const { width: cw, height: ch } = ctx.canvas;
   const cfg = s.config;
   const pad = 16;
@@ -87,6 +95,14 @@ export function drawRoom(ctx: CanvasRenderingContext2D, s: RoomView, rays: reado
     }
   });
 
+  // the memory's doubt, under the body
+  if (ghost && ghost.sigma > 0) {
+    ctx.fillStyle = alpha(COLOR.memory, 0.16);
+    ctx.beginPath();
+    ctx.arc(X(ghost.x), Y(ghost.y), (cfg.bodyRadius + ghost.sigma) * k, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
   // body + heading
   ctx.fillStyle = COLOR.body;
   ctx.beginPath();
@@ -98,6 +114,28 @@ export function drawRoom(ctx: CanvasRenderingContext2D, s: RoomView, rays: reado
   ctx.moveTo(X(b.x), Y(b.y));
   ctx.lineTo(X(b.x + Math.cos(b.heading) * cfg.bodyRadius), Y(b.y + Math.sin(b.heading) * cfg.bodyRadius));
   ctx.stroke();
+
+  // where the memory thinks the body is: a dashed ring with its heading, joined to the real body when apart
+  if (ghost) {
+    ctx.strokeStyle = COLOR.memory;
+    if (Math.hypot(ghost.x - b.x, ghost.y - b.y) > 0.02) {
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(X(b.x), Y(b.y));
+      ctx.lineTo(X(ghost.x), Y(ghost.y));
+      ctx.stroke();
+    }
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash([5, 3]);
+    ctx.beginPath();
+    ctx.arc(X(ghost.x), Y(ghost.y), cfg.bodyRadius * k, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(X(ghost.x), Y(ghost.y));
+    ctx.lineTo(X(ghost.x + Math.cos(ghost.heading) * cfg.bodyRadius), Y(ghost.y + Math.sin(ghost.heading) * cfg.bodyRadius));
+    ctx.stroke();
+  }
 
   ctx.fillStyle = COLOR.dim;
   ctx.font = "11px ui-monospace, Consolas, monospace";
