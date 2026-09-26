@@ -2364,6 +2364,52 @@ Eşleştirilmiş karşılaştırmalar (aynı seed ve grup):
    kredi verilir. Büyüme çekirdeği bu anı zaten biliyor. Yeni bir mekanizma; tasarım ister.
 4. **A3b'yi öne almak:** Yemek görmeye değer veren bir aktör-eleştirmen, krediyi ikincil pekiştirmeyle köprüleyebilir.
 
+## 2026-09-26 — Ara rapor ve karar: önce kök neden; eleştirmen teşhisi — koşmadan önce
+
+**Toplantı:** "A3 kredi açığı" (vault `2026-09-26-a3-kredi-acigi`) hatıraya kredi taşımayı seçti (K 36 · U 32 · T 29 · A 23 ·
+E 14).
+
+**Ara rapor ve Ozyn'in kararı:**
+- Ozyn ara rapor istedi.
+- Raporda şunu söyledim: kredi sorunu üç kez karşımıza çıktı:
+  - Yön öğrenilmedi (S1n ve K1n).
+  - İşaret hafızası başarısız oldu (seri 006).
+  - Kural sinapsı yavaş kaldı (A3.2).
+- Üçünün kökü eleştirmen gibi görünüyor: yemek görmeye neredeyse hiç değer vermiyor.
+- Toplantı soruyu dar kurmuştu; yalnız kural sinapsını sordu.
+- Ozyn önce kök nedeni seçti. Toplantının K1–K4 kararları askıda.
+- A3b öne alındı: önce teşhis, sonra tasarım ve toplantı.
+
+**Soru:** Eleştirmen neden yemek görmeye değer vermiyor? Sorun öğrenme kuralında mı, yoksa temsilde mi?
+
+**Plan** (salt okunur; K1n'in kayıtlı öğrenenleri: seed 1–5'ten 10 ve taze seed 11–20'den 20):
+1. **Dalgalanma:** Her özelliğin öğrenilmiş ağırlığı için toplam hareket (Σ|Δw|) ile net değişim karşılaştırılır.
+   Defterdeki `critic` kayıtlarından okunur.
+2. **Olması gereken değer:**
+   - Kayıtlı değerlendirme odaları yeniden yaşanır.
+   - Her tik için eleştirmenin özellikleri ve gerçek indirimli getiri hesaplanır: G = Σ γᵏ r, r = dürtü düşüşü, γ 0,99.
+     Eleştirmen ölüm sonucunu görmediği için getiriye katılmaz.
+   - En küçük kareler ile "ideal doğrusal eleştirmen" bulunur.
+   - Açlık × yemek ışını etkileşimleri eklenince açıklanan varyansın (R²) ne kadar arttığına bakılır.
+3. **Kural mı, temsil mi?** Aynı deneyim üzerinde, denek başına 10 odayı 4 kez geçerek (40 oda) dört öğrenme kuralı
+   denenir. Sıfırdan başlanır, kuantum yok:
+   - bugünkü TD(0), α 0,05;
+   - normalize edilmiş TD(0), α 0,03;
+   - TD(λ 0,9), α 0,05;
+   - normalize edilmiş TD(λ 0,9), α 0,03.
+
+**Öngörüler:**
+- **(c1)** Yemek ışınlarında toplam hareket, net değişimin en az 20 katı: ağırlık dalgalanıyor.
+- **(c2)** İdeal doğrusal eleştirmenin yemek ışını ağırlığı, öğrenilenin (0,005–0,009) en az 5 katı: ≥ 0,03.
+- **(c3)** Açlık × yemek etkileşimleri R²'yi en az 0,02 artırıyor. Yemeğin değeri açlığa bağlı; doğrusal eleştirmen bunu
+  gösteremiyor.
+- **(c4)** Bugünkü TD(0) aynı deneyimde de öğrenilen değere yakın kalıyor (< 0,02). Normalize adım ya da TD(λ), ideal
+  değerin en az yarısına ulaşıyor.
+
+**Çürütme:** İdeal yemek ağırlığının kendisi 0,02'den küçükse, bu odada ve bu politikayla yemek görmek getiriyi pek
+öngörmüyor demektir. O zaman sorun öğrenme kuralında değil, ödülde ya da temsildedir; A3b kuralı değil, özellikleri ya da
+ödülü ele almalıdır.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
