@@ -260,3 +260,59 @@ TASARIM-007 §12'nin A2–A6'sı yeniden tanımlanır; aynı anda tek değişken
    - (b) (a) + refleks emin değil.
    - (c) (b) + sürpriz.
 4. **S4:** Hatıranın yeri doğduğu yerde mi sabit kalsın, yoksa her yeniden görülüşte ortalamaya mı çekilsin?
+
+## 16. A3 ayrıntıları (öneri, 2026-09-26; Ozyn onayı bekliyor)
+
+Bu bölüm §6 ve §7'yi A3 için somutlaştırır. İki karar bağlayıcı:
+- K5: kural sinapsları ilk başarıda doğar; aynı hafızayla, sinapsları doğuştan var olan (D) bir kontrol koşulur.
+- K7: kapının ilk ölçütü "açım ve yemek görmüyorum".
+
+**Teşhis** (salt okunur, K1n'in kayıtlı hayatları; ayrıntısı LAB-DEFTERI 2026-09-26):
+- **Hatıra güvenilir:** Kapı açıkken hatırlanacak bir yemek zamanın %84–86'sında var. Hatırlanan yemek %99 gerçek,
+  tarafı %98 doğru. Hatırlananların %70'i görüş alanının dışında, yani bedenin yanında ya da arkasında.
+- **Kapasite fikstürü** (etiketli, elle konmuş kural: "hatırlanan yemek → o tarafa dön, öndeyse ileri"): dürtü seed 1–5'te
+  0,425'ten 0,324'e, seed 11–20'de 0,317'den 0,251'e iniyor (ağırlık 1). Öğrenmenin tavanı bu.
+- **Kredi zayıf:** Eleştirmen yemek görmeye neredeyse değer vermiyor (ağırlık 0,005–0,009). Hatırlanan duyunun kredisi
+  bu yüzden öğünde geliyor: son hatırlamadan medyan 60–90 tik sonra. λ 0,9 ile o ana izin ortalama ~%14'ü kalıyor.
+
+**Öneriler:**
+1. **Kapı (K7a):**
+   - Açlık ≥ 0,2 (bölgeli beynin "tok" sınırı) ve hiçbir ışın yemek görmüyorsa kapı açıktır.
+   - Kodda üreteçlerin ateşlemeye başladığı nokta ~0,25; teşhis 0,2 ile yapıldı.
+   - Kapının durumu çalışma hafızasıdır; deftere girmez.
+2. **Tek adım çağrışım:**
+   - Canlı yemek hatıralarından "güç × max(0, 1 − uzaklık / ışın menzili)" değeri en büyük olan çağrılır. Uzaklık ve yön
+     konumdan hesaplanır. "En güçlü ve en yakın" böylece tek bir sayı olur.
+   - Işın menzilinin ötesindeki hatıra çağrılmaz; onu tam tarama (A5) arar.
+3. **Hatırlanan duyular:**
+   - Yeni bölge `rec`: beş düğüm, `rec{i}.food`, ışınlarla aynı açılarda. Değer = güç × yakınlık.
+   - ±60°'nin ötesindeki bir yön, kendi tarafının en dış düğümüne düşer (hatırlananların %70'i).
+   - `mem` → `rec` bağı çekirdeğin hesabıdır; hedef düğüm her tik yönle değişir. Ayrı bir sinaps olarak deftere
+     yazılmaz, çünkü hatıranın gücü zaten defterde. Bu, §13'teki "mem → hatırlanan duyular" satırının karşılığıdır.
+4. **Kural yolu:** Yeni yol satırı P18: `rec` → `bg.go`; öğrenir, pozitif. §7'deki gibi yalnız Git hücresine gider.
+   Rekabetçi seçici ve öğrenici `rec` girdilerini de okur.
+5. **B (ana, K5):**
+   - Bir kural sinapsı, üç faktörlü kural ona ilk kez bir kuantum kazandırdığında doğar (`edge+`). Bu, seçilen hareket
+     hatırlanan duyuyla birlikte iyi sonuçlandığında olur.
+   - Doğduktan sonra aynı kuralla güçlenir ya da zayıflar; ağırlığı 0'a dönerse budanır (`edge-`).
+   - Doğmamış sinapsın uygunluk izi tutulur. Kural ona, var olsaydı ne kazanacaksa onu verir.
+   - **Dürüst not:** D'nin sinapsları 0 ağırlıkla doğsaydı B ile aynı beyin olurdu; bir bekçi test bunu gösterir. Bu
+     tanımla B ile D'nin farkı iki şey: seyreklik ve D'nin rastgele başlangıç ağırlıkları.
+   - **Başka seçenek, B2 (tek atış):** Öğünde, uygunluğu bir eşiği aşan her çift sabit bir ağırlıkla doğar (Soar'daki
+     "chunking"). İki yeni parametre gerekir (eşik ve doğum ağırlığı); seed 1–10'da seçilir.
+6. **D (kontrol, K5):** Aynı `rec` → Git sinapsları doğuştan var. Ağırlıkları bütün öğrenen yollar gibi rastgele,
+   [0; 0,05] arasında. Budanmazlar.
+7. **Anahtarlar:** Her şey kapalı başlar. Kapalıyken beyin bit-aynıdır; K1n'in kaydı yeniden üretilir.
+
+**Sıra** (aynı anda tek değişken):
+- **A3.0 — Ölçüleri kalibre et.**
+  - G6'nın mekanizma ölçüsü "hatırlanan yemeğe ulaşma": hatıralı açık kapı anlarından, çağrılan yemeğin 200 tik içinde
+    yendiği pay.
+  - G7: eğitim bloklarında kapı açılma oranı.
+  - İkisi de bilinen politikalarda kalibre edilir: kör beden, "hep sola", K1n ve fikstür.
+- **A3.1 — Kod:** testler, bozma denemesi, commit.
+- **A3.2 — Tarama:** B ve D; seed 1–5 × iki grup, 40 eğitim + 10 değerlendirme; ikiz ve bağlı beden. Karşılaştırma,
+  aynı seed'lerdeki kayıtlı K1n.
+- **A3.3 — Doğrulama ve çürütme:** İyi olan doğrulanır (20 denek + CROSS) ve çürütme bataryasından geçer (`curut`).
+- **A3b — Alice'in öğrenme kuralı** (TASARIM-007 K5): S1n ile aktör-eleştirmen, aynı hatırlanan duyularla. Tek değişken
+  kuralı gereği ayrı bir adım.

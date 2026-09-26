@@ -2105,6 +2105,89 @@ Not edildi, kovalanmıyor:
   sayıları denenmedi.
 - σ, bulunan duvarlı temasta daha yavaş büyüyebilir (güven oranı).
 
+## 2026-09-26 — A3 (kapı, hatırlanan duyular, kural büyümesi): teşhis ve öngörüler — koşmadan önce
+
+Ozyn "A3'e geç" dedi. A3, hafızanın davranışı ilk kez değiştirdiği adım.
+
+**Soru:** Beyin hatırladığı yemeği kullanmayı öğrenip dürtüsünü hafızasız K1n'in altına indirebilir mi? Kural sinapslarının
+ilk başarıda doğması (B), doğuştan var olmasından (D) iyi mi?
+
+Ayrıntılar TASARIM-008 §16'da öneri olarak duruyor; Ozyn onayı bekliyor.
+
+### Teşhis `[ÖLÇÜLDÜ]`
+
+Salt okunur karalama betikleriyle ölçüldü; beyin kodu değişmedi. Betikler ve çıktılar `data/a3-teshis/` altında. Denekler
+K1n'in kayıtlı öğrenenleri: seed 1–5'ten 10, taze seed 11–20'den 20. Kayıtlı değerlendirme odalarında, hafıza açık, öğrenme
+donuk yaşadılar; her oda kaydıyla aynı bitti (100/100 ve 200/200).
+
+**1. Kapı ve hatıra** (kapı: açlık ≥ 0,2 ve hiçbir ışın yemek görmüyor):
+
+| | seed 1–5 | seed 11–20 |
+|---|---|---|
+| kapı açık (tiklerin payı) | %42 | %34 |
+| açık kapıda hatırlanacak yemek var | %86 | %84 |
+| hatırlanan yemek gerçek | %98,8 | %99,1 |
+| hatırlanan yemeğin tarafı doğru | %98,4 | %98,3 |
+| hatırlanan yemek görüş alanı dışında (±60°'nin ötesinde) | %70 | %70 |
+| gözden kaçan yemek 50 tikte yeniden görüldü | %93 | %95 |
+| gözden kaçan yemek 200 tikte yendi | %50 | %63 |
+
+- Gözden kaçan yemeklerin çoğu kısa süre ışınların arasına düşüyor ve hemen yeniden görülüyor.
+- Hafızanın katkısı "yeniden görmek" değil, yemeğe varmak olabilir. Öğüne dönüşen olayların payı yalnız %50–63.
+
+**2. Kredi:**
+- K1n'in eleştirmeni yemek görmeye neredeyse değer vermiyor: yemek ışını ağırlığı 0,005–0,009, bir öğünün ödülü ~0,2.
+- Bu yüzden hatırlanan duyunun kredisi yemek yeniden göründüğünde değil, öğünde gelir.
+- Son hatıralı açık kapıdan öğüne kadar geçen süre: medyan 92 tik (seed 1–5) ve 60 tik (11–20); öğünlerin dörtte birinde
+  ≤ 12 tik.
+- Öğün anında uygunluk izinden kalan ortalama pay: λ 0,9 ile ~0,14, λ 0,97 ile ~0,32.
+- Yan bulgu: K1n'in Git hücreleri yemeğin tarafını biraz öğrenmiş. Yemeğin görüldüğü taraftaki dönüşün ağırlığı 0,34, öbür
+  tarafınki 0,21.
+
+**3. Kapasite fikstürü** (etiketli, elle konmuş kural, beyin değil). Kural: "hatırlanan yemek → o tarafa dön, öndeyse
+ileri". Ağırlık w, hatırlanan değerle çarpılıp seçimin belirginliğine eklendi. Seçici kopyası w = 0'da kayıtlı
+değerlendirmeyi birebir verdi (10/10 ve 20/20).
+
+| w | seed 1–5 dürtü | lehte (işaret p) | seed 11–20 dürtü | lehte (işaret p) |
+|---|---|---|---|---|
+| 0 (K1n) | 0,425 | — | 0,317 | — |
+| 0,25 | 0,389 | 9/10 (0,021) | 0,301 | 12/20 (0,50) |
+| 0,5 | 0,378 | 10/10 (0,002) | 0,287 | 14/20 (0,12) |
+| 1 | 0,324 | 9/10 (0,021) | 0,251 | 16/20 (0,012) |
+| 2 | 0,313 | 8/10 (0,11) | 0,248 | 18/20 (0,0004) |
+
+Hafızayı kullanan bir beyin, dürtüsünü 0,07–0,10 düşürebilir; hayatta kalma 7–12 puan artar. Öğrenmenin tavanı bu.
+
+### Plan (TASARIM-008 §16)
+
+1. **A3.0:** G6'nın mekanizma ölçüsü ("hatırlanan yemeğe ulaşma") ve G7 (kapı açılma oranı) bilinen politikalarda kalibre
+   edilir.
+2. **A3.1:** Kod; anahtarlar kapalıyken beyin bit-aynı; testler ve bozma denemesi; commit.
+3. **A3.2:** Tarama: B ve D, seed 1–5 × iki grup, 40 eğitim + 10 değerlendirme; ikiz ve bağlı beden.
+4. **A3.3:** İyi olan için doğrulama (20 denek + CROSS) ve çürütme.
+5. **A3b:** Alice'in kuralı (S1n ile aktör-eleştirmen), ayrı adım.
+
+### Öngörüler (A3.2 taraması; karşılaştırma aynı seed'lerdeki kayıtlı K1n, dürtü 0,425)
+
+- **(a)** B'nin dürtüsü K1n'den düşük: ortalamada ve 10 seed/grup çiftinin en az 7'sinde.
+- **(b)** Öğrenilen kazanç tavanın yarısından az: B'nin dürtüsü 0,375'ten yüksek (fikstürde w 1: 0,324). Gerekçe:
+  öğündeki kredi zayıf (teşhis 2).
+- **(c)** B ile D arasındaki dürtü farkı 0,03'ten küçük. İkisinin farkı yalnız seyreklik ve D'nin küçük rastgele
+  başlangıç ağırlıkları.
+- **(d)** Öğrenilen `rec` → Git ağırlıkları tarafa uygun: yan düğümlerde kendi tarafına dönüşün ağırlığı öbür taraftakinden
+  büyük, en az 7/10 denekte. Ortalama ağırlık 0,15'ten küçük kalır (kredi tahmini).
+- **(e)** B'nin değerlendirmede kapı açılma oranı K1n'inkinden düşük. Fikstürde %52'den %42'ye indi; öğrenilende daha az
+  iner.
+
+**Çürütme:**
+- B'nin dürtüsü K1n'den 10 çiftin 7'sinde düşük değilse, bu kural 40 odada hatırlanan yemeği kullanmayı öğrenemiyor demektir.
+  Sonraki teşhis: öğündeki iz ve `rec` ağırlıkları.
+- Kredi aralığını kapatacak seçenekler Ozyn'e gider, sessizce denenmez: B2 (tek atış), daha uzun iz (λ 0,97), A3b'deki
+  aktör-eleştirmen.
+
+**Beklentim:** Etki küçük olacak. Fikstür hafızanın işe yaradığını gösteriyor, ama kredi öğüne kadar zayıflıyor. Taramada
+etki çıkmazsa, bu da teşhis 2'nin öngördüğü bir bulgu olur.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
