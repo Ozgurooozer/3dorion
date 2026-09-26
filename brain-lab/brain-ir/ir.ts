@@ -13,6 +13,28 @@ export interface BrainDugumu {
   threshold?: number;
   /** Döngü ve negatif state deneyleri için varsayılan relu yerine linear. */
   activation?: Aktivasyon;
+  /** Only on a grown memory neuron (type "memory", brain-lab TASARIM-008 §5): what it remembers. */
+  memory?: MemoryRecord;
+}
+
+/**
+ * What a memory neuron remembers (brain-lab TASARIM-008 §5). Never changed in place: every change is a new record,
+ * written to the subject's ledger. Ticks count within the room the memory was born in.
+ */
+export interface MemoryRecord {
+  /** What is remembered. */
+  readonly what: "food";
+  /** Where, in the body's own start frame (metres). */
+  readonly x: number;
+  readonly y: number;
+  /** Strength 0–1 as of tick `updated`; from then on it fades with time. */
+  readonly strength: number;
+  readonly updated: number;
+  /** How many sightings the place averages (each counts once, up to a cap). */
+  readonly sightings: number;
+  /** Tick of birth, and of the last confirmation (seen again after a gap): kept apart from the strength. */
+  readonly born: number;
+  readonly confirmed: number;
 }
 
 export interface BrainBaglantisi {

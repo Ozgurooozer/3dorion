@@ -72,6 +72,18 @@ test("layout: every node has one position, inside the frame, none overlapping", 
   assert.equal(layoutBrain(PRESETS[0]!.graph(three, 1), three, 620, 620).size, 3 * 3 + 7 + 4);
 });
 
+test("layout: grown memory neurons get their own column, one place each, none overlapping", () => {
+  const base = PRESETS[0]!.graph(C, 1);
+  const record = { what: "food" as const, x: 0, y: 0, strength: 0.5, updated: 0, sightings: 1, born: 0, confirmed: 0 };
+  const mem = Array.from({ length: 12 }, (_, i) => ({ id: `mem.food.${i + 1}`, type: "memory" as const, memory: record }));
+  const pos = layoutBrain({ ...base, nodes: [...base.nodes, ...mem] }, C, 620, 620, 30);
+  const placed = mem.map((n) => pos.get(n.id)!);
+  assert.ok(placed.every((p) => p.column === "mem"), "every memory neuron is in the memory column");
+  for (let i = 1; i < placed.length; i++) assert.ok(placed[i]!.y - placed[i - 1]!.y >= 18, `memory neurons ${i} and ${i + 1} overlap`);
+  const others = base.nodes.map((n) => pos.get(n.id)!);
+  for (const p of placed) for (const q of others) assert.ok(Math.hypot(p.x - q.x, p.y - q.y) >= 18, "a memory neuron overlaps another node");
+});
+
 test("labels: every node of every preset has a Turkish label", () => {
   for (const p of PRESETS) for (const n of p.graph(C, 1).nodes) assert.notEqual(nodeLabel(n.id), n.id, `${p.id}: ${n.id}`);
 });

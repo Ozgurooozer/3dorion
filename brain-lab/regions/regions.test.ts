@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import type { BrainGrafi } from "../brain-ir/ir.ts";
 import { MOTOR_NODE_IDS, sensorNodeIds, sensorimotorScaffold } from "../sensorimotor/index.ts";
 import { DEFAULT_CONFIG as C } from "../world/index.ts";
-import { ACTIONS, HYP_NODES, PATHWAYS, REGION_TYPE, checkPathways, isPlastic, nodeId, pathwayOf, regionOf } from "./index.ts";
+import { ACTIONS, HYP_NODES, PATHWAYS, REGION_TYPE, checkPathways, isPlastic, memId, nodeId, pathwayOf, regionOf } from "./index.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -58,6 +58,15 @@ test("regions: every node id maps to exactly one region, per-action regions know
   const all = nodes();
   assert.equal(new Set(all.map((n) => n.id)).size, all.length);
   for (const n of all) assert.equal(REGION_TYPE[regionOf(n.id)!.region], n.type, n.id);
+});
+
+test("memory neurons (TASARIM-008) belong to region mem, are numbered, and must be of type memory", () => {
+  assert.deepEqual(regionOf(memId(7)), { region: "mem" });
+  assert.equal(memId(7), "mem.food.7");
+  for (const bad of ["mem.food", "mem.food.x", "mem.food.-1", "mem.wall.1", "mem.1"]) assert.equal(regionOf(bad), null, bad);
+  const grown = withEdges([]);
+  assert.doesNotThrow(() => checkPathways({ ...grown, nodes: [...grown.nodes, { id: memId(1), type: "memory" }] }));
+  assert.throws(() => checkPathways({ ...grown, nodes: [...grown.nodes, { id: memId(1), type: "neuron" }] }), /mem\.food\.1 is neuron, region mem needs memory/);
 });
 
 test("a valid empty regional brain passes; the old flat brain (sense → motor) is refused", () => {

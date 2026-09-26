@@ -1574,6 +1574,58 @@ kaydığını hesaplayabilir mi? Hesaplarsa çok hareket eden bedende de konum h
   Odası'nda DNK-2778 odanın sonunda 0,01 m yanılırken güveni %48 görünüyor; hata / σ = 0,60 da buradan. σ'nın yalnız
   duvarın görülmediği temaslarda büyümesi daha dürüst olur. Tek değişken kuralı gereği ayrı bir adım.
 
+## 2026-09-26 — A2 (büyüyen yemek hafızası) — koşmadan önce
+
+Ozyn, A1b'nin ardından sırayı onayladı: önce yemek hatıraları (TASARIM-008 §12, K9).
+
+**Soru:** Beyin, gördüğü yemekler için yeni nöronlar büyütebilir mi? Bu nöronlar doğmalı, pekişmeli, sönmeli ve
+ölmeli; gerçek odayla uyuşmalı. Davranış değişmemeli; her büyüme deftere yazılmalı ve yeniden oynatılabilmeli.
+
+**Tasarımın somut hali** (TASARIM-008 §5 ve K1–K9 içinde; sayılar önceden seçildi, ölçülecek):
+1. **Hafıza nöronu:** `mem.food.<n>` adlı bir düğüm; türü `memory`, bölgesi yeni `mem`. Taşıdıkları:
+   - ne (yemek) ve nerede (bedenin başlangıç çerçevesinde x, y);
+   - güç w;
+   - kaç kez görüldüğü;
+   - doğum tiki ve son doğrulanma tiki (A2 notu: son doğrulanma w'den ayrı durur).
+2. **Sinaps yok:** A2'de hafıza nöronunun sinapsı yok, çünkü onu okuyan yol A3'te gelecek. Güç şimdilik nöronun kendi
+   kaydında. A3'te hatırlanan duyulara sinaps büyüyünce güç sinapsa da taşınır. Bu, TASARIM-008 §5'in aşamalı hali.
+3. **Defter:** Doğum `node+`. Kayıt değişimi yeni `memory` kaydı: önce/sonra, zincirle denetlenir. Ölüm yeni `node-`
+   kaydı. Yeniden oynatma testleri yazılacak.
+4. **Kurallar:**
+   - **Görülen yer:** `p = konum + (d + r_yemek)·(cos(θ̂ + a), sin(θ̂ + a))`.
+   - **Doğum:** ρ = 0,5 m içinde bir yemek hatırası yoksa yeni nöron doğar; w₀ = 0,5.
+   - **Doğrulama:** Aynı yer, son doğrulamadan en az 20 tik (1 sn) sonra yeniden görülürse geçerli sayılır. Arada kalan
+     görülüşler kayda geçmez; defter yükü böyle sınırlanıyor.
+     - Güç artar: w ← w + 0,3·(1 − w).
+     - Yer, görülüşlerin ortalamasına çekilir (K8): her görülüş bir kez sayılır, en çok 20.
+   - **Sürpriz:** Bir ışın hatıranın yerinden en çok 0,25 m uzağından geçip daha ötesini görürse ("beklediğim yerde
+     yok"), w ← w·0,5. Aynı hatıra için en çok 5 tikte bir uygulanır.
+   - **Zamanla sönme:** w her tik 0,999 ile çarpılır (yarı ömür ~35 sn); yalnız yedek. Defter her tik yazılmaz: sönme,
+     bir sonraki olayda geçen süreden hesaplanır.
+   - **Yendi:** Beden yemek yiyince, bedene 0,85 m'den yakın en yakın yemek hatırası ölür.
+   - **Ölüm:** w < 0,1 olunca nöron ölür.
+   - **Oda değişimi (K6):** Yeni odaya girince bütün yer hatıraları ölür.
+   - **Tavan:** Canlı yemek hatırası 30'u geçmez; tavandaysa yeni doğum reddedilir ve sayılır.
+5. **Davranış değişmez:** Nöronların sinapsı yok; seçici ve öğrenme onları görmez. Büyüme, öğrenme donukken de sürer:
+   hafıza oluşturmak çekirdeğin işidir, refleks öğrenmesi değildir. Kayıtlı K1n denekleri için büyüme yalnız bellekteki
+   bir deftere yazılır, kayıt değişmez.
+
+**Ölçüler ve öngörüler** (K1n'nin kayıtlı 100 odası ve referans bedenler; notlama gerçek odayla):
+- **G1** Yeniden kurma: Her hayatta doğum grafiği ve defter canlı beyni birebir verir. Öngörü %100.
+- **G2** Sınırlı büyüme: Bir odada canlı hatıra sayısı en çok ~15 olur, tavana hiç varılmaz. Oda bitince hepsi ölür.
+- **G3** İsabet: Canlı yemek hatıralarının gerçek bir yemeğe 0,5 m'den yakın olanların payı, tiklerin ortalaması.
+  Öngörü: K1n'de > %80; çok hareket eden bedende > %60 (hayatın sonuna doğru konum 0,8 m kayıyor).
+- **G4** Kapsama: Son 100 tikte görülen yemeklerden 0,5 m içinde hatırası olanların payı. Öngörü > %80.
+- **G5** Yanlış hatıra: Yenen yemeğin hatırası 20 tik içinde ölür. Öngörü: vakaların ≥ %95'inde.
+- **Davranış:** Büyüme açıkken dünya özetleri birebir aynı (test).
+- **Defter yükü:** Oda başına < 200 büyüme kaydı.
+
+**Çürütme:**
+- G1 ya da davranış testi tutmazsa altyapı hatalıdır; ölçüm yapılmaz.
+- G3 düşük, G4 yüksekse hatıralar yanlış yerde: sebep konumdur ya da görülen yerin hesabıdır.
+- G4 düşükse doğum ya da doğrulama kuralı eksiktir.
+- G5 tutmazsa yenme ya da sürpriz kuralı hatalıdır.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.

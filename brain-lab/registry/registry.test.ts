@@ -9,7 +9,7 @@ import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSyn
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import type { BrainGrafi } from "../brain-ir/ir.ts";
+import type { BrainDugumu, BrainGrafi, MemoryRecord } from "../brain-ir/ir.ts";
 import { sensorimotorScaffold } from "../sensorimotor/index.ts";
 import { DEFAULT_CONFIG as C, Room, runEpisode } from "../world/index.ts";
 import {
@@ -506,4 +506,109 @@ test("a graph read again after a weight entry shows the new weight (no stale cop
   void l.graph;
   l.record(w(0.1, 0.25));
   assert.equal(l.graph.connections.find((c) => c.from === "ray2.food")!.weight, 0.25);
+});
+
+// --- grown memory neurons (TASARIM-008 §5): born, changed, dying, all on the ledger ----------------------------------
+
+const record = (over: Partial<MemoryRecord> = {}): MemoryRecord => ({
+  what: "food", x: 1.5, y: -0.5, strength: 0.5, updated: 10, sightings: 1, born: 10, confirmed: 10, ...over,
+});
+const memNode = (over: Partial<MemoryRecord> = {}): BrainDugumu => ({ id: "mem.food.1", type: "memory", memory: record(over) });
+const born = (node = memNode(), tick = 10): LedgerInput => ({ kind: "node+", tick, episode: 1, cause: ["food seen"], node });
+const changed = (before: MemoryRecord, after: MemoryRecord, tick = 30): LedgerInput => ({ kind: "memory", tick, episode: 1, cause: ["seen again"], node: "mem.food.1", before, after });
+const died = (node: BrainDugumu, tick = 40): LedgerInput => ({ kind: "node-", tick, episode: 1, cause: ["eaten"], node });
+const remembered = (l: Ledger) => l.graph.nodes.find((n) => n.id === "mem.food.1")?.memory;
+
+test("a memory neuron is born on the ledger with what it remembers", () => {
+  const l = new Ledger("DNK-0001", birthGraph());
+  l.record(born());
+  assert.deepEqual(remembered(l), record());
+});
+
+test("a memory neuron's record changes only by a memory entry whose 'before' is what it remembered", () => {
+  const l = new Ledger("DNK-0001", birthGraph());
+  l.record(born());
+  const later = record({ strength: 0.65, updated: 30, confirmed: 30, sightings: 2, x: 1.6 });
+  l.record(changed(record(), later));
+  assert.deepEqual(remembered(l), later);
+  assert.throws(() => l.record(changed(record(), record({ strength: 0.9 }), 31)), /does not remember what the entry says/);
+});
+
+test("every part of what a memory neuron remembers is checked: a 'before' that differs only in place is refused", () => {
+  for (const [key, value] of [["x", 1.51], ["y", -0.49], ["born", 11], ["confirmed", 11], ["updated", 11], ["sightings", 2], ["strength", 0.51]] as const) {
+    const l = new Ledger("DNK-0001", birthGraph());
+    l.record(born());
+    assert.throws(() => l.record(changed(record({ [key]: value }), record({ strength: 0.6 }))), /does not remember what the entry says/, key);
+  }
+});
+
+test("a memory neuron dies on the ledger only as it is, and the brain returns to what it was before the birth", () => {
+  const l = new Ledger("DNK-0001", birthGraph());
+  const hashAtBirth = l.hash();
+  l.record(born());
+  const later = record({ strength: 0.65, updated: 30, confirmed: 30, sightings: 2 });
+  l.record(changed(record(), later));
+  assert.throws(() => l.record(died(memNode())), /is not as the entry says it was/, "the neuron as it was at birth is no longer the neuron");
+  l.record(died({ ...memNode(), memory: later }));
+  assert.equal(remembered(l), undefined);
+  assert.equal(l.hash(), hashAtBirth);
+});
+
+test("a whole memory life replays: birth graph + ledger = the brain, at every step", () => {
+  const l = new Ledger("DNK-0001", birthGraph());
+  const later = record({ strength: 0.65, updated: 30, confirmed: 30, sightings: 2 });
+  l.record(born());
+  l.record(w(0.1, 0.25, 20));
+  l.record(changed(record(), later));
+  l.record(died({ ...memNode(), memory: later }));
+  for (let n = 0; n <= l.entries.length; n++) {
+    const prefix = l.entries.slice(0, n);
+    const replayed = new Ledger("DNK-0001", birthGraph(), prefix).hash();
+    const copied = graphHash(prefix.reduce(applyEntry, canonicalBirth()));
+    assert.equal(replayed, copied, `after ${n} entries`);
+  }
+  assert.equal(new Ledger("DNK-0001", birthGraph(), l.entries).hash(), l.hash());
+});
+
+test("what a memory neuron remembers is part of the brain's hash", () => {
+  const a = new Ledger("DNK-0001", birthGraph());
+  const b = new Ledger("DNK-0001", birthGraph());
+  a.record(born(memNode({ x: 1.5 })));
+  b.record(born(memNode({ x: 1.6 })));
+  assert.notEqual(a.hash(), b.hash());
+});
+
+test("a memory neuron must carry a valid record, and only a memory neuron may carry one", () => {
+  const bad: [string, BrainDugumu][] = [
+    ["memory neuron without a record", { id: "mem.food.1", type: "memory" }],
+    ["plain neuron with a record", { id: "mem.food.1", type: "neuron", memory: record() }],
+    ["strength above 1", memNode({ strength: 1.2 })],
+    ["strength NaN", memNode({ strength: Number.NaN })],
+    ["place not finite", memNode({ x: Number.POSITIVE_INFINITY })],
+    ["fractional tick", memNode({ confirmed: 3.5 })],
+    ["no sightings", memNode({ sightings: 0 })],
+    ["remembers something else", { id: "mem.food.1", type: "memory", memory: { ...record(), what: "wall" as "food" } }],
+  ];
+  for (const [why, node] of bad) assert.throws(() => new Ledger("DNK-0001", birthGraph()).record(born(node)), /does not fit/, why);
+});
+
+test("a memory entry is refused for a neuron that does not exist or is not a memory neuron, or with a bad record", () => {
+  const l = new Ledger("DNK-0001", birthGraph());
+  assert.throws(() => l.record(changed(record(), record({ strength: 0.6 }))), /no node mem\.food\.1/);
+  assert.throws(() => l.record({ kind: "memory", tick: 1, episode: 1, cause: [], node: "motor.forward", before: record(), after: record() }), /not a memory neuron/);
+  l.record(born());
+  assert.throws(() => l.record(changed(record(), record({ strength: -0.1 }))), /strength=-0\.1/);
+});
+
+test("a neuron that does not exist cannot die", () => {
+  const l = new Ledger("DNK-0001", birthGraph());
+  assert.throws(() => l.record(died(memNode())), /no node mem\.food\.1/);
+});
+
+test("a neuron that still has synapses cannot die, and the brain is left as it was", () => {
+  const l = new Ledger("DNK-0001", birthGraph());
+  const motor = l.graph.nodes.find((n) => n.id === "motor.forward")!; // ray2.food → motor.forward still reaches it
+  const hash = l.hash();
+  assert.throws(() => l.record(died(motor)), /still has synapses/);
+  assert.equal(l.hash(), hash);
 });

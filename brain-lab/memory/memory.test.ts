@@ -70,7 +70,8 @@ test("dependencies: the memory reads only the world's public types (no ledger, n
     const imports = [...readFileSync(join(HERE, f), "utf8").matchAll(/from\s+["']([^"']+)["']/g)].map((m) => m[1]!);
     for (const i of imports) assert.match(i, /^(\.\/[\w-]+\.ts|\.\.\/world\/index\.ts)$/, `${f} imports ${i}`);
   }
-  for (const dir of ["../world", "../sensorimotor", "../brain-ir", "../registry", "../neuromodulation", "../regions", "../development", "../learning", "../baselines"]) {
+  // learning/ may import the memory since A2: the growth of memory neurons is learning (TASARIM-008 K4) and reads the pose.
+  for (const dir of ["../world", "../sensorimotor", "../brain-ir", "../registry", "../neuromodulation", "../regions", "../development", "../baselines"]) {
     for (const f of readdirSync(join(HERE, dir)).filter((n) => n.endsWith(".ts"))) {
       assert.doesNotMatch(readFileSync(join(HERE, dir, f), "utf8"), /from\s+["'][^"']*\/memory\/[^"']*["']/, `${dir}/${f} imports the memory`);
     }

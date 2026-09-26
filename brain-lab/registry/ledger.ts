@@ -7,7 +7,7 @@
 // made outside the ledger breaks the chain and is caught.
 "use strict";
 
-import type { BrainBaglantisi, BrainDugumu, BrainGrafi } from "../brain-ir/ir.ts";
+import type { BrainBaglantisi, BrainDugumu, BrainGrafi, MemoryRecord } from "../brain-ir/ir.ts";
 import { canonicalGraph, checkGraph, edgeKey, graphHash } from "./graph.ts";
 import { ledgerId, parseId } from "./ids.ts";
 import { stageIndex, type Stage } from "./subject.ts";
@@ -24,6 +24,10 @@ type EdgeRef = { readonly from: string; readonly to: string };
 export type LedgerEntry =
   | (Common & { readonly kind: "weight"; readonly edge: EdgeRef; readonly before: number; readonly after: number; readonly delta?: number; readonly eligibility?: number })
   | (Common & { readonly kind: "node+"; readonly node: BrainDugumu })
+  /** A neuron dies: `node` is the neuron as it was (checked), and no synapse may still touch it. */
+  | (Common & { readonly kind: "node-"; readonly node: BrainDugumu })
+  /** A memory neuron's record changes (TASARIM-008 §5): chained like weights, before must match. */
+  | (Common & { readonly kind: "memory"; readonly node: string; readonly before: MemoryRecord; readonly after: MemoryRecord })
   | (Common & { readonly kind: "edge+"; readonly edge: BrainBaglantisi })
   | (Common & { readonly kind: "edge-"; readonly edge: EdgeRef; readonly before: number })
   | (Common & { readonly kind: "param"; readonly node: string; readonly param: "threshold" | "decay"; readonly before: number | null; readonly after: number })
@@ -44,6 +48,22 @@ function checkWeight(e: LedgerEntry & { kind: "weight" }, c: BrainBaglantisi | u
   return c;
 }
 
+const MEMORY_KEYS = ["what", "x", "y", "strength", "updated", "sightings", "born", "confirmed"] as const;
+const sameRecord = (a: MemoryRecord | undefined, b: MemoryRecord | undefined): boolean =>
+  a === b || (a !== undefined && b !== undefined && MEMORY_KEYS.every((k) => a[k] === b[k]));
+const NODE_KEYS = ["id", "type", "decay", "threshold", "activation"] as const;
+const sameNode = (a: BrainDugumu, b: BrainDugumu): boolean => NODE_KEYS.every((k) => a[k] === b[k]) && sameRecord(a.memory, b.memory);
+
+/** Why a memory record is not a valid one, or null if it is. */
+function badRecord(r: MemoryRecord): string | null {
+  if (r.what !== "food") return `remembers ${String(r.what)}`;
+  for (const k of ["x", "y"] as const) if (!Number.isFinite(r[k])) return `${k}=${r[k]}`;
+  if (!(r.strength >= 0 && r.strength <= 1)) return `strength=${r.strength}`;
+  for (const k of ["updated", "born", "confirmed"] as const) if (!Number.isInteger(r[k]) || r[k] < 0) return `${k}=${r[k]}`;
+  if (!Number.isInteger(r.sightings) || r.sightings < 1) return `sightings=${r.sightings}`;
+  return null;
+}
+
 /** Applies one entry to a graph, returning a new graph. Throws if the entry does not fit. */
 export function applyEntry(g: BrainGrafi, e: LedgerEntry): BrainGrafi {
   const next: BrainGrafi = { ...g, nodes: g.nodes.map((n) => ({ ...n })), connections: g.connections.map((c) => ({ ...c })) };
@@ -54,10 +74,31 @@ export function applyEntry(g: BrainGrafi, e: LedgerEntry): BrainGrafi {
       checkWeight(e, find(e.edge)).weight = e.after;
       break;
     }
-    case "node+":
+    case "node+": {
       if (next.nodes.some((n) => n.id === e.node.id)) fail(`node ${e.node.id} already exists`);
+      // A memory neuron carries a valid record; no other neuron carries one.
+      if ((e.node.type === "memory") !== (e.node.memory !== undefined)) fail(`node ${e.node.id} is ${e.node.type} ${e.node.memory ? "with" : "without"} a memory record`);
+      const why = e.node.memory ? badRecord(e.node.memory) : null;
+      if (why) fail(`node ${e.node.id} memory ${why}`);
       next.nodes.push({ ...e.node });
       break;
+    }
+    case "node-": {
+      const n = next.nodes.find((x) => x.id === e.node.id) ?? fail(`no node ${e.node.id}`);
+      if (!sameNode(n, e.node)) fail(`node ${e.node.id} is not as the entry says it was`);
+      if (next.connections.some((c) => c.from === n.id || c.to === n.id)) fail(`node ${n.id} still has synapses`);
+      next.nodes = next.nodes.filter((x) => x !== n);
+      break;
+    }
+    case "memory": {
+      const n = next.nodes.find((x) => x.id === e.node) ?? fail(`no node ${e.node}`);
+      if (n.type !== "memory") fail(`node ${e.node} is ${n.type}, not a memory neuron`);
+      if (!sameRecord(n.memory, e.before)) fail(`node ${e.node} does not remember what the entry says it did before`);
+      const why = badRecord(e.after);
+      if (why) fail(`node ${e.node} memory ${why}`);
+      n.memory = { ...e.after };
+      break;
+    }
     case "edge+":
       if (find(e.edge)) fail(`edge ${edgeKey(e.edge)} already exists`);
       next.connections.push({ ...e.edge });

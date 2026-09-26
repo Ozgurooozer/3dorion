@@ -20,11 +20,12 @@ const COLUMN_COLOR: Record<Column, string> = {
   "bg.nogo": COLOR.inhibit,
   "bg.out": COLOR.inner,
   motor: COLOR.motor,
+  mem: COLOR.memory,
   inner: COLOR.inner,
 };
 
 const COLUMN_TITLE: Partial<Record<Column, string>> = {
-  kc: "ARA KATMAN", lat: "SOL/SAĞ", hyp: "DÜRTÜ", noise: "GÜRÜLTÜ", cpg: "ÜRETEÇ", "bg.go": "GİT", "bg.nogo": "GİTME", "bg.out": "SEÇİM",
+  kc: "ARA KATMAN", lat: "SOL/SAĞ", hyp: "DÜRTÜ", noise: "GÜRÜLTÜ", cpg: "ÜRETEÇ", "bg.go": "GİT", "bg.nogo": "GİTME", "bg.out": "SEÇİM", mem: "HAFIZA",
 };
 
 export function drawBrain(

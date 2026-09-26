@@ -1,6 +1,7 @@
 // brain-lab/learning/agent.ts — one living subject: body senses → dopamine → learning → brain → action.
 //
 // Order inside a tick (the order is the science):
+//   0. the growing memory, when switched on, hears the senses first: pose, then memory neurons (TASARIM-008)
 //   1. dopamine feels the last transition (δ — from the stateless expectation, or from the critic)
 //   2. δ meets eligibility → weights change (on the record)
 //   3. the brain steps with its new weights → an action
@@ -17,9 +18,11 @@ import type { Ledger, LedgerEntry } from "../registry/index.ts";
 import { ACTIONS, regionOf } from "../regions/index.ts";
 import { brainController, encodeObservation, type BrainController } from "../sensorimotor/index.ts";
 import type { EpisodeHooks, Observation, Policy, WorldConfig } from "../world/index.ts";
+import { MemoryCore, PoseModule, type PoseParams } from "../memory/index.ts";
 import { Compartments, type CompartmentSpec } from "./compartments.ts";
 import { Critic, type CriticParams } from "./critic.ts";
 import { CueMemory, type CueParams } from "./cue-memory.ts";
+import { FoodMemory, type GrowthParams } from "./growth.ts";
 import { Learner, type LearningParams } from "./learner.ts";
 import { CompetitiveSelector, type Choice, type SelectionParams } from "./selection.ts";
 import { teacherDeltas, type TeacherSpec } from "./teacher.ts";
@@ -31,6 +34,8 @@ export interface Agent {
   readonly critic: Critic | null;
   /** The cue memory (TASARIM-006), or null when switched off. */
   readonly cue: CueMemory | null;
+  /** The growing memory (TASARIM-008): the pose and the food memory neurons, or null when switched off. */
+  readonly memory: { readonly core: MemoryCore; readonly pose: PoseModule; readonly food: FoodMemory } | null;
   readonly compartments: Compartments | null;
   readonly dopamine: DopamineChannel;
   readonly controller: BrainController;
@@ -94,6 +99,12 @@ export interface AgentSpec {
    * the change of that value is added to the δ that teaches Go/NoGo. null/absent = off (bit-identical brain).
    */
   readonly cue?: Partial<CueParams> | null;
+  /**
+   * The growing memory (TASARIM-008, A2): the pose (memory/pose.ts) and food memory neurons grown in the brain graph,
+   * every change on the ledger (growth.ts). It grows even when learning is frozen: forming memories is the core's job,
+   * not reflex learning. Nothing reads the memories yet, so behaviour does not change. null/absent = off.
+   */
+  readonly memory?: { readonly pose?: Partial<PoseParams>; readonly food?: Partial<GrowthParams> } | null;
 }
 
 export function createAgent(spec: AgentSpec): Agent {
@@ -107,6 +118,12 @@ export function createAgent(spec: AgentSpec): Agent {
   if (compartments && spec.rpeNormalization) throw new Error("rpeNormalization is not defined for compartments");
   const cue = spec.cue ? new CueMemory(spec.ledger, spec.cfg, spec.cue) : null;
   if (cue && compartments) throw new Error("the cue memory is not defined for compartments (it shapes the one global δ)");
+  // The growing memory (TASARIM-008): it grows in the live graph in step with the ledger, and reads only the senses.
+  let memory: Agent["memory"] = null;
+  if (spec.memory) {
+    const pose = new PoseModule(spec.cfg, spec.memory.pose);
+    memory = { core: new MemoryCore([pose]), pose, food: new FoodMemory(spec.ledger, graph, spec.cfg, spec.memory.food) };
+  }
   const teacher = spec.teacher ?? null;
   const selector = spec.selection ? new CompetitiveSelector(graph, spec.noiseSeed, spec.selection) : null;
   const frozen = learner.params.frozen;
@@ -179,6 +196,10 @@ export function createAgent(spec: AgentSpec): Agent {
   const policy: Policy = (obs, t) => {
     tick = t;
     if (t === 0 && spec.ledger.stage === "E0") stage("E1", "first tick lived");
+    if (memory) { // 0: the memory hears the senses first; it grows, it does not act
+      memory.core.observe(obs, t);
+      writes.push(...memory.food.step(obs, memory.pose.pose, t, episode));
+    }
     const signal = dopamine.observe(obs, t); // 1
     teach(obs, signal.outcome, signal.delta, t, false, ["dopamine"]); // 2
     previousObs = obs;
@@ -212,6 +233,7 @@ export function createAgent(spec: AgentSpec): Agent {
     learner,
     critic,
     cue,
+    memory,
     compartments,
     dopamine,
     controller,
@@ -227,6 +249,10 @@ export function createAgent(spec: AgentSpec): Agent {
       critic?.resetPending();
       compartments?.resetPending();
       cue?.resetEpisode();
+      if (memory) { // a new room: the pose starts again and the last room's place memories die (K6)
+        memory.core.reset();
+        writes.push(...memory.food.newRoom(0, n));
+      }
     },
     finishEpisode(t: number) {
       writes.push(...learner.endEpisode(t));
