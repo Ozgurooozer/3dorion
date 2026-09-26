@@ -1406,6 +1406,73 @@ sanıldığından önemli olduğunu gösterdi. Öngörüler değiştirilmedi.
    yok.
 2. Olduğu gibi A2'ye geçip konumu haritayla düzeltmek.
 
+## 2026-09-26 — A1b teşhisi: temastaki hatanın ne kadarı nereden geliyor?
+
+Ozyn "önce temas hesabı" dedi. Themis'e göre önce teşhis yapıldı; araç bir karalama betiğiydi, repoya girmedi.
+- **Nasıl:** Konum hesabının bir kopyası kullanıldı. Kopya, temas tiklerinde odanın gerçeğini okuyordu (etiketli
+  fikstür; bir beyin bunu asla bilemez).
+- **Kopya kontrolü:** Kopya gerçeği okumadığında `PoseModule` ile birebir aynı sonucu veriyor (fark 0).
+
+`[ÖLÇÜLDÜ]` Kıt oda, seed 1–10 × 10 oda:
+
+| beden | temas tiki / hayat | temasa giriş / hayat | son hata: V2 | temasta gerçek kayma | gerçek kayma + gerçek hareket |
+|---|---|---|---|---|---|
+| kör | 113 | 6 | 0,78 m | 0,11 m | 0,00 m |
+| merkez | 303 | 18 | 1,34 m | 0,15 m | 0,00 m |
+| arayıcı | 254 | 20 | 1,42 m | 0,15 m | 0,00 m |
+
+- **Hatanın %86–89'u duvar boyunca kaymanın yönünden geliyor.** Duvarın yönü bilinirse bu kısım çözülür; ışınlar
+  temas anında duvarı görüyor.
+- **Geri kalan ~0,15 m çarpma tikinden geliyor:** o tikte beden duvara kadar kısa bir yol alıyor.
+- Temas uzun sürüyor: beden bir hayatta 6–20 kez duvara giriyor ama 113–303 tik duvarda kalıyor (duvar boyunca
+  itiyor).
+
+## 2026-09-26 — Ozyn'in hafıza modeli: "hafıza demek yeni nöronlar, sinapslar demek"
+
+A1b teşhisi bittiği anda Ozyn araya girdi. Sözleri:
+
+> "Hafıza demek yeni nöronlar, sinapslar demek; doğru anlıyoruz birbirimizi, di mi? Yani yapı giderek evrimleşecek.
+> Bak şöyle düşün: ana bir bölge var, bu kurallar hiç değişmiyor. Etrafında diğer bölgeler gelişiyor; ana bölgeye
+> uygunsa giderek yeni kurallar ekleniyor. Biz her şeyi böyle tasarlıyoruz. Hafıza bunun temeli olmalı. Hafızadan
+> geçip geçmeyeceğinin kapısına giren bilgi geçmezse refleks, geçerse bilgi ihtiyacı için geçer. Bu çok basit bir bilgi
+> de olabilir, tüm hafızayı da tarayabilir. Tamamen evrimleşmenin gidişine bağlı çıkacak harita. Anladık mı birbirimizi,
+> yoksa sen farklı mı tasarladın?"
+
+**Claude'un cevabı: üst düzeyde aynı, temelde farklı.** Aynı olanlar:
+- sabit çekirdek kuralları;
+- refleks ile düşünme arasında bir kapı;
+- işe yarayan kararın reflekse dönüşmesi;
+- basitten karmaşığa ilerleme.
+
+Farklı olanlar:
+
+| | Ozyn'in modeli | TASARIM-007 ve A1 |
+|---|---|---|
+| hafıza nedir | büyüyen nöronlar ve sinapslar | beyin ağının dışında hesap modülleri ve veri yapıları (konum hesabı, 40×40 ızgara) |
+| etraftaki bölgeler | kendiliğinden gelişir, çekirdeğe uyan kalır | biz tasarlıyoruz (H1–H6) |
+| kapı | bilginin hafızaya girip girmeyeceğine karar verir | refleks her zaman karar verir, emin değilse Bob'a sorar |
+| yeni kural | yeni sinaps | var olan bağlantının ağırlık değişimi |
+| harita | büyümenin sonucu | çizilmiş ızgara |
+
+**Ozyn'in iki kararı:**
+- **Ana bölge doğuştan çekirdektir:** duyular, dürtü (açlık, acı), dopamin, konum hesabı, kapı ve büyüme kuralları. Bu
+  kurallar hiç değişmez; hafıza nöronları ve yeni kurallar bunun etrafında büyür.
+- **Sıra:** Önce tasarım (TASARIM-008 "Büyüyen hafıza", toplantı, onay), A1b sonra.
+
+**Claude'un notları:**
+- **Altyapının durumu:**
+  - Defterde "yeni nöron", "yeni sinaps" ve "sinaps silme" kayıtları (`node+`, `edge+`, `edge-`) Faz 1'den beri
+    var, yeniden oynatma testleri de var; ama beyin bunları hiç kullanmadı.
+  - Brain IR'da "memory" adında bir nöron türü de tanımlı, kullanılmıyor.
+  - Yollar tablosu, tabloda olmayan bağlantıyı reddediyor: "çekirdeğe uygunsa" şartının hazır bekçisi.
+  - Engel: simülatör ağı yalnız kurulurken bir kez dizinliyor.
+- **A1 çekirdekte kalır.** "Neredeyim" hayvanlarda da doğuştan gelen yön ve ızgara hücrelerinin anlık etkinliği,
+  hatıra değil. K2'nin "durum ≠ anı" kuralı buraya oturuyor: anlık durum etkinliktir, hatıra yapıdır.
+- **Emsaller:**
+  - ART (Carpenter ve Grossberg 1987): mevcut hiçbir bilgiye uymayan girdi yeni bir nöron açar, eski bilgi silinmez.
+  - Kapı için Daw, Niv ve Dayan (2005): belirsizliğe göre alışkanlıkla plan arasında seçim.
+  - Hipokampus: yeni odada yer hücreleri yeniden haritalanır.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
