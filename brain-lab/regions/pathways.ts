@@ -98,6 +98,12 @@ const ROWS: Pathway[] = [
     id: "P17", from: "lat", to: "bg.nogo", actions: "any", learns: true, sign: "positive",
     why: "Learning which side-difference suppresses which action.",
   },
+  // Recalled senses (TASARIM-008 §7, §16; meeting 2026-09-26-a3-kural-dogumu K1, K4). A rule synapse from a recalled sense
+  // to an action's Go is born when it first earns a quantum, or exists from birth in the innate control (D).
+  {
+    id: "P18", from: "rec", to: "bg.go", actions: "any", learns: true, sign: "positive",
+    why: "A recalled food may come to favour any action, like a seen one (Go only, §7): the rule grows from what worked.",
+  },
 ];
 
 export const PATHWAYS: readonly Pathway[] = Object.freeze(ROWS);

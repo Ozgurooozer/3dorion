@@ -57,6 +57,8 @@ export function nodeLabel(id: string): string {
   }
   const m = /^ray(\d+)\.(\w+)$/.exec(id);
   if (m) return `ışın${m[1]} ${RAY_KIND_TR[m[2]!] ?? m[2]}`;
+  const r = /^rec(\d+)\.food$/.exec(id); // recalled senses (A3): the ray angle a remembered food falls on
+  if (r) return `hatırlanan${r[1]} yemek`;
   return id;
 }
 

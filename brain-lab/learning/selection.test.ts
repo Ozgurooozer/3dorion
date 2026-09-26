@@ -156,3 +156,23 @@ for (const a of ACTIONS) {
     for (const b of ACTIONS) assert.equal(out[`bg.out.${b}`], b === a ? 1 : 0);
   });
 }
+
+// --- recalled senses (TASARIM-008 §16, A3) -----------------------------------------------------------------------------
+
+test("a recalled sense's rule synapse counts like a sense's: its value times its weight", () => {
+  const g = bornGraph(C, { seed: 1, group: "reflexless", recall: { rules: "innate", maxInitial: 0 } });
+  setWeight(g, "rec4.food", "bg.go.left", 2);
+  const s = new CompetitiveSelector(g, 1, quiet);
+  const base = s.values(senses()).left;
+  assert.ok(Math.abs(s.values(senses({ "rec4.food": 0.3 })).left - base - 0.6) < 1e-12);
+});
+
+test("refresh: a synapse born in the live graph after construction counts only once the selector re-reads the graph", () => {
+  const g = bornGraph(C, { seed: 1, group: "reflexless", recall: { rules: "grown" } });
+  const s = new CompetitiveSelector(g, 1, quiet);
+  const before = s.values(senses({ "rec2.food": 1 })).forward;
+  g.connections.push({ from: "rec2.food", to: "bg.go.forward", weight: 0.5 });
+  assert.equal(s.values(senses({ "rec2.food": 1 })).forward, before, "not seen before refresh()");
+  s.refresh();
+  assert.ok(Math.abs(s.values(senses({ "rec2.food": 1 })).forward - before - 0.5) < 1e-12, "seen after refresh()");
+});

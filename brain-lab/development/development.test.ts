@@ -423,3 +423,62 @@ test("generatorToGo 0.3: a hungry newborn still moves", () => {
   }
   assert.ok(moved >= 8, `only ${moved}/10 moved`);
 });
+
+// --- recalled senses (TASARIM-008 §16, A3) -----------------------------------------------------------------------------
+
+const recNodes = (g: ReturnType<typeof bornGraph>) => g.nodes.filter((n) => n.id.startsWith("rec"));
+const recEdges = (g: ReturnType<typeof bornGraph>) => g.connections.filter((e) => e.from.startsWith("rec"));
+
+test("recall null or absent: the newborn is exactly the plain one", () => {
+  assert.deepEqual(bornGraph(C, { seed: 3, group: "reflexless", recall: null }), bornGraph(C, { seed: 3, group: "reflexless" }));
+});
+
+test("recall grown (B): one sensor node per ray angle, after every other node, and no rule synapse at birth", () => {
+  const plain = bornGraph(C, { seed: 3, group: "reflexive" });
+  const grown = bornGraph(C, { seed: 3, group: "reflexive", recall: { rules: "grown" } });
+  assert.deepEqual(recNodes(grown), C.rayAngles.map((_, i) => ({ id: `rec${i}.food`, type: "sensor" })));
+  assert.deepEqual(grown.nodes.slice(0, plain.nodes.length), plain.nodes, "every other node as the plain newborn, in its order");
+  assert.equal(recEdges(grown).length, 0);
+  assert.deepEqual(grown.connections, plain.connections, "every edge as the plain newborn");
+});
+
+test("recall innate (D): every rec → Go synapse, weak and random in [0, 0.05], after every other edge", () => {
+  const plain = bornGraph(C, { seed: 3, group: "reflexive" });
+  const innate = bornGraph(C, { seed: 3, group: "reflexive", recall: { rules: "innate" } });
+  const rules = recEdges(innate);
+  assert.deepEqual(rules.map((e) => `${e.from}->${e.to}`), C.rayAngles.flatMap((_, i) => ACTIONS.map((a) => `rec${i}.food->bg.go.${a}`)));
+  assert.ok(rules.every((e) => e.weight >= 0 && e.weight <= DEFAULT_MAX_INITIAL), "weak");
+  assert.ok(new Set(rules.map((e) => e.weight)).size > 1, "random, not one value");
+  assert.ok(rules.every((e) => isPlastic(e) && pathwayOf(e)?.id === "P18"), "on the rule pathway, learning");
+  assert.deepEqual(innate.connections.slice(0, plain.connections.length), plain.connections, "the rest is the plain newborn (own random stream)");
+});
+
+test("recall innate: the rule synapses' weights are their own draws, not a copy of the first learning weights", () => {
+  const plain = bornGraph(C, { seed: 3, group: "reflexless" });
+  const firstLearning = plain.connections.filter((e) => isPlastic(e)).slice(0, 20).map((e) => e.weight);
+  const rules = recEdges(bornGraph(C, { seed: 3, group: "reflexless", recall: { rules: "innate" } })).map((e) => e.weight);
+  assert.equal(rules.length, 20);
+  assert.notDeepEqual(rules, firstLearning);
+});
+
+test("recall innate with maxInitial 0: every rule synapse is born at 0", () => {
+  assert.ok(recEdges(bornGraph(C, { seed: 3, group: "reflexless", recall: { rules: "innate", maxInitial: 0 } })).every((e) => e.weight === 0));
+});
+
+test("recall innate: deterministic per seed, different across seeds", () => {
+  const w = (seed: number) => recEdges(bornGraph(C, { seed, group: "reflexless", recall: { rules: "innate" } })).map((e) => e.weight);
+  assert.deepEqual(w(4), w(4));
+  assert.notDeepEqual(w(4), w(5));
+});
+
+test("recall: the graph's name says how the rule synapses come to be", () => {
+  assert.match(bornGraph(C, { seed: 3, group: "reflexless", recall: { rules: "grown" } }).name ?? "", /-recall-grown$/);
+  assert.match(bornGraph(C, { seed: 3, group: "reflexless", recall: { rules: "innate" } }).name ?? "", /-recall-innate$/);
+  assert.match(bornGraph(C, { seed: 3, group: "reflexless", recall: { rules: "innate", maxInitial: 0 } }).name ?? "", /-recall-innate0$/);
+});
+
+test("recall: unknown rules, birth weights for grown synapses, or weights that could select alone are refused", () => {
+  assert.throws(() => bornGraph(C, { seed: 1, group: "reflexless", recall: { rules: "sometimes" as "grown" } }), RangeError);
+  assert.throws(() => bornGraph(C, { seed: 1, group: "reflexless", recall: { rules: "grown", maxInitial: 0.05 } }), RangeError);
+  for (const m of [-0.01, 0.6]) assert.throws(() => bornGraph(C, { seed: 1, group: "reflexless", recall: { rules: "innate", maxInitial: m } }), RangeError, String(m));
+});

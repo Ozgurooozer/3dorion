@@ -115,7 +115,7 @@ test("forbidden: crossed actions, wrong pairs, goal-shaped shortcuts, wrong sign
   assert.throws(() => checkPathways({ nodes: mistyped, connections: [] }), /cpg\.left is neuron, region cpg needs decision/);
 });
 
-test("plasticity: only edges into selection (from senses, the expansion layer or the side comparison) learn; every innate pathway is fixed", () => {
+test("plasticity: only edges into selection (from senses, the expansion layer, the side comparison or recalled senses) learn; every innate pathway is fixed", () => {
   assert.equal(isPlastic({ from: "ray0.food", to: "bg.go.left" }), true);
   assert.equal(isPlastic({ from: "proprio.forward", to: "bg.nogo.back" }), true);
   assert.equal(isPlastic({ from: "kc.7", to: "bg.go.right" }), true);
@@ -123,8 +123,18 @@ test("plasticity: only edges into selection (from senses, the expansion layer or
   assert.equal(isPlastic({ from: "ray0.food", to: "kc.7" }), false, "the expansion itself is innate");
   assert.equal(isPlastic({ from: "lat.food.left", to: "bg.go.left" }), true);
   assert.equal(isPlastic({ from: "ray4.food", to: "lat.food.left" }), false, "the side comparison itself is innate");
+  assert.equal(isPlastic({ from: "rec3.food", to: "bg.go.left" }), true, "a recalled sense's rule synapse learns (P18)");
   for (const [from, to] of [["intero.hunger", "hyp.hunger"], ["hyp.hunger", "cpg.left"], ["cpg.left", "bg.go.left"], ["bg.out.left", "motor.left"], ["ray0.food", "motor.left"]]) {
     assert.equal(isPlastic({ from: from!, to: to! }), false, `${from}->${to}`);
   }
-  assert.deepEqual(PATHWAYS.filter((p) => p.learns).map((p) => p.id), ["P1", "P2", "P13", "P14", "P16", "P17"]);
+  assert.deepEqual(PATHWAYS.filter((p) => p.learns).map((p) => p.id), ["P1", "P2", "P13", "P14", "P16", "P17", "P18"]);
+});
+
+test("recalled senses: their only pathway is to Go (§7); to NoGo, to a motor or from a memory neuron there is none", () => {
+  assert.equal(regionOf("rec0.food")?.region, "rec");
+  assert.equal(regionOf("rec2.wall"), null, "only food is recalled so far; a new kind is a design decision");
+  assert.equal(pathwayOf({ from: "rec2.food", to: "bg.go.forward" })?.id, "P18");
+  for (const [from, to] of [["rec2.food", "bg.nogo.forward"], ["rec2.food", "motor.forward"], ["mem.food.1", "rec2.food"], ["ray2.food", "rec2.food"]]) {
+    assert.equal(pathwayOf({ from: from!, to: to! }), null, `${from}->${to}`);
+  }
 });

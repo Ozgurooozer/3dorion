@@ -84,6 +84,22 @@ test("layout: grown memory neurons get their own column, one place each, none ov
   for (const p of placed) for (const q of others) assert.ok(Math.hypot(p.x - q.x, p.y - q.y) >= 18, "a memory neuron overlaps another node");
 });
 
+test("layout: recalled senses get their own column beside the memory, in ray order, none overlapping", () => {
+  const base = PRESETS[0]!.graph(C, 1);
+  const rec = C.rayAngles.map((_, i) => ({ id: `rec${i}.food`, type: "sensor" as const }));
+  const pos = layoutBrain({ ...base, nodes: [...base.nodes, ...rec] }, C, 620, 620, 30);
+  const placed = rec.map((n) => pos.get(n.id)!);
+  assert.ok(placed.every((p) => p.column === "rec"), "every recalled sense is in the recalled column");
+  for (let i = 1; i < placed.length; i++) assert.ok(placed[i]!.y - placed[i - 1]!.y >= 18, `recalled senses ${i - 1} and ${i} overlap or are out of order`);
+  const others = base.nodes.map((n) => pos.get(n.id)!);
+  for (const p of placed) for (const q of others) assert.ok(Math.hypot(p.x - q.x, p.y - q.y) >= 18, "a recalled sense overlaps another node");
+});
+
+test("labels: a recalled sense reads as the ray angle it stands for", () => {
+  assert.equal(nodeLabel("rec0.food"), "hatırlanan0 yemek");
+  assert.equal(nodeLabel("rec4.food"), "hatırlanan4 yemek");
+});
+
 test("labels: every node of every preset has a Turkish label", () => {
   for (const p of PRESETS) for (const n of p.graph(C, 1).nodes) assert.notEqual(nodeLabel(n.id), n.id, `${p.id}: ${n.id}`);
 });

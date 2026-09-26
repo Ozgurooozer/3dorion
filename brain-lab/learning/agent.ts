@@ -2,6 +2,8 @@
 //
 // Order inside a tick (the order is the science):
 //   0. the growing memory, when switched on, hears the senses first: pose, then memory neurons (TASARIM-008)
+//      with recall on (A3), the core then opens or closes the gate and writes the recalled senses (recall.ts),
+//      read by selection and eligibility in steps 3–4 like any sense
 //   1. dopamine feels the last transition (δ — from the stateless expectation, or from the critic)
 //   2. δ meets eligibility → weights change (on the record)
 //   3. the brain steps with its new weights → an action
@@ -24,6 +26,7 @@ import { Critic, type CriticParams } from "./critic.ts";
 import { CueMemory, type CueParams } from "./cue-memory.ts";
 import { FoodMemory, type GrowthParams } from "./growth.ts";
 import { Learner, type LearningParams } from "./learner.ts";
+import { DEFAULT_RECALL, gateOpen, recallFood, recalledSenses, type RecallParams, type Recalled } from "./recall.ts";
 import { CompetitiveSelector, type Choice, type SelectionParams } from "./selection.ts";
 import { teacherDeltas, type TeacherSpec } from "./teacher.ts";
 
@@ -36,6 +39,8 @@ export interface Agent {
   readonly cue: CueMemory | null;
   /** The growing memory (TASARIM-008): the pose and the food memory neurons, or null when switched off. */
   readonly memory: { readonly core: MemoryCore; readonly pose: PoseModule; readonly food: FoodMemory } | null;
+  /** With recall on (A3): whether the gate was open on the last tick and what it recalled; null when recall is off or no tick of this room was lived yet. */
+  readonly lastRecall: { readonly open: boolean; readonly recalled: Recalled | null } | null;
   readonly compartments: Compartments | null;
   readonly dopamine: DopamineChannel;
   readonly controller: BrainController;
@@ -102,9 +107,12 @@ export interface AgentSpec {
   /**
    * The growing memory (TASARIM-008, A2): the pose (memory/pose.ts) and food memory neurons grown in the brain graph,
    * every change on the ledger (growth.ts). It grows even when learning is frozen: forming memories is the core's job,
-   * not reflex learning. Nothing reads the memories yet, so behaviour does not change. null/absent = off.
+   * not reflex learning. null/absent = off.
+   * `recall` (A3, TASARIM-008 §16): while the gate is open the core recalls one food memory into the recalled senses
+   * (recall.ts). They act only through rule synapses (P18: rec → Go); a brain without any behaves as before. Needs
+   * competitive selection, which reads senses directly; the graph brain has no input for them.
    */
-  readonly memory?: { readonly pose?: Partial<PoseParams>; readonly food?: Partial<GrowthParams> } | null;
+  readonly memory?: { readonly pose?: Partial<PoseParams>; readonly food?: Partial<GrowthParams>; readonly recall?: Partial<RecallParams> | null } | null;
 }
 
 export function createAgent(spec: AgentSpec): Agent {
@@ -126,6 +134,10 @@ export function createAgent(spec: AgentSpec): Agent {
   }
   const teacher = spec.teacher ?? null;
   const selector = spec.selection ? new CompetitiveSelector(graph, spec.noiseSeed, spec.selection) : null;
+  const recall: RecallParams | null = spec.memory?.recall ? { ...DEFAULT_RECALL, ...spec.memory.recall } : null;
+  if (recall && !(recall.hunger >= 0 && recall.hunger <= 1)) throw new RangeError(`recall gate hunger ${recall.hunger} outside [0, 1]`);
+  if (recall && !selector) throw new Error("the recalled senses are read by competitive selection; the graph brain has no input for them");
+  let lastRecall: Agent["lastRecall"] = null;
   const frozen = learner.params.frozen;
   const dopamine = new DopamineChannel(spec.deathOutcome === undefined ? {} : { deathOutcome: spec.deathOutcome });
   const noise = new NoiseGenerator(spec.noiseSeed);
@@ -205,6 +217,13 @@ export function createAgent(spec: AgentSpec): Agent {
     previousObs = obs;
     if (selector) {
       const senses = encodeObservation(obs, spec.cfg) as Record<string, number>;
+      if (recall) { // 0b: the core's recall, working memory: never on the ledger
+        const open = gateOpen(obs, recall.hunger);
+        const food = memory!.food;
+        const recalled = open ? recallFood(food.live, memory!.pose.pose, (m) => food.strengthAt(m, t), spec.cfg) : null;
+        Object.assign(senses, recalledSenses(recalled, spec.cfg));
+        lastRecall = { open, recalled };
+      }
       const choice = selector.choose(senses); // 3
       lastChoice = choice;
       learner.updateEligibilityDirect(senses, choice.selected); // 4
@@ -240,6 +259,7 @@ export function createAgent(spec: AgentSpec): Agent {
     graph,
     get lastDelta() { return lastDelta; },
     get lastChoice() { return lastChoice; },
+    get lastRecall() { return lastRecall; },
     selector,
     startEpisode(n: number) {
       episode = n;
@@ -253,6 +273,7 @@ export function createAgent(spec: AgentSpec): Agent {
         memory.core.reset();
         writes.push(...memory.food.newRoom(0, n));
       }
+      lastRecall = null;
     },
     finishEpisode(t: number) {
       writes.push(...learner.endEpisode(t));

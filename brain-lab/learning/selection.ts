@@ -17,6 +17,8 @@
 // The learned values are the ordinary Go/NoGo weights of the live graph (read by reference, so every
 // change the learner writes to the ledger is what the selector sees). Only sense → Go/NoGo weights
 // count: selection reads the senses directly, the graph's generators and lateral inhibition play no part.
+// Recalled senses (region rec, TASARIM-008 §16) are read the same way, from the values the core wrote for this tick;
+// when a rule synapse is born or pruned in life, refresh() re-reads the graph.
 "use strict";
 
 import type { BrainGrafi } from "../brain-ir/ir.ts";
@@ -60,7 +62,8 @@ interface Term { readonly edge: { readonly from: string; readonly weight: number
 
 export class CompetitiveSelector {
   readonly params: SelectionParams;
-  private readonly terms: ReadonlyMap<ActionName, readonly Term[]>;
+  private readonly graph: BrainGrafi;
+  private terms: ReadonlyMap<ActionName, readonly Term[]>;
   private readonly noise: NoiseGenerator;
   private readonly rng: Rng;
 
@@ -71,17 +74,30 @@ export class CompetitiveSelector {
     if (!(p.explore >= 0 && p.explore <= 1) || !(p.noiseGain >= 0) || !Number.isFinite(p.restBias) || !(p.vigor >= 0)) {
       throw new RangeError(`bad selection params ${JSON.stringify(p)}`);
     }
+    this.graph = graph;
+    this.terms = CompetitiveSelector.read(graph);
+    this.noise = new NoiseGenerator(seed);
+    this.rng = new Rng(seed * 7 + 3);
+  }
+
+  /** The learning edges of the graph, by the action they feed; only senses and recalled senses may feed selection. */
+  private static read(graph: BrainGrafi): ReadonlyMap<ActionName, readonly Term[]> {
     const terms = new Map<ActionName, Term[]>(ACTIONS.map((a) => [a, []]));
     for (const edge of graph.connections) {
       if (!isPlastic(edge)) continue;
       const from = regionOf(edge.from);
       const to = regionOf(edge.to)!;
-      if (from?.region !== "sense") throw new Error(`competitive selection reads senses directly; ${edge.from} → ${edge.to} comes from ${from?.region}`);
+      if (from?.region !== "sense" && from?.region !== "rec") {
+        throw new Error(`competitive selection reads senses directly; ${edge.from} → ${edge.to} comes from ${from?.region}`);
+      }
       terms.get(to.action!)!.push({ edge, sign: to.region === "bg.go" ? 1 : -1 });
     }
-    this.terms = terms;
-    this.noise = new NoiseGenerator(seed);
-    this.rng = new Rng(seed * 7 + 3);
+    return terms;
+  }
+
+  /** Re-reads the live graph's learning edges: call after a synapse was born or pruned (A3's rule growth). */
+  refresh(): void {
+    this.terms = CompetitiveSelector.read(this.graph);
   }
 
   /** The learned value of every action for these sense inputs (no drive, no noise). */

@@ -9,3 +9,4 @@ export { DEFAULT_GROWTH, FoodMemory, type GrowthParams, type LiveMemory } from "
 export { Compartments, type CompartmentMode, type CompartmentSpec } from "./compartments.ts";
 export { actionsOf, teacherDeltas, type TeacherSpec } from "./teacher.ts";
 export { AXES, CompetitiveSelector, DEFAULT_SELECTION, type Choice, type SelectionParams } from "./selection.ts";
+export { DEFAULT_RECALL, gateOpen, nearestRay, recallFood, recallNodeIds, recalledSenses, signedAngle, type RecallParams, type Recalled } from "./recall.ts";

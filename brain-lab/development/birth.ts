@@ -7,7 +7,7 @@
 "use strict";
 
 import type { BrainBaglantisi, BrainDugumu, BrainGrafi } from "../brain-ir/ir.ts";
-import { ACTIONS, HYP_NODES, OPPOSITE, REGION_TYPE, checkPathways, kcId, latId, nodeId } from "../regions/index.ts";
+import { ACTIONS, HYP_NODES, OPPOSITE, REGION_TYPE, checkPathways, kcId, latId, nodeId, recId } from "../regions/index.ts";
 import { MOTOR_NODE_IDS, RAY_KINDS, rayNodeId, sensorNodeIds } from "../sensorimotor/index.ts";
 import { Rng, type WorldConfig } from "../world/index.ts";
 
@@ -102,6 +102,21 @@ export interface BirthSpec {
    * longer overrides what has been learned. Must stay above 0 and at most the default.
    */
   readonly generatorToGo?: number;
+  /** Recalled senses (TASARIM-008 §16, A3): their nodes and, for the innate control, their rule synapses. */
+  readonly recall?: RecallBirth | null;
+}
+
+/**
+ * The recalled-sense nodes (region rec, one per ray angle) and how their rule synapses (P18: rec → Go) come to be
+ * (meeting 2026-09-26-a3-kural-dogumu K1, K2):
+ *   "grown"  (B): none at birth; each is born in life when it first earns a quantum (learner.ts)
+ *   "innate" (D): every rec → Go synapse from birth, weak and random in [0, maxInitial] like every learning pathway,
+ *            drawn from its own random stream, so the rest of the newborn is the same brain as B's
+ */
+export interface RecallBirth {
+  readonly rules: "grown" | "innate";
+  /** D's rule synapses start in [0, maxInitial] (default DEFAULT_MAX_INITIAL); 0 makes D the same brain as B. */
+  readonly maxInitial?: number;
 }
 
 /**
@@ -186,11 +201,14 @@ export function bornGraph(cfg: WorldConfig, spec: BirthSpec): BrainGrafi {
     });
   }
   if (spec.group === "reflexive") for (const r of INNATE_REFLEXES) add(r.from, r.to, r.weight);
+  const recall = spec.recall ?? null;
+  if (recall) wireRecall(recall, cfg, spec.seed, nodes, add);
 
   const tag = (orienting ? `-orient-${orienting.direction}-${orienting.strength}` : "")
     + (expansion ? `-kc${expansion.cells}x${expansion.inputs}t${expansion.threshold}` : "")
     + (spec.bilateral ? "-bilateral" : "")
-    + (generatorToGo !== INNATE.generatorToGo ? `-gen${generatorToGo}` : "");
+    + (generatorToGo !== INNATE.generatorToGo ? `-gen${generatorToGo}` : "")
+    + (recall ? `-recall-${recall.rules}${recall.rules === "innate" && (recall.maxInitial ?? DEFAULT_MAX_INITIAL) !== DEFAULT_MAX_INITIAL ? `${recall.maxInitial}` : ""}` : "");
   const graph: BrainGrafi = { name: `newborn-${spec.group}${tag}`, version: "2", nodes, connections: [...edges.values()] };
   checkPathways(graph); // a birth that breaks its own regions is a bug, not a variation
   return graph;
@@ -217,6 +235,22 @@ function wireExpansion(e: Expansion, senses: readonly string[], seed: number, no
     cells.push(id);
   }
   return cells;
+}
+
+/**
+ * Adds the recalled-sense nodes after every other node and, for the innate control, their rule synapses after every
+ * other edge, from their own random stream: the rest of the newborn does not depend on them.
+ */
+function wireRecall(r: RecallBirth, cfg: WorldConfig, seed: number, nodes: BrainDugumu[], add: (from: string, to: string, w: number) => void): void {
+  if (r.rules !== "grown" && r.rules !== "innate") throw new RangeError(`recall rules must be "grown" or "innate", got ${JSON.stringify(r.rules)}`);
+  const max = r.maxInitial ?? DEFAULT_MAX_INITIAL;
+  if (r.rules === "grown" && r.maxInitial !== undefined) throw new RangeError("grown rule synapses have no birth weights (maxInitial is for the innate control)");
+  if (!(max >= 0 && max < INNATE.generatorToGo)) throw new RangeError(`recall maxInitial ${max} would let a memory outweigh the generators at birth`);
+  const ids = cfg.rayAngles.map((_, i) => recId(i));
+  for (const id of ids) nodes.push({ id, type: REGION_TYPE.rec });
+  if (r.rules === "grown") return;
+  const rng = new Rng(seed * 7919 + 101);
+  for (const id of ids) for (const a of ACTIONS) add(id, nodeId("bg.go", a), rng.range(0, max));
 }
 
 /** Adds the bilateral comparison cells and their innate wiring; returns them (new learning sources). */

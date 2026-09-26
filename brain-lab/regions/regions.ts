@@ -11,7 +11,7 @@ export const OPPOSITE: Readonly<Record<ActionName, ActionName>> = Object.freeze(
   forward: "back", back: "forward", left: "right", right: "left",
 });
 
-export type Region = "sense" | "hyp" | "kc" | "lat" | "noise" | "cpg" | "bg.go" | "bg.nogo" | "bg.out" | "motor" | "mem";
+export type Region = "sense" | "hyp" | "kc" | "lat" | "noise" | "cpg" | "bg.go" | "bg.nogo" | "bg.out" | "motor" | "mem" | "rec";
 
 export interface NodeRegion {
   readonly region: Region;
@@ -32,6 +32,7 @@ export const REGION_TYPE: Readonly<Record<Region, DugumTuru>> = Object.freeze({
   "bg.out": "decision",
   motor: "motor",
   mem: "memory",
+  rec: "sensor",
 });
 
 export const HYP_NODES = Object.freeze(["hyp.hunger", "hyp.pain"] as const);
@@ -49,6 +50,13 @@ export const latId = (kind: string, side: "left" | "right"): string => `lat.${ki
  */
 const MEM = /^mem\.food\.\d+$/;
 export const memId = (n: number): string => `mem.food.${n}`;
+/**
+ * Recalled senses (TASARIM-008 §16, A3): one node per ray angle, carrying the recalled food like a ray carries a seen one.
+ * The core writes them each tick from the memory neurons and the pose (working memory, never on the ledger); the brain
+ * learns what to do with them.
+ */
+const REC = /^rec\d+\.food$/;
+export const recId = (ray: number): string => `rec${ray}.food`;
 const isAction = (s: string): s is ActionName => (ACTIONS as readonly string[]).includes(s);
 
 /** Region of a node id, or null if the id fits no region (such a node is not allowed). */
@@ -58,6 +66,7 @@ export function regionOf(id: string): NodeRegion | null {
   if (KC.test(id)) return { region: "kc" };
   if (LAT.test(id)) return { region: "lat" };
   if (MEM.test(id)) return { region: "mem" };
+  if (REC.test(id)) return { region: "rec" };
   const perAction: [RegExp, Region][] = [
     [/^cpg\.noise\.(\w+)$/, "noise"],
     [/^cpg\.(\w+)$/, "cpg"],
@@ -74,6 +83,6 @@ export function regionOf(id: string): NodeRegion | null {
 }
 
 /** Node id for a per-action region: nodeId("bg.go", "left") → "bg.go.left". */
-export function nodeId(region: Exclude<Region, "sense" | "hyp" | "kc" | "lat" | "mem">, action: ActionName): string {
+export function nodeId(region: Exclude<Region, "sense" | "hyp" | "kc" | "lat" | "mem" | "rec">, action: ActionName): string {
   return region === "noise" ? `cpg.noise.${action}` : `${region}.${action}`;
 }

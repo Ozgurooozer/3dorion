@@ -4,7 +4,7 @@
 "use strict";
 
 import { readFileSync } from "node:fs";
-import { bornGraph, type Expansion, type InnateGroup, type Orienting } from "../development/index.ts";
+import { bornGraph, type Expansion, type InnateGroup, type Orienting, type RecallBirth } from "../development/index.ts";
 import { createAgent, type AgentSpec } from "../learning/index.ts";
 import { episodeEvents, type Subject } from "../registry/index.ts";
 import type { EpisodeLine, RegistryStore, RunHeader } from "../registry/store.ts";
@@ -77,6 +77,8 @@ export interface BirthOptions {
   readonly expansion?: Expansion | null;
   readonly bilateral?: boolean;
   readonly generatorToGo?: number;
+  /** Recalled senses (TASARIM-008 §16, A3): the rec nodes, and the innate control's rule synapses. */
+  readonly recall?: RecallBirth | null;
 }
 
 /** Seeds from here up are test seeds: used once, only under a frozen pre-registration. */
@@ -95,7 +97,7 @@ export function assertSeedAllowed(seed: number, preregistration?: string | null)
 
 export function birth(store: RegistryStore, world: WorldConfig, seed: number, group: InnateGroup, codeCommit: string, born: BirthOptions = {}, lineage?: Subject["lineage"], preregistration?: string | null): Subject {
   assertSeedAllowed(seed, preregistration);
-  const birthGraph = bornGraph(world, { seed, group, orienting: born.orienting ?? null, expansion: born.expansion ?? null, bilateral: born.bilateral ?? false, generatorToGo: born.generatorToGo });
+  const birthGraph = bornGraph(world, { seed, group, orienting: born.orienting ?? null, expansion: born.expansion ?? null, bilateral: born.bilateral ?? false, generatorToGo: born.generatorToGo, recall: born.recall ?? null });
   return store.createSubject({ category: "learner.3f", group, seed, worldConfig: world, birthGraph, lineage, codeCommit });
 }
 
