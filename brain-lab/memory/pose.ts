@@ -34,8 +34,12 @@ export interface PoseParams {
   readonly contactNoise: number;
 }
 
-/** Provisional until the A1 measurement chooses the contact rule and measures the noise (LAB-DEFTERI, 2026-09-26). */
-export const DEFAULT_POSE: PoseParams = Object.freeze({ sideslip: true, contact: "keep", contactNoise: 1 });
+/**
+ * Measured in A1 (LAB-DEFTERI, 2026-09-26; experiments/pose-a1.ts), on the reference bodies, never on the K1n learners
+ * that set the gate: zeroing the sideways speed at contact left less error than keeping it (mean end-of-life error
+ * 1.18 m vs 1.75 m), and a contact noise of 2.76 makes σ match the error there (on K1n: error / σ = 0.73).
+ */
+export const DEFAULT_POSE: PoseParams = Object.freeze({ sideslip: true, contact: "zero", contactNoise: 2.76 });
 
 export interface Pose {
   /** Metres from where the room started, along the heading the body had then. */

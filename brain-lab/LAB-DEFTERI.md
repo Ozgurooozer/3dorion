@@ -1350,6 +1350,62 @@ gerçek konumdan ortalama 0,5 m'den az sapmayla bilebilir mi? Davranış değiş
     yok.
   - Düzeltmeyi A2'nin haritasına bırakmak.
 
+## 2026-09-26 — A1 sonucu: konum hafızası kapıyı sınırda geçti; kalan hatanın tamamı duvar temasından
+
+`[ÖLÇÜLDÜ]` Ölçüm kodu `3ffffbf`, hafıza `a13a1a9`. Salt okunur; kayıtta hiçbir şey değişmedi.
+
+**Açıklama:** Öngörüler yazıldıktan sonra, ölçümden önce küçük bir deneme koşuldu. Amacı test toleranslarını koymaktı;
+ortamı fikstür odalarıydı (1000 m'lik açık oda ve yemeksiz 10 m'lik oda, kör beden). Deneme, temas kuralının
+sanıldığından önemli olduğunu gösterdi. Öngörüler değiştirilmedi.
+
+**Adım 1 — referans bedenler** (kıt oda, seed 1–10 × 10 oda):
+
+| beden | ort. yaşam (tik) | temas/hayat | son hata V0 / V1 / V2 (m) | 3000 tikte, yaşayanlar: V0 / V1 / V2 (m) |
+|---|---|---|---|---|
+| kör | 1024 | 113 | 1,87 / 1,13 / 0,78 | 1 hayat: 4,24 / 0,71 / 0,34 |
+| merkez | 2804 | 303 | 4,03 / 2,01 / 1,34 | 81 hayat: 4,22 / 1,92 / 1,37 |
+| arayıcı | 2906 | 254 | 4,03 / 2,12 / 1,42 | 92 hayat: 4,16 / 2,16 / 1,46 |
+
+- **Seçilen temas kuralı: V2** (temasta yan hız sıfırlanır). Ortalama son hata: V1 1,75 m, V2 1,18 m.
+- **Ölçülen temas gürültüsü:** q = 2,76 (293 temaslı hayat). Varsayılan ayarlar buna çekildi (`DEFAULT_POSE`).
+
+**Adım 2 — K1n öğrenenleri** (10 denek × 10 kayıtlı oda; 100/100 hayat kayıttakiyle aynı, son dünya özetleri eşit):
+
+| denek | grup | 3000'e ulaşan hayat | temas/hayat | 3000 tikte V0 / V1 / V2 (m) |
+|---|---|---|---|---|
+| DNK-2778 | reflekssiz | 10 | 267 | 2,37 / 0,84 / 0,60 |
+| DNK-2783 | reflekssiz | 10 | 186 | 2,20 / 0,66 / 0,32 |
+| DNK-2781 | refleksli | 9 | 375 | 2,27 / 0,61 / 0,56 |
+| DNK-2784 | refleksli | 10 | 68 | 3,36 / 0,42 / 0,41 |
+| öteki 6 denek | | 0 | 0–196 | —; son hata V1 0,00–0,45 |
+
+- **Kapı** (3000 tiki yaşayan 39 hayat, ortalama < 0,5 m): V0 2,56 · V1 0,63 · **V2 0,47 m. Geçti, ama sınırda.**
+  - Pay %6.
+  - İki denek (2778, 2781) tek başına 0,5 m'nin üstünde.
+
+**Öngörü karnesi:**
+- (a) ✓ Yön hatası her hayatta, her tikte tam 0.
+- (b) ✓ Temassız 50 hayatta V1'in en büyük hatası 5,5e-14 m. V0 aynı hayatlarda 3,33 m'ye kadar sapıyor.
+- (c) ✓ V0 kapıda 2,56 m.
+- (d) ✓ V1'in hatası temassız hayatlarda 0. Temaslı hayatlarda temas sayısıyla artıyor (Spearman 0,49, orta güçte).
+- (e) ✓ V1 kapıdan kaldı (0,63 m). Büyüklüğü abarttım: ~1 m demiştim.
+- (f) ✗ Fark küçük değil: kapıda %26, referans bedenlerde %33. Temas kuralı önemli.
+- (g) ✓ 100/100 hayat aynı. Hafıza takılıyken eğitilen denek birebir aynı defteri yazıyor (test).
+- (h) ✓ Gerçek hata / σ = 0,73: güven dürüst, hatayı biraz büyük gösteriyor (güvenli yönde).
+
+**Yorum:**
+- Belgedeki formül (V0) kullanılsaydı beden 3000 tikte 2,6 m sapardı. 10 m'lik odada bu, "neredeyim" bilgisini
+  anlamsız kılar. Yana kayma modeli serbest harekette hatayı sıfıra indirdi.
+- Kalan hatanın tamamı duvar temasından geliyor. Kapı geçildi, ama yalnız K1n az hareket ettiği için. Çok hareket eden
+  bedenlerde (merkez, arayıcı) aynı model 3000 tikte 1,4 m sapıyor. A3'ten sonra beden daha çok hareket edecek; konum
+  hafızası bu haliyle yetmez.
+- TASARIM-007 §5'teki H1 formülü bu ölçümle düzeltildi. Düzeltme belgede, tarihiyle.
+
+**Sonraki adım, Ozyn'in kararı:**
+1. Temas anında, ışınların gördüğü duvar noktalarından duvarın yönünü çıkarıp kaymayı hesaplamak. Hâlâ H1, yeni duyu
+   yok.
+2. Olduğu gibi A2'ye geçip konumu haritayla düzeltmek.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.

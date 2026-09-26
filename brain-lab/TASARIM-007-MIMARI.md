@@ -98,10 +98,21 @@ x̂ ← x̂ + forward · maxSpeed · cos(θ̂) · dt
 
 - Başlangıç noktası (0, 0, 0) kabul edilir. Beden odanın gerçek koordinatlarını bilmez; kendi başlangıcına göre
   bir harita kurar.
-- Dünya belirlenimci ve hareket duyusu gerçek hıza eşit, bu yüzden sapma küçük beklenir. Duvara çarpma, hız
-  duyusunun sıfırlanmasıyla zaten yansır.
+- ~~Dünya belirlenimci ve hareket duyusu gerçek hıza eşit, bu yüzden sapma küçük beklenir. Duvara çarpma, hız
+  duyusunun sıfırlanmasıyla zaten yansır.~~
 - **Ölçü:** tahmin edilen konum ile gerçek konum arasındaki hata (metre, derece), zamana göre. Kapı: 3000 tik
   sonunda ortalama hata < 0,5 m.
+
+**Düzeltme (2026-09-26, A1 ölçümüyle; LAB-DEFTERI):**
+- **Formüldeki eksik:** Hareket duyusu hızın yalnız ileri bileşenini veriyor. Dönen beden bir süre yana kayar. Yukarıdaki
+  formül bunu görmez ve K1n'de 3000 tikte 2,6 m sapar. Üstü çizili cümle bu yüzden yanlıştı.
+- **Yan hız fizikten hesaplanır:** `s ← k·(s·cos Δ − F·sin Δ)`. Burada k = 1 − sürtünme·dt, F önceki tikin ileri
+  hızı, Δ dönüş açısı. Konum artışı `(F·cos θ̂ − s·sin θ̂, F·sin θ̂ + s·cos θ̂)·dt`. Duvara değmeyen bedende tam
+  sonuç verir (3000 tikte 1e-12 m).
+- **Duvar teması tek hata kaynağı:** Temasta yan hız sıfırlanır; bu kural referans bedenlerde seçildi. Güven yalnız
+  temasla, bedenin temasa giriş hızıyla orantılı düşer.
+- **Ölçülen:** K1n'de 3000 tikte 0,47 m, kapı sınırda geçti. Çok hareket eden bedenlerde 1,4 m.
+- **Açık iş:** Temasta duvarın yönünü ışınlardan bulmak ya da konumu haritayla düzeltmek (A2).
 
 ### H2: Harita ("nerede ne var?")
 

@@ -14,7 +14,7 @@ import { createAgent } from "../learning/index.ts";
 import { Ledger } from "../registry/index.ts";
 import { DEFAULT_CONFIG as C, Room, makeConfig, runEpisode, type Observation, type Policy, type WorldConfig } from "../world/index.ts";
 import {
-  MemoryCore, POSE_SCALE, POSE_SLOT, PoseModule, SOURCES, WorkingMemory, inRoom, poseConfidence, terminalSpeed, withMemory,
+  DEFAULT_POSE, MemoryCore, POSE_SCALE, POSE_SLOT, PoseModule, SOURCES, WorkingMemory, inRoom, poseConfidence, terminalSpeed, withMemory,
   type MemoryModule, type Pose, type PoseParams, type Stamp,
 } from "./index.ts";
 
@@ -238,6 +238,10 @@ test("a world where the speed cap can bite is refused by the sideways model, not
   const capped = makeConfig({ maxSpeed: 2 });
   assert.throws(() => new PoseModule(capped), /speed cap/);
   assert.doesNotThrow(() => new PoseModule(capped, { sideslip: false }));
+});
+
+test("the default pose settings are the ones measured in A1: zero the slide at contact, contact noise 2.76", () => {
+  assert.deepEqual({ ...DEFAULT_POSE }, { sideslip: true, contact: "zero", contactNoise: 2.76 });
 });
 
 test("bad pose parameters are refused", () => {
