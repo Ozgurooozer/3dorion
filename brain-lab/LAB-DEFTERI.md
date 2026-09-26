@@ -2410,6 +2410,63 @@ E 14).
 öngörmüyor demektir. O zaman sorun öğrenme kuralında değil, ödülde ya da temsildedir; A3b kuralı değil, özellikleri ya da
 ödülü ele almalıdır.
 
+## 2026-09-26 — Eleştirmen teşhisi sonucu: kök neden iki parçalı — temsil (açlık × yemek) ve kural (iz yok)
+
+`[ÖLÇÜLDÜ]` Kod `5abdadb`, `experiments/critic-diagnosis.ts`; çıktı `data/critic-diagnosis.json`. K1n'in 30 kayıtlı
+öğreneni (seed 1–5 ve 11–20), 690 585 tik; her oda kaydıyla aynı bitti.
+
+| ölçüm | sonuç |
+|---|---|
+| Yemek ışını ağırlıklarının toplam hareketi / net değeri (denek ortalaması) | 0,455 / 0,007: **64 kat** |
+| Öğrenilen yemek ağırlığı (ortalama) | 0,0063 |
+| İdeal doğrusal eleştirmenin yemek ağırlığı (en küçük kareler, gerçek getiri) | 0,0069 / 0,0312 / 0,0327 / 0,0236 / 0,0164 (ort. **0,022**); R² 0,317 |
+| Açlık × yemek eklenince | R² 0,373 (+0,057); etkileşim ağırlıkları 0,029 / 0,174 / 0,261 / 0,166 / 0,069 |
+| Ortalama getiri: yemek görülürken / görülmezken | −0,0047 / −0,0250 |
+| Çevrimdışı TD(0), bugünkü kural (aynı deneyim, 40 oda) | yemek 0,0069 (öğrenileni tekrarlıyor) |
+| Çevrimdışı TD(0) normalize | 0,0046 |
+| Çevrimdışı TD(λ 0,9) | 0,0137 |
+| Çevrimdışı TD(λ 0,9) normalize | 0,0164 (doğrusal idealin %74'ü) |
+
+**Ek karalama ölçümü** (açlık × yemek özellikleriyle aynı deneyimde TD; `data/a3-teshis/critic-interaction-probe.ts.txt`).
+"Önde 2 m'de yemek görmenin" değeri, tokken (açlık 0,1) ve açken (0,6):
+- İdeal: −0,002 ve **0,077**.
+- TD(0): 0,004 ve 0,014 (idealin %18'i).
+- **TD(λ 0,9): 0,004 ve 0,033 (%43)**.
+- TD(λ) normalize: 0,013 ve 0,026 (%34).
+
+**Öngörü karnesi:**
+- **(c1)** ✓ Toplam hareket net değişimin 64 katı (öngörü ≥ 20).
+- **(c2)** ✗ İdeal doğrusal yemek ağırlığı 0,022, öğrenilenin 3,5 katı (öngörü ≥ 5 kat ve ≥ 0,03). Çürütme eşiğinin (0,02)
+  hemen üstünde.
+- **(c3)** ✓ Açlık × yemek R²'yi 0,057 artırıyor (öngörü ≥ 0,02).
+- **(c4)** ✓ Bugünkü TD(0) aynı deneyimde öğrenileni tekrarlıyor (0,0069 ~ 0,0063). TD(λ) idealin yarısını geçiyor (%62
+  ve %74). Normalize TD(0) ise yardım etmiyor.
+
+**Yorum: kök neden iki parçalı.**
+1. **Temsil:**
+   - Yemek görmenin değeri açlığa bağlı: tokken ~0, açken ~0,077.
+   - Doğrusal eleştirmen bu çarpımı ifade edemiyor, ikisinin ortalamasını öğreniyor; o ortalama küçük (0,022). (c2)'nin
+     tutmamasının sebebi bu.
+   - Etkileşimle, aç bedende yemek görmek öğünün ödülüyle aynı ölçekte değerli.
+2. **Kural:**
+   - TD(0) ağırlığı 64 kat çalkalıyor ve değeri öğünden geriye taşıyamıyor.
+   - İzli TD(λ), aynı deneyimde açken yemek değerini ~2,5 kat daha iyi öğreniyor. Bugünkü eleştirmenle kıyaslanınca
+     (~0,004) ~8 kat.
+
+**Bunun anlamı:**
+- Eleştirmen, yemeğe dönüldüğü an "iyi bir şey oldu" diyemiyor. Bu yüzden ne yön öğreniliyor, ne hatırlanan yemeğe dönüş.
+- İkisinin de kredisi ancak öğünde geliyor.
+- Biyolojide de yemek ipucunun değeri açlıkla ölçekleniyor (açlık nöronları yemek ipucu öğrenmesini yönetiyor; bilgi
+  havuzu §17).
+
+**Sonraki (A3b, Ozyn'in sırasıyla):** Tasarım, toplantı, onay.
+- Adaylar:
+  - Eleştirmen özelliklerine duyu × açlık eklemek. Yalnız yemek değil, her duyu için; hangisinin önemli olduğunu eleştirmen
+    öğrensin.
+  - Eleştirmene uygunluk izi eklemek (TD(λ)).
+- Her biri ayrı değişken olarak taranır.
+- Birincil ölçüler: yönlendirme (yön öğrenme) ve A3'teki hatırlama lezyonu.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
