@@ -29,7 +29,9 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const DATA = join(HERE, "../data");
 
 const VARIANTS = {
-  V0: { sideslip: false, contactNoise: 1 },
+  // Every variant names its contact rule: none may follow DEFAULT_POSE, which moves as rules are measured. Without the
+  // slide model the sideways speed is always 0, so "keep" is the TASARIM-007 formula exactly (as A1 measured it).
+  V0: { sideslip: false, contact: "keep", contactNoise: 1 },
   V1: { sideslip: true, contact: "keep", contactNoise: 1 },
   V2: { sideslip: true, contact: "zero", contactNoise: 1 },
   V3: { sideslip: true, contact: "wall", contactNoise: 1 },
@@ -83,10 +85,13 @@ function liveGraded(cfg: WorldConfig, worldSeed: number, policy: Policy, hooks?:
     const body = room.state().body;
     if (obs.bump) {
       contacts++;
-      // The walls the body truly touches, as normals relative to its heading (the grader knows the room).
+      // The walls the body truly touches, as normals relative to its heading (the grader knows the room). Touching =
+      // within 1e-9 m: a body resting in a corner can sit 1e-13 m off one wall after rounding (found 2026-09-26: exact
+      // equality here counted 141 corner walls as "wrong").
+      const near = (a: number, b: number) => Math.abs(a - b) <= 1e-9;
       const touched = [
-        ...(body.x === r ? [Math.PI] : []), ...(body.x === cfg.width - r ? [0] : []),
-        ...(body.y === r ? [-Math.PI / 2] : []), ...(body.y === cfg.height - r ? [Math.PI / 2] : []),
+        ...(near(body.x, r) ? [Math.PI] : []), ...(near(body.x, cfg.width - r) ? [0] : []),
+        ...(near(body.y, r) ? [-Math.PI / 2] : []), ...(near(body.y, cfg.height - r) ? [Math.PI / 2] : []),
       ].map((w) => wrapPi(w - body.heading));
       const found = modules.V3.walls ?? [];
       if (found.length > 0) walls.found++;

@@ -98,6 +98,17 @@ tehlike sonra gelir.
 - **Yendi:** Yemek yenince bedenin yanındaki yemek hatırası ölür; o yemek artık orada değil.
 - Güç değişimleri öğrenmedeki gibi kuantumludur; deftere yalnız anlamlı değişiklik düşer.
 
+**A2 için not** (2026-09-26, geri bildirimden; öneri, kesin biçimi A2'nin tasarımında belirlenir):
+- Sıra doğru: bir bilgi eski olduğu için değil, yalanlandığı için yanlıştır. Hatıra asıl olarak sürprizle ve yemek
+  yenince söner; zamanla sönme yalnız hiç doğrulanmayan hatıra için bir yedektir.
+- Her hafıza nöronu son doğrulanma tikini w'den ayrı bir alanda taşır. Bunun iki nedeni var:
+  - Zamanla sönme ve sürprizle sönme aynı w'yi düşürüyor. Ayrı tutulursa "zayıf çünkü eski" ile "zayıf çünkü
+    yalanlandı" ayrılır. G5'in ve A6'nın teşhisi bunu gerektirir.
+  - Pekişme w 1'e yakınken w'yi çok az değiştirir ve defter yalnız anlamlı değişikliği yazar. Bu yüzden son görülme
+    anı defterden geri okunamayabilir.
+- Bu, K2'nin "her bilgi zamanını taşır" kuralının hafıza nöronundaki karşılığıdır.
+- Defter yükü: Doğrulama her görülüşte değil, bir aradan sonra yeniden görülünce yazılır. Ölçütü A2'de konur.
+
 **Ölüm (budama):**
 - Güç bir tabanın altına inerse nöron ölür. Sinapsları silinir (`edge-`), kendisi de silinir (`node-`, defterde yeni
   kayıt türü).
@@ -192,7 +203,8 @@ A3'te davranış değişir:
 
 TASARIM-007 §12'nin A2–A6'sı yeniden tanımlanır; aynı anda tek değişken (K6):
 
-1. **A1 ✓** Konum (0,47 m). **A1b:** temas hesabı, bu belgenin onayından sonra.
+1. **A1 ✓** Konum (0,47 m). **A1b ✓** Temas hesabı: K1n'de 3000 tikte 0,10 m; çok hareket eden bedende 0,8 m. Kalan
+   hata, temas anında arkada kalan duvarlardan geliyor; hatırlanan duvarlar düzeltebilir.
 2. **A2.** Büyüme altyapısı ve yemek hafızası nöronları. Büyüyen ağ, `mem` bölgesi, yol satırları, `node-` kaydı.
    Doğum, pekişme, sönme ve ölüm kuralları. Davranış değişmez; G1–G5.
 3. **A3.** Kapı, hatırlanan duyular ve kural büyümesi. İlk davranış değişikliği; G6–G7. Alice'in kuralı kıyaslanır (K5).
@@ -224,8 +236,8 @@ TASARIM-007 §12'nin A2–A6'sı yeniden tanımlanır; aynı anda tek değişken
 
 - **Sınırsız büyüme ya da gürültüyü ezberleme.** Karşılığı: tavan, uyanıklık eşiği ve sönme kuralları; G2 ile
   ölçülür.
-- **Konum hatası hatırayı kaydırır.** A1'de çok hareket eden bedenin konum hatası 1,4 m. A1b'nin temas hesabı bu
-  yüzden A2'den önce gelir.
+- **Konum hatası hatırayı kaydırır.** A1'de çok hareket eden bedenin konum hatası 1,4 m idi. A1b sonrası K1n'de
+  0,10 m, çok hareket eden bedende 0,8 m (3000 tikte). Bu yüzden G3 ve G4 bedene göre ayrı raporlanır.
 - **Defter büyür.** Tahmin: odada ~10–30 nöron. 40 eğitim odasında birkaç bin kayıt; bugün denek başına ~40 000 ağırlık
   kaydı var. Ölçülür.
 - **Yavaşlık.** Büyüyen ağın maliyeti ölçülür: tik başına süre, büyümeden önce ve sonra.

@@ -1522,6 +1522,58 @@ kaydığını hesaplayabilir mi? Hesaplarsa çok hareket eden bedende de konum h
   ışınlarından hesaplamak olur.
 - (b) düşükse beden duvarı çoğu temasta göremiyordur; rapor edilir.
 
+## 2026-09-26 — A1b sonucu: K1n'de konum hatası 0,47 → 0,10 m; hareketli bedende 1,4 → 0,8 m, hedefin üstünde
+
+`[ÖLÇÜLDÜ]` Kod `e9a9e1f`; ölçüm `experiments/pose-a1.ts` (V3 eklenmiş), çıktı `data/pose-a1b-*`.
+- A1'in V0–V2 sayıları birebir yeniden üretildi.
+- 100/100 K1n hayatı kayıtla aynı.
+
+| | kör | merkez | arayıcı | K1n kapısı (3000 tik, 39 hayat) |
+|---|---|---|---|---|
+| V2 (sıfırla), son hata | 0,78 m | 1,34 m | 1,42 m | 0,47 m |
+| **V3 (duvarı bul), son hata** | **0,48 m** | **0,82 m** | **0,81 m** | **0,10 m** |
+| duvarın bulunduğu temas tiki | %62 | %69 | %69 | %79 |
+
+- **Seçilen kural V3.** Seçim yine yalnız referans bedenlerde yapıldı (ortalama son hata 0,71 m; V2 1,18 m).
+  q = 1,52. Varsayılan ayar buna çekildi; Deney Odası da artık bunu kullanıyor.
+- **Notlayıcı hatası, düzeltildi.** İlk sayım 54 848 bulunmuş duvardan 141'ini "yanlış" saydı.
+  - Hepsi köşelerdeydi: beden bir duvara tam değerken öbürüne yuvarlama yüzünden 1e-13 m uzakta duruyordu.
+  - Notlayıcı "değiyor" için tam eşitlik arıyordu. 1e-9 m pay verilince yanlış duvar 0 çıktı. Öteki bütün sayılar
+    aynı kaldı.
+  - Aynı eşitlik birim testinde de vardı; düzeltildi.
+- **Kalan hatanın kaynağı** (teşhis, karalama betiği, gerçeği okuyan fikstür):
+
+  | beden | V3 | görülmeyen duvarda gerçek kayma bilinse | + tikteki gerçek hareket | "az önce görülen duvarı hatırla" |
+  |---|---|---|---|---|
+  | kör | 0,48 m | 0,11 m | 0,00 m | 0,35 m |
+  | merkez | 0,82 m | 0,15 m | 0,00 m | 0,85 m |
+  | arayıcı | 0,81 m | 0,15 m | 0,00 m | 0,88 m |
+
+  - V3'ün kalan hatasının neredeyse tamamı duvarın ışınlara görünmediği temaslardan geliyor (%31–38). Duvar
+    arkada, beden geri geri çarpıyor.
+  - "Temas sürdükçe az önce görülen duvarı hatırla" çaresi işe yaramadı (hareketli bedende biraz kötüleştirdi);
+    koda alınmadı.
+  - Arkadaki duvarı bilmek için duvarı daha önce görmüş ve hatırlıyor olmak gerekir. Bu, haritanın (A2 ve sonrası)
+    işi: hatırlanan duvarlar konumu düzeltebilir.
+
+**Öngörü karnesi:**
+- (a) ✓ Yanlış duvar 0 (notlayıcı düzeltildikten sonra; ilk sayımın 141'i notlayıcı hatasıydı).
+- (b) ✗ Duvar temasların %69'unda bulundu (K1n'de %79); öngörü ≥ %80'di.
+- (c) ✗ Referans bedenlerde 0,82 / 0,81 m; öngörü ≤ 0,30 m'di.
+- (d) ✓ K1n kapısında 0,097 m.
+- (e) ✗ Hareketli bedenlerde 3000 tikte 0,88 / 0,82 m; hedef < 0,5 m'ydi.
+- (f) ✓ Yön hatası 0; temassız 50 hayatta V1 = V2 = V3.
+- (g) ✓ V3 seçildi; hata / σ = 0,60.
+
+**Yorum:**
+- K1n öğrenenleri için konum artık iyi: 3000 tikte 10 cm, bir harita hücresinin yarısından az.
+- Çok hareket eden bedende 0,8 m kalıyor, çünkü duvarların üçte biri temas anında arkada. Bunu duvarı hatırlamak
+  çözebilir; o da A2'nin işi. A1b'nin hedefi (e) tutmadı.
+- Önceden yazılan kurala göre bu durum rapor edilir: "duvar görülemiyorsa rapor". Sıradaki adım Ozyn'in kararı.
+- **Sonraya not (kovalanmadı):** Güven, duvarın bulunup kaymanın tam hesaplandığı temaslarda da düşüyor. Deney
+  Odası'nda DNK-2778 odanın sonunda 0,01 m yanılırken güveni %48 görünüyor; hata / σ = 0,60 da buradan. σ'nın yalnız
+  duvarın görülmediği temaslarda büyümesi daha dürüst olur. Tek değişken kuralı gereği ayrı bir adım.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.

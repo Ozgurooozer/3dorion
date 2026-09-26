@@ -41,11 +41,12 @@ export interface PoseParams {
 }
 
 /**
- * Measured in A1 (LAB-DEFTERI, 2026-09-26; experiments/pose-a1.ts), on the reference bodies, never on the K1n learners
- * that set the gate: zeroing the sideways speed at contact left less error than keeping it (mean end-of-life error
- * 1.18 m vs 1.75 m), and a contact noise of 2.76 makes σ match the error there (on K1n: error / σ = 0.73).
+ * Measured in A1 and A1b (LAB-DEFTERI, 2026-09-26; experiments/pose-a1.ts), on the reference bodies, never on the K1n
+ * learners that set the gate. The "wall" rule left the least error (mean end-of-life error 0.71 m; zero 1.18 m, keep
+ * 1.75 m), and a contact noise of 1.52 makes σ match the error there (on K1n: error / σ = 0.60). A1 alone had chosen
+ * "zero" with a noise of 2.76.
  */
-export const DEFAULT_POSE: PoseParams = Object.freeze({ sideslip: true, contact: "zero", contactNoise: 2.76 });
+export const DEFAULT_POSE: PoseParams = Object.freeze({ sideslip: true, contact: "wall", contactNoise: 1.52 });
 
 export interface Pose {
   /** Metres from where the room started, along the heading the body had then. */

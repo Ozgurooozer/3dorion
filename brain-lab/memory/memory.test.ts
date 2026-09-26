@@ -241,8 +241,8 @@ test("a world where the speed cap can bite is refused by the sideways model, not
   assert.doesNotThrow(() => new PoseModule(capped, { sideslip: false }));
 });
 
-test("the default pose settings are the ones measured in A1: zero the slide at contact, contact noise 2.76", () => {
-  assert.deepEqual({ ...DEFAULT_POSE }, { sideslip: true, contact: "zero", contactNoise: 2.76 });
+test("the default pose settings are the ones measured in A1b: find the wall at contact, contact noise 1.52", () => {
+  assert.deepEqual({ ...DEFAULT_POSE }, { sideslip: true, contact: "wall", contactNoise: 1.52 });
 });
 
 test("bad pose parameters are refused", () => {
@@ -431,9 +431,11 @@ test("the real room: every wall found is a wall the body truly touches, and ther
       if (obs.bump) {
         contacts++;
         const b = room.state().body;
+        // Touching = within 1e-9 m: in a corner the body can sit 1e-13 m off one wall after rounding.
+        const near = (a: number, c: number) => Math.abs(a - c) <= 1e-9;
         const touchedInRoom = [
-          ...(b.x === R ? [Math.PI] : []), ...(b.x === WALLED.width - R ? [0] : []),
-          ...(b.y === R ? [-Math.PI / 2] : []), ...(b.y === WALLED.height - R ? [Math.PI / 2] : []),
+          ...(near(b.x, R) ? [Math.PI] : []), ...(near(b.x, WALLED.width - R) ? [0] : []),
+          ...(near(b.y, R) ? [-Math.PI / 2] : []), ...(near(b.y, WALLED.height - R) ? [Math.PI / 2] : []),
         ].map((w) => wrapPi(w - b.heading));
         const walls = pose.walls!;
         if (walls.length > 0) found++;
