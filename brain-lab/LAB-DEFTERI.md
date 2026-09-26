@@ -1675,6 +1675,106 @@ Ozyn, A1b'nin ardından sırayı onayladı: önce yemek hatıraları (TASARIM-00
 - Çok hareket eden bedende hatıranın doğruluğunu konum belirliyor. Konumu düzeltmenin yolu duvarları hatırlamak
   (A1b'nin teşhisi). Bu, TASARIM-008'deki "duvarlar sonra" maddesinin önemini artırıyor.
 
+## 2026-09-26 — Hafıza sonuçlarını çürütme denemesi — koşmadan önce
+
+Ozyn: "Şimdi önce atlas ile deneyleri ve sonuçları test et, çürütmeye çalışalım." Taşıyan Atlas.
+
+**Soru:** A1/A1b (konum) ve A2 (yemek hafızası) sonuçları çürütme denemelerinden sağ çıkıyor mu? Tasarım, kurallar,
+varsayılan ayarlar ve ölçülerin tanımı değişmiyor; yalnız araçlar genişledi.
+
+**Çürütülmeye çalışılan iddialar** (bugünkü ölçümler):
+
+| | iddia | ölçülen |
+|---|---|---|
+| C1 | duvar kuralı (V3) sıfırlamayı (V2) geçer | K1n 3000 tikte 0,097 m (V2 0,47); referans bedenlerde ort. son hata 0,71 vs 1,18 m |
+| C2 | yön hatası tam 0; temassız hayatlar birebir (V1 = V2 = V3) | evet |
+| C3 | duvar bulucu, bedenin değmediği bir duvarı hiç bildirmez (değme = 1e-9 m içinde) | 54 848'de 0 |
+| C4 | K1n'de yemek hafızası: isabet %99, kapsama %96, G5 %98 | evet |
+| C5 | hafıza davranmaz: hafıza açık/kapalı aynı hayat, aynı öğrenilen ağırlıklar; doğum + defter beyni verir | 100/100 oda, 40/40, 2 odalık birim testi |
+| C6 | hareketli bedenlerin zayıf hafızası (isabet ~%60) tamamen konum hatasından | gerçek konumla %98–100 |
+
+**Araç değişiklikleri (tasarım değil; koşmadan önce denetlendi):**
+- `pose-a1.ts` ve `memory-a2.ts`: koşul kodu argümanı (varsayılan K1n, çıktılar koda göre adlanır); notlayıcılar
+  dışa açıldı; referans döngülerinde test seed bekçisi. `memory-a2.ts`'e iki seçenek: büyüme parametresi değiştirme
+  (lezyon) ve etiketli "gerçek konum" fikstürü.
+- `harness.recordedLearners`: koşulun kayıtlı standart öğrenenleri (tara, kontrolsüz, 40 + 10 oda, koşulun odası);
+  aynı seed ve grubun sonraki koşusu öncekinin yerine geçer.
+- `regression-check.ts`: sonuç satırının her sayısını (öğrenen, kardeş, bağlı beden, kayıt sayıları, eğitim eğrisi)
+  ve defterin her kaydını sırayla karşılaştırıyor. `--hafiza` denekleri hafıza açık eğitir. Defter karşılaştırmasında
+  büyüme kayıtlarını dışarıda bırakır; eğitilen beyni bir kez de hafıza açık değerlendirir.
+- Testler: 22 yeni (1333/1333 yeşil), `tsc` 0 hata. Bozma testi: 20 mutantın 20'si yakalandı.
+- Denetimler `[ÖLÇÜLDÜ]`:
+  - Varsayılan koşular kayıtlı dört çıktıyı bayt bayt yeniden üretti.
+  - Kontrol: hafıza kapalı, 10 K1n deneği sıfırdan yeniden eğitildi; 10/10 kayıtla birebir (her sayı, her defter
+    kaydı). T6'nın kontrolü budur.
+  - Gerçek konum fikstürü seed 1–10'da A2 teşhisini yeniden üretti (yuvarlanmış: kör %100/%100, merkez %99/%100,
+    arayıcı %98/%100). Karalama yolunun tahmini konumlu hali `memory-a2`'nin referans hayatlarıyla bayt bayt aynı.
+
+**Sınavlar ve öngörüler** (her biri çürütme ölçütüyle; sıra T1 → T7; referans bedenlerin politika seed'i seed·7 + 3):
+
+*T1 — taze seed'ler.* Kör, merkez ve arayıcı; kıt oda (ROOM3); seed 11–20 × 10 oda. Bu seed'lerle hiçbir şey seçilmedi.
+- (1a) Her bedende ortalama son hata V3 < V2; V3/V2 oranı 0,4–0,8.
+- (1b) Her bedende, temaslı hayatların ≥ %70'inde V3, V2'den iyi; işaret testi (`stats.ts`) p < 0,01.
+- (1c) Her bedende hata / σ (RMS, q = 1,52) 0,5–2 arası.
+- (1d) Yanlış duvar 0.
+- (1e) Yön hatası her yerde 0; temassız hayatlarda V1 = V2 = V3 birebir.
+- (1f) Kör bedende yemek hafızası: isabet > %80, kapsama > %80, G5 ≥ %95.
+- (1g) Atlas'ın eki: G5 merkez ve arayıcıda da ≥ %95 (A2'de %95, %96); G1 30/30.
+- Çürütme: oran > 0,9 ya da işaret testi anlamsız → kural seçimi seed'e bağlıymış. Hata / σ aralık dışı → güven
+  dürüst değil. Yanlış duvar > 0 → C3 çürür.
+
+*T2 — başka odalar.* ROOM1 (10 yemek, enerji 0,4) ve ROOM2 (+2 tehlike); aynı bedenler; seed 11–20.
+- (2a) İki odada, her bedende ortalama son hata V3 < V2.
+- (2b) Yanlış duvar 0.
+- (2c) Kör bedende isabet > %80, G5 ≥ %95; iki odada da.
+- Çürütme: yanlış duvar > 0 → gerçek bir sahte duvar vakası. Kör isabet < %70 → kurallar kıt odaya bağlı.
+
+*T3 — başka bedenler.* (a) Rastgele beden: her tik 9 komuttan biri, tekdüze (karalama politikası, `Rng`). Çoğu an
+dönüyor, geri geri duvara giriyor. (b) Kâhin (`oraclePolicy`). ROOM3, seed 11–20.
+- (3a) İkisinde de yanlış duvar 0. **Dur kuralı:** tek bir yanlış duvar → dur, tam mesajla raporla, düzeltme yok.
+- (3b) İkisinde de ortalama son hata V3 ≤ V2.
+- (3c) Kâhinde 3000 tikte (yaşayanlar) V3 hatası < 0,3 m.
+- (3d) Atlas'ın eki: rastgele bedende de yön hatası 0 (neredeyse her tik dönüyor).
+- Çürütme: yanlış duvar; V3'ün V2'den kötü olması.
+
+*T4 — başka öğrenenler.* Kayıtlı S1n tarama öğrenenleri, ROOM1. 10 denek: aynı seed/grup iki kez taranmış, sonraki parti
+(`7b6543c`, DNK-2748–2767) alınır. Önceki partinin (`9378bed`) değerlendirmeleri birebir aynı. Salt okunur; kayıtlı
+değerlendirme odaları; donuk beyinler.
+- (4a) Konum ve hafıza koşusunda 100/100 oda kayıttaki son dünya özetiyle biter.
+- (4b) 3000 tikte (yaşayanlar) V3 konum hatası < 0,3 m.
+- (4c) İsabet > %90, kapsama > %85, G5 ≥ %95.
+- (4d) Atlas'ın eki: yanlış duvar 0; G1 birebir (10/10 denek).
+- Çürütme: eşleşmeyen oda → hafıza davranıyor ya da yeniden oynatma harness'inki değil. Eşiklerin altı → K1n sayıları
+  K1n'nin az hareketine bağlıymış.
+
+*T5 — kural lezyonları* (A2). ROOM3, seed 11–20, bedenler T1'deki gibi. Hafıza davranmadığı için hayatlar lezyonsuz
+koşuyla aynı; karşılaştırma eşli, örnekleme gürültüsü yok. Tanımlar:
+- "Düşer": lezyonsuz koşudan en az 5 puan aşağı.
+- "Az değişir": ±5 puan içinde.
+- "Ölçülebilir değişim yok": her bedende G3, G4 ve G5 ±2 puan içinde.
+
+Öngörüler:
+- (5a) Yenme kuralı yok (`eatenRadius: 0`): G5 her bedende < %80.
+- (5b) Sürpriz yok (`surpriseRadius: 0`): isabet merkez ve arayıcıda düşer; körde az değişir.
+- (5c) Zamanla sönme yok (`timeFade: 0`): ölçülebilir değişim yok (yalnız yedek).
+- (5d) Doğrulama yok (`confirmRate: 0`): kapsama her bedende düşer.
+- Çürütme (iddianın değil, kuralın işe yaradığının): kaldırılınca hiçbir şey ölçülebilir değişmeyen kural "belki
+  gereksiz" diye raporlanır.
+
+*T6 — "hafıza davranmaz", eğitim ölçeğinde.* 10 K1n deneği geçici bir kayıtta sıfırdan eğitilir: kayıttaki gibi 40
+eğitim + 10 değerlendirme odası, `memory: {}` açık. Kayıtla karşılaştırılır.
+- (6a) Büyüme dışındaki her defter kaydı (ağırlık, eleştirmen, evre) sırası ve değeriyle aynı: 10/10.
+- (6b) Değerlendirme aynı (öğrenen, kardeş, bağlı beden, kayıt sayıları, eğitim eğrisi); hafıza açık ikinci
+  değerlendirme de aynı: 10/10.
+- (6c) Büyüme gerçekten oldu (doğum > 0); kaydedilen defter büyümeyle birlikte doğumdan yeniden oynuyor. `train()`,
+  canlı beyin defterden farklıysa zaten durur.
+- **Dur kuralı:** tek bir fark → dur, tam mesajla raporla, düzeltme yok.
+
+*T7 — C6 taze seed'lerde.* Gerçek konum teşhisi (etiketli fikstür: `FoodMemory.step`'e bedenin başlangıç
+çerçevesindeki gerçek konumu verilir). Merkez ve arayıcı (kör de ek bilgi); ROOM3; seed 11–20.
+- (7a) Gerçek konumla merkez ve arayıcıda isabet ≥ %95, kapsama ≥ %95.
+- Çürütme: %95'in altı → büyüme kuralları hareketli bedende kendi başına da hatıra kaybediyor; C6 çürür.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.

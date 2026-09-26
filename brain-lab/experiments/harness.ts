@@ -159,6 +159,30 @@ export function recordedEvaluation(store: RegistryStore, id: string): { header: 
   return store.listRuns(id).filter((r) => r.header.purpose.endsWith(EVAL_PURPOSE)).at(-1) ?? null;
 }
 
+/** A recorded learner of a condition, as the results table names it. */
+export interface RecordedLearner { readonly seed: number; readonly group: InnateGroup; readonly learner: string }
+
+/**
+ * A condition's recorded standard learners, read from the lines of the results table (data/results.jsonl): screened
+ * (`tara`) without a control, 40 training and 10 evaluation rooms, in the condition's room (food and threat counts).
+ * One per seed and group, in table order; a later row of the same seed and group (a re-run batch, e.g. S1n's twice
+ * screened seeds 1–5) replaces the earlier one. Shared by the memory measurements (pose-a1.ts, memory-a2.ts), so
+ * both replay the same subjects.
+ */
+export function recordedLearners(lines: readonly string[], code: string, world: WorldConfig): RecordedLearner[] {
+  interface Line { code: string; command: string; control: string; seed: number; group: InnateGroup; learner: string; trainEpisodes?: number; evalEpisodes?: number; food?: number; threats?: number }
+  const bySubject = new Map<string, RecordedLearner>();
+  for (const text of lines) {
+    if (text.trim() === "") continue;
+    const r = JSON.parse(text) as Line;
+    if (r.code !== code || r.command !== "tara" || r.control !== "none") continue;
+    if ((r.trainEpisodes ?? 40) !== 40 || (r.evalEpisodes ?? 10) !== 10) continue;
+    if (r.food !== world.foodCount || r.threats !== world.threatCount) continue;
+    bySubject.set(`${r.seed}/${r.group}`, { seed: r.seed, group: r.group, learner: r.learner });
+  }
+  return [...bySubject.values()];
+}
+
 /** Evaluate a subject's current brain with learning frozen. */
 export function evaluate(store: RegistryStore, s: Subject, world: WorldConfig, episodes: number, codeCommit: string, label: string, spec: Partial<AgentSpec> = {}): Eval {
   return evaluateWithYoked(store, s, world, episodes, codeCommit, label, spec, false).subject;

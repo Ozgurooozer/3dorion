@@ -1,27 +1,32 @@
 // brain-lab/experiments/memory-a2.ts — A2 (TASARIM-008): do the grown food memories match the room? The growing memory
 // (memory/pose.ts + learning/growth.ts) lives with the bodies and is graded against the true room. Read-only: recorded
 // subjects grow their memories on an in-memory copy of their ledger, never saved.
-//   Reference bodies (blind, centre, seeker; scarce room, seeds 1–10, 10 rooms each): a scratch ledger each.
-//   The K1n learners' recorded evaluation rooms, their frozen brains with the memory switched on: every room must end
-//   in the recorded final world hash (the memory does not act).
+//   Reference bodies (blind, centre, seeker; the condition's room, seeds 1–10, 10 rooms each): a scratch ledger each.
+//   The condition's recorded learners in their recorded evaluation rooms, their frozen brains with the memory switched
+//   on: every room must end in the recorded final world hash (the memory does not act).
 // Gates G1–G5 and predictions: LAB-DEFTERI.md, 2026-09-26, "A2 (büyüyen yemek hafızası) — koşmadan önce".
 //
-//   node --experimental-strip-types brain-lab/experiments/memory-a2.ts
+// The condition is an argument (2026-09-26, falsification of the memory results): K1n is the default and writes
+// data/memory-a2-*, the recorded A2 outputs; another condition writes data/memory-a2-<code>-*. The grading pieces are
+// exported so a falsification script can grade other rooms, seeds, growth parameters (rule lesions) and, as a labelled
+// diagnostic fixture, the memory fed the true pose instead of the pose module's.
+//
+//   node --experimental-strip-types brain-lab/experiments/memory-a2.ts [KOD]
 "use strict";
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { BrainGrafi } from "../brain-ir/ir.ts";
-import { burstPolicy, centrePolicy, seekerPolicy } from "../baselines/index.ts";
-import { FoodMemory, createAgent, type LiveMemory } from "../learning/index.ts";
+import { FoodMemory, createAgent, type GrowthParams, type LiveMemory } from "../learning/index.ts";
 import { MemoryCore, PoseModule, inRoom, type Pose } from "../memory/index.ts";
-import { Ledger, graphHash, type LedgerEntry } from "../registry/index.ts";
+import { Ledger, graphHash } from "../registry/index.ts";
 import { RegistryStore } from "../registry/store.ts";
 import { sensorimotorScaffold } from "../sensorimotor/index.ts";
 import { Room, runEpisode, type Action, type EpisodeHooks, type Observation, type Policy, type WorldConfig } from "../world/index.ts";
-import { CONDITIONS } from "./conditions.ts";
-import { MAX_TICKS, evalNoise, evalWorld, recordedEvaluation } from "./harness.ts";
+import { ROOM1, condition } from "./conditions.ts";
+import { MAX_TICKS, assertSeedAllowed, evalNoise, evalWorld, recordedEvaluation, recordedLearners } from "./harness.ts";
+import { referenceBodies } from "./pose-a1.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DATA = join(HERE, "../data");
@@ -33,7 +38,7 @@ const LATELY = 100;
 const DIES_WITHIN = 20;
 
 /** What one room lived with a growing memory gives. */
-interface RoomGrade {
+export interface RoomGrade {
   ticks: number;
   /** G3: over ticks with any live memory, the share of live memories within RIGHT of a real food. */
   precisionSum: number;
@@ -49,7 +54,7 @@ interface RoomGrade {
 }
 
 /** The memory of one body in one room, and the grading of it against the room. */
-function gradeRoom(room: Room, act: Policy, remember: (obs: Observation, t: number) => { live: LiveMemory[] }, entriesNow: () => number, hooks?: EpisodeHooks) {
+export function gradeRoom(room: Room, act: Policy, remember: (obs: Observation, t: number) => { live: LiveMemory[] }, entriesNow: () => number, hooks?: EpisodeHooks) {
   const cfg = room.config;
   const start = room.state().body;
   const g: RoomGrade = { ticks: 0, precisionSum: 0, precisionTicks: 0, coverageSum: 0, coverageTicks: 0, eatenMemories: 0, eatenDiedInTime: 0, mostAlive: 0, growthEntries: 0 };
@@ -110,81 +115,97 @@ function gradeRoom(room: Room, act: Policy, remember: (obs: Observation, t: numb
   return { summary, grade: g };
 }
 
-interface Life extends RoomGrade { body: string; subject: string | null; seed: number; room: number; matches: boolean | null }
-const lives: Life[] = [];
-const replays: { who: string; exact: boolean }[] = [];
-let refusedBirths = 0;
-const GROWTH = new Set<LedgerEntry["kind"]>(["node+", "memory", "node-"]);
+export interface Life extends RoomGrade { body: string; subject: string | null; seed: number; room: number; matches: boolean | null }
+/** Lives graded, whether each brain's birth graph + ledger replays to its live brain (G1), births refused at the cap. */
+export interface Graded { lives: Life[]; replays: { who: string; exact: boolean }[]; refused: number }
 
-// --- reference bodies: a scratch brain holding only their memories --------------------------------------------------
+export interface ReferenceOptions {
+  /** Growth parameters other than DEFAULT_GROWTH (a rule lesion, e.g. { eatenRadius: 0 }). */
+  readonly food?: Partial<GrowthParams>;
+  /**
+   * LABELLED DIAGNOSTIC FIXTURE, never a brain: the memory is fed the body's true pose in its start frame (read from
+   * the room) instead of the pose module's estimate. It separates the growth rules from the pose error (A2 diagnosis).
+   */
+  readonly truePose?: boolean;
+}
 
-const K1N = CONDITIONS.K1n!;
-const WORLD: WorldConfig = K1N.world!;
-const REFERENCE: Record<string, (seed: number) => Policy> = {
-  blind: (seed) => burstPolicy(seed),
-  centre: (seed) => centrePolicy(WORLD, seed),
-  seeker: (seed) => seekerPolicy(WORLD, seed),
-};
-for (const [body, make] of Object.entries(REFERENCE)) {
-  for (let seed = 1; seed <= 10; seed++) {
-    const birth = sensorimotorScaffold(WORLD, `${body}-${seed}`);
-    const ledger = new Ledger(`REF-${body}-${seed}`, birth);
-    const graph: BrainGrafi = structuredClone(ledger.graph);
-    const pose = new PoseModule(WORLD);
-    const core = new MemoryCore([pose]);
-    const food = new FoodMemory(ledger, graph, WORLD);
-    const policy = make(seed * 7 + 3); // the policy seeds calibrate-005b used
-    for (let ep = 1; ep <= 10; ep++) {
-      core.reset();
-      food.newRoom(0, ep);
-      const remember = (obs: Observation, t: number) => { core.observe(obs, t); food.step(obs, pose.pose as Pose, t, ep); return { live: food.live }; };
-      const { grade } = gradeRoom(new Room(evalWorld(seed, ep), WORLD), policy, remember, () => ledger.entries.length);
-      lives.push({ ...grade, body, subject: null, seed, room: ep, matches: null });
+/** Reference bodies, each with a scratch brain holding only its memories; 10 evaluation rooms per seed, policy seeded seed·7 + 3. */
+export function referenceMemoryLives(bodies: Record<string, (seed: number) => Policy>, world: WorldConfig, seeds: readonly number[], opts: ReferenceOptions = {}): Graded {
+  const lives: Life[] = [];
+  const replays: Graded["replays"] = [];
+  let refused = 0;
+  for (const [body, make] of Object.entries(bodies)) {
+    for (const seed of seeds) {
+      assertSeedAllowed(seed); // no test seed without a frozen pre-registration
+      const birth = sensorimotorScaffold(world, `${body}-${seed}`);
+      const ledger = new Ledger(`REF-${body}-${seed}`, birth);
+      const graph: BrainGrafi = structuredClone(ledger.graph);
+      const pose = new PoseModule(world);
+      const core = new MemoryCore([pose]);
+      const food = new FoodMemory(ledger, graph, world, opts.food);
+      const policy = make(seed * 7 + 3); // the policy seeds calibrate-005b used
+      for (let ep = 1; ep <= 10; ep++) {
+        core.reset();
+        food.newRoom(0, ep);
+        const room = new Room(evalWorld(seed, ep), world);
+        const start = room.state().body;
+        if (opts.truePose && start.heading !== 0) throw new Error("the true-pose fixture assumes bodies start facing 0");
+        const truth = (): Pose => { const b = room.state().body; return { x: b.x - start.x, y: b.y - start.y, heading: b.heading, side: 0, sigma: 0 }; };
+        const remember = (obs: Observation, t: number) => {
+          core.observe(obs, t);
+          food.step(obs, opts.truePose ? truth() : pose.pose as Pose, t, ep);
+          return { live: food.live };
+        };
+        const { grade } = gradeRoom(room, policy, remember, () => ledger.entries.length);
+        lives.push({ ...grade, body, subject: null, seed, room: ep, matches: null });
+      }
+      refused += food.refused;
+      replays.push({ who: `${body} ${seed}`, exact: new Ledger(`REF-${body}-${seed}`, birth, ledger.entries).hash() === graphHash(graph) && ledger.matches(graph) });
     }
-    refusedBirths += food.refused;
-    replays.push({ who: `${body} ${seed}`, exact: new Ledger(`REF-${body}-${seed}`, birth, ledger.entries).hash() === graphHash(graph) && ledger.matches(graph) });
   }
+  return { lives, replays, refused };
 }
 
-// --- the K1n learners, as evaluated, memory switched on -------------------------------------------------------------
-
-interface ResultLine { code: string; seed: number; group: string; learner: string }
-const rows = readFileSync(join(DATA, "results.jsonl"), "utf8").split("\n").filter((l) => l.trim() !== "")
-  .map((l) => JSON.parse(l) as ResultLine).filter((r) => r.code === "K1n");
-const store = new RegistryStore(DATA, { readOnly: true });
-for (const row of [...new Map(rows.map((r) => [r.learner, r])).values()]) {
-  const subject = store.loadSubject(row.learner);
-  const recorded = recordedEvaluation(store, row.learner);
-  if (!recorded) throw new Error(`${row.learner} has no recorded evaluation`);
-  const ledger = store.openLedger(row.learner); // in memory only: the growth is never saved
-  const spec = K1N.spec(WORLD);
-  const agent = createAgent({ ...spec, cfg: WORLD, ledger, noiseSeed: evalNoise(subject.birth.seed), learning: { ...spec.learning, frozen: true }, memory: {} });
-  for (const ep of recorded.episodes) {
-    agent.startEpisode(ep.episode);
-    // The agent acts and grows its memory in one call; the grader reads the memory right after it, then hands the
-    // action the agent chose back to the room.
-    let action: Action = { thrust: 0, turn: 0 };
-    const remember = (obs: Observation, t: number) => { action = agent.policy(obs, t); return { live: agent.memory!.food.live }; };
-    const act: Policy = () => action;
-    const { summary, grade } = gradeRoom(new Room(evalWorld(subject.birth.seed, ep.episode), WORLD), act, remember, () => ledger.entries.length, agent.hooks);
-    lives.push({
-      ...grade, body: `K1n ${row.group === "reflexless" ? "reflekssiz" : "refleksli"}`, subject: row.learner, seed: subject.birth.seed, room: ep.episode,
-      matches: summary.finalHash === ep.summary.finalHash,
-    });
+/**
+ * A condition's recorded learners (harness.recordedLearners) in their recorded evaluation rooms, frozen, the memory
+ * switched on; the growth goes to an in-memory copy of each ledger, never saved.
+ */
+export function learnerMemoryLives(code: string, store: RegistryStore, resultLines: readonly string[]): Graded {
+  const def = condition(code);
+  const world = def.world ?? ROOM1;
+  const lives: Life[] = [];
+  const replays: Graded["replays"] = [];
+  let refused = 0;
+  for (const row of recordedLearners(resultLines, code, world)) {
+    const subject = store.loadSubject(row.learner);
+    const recorded = recordedEvaluation(store, row.learner);
+    if (!recorded) throw new Error(`${row.learner} has no recorded evaluation`);
+    const ledger = store.openLedger(row.learner); // in memory only: the growth is never saved
+    const spec = def.spec(world);
+    const agent = createAgent({ ...spec, cfg: world, ledger, noiseSeed: evalNoise(subject.birth.seed), learning: { ...spec.learning, frozen: true }, memory: {} });
+    for (const ep of recorded.episodes) {
+      agent.startEpisode(ep.episode);
+      // The agent acts and grows its memory in one call; the grader reads the memory right after it, then hands the
+      // action the agent chose back to the room.
+      let action: Action = { thrust: 0, turn: 0 };
+      const remember = (obs: Observation, t: number) => { action = agent.policy(obs, t); return { live: agent.memory!.food.live }; };
+      const act: Policy = () => action;
+      const { summary, grade } = gradeRoom(new Room(evalWorld(subject.birth.seed, ep.episode), world), act, remember, () => ledger.entries.length, agent.hooks);
+      lives.push({
+        ...grade, body: `${code} ${row.group === "reflexless" ? "reflekssiz" : "refleksli"}`, subject: row.learner, seed: subject.birth.seed, room: ep.episode,
+        matches: summary.finalHash === ep.summary.finalHash,
+      });
+    }
+    refused += agent.memory!.food.refused;
+    replays.push({ who: row.learner, exact: new Ledger(row.learner, ledger.birthGraph, ledger.entries).hash() === ledger.hash() && ledger.matches(agent.graph) });
+    process.stdout.write(`${row.learner} `);
   }
-  refusedBirths += agent.memory!.food.refused;
-  replays.push({ who: row.learner, exact: new Ledger(row.learner, ledger.birthGraph, ledger.entries).hash() === ledger.hash() && ledger.matches(agent.graph) });
-  process.stdout.write(`${row.learner} `);
+  process.stdout.write("\n");
+  return { lives, replays, refused };
 }
-process.stdout.write("\n");
 
-// --- report ----------------------------------------------------------------------------------------------------------
-
-const f = (x: number, d = 2) => (Number.isNaN(x) ? "—" : x.toFixed(d).replace(".", ","));
-const pct = (x: number) => (Number.isNaN(x) ? "—" : `%${Math.round(100 * x)}`);
-const groups = [...Object.keys(REFERENCE), "K1n"];
-const inGroup = (gname: string) => lives.filter((l) => (gname === "K1n" ? l.subject !== null : l.body === gname));
-const agg = (ls: Life[]) => {
+/** G3–G5 and growth over a set of lives: tick-weighted shares, pooled over rooms. */
+export function aggregate(ls: Life[]) {
   const sum = (k: keyof RoomGrade) => ls.reduce((s, l) => s + (l[k] as number), 0);
   return {
     lives: ls.length,
@@ -195,22 +216,43 @@ const agg = (ls: Life[]) => {
     mostAlive: Math.max(...ls.map((l) => l.mostAlive)),
     entriesPerRoom: sum("growthEntries") / ls.length,
   };
-};
-console.log("\n=== A2: büyüyen yemek hafızası, gerçek odayla ===");
-console.log("grup      hayat | G3 isabet | G4 kapsama | G5 yenen yemeğin hatırası 20 tikte öldü | en çok canlı | büyüme kaydı / oda");
-const table: Record<string, ReturnType<typeof agg>> = {};
-for (const gname of groups) {
-  const a = (table[gname] = agg(inGroup(gname)));
-  console.log(`${gname.padEnd(8)} ${String(a.lives).padStart(5)} | ${pct(a.precision).padStart(9)} | ${pct(a.coverage).padStart(10)} | ${pct(a.eatenInTime).padStart(9)} (${a.eaten} hatıra)`
-    + `${"".padStart(20)} | ${String(a.mostAlive).padStart(12)} | ${f(a.entriesPerRoom, 0).padStart(6)}`);
 }
-const matched = lives.filter((l) => l.matches === true).length;
-const k1nLives = lives.filter((l) => l.subject !== null).length;
-const exact = replays.filter((r) => r.exact).length;
-console.log(`\nG1 yeniden kurma (doğum + defter = canlı beyin): ${exact}/${replays.length}`);
-console.log(`davranış değişmedi (K1n odaları kayıttaki son dünya özetiyle): ${matched}/${k1nLives}`);
-console.log(`G2 tavanda reddedilen doğum: ${refusedBirths}; bir odada en çok canlı hatıra: ${Math.max(...groups.map((gname) => table[gname]!.mostAlive))}`);
 
-writeFileSync(join(DATA, "memory-a2-lives.jsonl"), lives.map((l) => JSON.stringify(l)).join("\n") + "\n");
-writeFileSync(join(DATA, "memory-a2-summary.json"), JSON.stringify({ table, replays: { exact, of: replays.length }, matched: `${matched}/${k1nLives}`, refusedBirths }, null, 2) + "\n");
-console.log("\nyazıldı: data/memory-a2-summary.json, data/memory-a2-lives.jsonl");
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  const code = process.argv[2] ?? "K1n";
+  const WORLD: WorldConfig = condition(code).world ?? ROOM1;
+  const REFERENCE = referenceBodies(WORLD);
+  const resultLines = readFileSync(join(DATA, "results.jsonl"), "utf8").split("\n");
+  const store = new RegistryStore(DATA, { readOnly: true });
+  const refs = referenceMemoryLives(REFERENCE, WORLD, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+  const subjects = learnerMemoryLives(code, store, resultLines);
+  const lives = [...refs.lives, ...subjects.lives];
+  const replays = [...refs.replays, ...subjects.replays];
+  const refusedBirths = refs.refused + subjects.refused;
+
+  // --- report ----------------------------------------------------------------------------------------------------------
+
+  const f = (x: number, d = 2) => (Number.isNaN(x) ? "—" : x.toFixed(d).replace(".", ","));
+  const pct = (x: number) => (Number.isNaN(x) ? "—" : `%${Math.round(100 * x)}`);
+  const groups = [...Object.keys(REFERENCE), code];
+  const inGroup = (gname: string) => lives.filter((l) => (gname === code ? l.subject !== null : l.body === gname));
+  console.log(`\n=== A2: büyüyen yemek hafızası, gerçek odayla (${code} odası: ${WORLD.foodCount} yemek, ${WORLD.threatCount} tehlike) ===`);
+  console.log("grup      hayat | G3 isabet | G4 kapsama | G5 yenen yemeğin hatırası 20 tikte öldü | en çok canlı | büyüme kaydı / oda");
+  const table: Record<string, ReturnType<typeof aggregate>> = {};
+  for (const gname of groups) {
+    const a = (table[gname] = aggregate(inGroup(gname)));
+    console.log(`${gname.padEnd(8)} ${String(a.lives).padStart(5)} | ${pct(a.precision).padStart(9)} | ${pct(a.coverage).padStart(10)} | ${pct(a.eatenInTime).padStart(9)} (${a.eaten} hatıra)`
+      + `${"".padStart(20)} | ${String(a.mostAlive).padStart(12)} | ${f(a.entriesPerRoom, 0).padStart(6)}`);
+  }
+  const matched = lives.filter((l) => l.matches === true).length;
+  const learnerLifeCount = lives.filter((l) => l.subject !== null).length;
+  const exact = replays.filter((r) => r.exact).length;
+  console.log(`\nG1 yeniden kurma (doğum + defter = canlı beyin): ${exact}/${replays.length}`);
+  console.log(`davranış değişmedi (${code} odaları kayıttaki son dünya özetiyle): ${matched}/${learnerLifeCount}`);
+  console.log(`G2 tavanda reddedilen doğum: ${refusedBirths}; bir odada en çok canlı hatıra: ${Math.max(...groups.map((gname) => table[gname]!.mostAlive))}`);
+
+  const out = code === "K1n" ? "memory-a2" : `memory-a2-${code}`;
+  writeFileSync(join(DATA, `${out}-lives.jsonl`), lives.map((l) => JSON.stringify(l)).join("\n") + "\n");
+  writeFileSync(join(DATA, `${out}-summary.json`), JSON.stringify({ table, replays: { exact, of: replays.length }, matched: `${matched}/${learnerLifeCount}`, refusedBirths }, null, 2) + "\n");
+  console.log(`\nyazıldı: data/${out}-summary.json, data/${out}-lives.jsonl`);
+}

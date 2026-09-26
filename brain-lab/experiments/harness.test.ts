@@ -14,7 +14,7 @@ import { bornGraph } from "../development/index.ts";
 import { Ledger } from "../registry/index.ts";
 import { RegistryStore } from "../registry/store.ts";
 import { diagnoseLedger } from "./diagnose.ts";
-import { MAX_TICKS, TEST_SEED_FLOOR, assertSeedAllowed, birth, crossDopamine, evalWorld, lesionClone, localDopamine, measureEpisodes, shuffledClone } from "./harness.ts";
+import { MAX_TICKS, TEST_SEED_FLOOR, assertSeedAllowed, birth, crossDopamine, evalWorld, lesionClone, localDopamine, measureEpisodes, recordedLearners, shuffledClone } from "./harness.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -206,4 +206,28 @@ test("shuffle: same seed, same clone; different seed, different clone", () => {
   const weights = (id: string) => JSON.stringify(store.openLedger(id).graph.connections.map((e) => e.weight));
   assert.equal(weights(shuffledClone(store, parent.id, 3, "t").id), weights(shuffledClone(store, parent.id, 3, "t").id));
   assert.notEqual(weights(shuffledClone(store, parent.id, 3, "t").id), weights(shuffledClone(store, parent.id, 4, "t").id));
+});
+
+// --- recordedLearners: which recorded subjects the memory measurements replay -------------------------------------------
+
+/** A results-table line; every field a standard screened learner of the hungry room has, then the overrides. */
+const resultLine = (over: Record<string, unknown>) => JSON.stringify({
+  code: "S1n", command: "tara", control: "none", food: 10, threats: 0, trainEpisodes: 40, evalEpisodes: 10, seed: 1, group: "reflexless", learner: "DNK-0001", ...over,
+});
+
+test("recorded learners: a standard screened learner of the condition's room is chosen", () => {
+  assert.deepEqual(recordedLearners([resultLine({})], "S1n", HUNGRY), [{ seed: 1, group: "reflexless", learner: "DNK-0001" }]);
+});
+
+test("recorded learners: another condition, a falsification run, a control, a short run or another room are not", () => {
+  const others = [
+    resultLine({ code: "S1" }), resultLine({ command: "curut" }), resultLine({ control: "CROSS" }),
+    resultLine({ trainEpisodes: 20 }), resultLine({ evalEpisodes: 2 }), resultLine({ food: 5 }), resultLine({ threats: 2 }),
+  ];
+  for (const line of others) assert.deepEqual(recordedLearners([line], "S1n", HUNGRY), [], line);
+});
+
+test("recorded learners: a re-run of the same seed and group replaces the earlier row, keeping its place in the order", () => {
+  const lines = [resultLine({ learner: "DNK-0001" }), resultLine({ seed: 2, group: "reflexive", learner: "DNK-0002" }), resultLine({ learner: "DNK-0003" }), ""];
+  assert.deepEqual(recordedLearners(lines, "S1n", HUNGRY).map((r) => r.learner), ["DNK-0003", "DNK-0002"]);
 });
