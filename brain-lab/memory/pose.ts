@@ -11,11 +11,14 @@
 // The push acts along the heading, so it never adds sideways speed. Away from walls this is exact.
 //
 // Walls: a wall removes the part of the velocity that points into it. The body feels the bump and its new forward
-// speed, but not which wall it touched or at what angle, so a body sliding along a wall moves in a way this module
-// cannot see. That is the one source of error left, and the only thing that lowers the pose's confidence.
+// speed, but the motion sense alone does not say which wall it touched or at what angle, so a body sliding along a
+// wall moves in a way the motion sense cannot follow. That is the one source of error left, and the only thing that
+// lowers the pose's confidence. The "wall" contact rule (A1b) closes most of it with sight: a touched wall is at
+// exactly the body's radius, so two rays whose wall points lie on a line at that distance show the wall's direction
+// (touchedWalls), and after the contact the velocity runs along that wall.
 //
-// The constants used (tick length, top speed, turn rate, drag, push) are the body's own: innate knowledge, like
-// knowing how strong one's own muscles are. No position of anything in the world is ever read.
+// The constants used (tick length, top speed, turn rate, drag, push, body radius, ray angles) are the body's own:
+// innate knowledge, like knowing how strong one's own muscles are. No position of anything in the world is ever read.
 "use strict";
 
 import { wrapAngle, type Observation, type WorldConfig } from "../world/index.ts";
@@ -24,8 +27,11 @@ import type { MemoryModule, WorkingMemory } from "./core.ts";
 export interface PoseParams {
   /** Model the sideways slide of a turning body (true), or integrate the forward speed only (false: TASARIM-007 as first written). */
   readonly sideslip: boolean;
-  /** At a wall contact: keep the modelled sideways speed, or set it to 0. */
-  readonly contact: "keep" | "zero";
+  /**
+   * At a wall contact: keep the modelled sideways speed, set it to 0, or ("wall", A1b) find the touched wall with the
+   * rays and let the velocity run along it — falling back to 0 when the wall is not seen.
+   */
+  readonly contact: "keep" | "zero" | "wall";
   /**
    * How unsure a tick in wall contact makes the position: the standard deviation grows by `contactNoise` × the
    * distance the body was moving per tick before it (variances add). A body resting against a wall loses no
@@ -75,6 +81,70 @@ export function terminalSpeed(cfg: WorldConfig): number {
   return (cfg.maxAccel * cfg.dt * k) / (1 - k);
 }
 
+/**
+ * How far from the touching distance (bodyRadius) a line through two wall points may lie and still be a touched
+ * wall, and how far a ray may see past a wall and still agree with it (m). Wall points come from exact geometry, off
+ * by rounding only (~1e-15 m); a chance line through points of two different walls lands this close almost never.
+ */
+const TOUCH_TOLERANCE = 1e-6;
+/** Wall normals closer than this (rad) are the same wall. */
+const SAME_WALL = 1e-6;
+const wrapPi = (a: number): number => Math.atan2(Math.sin(a), Math.cos(a));
+
+/**
+ * The walls the body touches, as seen by its rays: each as the direction of its normal (from the body to the wall),
+ * relative to the heading, in (−π, π]. A touched wall is at exactly bodyRadius, so any two rays whose wall points lie
+ * on a line at that distance from the body's centre see it; one ray alone is not enough (its wall point fits two
+ * mirror-image walls, and a far wall seen at a slant can fake one behind the body). A found wall must also agree
+ * with every ray: none may see past it. Two walls = a corner. Empty when no touched wall is seen by two rays.
+ */
+export function touchedWalls(obs: Observation, cfg: WorldConfig): number[] {
+  const r = cfg.bodyRadius;
+  const points: { x: number; y: number }[] = [];
+  obs.rays.forEach((ray, i) => {
+    if (ray.hit === "wall") points.push({ x: ray.distance * Math.cos(cfg.rayAngles[i]!), y: ray.distance * Math.sin(cfg.rayAngles[i]!) });
+  });
+  const agrees = (phi: number): boolean =>
+    obs.rays.every((ray, j) => {
+      const c = Math.cos(cfg.rayAngles[j]! - phi);
+      if (c <= 1e-12) return true; // this ray points away from the wall or along it
+      // Where this ray would meet the wall; a ray never reports more than its range, so a wall beyond reach agrees.
+      return ray.distance <= r / c + TOUCH_TOLERANCE;
+    });
+  const walls: number[] = [];
+  for (let i = 0; i < points.length; i++) {
+    for (let j = i + 1; j < points.length; j++) {
+      const a = points[i]!;
+      const b = points[j]!;
+      const len = Math.hypot(b.x - a.x, b.y - a.y);
+      if (len < 1e-9) continue;
+      // The line through a and b: its unit normal, turned to point from the body to the line, and its distance.
+      let nx = -(b.y - a.y) / len;
+      let ny = (b.x - a.x) / len;
+      let h = nx * a.x + ny * a.y;
+      if (h < 0) { nx = -nx; ny = -ny; h = -h; }
+      if (Math.abs(h - r) > TOUCH_TOLERANCE) continue;
+      const phi = Math.atan2(ny, nx);
+      if (walls.some((w) => Math.abs(wrapPi(w - phi)) < SAME_WALL) || !agrees(phi)) continue;
+      walls.push(phi);
+    }
+  }
+  return walls;
+}
+
+/**
+ * The sideways speed right after a wall contact, given the touched walls (normals relative to the heading), the
+ * sensed forward speed and the modelled sideways speed. After the contact the velocity has no part into the wall:
+ * v · n = 0, so F·cos φ + s·sin φ = 0. A wall straight ahead (sin φ = 0) takes only the forward speed and leaves the
+ * sideways speed as modelled. A corner stops the body; an unseen wall falls back to the "zero" rule.
+ */
+export function slideAlong(walls: readonly number[], forward: number, modelled: number): number {
+  if (walls.length !== 1) return 0;
+  const phi = walls[0]!;
+  const s = Math.sin(phi);
+  return Math.abs(s) < 1e-9 ? modelled : (-forward * Math.cos(phi)) / s;
+}
+
 export class PoseModule implements MemoryModule {
   readonly name = "pose";
   readonly params: PoseParams;
@@ -83,11 +153,12 @@ export class PoseModule implements MemoryModule {
   private current: Pose = START;
   private lastForward = 0;
   private variance = 0;
+  private wallsNow: readonly number[] | null = null;
 
   constructor(cfg: WorldConfig, params: Partial<PoseParams> = {}) {
     const p = { ...DEFAULT_POSE, ...params };
     if (typeof p.sideslip !== "boolean") throw new RangeError(`bad pose params: sideslip must be true or false, got ${String(p.sideslip)}`);
-    if (p.contact !== "keep" && p.contact !== "zero") throw new RangeError(`bad pose params: contact must be "keep" or "zero", got ${String(p.contact)}`);
+    if (p.contact !== "keep" && p.contact !== "zero" && p.contact !== "wall") throw new RangeError(`bad pose params: contact must be "keep", "zero" or "wall", got ${String(p.contact)}`);
     if (!(Number.isFinite(p.contactNoise) && p.contactNoise >= 0)) throw new RangeError(`bad pose params: contactNoise must be a finite number >= 0, got ${p.contactNoise}`);
     // The sideways model has no speed cap in it; the world caps speed at maxSpeed. Refuse a world where that cap can bite.
     if (p.sideslip && !(terminalSpeed(cfg) < cfg.maxSpeed)) {
@@ -103,10 +174,16 @@ export class PoseModule implements MemoryModule {
     return this.current;
   }
 
+  /** With the "wall" contact rule: the touched walls found on the last tick (normals relative to the heading); null when not in contact or another rule. */
+  get walls(): readonly number[] | null {
+    return this.wallsNow;
+  }
+
   reset(): void {
     this.current = START;
     this.lastForward = 0;
     this.variance = 0;
+    this.wallsNow = null;
   }
 
   observe(obs: Observation, tick: number, working: WorkingMemory): void {
@@ -117,10 +194,15 @@ export class PoseModule implements MemoryModule {
     const heading = wrapAngle(before.heading + turn);
     const forward = obs.motion.forward * maxSpeed;
     let side = this.params.sideslip ? this.k * (before.side * Math.cos(turn) - this.lastForward * Math.sin(turn)) : 0;
+    this.wallsNow = null;
     if (obs.bump) {
       const speedBefore = Math.hypot(this.lastForward, before.side);
       this.variance += (this.params.contactNoise * speedBefore * dt) ** 2;
       if (this.params.contact === "zero") side = 0;
+      else if (this.params.contact === "wall") {
+        this.wallsNow = Object.freeze(touchedWalls(obs, this.cfg));
+        side = slideAlong(this.wallsNow, forward, side);
+      }
     }
     const c = Math.cos(heading);
     const s = Math.sin(heading);

@@ -1473,6 +1473,55 @@ Farklı olanlar:
   - Kapı için Daw, Niv ve Dayan (2005): belirsizliğe göre alışkanlıkla plan arasında seçim.
   - Hipokampus: yeni odada yer hücreleri yeniden haritalanır.
 
+## 2026-09-26 — TASARIM-008 onaylandı; A1b (temas hesabı) — koşmadan önce
+
+Ozyn TASARIM-008'i ve toplantının K1–K9 kararlarını olduğu gibi onayladı ("onay"). K9'daki sırayla ilk iş A1b.
+
+**Soru:** Beden duvara değdiği anda, ışınlarının gördüğü duvar noktalarından duvarın yönünü bulup duvar boyunca nereye
+kaydığını hesaplayabilir mi? Hesaplarsa çok hareket eden bedende de konum hatası 0,5 m'nin altına iner mi?
+
+**Yöntem** (yeni temas kuralı: "duvar", V3):
+- **Duvarı bulmak.** Duvar gören her ışın bir nokta verir; bedenin kendi çerçevesinde `q = d·(cos a, sin a)`. Beden
+  duvara değiyorsa duvar tam r = 0,3 m uzaklıktadır.
+  - İki noktadan geçen doğru bedenin merkezine r uzaklıktaysa, o doğru değilen duvardır. Normali φ, bedenden duvara
+    bakar.
+  - Doğru ancak her ışınla tutarlıysa kalır: hiçbir ışın o duvarın izin verdiğinden uzağı görmemeli.
+  - Sonuç 0, 1 ya da 2 duvardır. 2 duvar, köşe demektir.
+  - Düzeltme (aynı gün, kodu yazmadan ve ölçümden önce): İlk yazılan "tek ışından iki aday" yöntemi güvenilmezdi.
+    Kenardaki ışın uzaktaki bir duvarı eğik görünce, başka hiçbir ışının bakmadığı arka tarafta hayali bir aday
+    çıkabiliyordu. Bu yüzden en az iki ışın şart. Tek ışınla görülen duvarda s = 0 kuralına düşülür.
+- **Kaymayı hesaplamak.** Temastan sonra hızın duvara dik bileşeni sıfırdır (fizik böyle kırpıyor). İleri hız F
+  ölçülüyor; bu yüzden yan hız bulunur: `s = −F · cos φ / sin φ`.
+  - Duvar tam öndeyse (sin φ ≈ 0) kırpma yan hıza dokunmaz; modeldeki s korunur.
+  - Köşede hız sıfırdır.
+  - Duvar görünmüyorsa (beden duvara geri geri gidiyorsa) V2'nin kuralına düşülür: s = 0.
+- **Modellenmeyen:** Çarpma tikinde bedenin duvara kadar aldığı kısa yol. Teşhise göre bu ~0,15 m bırakır; tek
+  değişken kuralı gereği sonraya kalır.
+- **Etiket:** Işınların "duvar" etiketi çekirdeğin geometrisinde kullanılıyor, beyne anlam olarak verilmiyor.
+  §16'daki kestirme derinleşmiyor: yeni bir etiket eklenmiyor.
+
+**Ölçüm:** `experiments/pose-a1.ts`, V3 eklenmiş haliyle.
+- Kural seçimi yine yalnız referans bedenlerde, ortalama son hataya göre yapılır. q yeniden ölçülür.
+- Kapı yine K1n öğrenenlerinde ölçülür.
+- Yeni ölçü, bulunan duvarın doğruluğu: her temas tikinde bulunan normal ile bedenin gerçekten değdiği duvar
+  karşılaştırılır (oda biliniyor).
+
+**Öngörüler:**
+- (a) Bulunan her duvar gerçek bir temas duvarı: bulunan normallerin %100'ü gerçek normale 1e-6 radyandan yakın.
+- (b) Temas tiklerinin en az %80'inde duvar bulunur.
+- (c) Referans bedenlerde (merkez, arayıcı) ortalama son hata ≤ 0,30 m. Karşılaştırma için V2 1,34 / 1,42 m, teşhisteki
+  ideal 0,15 m.
+- (d) K1n kapısında (3000 tiki yaşayan hayatlar) hata < 0,30 m; V2 0,47 m.
+- (e) A1b'nin hedefi: çok hareket eden bedenlerde (merkez, arayıcı) 3000 tikte hata < 0,5 m.
+- (f) Yön hatası yine tam 0. Temassız hayatlar V1/V2 ile birebir aynı.
+- (g) V3 referans bedenlerde seçilir. Yeniden ölçülen q ile güven dürüst kalır: K1n'de hata / σ oranı 0,5–2.
+
+**Çürütme ve sonrası:**
+- (a) tutmazsa geometride hata ya da belirsizlik var; her şeyden önce o düzeltilir.
+- (b) yüksek ama (c) ya da (e) tutmazsa kalan hata çarpma tikindeki kısa yoldandır. Sonraki adım onu önceki tikin
+  ışınlarından hesaplamak olur.
+- (b) düşükse beden duvarı çoğu temasta göremiyordur; rapor edilir.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.

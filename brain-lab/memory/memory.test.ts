@@ -14,7 +14,8 @@ import { createAgent } from "../learning/index.ts";
 import { Ledger } from "../registry/index.ts";
 import { DEFAULT_CONFIG as C, Room, makeConfig, runEpisode, type Observation, type Policy, type WorldConfig } from "../world/index.ts";
 import {
-  DEFAULT_POSE, MemoryCore, POSE_SCALE, POSE_SLOT, PoseModule, SOURCES, WorkingMemory, inRoom, poseConfidence, terminalSpeed, withMemory,
+  DEFAULT_POSE, MemoryCore, POSE_SCALE, POSE_SLOT, PoseModule, SOURCES, WorkingMemory, inRoom, poseConfidence, slideAlong, terminalSpeed,
+  touchedWalls, withMemory,
   type MemoryModule, type Pose, type PoseParams, type Stamp,
 } from "./index.ts";
 
@@ -323,6 +324,145 @@ test("contact rule 'keep' carries the modelled sideways speed through a contact;
   assert.ok(keep.sideBefore < 0, `the turn left a sideways speed: ${keep.sideBefore}`);
   assert.ok(Math.abs(keep.after - k * keep.sideBefore) < 1e-15, `keep: ${keep.after} vs ${k * keep.sideBefore}`);
   assert.equal(lived("zero").after, 0);
+});
+
+// --- A1b: the touched wall, from sight ----------------------------------------------------------------------------
+
+const wrapPi = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
+const R = C.bodyRadius;
+
+/** A body touching one wall whose normal is `phi` (from the body to the wall, relative to the heading); rays that point at it see it, the others see nothing. */
+function touching(phi: number, forward = 0): Observation {
+  const rays = C.rayAngles.map((a) => {
+    const c = Math.cos(a - phi);
+    return c > 1e-12 && R / c <= C.rayRange ? { distance: R / c, hit: "wall" as const } : { distance: C.rayRange, hit: "none" as const };
+  });
+  return { rays, bump: true, energy: 1, health: 1, motion: { forward, turn: 0 } };
+}
+const wallRays = (o: Observation) => o.rays.filter((r) => r.hit === "wall").length;
+
+test("a touched wall seen by two or more rays is found, at its true angle, all round the body", () => {
+  for (let deg = -180; deg < 180; deg += 5) {
+    const phi = (deg * Math.PI) / 180;
+    const o = touching(phi);
+    if (wallRays(o) < 2) continue;
+    const found = touchedWalls(o, C);
+    assert.equal(found.length, 1, `wall at ${deg}°: found ${found.length}`);
+    // Angles near π: a few ε; measured worst 5.6e-16 rad.
+    assert.ok(Math.abs(wrapPi(found[0]! - phi)) < 1e-12, `wall at ${deg}°: found ${(found[0]! * 180) / Math.PI}°`);
+  }
+});
+
+test("a touched wall seen by fewer than two rays is not guessed (one point fits two mirror walls)", () => {
+  let checked = 0;
+  for (let deg = -180; deg < 180; deg += 5) {
+    const o = touching((deg * Math.PI) / 180);
+    if (wallRays(o) >= 2) continue;
+    checked++;
+    assert.deepEqual(touchedWalls(o, C), [], `wall at ${deg}°, ${wallRays(o)} ray(s)`);
+  }
+  assert.ok(checked > 10, `${checked} angles behind the body were checked`);
+});
+
+test("a line through two wall points is not a wall if another ray sees through it", () => {
+  // The 30° and 60° rays see points of a wall at 45°, touching; the 0° ray should then meet it at 0.42 m but sees 2 m.
+  const phi = Math.PI / 4;
+  const o = touching(phi);
+  const through = { ...o, rays: o.rays.map((r, i) => (C.rayAngles[i] === 0 ? { distance: 2, hit: "wall" as const } : r)) };
+  assert.equal(touchedWalls(o, C).length, 1, "without the contradiction the wall is found");
+  assert.deepEqual(touchedWalls(through, C), []);
+});
+
+test("only wall points count: food lying where the wall would be does not make a wall", () => {
+  const o = touching(Math.PI / 2); // seen by the 30° and 60° rays only
+  assert.equal(wallRays(o), 2);
+  // The 60° ray meets food at exactly the wall's distance: geometrically a wall point, but it is food.
+  const food = { ...o, rays: o.rays.map((r, i) => (C.rayAngles[i] === Math.PI / 3 ? { distance: r.distance, hit: "food" as const } : r)) };
+  assert.deepEqual(touchedWalls(food, C), []);
+});
+
+test("a body away from every wall finds no touched wall, whatever its rays see", () => {
+  for (const seed of [1, 2, 3]) {
+    const room = new Room(seed, WALLED);
+    assert.deepEqual(touchedWalls(room.observe(), C), [], `seed ${seed}, at the room's centre`);
+  }
+});
+
+test("in a corner both walls are found, and the body stops", () => {
+  const a = Math.PI / 4;
+  const b = -Math.PI / 4;
+  const rays = C.rayAngles.map((ang) => {
+    const reach = [a, b].map((phi) => Math.cos(ang - phi)).map((c) => (c > 1e-12 ? R / c : Number.POSITIVE_INFINITY));
+    const d = Math.min(...reach);
+    return d <= C.rayRange ? { distance: d, hit: "wall" as const } : { distance: C.rayRange, hit: "none" as const };
+  });
+  const found = touchedWalls({ rays, bump: true, energy: 1, health: 1, motion: { forward: 0, turn: 0 } }, C).sort((x, y) => x - y);
+  assert.equal(found.length, 2, `found ${found.length}`);
+  assert.ok(Math.abs(found[0]! - b) < 1e-12 && Math.abs(found[1]! - a) < 1e-12, `${found}`);
+  assert.equal(slideAlong(found, 0.3, 0.7), 0);
+});
+
+test("after the contact the velocity runs along the wall: F·cos φ + s·sin φ = 0", () => {
+  for (const deg of [-150, -120, -90, -60, -30, 30, 60, 90, 120, 150]) {
+    const phi = (deg * Math.PI) / 180;
+    const s = slideAlong([phi], 1.5, 99);
+    assert.ok(Math.abs(1.5 * Math.cos(phi) + s * Math.sin(phi)) < 1e-12, `wall at ${deg}°: sideways ${s}`);
+  }
+});
+
+test("a wall straight ahead takes only the forward speed; the modelled sideways speed stays", () => {
+  assert.equal(slideAlong([0], 0, 0.8), 0.8);
+});
+
+test("an unseen wall falls back to the zero rule", () => {
+  assert.equal(slideAlong([], 1.2, 0.8), 0);
+});
+
+test("the real room: every wall found is a wall the body truly touches, and there the slide is the true one", () => {
+  let contacts = 0;
+  let found = 0;
+  for (const seed of [1, 2, 3]) {
+    const room = new Room(seed, WALLED);
+    const pose = new PoseModule(WALLED, { contact: "wall" });
+    const core = new MemoryCore([pose]);
+    const policy = burstPolicy(seed);
+    runEpisode(room, (obs, t) => {
+      core.observe(obs, t);
+      if (obs.bump) {
+        contacts++;
+        const b = room.state().body;
+        const touchedInRoom = [
+          ...(b.x === R ? [Math.PI] : []), ...(b.x === WALLED.width - R ? [0] : []),
+          ...(b.y === R ? [-Math.PI / 2] : []), ...(b.y === WALLED.height - R ? [Math.PI / 2] : []),
+        ].map((w) => wrapPi(w - b.heading));
+        const walls = pose.walls!;
+        if (walls.length > 0) found++;
+        for (const w of walls) assert.ok(touchedInRoom.some((x) => Math.abs(wrapPi(x - w)) < 1e-9), `seed ${seed} tick ${t}: wall ${w} not touched`);
+        if (walls.length === 1 && Math.abs(Math.sin(walls[0]!)) > 1e-3) {
+          const trueSide = -b.vx * Math.sin(b.heading) + b.vy * Math.cos(b.heading);
+          // Values below 3 m/s; measured worst 1.8e-14.
+          assert.ok(Math.abs(pose.pose.side - trueSide) < 1e-12, `seed ${seed} tick ${t}: sideways ${pose.pose.side} vs ${trueSide}`);
+        }
+      }
+      return policy(obs, t);
+    }, 3000);
+  }
+  // Measured 2026-09-26 (seeds 1–5): the wall was found on 48–73 % of contact ticks; the rest had it behind the body.
+  assert.ok(found > 0.4 * contacts, `found on ${found} of ${contacts} contact ticks`);
+});
+
+test("the walls found are kept only for the tick they were seen, and only by the wall rule", () => {
+  const byWall = new PoseModule(C, { contact: "wall" });
+  const byZero = new PoseModule(C, { contact: "zero" });
+  const cores = [new MemoryCore([byWall]), new MemoryCore([byZero])];
+  cores.forEach((c) => c.observe(touching(Math.PI / 2, 0.25), 0));
+  assert.equal(byWall.walls?.length, 1);
+  assert.equal(byZero.walls, null);
+  cores.forEach((c) => c.observe(sense({ forward: 0.25 }), 1));
+  assert.equal(byWall.walls, null, "no contact, no wall");
+  cores[0]!.observe(touching(Math.PI / 2, 0.25), 2);
+  cores[0]!.reset();
+  assert.equal(byWall.walls, null, "a new room forgets the wall");
 });
 
 // --- H1 pose: confidence ----------------------------------------------------------------------------------------------
