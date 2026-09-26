@@ -23,6 +23,7 @@
 
 import type { BrainGrafi } from "../brain-ir/ir.ts";
 import { NOISE_IDS, NoiseGenerator } from "../development/index.ts";
+import { edgeKey } from "../registry/index.ts";
 import { ACTIONS, isPlastic, nodeId, regionOf, type ActionName } from "../regions/index.ts";
 import { Rng, type Action } from "../world/index.ts";
 
@@ -58,7 +59,7 @@ export interface Choice {
   readonly action: Action;
 }
 
-interface Term { readonly edge: { readonly from: string; readonly weight: number }; readonly sign: 1 | -1 }
+interface Term { readonly edge: { readonly from: string; readonly to: string; readonly weight: number }; readonly sign: 1 | -1 }
 
 export class CompetitiveSelector {
   readonly params: SelectionParams;
@@ -80,7 +81,12 @@ export class CompetitiveSelector {
     this.rng = new Rng(seed * 7 + 3);
   }
 
-  /** The learning edges of the graph, by the action they feed; only senses and recalled senses may feed selection. */
+  /**
+   * The learning edges of the graph, by the action they feed; only senses and recalled senses may feed selection. Each
+   * action's terms are summed in edge-key order — the ledger's canonical order, the order of every brain born before
+   * rule growth — so a synapse born in life (added last to the graph) changes a sum only by its value, never by
+   * where it stands: floating-point addition depends on order.
+   */
   private static read(graph: BrainGrafi): ReadonlyMap<ActionName, readonly Term[]> {
     const terms = new Map<ActionName, Term[]>(ACTIONS.map((a) => [a, []]));
     for (const edge of graph.connections) {
@@ -92,6 +98,8 @@ export class CompetitiveSelector {
       }
       terms.get(to.action!)!.push({ edge, sign: to.region === "bg.go" ? 1 : -1 });
     }
+    const key = (t: Term) => edgeKey(t.edge);
+    for (const list of terms.values()) list.sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));
     return terms;
   }
 

@@ -177,8 +177,16 @@ export interface RecordedLearner { readonly seed: number; readonly group: Innate
  * energy; they are kept on food and threats alone, and assertBornInto refuses any of them born into another room.
  */
 export function recordedLearners(lines: readonly string[], code: string, world: WorldConfig, command: "tara" | "curut" = "tara"): RecordedLearner[] {
-  interface Line { code: string; command: string; control: string; seed: number; group: InnateGroup; learner: string; trainEpisodes?: number; evalEpisodes?: number; food?: number; threats?: number; energy?: number }
-  const bySubject = new Map<string, RecordedLearner>();
+  return recordedRows(lines, code, world, command).map(({ seed, group, learner }) => ({ seed, group, learner }));
+}
+
+/** A recorded results-table row of a condition's standard learner, as lab.ts writes it (older rows may lack fields). */
+export interface RecordedRow extends RecordedLearner { readonly twin: string; readonly l: Eval; readonly t: Eval; readonly y?: Eval | null }
+
+/** The rows recordedLearners chooses, whole: the same filter, one per seed and group, a later row replacing an earlier one. */
+export function recordedRows(lines: readonly string[], code: string, world: WorldConfig, command: "tara" | "curut" = "tara"): RecordedRow[] {
+  interface Line extends RecordedRow { code: string; command: string; control: string; trainEpisodes?: number; evalEpisodes?: number; food?: number; threats?: number; energy?: number }
+  const bySubject = new Map<string, RecordedRow>();
   for (const text of lines) {
     if (text.trim() === "") continue;
     const r = JSON.parse(text) as Line;
@@ -186,7 +194,7 @@ export function recordedLearners(lines: readonly string[], code: string, world: 
     if ((r.trainEpisodes ?? 40) !== 40 || (r.evalEpisodes ?? 10) !== 10) continue;
     if (r.food !== world.foodCount || r.threats !== world.threatCount) continue;
     if (r.energy !== undefined && r.energy !== world.initialEnergy) continue;
-    bySubject.set(`${r.seed}/${r.group}`, { seed: r.seed, group: r.group, learner: r.learner });
+    bySubject.set(`${r.seed}/${r.group}`, r);
   }
   return [...bySubject.values()];
 }

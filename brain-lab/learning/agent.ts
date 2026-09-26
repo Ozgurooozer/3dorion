@@ -17,7 +17,7 @@ import { BrainSimulator } from "../brain-ir/simulator.ts";
 import { NoiseGenerator } from "../development/index.ts";
 import { DopamineChannel } from "../neuromodulation/index.ts";
 import type { Ledger, LedgerEntry } from "../registry/index.ts";
-import { ACTIONS, regionOf } from "../regions/index.ts";
+import { ACTIONS, nodeId, regionOf } from "../regions/index.ts";
 import { brainController, encodeObservation, type BrainController } from "../sensorimotor/index.ts";
 import type { EpisodeHooks, Observation, Policy, WorldConfig } from "../world/index.ts";
 import { MemoryCore, PoseModule, type PoseParams } from "../memory/index.ts";
@@ -26,7 +26,7 @@ import { Critic, type CriticParams } from "./critic.ts";
 import { CueMemory, type CueParams } from "./cue-memory.ts";
 import { FoodMemory, type GrowthParams } from "./growth.ts";
 import { Learner, type LearningParams } from "./learner.ts";
-import { DEFAULT_RECALL, gateOpen, recallFood, recalledSenses, type RecallParams, type Recalled } from "./recall.ts";
+import { DEFAULT_RECALL, gateOpen, recallFood, recallNodeIds, recalledSenses, type RecallParams, type Recalled } from "./recall.ts";
 import { CompetitiveSelector, type Choice, type SelectionParams } from "./selection.ts";
 import { teacherDeltas, type TeacherSpec } from "./teacher.ts";
 
@@ -119,7 +119,18 @@ export function createAgent(spec: AgentSpec): Agent {
   // The live brain starts as exactly what the ledger says it is.
   const graph = structuredClone(spec.ledger.graph);
   const sim = new BrainSimulator(graph);
-  const learner = new Learner(graph, spec.ledger, spec.learning);
+  const recall: RecallParams | null = spec.memory?.recall ? { ...DEFAULT_RECALL, ...spec.memory.recall } : null;
+  if (recall && !(recall.hunger >= 0 && recall.hunger <= 1)) throw new RangeError(`recall gate hunger ${recall.hunger} outside [0, 1]`);
+  if (recall && !spec.selection) throw new Error("the recalled senses are read by competitive selection; the graph brain has no input for them");
+  if (recall) {
+    const missing = recallNodeIds(spec.cfg).filter((id) => !graph.nodes.some((n) => n.id === id));
+    if (missing.length > 0) throw new Error(`recall needs the recalled-sense nodes in the brain (born with recall, or added on the ledger); missing ${missing.join(", ")}`);
+  }
+  // Rule synapses (P18: rec → Go) grow in life when the brain was born without any (B, grown); a brain born with them
+  // (D, innate) learns them like any synapse and never prunes them (meeting 2026-09-26-a3-kural-dogumu K1, K2).
+  const grows = recall !== null && !spec.ledger.birthGraph.connections.some((e) => regionOf(e.from)?.region === "rec");
+  const grow = grows ? recallNodeIds(spec.cfg).flatMap((from) => ACTIONS.map((a) => ({ from, to: nodeId("bg.go", a) }))) : [];
+  const learner = new Learner(graph, spec.ledger, spec.learning, grow);
   const critic = spec.critic ? new Critic(spec.ledger, spec.cfg, spec.critic) : null;
   const compartments = spec.compartments ? new Compartments(spec.ledger, spec.cfg, spec.compartments) : null;
   if (compartments?.mode === "action" && !critic) throw new Error("action compartments need a critic (they bootstrap on its V)");
@@ -134,9 +145,6 @@ export function createAgent(spec: AgentSpec): Agent {
   }
   const teacher = spec.teacher ?? null;
   const selector = spec.selection ? new CompetitiveSelector(graph, spec.noiseSeed, spec.selection) : null;
-  const recall: RecallParams | null = spec.memory?.recall ? { ...DEFAULT_RECALL, ...spec.memory.recall } : null;
-  if (recall && !(recall.hunger >= 0 && recall.hunger <= 1)) throw new RangeError(`recall gate hunger ${recall.hunger} outside [0, 1]`);
-  if (recall && !selector) throw new Error("the recalled senses are read by competitive selection; the graph brain has no input for them");
   let lastRecall: Agent["lastRecall"] = null;
   const frozen = learner.params.frozen;
   const dopamine = new DopamineChannel(spec.deathOutcome === undefined ? {} : { deathOutcome: spec.deathOutcome });
@@ -203,6 +211,7 @@ export function createAgent(spec: AgentSpec): Agent {
     }
     const changed = learner.applyDopamine(dopamine, t, teacher ? [...cause, "teacher"] : cause);
     if (changed.length > 0) { writes.push(...changed); stage("E2", "first weight change"); }
+    if (changed.some((e) => e.kind === "edge+" || e.kind === "edge-")) selector?.refresh(); // a rule synapse was born or pruned
   };
 
   const policy: Policy = (obs, t) => {

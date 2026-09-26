@@ -152,12 +152,58 @@ function lifeOf(opts: { memory: AgentSpec["memory"]; recall?: "grown" | "innate0
 }
 const withoutIds = (l: Ledger) => l.entries.map(({ id: _id, ...rest }) => rest);
 
-test("recall on, no rule synapse: the subject lives exactly the life it lived without recall", () => {
-  assert.deepEqual(lifeOf({ memory: { recall: {} }, recall: "grown" }).hashes, lifeOf({ memory: {} }).hashes);
+test("recall on, no rule synapse and learning frozen (nothing can grow): the subject lives exactly the life it lived without recall", () => {
+  assert.deepEqual(lifeOf({ memory: { recall: {} }, recall: "grown", frozen: true }).hashes, lifeOf({ memory: {}, frozen: true }).hashes);
 });
 
-test("recall on, no rule synapse: the subject learns and grows exactly what it did without recall", () => {
-  assert.deepEqual(withoutIds(lifeOf({ memory: { recall: {} }, recall: "grown" }).ledger), withoutIds(lifeOf({ memory: {} }).ledger));
+test("recall on, no rule synapse and learning frozen: the subject grows exactly the memories it grew without recall", () => {
+  assert.deepEqual(withoutIds(lifeOf({ memory: { recall: {} }, recall: "grown", frozen: true, rooms: 1 }).ledger), withoutIds(lifeOf({ memory: {}, frozen: true, rooms: 1 }).ledger));
+});
+
+// --- rule growth (A3.1; meeting 2026-09-26-a3-kural-dogumu K1, K2) -------------------------------------------------------
+
+/** The rule synapses (rec → Go) of a brain with their weights, those above 0 only. */
+const rules = (agent: ReturnType<typeof createAgent>) =>
+  Object.fromEntries(agent.graph.connections.filter((e) => e.from.startsWith("rec") && e.weight > 0).map((e) => [`${e.from}->${e.to}`, e.weight]));
+
+test("growing rule synapses (B) lives exactly the life of innate ones born at weight 0 (D), learning on", () => {
+  const b = lifeOf({ memory: { recall: {} }, recall: "grown", rooms: 3 });
+  const d = lifeOf({ memory: { recall: {} }, recall: "innate0", rooms: 3 });
+  assert.ok(b.ledger.entries.some((e) => e.kind === "edge+"), "B grew at least one rule synapse (the check is not empty)");
+  assert.deepEqual(b.hashes, d.hashes);
+});
+
+test("growing rule synapses (B) ends with exactly the rule weights of innate ones born at weight 0 (D)", () => {
+  const b = lifeOf({ memory: { recall: {} }, recall: "grown", rooms: 3 });
+  const d = lifeOf({ memory: { recall: {} }, recall: "innate0", rooms: 3 });
+  assert.deepEqual(rules(b.agent), rules(d.agent));
+});
+
+test("a grown brain keeps only the rule synapses that are above 0; its ledger replays to it, births and prunings included", () => {
+  const b = lifeOf({ memory: { recall: {} }, recall: "grown", rooms: 3 });
+  const inBrain = b.agent.graph.connections.filter((e) => e.from.startsWith("rec"));
+  assert.ok(inBrain.every((e) => e.weight > 0), "no rule synapse at 0 is kept");
+  assert.ok(b.ledger.matches(b.agent.graph));
+  assert.equal(new Ledger("DNK-0001", bornGraph(ROOM, { seed: 3, group: "reflexless", recall: { rules: "grown" } }), b.ledger.entries).hash(), b.ledger.hash());
+});
+
+test("an innate brain (D) never prunes: a rule synapse back at 0 stays, on a weight entry", () => {
+  const d = lifeOf({ memory: { recall: {} }, recall: "innate0", rooms: 3 });
+  const backToZero = d.ledger.entries.filter((e) => e.kind === "weight" && e.edge.from.startsWith("rec") && e.after === 0);
+  assert.ok(backToZero.length > 0, "a rule synapse went back to 0 (the check is not empty)");
+  assert.ok(!d.ledger.entries.some((e) => e.kind === "edge-"), "and none was pruned");
+  assert.equal(d.agent.graph.connections.filter((e) => e.from.startsWith("rec")).length, 20, "all 20 rule synapses are still there");
+});
+
+test("a frozen grown brain (the twin) grows no rule synapse", () => {
+  const b = lifeOf({ memory: { recall: {} }, recall: "grown", frozen: true, rooms: 2 });
+  assert.ok(!b.ledger.entries.some((e) => e.kind === "edge+" || e.kind === "edge-"));
+});
+
+test("recall needs the recalled-sense nodes in the brain", () => {
+  const spec = K1N.spec(ROOM);
+  const plain = new Ledger("DNK-0001", bornGraph(ROOM, { seed: 3, group: "reflexless" }));
+  assert.throws(() => createAgent({ ...spec, cfg: ROOM, ledger: plain, noiseSeed: 11, memory: { recall: {} } }), /recalled-sense nodes/);
 });
 
 test("recall on, frozen innate rule synapses of weight 0: the same life as without recall", () => {

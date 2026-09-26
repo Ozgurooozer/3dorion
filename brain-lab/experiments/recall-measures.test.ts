@@ -13,7 +13,7 @@ import { pathwayOf } from "../regions/index.ts";
 import { Room } from "../world/index.ts";
 import { condition } from "./conditions.ts";
 import { TEST_SEED_FLOOR, birth, evalWorld } from "./harness.ts";
-import { REACH_RADIUS, REACH_WINDOW, RecallEpisodes, aggregateRecall, countRecallTurn, fixtureLedger, gradeRecall, referenceRecallLives, type RecallLife } from "./recall-a3.ts";
+import { REACH_RADIUS, REACH_WINDOW, RecallEpisodes, aggregateRecall, countRecallTurn, fixtureLedger, gradeRecall, referenceRecallLives, ruleWeights, type RecallLife } from "./recall-a3.ts";
 import { FoodMemory } from "../learning/index.ts";
 import { MemoryCore, PoseModule } from "../memory/index.ts";
 import { sensorimotorScaffold } from "../sensorimotor/index.ts";
@@ -261,4 +261,19 @@ test("the fixture adds the recalled senses and one rule synapse per ray toward i
   assert.ok(ledger.entries.every((e) => e.cause.includes("fixture")), "every fixture entry says so");
   assert.equal(new Ledger(s.id, ledger.birthGraph, ledger.entries).hash(), ledger.hash());
   assert.equal(store.openLedger(s.id).entries.length, 0, "the saved ledger is untouched");
+});
+
+// --- the A3.2 read-out ---------------------------------------------------------------------------------------------------
+
+test("rule weights: toward the side a side node stands for, away from it, and the mean over all 20 (absent synapses count 0)", () => {
+  const g = { name: "x", version: "2", nodes: [], connections: [
+    { from: "rec4.food", to: "bg.go.left", weight: 0.4 }, // outer left → left: own side
+    { from: "rec3.food", to: "bg.go.right", weight: 0.2 }, // inner left → right: the other side
+    { from: "rec0.food", to: "bg.go.right", weight: 0.6 }, // outer right → right: own side
+    { from: "rec2.food", to: "bg.go.forward", weight: 0.8 }, // the middle ray is neither side
+  ] };
+  const r = ruleWeights(g, WORLD);
+  assert.ok(Math.abs(r.own - (0.4 + 0 + 0 + 0.6) / 4) < 1e-12, `own ${r.own}`);
+  assert.ok(Math.abs(r.other - (0 + 0.2 + 0 + 0) / 4) < 1e-12, `other ${r.other}`);
+  assert.ok(Math.abs(r.mean - (0.4 + 0.2 + 0.6 + 0.8) / 20) < 1e-12, `mean ${r.mean}`);
 });

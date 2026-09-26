@@ -14,7 +14,7 @@ import { bornGraph } from "../development/index.ts";
 import { Ledger } from "../registry/index.ts";
 import { RegistryStore } from "../registry/store.ts";
 import { diagnoseLedger } from "./diagnose.ts";
-import { MAX_TICKS, TEST_SEED_FLOOR, assertBornInto, assertReplayed, assertSeedAllowed, birth, crossDopamine, evalWorld, lesionClone, localDopamine, measureEpisodes, recordedLearners, shuffledClone } from "./harness.ts";
+import { MAX_TICKS, TEST_SEED_FLOOR, assertBornInto, assertReplayed, assertSeedAllowed, birth, crossDopamine, evalWorld, lesionClone, localDopamine, measureEpisodes, recordedLearners, recordedRows, shuffledClone } from "./harness.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -252,6 +252,13 @@ test("recorded learners: an other room with the condition's food and threats but
     resultLine({ code: "K1n", command: "curut", food: 5, energy: 0.4, seed: 11, learner: "DNK-3185" }),
   ];
   assert.deepEqual(recordedLearners(lines, "K1n", SCARCE, "curut").map((r) => r.learner), ["DNK-2945"]);
+});
+
+test("recorded rows: the rows recorded learners are chosen from, whole", () => {
+  const lines = [resultLine({ learner: "DNK-0001", twin: "DNK-0002", l: { meanDrive: 0.3 } }), resultLine({ learner: "DNK-0003", twin: "DNK-0004", l: { meanDrive: 0.2 } })];
+  const rows = recordedRows(lines, "S1n", HUNGRY);
+  assert.deepEqual(rows.map((r) => [r.learner, r.twin, r.l.meanDrive]), [["DNK-0003", "DNK-0004", 0.2]], "the later row of the same seed and group");
+  assert.deepEqual(recordedLearners(lines, "S1n", HUNGRY), [{ seed: 1, group: "reflexless", learner: "DNK-0003" }]);
 });
 
 test("recorded learners: a row written before the energy field existed is still chosen on food and threats", () => {

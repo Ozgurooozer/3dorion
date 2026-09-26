@@ -26,7 +26,8 @@
 //   fixture    LABELLED FIXTURE, never a brain: K1n's brains with hand-set rule synapses rec{i} → Go of ray i's direction
 //              (weight W), through the real selector — what memory use can do
 //
-//   node --experimental-strip-types brain-lab/experiments/recall-a3.ts [W]
+//   node --experimental-strip-types brain-lab/experiments/recall-a3.ts [W]      calibration (fixture weight W, default 1)
+//   node --experimental-strip-types brain-lab/experiments/recall-a3.ts tara     A3.2: H3B and H3D against K1n (after `npm run exp -- tara H3B H3D`)
 "use strict";
 
 import { readFileSync, writeFileSync } from "node:fs";
@@ -42,9 +43,10 @@ import { recId } from "../regions/index.ts";
 import { sensorimotorScaffold } from "../sensorimotor/index.ts";
 import { Room, runEpisode, type Action, type EpisodeHooks, type EpisodeSummary, type Observation, type Policy, type WorldConfig } from "../world/index.ts";
 import { condition } from "./conditions.ts";
-import { MAX_TICKS, assertBornInto, assertReplayed, assertSeedAllowed, evalNoise, evalWorld, recordedEvaluation, recordedLearners } from "./harness.ts";
+import { MAX_TICKS, assertBornInto, assertReplayed, assertSeedAllowed, evalNoise, evalWorld, recordedEvaluation, recordedLearners, recordedRows, type RecordedRow } from "./harness.ts";
 import { steeringIndex, type Steering } from "./measures.ts";
 import { referenceBodies } from "./pose-a1.ts";
+import { signTest, wilcoxon } from "./stats.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DATA = join(HERE, "../data");
@@ -210,7 +212,9 @@ export function learnerRecallLives(code: string, store: RegistryStore, resultLin
     const recorded = recordedEvaluation(store, row.learner);
     if (!recorded) throw new Error(`${row.learner} has no recorded evaluation`);
     const ledger = fixtureWeight === null ? store.openLedger(row.learner) : fixtureLedger(store, row.learner, world, fixtureWeight);
-    const memory = fixtureWeight === null ? {} : { recall: {} };
+    // As recorded: the condition's own memory (K1n none, so the memory is switched on to be read; H3B/H3D with recall);
+    // with the fixture, recall on.
+    const memory = fixtureWeight === null ? (spec.memory ?? {}) : { ...(spec.memory ?? {}), recall: {} };
     const agent = createAgent({ ...spec, cfg: world, ledger, noiseSeed: evalNoise(subject.birth.seed), learning: { ...spec.learning, frozen: true }, memory });
     const mine: { room: number; matches: boolean }[] = [];
     for (const ep of recorded.episodes) {
@@ -249,7 +253,74 @@ export function aggregateRecall(ls: readonly RecallLife[]) {
   };
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+/** A brain's rule synapses (rec → Go): the mean weight toward the side a side node stands for, away from it, and over all 20. */
+export function ruleWeights(graph: BrainGrafi, cfg: WorldConfig): { own: number; other: number; mean: number } {
+  const w = (from: string, to: string) => graph.connections.find((e) => e.from === from && e.to === to)?.weight ?? 0;
+  const mean = (xs: number[]) => xs.reduce((s, x) => s + x, 0) / xs.length;
+  const sides = cfg.rayAngles.map((a, i) => [i, actionOfAngle(a)] as const).filter(([, s]) => s !== "forward");
+  return {
+    own: mean(sides.map(([i, s]) => w(recId(i), `bg.go.${s}`))),
+    other: mean(sides.map(([i, s]) => w(recId(i), `bg.go.${s === "left" ? "right" : "left"}`))),
+    mean: mean(cfg.rayAngles.flatMap((_, i) => ["forward", "back", "left", "right"].map((a) => w(recId(i), `bg.go.${a}`)))),
+  };
+}
+
+/**
+ * A3.2 (LAB-DEFTERI 2026-09-26, predictions a–f): the screened H3B and H3D learners against K1n's recorded learners of
+ * the same seeds and groups — drive paired per seed and group, the rule synapses each grew, and G7/G6m on their
+ * recorded evaluation rooms (read-only).
+ */
+export function a3Screen(store: RegistryStore, lines: readonly string[]) {
+  const world = condition("K1n").world!;
+  const byKey = (code: string) => new Map(recordedRows(lines, code, world, "tara").map((r) => [`${r.seed}/${r.group}`, r]));
+  const k1n = byKey("K1n"), b = byKey("H3B"), d = byKey("H3D");
+  const keys = [...b.keys()].filter((k) => d.has(k) && k1n.has(k));
+  const drive = (m: Map<string, RecordedRow>) => keys.map((k) => m.get(k)!.l.meanDrive);
+  const paired = (better: number[], worse: number[]) => {
+    const diffs = worse.map((x, i) => x - better[i]!); // > 0: the first is better (lower drive)
+    return { better: diffs.filter((x) => x > 0).length, of: diffs.length, sign: signTest(diffs).p, wilcoxon: wilcoxon(diffs).p };
+  };
+  const rules = (m: Map<string, RecordedRow>) => keys.map((k) => ruleWeights(store.openLedger(m.get(k)!.learner).graph, world));
+  const mean = (xs: number[]) => xs.reduce((s, x) => s + x, 0) / xs.length;
+  const measures = Object.fromEntries(["K1n", "H3B", "H3D"].map((code) => [code, aggregateRecall(learnerRecallLives(code, store, lines, null))]));
+  return {
+    pairs: keys,
+    drive: { K1n: mean(drive(k1n)), H3B: mean(drive(b)), H3D: mean(drive(d)) },
+    survival: { K1n: mean(keys.map((k) => k1n.get(k)!.l.survival)), H3B: mean(keys.map((k) => b.get(k)!.l.survival)), H3D: mean(keys.map((k) => d.get(k)!.l.survival)) },
+    bOverK1n: paired(drive(b), drive(k1n)),
+    dOverK1n: paired(drive(d), drive(k1n)),
+    bOverD: paired(drive(b), drive(d)),
+    rulesB: rules(b),
+    rulesD: rules(d),
+    measures,
+  };
+}
+
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1] && process.argv[2] === "tara") {
+  const store = new RegistryStore(DATA, { readOnly: true });
+  const s = a3Screen(store, readFileSync(join(DATA, "results.jsonl"), "utf8").split("\n"));
+  const f = (x: number, d = 3) => (Number.isNaN(x) ? "—" : x.toFixed(d).replace(".", ","));
+  const mean = (xs: number[]) => xs.reduce((a, x) => a + x, 0) / xs.length;
+  const p = (x: { better: number; of: number; sign: number; wilcoxon: number }) => `${x.better}/${x.of} (işaret p ${x.sign.toPrecision(2)}, Wilcoxon p ${x.wilcoxon.toPrecision(2)})`;
+  console.log(`\n=== A3.2 taraması: H3B (büyüyen kural) ve H3D (doğuştan kural), K1n'in aynı ${s.pairs.length} seed/grup çiftiyle ===`);
+  console.log(`dürtü (düşük iyi): K1n ${f(s.drive.K1n)} · H3B ${f(s.drive.H3B)} · H3D ${f(s.drive.H3D)} | hayatta: K1n %${f(100 * s.survival.K1n, 0)} · H3B %${f(100 * s.survival.H3B, 0)} · H3D %${f(100 * s.survival.H3D, 0)}`);
+  console.log(`H3B, K1n'den iyi: ${p(s.bOverK1n)} · H3D, K1n'den iyi: ${p(s.dOverK1n)} · H3B, H3D'den iyi: ${p(s.bOverD)}`);
+  for (const [code, a] of Object.entries(s.measures)) console.log(`${code.padEnd(4)} G7 kapı %${f(100 * a.gateShare, 1)} · G6m yönlendirme ${f(a.steering ?? NaN)} · ulaşma %${f(100 * a.reachShare, 1)} · yemek/1000t ${f(a.mealsPerK, 2)}`);
+  for (const [code, rs] of [["H3B", s.rulesB], ["H3D", s.rulesD]] as const) {
+    console.log(`${code} kural ağırlıkları: kendi tarafına ${f(mean(rs.map((r) => r.own)))} · öbür tarafa ${f(mean(rs.map((r) => r.other)))} · kendi > öbür ${rs.filter((r) => r.own > r.other).length}/${rs.length} · 20 sinapsın ortalaması ${f(mean(rs.map((r) => r.mean)))}`);
+  }
+  const b = s.measures.H3B!, k = s.measures.K1n!;
+  console.log("\nöngörü karnesi (LAB-DEFTERI 2026-09-26, A3):");
+  console.log(`(a) H3B dürtüsü K1n'den düşük ve en az 7/10 çiftte: ${s.drive.H3B < s.drive.K1n && s.bOverK1n.better >= 7 ? "✓" : "✗"} (${f(s.drive.H3B)} vs ${f(s.drive.K1n)}; ${s.bOverK1n.better}/${s.bOverK1n.of})`);
+  console.log(`(b) kazanç tavanın yarısından az, H3B dürtüsü > 0,375: ${s.drive.H3B > 0.375 ? "✓" : "✗"} (${f(s.drive.H3B)})`);
+  console.log(`(c) |H3B − H3D| < 0,03: ${Math.abs(s.drive.H3B - s.drive.H3D) < 0.03 ? "✓" : "✗"} (${f(Math.abs(s.drive.H3B - s.drive.H3D))})`);
+  const own = s.rulesB.filter((r) => r.own > r.other).length, mw = mean(s.rulesB.map((r) => r.mean));
+  console.log(`(d) kendi tarafına > öbür en az 7/10 ve ortalama ağırlık < 0,15: ${own >= 7 && mw < 0.15 ? "✓" : "✗"} (${own}/${s.rulesB.length}; ${f(mw)})`);
+  console.log(`(e) H3B'nin kapı payı K1n'inkinden düşük: ${b.gateShare < k.gateShare ? "✓" : "✗"} (%${f(100 * b.gateShare, 1)} vs %${f(100 * k.gateShare, 1)})`);
+  console.log(`(f) H3B yönlendirmesi 0,03 ile 0,134 arasında: ${(b.steering ?? NaN) > 0.03 && (b.steering ?? NaN) < 0.134 ? "✓" : "✗"} (${f(b.steering ?? NaN)})`);
+  writeFileSync(join(DATA, "recall-a3-screen.json"), JSON.stringify(s, null, 2) + "\n");
+  console.log("\nyazıldı: data/recall-a3-screen.json");
+} else if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const W = Number(process.argv[2] ?? 1);
   const world = condition("K1n").world!;
   const spinning: Policy = () => ({ thrust: 0, turn: 1 });

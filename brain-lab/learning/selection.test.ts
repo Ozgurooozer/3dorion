@@ -176,3 +176,17 @@ test("refresh: a synapse born in the live graph after construction counts only o
   s.refresh();
   assert.ok(Math.abs(s.values(senses({ "rec2.food": 1 })).forward - before - 0.5) < 1e-12, "seen after refresh()");
 });
+
+test("the selector sums in edge-key order, however the graph lists its edges (a synapse born in life comes last)", () => {
+  // An order-sensitive sum: 2 + 1e-17 − 2 is 0 or 1e-17 in floating point, depending on the order. In edge-key order the
+  // recalled sense's term comes before touch.bump's (rec… < touch…); a born synapse is appended after them.
+  const g = bornGraph(C, { seed: 1, group: "reflexless", recall: { rules: "innate", maxInitial: 0 } });
+  for (const e of g.connections) if (e.to.startsWith("bg.go.") || e.to.startsWith("bg.nogo.")) if (/^(ray|touch|intero|proprio)/.test(e.from)) e.weight = 0;
+  setWeight(g, "touch.bump", "bg.go.left", 2);
+  setWeight(g, "touch.bump", "bg.nogo.left", 2);
+  setWeight(g, "rec4.food", "bg.go.left", 1e-17);
+  const sorted = { ...g, connections: [...g.connections].sort((a, b) => (`${a.from}->${a.to}` < `${b.from}->${b.to}` ? -1 : 1)) };
+  const bornLast = { ...g, connections: [...sorted.connections.filter((e) => !(e.from === "rec4.food" && e.to === "bg.go.left")), sorted.connections.find((e) => e.from === "rec4.food" && e.to === "bg.go.left")!] };
+  const s = { ...senses({ "touch.bump": 1 }), "rec4.food": 1 };
+  assert.equal(new CompetitiveSelector(bornLast, 1, quiet).values(s).left, new CompetitiveSelector(sorted, 1, quiet).values(s).left);
+});

@@ -78,6 +78,12 @@ export const CONDITIONS: Readonly<Record<string, ConditionDef>> = Object.freeze(
   KT1: { what: "room 3 (scarce): S1n, oracle teacher only (gain 0.3)", spec: (w) => ({ ...S1N, teacher: { policy: oraclePolicy(w), gain: 0.3, mix: "only" as const } }), world: ROOM3 },
   T1only: { what: "S1n, oracle teacher only (gain 0.3)", spec: (w) => ({ ...S1N, teacher: { policy: oraclePolicy(w), gain: 0.3, mix: "only" as const } }) },
   T1add: { what: "S1n + oracle teacher added to reward (gain 0.3)", spec: (w) => ({ ...S1N, teacher: { policy: oraclePolicy(w), gain: 0.3, mix: "add" as const } }) },
+  // A3 (TASARIM-008 §16; meeting 2026-09-26-a3-kural-dogumu K1, K2): K1n with the growing memory, the gate and the recalled
+  // senses. H3B: the rule synapses rec → Go grow in life (born at their first earned quantum, pruned at 0). H3D, the
+  // control: the same synapses innate, weak and random. B equals D born at weight 0 (guard test), so B vs D asks what
+  // sparse growth from nothing does against a dense random start.
+  H3B: { what: "room 3 (scarce): S1n + memory recall, rule synapses grown (B)", spec: () => ({ ...S1N, memory: { recall: {} } }), born: { recall: { rules: "grown" as const } }, world: ROOM3 },
+  H3D: { what: "room 3 (scarce): S1n + memory recall, rule synapses innate (D)", spec: () => ({ ...S1N, memory: { recall: {} } }), born: { recall: { rules: "innate" as const } }, world: ROOM3 },
 });
 
 export function condition(code: string): ConditionDef {
