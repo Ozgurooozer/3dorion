@@ -267,6 +267,13 @@ test("growth happens only in the memory region, and the grown brain still keeps 
   assert.doesNotThrow(() => checkPathways(graph));
 });
 
+test("the default growth parameters are the chosen ones (A2; the eaten rule chosen and confirmed on 2026-09-26)", () => {
+  assert.deepEqual({ ...DEFAULT_GROWTH }, {
+    vigilance: 0.5, birthStrength: 0.5, confirmRate: 0.3, confirmGap: 20, maxSightings: 20, surpriseRadius: 0.25, surpriseFade: 0.5,
+    surpriseGap: 5, timeFade: 0.001, eatenRadius: 0.85, eatenRule: "reach", floor: 0.1, cap: 30,
+  });
+});
+
 test("bad growth parameters are refused", () => {
   const bad: [string, Partial<GrowthParams>][] = [
     ["negative vigilance", { vigilance: -1 }], ["NaN floor", { floor: Number.NaN }],

@@ -51,7 +51,11 @@ export interface GrowthParams {
   readonly cap: number;
 }
 
-/** Chosen before measuring (LAB-DEFTERI 2026-09-26, "A2 — koşmadan önce"). */
+/**
+ * Chosen before measuring (LAB-DEFTERI 2026-09-26, "A2 — koşmadan önce"), except the eaten rule: "reach" was chosen
+ * the same day on seeds 1–10 in rooms 1–3 and confirmed on fresh seeds 11–20 (G5 pooled 93.7 → 97.4 %, precision and
+ * coverage within 0.5 points; LAB-DEFTERI, "Açıkları kapatma").
+ */
 export const DEFAULT_GROWTH: GrowthParams = Object.freeze({
   vigilance: 0.5,
   birthStrength: 0.5,
@@ -63,7 +67,7 @@ export const DEFAULT_GROWTH: GrowthParams = Object.freeze({
   surpriseGap: 5,
   timeFade: 0.001,
   eatenRadius: 0.85,
-  eatenRule: "nearest",
+  eatenRule: "reach",
   floor: 0.1,
   cap: 30,
 });
