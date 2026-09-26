@@ -25,7 +25,7 @@ import { RegistryStore } from "../registry/store.ts";
 import { sensorimotorScaffold } from "../sensorimotor/index.ts";
 import { Room, runEpisode, type Action, type EpisodeHooks, type Observation, type Policy, type WorldConfig } from "../world/index.ts";
 import { ROOM1, condition } from "./conditions.ts";
-import { MAX_TICKS, assertSeedAllowed, evalNoise, evalWorld, recordedEvaluation, recordedLearners } from "./harness.ts";
+import { MAX_TICKS, assertBornInto, assertReplayed, assertSeedAllowed, evalNoise, evalWorld, recordedEvaluation, recordedLearners } from "./harness.ts";
 import { referenceBodies } from "./pose-a1.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -168,7 +168,8 @@ export function referenceMemoryLives(bodies: Record<string, (seed: number) => Po
 
 /**
  * A condition's recorded learners (harness.recordedLearners) in their recorded evaluation rooms, frozen, the memory
- * switched on; the growth goes to an in-memory copy of each ledger, never saved.
+ * switched on; the growth goes to an in-memory copy of each ledger, never saved. A subject born into another world, or
+ * a room that does not end in its recorded final world hash, stops the measurement (assertBornInto, assertReplayed).
  */
 export function learnerMemoryLives(code: string, store: RegistryStore, resultLines: readonly string[], command: "tara" | "curut" = "tara"): Graded {
   const def = condition(code);
@@ -178,6 +179,7 @@ export function learnerMemoryLives(code: string, store: RegistryStore, resultLin
   let refused = 0;
   for (const row of recordedLearners(resultLines, code, world, command)) {
     const subject = store.loadSubject(row.learner);
+    assertBornInto(subject, world);
     const recorded = recordedEvaluation(store, row.learner);
     if (!recorded) throw new Error(`${row.learner} has no recorded evaluation`);
     const ledger = store.openLedger(row.learner); // in memory only: the growth is never saved
@@ -196,6 +198,7 @@ export function learnerMemoryLives(code: string, store: RegistryStore, resultLin
         matches: summary.finalHash === ep.summary.finalHash,
       });
     }
+    assertReplayed(row.learner, lives.filter((l) => l.subject === row.learner));
     refused += agent.memory!.food.refused;
     replays.push({ who: row.learner, exact: new Ledger(row.learner, ledger.birthGraph, ledger.entries).hash() === ledger.hash() && ledger.matches(agent.graph) });
     process.stdout.write(`${row.learner} `);

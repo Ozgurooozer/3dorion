@@ -14,7 +14,7 @@ import { bornGraph } from "../development/index.ts";
 import { Ledger } from "../registry/index.ts";
 import { RegistryStore } from "../registry/store.ts";
 import { diagnoseLedger } from "./diagnose.ts";
-import { MAX_TICKS, TEST_SEED_FLOOR, assertSeedAllowed, birth, crossDopamine, evalWorld, lesionClone, localDopamine, measureEpisodes, recordedLearners, shuffledClone } from "./harness.ts";
+import { MAX_TICKS, TEST_SEED_FLOOR, assertBornInto, assertReplayed, assertSeedAllowed, birth, crossDopamine, evalWorld, lesionClone, localDopamine, measureEpisodes, recordedLearners, shuffledClone } from "./harness.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -240,4 +240,52 @@ test("recorded learners: asked for a falsification run, its fresh-seed learners 
 test("recorded learners: a re-run of the same seed and group replaces the earlier row, keeping its place in the order", () => {
   const lines = [resultLine({ learner: "DNK-0001" }), resultLine({ seed: 2, group: "reflexive", learner: "DNK-0002" }), resultLine({ learner: "DNK-0003" }), ""];
   assert.deepEqual(recordedLearners(lines, "S1n", HUNGRY).map((r) => r.learner), ["DNK-0003", "DNK-0002"]);
+});
+
+// The mix-up of 2026-09-26: K1n's falsification run also trained learners in an "other room" of 5 food, born hungry
+// (0.4), written after its fresh learners; the scarce room has 5 food too, born at 0.8.
+const SCARCE = makeConfig({ initialEnergy: 0.8, threatCount: 0, foodCount: 5 });
+
+test("recorded learners: an other room with the condition's food and threats but another birth energy does not replace its learner", () => {
+  const lines = [
+    resultLine({ code: "K1n", command: "curut", food: 5, energy: 0.8, seed: 11, learner: "DNK-2945" }),
+    resultLine({ code: "K1n", command: "curut", food: 5, energy: 0.4, seed: 11, learner: "DNK-3185" }),
+  ];
+  assert.deepEqual(recordedLearners(lines, "K1n", SCARCE, "curut").map((r) => r.learner), ["DNK-2945"]);
+});
+
+test("recorded learners: a row written before the energy field existed is still chosen on food and threats", () => {
+  assert.deepEqual(recordedLearners([resultLine({ code: "K1n", food: 5, learner: "DNK-2778" })], "K1n", SCARCE).map((r) => r.learner), ["DNK-2778"]);
+});
+
+// --- assertBornInto, assertReplayed: the memory measurements replay only the recorded lives -----------------------------
+
+test("born into: a subject is replayed in the world it was born into", () => {
+  const store = new RegistryStore(mkdtempSync(join(tmpdir(), "brainlab-born-")));
+  const s = birth(store, SCARCE, 2, "reflexless", "test");
+  assert.doesNotThrow(() => assertBornInto(s, SCARCE));
+});
+
+test("born into: a world that differs only in birth energy is refused, naming the setting and both values", () => {
+  const store = new RegistryStore(mkdtempSync(join(tmpdir(), "brainlab-born-")));
+  const s = birth(store, makeConfig({ initialEnergy: 0.4, threatCount: 0, foodCount: 5 }), 2, "reflexless", "test");
+  assert.throws(() => assertBornInto(s, SCARCE), new RegExp(`^Error: ${s.id} was born into another world \\(initialEnergy 0\\.4, not 0\\.8\\)`));
+});
+
+test("born into: a world that differs only in food count is refused, naming the setting", () => {
+  const store = new RegistryStore(mkdtempSync(join(tmpdir(), "brainlab-born-")));
+  const s = birth(store, makeConfig({ initialEnergy: 0.8, threatCount: 0, foodCount: 15 }), 2, "reflexless", "test");
+  assert.throws(() => assertBornInto(s, SCARCE), /\(foodCount 15, not 5\)/);
+});
+
+test("replayed: every room ending in its recorded final hash is measured", () => {
+  assert.doesNotThrow(() => assertReplayed("DNK-0001", [{ room: 1, matches: true }, { room: 2, matches: true }]));
+});
+
+test("replayed: one room that ended elsewhere stops the measurement, naming the subject and the room", () => {
+  assert.throws(() => assertReplayed("DNK-0001", [{ room: 1, matches: true }, { room: 2, matches: false }]), /^Error: DNK-0001: room 2 did not end/);
+});
+
+test("replayed: a room never compared (no record) counts as not replayed", () => {
+  assert.throws(() => assertReplayed("DNK-0001", [{ room: 3, matches: null }]), /DNK-0001: room 3 did not end/);
 });

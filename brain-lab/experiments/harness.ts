@@ -164,13 +164,18 @@ export interface RecordedLearner { readonly seed: number; readonly group: Innate
 
 /**
  * A condition's recorded standard learners, read from the lines of the results table (data/results.jsonl): screened
- * (`tara`; or the main learners of a falsification run, `curut`, on fresh seeds) without a control, 40 training and 10 evaluation rooms, in the condition's room (food and threat counts).
+ * (`tara`; or the main learners of a falsification run, `curut`, on fresh seeds) without a control, 40 training and 10 evaluation rooms, in the condition's room (food and threat counts, and the birth energy where the row records it).
  * One per seed and group, in table order; a later row of the same seed and group (a re-run batch, e.g. S1n's twice
  * screened seeds 1–5) replaces the earlier one. Shared by the memory measurements (pose-a1.ts, memory-a2.ts), so
  * both replay the same subjects.
+ *
+ * The birth energy matters: a falsification run's "other room" of 5 food (born hungry, 0.4) has the scarce room's food
+ * and threat counts (room 3: 5 food, born at 0.8), and on 2026-09-26 its ten learners replaced K1n's fresh learners of
+ * seeds 11–15 here. Rows written before the energy field (commit 67974b7, e.g. K1n's screening at 9ca10ca) carry no
+ * energy; they are kept on food and threats alone, and assertBornInto refuses any of them born into another room.
  */
 export function recordedLearners(lines: readonly string[], code: string, world: WorldConfig, command: "tara" | "curut" = "tara"): RecordedLearner[] {
-  interface Line { code: string; command: string; control: string; seed: number; group: InnateGroup; learner: string; trainEpisodes?: number; evalEpisodes?: number; food?: number; threats?: number }
+  interface Line { code: string; command: string; control: string; seed: number; group: InnateGroup; learner: string; trainEpisodes?: number; evalEpisodes?: number; food?: number; threats?: number; energy?: number }
   const bySubject = new Map<string, RecordedLearner>();
   for (const text of lines) {
     if (text.trim() === "") continue;
@@ -178,9 +183,35 @@ export function recordedLearners(lines: readonly string[], code: string, world: 
     if (r.code !== code || r.command !== command || r.control !== "none") continue;
     if ((r.trainEpisodes ?? 40) !== 40 || (r.evalEpisodes ?? 10) !== 10) continue;
     if (r.food !== world.foodCount || r.threats !== world.threatCount) continue;
+    if (r.energy !== undefined && r.energy !== world.initialEnergy) continue;
     bySubject.set(`${r.seed}/${r.group}`, { seed: r.seed, group: r.group, learner: r.learner });
   }
   return [...bySubject.values()];
+}
+
+/**
+ * Refuses to replay a subject in a world it was not born into: every setting of `world` must equal the subject's
+ * recorded birth world. The table's filter (recordedLearners) cannot see the birth energy of older rows; the subject's
+ * own birth record always can.
+ */
+export function assertBornInto(subject: Subject, world: WorldConfig): void {
+  const born = subject.birth.worldConfig as unknown as Record<string, unknown>;
+  const here = world as unknown as Record<string, unknown>;
+  const differs = Object.keys(here).filter((k) => JSON.stringify(born[k]) !== JSON.stringify(here[k]));
+  if (differs.length === 0) return;
+  const what = differs.map((k) => `${k} ${JSON.stringify(born[k])}, not ${JSON.stringify(here[k])}`).join("; ");
+  throw new Error(`${subject.id} was born into another world (${what}); refusing to replay it here`);
+}
+
+/**
+ * Refuses to measure recorded lives that did not happen: a subject's replayed rooms must each end in the recorded
+ * final world hash, or the numbers would describe another life (another world, another code). Until the memory has
+ * synapses (TASARIM-008, A3) it must not change a single action, so every room has to match.
+ */
+export function assertReplayed(subject: string, rooms: readonly { readonly room: number; readonly matches: boolean | null }[]): void {
+  const off = rooms.filter((r) => r.matches !== true).map((r) => r.room);
+  if (off.length === 0) return;
+  throw new Error(`${subject}: room${off.length > 1 ? "s" : ""} ${off.join(", ")} did not end in the recorded final world hash — not the recorded life; refusing to measure it`);
 }
 
 /** Evaluate a subject's current brain with learning frozen. */

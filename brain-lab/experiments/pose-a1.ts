@@ -27,7 +27,7 @@ import { MemoryCore, PoseModule, inRoom, type PoseParams } from "../memory/index
 import { RegistryStore } from "../registry/store.ts";
 import { Room, runEpisode, type EpisodeHooks, type Policy, type WorldConfig } from "../world/index.ts";
 import { ROOM1, condition } from "./conditions.ts";
-import { MAX_TICKS, assertSeedAllowed, evalNoise, evalWorld, recordedEvaluation, recordedLearners } from "./harness.ts";
+import { MAX_TICKS, assertBornInto, assertReplayed, assertSeedAllowed, evalNoise, evalWorld, recordedEvaluation, recordedLearners } from "./harness.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DATA = join(HERE, "../data");
@@ -147,7 +147,8 @@ export function referenceLives(bodies: Record<string, (seed: number) => Policy>,
 
 /**
  * A condition's recorded learners (harness.recordedLearners) in their recorded evaluation rooms, their frozen brains
- * evaluated as the experiment did. Each life says whether the room ended in its recorded final world hash.
+ * evaluated as the experiment did. A subject born into another world, or a room that does not end in its recorded
+ * final world hash, stops the measurement (assertBornInto, assertReplayed): the numbers must describe the recorded lives.
  */
 export function learnerLives(code: string, store: RegistryStore, resultLines: readonly string[], command: "tara" | "curut" = "tara"): Life[] {
   const def = condition(code);
@@ -156,6 +157,7 @@ export function learnerLives(code: string, store: RegistryStore, resultLines: re
   const lives: Life[] = [];
   for (const row of recordedLearners(resultLines, code, world, command)) {
     const subject = store.loadSubject(row.learner);
+    assertBornInto(subject, world);
     const recorded = recordedEvaluation(store, row.learner);
     if (!recorded) throw new Error(`${row.learner} has no recorded evaluation`);
     const agent = createAgent({ ...spec, cfg: world, ledger: store.openLedger(row.learner), noiseSeed: evalNoise(subject.birth.seed), learning: { ...spec.learning, frozen: true } });
@@ -168,6 +170,7 @@ export function learnerLives(code: string, store: RegistryStore, resultLines: re
         ticks: summary.ticks, died: summary.doneCause !== null, contacts, matches: summary.finalHash === ep.summary.finalHash, v: graded, walls,
       });
     }
+    assertReplayed(row.learner, lives.filter((l) => l.subject === row.learner));
     process.stdout.write(`${row.learner} `);
   }
   process.stdout.write("\n");
@@ -241,9 +244,10 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const gate = (n: Variant) => mean(k3.map((l) => l.v[n].at3000!));
   console.log(`\nKAPI (3000 tiki yaşayan ${k3.length} hayat, ortalama konum hatası < 0,5 m): ${NAMES.map((n) => `${n} ${f(gate(n), 3)}`).join(" · ")} m; seçilen ${chosen}: ${gate(chosen) < 0.5 ? "GEÇTİ" : "KALDI"}`);
 
-  // The A1 numbers must reproduce: V0–V2 did not change (A1b only added a rule). A1 measured K1n only.
+  // The A1 numbers must reproduce: V0–V2 did not change (A1b only added a rule). A1 measured K1n's screened learners
+  // only; a falsification run's fresh learners are other subjects, so there is nothing to reproduce there.
   let reproduced: boolean | null = null;
-  if (code === "K1n") {
+  if (code === "K1n" && command === "tara") {
     const a1 = JSON.parse(readFileSync(join(DATA, "pose-a1-summary.json"), "utf8")) as { gate: Record<string, number> };
     reproduced = (["V0", "V1", "V2"] as const).every((n) => a1.gate[n] === gate(n));
     console.log(`A1 kaydı yeniden üretildi mi (V0–V2 kapı değerleri birebir): ${reproduced ? "evet" : "HAYIR"}`);
