@@ -78,7 +78,7 @@ node --experimental-strip-types tools/ogret.ts hafiza                     # öğ
 | G7 | Öğrenilemez algıya ders yazılmaz (bekçi). | `[TEST]` |
 | G8 | Host yalnız tam satırları iletir; yalnız öğretim satırlarını okur. | `[TEST]` `host/kararDosyasi.test.ts` |
 | G9 | Bozma denemesi: 20 mutantın 20'si yakalandı. | `[TEST]` 2026-09-27 |
-| G10 | Canlı: kayıttaki gerçek bir karar araçla öğretilir; sonraki koşuda aynı durumun gölgesi dersi gösterir; davranış aynı kalır. | aşağıda |
+| G10 | Canlı: kayıttaki gerçek bir karar araçla öğretilir; sonraki koşuda aynı durumun gölgesi dersi gösterir; davranış aynı kalır. | `[ÖLÇÜLDÜ]` 2026-09-27: gorudene, kabuk hatası "sus" diye öğretildi; koşu 2'de gölge `{sus, K1, 1}`, kapı geçirdi, LLM uyandı; koşu sırasında eklenen ders tam bir kez uygulandı |
 
 ## Açık (sırayla, toplantı K7)
 

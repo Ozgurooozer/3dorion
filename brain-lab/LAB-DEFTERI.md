@@ -2773,6 +2773,48 @@ sınav üzerinde ayar yapmak olurdu. Yeni bir hakem ancak yeni bir kalibrasyon k
 - Koşu 2'de gölge null → yeniden kurulum çalışmıyor.
 - Kapı "düştü" ya da uyanış yok → davranış değişmiş. Bu en ağır hata olur.
 
+## 2026-09-27 — KT2 1. adım canlı sonucu: Ozyn'in tek dersi bir sonraki oturumda gölgede kullanıldı
+
+**Ne koşuldu:**
+- Kod 570a3a1. İki `gorudene` koşusu; qwen2.5:7b; kayıt ve hafıza scratchpad `canli2/` altında (Ozyn'in gerçek
+  kaydına dokunulmadı).
+- Koşu 1'den sonra kabuk hatası araçla "sus" diye öğretildi. Koşu 2 sırasında afiş için ikinci bir ders eklendi.
+
+**Sonuç `[ÖLÇÜLDÜ]`:**
+
+| | koşu 1 | koşu 2 |
+|---|---|---|
+| açılış | — | `[KAPI] kural hafizasi: 1 ogretim, 1 kural` |
+| afiş (kod_rutin, düştü) | isaret var, gölge null | isaret aynı, gölge null (canlı ders 2,2 sn sonra geldi) |
+| `dir` (kod_rutin, düştü) | isaret var, gölge null | isaret var, gölge null |
+| kabuk hatası (kod_hata) | **geçti**, gölge null → uyanış | **geçti**, gölge **{sus, K1, 1}** → uyanış |
+| ajanda "bitti" | isaret yok (yerel kanal) | isaret yok |
+| koşu sırasında eklenen ders | — | `[KAPI] yeni ogretim uygulandi`, tam 1 kez |
+| senaryo | 3/3 | 3/3 |
+
+**Karne:**
+- G10-1 ✓
+- G10-2 ✓: tek satır; K1 hatanın 21 işaretiyle → sus.
+- G10-3 ✓: gölge dersi gösterdi; kapı geçirdi; LLM uyandı. Davranış aynı.
+- G10-4 ✓
+
+**Yorum:**
+- Hedefin küçük ama eksiksiz bir örneği canlıda çalıştı. Ozyn bir kararı bir kez düzeltiyor. Orion bir sonraki oturumda
+  aynı durumda ne yapacağını, hangi kuraldan ve hangi dersten geldiğini söyleyerek kayda yazıyor (K1,
+  kanıt `o_mujt9ww5_1/a4`). Davranışı ise değiştirmiyor.
+- Kural tek dersten doğduğu için çok özgül: 21 işaret, içinde önceki `dir` çıktısından kalma kelimeler de var.
+  Terminal algısı ekranın kuyruğunu taşıyor; durum kodu bu yüzden gürültülü. Başka bir yazım hatası bu kurala uymaz.
+  İkinci benzer ders kuralı ortak işaretlere indirecek. Bunu çevrimdışı kıyas ölçecek.
+- Afiş dersi gibi kod_rutin durumları çok az işaret taşıyor (3). Bir ders, bütün rutin başarılı çıktılara genellenen
+  bir kural doğurur. İçgüdüyle aynı yönde olduğu için zararsız; ama durum kodunun ne kadar kaba olduğunu gösteriyor.
+
+**Yan bulgular (Orion):**
+- qwen, `dunya_bak`'a görünür etiketi ("beyaz tahta") verdi. Niyet "bilinmeyen çapa/nesne" hatasıyla döndü: iç ad ile
+  görünür ad eşlenmiyor.
+- Ekran kuyruğu önceki komutun çıktısını da taşıyor.
+
+**Sonraki:** Çevrimdışı kıyas (K6, BY36).
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
