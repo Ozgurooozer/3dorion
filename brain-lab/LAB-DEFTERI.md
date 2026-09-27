@@ -2815,6 +2815,50 @@ sınav üzerinde ayar yapmak olurdu. Yeni bir hakem ancak yeni bir kalibrasyon k
 
 **Sonraki:** Çevrimdışı kıyas (K6, BY36).
 
+## 2026-09-27 — KT2 çevrimdışı kıyas (K6) — koşmadan önce
+
+**Soru:** Büyüyen kural hafızası (B) tutarlı bir öğretmenin kapı tercihlerini tek denemede öğreniyor, benzer durumlara
+genelliyor, unutmuyor ve küçük kalıyor mu? Kıyaslananlar:
+- A: sinek mantar gövdesi.
+- D: tam anı hafızası.
+- C: çevrimiçi lojistik.
+- Kontrol: içgüdü ikizi.
+
+**Düzenek** (`tools/kapi-deney.ts`, 14 test; ölçüler "hep uyan", "hep sus" ve kâhin üzerinde kalibre):
+- **Havuz:** 74 öğrenilebilir durum. Kapı kararları ve durum kodları gerçek köprüden alındı; içgüdü 47'sini geçiriyor.
+  - Etiketli kümeden 26.
+  - 30 gerçek terminal çıktısı (`tools/kapi-yakala.ts`): bu depoda gerçekten çalıştırılan komutlar, Orion'un
+    kabuğunun çıkış kodu kuralıyla.
+  - 10 canlı olay: olay üreticinin adları ve inisiyatifin gerçek cümlesi.
+  - 8 gerçek niyet sonucu metni.
+- **Öğretmenler:** tutarlı "Ozyn yerine geçenler". Doğru değiller; tutarlılar.
+  - Kümenin insan etiketleri: yalnız kümeden gelen 26 durum.
+  - qwen hakemi, "masada" bağlamı: 38 evet / 36 hayır.
+  - qwen hakemi, "uzakta" bağlamı: 53 / 21.
+  - Haiku hakemi, iki bağlamda.
+- **Akış:**
+  - 400 olay, 5 tohum.
+  - Sık durum sık gelir (ağırlık 1/r^0,8).
+  - Her aileden durumların %20'si yeni: yalnız ikinci yarıda görünür.
+- **Ölçüm:** sıralı; önce karar (motor emin değilse içgüdü), sonra ders. Her motor aynı güven payıyla (0,75) karar verir.
+- **Kontrol:** karıştırılmış öğretmen. Etiketler durumlar arasında karışır: tutarlı ama yapısız.
+
+**Öngörüler:**
+- **Ö1, tek deneme:** İkinci görülüşte B ve D ≥ %90 doğru, her tutarlı öğretmende. A %70–90 (paylaşılan işaretler oy
+  karıştırır). C %75–95.
+- **Ö2, genelleme:** Yeni durumlarda B en temkinlisi olur: en az durumda karar verir, verdiğinde doğruluğu A ve C'den
+  yüksektir.
+- **Ö3:** Hakem öğretmenlerinde her öğrenen motor, genel doğrulukta içgüdü ikizini ≥ 10 puan geçer.
+- **Ö4, unutmama:** İlk çeyrekte görülen durumlara akış sonunda B ve D ≥ %95 doğru karar verir (karar verdikleri
+  arasında); A ≥ %85; C, B'den düşük.
+- **Ö5, karıştırılmış öğretmen:** Yeni durumlarda her motorun kendi kararı şansa yakındır (≤ %60). İkinci görülüşte B
+  ve D yine ≥ %90, çünkü yapısız olsa da tutarlı etiketi ezberlerler.
+- **Ö6, boyut:** Gerçek öğretmenlerde B'nin nöron sayısı görülen ayrı durum sayısından azdır: genellemeyle sıkıştırır.
+  Karıştırılmış öğretmende bu fark küçülür.
+
+**Karar kuralı (toplantı K2):** A'nın genel doğruluğu iki hakem öğretmeninde de ("masada") B'yi ≥ 5 puan geçerse motor
+kararı yeniden açılır.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
