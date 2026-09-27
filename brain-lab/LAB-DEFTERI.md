@@ -3001,6 +3001,13 @@ Karıştırılmış öğretmen, qwen-masada: B yeni 14/24 (%58), B-K1 4/10 (%40)
 **Öngörü (canlı gorudene koşusu):** Terminal algılarının `isaret`inde `ozyn_yuzey:monitor` ve bir `ozyn:` mesafe kovası
 bulunur, çünkü senaryo Ozyn'i monitöre geçiriyor. **Yanlışlayıcı:** hiçbir algıda `ozyn` işareti yok.
 
+**Sonuç `[ÖLÇÜLDÜ]`** (commit 051f870; scratchpad `canli3/`):
+- Üç terminal algısının üçünde de `ozyn:bakiyor` ve `ozyn:uzak` var. Senaryo 3/3.
+- `ozyn_yuzey:monitor` **yok**.
+- **Karne:** yanlışlayıcı tetiklenmedi; bağlam canlıda koda giriyor. Öngörünün yüzey kısmı ✗: senaryonun "monitöre
+  geçiş"i Orion'un monitörünü açıyor, Ozyn'in etkileşim yüzeyini değiştirmiyor. Duman koşusunda Ozyn açılış konumunda
+  duruyor (4,6 m, Orion'a bakıyor).
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
