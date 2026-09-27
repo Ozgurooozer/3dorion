@@ -2948,6 +2948,45 @@ Karıştırılmış öğretmen, qwen-masada: B %90 · ikinci 296/303 · yeni 15/
 - HK1-2 tutmazsa kapsama doğru çare değil.
 - HK1-3 tutmazsa anahtar ezberi bozuyor.
 
+## 2026-09-27 — H-K1 sonucu: kapsama B'yi temkinli yapıyor ama daha doğru yapmıyor — reddedildi
+
+**Ne koşuldu:** Commit e994b93; taze havuz (30 gerçek komut), tohum 6–10 × 400 olay, yeni payı %40. Kayıt:
+`brain-lab/data/kapi/2/sonuc.json`.
+
+**Sonuç `[ÖLÇÜLDÜ]`** (5 tohum toplamı):
+
+| öğretmen | motor | genel | ikinci | yeni: karar verdi | yeni: doğru | boyut |
+|---|---|---|---|---|---|---|
+| qwen-masada | içgüdü | %76 | 76% | — | — | 0 |
+| qwen-masada | B | 1957/2000 | 147/148 | 36/45 (%80) | 25/36 (%69) | 23 |
+| qwen-masada | **B-K1** | 1957/2000 | 147/148 | **11/45 (%24)** | **6/11 (%55)** | 23 |
+| qwen-masada | D | 1964/2000 | 148/148 | 21/45 | 16/21 (%76) | 400 |
+| qwen-uzakta | B | 1952/2000 | 147/148 | 36/45 | 24/36 (%67) | 23 |
+| qwen-uzakta | **B-K1** | 1950/2000 | 146/148 | 11/45 | 6/11 (%55) | 23 |
+| qwen-uzakta | D | 1959/2000 | 148/148 | 21/45 | 16/21 (%76) | 400 |
+
+Karıştırılmış öğretmen, qwen-masada: B yeni 14/24 (%58), B-K1 4/10 (%40), D 8/21 (%38).
+
+**Karne:**
+- HK1-1 ✓: B-K1 %24; B %80.
+- HK1-2 ✗: %55; örnek küçük, n = 11.
+- HK1-3 ✓: %99.
+- HK1-4 ✓: fark 0 ve 0,1 puan.
+- **Yanlışlayıcı tetiklendi: kapsama doğru çare değil.** Anahtar kapalı kalıyor (varsayılan 0).
+
+**Yorum:**
+- Kapsama B'yi yeni durumlarda çekimser yapıyor: kararı içgüdüye bırakıyor. Güvenlik açısından bu bir kazanç, ama
+  kalan kararları daha doğru yapmıyor.
+- Taze havuzda B'nin varsayılan genellemesi ilk havuzdakinden iyi: %69 · %54. Karıştırılmış öğretmende %58; zayıf da olsa
+  bir sinyal var.
+- **D iki havuzda da yeni durumlarda en iyi:** %76 ve %59; karıştırılmışta %38 ve %41. Benzerliği bütün kod üzerinden
+  ölçmek (Jaccard), B'nin "koşul algının alt kümesi mi" sorusundan daha iyi bir genelleme ölçütü görünüyor.
+
+**Tasarım önerisi (Ozyn'e; yapılmadı):**
+- **H-K2:** B'nin karar anı benzerliği D gibi ölçülsün: kural koşulu ile algı arasındaki Jaccard, bir eşiğin üstünde
+  olmalı. Kurallar okunur ve küçük kalır; genelleme D'ninki gibi olur.
+- Sınaması üçüncü bir taze havuzda yapılmalı.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
