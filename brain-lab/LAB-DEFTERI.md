@@ -2859,6 +2859,67 @@ genelliyor, unutmuyor ve küçük kalıyor mu? Kıyaslananlar:
 **Karar kuralı (toplantı K2):** A'nın genel doğruluğu iki hakem öğretmeninde de ("masada") B'yi ≥ 5 puan geçerse motor
 kararı yeniden açılır.
 
+## 2026-09-27 — K6 sonucu: tek deneme ve unutmama güçlü; yeni duruma genelleme yok, B aşırı genelliyor
+
+**Ne koşuldu:** Commit a8650ed; `kapi-deney.ts kos`, tohum 1–5 × 400 olay. Kayıt: `brain-lab/data/kapi/sonuc.json`.
+
+**Haiku öğretmenleri dejenere çıktı:**
+- "masada" bağlamında 74 durumdan 72'sine "hayır", "uzakta" bağlamında 73'üne.
+- Bu kollarda her motor "hep sus"la kazanır, bilgi taşımıyorlar. Sayıları kayıtta; aşağıdaki tablo bilgi taşıyan
+  öğretmenlerden.
+
+**Sonuç `[ÖLÇÜLDÜ]`** (5 tohumun toplamı; yüzdeler toplamdan):
+
+| öğretmen | motor | doğru | ikinci görülüş | yeni: karar verdi / doğru | akıl: doğru | boyut |
+|---|---|---|---|---|---|---|
+| qwen-masada | içgüdü | %60 | 188/303 | — | — | 0 |
+| qwen-masada | **B kural** | **%94** | **299/303** | 28/38 · 15/28 (%54) | 213/213 | **44** nöron |
+| qwen-masada | A mantar | %64 | 195/303 | 0/38 | 17/213 karar | 2249 sinaps |
+| qwen-masada | D anı | %95 | 303/303 | 17/38 · 10/17 (%59) | 213/213 | 400 anı |
+| qwen-masada | C lojistik | %91 | 266/303 | 25/38 · 12/25 (%48) | 198/199 | 354 ağırlık |
+| qwen-uzakta | içgüdü | %67 | 213/303 | — | — | 0 |
+| qwen-uzakta | **B kural** | **%95** | 300/303 | 27/38 · 16/27 (%59) | 212/213 | 46 |
+| qwen-uzakta | D anı | %95 | 303/303 | 17/38 · 10/17 (%59) | 213/213 | 400 |
+| insan (küme, 26 durum) | içgüdü | %78 | 86/111 | — | — | 0 |
+| insan (küme) | **B kural** | **%94** | 111/111 | 10/24 · **3/10 (%30)** | 62/62 | 19 |
+| insan (küme) | D anı | %95 | 111/111 | 8/24 · 5/8 (%63) | 62/62 | 115 |
+
+Karıştırılmış öğretmen, qwen-masada: B %90 · ikinci 296/303 · yeni 15/27 (%56). D %89 · yeni 7/17 (%41).
+
+**Öngörü karnesi:**
+- **Ö1:** B ve D kısmı ✓ (ikinci görülüşte B %99–100, D %100). A ve C aralıkları ✗: A qwen-masada'da %64,
+  Haiku'da %97–98; C Haiku'da %98–99.
+- **Ö2 ✗.** B en temkinli değil, en ataklarından.
+  - qwen öğretmenlerinde yeni durumların %71–74'üne karar verdi; doğruluğu %54–59, D ile aynı.
+  - İnsan öğretmende 10 kararın 3'ü doğru.
+- **Ö3:** B, D, C ✓ (içgüdü ikizini 25–35 puan geçtiler). A ✗ (+4, +9).
+- **Ö4 ✓.** B ve D akışın ilk çeyreğindeki durumların hepsini akış sonunda doğru verdi.
+- **Ö5, yazıldığı haliyle ✗.** Karıştırılmış öğretmende bazı kollarda yeni doğruluk %60'ı aştı (C %80, A %88).
+  - Sebep: şans düzeyi %50 değil, sınıf oranıdır (qwen-uzakta'da %72 "evet"). Eşiği yazarken dengesizliği hesaba
+    katmadım.
+  - İkinci görülüş kısmı ✓ (B ve D karıştırılmış etiketi de ezberliyor).
+- **Ö6 ✓.** B 44 nöron, D 400 anı; karıştırılmış öğretmende B 51 nörona çıktı. İnsan öğretmende fark yok (19 / 19).
+- **Karar kuralı:** A, B'yi geçmedi (qwen-masada %64 · %94; Haiku-masada %97 · %94, fark 3 puan). **B kalır.** Haiku kolunun
+  dejenere olduğu not edildi.
+
+**Yorum:**
+1. **Tekrar eden durumu tek derste öğrenme ve unutmama güçlü.** Gerçek kullanımda tekrar baskın; bunlar asıl değer.
+   B, D ile aynı doğrulukta (%94–95) ve ~9 kat küçük; kararlarını okunur kurallarla söylüyor.
+2. **Gerçekten yeni bir duruma genelleme bu alanda yok.** B'nin ve D'nin yeni durumdaki kararları sınıf oranı
+   düzeyinde. Karıştırılmış öğretmendeki yeni doğruluk gerçek öğretmendekiyle aynı (%56 · %54), yani ortada bir genelleme
+   sinyali yok.
+3. **B aşırı genelliyor.** Kesişimle öğrenirken kural koşulu küçülüyor ve pek çok yeni durumla tam eşleşiyor.
+   - Karar anında yalnızca "koşul algıda var mı" soruluyor, "algının ne kadarını kapsıyor" sorulmuyor.
+   - İnsan etiketli düşman durumlarda (ör. `"error": null` ile gerçek hata) yüzey benzerliği yanıltıyor.
+4. **A'nın başarısızlığı büyük olasılıkla benim uygulamamdan.** Kodu ortak işaretler (tür, içgüdü, çıkış kodu)
+   baskılıyor; oylar karışıyor, pay 0,75'e nadiren ulaşıyor. Sinekteki girdi normalizasyonu (FlyHash) ve APL ketlemesi
+   yok. Bu, sinek ilkesinin değil bu uygulamanın sınaması.
+
+**Sonraki (hipotez, bu veride ayarlanmadan):**
+- **H-K1:** B'ye karar anında da kapsama şartı konur: koşul / algı ≥ 0,5, öğrenmedeki uyanıklıkla aynı.
+- **Öngörü:** yeni durumlarda karar oranı ≤ %30 olur, karar verdiklerinde doğruluk ≥ %75; ikinci görülüş ≥ %95 kalır.
+- Sınama taze tohumlarda (6–10) ve taze bir durum havuzunda (yeni gerçek komutlar) yapılır; bu havuzda ayar yapılmaz.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
