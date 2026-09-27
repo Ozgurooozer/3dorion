@@ -81,9 +81,30 @@ Başlangıçta yol `[KARAR-DOSYASI]` satırıyla söylenir.
 | K3 | Yazıcı patlarsa köprü çalışmaya devam ediyor ve kayıp sayılıyor. | `[TEST]` |
 | K4 | İçgüdü kimlikleri tek kaynak. Refleksin her kararı listede; listedeki her refleks kimliği bir girdiyle üretiliyor; bir kimlik hep aynı yönde karar veriyor; dikkatin 6 sebebi listede. | `[TEST]` `mind/icgudu.test.ts` |
 | K5 | Uyanış satırı tetikleyen algıları, niyet kimliklerini ve türlerini, hatayı, kökeni, takip turunu, süreyi, anı sayısını ve kurtarılan çağrıyı taşıyor. | `[TEST]` |
-| K6 | Canlı koşuda dosya oluşuyor; algı → uyanış → niyet → sonuç zinciri kuruluyor. | aşağıda |
+| K6 | Canlı koşuda dosya oluşuyor; algı → uyanış → niyet zinciri kuruluyor. | `[ÖLÇÜLDÜ]` 2026-09-27 (aşağıda) |
 | K7 | Önek host ile renderer'da aynı (bekçi); host yalnızca geçerli karar satırını, günün dosyasına, sırayla yazıyor. | `[TEST]` `host/kararDosyasi.test.ts` |
 | K8 | Bozma denemesi: 27 mutantın 27'si yakalandı. | `[TEST]` 2026-09-27 |
+
+## Canlı doğrulama (K6) `[ÖLÇÜLDÜ]` 2026-09-27
+
+İki senaryo koşuldu: `sessizdene` ve `gorudene`. Beyin qwen2.5:7b; kayıt ve hafıza ayrı dosyalarda.
+- **Dosya:** iki dosya da oluştu; bozuk satır 0.
+- **gorudene:**
+  - Açılış afişi ve rutin dizin listesi `refleks.terminal.kod_rutin` ile düştü.
+  - Gerçek kabuk hatası `refleks.terminal.kod_hata` ile geçti ve tek uyanışın tetikleyicisi oldu.
+  - LLM 9,6 sn düşündü ve bir komut önerdi. Uyanış satırındaki niyet kimliği, günlükteki `[BEYIN→NIYET]` kimliğiyle
+    aynı.
+
+**Kaydın ilk koşusunda bulduğu:** `refleks.terminal.kod_uzun` ("uzun süren başarılı komut bildirilir") canlı kapıda hiç
+çalışmıyor.
+- Kompozisyon kökü refleksi süreyle çağırıp `[ALGI] … terfi=true` yazıyor; `sessizdene` de bu kopya kararı ölçüyor.
+- Köprüdeki süzgeç ise süreyi göremiyor, çünkü terminal algısında süre alanı yok.
+- `sessizdene`'de `Start-Sleep 1600 ms` için senaryo "terfi=1, geçti" dedi. Kayıt, bloğun `kod_rutin` ile düştüğünü
+  gösterdi; köprü sayacı da `dusunme: 0` dedi.
+- **Düzeltme adayı:**
+  - terminal algısına `sureMs` eklenir, süzgece geçirilir;
+  - `sessizdene` kopya kararı değil gerçek kapıyı (kayıt ya da köprü sayacı) ölçer.
+  - Orion'un davranışını değiştirdiği için Ozyn'in kararına bırakıldı.
 
 ## Kapsam dışı (bilerek)
 

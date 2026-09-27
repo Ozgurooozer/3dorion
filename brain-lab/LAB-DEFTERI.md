@@ -2505,6 +2505,49 @@ E 14).
 - **Ö5:** LLM uyanıp niyet ürettiyse, uyanış satırındaki niyet kimlikleri günlükteki `[BEYIN→NIYET]` satırlarıyla
   bire bir aynıdır.
 
+## 2026-09-27 — KT1 canlı koşu sonucu: kayıt çalışıyor ve ilk koşusunda gizli bir kapı hatasını gösterdi
+
+**Ne koşuldu:**
+- Kod 9dfb103; öngörüler 951e150'de koşudan önce commit'lendi.
+- İki senaryo: `sessizdene` ve `gorudene`.
+- Beyin yerel qwen2.5:7b. Ses kapalı; kayıt ve hafıza ayrı dosyalarda (Ozyn'in gerçek hafızasına dokunulmadı).
+- Kayıtlar: scratchpad `canli/sessizdene.jsonl`, `canli/gorudene.jsonl`; günlükleri yanında.
+
+**Kayıt `[ÖLÇÜLDÜ]`:**
+
+| senaryo | algı | kapının kararı (içgüdü) | uyanış |
+|---|---|---|---|
+| sessizdene | ajanda niyetinin sonucu "bitti" | düştü, `refleks.sonuc.rutin` | — |
+| sessizdene | açılış istemi | düştü, `refleks.terminal.kod_rutin` | — |
+| sessizdene | `$null = 1` (anlık, sessiz) | düştü, `refleks.terminal.kod_rutin` | — |
+| sessizdene | `Start-Sleep 1600 ms` (uzun, sessiz) | **düştü**, `refleks.terminal.kod_rutin` | **yok** (köprü sayacı: düşünme 0, süzülen 4) |
+| gorudene | ajanda niyetinin sonucu | düştü, `refleks.sonuc.rutin` | — |
+| gorudene | açılış afişi | düştü, `refleks.terminal.kod_rutin` | — |
+| gorudene | rutin dizin listesi | düştü, `refleks.terminal.kod_rutin` | — |
+| gorudene | gerçek kabuk hatası (çıkış kodu 1) | geçti, `refleks.terminal.kod_hata` | u1: 9,6 sn, `dunya_komut` → komut önerisi `dir` |
+
+**Öngörü karnesi:**
+- Ö1 ✓ İki dosya da oluştu; bozuk satır 0; ilk satır `oturum`.
+- Ö2 ✓ Anlık sessiz komut düştü; `[SESSIZDENE]` günlüğü de "0 terfi" dedi.
+- Ö3 ✓ Uzun sessiz komut için `[SESSIZDENE]` günlüğü "blok=1 terfi=1" diyerek senaryoyu geçmiş gösterdi. Kayıt, aynı
+  bloğun gerçek kapıda `refleks.terminal.kod_rutin` ile düştüğünü gösteriyor. LLM hiç uyanmadı.
+- Ö4 ✓ Afiş ve rutin komut düştü; kabuk hatası `kod_hata` ile geçti ve u1'in `algilar` listesinde (`a4`).
+- Ö5 ✓ u1'in niyet kimliği `n_mujhirlm_3`, günlükteki `[BEYIN→NIYET] n_mujhirlm_3` ile aynı.
+
+**Bulgu:**
+- "Uzun süren başarılı komut bitince Orion haber verir" kuralı (`refleks.terminal.kod_uzun`) canlı kapıda çalışmıyor.
+  Terminal algısı süreyi taşımıyor, bu yüzden köprüdeki süzgeç kuralı hiç göremiyor.
+- `sessizdene` senaryosu girişteki kopya kararı ölçtüğü için bunu "geçti" diye raporluyor. Hafızadaki "canlı yolu
+  doğrula" dersinin aynısı: ölçüm aracı canlı yolu değil, bir kopyayı ölçüyor.
+- Düzeltme küçük ama Orion'un davranışını değiştirir (uzun ve başarılı her komut LLM'i uyandırır). Bu yüzden yapılmadı;
+  Ozyn'e soruluyor. Senaryo da kayıttan ya da köprü sayacından ölçecek şekilde düzeltilmeli.
+
+**Yorum:** Kayıt ilk koşusunda amacını gösterdi: kapının gerçekte ne yaptığı artık ölçülebilir. Bu koşular geliştirme
+verisidir, taban çizgisi değil. Taban çizgisi Ozyn'in gerçek kullanımından gelecek; Orion yeniden başlatılınca kayıt
+kendiliğinden birikmeye başlar.
+
+**Sonraki:** KT2, öğrenen kapının tasarımı. Motor adayları araştırılıp toplantıya gidecek.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
