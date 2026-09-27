@@ -2640,6 +2640,48 @@ kendi portunda (4710).
   değil, bir öğretmen modeli olarak.
 - Tutmazsa hakem sorusu tasarlanır.
 
+### T0b sonucu: Haiku da reddedildi — sorun modelde değil, soruda
+
+**Kayıt:** `brain-lab/data/ogretmen/t0b-haiku.jsonl`, commit ff96ce1 (adaptör 4710 portunda).
+
+**Sonuç `[ÖLÇÜLDÜ]`:** qwen2.5 ile birebir aynı sayılar.
+- Sorulan 24; uyuşan 14 (%58); kaçırılan 0; boşa 10 (10 gürültünün 10'u); oybirliği 24/24.
+- Haiku her algıda en az bir kez konuştu (`dunya_soyle`); gürültüde çoğu zaman önce baktı (`dunya_sor`).
+
+**Karne:** T0b-1 ✗ (%58 < %80) · T0b-2 ✓ (kaçırılan 0) · T0b-3 ✓ (24/24, tek yönde).
+
+**Teşhis:** İki farklı model aynı sonucu verdi. Tek bir algıyla ve boş geçmişle uyandırılan model, uyandırılmayı bir görev
+sayıp susmuyor; talimattaki "yapacak bir şey yoksa sus" kuralı buna karşı koymaya yetmiyor. Kapının sorusu ile
+beynin sorusu farklı: kapı "buna değer mi?" diye soruyor, uyandırılan beyin "buna ne yapayım?" diye cevap veriyor.
+Bu yüzden LLM'in eylemi kapının öğretmeni olamaz. Spec 06'da Haiku düşünme açıkken 4 cevabın 3'ünde susmuştu; adaptörde
+düşünme kapalı, bu da tepkiye itiyor.
+
+**Karar (ön-kayıtlı kurala göre):** Hakem sorusu (T0c).
+
+### T0c: hakem — koşmadan önce
+
+**Yöntem** (`tools/hakem.ts kalibre`):
+- LLM'e Orion gibi davranması söylenmez. Kapının sorusu doğrudan sorulur: "Bu algı Orion'un ana zihnini uyandırmaya
+  değer mi? Ozyn, Orion'un bunu fark edip tepki vermesini ister mi? YES ya da NO."
+- Talimat bilerek kural vermez ("hatalar önemlidir" gibi). Kural verseydi hakem içgüdüleri tekrar ederdi; bekçi testi
+  talimatta "error, fail, exit code, warning, success" geçmediğini doğrular.
+- Aynı küme, aynı "masada" bağlamı, 3 tekrar. Sayım T0 ile aynı: 24 durum.
+- İki arka uç:
+  - Haiku: `claude -p`, tools/claude-beyin.ts ile aynı güvenlik bayrakları, düşünme kapalı.
+  - qwen2.5:7b: yerel, sıcaklık 0.
+
+**Öngörüler:**
+- **T0c-1 (Haiku hakem):** Uyuşma ≥ %80 (≥ 20/24). Düşman durumların birkaçında yanılır (favicon 404, CRLF uyarısı).
+  **Yanlışlayıcı:** < 20/24.
+- **T0c-2 (Haiku hakem):** Kaçırılan ≤ 2.
+- **T0c-3 (qwen hakem):** Uyuşma %60–80. Haiku'dan düşük.
+
+**Karar kuralı:**
+- Haiku hakemi T0c-1 ve T0c-2'yi geçerse geliştirme akışının öğretmeni Haiku hakemi olur.
+- qwen hakemi de geçerse canlıdaki boş zaman (uyku) etiketlemesi için yerel qwen tercih edilir: ücretsiz ve yerel.
+- İkisi de geçmezse öğretmen yalnızca Ozyn olur. Öğrenen kapı o zaman yalnız Ozyn'in düzeltmeleriyle öğrenir; bu sonuç
+  da kaydedilir.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
