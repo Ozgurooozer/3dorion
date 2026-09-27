@@ -21,6 +21,7 @@
 import fs from "node:fs";
 import { Kopru } from "../bridge/kopru.ts";
 import { OllamaBeyni } from "../bridge/ollama.ts";
+import { DisBeyin } from "../bridge/disBeyin.ts";
 import type { Beyin } from "../bridge/beyin.ts";
 import { KARAR_ONEKI, KararKaydi, type AlgiSatiri, type KapiKarari, type KararSatiri, type UyanisSatiri } from "../mind/kararKaydi.ts";
 import { uyanisEyleme } from "../mind/kararZinciri.ts";
@@ -127,11 +128,19 @@ export interface KalibrasyonSatiri {
   ozet: string;
   oylar: (boolean | null)[];
   cogunluk: boolean | null;
+  /** Her tekrarda "dustu:<içgüdü>" ya da uyanışın niyet türleri ("sus", "metin", "bak+soyle"…). */
   niyetTurleri: string[];
   sureMs: number[];
 }
 
+/** Dikkatin güvenlik içgüdüsü her tekrarda düşürdüyse öğretmene hiç sorulamamıştır. */
+export function sorulamadi(s: KalibrasyonSatiri): boolean {
+  return s.niyetTurleri.length > 0 && s.niyetTurleri.every((t) => t.startsWith("dustu:"));
+}
+
 export interface KalibrasyonOzeti {
+  /** Dikkatin düşürdüğü, öğretmene sorulamayan durumlar — sayıma girmez. */
+  sorulamayan: number;
   sorulan: number;
   /** Öğretmenin çoğunluk kararı insan etiketiyle aynı olan durum. */
   uyusan: number;
@@ -146,9 +155,10 @@ export interface KalibrasyonOzeti {
 
 /** Kalibrasyon sayıları. Konuşma ayrıca sayılmaz: onu içgüdü her zaman geçirir. */
 export function kalibrasyonOzeti(satirlar: KalibrasyonSatiri[]): KalibrasyonOzeti {
-  const o: KalibrasyonOzeti = { sorulan: 0, uyusan: 0, kacirilan: 0, bosa: 0, oybirligi: 0, kararsiz: 0 };
+  const o: KalibrasyonOzeti = { sorulamayan: 0, sorulan: 0, uyusan: 0, kacirilan: 0, bosa: 0, oybirligi: 0, kararsiz: 0 };
   for (const s of satirlar) {
     if (s.grup === "konusma") continue;
+    if (sorulamadi(s)) { o.sorulamayan++; continue; }
     o.sorulan++;
     const gecerli = s.oylar.filter((x): x is boolean => x !== null);
     if (gecerli.length === s.oylar.length && gecerli.every((x) => x === gecerli[0])) o.oybirligi++;
@@ -165,13 +175,24 @@ function arg(ad: string, varsayilan: string): string {
   return p ? p.slice(ad.length + 3) : varsayilan;
 }
 
+/** `--beyin=dis --adres=…` dış beyin (ör. tools/claude-beyin.ts), yoksa yerel Ollama modeli. */
+function beyinKur(): Beyin {
+  if (arg("beyin", "ollama") === "dis") {
+    return new DisBeyin({ ad: arg("ad", "dis"), adres: arg("adres", "http://127.0.0.1:4700"), zamanAsimiMs: 120_000 });
+  }
+  return new OllamaBeyni({ model: arg("model", "qwen2.5:7b"), zamanAsimiMs: 120_000 });
+}
+
+function ozetYaz(o: KalibrasyonOzeti): void {
+  console.log(`\nsorulan ${o.sorulan} (konuşma hariç; ${o.sorulamayan} sorulamadı) · uyuşan ${o.uyusan} (%${Math.round((100 * o.uyusan) / Math.max(1, o.sorulan))}) · kaçırılan ${o.kacirilan} · boşa ${o.bosa} · kararsız ${o.kararsiz} · oybirliği ${o.oybirligi}`);
+}
+
 async function kalibre(): Promise<void> {
   const tekrar = Number(arg("tekrar", "3"));
-  const model = arg("model", "qwen2.5:7b");
   const cikti = arg("cikti", "");
-  const beyin = new OllamaBeyni({ model, zamanAsimiMs: 120_000 });
-  if (!(await beyin.hazirMi())) { console.error(`beyin ayakta değil: ${model}`); process.exit(1); }
-  console.log(`öğretmen kalibrasyonu — ${model}, her durum ${tekrar} kez, bağlam "masada"`);
+  const beyin = beyinKur();
+  if (!(await beyin.hazirMi())) { console.error(`beyin ayakta değil: ${beyin.ad}`); process.exit(1); }
+  console.log(`öğretmen kalibrasyonu — ${beyin.ad}, her durum ${tekrar} kez, bağlam "masada"`);
   const satirlar: KalibrasyonSatiri[] = [];
   for (const [sira, d] of KUME.entries()) {
     const algi = durumdanAlgi(d);
@@ -193,13 +214,22 @@ async function kalibre(): Promise<void> {
     console.log(`#${sira} ${d.grup.padEnd(8)} insan=${d.beklenen ? "UYAN" : "sus "} öğretmen=${s.cogunluk === null ? "?" : s.cogunluk ? "UYAN" : "sus "} [${niyetTurleri.join(", ")}] ${s.ozet}`);
     if (cikti) fs.appendFileSync(cikti, `${JSON.stringify(s)}\n`);
   }
-  const o = kalibrasyonOzeti(satirlar);
-  console.log(`\nsorulan ${o.sorulan} (konuşma hariç) · uyuşan ${o.uyusan} (%${Math.round((100 * o.uyusan) / Math.max(1, o.sorulan))}) · kaçırılan ${o.kacirilan} · boşa ${o.bosa} · kararsız ${o.kararsiz} · oybirliği ${o.oybirligi}`);
+  ozetYaz(kalibrasyonOzeti(satirlar));
   console.log("done");
 }
+
+/** Kaydedilmiş bir kalibrasyon dosyasının özetini yeniden hesaplar (LLM'e sormadan). */
+function ozetle(dosya: string): void {
+  const satirlar = fs.readFileSync(dosya, "utf8").split(/\r?\n/).filter(Boolean).map((s) => JSON.parse(s) as KalibrasyonSatiri);
+  ozetYaz(kalibrasyonOzeti(satirlar));
+}
+
+const KULLANIM = "kullanım: ogretmen.ts kalibre [--tekrar=3] [--model=qwen2.5:7b | --beyin=dis --adres=URL --ad=AD] [--cikti=dosya.jsonl]\n"
+  + "          ogretmen.ts ozet <kalibrasyon.jsonl>";
 
 if (import.meta.main) {
   const komut = process.argv[2];
   if (komut === "kalibre") await kalibre();
-  else { console.error("kullanım: ogretmen.ts kalibre [--tekrar=3] [--model=qwen2.5:7b] [--cikti=dosya.jsonl]"); process.exit(2); }
+  else if (komut === "ozet" && process.argv[3]) ozetle(process.argv[3]);
+  else { console.error(KULLANIM); process.exit(2); }
 }

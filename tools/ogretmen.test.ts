@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { Beyin, BeyinCikti, BeyinGirdisi } from "../bridge/beyin.ts";
 import { KUME } from "../mind/refleksKumesi.ts";
-import { BAGLAMLAR, SABIT, cogunluk, durumdanAlgi, kalibrasyonOzeti, ogretmenSor, type KalibrasyonSatiri } from "./ogretmen.ts";
+import { BAGLAMLAR, SABIT, cogunluk, durumdanAlgi, kalibrasyonOzeti, ogretmenSor, sorulamadi, type KalibrasyonSatiri } from "./ogretmen.ts";
 
 /** Ne döneceğini test belirler, ne gördüğünü test okur. */
 class SahteBeyin implements Beyin {
@@ -98,9 +98,9 @@ test("çoğunluk: eşitlikte kararsız", () => {
   assert.deepEqual([cogunluk([true, true, false]), cogunluk([false, false, true]), cogunluk([true, false]), cogunluk([])], [true, false, null, null]);
 });
 
-test("kalibrasyon özeti: uyuşma, kaçırılan, boşa, oybirliği; konuşma sayılmaz", () => {
-  const s = (grup: KalibrasyonSatiri["grup"], beklenen: boolean, oylar: (boolean | null)[]): KalibrasyonSatiri => ({
-    sira: 0, grup, beklenen, ozet: "", oylar, cogunluk: cogunluk(oylar.filter((x): x is boolean => x !== null)), niyetTurleri: [], sureMs: [],
+test("kalibrasyon özeti: uyuşma, kaçırılan, boşa, oybirliği; konuşma ve sorulamayan sayılmaz", () => {
+  const s = (grup: KalibrasyonSatiri["grup"], beklenen: boolean, oylar: (boolean | null)[], niyetTurleri: string[] = []): KalibrasyonSatiri => ({
+    sira: 0, grup, beklenen, ozet: "", oylar, cogunluk: cogunluk(oylar.filter((x): x is boolean => x !== null)), niyetTurleri, sureMs: [],
   });
   const o = kalibrasyonOzeti([
     s("terminal", true, [true, true, true]),     // uyuşan, oybirliği
@@ -108,6 +108,12 @@ test("kalibrasyon özeti: uyuşma, kaçırılan, boşa, oybirliği; konuşma say
     s("olay", false, [true, true, false]),       // boşa
     s("dusman", false, [true, false]),           // kararsız
     s("konusma", true, [true, true, true]),      // sayılmaz
+    s("olay", false, [null, null], ["dustu:dikkat.onemsiz", "dustu:dikkat.onemsiz"]),  // sorulamadı
   ]);
-  assert.deepEqual(o, { sorulan: 4, uyusan: 1, kacirilan: 1, bosa: 1, oybirligi: 1, kararsiz: 1 });
+  assert.deepEqual(o, { sorulamayan: 1, sorulan: 4, uyusan: 1, kacirilan: 1, bosa: 1, oybirligi: 1, kararsiz: 1 });
+});
+
+test("beyin hatasıyla gelen boş oy 'sorulamadı' değildir — kararsız sayılır", () => {
+  const s: KalibrasyonSatiri = { sira: 0, grup: "olay", beklenen: true, ozet: "", oylar: [null, null], cogunluk: null, niyetTurleri: ["hata", "hata"], sureMs: [] };
+  assert.deepEqual([sorulamadi(s), kalibrasyonOzeti([s]).kararsiz], [false, 1]);
 });

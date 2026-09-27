@@ -2585,6 +2585,61 @@ motor seçilirse seçilsin yanlış şeyi öğrenir.
 - Değilse aynı protokol claude:haiku ile denenir.
 - O da geçmezse "hakem" sorusu tasarlanıp kalibre edilir: "Orion buna tepki vermeli mi?"
 
+## 2026-09-27 — T0 sonucu: qwen2.5:7b öğretmen olamaz, her şeye tepki veriyor
+
+**Ne koşuldu:** `tools/ogretmen.ts kalibre --tekrar=3 --model=qwen2.5:7b`, commit 828e2ff. Kayıt:
+`brain-lab/data/ogretmen/t0-qwen25.jsonl` (her durumun 3 oyu ve eylem türleri).
+
+**Sonuç `[ÖLÇÜLDÜ]`:**
+
+| | sayı |
+|---|---|
+| sorulan durum (konuşma hariç) | 24 |
+| sorulamayan (dikkatin güvenlik içgüdüsü düşürdü: 2 gürültü olay, 1 başarılı sonuç) | 3 |
+| insan etiketiyle uyuşan | 14 (%58) |
+| kaçırılan (insan "uyandır", LLM sustu) | 0 |
+| boşa (insan "uyandırma", LLM tepki verdi) | 10 (10 gürültü durumunun 10'u) |
+| oybirliği (3/3 aynı) | 23/24, hepsi "tepki" yönünde |
+| 72 sorunun kaçında LLM sustu | 1 |
+| eylem türleri | 49 konuşmaya çevrilen düz metin, 12 bakış, 10 komut önerisi, birkaç yürüme/jest |
+
+- qwen2.5 "rutin çıktıda sus" talimatına uymuyor: npm uyarısına, derleme listesine, boş isteme, `"error": null` alanına,
+  commit mesajına konuşuyor.
+- Konuşmalarının bir kısmı uydurma ("Owyn'in terminalinde … pyhton") ve araya Çince karışıyor. Araç çağırmadan yazdığı
+  düz metni köprü konuşmaya çeviriyor.
+
+**Öngörü karnesi:**
+- T0-1 ✗ Uyuşma %58, öngörülen %60–75 aralığının biraz altında. Yanlışlayıcı (≥ %80) tutmadı.
+- T0-2 ✓ Boşa 10, kaçırılan 0.
+- T0-3 ✓ Oybirliği 23/24, ama tek yönde: "her zaman tepki".
+- T0-4 ✓ İki konuşmada da tepki.
+
+**Karar (ön-kayıtlı kurala göre):**
+- qwen2.5:7b öğretmen olarak reddedildi. Ayırt etmediği için ondan öğrenen kapı yalnızca "her zaman uyandır"ı öğrenirdi.
+- Sıradaki adım aynı protokolün claude:haiku ile denenmesi.
+
+**Yan anlam, Orion için:** qwen2.5 canlı beyin olduğunda elle yazılmış kapı çok önemli bir iş yapıyor. Kapıdan sızan her
+gürültü bir konuşmaya dönüşürdü.
+
+**Düzeltme:** Özet fonksiyonu sorulamayan 3 durumu önce "kararsız" sayıyordu; ayrı sayılacak şekilde düzeltildi (testli).
+Yukarıdaki sayılar düzeltilmiş hesaptan.
+
+### T0b: claude:haiku ile — koşmadan önce
+
+**Yöntem:** Aynı protokol, aynı 24 + 2 durum, 3 tekrar. Beyin: `tools/claude-beyin.ts` (Haiku, `claude -p`, araçsız)
+kendi portunda (4710).
+
+**Öngörüler:**
+- **T0b-1:** Uyuşma ≥ %80 (≥ 20/24). Talimat Haiku üzerinde ayarlanmıştı (spec 06); susma kuralına uyar.
+  **Yanlışlayıcı:** < 20/24.
+- **T0b-2:** Kaçırılan ≤ 2.
+- **T0b-3:** Oybirliği ≥ 20/24.
+
+**Karar kuralı:**
+- T0b-1 ve T0b-2 tutarsa öğretmen claude:haiku olur. Geliştirme akışının etiketleri ondan alınır. Canlıdaki beyin
+  değil, bir öğretmen modeli olarak.
+- Tutmazsa hakem sorusu tasarlanır.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
