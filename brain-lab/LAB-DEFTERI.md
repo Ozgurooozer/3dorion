@@ -3117,6 +3117,133 @@ oturumda Atlas ajan tipi tanımlı değil; batarya Atlas kartına ve kuralların
 kaynağı tek tek gösterilebiliyor. Zayıf yeri yeni durum ve D bu konuda B'den iyi. H-K2 önerisini (B karar anında Jaccard
 kullansın) destekliyor. Karar Ozyn'in.
 
+## 2026-09-27 — H-K2: kural hafızası karar anında Jaccard — tarama, teşhis, ön-kayıt (koşmadan önce)
+
+Ozyn önerimi alıntılayarak onayladı: "kural hafızası karar verirken benzerliği tam anı gibi ölçsün. Böylece okunur ve
+küçük kalır, ama tam anı kadar iyi genellemesi beklenir. … kabul edersen yeni bir havuzda, öngörüleri önceden yazılarak
+sınanır."
+
+**Değişkenler:**
+- Öğrenme hepsinde aynı; B-J ve B-JT'nin nöronları B'ninkilerin aynısı (testle).
+- Yalnız karar kuralı değişiyor: `mind/kuralHafizasi.ts` `kararOlcusu` anahtarı; varsayılan eski davranış.
+  - **B** (altküme): koşulu algıda tam bulunan en özgül kural.
+  - **B-J** (jaccard, H-K2 yazıldığı gibi): koşulu ile algının Jaccard benzerliği en yüksek kural. Benzerlik 0,5'in
+    altındaysa karar yok.
+  - **B-JT** (karma, taramada doğdu): tam eşleşen en özgül kural, algının en az yarısını kapsıyorsa o karar verir;
+    kapsamıyorsa B-J gibi.
+- Eşitlikte önce daha özgül, sonra daha çok kanıtlı, sonra daha yaşlı kural kazanır.
+- Eşik 0,5: D'nin eşiği ve öğrenmedeki uyanıklık. Ayarlanmadı.
+
+**Yeni ölçü: yeni son.**
+- Yeni durumun ilk görülüşünde kapının SON kararının doğruluğu (motor emin değilse içgüdü) ve aynı olaylarda
+  içgüdünün kendi doğruluğu.
+- "Yeni doğru" yalnız motorun verdiği kararları sayıyor, yani çekimser kalmayı ödüllendiriyor. Yeni son, kapının yeni
+  durumda gerçekte ne yaptığını gösteriyor.
+- Kalibrasyon testli: kâhin 1/1; içgüdü ikizi içgüdünün kendisi; hep-sus ve hep-uyan etiket sayıları; içgüdü ölçüsü
+  politikadan bağımsız.
+
+**Tarama `[ÖLÇÜLDÜ]`, keşif:**
+- Yalnız kullanılmış veride: havuz 1–3, tohum 1–30, 400 olay, yeni payı %20. Bu veride seçim yapıldı; buradan iddia
+  çıkmaz.
+- Betik: scratchpad `hk2-tarama.ts`.
+- Sütunlar havuz · öğretmen (m = masada, u = uzakta).
+
+| ölçü | motor | 1·m | 1·u | 2·m | 2·u | 3·m | 3·u |
+|---|---|---|---|---|---|---|---|
+| genel | B | 93,5 | 94,3 | 97,5 | 97,3 | 99,5 | 99,3 |
+| | B-J | 93,8 | 93,3 | 97,1 | 96,7 | 99,5 | 99,3 |
+| | B-JT | 94,1 | 94,6 | 97,6 | 97,2 | 99,5 | 99,3 |
+| | D | 94,8 | 95,4 | 98,1 | 97,8 | 99,7 | 99,4 |
+| ikinci görülüş | B | 99,6 | 99,1 | 98,7 | 98,7 | 100 | 100 |
+| | B-J | 98,9 | 97,7 | 97,2 | 96,5 | 100 | 100 |
+| | B-JT | 99,0 | 98,6 | 98,4 | 97,8 | 100 | 100 |
+| | D | 100 | 100 | 100 | 100 | 100 | 100 |
+| yeni doğru | B | 58 | 59 | 48 | 37 | 86 | 75 |
+| | B-J | 60 | 66 | 70 | 70 | 100 | 100 |
+| | B-JT | 56 | 64 | 62 | 62 | 100 | 100 |
+| | D | 60 | 59 | 66 | 66 | 100 | 100 |
+| yeni son | içgüdü | 68 | 64 | 64 | 57 | 82 | 74 |
+| | B | 60 | 61 | 61 | 53 | 82 | 74 |
+| | B-J | 70 | 67 | 63 | 56 | 82 | 74 |
+| | B-JT | 68 | 66 | 59 | 51 | 82 | 74 |
+| | D | 70 | 66 | 61 | 53 | 90 | 82 |
+
+Yeni durumda karar verme oranı: B %72–81, B-J ve B-JT %50–59, D %50–61.
+
+**Teşhis:**
+- **B-J, H-K2'nin sözünü tutuyor.** Yeni durumlarda 6 kolun hepsinde D kadar ya da daha doğru.
+  - Bedeli: ikinci görülüşte dört kolda 0,7–2,2 puan kaybediyor; havuz 3'te kayıp yok.
+  - Genel doğrulukta iki kolda B'nin 0,5 puandan fazla altında.
+- **B-J'nin ikinci görülüş hataları** (havuz 1–2, 30 tohum, 120 hata; scratchpad `hk2-ikinci.ts`):
+  - **86'sı:** koşulu algıda tam bulunmayan, karşı yönlü bir istisna daha benzer çıkıyor.
+    - Örnek (havuz 2): iki `node -e` durumu (term15 "sus", term16 "uyan") yalnız bir içerik kelimesiyle ayrılıyor.
+      term16'nın istisnası, o kelime term15'te yokken term15 için karar veriyor (J 0,83).
+    - Jaccard simetrik: kuralın "koşulum tutarsa" anlamı kayboluyor.
+  - **34'ü:** kural sonradan genelleşip küçülünce eski durumunun yarısını kapsamıyor. Hafıza çekimser kalıyor,
+    içgüdü yanılıyor.
+- **B-JT birinci nedeni gideriyor:** koşulu tam tutan kural yeterince benzerse önce o konuşuyor. İkinci neden
+  kalıyor: kural hafızası tek tek durumların kodunu saklamıyor. Bu, küçüklüğün bedeli.
+- **Yeni son:** hiçbir motor içgüdüyü tutarlı biçimde geçmiyor.
+  - B, havuz 1–2'de içgüdünün 3–9 puan altında (yanlış genelliyor).
+  - B-J içgüdüye yakın (−1 … +3).
+  - B-JT, havuz 2'de içgüdünün 5–6 puan altında.
+  - D yalnız havuz 3'te belirgin biçimde üstün (+8).
+
+**Düzenek `[TEST]`** (commit bu girdiyle):
+- `KuralHafizasi` `kararOlcusu` ve `jaccardEsigi` alıyor. H-K1 kapsamasıyla birlikte verilirse hata.
+  - 17 yeni test; eski 20 test birebir geçiyor.
+  - Bekçi: aynı dizi üç ölçüde aynı nöronları kuruyor ve karar yan etkisiz.
+- `tools/kapi-deney.ts`:
+  - `kos --motorlar=hk2`.
+  - `curut --motorlar=hk2 --yeni= --cikti=`.
+  - Yeni son ölçüsü.
+  - R6'ya B-J−B, B-JT−B, B-J−D, B-JT−D.
+  - Varsayılan batarya birebir aynı: çürütme koşusu (tohum 11–30) yeniden koşuldu, eski 526 alanın hepsi aynı çıktı.
+- `tools/kapi-yakala.ts --kume=4`: 40 yeni gerçek komut, 8 aile × 5.
+  - Kümeler dışa açık (`kumeKomutlari`).
+  - Bekçi testi: dört küme ayrık.
+  - İlk üç küme kayıtlı `terminal.json`'larla birebir aynı.
+- **Bozma denemesi 17/17.** İlk turda iki mutant yaşadı; ikisi için test eklendi:
+  - Kanıt eşitlik bozucusu, H-K2'den önce de testsizdi.
+  - İçgüdü ölçüsü son kararı sayıyordu.
+- Toplam 1661 test yeşil; tsc 0 hata.
+
+**Ön-kayıt: onay sınaması**
+- **Havuz 4** (`brain-lab/data/kapi/4/`):
+  - `kapi-yakala.ts --kume=4`, sonra `havuz --yalniz-terminal`.
+  - Etiket: qwen2.5:7b hakemi, "masada" ve "uzakta" bağlamları; havuz 2–3 ile aynı yol.
+  - Etiketler koşudan önce incelenmez. Bu havuzda ayar yapılmaz.
+- **Koşu:** `curut --motorlar=hk2 --havuzlar=brain-lab/data/kapi/4 --tohumlar=31-50 --yeni=0.4
+  --cikti=brain-lab/data/kapi/4/curut.json`.
+  - 400 olay, Zipf 0,8.
+  - Tohum 31–50 hiç kullanılmadı.
+  - Yeni payı %40: 5'li ailelerde aile başına 2 yeni durum.
+- **Benimseme kuralı.** Bir değişken iki öğretmende de şunların hepsini sağlarsa gölgede varsayılan olur:
+  - **Ö-a genelleme:** yeni doğruluğu ≥ D'ninki − 5 puan.
+  - **Ö-b tek deneme:** ikinci görülüş ≥ %97.
+  - **Ö-c genel:** genel doğruluğu ≥ B'ninki − 0,5 puan.
+  - **Ö-d kontrol:**
+    - R3'te ikinci görülüş %40–65'e düşer.
+    - R4'te içgüdüyü 1 puandan fazla geçmez.
+    - R5'te silinen durumlar içgüdünün ±10 puanına döner; korunanlar ≥ %95 kalır.
+  - İkisi de sağlarsa genel doğruluğu (iki öğretmenin ortalaması) yüksek olan seçilir; eşitlikte B-J. Hiçbiri
+    sağlamazsa B kalır ve H-K2 reddedilir.
+- **Öngörüler:**
+  - **HK2-1:** B-J Ö-a'yı sağlar, ama Ö-b ya da Ö-c'den en az birini kaçırır.
+  - **HK2-2:** B-JT dört koşulu da sağlar ve benimsenir.
+  - **HK2-3:** B'nin yeni doğruluğu en az bir öğretmende D'ninkinin ≥ 5 puan altında kalır.
+  - **HK2-4:** B-J ve B-JT, yeni durumların B'den ≥ 10 puan daha azına karar verir.
+  - **HK2-5:** B-JT'nin yeni son doğruluğu, iki öğretmenin ortalamasında B'ninkinden düşük değildir.
+  - **HK2-6:** B-J ve B-JT'nin boyutu B'ninkiyle aynıdır.
+  - **HK2-7 (canlı, yalnız benimsenirse).** Aynı ders dosyasıyla (`canli4`) `gorudene` koşulur:
+    - kabuk hatası `{sus, K1}` (J 0,91);
+    - a2 `{sus, K2}` (J 0,60);
+    - a3 (20 işaret) null (J 0,17);
+    - kapı kararları ve uyanış değişmez.
+- **Yanlışlayıcılar:**
+  - R3 ya da R4 tutmazsa ölçü sızıyor: durulur, hiçbir değişken benimsenmez.
+  - B-JT Ö-b'yi kaçırırsa küçük hafızanın ezberi bozuluyor demektir: benimsenmez.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.

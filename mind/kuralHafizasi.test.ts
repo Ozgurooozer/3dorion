@@ -165,3 +165,149 @@ test("kapsama sınırı: tam 0,5 kapsanan algıda karar verir", () => {
   h.ogren(["tur:olay", "icgudu:y", "k:a", "k:c"], "uyan", "d2");   // {tur, icgudu, k:a}
   assert.equal(h.karar(["tur:olay", "icgudu:y", "k:a", "k:x", "k:y", "k:z"])?.yon, "uyan");
 });
+
+// ── Karar anının benzerlik ölçüsü (H-K2) ───────────────────────────────────
+
+const OLCULER = ["altkume", "jaccard", "karma"] as const;
+// Öğretilen durum ve ondan bir içerik kelimesiyle ayrılan algı: Jaccard 5/7.
+const OGRETILEN = ["tur:terminal", "icgudu:x", "kod:0", "k:a", "k:b", "k:c"];
+const KISMI = ["tur:terminal", "icgudu:x", "kod:0", "k:a", "k:b", "k:d"];
+
+test("jaccard: koşulunun bir işareti algıda olmayan ama benzer (5/7) kural karar verir", () => {
+  const h = new KuralHafizasi({ kararOlcusu: "jaccard" });
+  h.ogren(OGRETILEN, "sus", "d1");
+  assert.equal(h.karar(KISMI)?.yon, "sus");
+});
+
+test("altküme aynı kısmi algıda karar vermez: koşulun bir işareti eksik", () => {
+  const h = new KuralHafizasi();
+  h.ogren(OGRETILEN, "sus", "d1");
+  assert.equal(h.karar(KISMI), null);
+});
+
+test("jaccard: benzerlik 0,5'in altındaysa (2/5) karar yok — genel kural zengin algıda susar", () => {
+  const h = new KuralHafizasi({ kararOlcusu: "jaccard" });
+  h.ogren(["tur:terminal", "icgudu:x", "k:a"], "sus", "d1");
+  h.ogren(["tur:terminal", "icgudu:x", "k:b"], "sus", "d2");   // genelleşir: {tur, icgudu}
+  assert.equal(h.karar(["tur:terminal", "icgudu:x", "k:c", "k:d", "k:e"]), null);
+});
+
+test("jaccard eşik sınırı: tam 0,5'te (3/6) karar verir, 3/7'de vermez", () => {
+  const h = new KuralHafizasi({ kararOlcusu: "jaccard" });
+  h.ogren(["tur:olay", "icgudu:y", "k:a", "k:b"], "uyan", "d1");
+  const sinirda = h.karar(["tur:olay", "icgudu:y", "k:a", "k:x", "k:y"])?.yon ?? null;
+  const altinda = h.karar(["tur:olay", "icgudu:y", "k:a", "k:x", "k:y", "k:z"])?.yon ?? null;
+  assert.deepEqual({ sinirda, altinda }, { sinirda: "uyan", altinda: null });
+});
+
+// Genel kural algıda tam bulunur ama azını kapsar (2/5); özgül kural kısmi eşleşir ama daha benzerdir (4/6).
+function genelVeOzgul(kararOlcusu: (typeof OLCULER)[number]): KuralHafizasi {
+  const h = new KuralHafizasi({ kararOlcusu });
+  h.ogren(["tur:sonuc", "icgudu:z"], "uyan", "d1");
+  h.ogren(["tur:sonuc", "icgudu:z", "k:a", "k:b", "k:c"], "sus", "d2");   // benzerlik 2/5 < 0,5: yeni nöron
+  return h;
+}
+const GENEL_OZGUL_ALGI = ["tur:sonuc", "icgudu:z", "k:a", "k:b", "k:x"];
+
+test("jaccard: en benzer kural, daha az benzer tam eşleşmeyi yener", () => {
+  assert.equal(genelVeOzgul("jaccard").karar(GENEL_OZGUL_ALGI)?.yon, "sus");
+});
+
+test("karma: tam eşleşen kural algının yarısından azını kapsıyorsa en benzer kural konuşur", () => {
+  assert.equal(genelVeOzgul("karma").karar(GENEL_OZGUL_ALGI)?.yon, "sus");
+});
+
+test("altküme aynı algıda tam eşleşen genel kuralla karar verir (eski davranış)", () => {
+  assert.equal(genelVeOzgul("altkume").karar(GENEL_OZGUL_ALGI)?.yon, "uyan");
+});
+
+// Taramadaki örnek (havuz 2, `node -e`): genel "rutin → sus" kuralı ve bir içerik kelimesiyle ayrılan ters istisna.
+function rutinVeIstisna(kararOlcusu: (typeof OLCULER)[number]): KuralHafizasi {
+  const h = new KuralHafizasi({ kararOlcusu });
+  h.ogren(["tur:terminal", "icgudu:rutin", "kod:0"], "sus", "d1");
+  h.ogren(["tur:terminal", "icgudu:rutin", "kod:0", "komut:node", "komut:node -e", "k:w"], "uyan", "d2");
+  return h;
+}
+const ISTISNASIZ = ["tur:terminal", "icgudu:rutin", "kod:0", "komut:node", "komut:node -e"];
+
+test("karma: yarıyı kapsayan tam eşleşme (3/5), ayırt edici işareti algıda olmayan istisnayı (5/6) yener", () => {
+  assert.equal(rutinVeIstisna("karma").karar(ISTISNASIZ)?.yon, "sus");
+});
+
+test("jaccard aynı algıda istisnaya gider: kural anlamı kaybolur (taramadaki ikinci görülüş hatası)", () => {
+  assert.equal(rutinVeIstisna("jaccard").karar(ISTISNASIZ)?.yon, "uyan");
+});
+
+test("karma: hiçbir kural yeterince benzer değilse karar yok", () => {
+  const h = new KuralHafizasi({ kararOlcusu: "karma" });
+  h.ogren(["tur:terminal", "icgudu:x", "k:a"], "sus", "d1");
+  h.ogren(["tur:terminal", "icgudu:x", "k:b"], "sus", "d2");   // {tur, icgudu}: 2/5
+  assert.equal(h.karar(["tur:terminal", "icgudu:x", "k:c", "k:d", "k:e"]), null);
+});
+
+test("eşit benzerlikte (2/4 ve 3/6) daha özgül kural karar verir", () => {
+  const h = new KuralHafizasi({ kararOlcusu: "jaccard" });
+  h.ogren(["tur:olay", "icgudu:q"], "uyan", "d1");
+  h.ogren(["tur:olay", "icgudu:q", "k:c", "k:e", "k:f"], "sus", "d2");   // benzerlik 2/5: yeni nöron
+  const k = h.karar(["tur:olay", "icgudu:q", "k:c", "k:d"]);
+  assert.deepEqual({ yon: k?.yon, noron: k?.noron.id }, { yon: "sus", noron: "K2" });
+});
+
+test("tek deneme her ölçüde: öğretilen durum bir dersten sonra öğretilen yönde verilir", () => {
+  const yonler = OLCULER.map((kararOlcusu) => {
+    const h = new KuralHafizasi({ kararOlcusu });
+    h.ogren(ELLE_HATA, "sus", "d1");
+    return h.karar(ELLE_HATA)?.yon;
+  });
+  assert.deepEqual(yonler, ["sus", "sus", "sus"]);
+});
+
+test("güven payı her ölçüde: 1'e 1 çelişen kural karar vermez", () => {
+  const kararlar = OLCULER.map((kararOlcusu) => {
+    const h = new KuralHafizasi({ kararOlcusu });
+    h.ogren(NPM_UYARI_1, "sus", "d1");
+    h.ogren(NPM_UYARI_1, "uyan", "d2");
+    return h.karar(NPM_UYARI_1);
+  });
+  assert.deepEqual(kararlar, [null, null, null]);
+});
+
+test("boş kod her ölçüde karar almaz", () => {
+  const kararlar = OLCULER.map((kararOlcusu) => {
+    const h = new KuralHafizasi({ kararOlcusu });
+    h.ogren(NPM_UYARI_1, "sus", "d1");
+    return h.karar([]);
+  });
+  assert.deepEqual(kararlar, [null, null, null]);
+});
+
+test("öğrenme ölçüden bağımsız: aynı olay dizisi üç ölçüde aynı nöronları kurar (hafıza küçük kalır)", () => {
+  const kur = (kararOlcusu: (typeof OLCULER)[number]) => {
+    const h = new KuralHafizasi({ kararOlcusu });
+    const dizi: [string[], "uyan" | "sus"][] = [
+      [NPM_UYARI_1, "sus"], [NPM_UYARI_2, "sus"], [ELLE_HATA, "sus"], [LLM_HATA, "uyan"],
+      [OGRETILEN, "uyan"], [KISMI, "sus"], [ISTISNASIZ, "sus"], [GENEL_OZGUL_ALGI, "uyan"],
+    ];
+    for (const [i, [kod, yon]] of dizi.entries()) {
+      h.ogren(kod, yon, `d${i}`);
+      h.karar(KISMI);   // karar yan etkisiz olmalı
+    }
+    return JSON.stringify(h.noronlar);
+  };
+  const altkume = kur("altkume");
+  assert.deepEqual([kur("jaccard"), kur("karma")], [altkume, altkume]);
+});
+
+test("kapsama eşiği (H-K1) başka bir ölçüyle birlikte verilirse hata: ölçülmemiş birleşim", () => {
+  assert.throws(() => new KuralHafizasi({ kapsamaEsigi: 0.5, kararOlcusu: "karma" }), /kapsamaEsigi/);
+});
+
+test("eşit özgüllükte daha çok kanıtlı kural karar verir, her ölçüde (1 kanıta karşı 3)", () => {
+  const yonler = OLCULER.map((kararOlcusu) => {
+    const h = new KuralHafizasi({ kararOlcusu });
+    h.ogren(["tur:olay", "icgudu:w", "k:a"], "sus", "d1");                 // K1, 1 kanıt
+    for (const d of ["d2", "d3", "d4"]) h.ogren(["tur:olay", "icgudu:w", "k:b"], "uyan", d);   // K2 (istisna), 3 kanıt
+    return h.karar(["tur:olay", "icgudu:w", "k:a", "k:b"])?.yon;              // ikisi de tam eşleşir, J ikisinde 3/4
+  });
+  assert.deepEqual(yonler, ["uyan", "uyan", "uyan"]);
+});

@@ -11,9 +11,11 @@
 // Komutlar kaynak dosyalara yazmaz ve ağa çıkmaz. `vite build` yalnız `dist/` derleme
 // çıktısını yeniler; başarısız test dosyası geçici klasöre yazılıp silinir.
 //
-// Kullanım: node --experimental-strip-types tools/kapi-yakala.ts [--kume=1|2] [--cikti=brain-lab/data/kapi/terminal.json]
+// Kullanım: node --experimental-strip-types tools/kapi-yakala.ts [--kume=1|2|3|4] [--cikti=brain-lab/data/kapi/terminal.json]
 //   --kume=2: ikinci, TAZE komut kümesi (H-K1 sınaması; bu kümede ayar yapılmaz).
 //   --kume=3: üçüncü küme (Atlas çürütmesi R2; hiç kullanılmamış durumlar).
+//   --kume=4: dördüncü küme (H-K2 onay sınaması; 8 aile × 5, hiç kullanılmamış durumlar).
+// Kümeler ayrıktır: hiçbir komut iki kümede yok (bekçi: tools/kapi-yakala.test.ts).
 "use strict";
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -60,29 +62,19 @@ function arg(ad: string, varsayilan: string): string {
   return p ? p.slice(ad.length + 3) : varsayilan;
 }
 
-function yakala(): void {
-  const kok = path.resolve(import.meta.dirname, "..");
-  const gecici = fs.mkdtempSync(path.join(os.tmpdir(), "orion-kapi-"));
-  const patlak = path.join(gecici, "patlak.test.mjs");
-  fs.writeFileSync(patlak, [
-    'import { test } from "node:test";',
-    'import assert from "node:assert/strict";',
-    'test("toplama", () => { assert.equal(1 + 1, 2); });',
-    'test("carpma", () => { assert.equal(2 * 3, 7); });',
-  ].join("\n"));
-  const patlak3 = path.join(gecici, "tarih.test.mjs");
-  fs.writeFileSync(patlak3, [
-    'import { test } from "node:test";',
-    'import assert from "node:assert/strict";',
-    'test("yil", () => { assert.equal(new Date(0).getUTCFullYear(), 1971); });',
-  ].join("\n"));
-  const patlak2 = path.join(gecici, "metin.test.mjs");
-  fs.writeFileSync(patlak2, [
-    'import { test } from "node:test";',
-    'import assert from "node:assert/strict";',
-    'test("selamlama", () => { assert.equal("merhaba".toUpperCase(), "MERHABA"); });',
-    'test("ters çevirme", () => { assert.equal([..."abc"].reverse().join(""), "cab"); });',
-  ].join("\n"));
+/** Geçici test dosyalarının yolları: kümelerdeki `node --test` komutları bunları çalıştırır. */
+export interface GeciciYollar {
+  patlak: string;
+  patlak2: string;
+  patlak3: string;
+  patlak4: string;
+}
+
+export const KUMELER = ["1", "2", "3", "4"] as const;
+
+/** Bir kümenin [aile, komut] listesi. Bilinmeyen küme hata verir (sessizce birinciye dönmez). */
+export function kumeKomutlari(kume: string, y: GeciciYollar): [string, string][] {
+  const { patlak, patlak2, patlak3, patlak4 } = y;
 
   // İKİNCİ KÜME (H-K1 sınaması için TAZE durumlar): birinci kümeden farklı komutlar.
   // Bu kümede hiçbir ayar yapılmaz; yalnız ön-kayıtlı hipotez sınanır.
@@ -185,8 +177,90 @@ function yakala(): void {
     ["ps", "Get-Content package.json -TotalCount 3"],
   ];
 
+  // DÖRDÜNCÜ KÜME (H-K2 onay sınaması): ilk üçünden farklı, hiç kullanılmamış 40 komut,
+  // 8 aile × 5. Ağa çıkmaz, dosya yazmaz, kişisel veri göstermez.
+  const dorduncu: [string, string][] = [
+    ["yazim", "gut status"],
+    ["yazim", "nodd --version"],
+    ["yazim", "Get-Chidlitem mind"],
+    ["yazim", "Wirte-Output merhaba"],
+    ["yazim", "tpye package.json"],
+    ["git", "git log -3 --format=%h"],
+    ["git", "git rev-list --count HEAD"],
+    ["git", "git describe --always"],
+    ["git", "git count-objects -v"],
+    ["git", "git show olmayan_ref"],
+    ["liste", "dir world"],
+    ["liste", "Get-ChildItem voice"],
+    ["liste", "dir brain-lab -Directory"],
+    ["liste", "Get-ChildItem mind -Filter *.test.ts | Select-Object -First 4"],
+    ["liste", "dir olmayan_dizin"],
+    ["node", "node -e \"console.log([1, 2, 3].map((x) => x * 2))\""],
+    ["node", "node -e \"tanimsizFonksiyon()\""],
+    ["node", "node -e \"process.exit(5)\""],
+    ["node", "node -e \"console.log(require('os').cpus().length)\""],
+    ["node", "node -e \"Promise.reject(new Error('reddedildi'))\""],
+    ["test", "node --experimental-strip-types --test mind/ogretim.test.ts"],
+    ["test", "node --experimental-strip-types --test mind/kararZinciri.test.ts"],
+    ["test", "node --experimental-strip-types --test tools/karar-ozet.test.ts"],
+    ["test", `node --test "${patlak4}"`],
+    ["test", "node --test olmayan.test.mjs"],
+    ["surum", "python --version"],
+    ["surum", "npx --version"],
+    ["surum", "node -p process.versions.v8"],
+    ["surum", "$PSVersionTable.PSVersion"],
+    ["surum", "tsc -v"],
+    ["npm", "npm run test:olmayan"],
+    ["npm", "npm ls typescript"],
+    ["npm", "npm pkg get name"],
+    ["npm", "npm explain typescript"],
+    ["npm", "npm prefix"],
+    ["ps", "Get-Date -Format yyyy"],
+    ["ps", "Get-Command olmayan_komut"],
+    ["ps", "Test-Path package.json"],
+    ["ps", "1/0"],
+    ["ps", "Resolve-Path olmayan\\yol"],
+  ];
+
+  const kumeler: Record<(typeof KUMELER)[number], [string, string][]> = { "1": birinci, "2": ikinci, "3": ucuncu, "4": dorduncu };
+  const secilen = kumeler[kume as (typeof KUMELER)[number]];
+  if (!secilen) throw new Error(`bilinmeyen küme: ${kume} (${KUMELER.join(", ")})`);
+  return secilen;
+}
+
+function yakala(): void {
+  const kok = path.resolve(import.meta.dirname, "..");
+  const gecici = fs.mkdtempSync(path.join(os.tmpdir(), "orion-kapi-"));
+  const patlak = path.join(gecici, "patlak.test.mjs");
+  fs.writeFileSync(patlak, [
+    'import { test } from "node:test";',
+    'import assert from "node:assert/strict";',
+    'test("toplama", () => { assert.equal(1 + 1, 2); });',
+    'test("carpma", () => { assert.equal(2 * 3, 7); });',
+  ].join("\n"));
+  const patlak3 = path.join(gecici, "tarih.test.mjs");
+  fs.writeFileSync(patlak3, [
+    'import { test } from "node:test";',
+    'import assert from "node:assert/strict";',
+    'test("yil", () => { assert.equal(new Date(0).getUTCFullYear(), 1971); });',
+  ].join("\n"));
+  const patlak2 = path.join(gecici, "metin.test.mjs");
+  fs.writeFileSync(patlak2, [
+    'import { test } from "node:test";',
+    'import assert from "node:assert/strict";',
+    'test("selamlama", () => { assert.equal("merhaba".toUpperCase(), "MERHABA"); });',
+    'test("ters çevirme", () => { assert.equal([..."abc"].reverse().join(""), "cab"); });',
+  ].join("\n"));
+  // Dördüncü kümenin gerçekçi hatası: varsayılan sort sayıları metin gibi sıralar.
+  const patlak4 = path.join(gecici, "sirala.test.mjs");
+  fs.writeFileSync(patlak4, [
+    'import { test } from "node:test";',
+    'import assert from "node:assert/strict";',
+    'test("sayilari sirala", () => { assert.deepEqual([10, 9, 1].sort(), [1, 9, 10]); });',
+  ].join("\n"));
+
   const kume = arg("kume", "1");
-  const komutlar = kume === "3" ? ucuncu : kume === "2" ? ikinci : birinci;
+  const komutlar = kumeKomutlari(kume, { patlak, patlak2, patlak3, patlak4 });
   const sonuc: YakalananKomut[] = [];
   for (const [aile, komut] of komutlar) {
     const t0 = Date.now();
@@ -196,14 +270,16 @@ function yakala(): void {
     const sureMs = Date.now() - t0;
     const kod = r.status ?? 1;
     // Görünen komut, geçici yol yerine sabit bir ad taşısın: gerçek kayıtta da dosya adı görünür.
-    const gorunen = komut.replace(patlak, "patlak.test.mjs").replace(patlak2, "metin.test.mjs").replace(patlak3, "tarih.test.mjs");
+    const gorunen = komut.replace(patlak, "patlak.test.mjs").replace(patlak2, "metin.test.mjs").replace(patlak3, "tarih.test.mjs").replace(patlak4, "sirala.test.mjs");
     const cikti = `${r.stdout ?? ""}${r.stderr ? `\n${r.stderr}` : ""}`
       .split(pathToFileURL(patlak).href).join("patlak.test.mjs")
       .split(patlak).join("patlak.test.mjs")
       .split(pathToFileURL(patlak2).href).join("metin.test.mjs")
       .split(patlak2).join("metin.test.mjs")
       .split(pathToFileURL(patlak3).href).join("tarih.test.mjs")
-      .split(patlak3).join("tarih.test.mjs");
+      .split(patlak3).join("tarih.test.mjs")
+      .split(pathToFileURL(patlak4).href).join("sirala.test.mjs")
+      .split(patlak4).join("sirala.test.mjs");
     sonuc.push({ aile, komut: gorunen, kod, sureMs, kuyruk: kuyrukKur(gorunen, cikti) });
     console.log(`${aile.padEnd(8)} kod=${String(kod).padEnd(3)} ${String(sureMs).padStart(6)} ms  ${gorunen}`);
   }

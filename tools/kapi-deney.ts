@@ -31,7 +31,7 @@ import type { Beyin, BeyinCikti } from "../bridge/beyin.ts";
 import { KARAR_ONEKI, KararKaydi, type AlgiSatiri, type KapiKarari } from "../mind/kararKaydi.ts";
 import { KuralRefleksi } from "../mind/refleks.ts";
 import { KUME } from "../mind/refleksKumesi.ts";
-import { KuralHafizasi, type KapiYonu } from "../mind/kuralHafizasi.ts";
+import { KuralHafizasi, type KapiYonu, type KararOlcusu } from "../mind/kuralHafizasi.ts";
 import type { Algi } from "../protocol/algi.ts";
 import { durumdanAlgi, BAGLAMLAR } from "./ogretmen.ts";
 import type { YakalananKomut } from "./kapi-yakala.ts";
@@ -147,13 +147,18 @@ export interface Motor {
 /** Ortak güven eşiği: her motor aynı çoğunluk payıyla karar verir (adil kıyas). */
 export const GUVEN = 0.75;
 
-/** B — büyüyen kural hafızası (mind/kuralHafizasi.ts). `kapsama` > 0: H-K1 anahtarı açık. */
+/**
+ * B — büyüyen kural hafızası (mind/kuralHafizasi.ts). `kapsama` > 0: H-K1 anahtarı açık.
+ * `olcu`: karar anının benzerlik ölçüsü (H-K2): "jaccard" → B-J, "karma" → B-JT.
+ * Öğrenme her ayarda aynıdır; yalnız karar kuralı değişir.
+ */
 export class KuralMotoru implements Motor {
   readonly ad: string;
   private h: KuralHafizasi;
-  constructor(kapsama = 0) {
-    this.ad = kapsama > 0 ? `B-K1 ${kapsama}` : "B kural";
-    this.h = new KuralHafizasi({ guvenPayi: GUVEN, kapsamaEsigi: kapsama });
+  constructor(ayar: { kapsama?: number; olcu?: KararOlcusu } = {}) {
+    const { kapsama = 0, olcu = "altkume" } = ayar;
+    this.ad = kapsama > 0 ? `B-K1 ${kapsama}` : olcu === "jaccard" ? "B-J" : olcu === "karma" ? "B-JT" : "B kural";
+    this.h = new KuralHafizasi({ guvenPayi: GUVEN, kapsamaEsigi: kapsama, kararOlcusu: olcu });
   }
   karar(i: readonly string[]) { return this.h.karar(i)?.yon ?? null; }
   ogren(i: readonly string[], y: KapiYonu, d: string) { this.h.ogren(i, y, d); }
@@ -343,6 +348,14 @@ export interface Olcum {
   yeniN: number;
   yeniKarar: number;
   yeniDogru: number;
+  /**
+   * YENİ SON (H-K2): yeni durumların ilk görülüşünde kapının SON kararı (motor emin
+   * değilse içgüdü) doğru; ve içgüdünün kendisi aynı olaylarda doğru. Kapının yeni
+   * durumda gerçekte ne yaptığıdır: `yeniDogru` yalnız motorun verdiği kararları
+   * saydığı için çekimser kalmayı ödüllendirir.
+   */
+  yeniSonDogru: number;
+  yeniIcguduDogru: number;
   /** Akışın ilk %25'inde görülen durumlara akış sonunda motorun kararı: karar verdi / doğru. */
   akilN: number;
   akilKarar: number;
@@ -361,7 +374,7 @@ export function olc(politika: Politika, akis: Akis, havuz: readonly Durum[], eti
   const bul = new Map(havuz.map((d) => [d.id, d]));
   const motor = typeof politika === "string" ? null : politika;
   const ad = typeof politika === "string" ? politika : politika.ad;
-  const o: Olcum = { motor: ad, n: 0, dogru: 0, bosa: 0, kacir: 0, ikinciDogru: 0, ikinciN: 0, yeniN: 0, yeniKarar: 0, yeniDogru: 0, akilN: 0, akilKarar: 0, akilDogru: 0, boyut: 0 };
+  const o: Olcum = { motor: ad, n: 0, dogru: 0, bosa: 0, kacir: 0, ikinciDogru: 0, ikinciN: 0, yeniN: 0, yeniKarar: 0, yeniDogru: 0, yeniSonDogru: 0, yeniIcguduDogru: 0, akilN: 0, akilKarar: 0, akilDogru: 0, boyut: 0 };
   const gorulme = new Map<string, number>();
   const ilkCeyrek = new Set<string>();
   for (const [t, id] of akis.olaylar.entries()) {
@@ -382,6 +395,8 @@ export function olc(politika: Politika, akis: Akis, havuz: readonly Durum[], eti
     if (kacinci === 2) { o.ikinciN++; if (son === dogruYon) o.ikinciDogru++; }
     if (kacinci === 1 && akis.yeniler.has(id)) {
       o.yeniN++;
+      if (son === dogruYon) o.yeniSonDogru++;
+      if (icgudu === dogruYon) o.yeniIcguduDogru++;
       if (ogrenilen !== null) { o.yeniKarar++; if (ogrenilen === dogruYon) o.yeniDogru++; }
     }
     motor?.ogren(d.isaret, dogruYon, `${id}#${t}`);
@@ -551,9 +566,13 @@ async function calistir(): Promise<void> {
       ogretmenler.push([f.slice(7, -5), JSON.parse(fs.readFileSync(`${VERI}/${f}`, "utf8")) as Etiketler]);
     }
     // --motorlar=hk1: H-K1 sınaması — B varsayılan ile B-K1 (kapsama 0,5) yan yana, D ve kâhin kıyas.
-    const motorlar = (): Politika[] => arg("motorlar", "hepsi") === "hk1"
-      ? [new IcguduIkizi(), new KuralMotoru(), new KuralMotoru(0.5), new AniMotoru(), "kahin"]
-      : [new IcguduIkizi(), new KuralMotoru(), new MantarMotoru(), new AniMotoru(), new LojistikMotor(), "kahin"];
+    // --motorlar=hk2: H-K2 sınaması — B, B-J (Jaccard) ve B-JT (karma) yan yana, D ve kâhin kıyas.
+    const secim = arg("motorlar", "hepsi");
+    const motorlar = (): Politika[] => secim === "hk1"
+      ? [new IcguduIkizi(), new KuralMotoru(), new KuralMotoru({ kapsama: 0.5 }), new AniMotoru(), "kahin"]
+      : secim === "hk2"
+        ? [new IcguduIkizi(), new KuralMotoru(), new KuralMotoru({ olcu: "jaccard" }), new KuralMotoru({ olcu: "karma" }), new AniMotoru(), "kahin"]
+        : [new IcguduIkizi(), new KuralMotoru(), new MantarMotoru(), new AniMotoru(), new LojistikMotor(), "kahin"];
     const sonuc: Record<string, unknown>[] = [];
     for (const [ad, etiket] of ogretmenler) {
       for (const karisik of [false, true]) {
@@ -569,10 +588,10 @@ async function calistir(): Promise<void> {
           }
         }
         console.log(`\n== öğretmen: ${ad}${karisik ? " (KARIŞTIRILMIŞ)" : ""} — ${tohumlar.length} tohum × ${n} olay`);
-        console.log("motor        doğru   boşa  kaçır  ikinci  yeni(karar/doğru)  akıl(karar/doğru)  boyut");
+        console.log("motor        doğru   boşa  kaçır  ikinci  yeni(karar/doğru)  yeni son(içgüdü)  akıl(karar/doğru)  boyut");
         for (const o of toplam.values()) {
           const y = (a: number, b: number) => (b === 0 ? "  —  " : `${(100 * a / b).toFixed(0).padStart(3)}%`);
-          console.log(`${o.motor.padEnd(12)} ${y(o.dogru, o.n)}  ${String(o.bosa).padStart(5)}  ${String(o.kacir).padStart(5)}  ${y(o.ikinciDogru, o.ikinciN)}   ${y(o.yeniKarar, o.yeniN)} / ${y(o.yeniDogru, o.yeniKarar)}      ${y(o.akilKarar, o.akilN)} / ${y(o.akilDogru, o.akilKarar)}   ${Math.round(o.boyut / tohumlar.length)}`);
+          console.log(`${o.motor.padEnd(12)} ${y(o.dogru, o.n)}  ${String(o.bosa).padStart(5)}  ${String(o.kacir).padStart(5)}  ${y(o.ikinciDogru, o.ikinciN)}   ${y(o.yeniKarar, o.yeniN)} / ${y(o.yeniDogru, o.yeniKarar)}      ${y(o.yeniSonDogru, o.yeniN)} (${y(o.yeniIcguduDogru, o.yeniN)})      ${y(o.akilKarar, o.akilN)} / ${y(o.akilDogru, o.akilKarar)}   ${Math.round(o.boyut / tohumlar.length)}`);
           sonuc.push({ ogretmen: ad, karisik, ...o, tohum: tohumlar.length });
         }
       }
@@ -585,7 +604,7 @@ async function calistir(): Promise<void> {
     await curut();
     return;
   }
-  console.error("kullanım: kapi-deney.ts havuz | etiketle --ogretmen=qwen|haiku --baglam=masada|uzakta | kos [--tohumlar=1,2,3,4,5] [--olay=400] | curut [--tohumlar=11-30]");
+  console.error("kullanım: kapi-deney.ts havuz | etiketle --ogretmen=qwen|haiku --baglam=masada|uzakta | kos [--tohumlar=1,2,3,4,5] [--olay=400] [--motorlar=hk1|hk2] | curut [--tohumlar=11-30] [--havuzlar=…] [--motorlar=hk2] [--yeni=0.2] [--cikti=…]");
   process.exit(2);
 }
 
@@ -593,6 +612,10 @@ async function calistir(): Promise<void> {
  * ATLAS ÇÜRÜTME BATARYASI (defter 2026-09-27): R1/R2 taze tohum ve taze havuz,
  * R3 tutarsız öğretmen, R4 içgüdü öğretmeni, R5 lezyon, R6 eşli istatistik,
  * R7 sağlamlık, R8 öğretmen iddiası (kayıtlı etiketlerden, yeni LLM çağrısı yok).
+ *
+ * `--motorlar=hk2` (H-K2 onay sınaması): B-J ve B-JT de R1/R3/R4/R5'e girer; R6'ya
+ * B-J−B, B-JT−B, B-J−D, B-JT−D çiftleri eklenir. Varsayılan batarya birebir aynıdır
+ * (yalnız yeni ölçü alanları eklenir); çürütme koşusu yeniden üretilebilir kalır.
  */
 async function curut(): Promise<void> {
   const { signTest, wilcoxon } = await import("../brain-lab/experiments/stats.ts");
@@ -600,7 +623,20 @@ async function curut(): Promise<void> {
   const havuzlar = arg("havuzlar", "brain-lab/data/kapi,brain-lab/data/kapi/2,brain-lab/data/kapi/3").split(",");
   const ogretmenler = arg("ogretmenler", "qwen-masada,qwen-uzakta").split(",");
   const n = Number(arg("olay", "400"));
+  const yeniOran = Number(arg("yeni", "0.2"));
+  const cikti = arg("cikti", "brain-lab/data/kapi/curut.json");
+  const hk2 = arg("motorlar", "varsayilan") === "hk2";
+  const MOTORLAR: [string, () => Motor][] = [
+    ["icgudu", () => new IcguduIkizi()],
+    ["B", () => new KuralMotoru()],
+    ...(hk2 ? [["B-J", () => new KuralMotoru({ olcu: "jaccard" })], ["B-JT", () => new KuralMotoru({ olcu: "karma" })]] as [string, () => Motor][] : []),
+    ["D", () => new AniMotoru()],
+  ];
+  const OGRENEN = MOTORLAR.filter(([ad]) => ad !== "icgudu");
+  const EK_CIFTLER: [string, string][] = hk2 ? [["B-J", "B"], ["B-JT", "B"], ["B-J", "D"], ["B-JT", "D"]] : [];
+  const etiketAdi = (ad: string) => (ad === "icgudu" ? "içgüdü" : ad);
   const yz = (a: number, b: number) => (b === 0 ? "—" : `%${(100 * a / b).toFixed(1)}`);
+  const pYaz = (p: number) => (p < 0.001 ? p.toExponential(2) : p.toFixed(3));
   const rapor: Record<string, unknown>[] = [];
   for (const veri of havuzlar) {
     if (!fs.existsSync(`${veri}/havuz.json`)) { console.log(`(havuz yok: ${veri})`); continue; }
@@ -615,11 +651,11 @@ async function curut(): Promise<void> {
 
       // R1/R2 + R6: taze tohumlar, tohum başına eşli.
       const top: Record<string, Olcum> = {};
-      const dogruluk: Record<string, number[]> = { icgudu: [], B: [], D: [] };
+      const dogruluk: Record<string, number[]> = Object.fromEntries(MOTORLAR.map(([ad]) => [ad, []]));
       for (const tohum of ts) {
-        const akis = akisKur(havuz, tohum, n);
-        for (const [ad, m] of [["icgudu", new IcguduIkizi()], ["B", new KuralMotoru()], ["D", new AniMotoru()]] as const) {
-          const o = olc(m, akis, havuz, etiket);
+        const akis = akisKur(havuz, tohum, n, yeniOran);
+        for (const [ad, f] of MOTORLAR) {
+          const o = olc(f(), akis, havuz, etiket);
           dogruluk[ad]!.push(o.dogru / o.n);
           const t = top[ad];
           if (!t) top[ad] = { ...o };
@@ -630,49 +666,56 @@ async function curut(): Promise<void> {
       const bIc = fark(dogruluk.B!, dogruluk.icgudu!), bD = fark(dogruluk.B!, dogruluk.D!);
       const ort = (x: number[]) => x.reduce((s, v) => s + v, 0) / x.length;
       console.log(`\n== ${bas} (evet oranı %${(100 * evetOrani).toFixed(0)}; ${ts.length} tohum × ${n} olay)`);
-      for (const ad of ["icgudu", "B", "D"]) {
+      for (const [ad] of MOTORLAR) {
         const o = top[ad]!;
-        console.log(`R1  ${ad.padEnd(6)} genel ${yz(o.dogru, o.n)}  ikinci ${yz(o.ikinciDogru, o.ikinciN)} (${o.ikinciDogru}/${o.ikinciN})  yeni karar ${yz(o.yeniKarar, o.yeniN)} doğru ${yz(o.yeniDogru, o.yeniKarar)}  akıl ${yz(o.akilDogru, o.akilKarar)}  boyut ${(o.boyut / ts.length).toFixed(0)}`);
+        console.log(`R1  ${ad.padEnd(6)} genel ${yz(o.dogru, o.n)}  ikinci ${yz(o.ikinciDogru, o.ikinciN)} (${o.ikinciDogru}/${o.ikinciN})  yeni karar ${yz(o.yeniKarar, o.yeniN)} doğru ${yz(o.yeniDogru, o.yeniKarar)} (${o.yeniDogru}/${o.yeniKarar})  yeni son ${yz(o.yeniSonDogru, o.yeniN)} (içgüdü ${yz(o.yeniIcguduDogru, o.yeniN)}, n ${o.yeniN})  akıl ${yz(o.akilDogru, o.akilKarar)}  boyut ${(o.boyut / ts.length).toFixed(0)}`);
       }
       const sBI = signTest(bIc), wBI = wilcoxon(bIc), sBD = signTest(bD), wBD = wilcoxon(bD);
       console.log(`R6  B−içgüdü: ort ${(100 * ort(bIc)).toFixed(1)} puan · işaret p ${sBI.p.toExponential(2)} · Wilcoxon p ${wBI.p.toExponential(2)}`);
       console.log(`R6  B−D:      ort ${(100 * ort(bD)).toFixed(1)} puan · işaret p ${sBD.p.toFixed(3)} · Wilcoxon p ${wBD.p.toFixed(3)}`);
+      const r6: Record<string, unknown> = { bIcgudu: { ort: ort(bIc), isaret: sBI, wilcoxon: wBI }, bD: { ort: ort(bD), isaret: sBD, wilcoxon: wBD } };
+      for (const [a, b] of EK_CIFTLER) {
+        const f = fark(dogruluk[a]!, dogruluk[b]!);
+        const s = signTest(f), w = wilcoxon(f);
+        console.log(`R6  ${`${a}−${b}:`.padEnd(10)} ort ${(100 * ort(f)).toFixed(2)} puan · işaret p ${pYaz(s.p)} · Wilcoxon p ${pYaz(w.p)}`);
+        r6[`${a}−${b}`] = { ort: ort(f), isaret: s, wilcoxon: w };
+      }
 
       // R3: tutarsız öğretmen.
-      const r3: Record<string, [number, number]> = { B: [0, 0], D: [0, 0] };
+      const r3: Record<string, [number, number]> = Object.fromEntries(OGRENEN.map(([ad]) => [ad, [0, 0]]));
       for (const tohum of ts) {
-        const akis = akisKur(havuz, tohum, n);
-        for (const [ad, m] of [["B", new KuralMotoru()], ["D", new AniMotoru()]] as const) {
-          const o = olc(m, akis, havuz, tutarsizOgretmen(etiket, havuz, 5000 + tohum));
+        const akis = akisKur(havuz, tohum, n, yeniOran);
+        for (const [ad, f] of OGRENEN) {
+          const o = olc(f(), akis, havuz, tutarsizOgretmen(etiket, havuz, 5000 + tohum));
           r3[ad]![0] += o.ikinciDogru; r3[ad]![1] += o.ikinciN;
         }
       }
-      console.log(`R3  tutarsız öğretmen, ikinci görülüş: B ${yz(...r3.B!)} · D ${yz(...r3.D!)}`);
+      console.log(`R3  tutarsız öğretmen, ikinci görülüş: ${OGRENEN.map(([ad]) => `${ad} ${yz(...r3[ad]!)}`).join(" · ")}`);
 
       // R4: içgüdü öğretmeni.
       const icE = icguduOgretmeni(havuz);
-      const r4: Record<string, [number, number]> = { icgudu: [0, 0], B: [0, 0], D: [0, 0] };
+      const r4: Record<string, [number, number]> = Object.fromEntries(MOTORLAR.map(([ad]) => [ad, [0, 0]]));
       for (const tohum of ts) {
-        const akis = akisKur(havuz, tohum, n);
-        for (const [ad, m] of [["icgudu", new IcguduIkizi()], ["B", new KuralMotoru()], ["D", new AniMotoru()]] as const) {
-          const o = olc(m, akis, havuz, icE);
+        const akis = akisKur(havuz, tohum, n, yeniOran);
+        for (const [ad, f] of MOTORLAR) {
+          const o = olc(f(), akis, havuz, icE);
           r4[ad]![0] += o.dogru; r4[ad]![1] += o.n;
         }
       }
-      console.log(`R4  içgüdü öğretmeni, genel: içgüdü ${yz(...r4.icgudu!)} · B ${yz(...r4.B!)} · D ${yz(...r4.D!)}`);
+      console.log(`R4  içgüdü öğretmeni, genel: ${MOTORLAR.map(([ad]) => `${etiketAdi(ad)} ${yz(...r4[ad]!)}`).join(" · ")}`);
 
       // R5: lezyon (derslerin yarısı defterden çıkarılır).
       const r5: Record<string, LezyonOlcumu> = {};
       for (const tohum of ts) {
-        const akis = akisKur(havuz, tohum, n);
-        for (const [ad, f] of [["B", () => new KuralMotoru()], ["D", () => new AniMotoru()]] as const) {
+        const akis = akisKur(havuz, tohum, n, yeniOran);
+        for (const [ad, f] of OGRENEN) {
           const o = olcLezyonlu(f, akis, havuz, etiket, 0.5, 7000 + tohum);
           const t = r5[ad];
           if (!t) r5[ad] = { ...o };
           else for (const k of Object.keys(o) as (keyof LezyonOlcumu)[]) t[k] += o[k];
         }
       }
-      for (const ad of ["B", "D"]) {
+      for (const [ad] of OGRENEN) {
         const o = r5[ad]!;
         console.log(`R5  ${ad} lezyon: silinen ${yz(o.silinenDogru, o.silinenN)} (içgüdü aynı olaylarda ${yz(o.silinenIcgudu, o.silinenN)}, n ${o.silinenN}) · korunan ${yz(o.korunanDogru, o.korunanN)} (n ${o.korunanN})`);
       }
@@ -689,15 +732,15 @@ async function curut(): Promise<void> {
       }
       console.log(`R7  B sağlamlık (olay/üs): ${r7.join(" · ")}`);
 
-      rapor.push({ havuz: veri, ogretmen: og, evetOrani, R1: top, R6: { bIcgudu: { ort: ort(bIc), isaret: sBI, wilcoxon: wBI }, bD: { ort: ort(bD), isaret: sBD, wilcoxon: wBD } }, R3: r3, R4: r4, R5: r5, R7: r7 });
+      rapor.push({ havuz: veri, ogretmen: og, evetOrani, R1: top, R6: r6, R3: r3, R4: r4, R5: r5, R7: r7 });
     }
   }
 
   // R8: öğretmen iddiası — kayıtlı hakem etiketlerinin kümenin insan etiketiyle uyuşması (havuz 1).
+  // Yalnız terminal havuzunda küme durumu yok: ölçülecek bir şey yok.
   const h1 = `${havuzlar[0]}/havuz.json`;
-  if (fs.existsSync(h1)) {
-    const havuz = JSON.parse(fs.readFileSync(h1, "utf8")) as Durum[];
-    const kume = havuz.filter((d) => d.insan !== undefined);
+  const kume = fs.existsSync(h1) ? (JSON.parse(fs.readFileSync(h1, "utf8")) as Durum[]).filter((d) => d.insan !== undefined) : [];
+  if (kume.length > 0) {
     const satirlar: string[] = [];
     for (const og of ["qwen-masada", "qwen-uzakta", "haiku-masada", "haiku-uzakta"]) {
       const f = `${havuzlar[0]}/etiket-${og}.json`;
@@ -709,8 +752,8 @@ async function curut(): Promise<void> {
     console.log(`\nR8  hakem etiketlerinin insan etiketiyle uyuşması (küme, ${kume.length} durum): ${satirlar.join(" · ")}`);
     rapor.push({ R8: satirlar });
   }
-  fs.writeFileSync("brain-lab/data/kapi/curut.json", JSON.stringify(rapor, null, 1));
-  console.log("\nyazıldı: brain-lab/data/kapi/curut.json");
+  fs.writeFileSync(cikti, JSON.stringify(rapor, null, 1));
+  console.log(`\nyazıldı: ${cikti}`);
 }
 
 if (import.meta.main) await calistir();

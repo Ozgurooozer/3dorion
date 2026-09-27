@@ -11,7 +11,8 @@
 // KARAR: koşulu algının kodunda TAMAMEN bulunan nöronlardan EN ÖZGÜLÜ (en çok
 // koşullu) karar verir. Sayacının çoğunluğu GUVEN_PAYI'nı geçmiyorsa karar yok:
 // kapı içgüdüye bırakır. İstisna nöronları genel kuraldan daha özgül olduğu için
-// kendi durumlarında onu ezer; genel kural silinmez.
+// kendi durumlarında onu ezer; genel kural silinmez. Karar anının benzerlik
+// ölçüsü bir anahtardır (`kararOlcusu`, H-K2): varsayılan bu "altküme" kuralı.
 //
 // ÖĞRENME (öğretmenin bir kararıyla, TEK DENEMEDE):
 //   1. Algının kodu bir nöronun koşuluyla BİREBİR aynıysa: aynı durumdur, o
@@ -59,6 +60,28 @@ export interface HafizaKarari {
   pay: number;
 }
 
+/**
+ * KARAR ANININ BENZERLİK ÖLÇÜSÜ (H-K2, defter 2026-09-27). Öğrenme üçünde de
+ * aynıdır: aynı olay dizisi aynı nöronları kurar; yalnız hangi nöronun karar
+ * vereceği değişir.
+ *
+ *   "altkume" — koşulu algıda TAMAMEN bulunan en özgül nöron (eski davranış).
+ *   "jaccard" — koşulu ile algı arasındaki Jaccard benzerliği (ortak / birleşim)
+ *               en yüksek nöron; benzerlik `jaccardEsigi`nin altındaysa karar yok.
+ *               Tam anı hafızasının (tools/kapi-deney.ts, D) ölçüsü.
+ *   "karma"   — koşulu tam bulunan en özgül nöron, algının en az `jaccardEsigi`
+ *               kadarını kapsıyorsa (tam eşleşmede kapsama = Jaccard) o karar
+ *               verir; kapsamıyorsa "jaccard".
+ *
+ * Neden: çevrimdışı kıyasta kesişimle küçülen kurallar pek çok YENİ durumla tam
+ * eşleşti ve orada sınıf oranı düzeyinde karar verdi; D, benzerliği bütün kod
+ * üzerinden ölçtüğü için yeni durumda daha iyiydi. "jaccard" ise kural anlamını
+ * kaybediyor: ayırt edici işareti algıda OLMAYAN karşı yönlü bir istisna, daha
+ * benzer çıkıp karar verebiliyor (taramada ikinci görülüş hatalarının çoğu).
+ * "karma" önce kuralın kendisine bakar.
+ */
+export type KararOlcusu = "altkume" | "jaccard" | "karma";
+
 export interface KuralHafizasiAyari {
   /** Benzerlik eşiği: ortak işaret / algının işareti. Varsayılan 0,5. */
   uyaniklik?: number;
@@ -77,9 +100,24 @@ export interface KuralHafizasiAyari {
    * tam eşleşti ve orada sınıf oranı düzeyinde karar verdi (aşırı genelleme).
    */
   kapsamaEsigi?: number;
+  /** Karar anının benzerlik ölçüsü (H-K2). Varsayılan "altkume": eski davranış, birebir. */
+  kararOlcusu?: KararOlcusu;
+  /** "jaccard" ve "karma" için asgari benzerlik. Varsayılan 0,5: D'nin eşiği ve öğrenmedeki uyanıklık. */
+  jaccardEsigi?: number;
 }
 
 const kesisim = (a: ReadonlySet<string>, b: readonly string[]): string[] => b.filter((x) => a.has(x));
+
+/** Koşul ile algı arasındaki Jaccard benzerliği: ortak / birleşim. */
+function jaccard(kosul: readonly string[], kod: ReadonlySet<string>): number {
+  let ortak = 0;
+  for (const x of kosul) if (kod.has(x)) ortak++;
+  return ortak / (kod.size + kosul.length - ortak);
+}
+
+/** Eşitlik bozucu: daha özgül (çok koşullu), sonra daha çok kanıtlı. Tam eşitlikte önce doğan kalır. */
+const dahaIyi = (n: HafizaNoronu, en: HafizaNoronu): boolean =>
+  n.kosul.length > en.kosul.length || (n.kosul.length === en.kosul.length && n.kanit.length > en.kanit.length);
 
 export class KuralHafizasi {
   private _noronlar: HafizaNoronu[] = [];
@@ -89,6 +127,8 @@ export class KuralHafizasi {
   private _enAzKosul: number;
   private _guvenPayi: number;
   private _kapsamaEsigi: number;
+  private _kararOlcusu: KararOlcusu;
+  private _jaccardEsigi: number;
 
   constructor(ayar: KuralHafizasiAyari = {}) {
     this._uyaniklik = ayar.uyaniklik ?? 0.5;
@@ -96,6 +136,12 @@ export class KuralHafizasi {
     this._enAzKosul = ayar.enAzKosul ?? 2;
     this._guvenPayi = ayar.guvenPayi ?? 0.75;
     this._kapsamaEsigi = ayar.kapsamaEsigi ?? 0;
+    this._kararOlcusu = ayar.kararOlcusu ?? "altkume";
+    this._jaccardEsigi = ayar.jaccardEsigi ?? 0.5;
+    // İki karar anı anahtarı birlikte hiç ölçülmedi: sessizce birinin yok sayılması yerine hata.
+    if (this._kapsamaEsigi > 0 && this._kararOlcusu !== "altkume") {
+      throw new Error(`kapsamaEsigi (H-K1) yalnız "altkume" ölçüsüyle kullanılır; verilen: ${this._kararOlcusu}`);
+    }
   }
 
   get noronlar(): readonly HafizaNoronu[] { return this._noronlar; }
@@ -105,20 +151,41 @@ export class KuralHafizasi {
     let en: HafizaNoronu | null = null;
     for (const n of this._noronlar) {
       if (!n.kosul.every((x) => kod.has(x))) continue;
-      if (!en
-        || n.kosul.length > en.kosul.length
-        || (n.kosul.length === en.kosul.length && n.kanit.length > en.kanit.length)) en = n;
+      if (!en || dahaIyi(n, en)) en = n;
     }
     return en;
+  }
+
+  /** Jaccard benzerliği en yüksek nöron ve benzerliği (eşitlikte daha özgül, daha çok kanıtlı, daha yaşlı). */
+  private _enBenzer(kod: ReadonlySet<string>): { n: HafizaNoronu; j: number } | null {
+    let en: { n: HafizaNoronu; j: number } | null = null;
+    for (const n of this._noronlar) {
+      const j = jaccard(n.kosul, kod);
+      if (!en || j > en.j || (j === en.j && dahaIyi(n, en.n))) en = { n, j };
+    }
+    return en;
+  }
+
+  /** Ölçüye göre karar verecek nöron; yoksa null. */
+  private _secilen(kod: ReadonlySet<string>): HafizaNoronu | null {
+    if (this._kararOlcusu !== "jaccard") {
+      const tam = this._enOzgul(kod);
+      if (this._kararOlcusu === "altkume") {
+        // En özgül kural kapsamayı geçemiyorsa daha genel olanlar hiç geçemez.
+        return tam && tam.kosul.length / kod.size >= this._kapsamaEsigi ? tam : null;
+      }
+      // "karma": tam eşleşmede kapsama = Jaccard; yeterince benzerse kural konuşur.
+      if (tam && tam.kosul.length / kod.size >= this._jaccardEsigi) return tam;
+    }
+    const b = this._enBenzer(kod);
+    return b && b.j >= this._jaccardEsigi ? b.n : null;
   }
 
   /** Bu kodlu algı için hafızanın kararı; emin değilse null (kapı içgüdüye bırakır). */
   karar(kod: readonly string[]): HafizaKarari | null {
     if (kod.length === 0) return null;
-    const n = this._enOzgul(new Set(kod));
+    const n = this._secilen(new Set(kod));
     if (!n) return null;
-    // En özgül kural kapsamayı geçemiyorsa daha genel olanlar hiç geçemez.
-    if (n.kosul.length / new Set(kod).size < this._kapsamaEsigi) return null;
     const toplam = n.sayac.uyan + n.sayac.sus;
     if (toplam === 0) return null;
     const yon: KapiYonu = n.sayac.uyan >= n.sayac.sus ? "uyan" : "sus";

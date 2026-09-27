@@ -142,3 +142,36 @@ test("Zipf üssü akışı gerçekten şekillendirir: 0'da düz (en sık / en se
   const [duz, dik] = [oran(0), oran(2)];
   assert.ok(duz <= 1.5 && dik >= 3, `düz ${duz.toFixed(2)}, dik ${dik.toFixed(2)}`);
 });
+
+// ── H-K2: yeni son ölçüsü ve karar ölçüleri ────────────────────────────────
+
+test("kalibrasyon, yeni son: kâhin her yeni durumda doğru; içgüdü ikizi içgüdünün kendisi (c'de yanlış)", () => {
+  // c yeni; öğretmen "sus" diyor, içgüdü geçiriyor ("uyan").
+  const kahin = olc("kahin", AKIS, HAVUZ, ETIKET), ic = olc(new IcguduIkizi(), AKIS, HAVUZ, ETIKET);
+  assert.deepEqual(
+    { kahin: `${kahin.yeniSonDogru}/${kahin.yeniN}`, icgudu: `${ic.yeniSonDogru}/${ic.yeniN}`, icguduOlcusu: ic.yeniIcguduDogru },
+    { kahin: "1/1", icgudu: "0/1", icguduOlcusu: 0 },
+  );
+});
+
+test("kalibrasyon, yeni son: hep-sus yeni c'de doğru, hep-uyan yanlış", () => {
+  const sus = olc("hep-sus", AKIS, HAVUZ, ETIKET), uyan = olc("hep-uyan", AKIS, HAVUZ, ETIKET);
+  assert.deepEqual({ sus: sus.yeniSonDogru, uyan: uyan.yeniSonDogru }, { sus: 1, uyan: 0 });
+});
+
+test("kural motorunun adları ayarını söyler", () => {
+  const adlar = [new KuralMotoru(), new KuralMotoru({ kapsama: 0.5 }), new KuralMotoru({ olcu: "jaccard" }), new KuralMotoru({ olcu: "karma" })].map((m) => m.ad);
+  assert.deepEqual(adlar, ["B kural", "B-K1 0.5", "B-J", "B-JT"]);
+});
+
+test("karar ölçüsü motora ulaşır: a'dan sonra b (Jaccard 2/4) B'de kararsız, B-J ve B-JT'de öğretilen yönde", () => {
+  const karar = (m: KuralMotoru) => { m.ogren(HAVUZ[0]!.isaret, "uyan", "d1"); return m.karar(HAVUZ[1]!.isaret); };
+  assert.deepEqual(
+    { B: karar(new KuralMotoru()), BJ: karar(new KuralMotoru({ olcu: "jaccard" })), BJT: karar(new KuralMotoru({ olcu: "karma" })) },
+    { B: null, BJ: "uyan", BJT: "uyan" },
+  );
+});
+
+test("kalibrasyon, yeni son: içgüdü ölçüsü politikadan bağımsız — kâhinde de içgüdünün kendi doğrusu (c'de 0)", () => {
+  assert.equal(olc("kahin", AKIS, HAVUZ, ETIKET).yeniIcguduDogru, 0);
+});
