@@ -2682,6 +2682,51 @@ düşünme kapalı, bu da tepkiye itiyor.
 - İkisi de geçmezse öğretmen yalnızca Ozyn olur. Öğrenen kapı o zaman yalnız Ozyn'in düzeltmeleriyle öğrenir; bu sonuç
   da kaydedilir.
 
+## 2026-09-27 — T0c sonucu: hakemler de geçmedi; öğretmen Ozyn
+
+**Kayıtlar:** `brain-lab/data/ogretmen/t0c-hakem-haiku.jsonl`, `t0c-hakem-qwen25.jsonl` (commit 26dad5b).
+
+**Sonuç `[ÖLÇÜLDÜ]`** (24 durum, konuşma ve dikkatin düşürdükleri hariç, 3 tekrar):
+
+| öğretmen | uyuşma | kaçırılan | boşa | oybirliği |
+|---|---|---|---|---|
+| qwen2.5, eylem (T0) | 14 (%58) | 0 | 10 | 23 |
+| Haiku, eylem (T0b) | 14 (%58) | 0 | 10 | 24 |
+| qwen2.5, hakem, sıcaklık 0 (T0c) | 17 (%71) | 5 | 2 | 24 |
+| Haiku, hakem (T0c) | 12 (%50) | 12 | 0 | 23 |
+
+- **qwen hakemi** ayırt ediyor ama önemli olanı kaçırıyor.
+  - Kaçırdıkları: iki test sonucu (biri "fail 2"), "built in", "Compiled successfully", monitör açıldı.
+  - Boşa uyandırdıkları: grep komutunun yankısı, favicon 404.
+- **Haiku hakemi** neredeyse her şeye "hayır" diyor.
+  - "Evet" dedikleri yalnız Segmentation fault ve "17 vulnerabilities".
+  - Kaçırdıkları arasında Ozyn'in odaya girişi, LLM'in kendi niyetinin hatası, ECONNREFUSED ve "Cannot find module" var.
+  - Bağlamda "Ozyn is working on your monitor" yazıyor. Muhtemel okuması: "Ozyn ekranı zaten görüyor, Orion'un söylemesine
+    gerek yok". Bu ölçülmedi, bir yorum.
+
+**Karne:**
+- T0c-1 ✗ Haiku hakemi %50 (< %80).
+- T0c-2 ✗ Kaçırılan 12 (> 2).
+- T0c-3 ✓ qwen hakemi %71, öngörülen %60–80 içinde.
+
+**Karar (ön-kayıtlı kurala göre): öğretmen yalnızca Ozyn.** Aynı 24 durum üzerinde istemi değiştirip yeniden denemek,
+sınav üzerinde ayar yapmak olurdu. Yeni bir hakem ancak yeni bir kalibrasyon kümesiyle ve yeni bir ön-kayıtla denenebilir.
+
+**Dersler:**
+1. **Kapının sorusu öznel.** "Orion buna tepki versin mi?" Ozyn'in tercihine bağlı; iki model bu tercihi iki zıt yönde
+   tahmin etti. Etiketleri yazan kişi de Ozyn değildi. Gerçek öğretmen Ozyn. Bu, Ozyn'in 25 Eylül fikriyle aynı:
+   "Ozyn tıklayarak öğretmen olabilmeli."
+2. **Bağlam kararı değiştiriyor.** Aynı hata çıktısı, Ozyn ekranın başındayken ve odanın öbür ucundayken farklı değerde
+   olabilir. Durum kodu Ozyn'in nerede olduğunu taşımalı; bugün taşımıyor.
+3. **Uyandırılan beyin kapının öğretmeni olamaz** (T0, T0b). Bu, Orion için de bir bulgu: elle yazılmış kapı çok önemli
+   bir iş yapıyor.
+
+**Sonraki:** KT2 tasarımı bu kanıtla toplantıya gidecek. Sorular:
+- Ozyn'in öğretme kanalı: zihin duvarında tık, söz ya da ikisi.
+- Motor.
+- Kapının yetkisi: önce gölge.
+- Durum koduna bağlam eklenmesi.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
