@@ -8,6 +8,7 @@ import path from "node:path";
 import fs from "node:fs";
 import { PiperSesi, piperBul } from "./ses.js";
 import { hafizaDosyasiOku, hafizaDosyasiYaz } from "./hafizaDosyasi.js";
+import { kararYaziciKur } from "./kararDosyasi.js";
 import { mcpSunucuKur } from "./mcpSunucu.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -76,7 +77,12 @@ function pencereAc() {
   pencere.once("ready-to-show", () => pencere?.show());
 
   // Renderer konsolunu ana sürece taşı: GUI'yi göremeyen bir denetçi de kanıt görebilsin.
-  pencere.webContents.on("console-message", (_e, _sev, mesaj) => console.log(`[renderer] ${mesaj}`));
+  // Karar satırları (spec 08) günlüğe BASILMAZ, dosyaya eklenir: her algı bir
+  // satır — günlüğü boğardı ve kaydın asıl yeri zaten dosya.
+  pencere.webContents.on("console-message", (_e, _sev, mesaj) => {
+    if (kararYazici.yaz(mesaj)) return;
+    console.log(`[renderer] ${mesaj}`);
+  });
 
   // Duman testi: pencere açılır, ölçüm basılır, kendiliğinden kapanır.
   if (process.env.ORION_SMOKE === "1") {
@@ -212,6 +218,17 @@ ipcMain.handle(CAGRI.varlik, (_e, ad) => {
   if (!fs.existsSync(tam)) throw new Error(`varlık yok: ${ad}`);
   return tam;
 });
+
+// ---- karar kaydı (spec 08) --------------------------------------------------
+// İçgüdü `kayit`: renderer her kararı `[KARAR] {json}` olarak konsola yazar,
+// burada günlük dosyaya eklenir (userData/karar-kaydi/YYYY-MM-DD.jsonl).
+// `ORION_KARAR_DOSYASI` ile tek dosyaya yönlendirilir: deneme koşuları kendi
+// kaydını gerçek kullanımın kaydına karıştırmasın.
+const kararYazici = kararYaziciKur({
+  kok: path.join(app.getPath("userData"), "karar-kaydi"),
+  sabitDosya: process.env.ORION_KARAR_DOSYASI || undefined,
+});
+console.log(`[KARAR-DOSYASI] ${kararYazici.yol()}`);
 
 // ---- hafıza dosyası (spec 07 K4) -------------------------------------------
 // Orion'un hafızası renderer'ın localStorage'ından buraya taşındı: tarayıcı

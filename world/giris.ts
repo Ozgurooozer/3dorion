@@ -1461,7 +1461,8 @@ function beyniBagla(a: Avatar): void {
         kod: a.tur === "terminal" ? a.kod : undefined,
       });
       sema.vur(k.terfi ? "dikkat" : "refleks", k.terfi ? "" : "süzüldü");
-      return k.terfi;
+      // Kimlik de döner: karar kaydı hangi içgüdünün karar verdiğini yazar (spec 08).
+      return { gecsin: k.terfi, kural: k.kural, gerekce: k.gerekce };
     },
     metinDinle: (metin, aracVarMi) => { if (!aracVarMi) davranisKayit()?.duyulmayan(metin); },
     // Şemanın bulut lobu: düşünme başladı/bitti ve hafıza getirimi.

@@ -13,6 +13,7 @@ Full architecture rationale, decision log, and measured results live in `docs/sp
 - `docs/specs/04-dis-beyin.md` — the language-agnostic "external brain" HTTP contract.
 - `docs/specs/05-moduler-beyin-ve-devre-paneli.md` — the mind-wall control panel (pano) and brain modularity.
 - `docs/specs/06-beyin-v2.md` — **current brain direction**: state vs memory split, time/source tags, retrieval threshold, faithfulness metric. Read before touching `mind/hafiza.ts`, `bridge/kopru.ts` context assembly, or perception→memory paths.
+- `docs/specs/08-karar-kaydi.md` — the decision journal and the named innate rules (`mind/icgudu.ts`): every gate decision, LLM wake and outcome is written as JSONL (`%APPDATA%/3dorion/karar-kaydi/`), never changing behavior. Read before touching the gate (`mind/dikkat.ts`, `mind/refleks.ts`, `bridge/kopru.ts` `algi()`/`_dusun()`): a new gate rule needs a new innate id.
 - `docs/ACIK-ISLER.md` — open issues, ordered by what's blocking vs. cosmetic.
 - `docs/FIKIR-HAVUZU.md` — idea backlog, not yet committed to.
 

@@ -19,6 +19,7 @@
 "use strict";
 import type { Niyet } from "../protocol/niyet.ts";
 import { OZET_ONEKI, type AlgiTur } from "../protocol/algi.ts";
+import type { RefleksKurali } from "./icgudu.ts";
 
 export interface RefleksGirdi {
   /** Kısa, tek satırlık algı özeti (protocol/algi.ts ozetle() çıktısı). */
@@ -54,6 +55,15 @@ export interface RefleksKarar {
   niyet?: Niyet;
   /** Tanılama: modelin ham gerekçesi (log için, karara etkisi yok). */
   gerekce?: string;
+  /**
+   * Kararı veren İÇGÜDÜNÜN kalıcı kimliği (mind/icgudu.ts).
+   *
+   * `gerekce` düzyazıdır ve değişken taşır ("çıkış kodu 1"); sayılamaz,
+   * kıyaslanamaz. Kimlik kalıcıdır: karar kaydı (mind/kararKaydi.ts) onu
+   * yazar, öğrenen kapı onunla kıyaslanır. Kural tabanlı refleks her
+   * kararında doldurur; model tabanlı aday doldurmaz.
+   */
+  kural?: RefleksKurali;
 }
 
 export interface Refleks {
@@ -120,28 +130,28 @@ export class KuralRefleksi implements Refleks {
 
     // Konuşma her zaman terfi eder — kullanıcı bekletilemez.
     if (t === "duydum" || (!t && o.startsWith(OZET_ONEKI.duydum))) {
-      return { terfi: true, gerekce: "konuşma" };
+      return { terfi: true, gerekce: "konuşma", kural: "refleks.konusma" };
     }
 
     if (t === "terminal" || (!t && o.startsWith(OZET_ONEKI.terminal))) {
       // ÇIKIŞ KODU her şeyden önce gelir: kesin sinyal, tahmin değil.
       if (g.kod !== undefined) {
-        if (g.kod !== 0) return { terfi: true, gerekce: `komut hata ile bitti (çıkış kodu ${g.kod})` };
+        if (g.kod !== 0) return { terfi: true, gerekce: `komut hata ile bitti (çıkış kodu ${g.kod})`, kural: "refleks.terminal.kod_hata" };
         // Komut BAŞARIYLA bitti. Metindeki korkutucu kelimelere artık
         // bakılmaz: gerçek veride yanlış pozitiflerin TAMAMI bu sınıftandı —
         // "fix error handling" commit mesajı, `"error": null` JSON alanı,
         // `grep "error"` yankısı. Hiçbiri hata değildi, kabuk de öyle diyor.
         // Geriye tek soru kalır: sonuç söylenmeye değer mi (test/derleme)?
         if (BITIS_DESEN.test(govdesi(o))) {
-          return { terfi: true, gerekce: "başarılı komut, sonucu bildirmeye değer" };
+          return { terfi: true, gerekce: "başarılı komut, sonucu bildirmeye değer", kural: "refleks.terminal.kod_bitis" };
         }
         // Uzun suren bir is BASARIYLA bittiyse bu da haberdir: Ozyn bekledi.
         // Cikis kodu olmadan bu bilgi hic gorunmuyordu (`tsc` temiz gecince
         // 0 satir yazar) — OSC 133 entegrasyonunun asil kazanimi budur.
         if (g.sureMs !== undefined && g.sureMs >= UZUN_ISLEM_MS) {
-          return { terfi: true, gerekce: `uzun iş başarıyla bitti (${(g.sureMs / 1000).toFixed(1)} sn)` };
+          return { terfi: true, gerekce: `uzun iş başarıyla bitti (${(g.sureMs / 1000).toFixed(1)} sn)`, kural: "refleks.terminal.kod_uzun" };
         }
-        return { terfi: false, gerekce: "komut başarılı, rutin çıktı" };
+        return { terfi: false, gerekce: "komut başarılı, rutin çıktı", kural: "refleks.terminal.kod_rutin" };
       }
       return this._terminal(o);
     }
@@ -151,28 +161,32 @@ export class KuralRefleksi implements Refleks {
       // İngilizceye dönünce bir harf kayıp olay adı bozulacaktı.
       const ad = o.slice(OZET_ONEKI.olay.length).trim();
       const gurultu = ONEMSIZ_OLAYLAR.has(ad);
-      return { terfi: !gurultu, gerekce: gurultu ? "gürültü olay" : "dünya olayı" };
+      return gurultu
+        ? { terfi: false, gerekce: "gürültü olay", kural: "refleks.olay.gurultu" }
+        : { terfi: true, gerekce: "dünya olayı", kural: "refleks.olay.dunya" };
     }
 
     // Niyet sonucu: yalnızca BAŞARISIZLIK öğreticidir.
     // Sorunun cevabı HER ZAMAN terfi eder: beyin onu kendisi istedi.
     // Süzmek, Orion'un sorup cevabı hiç duymaması demek (canlıda yaşandı).
     if (t === "gordum" || (!t && o.startsWith(OZET_ONEKI.gordum))) {
-      return { terfi: true, gerekce: "sorunun cevabı" };
+      return { terfi: true, gerekce: "sorunun cevabı", kural: "refleks.gordum.cevap" };
     }
 
     if (t === "sonuc" || (!t && o.startsWith(OZET_ONEKI.sonuc))) {
       const hata = /→\s*hata/.test(o);
-      return { terfi: hata, gerekce: hata ? "niyet hatası" : "rutin başarı" };
+      return hata
+        ? { terfi: true, gerekce: "niyet hatası", kural: "refleks.sonuc.hata" }
+        : { terfi: false, gerekce: "rutin başarı", kural: "refleks.sonuc.rutin" };
     }
 
     // Dünya/yakın anlık görüntüleri istenmeden gelirse rutindir.
     if (t === "dunya" || t === "yakin" || (!t && (o.startsWith(OZET_ONEKI.dunya) || o.startsWith(OZET_ONEKI.yakin)))) {
-      return { terfi: false, gerekce: "rutin anlık görüntü" };
+      return { terfi: false, gerekce: "rutin anlık görüntü", kural: "refleks.anlik.rutin" };
     }
 
     // Tanınmayan biçim → GÜVENLİ TARAF. Sessizce yutmak en kötü sonuç.
-    return { terfi: true, gerekce: "tanınmayan biçim, güvenli terfi" };
+    return { terfi: true, gerekce: "tanınmayan biçim, güvenli terfi", kural: "refleks.taninmayan" };
   }
 
   /** Terminal bloğunun içerik yargısı — yalnızca ÇIKIŞ KODU YOKKEN. */
@@ -183,11 +197,11 @@ export class KuralRefleksi implements Refleks {
     // hatası, çıktısındaki "At line:1" satırı yüzünden "yığın izi" sanılıp
     // susturuluyordu — yalnızca ONEMLI_DESEN'e bakıldığı için.
     const onemli = ONEMLI_DESEN.test(govde) || ONEMLI_KABUK.test(govde);
-    if (YIGIN_IZI.test(govde) && !onemli) return { terfi: false, gerekce: "yığın izi gürültüsü" };
-    if (ONEMLI_DESEN.test(govde)) return { terfi: true, gerekce: "hata deseni" };
-    if (ONEMLI_KABUK.test(govde)) return { terfi: true, gerekce: "kabuk başarısızlığı" };
-    if (BITIS_DESEN.test(govde)) return { terfi: true, gerekce: "iş bitiş deseni" };
-    return { terfi: false, gerekce: "rutin terminal gürültüsü" };
+    if (YIGIN_IZI.test(govde) && !onemli) return { terfi: false, gerekce: "yığın izi gürültüsü", kural: "refleks.terminal.yigin_izi" };
+    if (ONEMLI_DESEN.test(govde)) return { terfi: true, gerekce: "hata deseni", kural: "refleks.terminal.hata_deseni" };
+    if (ONEMLI_KABUK.test(govde)) return { terfi: true, gerekce: "kabuk başarısızlığı", kural: "refleks.terminal.kabuk" };
+    if (BITIS_DESEN.test(govde)) return { terfi: true, gerekce: "iş bitiş deseni", kural: "refleks.terminal.bitis_deseni" };
+    return { terfi: false, gerekce: "rutin terminal gürültüsü", kural: "refleks.terminal.gurultu" };
   }
 }
 

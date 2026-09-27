@@ -16,6 +16,8 @@ import { ozetle } from "../protocol/algi.ts";
 import type { Niyet, NiyetSonucu } from "../protocol/niyet.ts";
 import { kimlik } from "../protocol/temel.ts";
 import { Dikkat, type DikkatAyari } from "../mind/dikkat.ts";
+import { KararKaydi, type KapiKarari, type UyanisBilgisi } from "../mind/kararKaydi.ts";
+import { dikkatKurali, type IcguduKimligi } from "../mind/icgudu.ts";
 import { Hafiza, kuralOnemi, type AniTuru } from "../mind/hafiza.ts";
 import { calismaBellegiKur, type CalismaBellegi } from "../mind/calismaBellegi.ts";
 import { oncesiSozu } from "../mind/zaman.ts";
@@ -45,8 +47,18 @@ export interface KopruAyari {
    * Senkron olması bilinçli: `algi()` dünyadan yüksek frekansla çağrılıyor;
    * burada `await` etmek algı sırasını bozardı. Model tabanlı (async) bir
    * refleks istenirse hattın bu noktasına değil, toplama adımına girmeli.
+   *
+   * Nesne dönerse kararı veren İÇGÜDÜNÜN kimliği de karar kaydına yazılır
+   * (spec 08). Düz `boolean` hâlâ geçerli: eski çağıranlar kırılmaz, kayıtta
+   * kural `kopru.suzgec` görünür.
    */
-  suzgec?: (a: Algi, ozet: string) => boolean;
+  suzgec?: (a: Algi, ozet: string) => boolean | SuzgecKarari;
+  /**
+   * KARAR KAYDI (mind/kararKaydi.ts, spec 08). İÇGÜDÜDÜR: verilmezse köprü
+   * kendi kaydını kurar ve satırları konsola yazar; canlıda host onları
+   * günlük dosyasına ekler. Testler ve araçlar kendi yazıcısını verir.
+   */
+  kararKaydi?: KararKaydi;
   /**
    * Modelin araç çağırmadan ürettiği DÜZ METİN. Bu metin kullanıcıya
    * ULAŞMAZ (protokolde konuşmak bir eylemdir) — ama davranış ölçümü için
@@ -85,6 +97,13 @@ export interface KopruAyari {
    */
   hafizaDeposu?: { oku(): unknown[]; yaz(aniler: unknown[]): void };
   simdi?: () => number;
+}
+
+/** İçerik süzgecinin kararı ve onu veren içgüdü (mind/icgudu.ts). */
+export interface SuzgecKarari {
+  gecsin: boolean;
+  kural?: IcguduKimligi;
+  gerekce?: string;
 }
 
 export interface KopruSayaci {
@@ -151,6 +170,15 @@ export class Kopru {
   /** ŞU ANKİ durum (spec 06 K2) — anı değil, üzerine yazılır ve eskir. */
   private _calisma: CalismaBellegi;
   private _tampon: string[] = [];
+  /**
+   * `_tampon`un KİMLİK gölgesi: her özetin karar kaydındaki algı kimliği,
+   * algı olmayan geri besleme (reddedilen çağrı) için `null`. İkisi hep
+   * birlikte itilir ve birlikte boşaltılır; uyanış satırı "bu turu hangi
+   * algılar tetikledi" sorusunu buradan cevaplar.
+   */
+  private _tamponIdleri: (string | null)[] = [];
+  /** İÇGÜDÜ `kayit`: her karar ve sonucu (spec 08). */
+  private _kayit: KararKaydi;
   /** Bu turda hangi algi turleri geldi — talimat buna gore daralir. */
   private _turTurleri = new Set<string>();
   /** Bu turda hafızaya yazılan içerikler — sorgu ve dışlama için. */
@@ -181,6 +209,9 @@ export class Kopru {
     this._dikkat = new Dikkat(ayar.dikkat);
     this._hafiza = new Hafiza({ simdi: ayar.simdi });
     this._calisma = calismaBellegiKur({ simdi: ayar.simdi });
+    // İÇGÜDÜ `kayit`: köprü kaydını DOĞUŞTAN kurar — kimse açmak zorunda değil.
+    this._kayit = ayar.kararKaydi ?? new KararKaydi({ simdi: ayar.simdi });
+    this._kayit.oturumBasi(ayar.beyin.ad);
 
     // Geçmiş oturumların anıları. Hata yutulur: bozuk bir kayıt yüzünden
     // dünya açılmamazlık edemez.
@@ -285,8 +316,14 @@ export class Kopru {
     if (a.tur === "gordum" && this._zincirKalan <= 0) {
       this._calisma.yaz(a.ne, a.metin);
       this._sayac.zincirKesilen++;
+      this._kayit.algi(a, ozet, { gecti: false, kural: "kopru.zincir" });
       return;
     }
+
+    // KAPI KARARI ve onu veren içgüdü (mind/icgudu.ts) — karar kaydı için.
+    // Konuşma süzgece hiç girmez: onu geçiren köprünün kendi kuralıdır.
+    // Süzgeç yoksa (testler, dış araçlar) geçiren son söz dikkattir.
+    let kapi: KapiKarari = { gecti: true, kural: a.tur === "duydum" ? "kopru.konusma" : "dikkat.gecti" };
 
     // SIRA ÖNEMLİ — içerik süzgeci DİKKAT'TEN ÖNCE gelir.
     //
@@ -301,14 +338,25 @@ export class Kopru {
     //
     // Konuşma ASLA süzülmez; süzgeç çökerse güvenli taraf GEÇİRMEKTİR.
     if (this._ayar.suzgec && a.tur !== "duydum") {
-      let gecsin = true;
-      try { gecsin = this._ayar.suzgec(a, ozet); }
-      catch (err) { console.warn("[kopru] süzgeç hatası, güvenli tarafa geçiriliyor:", err); }
-      if (!gecsin) { this._sayac.suzulen++; return; }
+      try {
+        const s = this._ayar.suzgec(a, ozet);
+        kapi = typeof s === "boolean"
+          ? { gecti: s, kural: "kopru.suzgec" }
+          : { gecti: s.gecsin, kural: s.kural ?? "kopru.suzgec", ...(s.gerekce ? { gerekce: s.gerekce } : {}) };
+      } catch (err) {
+        console.warn("[kopru] süzgeç hatası, güvenli tarafa geçiriliyor:", err);
+        kapi = { gecti: true, kural: "kopru.guvenli_taraf" };
+      }
+      if (!kapi.gecti) { this._sayac.suzulen++; this._kayit.algi(a, ozet, kapi); return; }
     }
 
     const k = this._dikkat.karar(a);
-    if (!k.gecsin) return;
+    if (!k.gecsin) {
+      // Dikkat düşürdüğünde sebebini HEP söyler (icgudu.test.ts bekçisi);
+      // sebepsiz düşüş kayıtta çelişkili görünsün diye `dikkat.gecti` yazılır.
+      this._kayit.algi(a, ozet, { gecti: false, kural: k.sebep ? dikkatKurali(k.sebep) : "dikkat.gecti" });
+      return;
+    }
 
     // Bakış cevabı dışındaki her tetik (söz, terminal, olay, inisiyatif)
     // hakkı YENİLER. Tüketim turun başında olur (bkz. `_dusun`).
@@ -319,6 +367,7 @@ export class Kopru {
     }
 
     this._tampon.push(ozet);
+    this._tamponIdleri.push(this._kayit.algi(a, ozet, kapi));
 
     // Beyne giden her algı hafızaya da yazılır. Önem KURALLA belirlenir —
     // her anı için bir LLM turu ödemek ölçülmüş bir fayda olmadan kabul
@@ -368,8 +417,8 @@ export class Kopru {
   /** Niyet sonucunu algı olarak geri besler — Orion yapamadığını öğrenir. */
   sonuc(s: NiyetSonucu): void { this.algi({ tur: "sonuc", sonuc: s }); }
 
-  sayac(): KopruSayaci & { dikkat: ReturnType<Dikkat["sayac"]>; hafiza: number } {
-    return { ...this._sayac, dikkat: this._dikkat.sayac(), hafiza: this._hafiza.sayi };
+  sayac(): KopruSayaci & { dikkat: ReturnType<Dikkat["sayac"]>; hafiza: number; kayitYazilamayan: number } {
+    return { ...this._sayac, dikkat: this._dikkat.sayac(), hafiza: this._hafiza.sayi, kayitYazilamayan: this._kayit.yazilamayan };
   }
 
   /** Tanılama/ölçüm: hafızaya doğrudan erişim. */
@@ -414,7 +463,19 @@ export class Kopru {
 
     this._dusunuyor = true;
     const ozetler = this._tampon.splice(0);
+    const algiIdleri = this._tamponIdleri.splice(0);
     this._sayac.dusunme++;
+
+    // KARAR KAYDI: bu uyanışın satırı `finally`de yazılır — beyin hatası da
+    // bir sonuçtur ve öğrenen kapı onu da görmeli. Alanlar tur ilerledikçe dolar.
+    const uyanis: UyanisBilgisi = {
+      algilar: algiIdleri.filter((x): x is string => x !== null),
+      geriBesleme: algiIdleri.filter((x) => x === null).length,
+      beyin: this._ayar.beyin.ad, sureMs: 0, koken: this._zincirKokeni, takip: false,
+      anilar: 0, dunya: "", cagrilar: [], niyetler: [],
+      reddedilen: 0, kurtarilan: 0, konusulanMetin: false, yutulanSoz: 0,
+    };
+    let beyinT0: number | undefined;
 
     try {
       // İlgili anılar: sorgu, bu turu tetikleyen algıların birleşimi.
@@ -440,12 +501,15 @@ export class Kopru {
       // TUR başına tüketir, mesaj başına değil: beyin tek turda iki soru
       // sorabilir (`onumde` + `yakin`) ve iki cevap aynı turda buluşmalı.
       // İlk sürüm mesaj başına düşürüyordu ve ikinci cevabı kesiyordu.
-      if (turler.size > 0 && [...turler].every((t) => t === "gordum")) this._zincirKalan--;
+      uyanis.takip = turler.size > 0 && [...turler].every((t) => t === "gordum");
+      if (uyanis.takip) this._zincirKalan--;
       // KÖKEN: dış tetik her zaman kazanır (Ozyn konuştuysa cevap inisiyatif
       // sayılmaz). Yalnız bakış cevabından oluşan tur kökeni devralır.
       if (this._turDis) this._zincirKokeni = "dis";
       else if (this._turInisiyatif) this._zincirKokeni = "inisiyatif";
       this._turDis = this._turInisiyatif = false;
+      uyanis.koken = this._zincirKokeni;
+      uyanis.anilar = anilar.length;
       const talimat = talimatUret({
         konusma: turler.has("duydum"),
         terminal: turler.has("terminal"),
@@ -457,6 +521,7 @@ export class Kopru {
       // yaşlarıyla. Anılarla aynı listede değil — karışması bu spec'in
       // çözdüğü hatanın ta kendisiydi.
       const dunya = [this._ayar.dunyaDurumu(), ...this._calisma.satirlar()].join("\n");
+      uyanis.dunya = dunya;
       // `dunya` da basılır: beynin ZEMİNİ o metin. Görünmezse "model neden
       // böyle cevap verdi" sorusu yanıtsız kalıyor — özetler bağlamın
       // yalnızca yarısı.
@@ -482,7 +547,7 @@ export class Kopru {
 
       if (anilar.length) this._asama("hafiza", `${anilar.length} anı`);
       this._asama("beyin", "düşünüyor");
-      const beyinT0 = Date.now();
+      beyinT0 = Date.now();
       const cikti = await this._ayar.beyin.dusun({
         talimat,
         ornekler,
@@ -494,6 +559,9 @@ export class Kopru {
         araclar: araclariUret(),
       });
       this._asama("beyin:bitti", `${((Date.now() - beyinT0) / 1000).toFixed(1)} sn`);
+      uyanis.sureMs = Date.now() - beyinT0;
+      uyanis.cagrilar = cikti.cagrilar.map((c) => c.ad);
+      if (cikti.metin) uyanis.metin = cikti.metin;
 
       // Düz metin DUYULMAZ — protokolde konuşmak bir eylemdir (dunya_soyle).
       // Yine de geçmişe yazılır: modelin kendi düşüncesi bağlamda kalsın.
@@ -511,15 +579,17 @@ export class Kopru {
         const d = cagriyiNiyete(c.ad, c.girdi);
         if (!d.ok) {
           this._sayac.reddedilenCagri++;
+          uyanis.reddedilen++;
           // Reddi sessizce yutma: modele geri besle, kendini düzeltsin.
           this._tampon.push(`Araç reddedildi (${c.ad}): ${d.hata}`);
+          this._tamponIdleri.push(null);
           console.warn(`[kopru] çağrı reddedildi: ${d.hata}`);
           continue;
         }
         this._ardisikRet = 0;  // geçerli çağrı geldi, düzeltme döngüsü kırıldı
         const id = kimlik("n");
         // Düşen söz dünyaya da GİTMEZ: `niyetGonder` de atlanır.
-        if (d.deger.tur === "soyle" && !this._sozuGecir(d.deger.metin)) continue;
+        if (d.deger.tur === "soyle" && !this._sozuGecir(d.deger.metin)) { uyanis.yutulanSoz++; continue; }
         if (d.deger.tur === "soyle" && this._konusmaDinleyiciler.size) {
           this._konusmaYay(d.deger.metin);
           this._gecmis.push({ rol: "orion", metin: d.deger.metin, arac: true });
@@ -527,6 +597,7 @@ export class Kopru {
         }
         this._ayar.niyetGonder(d.deger, id);
         this._sayac.niyet++;
+        uyanis.niyetler.push({ id, tur: d.deger.tur });
       }
 
       // ── Düz metin kurtarma ──────────────────────────────────────────────
@@ -555,17 +626,20 @@ export class Kopru {
           const d = cagriyiNiyete(c.ad, c.girdi);
           if (!d.ok) { console.warn(`[kopru] metinden kurtarilan cagri gecersiz: ${d.hata}`); continue; }
           this._sayac.kurtarilanCagri++;
+          uyanis.kurtarilan++;
           console.warn(`[kopru] METINDEN kurtarildi: ${c.ad}`);
           const id = kimlik("n");
-          if (d.deger.tur === "soyle" && !this._sozuGecir(d.deger.metin)) continue;
+          if (d.deger.tur === "soyle" && !this._sozuGecir(d.deger.metin)) { uyanis.yutulanSoz++; continue; }
           if (d.deger.tur === "soyle") { this._konusmaYay(d.deger.metin); this._gecmis.push({ rol: "orion", metin: d.deger.metin, arac: true }); this._kirp(); }
           this._ayar.niyetGonder(d.deger, id);
           this._sayac.niyet++;
+          uyanis.niyetler.push({ id, tur: d.deger.tur });
         }
 
         if (konusulabilir && this._konusmaDinleyiciler.size && this._sozuGecir(konusulabilir)) {
           const metin = konusulabilir.slice(0, 400);
           this._sayac.kurtarilanMetin++;
+          uyanis.konusulanMetin = true;
           console.warn(`[kopru] arac cagrilmadi, temiz metin konusmaya cevrildi: "${metin.slice(0, 80)}"`);
           this._konusmaYay(metin);
         } else if (!konusulabilir && kurtarilan.length === 0) {
@@ -579,7 +653,10 @@ export class Kopru {
       const m = err instanceof Error ? err.message : String(err);
       console.error("[kopru] beyin hatası:", m);
       this._arizaYay(m);
+      uyanis.hata = m;
+      if (beyinT0 !== undefined && uyanis.sureMs === 0) uyanis.sureMs = Date.now() - beyinT0;
     } finally {
+      this._kayit.uyanis(uyanis);
       this._dusunuyor = false;
       if (this._tekrarGerek) {
         this._tekrarGerek = false;
@@ -593,6 +670,7 @@ export class Kopru {
         // görünür biçimde bildirilir.
         if (++this._ardisikRet > 2) {
           const dusen = this._tampon.splice(0);
+          this._tamponIdleri.splice(0);
           this._ardisikRet = 0;
           console.warn(`[kopru] model üst üste geçersiz çağrı üretti, düzeltme döngüsü kesildi (${dusen.length} geri besleme düşürüldü)`);
         } else {
