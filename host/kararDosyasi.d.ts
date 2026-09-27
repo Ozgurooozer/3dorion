@@ -15,6 +15,13 @@ export interface KararYazici {
   yol(): string;
 }
 
+/** Orion dışından yazılan öğretimlerin dosyası (kaydın klasöründe ya da sabit dosyanın yanında). */
+export function ogretimYolu(ayar: { kok?: string; sabitDosya?: string }): string;
+/** Kayıttaki tüm öğretim satırları (ayrıştırılmış, `tur: "ogretim"` olanlar). */
+export function ogretimleriOku(ayar: { kok?: string; sabitDosya?: string }): unknown[];
+/** `konum` baytından sonraki tam satırlar ve yeni konum. */
+export function yeniSatirlar(yol: string, konum: number): { satirlar: unknown[]; konum: number };
+
 export function kararYaziciKur(ayar: {
   kok?: string;
   sabitDosya?: string;

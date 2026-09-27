@@ -15,9 +15,12 @@ import type { Algi } from "../protocol/algi.ts";
 import { ozetle } from "../protocol/algi.ts";
 import type { Niyet, NiyetSonucu } from "../protocol/niyet.ts";
 import { kimlik } from "../protocol/temel.ts";
-import { Dikkat, type DikkatAyari } from "../mind/dikkat.ts";
-import { KararKaydi, type KapiKarari, type UyanisBilgisi } from "../mind/kararKaydi.ts";
-import { dikkatKurali, type IcguduKimligi } from "../mind/icgudu.ts";
+import { Dikkat, kanalAcikMi, type DikkatAyari } from "../mind/dikkat.ts";
+import { KararKaydi, type AlgiEki, type KapiKarari, type OgretimSatiri, type UyanisBilgisi } from "../mind/kararKaydi.ts";
+import { ICGUDULER, dikkatKurali, type IcguduKimligi } from "../mind/icgudu.ts";
+import { durumKodu } from "../mind/durumKodu.ts";
+import type { KuralHafizasi, KapiYonu } from "../mind/kuralHafizasi.ts";
+import { deneyimKimligi, kuralHafizasiKur, ogretimAnahtari } from "../mind/ogretim.ts";
 import { Hafiza, kuralOnemi, type AniTuru } from "../mind/hafiza.ts";
 import { calismaBellegiKur, type CalismaBellegi } from "../mind/calismaBellegi.ts";
 import { oncesiSozu } from "../mind/zaman.ts";
@@ -59,6 +62,13 @@ export interface KopruAyari {
    * günlük dosyasına ekler. Testler ve araçlar kendi yazıcısını verir.
    */
   kararKaydi?: KararKaydi;
+  /**
+   * ÖĞRENEN KAPI (toplantı 2026-09-27): kayıttaki öğretim satırları. Köprü kural
+   * hafızasını açılışta bunlardan kurar (K5, mind/ogretim.ts); verilmezse boş
+   * doğar. Hafıza GÖLGEDE çalışır (K3): her öğrenilebilir algı için kararını
+   * kayda yazar, kapının kararını DEĞİŞTİRMEZ.
+   */
+  ogretimler?: readonly OgretimSatiri[];
   /**
    * Modelin araç çağırmadan ürettiği DÜZ METİN. Bu metin kullanıcıya
    * ULAŞMAZ (protokolde konuşmak bir eylemdir) — ama davranış ölçümü için
@@ -179,6 +189,15 @@ export class Kopru {
   private _tamponIdleri: (string | null)[] = [];
   /** İÇGÜDÜ `kayit`: her karar ve sonucu (spec 08). */
   private _kayit: KararKaydi;
+  /** Öğrenen kapı — gölgede (K3). */
+  private _kuralHafizasi: KuralHafizasi;
+  /**
+   * Son öğrenilebilir algıların durum kodu: kimlik → işaretler. Uygulama içinden
+   * öğretim (`ogret`) hangi kodu öğreteceğini buradan bilir. Sınırlı: en eski düşer.
+   */
+  private _ogrenilebilir = new Map<string, string[]>();
+  /** Uygulanmış öğretim satırları — aynı satır iki yoldan gelirse bir kez uygulanır. */
+  private _uygulanan = new Set<string>();
   /** Bu turda hangi algi turleri geldi — talimat buna gore daralir. */
   private _turTurleri = new Set<string>();
   /** Bu turda hafızaya yazılan içerikler — sorgu ve dışlama için. */
@@ -212,6 +231,13 @@ export class Kopru {
     // İÇGÜDÜ `kayit`: köprü kaydını DOĞUŞTAN kurar — kimse açmak zorunda değil.
     this._kayit = ayar.kararKaydi ?? new KararKaydi({ simdi: ayar.simdi });
     this._kayit.oturumBasi(ayar.beyin.ad);
+    // K5: kural hafızası öğretim satırlarından, sırayla, birebir kurulur.
+    const kurulum = kuralHafizasiKur(ayar.ogretimler ?? []);
+    this._kuralHafizasi = kurulum.hafiza;
+    for (const s of ayar.ogretimler ?? []) if (s?.tur === "ogretim") this._uygulanan.add(ogretimAnahtari(s));
+    if (kurulum.uygulanan || kurulum.atlanan.length) {
+      console.log(`[KAPI] kural hafizasi: ${kurulum.uygulanan} ogretim, ${this._kuralHafizasi.noronlar.length} kural${kurulum.atlanan.length ? `, ${kurulum.atlanan.length} satir atlandi` : ""}`);
+    }
 
     // Geçmiş oturumların anıları. Hata yutulur: bozuk bir kayıt yüzünden
     // dünya açılmamazlık edemez.
@@ -316,7 +342,7 @@ export class Kopru {
     if (a.tur === "gordum" && this._zincirKalan <= 0) {
       this._calisma.yaz(a.ne, a.metin);
       this._sayac.zincirKesilen++;
-      this._kayit.algi(a, ozet, { gecti: false, kural: "kopru.zincir" });
+      this._kaydet(a, ozet, { gecti: false, kural: "kopru.zincir" });
       return;
     }
 
@@ -347,14 +373,14 @@ export class Kopru {
         console.warn("[kopru] süzgeç hatası, güvenli tarafa geçiriliyor:", err);
         kapi = { gecti: true, kural: "kopru.guvenli_taraf" };
       }
-      if (!kapi.gecti) { this._sayac.suzulen++; this._kayit.algi(a, ozet, kapi); return; }
+      if (!kapi.gecti) { this._sayac.suzulen++; this._kaydet(a, ozet, kapi); return; }
     }
 
     const k = this._dikkat.karar(a);
     if (!k.gecsin) {
       // Dikkat düşürdüğünde sebebini HEP söyler (icgudu.test.ts bekçisi);
       // sebepsiz düşüş kayıtta çelişkili görünsün diye `dikkat.gecti` yazılır.
-      this._kayit.algi(a, ozet, { gecti: false, kural: k.sebep ? dikkatKurali(k.sebep) : "dikkat.gecti" });
+      this._kaydet(a, ozet, { gecti: false, kural: k.sebep ? dikkatKurali(k.sebep) : "dikkat.gecti" });
       return;
     }
 
@@ -367,7 +393,7 @@ export class Kopru {
     }
 
     this._tampon.push(ozet);
-    this._tamponIdleri.push(this._kayit.algi(a, ozet, kapi));
+    this._tamponIdleri.push(this._kaydet(a, ozet, kapi));
 
     // Beyne giden her algı hafızaya da yazılır. Önem KURALLA belirlenir —
     // her anı için bir LLM turu ödemek ölçülmüş bir fayda olmadan kabul
@@ -401,6 +427,70 @@ export class Kopru {
       this._gecikmeliDusun();
     }
   }
+
+  /** Son öğrenilebilir algı sayısı — öğretim penceresi. */
+  private static readonly OGRENILEBILIR_SINIR = 500;
+
+  /**
+   * Algıyı ve kapının kararını kayda yazar; algı ÖĞRENİLEBİLİRSE (kararı ezilebilir
+   * bir içgüdü verdiyse) durum kodunu ve öğrenen kapının GÖLGE kararını da ekler.
+   *
+   * Gölge karar kapının kararını DEĞİŞTİRMEZ (K3): yalnızca kayda yazılır.
+   * Güvenlik içgüdüsünün verdiği karar öğrenilebilir değildir; onlara gölge yok.
+   * Kanalı beyne kapalı algı da öğrenilemez: içerik yargısı onu ezilebilir bir
+   * kuralla düşürmüş olsa bile, kanal kuralı (ezilemez) onu yine düşürürdü.
+   */
+  private _kaydet(a: Algi, ozet: string, kapi: KapiKarari): string {
+    let ek: AlgiEki = {};
+    if (ICGUDULER[kapi.kural].ezilebilir && kanalAcikMi(a)) {
+      const isaret = durumKodu(a, kapi.kural);
+      if (isaret.length > 0) {
+        const g = this._kuralHafizasi.karar(isaret);
+        ek = { isaret, golge: g ? { yon: g.yon, noron: g.noron.id, pay: Number(g.pay.toFixed(3)) } : null };
+      }
+    }
+    const id = this._kayit.algi(a, ozet, kapi, ek);
+    if (ek.isaret) {
+      this._ogrenilebilir.set(id, ek.isaret);
+      if (this._ogrenilebilir.size > Kopru.OGRENILEBILIR_SINIR) {
+        this._ogrenilebilir.delete(this._ogrenilebilir.keys().next().value!);
+      }
+    }
+    return id;
+  }
+
+  /**
+   * UYGULAMA İÇİNDEN ÖĞRETİM (K1): bu oturumun bir algısı için doğru karar.
+   * Kural hafızası TEK DENEMEDE öğrenir ve öğretim kayda yazılır (K5: hafıza
+   * açılışta kayıttan yeniden kurulur). Algı öğrenilebilir değilse ya da artık
+   * pencerede değilse null döner — sessizce yanlış bir şey öğretilmez.
+   */
+  ogret(algiId: string, yon: KapiYonu): OgretimSatiri | null {
+    const isaret = this._ogrenilebilir.get(algiId);
+    if (!isaret) return null;
+    const satir = this._kayit.ogretim({ o: this._kayit.oturum, id: algiId }, yon, isaret);
+    this._uygulanan.add(ogretimAnahtari(satir));
+    this._kuralHafizasi.ogren(isaret, yon, deneyimKimligi(satir));
+    return satir;
+  }
+
+  /**
+   * DIŞARIDAN GELEN ÖĞRETİM: başka bir yerde (ör. `tools/ogret.ts`) yazılmış ve
+   * zaten kayıtta duran bir öğretimi hafızaya uygular. Kayda yeniden yazmaz.
+   * Aynı satır ikinci kez gelirse (açılışta okundu, izleyici de getirdi) yok
+   * sayılır. Uygulandıysa true döner.
+   */
+  ogretimUygula(s: OgretimSatiri): boolean {
+    if (!Array.isArray(s?.isaret) || s.isaret.length === 0) return false;
+    const anahtar = ogretimAnahtari(s);
+    if (this._uygulanan.has(anahtar)) return false;
+    this._uygulanan.add(anahtar);
+    this._kuralHafizasi.ogren(s.isaret, s.yon, deneyimKimligi(s));
+    return true;
+  }
+
+  /** Öğrenen kapının hafızası — panel ve araçlar okur. */
+  get kuralHafizasi(): KuralHafizasi { return this._kuralHafizasi; }
 
   /** Algıdan hafızaya yazılacak SADE içeriği çıkarır (kalıp değil). */
   private _aniIcerigi(a: Algi, ozet: string): { tur: AniTuru; icerik: string } {

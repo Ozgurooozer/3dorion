@@ -8,7 +8,7 @@ import path from "node:path";
 import fs from "node:fs";
 import { PiperSesi, piperBul } from "./ses.js";
 import { hafizaDosyasiOku, hafizaDosyasiYaz } from "./hafizaDosyasi.js";
-import { kararYaziciKur } from "./kararDosyasi.js";
+import { kararYaziciKur, ogretimYolu, ogretimleriOku, yeniSatirlar } from "./kararDosyasi.js";
 import { mcpSunucuKur } from "./mcpSunucu.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -224,11 +224,39 @@ ipcMain.handle(CAGRI.varlik, (_e, ad) => {
 // burada günlük dosyaya eklenir (userData/karar-kaydi/YYYY-MM-DD.jsonl).
 // `ORION_KARAR_DOSYASI` ile tek dosyaya yönlendirilir: deneme koşuları kendi
 // kaydını gerçek kullanımın kaydına karıştırmasın.
-const kararYazici = kararYaziciKur({
+const KARAR_AYARI = {
   kok: path.join(app.getPath("userData"), "karar-kaydi"),
   sabitDosya: process.env.ORION_KARAR_DOSYASI || undefined,
-});
+};
+const kararYazici = kararYaziciKur(KARAR_AYARI);
 console.log(`[KARAR-DOSYASI] ${kararYazici.yol()}`);
+
+// ÖĞRENEN KAPI (toplantı 2026-09-27 K5): renderer kural hafızasını açılışta
+// kayıttaki öğretim satırlarından kurar. Okuma hatası "öğretim yok" SAYILMAZ
+// ama Orion'u da durdurmaz: hafıza boş doğar ve hata görünür olur.
+ipcMain.on(CAGRI.ogretimOku, (e) => {
+  try { e.returnValue = ogretimleriOku(KARAR_AYARI); }
+  catch (hata) {
+    console.error(`[ogretim] okunamadi: ${hata?.message ?? hata}`);
+    e.returnValue = [];
+  }
+});
+
+// Öğretim dosyası izlenir: tools/ogret.ts bir ders eklediğinde, Orion'u yeniden
+// başlatmadan canlı hafızaya ulaşsın (tek deneme gerçekten tek deneme olsun).
+// `fs.watchFile` (yoklama) bilerek: dosya henüz yokken de çalışır ve Windows'ta
+// `fs.watch`tan kararlı. Açılışta okunan satır izleyiciden de gelirse köprü
+// onu bir kez uygular (bridge/kopru.ts `ogretimUygula`).
+const OGRETIM_YOLU = ogretimYolu(KARAR_AYARI);
+let ogretimKonum = fs.existsSync(OGRETIM_YOLU) ? fs.statSync(OGRETIM_YOLU).size : 0;
+fs.watchFile(OGRETIM_YOLU, { interval: 1000 }, () => {
+  const r = yeniSatirlar(OGRETIM_YOLU, ogretimKonum);
+  ogretimKonum = r.konum;
+  for (const s of r.satirlar) {
+    if (s && s.tur === "ogretim" && pencere && !pencere.isDestroyed()) pencere.webContents.send(OLAY.ogretim, s);
+  }
+});
+app.on("will-quit", () => fs.unwatchFile(OGRETIM_YOLU));
 
 // ---- hafıza dosyası (spec 07 K4) -------------------------------------------
 // Orion'un hafızası renderer'ın localStorage'ından buraya taşındı: tarayıcı

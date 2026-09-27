@@ -51,6 +51,14 @@ export interface Kopru {
   /** MCP rölesi: main'deki HTTP ucuna gelen `tools/list` / `tools/call`. */
   mcpDinle(cb: (istek: { id: number; yontem: string; param: unknown }) => void): () => void;
   mcpYanitla(id: number, sonuc: unknown, hata?: string): void;
+  /**
+   * Öğrenen kapı (spec 08, toplantı 2026-09-27 K5): kayıttaki öğretim satırları.
+   * SENKRON — köprü kural hafızasını kurucuda kurar. Doğrulanmamış veridir;
+   * köprü (`mind/ogretim.ts`) bozuk satırı atlar.
+   */
+  ogretimOku(): unknown[];
+  /** Öğretim dosyasına düşen yeni satır (ör. tools/ogret.ts) — canlı hafızaya. */
+  ogretimDinle(cb: (satir: unknown) => void): () => void;
 }
 
 declare global {

@@ -27,6 +27,11 @@ const CAGRI = {
   hafizaYazSenkron:  "hafiza:yaz-senkron",
   /** MCP rölesi (spec 05 Aşama 1): renderer'ın `tools/*` cevabı main'e. */
   mcpYanit:          "mcp:yanit",
+  /**
+   * Öğrenen kapı (spec 08, toplantı 2026-09-27 K5): kayıttaki öğretim satırları.
+   * SENKRON — köprü kural hafızasını kurucuda kurar.
+   */
+  ogretimOku:        "ogretim:oku",
 };
 
 /** Main → renderer (tek yönlü olay). */
@@ -35,6 +40,8 @@ const OLAY = {
   ptyBitti: "pty:bitti",
   /** MCP rölesi: main'deki HTTP ucuna gelen `tools/*` isteği renderer'a. */
   mcpIstek: "mcp:istek",
+  /** Öğretim dosyasına yeni satır düştü (ör. tools/ogret.ts): canlı hafızaya. */
+  ogretim:  "ogretim:yeni",
 };
 
 module.exports = { CAGRI, OLAY };

@@ -20,6 +20,11 @@
 //   niyet (protokol kimliği) → uyanış satırında listelenir
 //   sonuç algısı → `niyet` alanıyla geri bağlanır (onay kapısının evet/hayırı da)
 //   Ozyn'in tepkisi → uyanıştan sonraki ilk `duydum` (çözümleme aracı bağlar)
+//   öğretim (Ozyn) → `hedef` alanıyla bir algıya bağlanır: o kararın doğrusu
+//
+// ÖĞRENEN KAPI (toplantı 2026-09-27): ezilebilir bir içgüdünün karar verdiği
+// algıda satır, öğrenen kapının gördüğü durum kodunu (`isaret`) ve onun
+// uygulanmayan kararını (`golge`) da taşır.
 //
 // BİÇİM: satır başına bir JSON (JSONL), `[KARAR] ` önekiyle yazıcıya verilir.
 // Renderer'ın dosya erişimi yok; varsayılan yazıcı konsoldur ve host o
@@ -35,6 +40,7 @@ import type { Algi, AlgiTur } from "../protocol/algi.ts";
 import type { NiyetSonucu, NiyetTur } from "../protocol/niyet.ts";
 import { kimlik } from "../protocol/temel.ts";
 import type { IcguduKimligi } from "./icgudu.ts";
+import type { KapiYonu } from "./kuralHafizasi.ts";
 
 /** Satır öneki. Host bu öneki arar — kopyası host/kararDosyasi.js'te, eşitliği testli. */
 export const KARAR_ONEKI = "[KARAR]";
@@ -68,6 +74,47 @@ export interface AlgiSatiri {
   niyet?: string;
   durum?: NiyetSonucu["durum"];
   kapi: KapiKarari;
+  /**
+   * Öğrenen kapının gördüğü DURUM KODU (mind/durumKodu.ts). Yalnızca kararı
+   * ezilebilir bir içgüdünün verdiği algılarda: öğrenilecek olanlar bunlar.
+   * Öğretim satırı bunu kopyalar; hafıza kayıttan birebir yeniden kurulur.
+   */
+  isaret?: string[];
+  /**
+   * GÖLGE KARAR (toplantı 2026-09-27 K3): öğrenen kapı ne derdi? Uygulanmaz.
+   * null = hafızada emin bir kural yok. Alan yoksa algı öğrenilebilir değil.
+   */
+  golge?: GolgeKarari | null;
+}
+
+/** Kural hafızasının bir algı için verdiği (uygulanmayan) karar. */
+export interface GolgeKarari {
+  yon: KapiYonu;
+  /** Kararı veren hafıza nöronu ("K3"). */
+  noron: string;
+  /** Nöronun sayacındaki çoğunluk payı. */
+  pay: number;
+}
+
+/**
+ * ÖĞRETİM: bir kapı kararının doğrusu, öğretmenden (toplantı 2026-09-27 K1).
+ *
+ * Kendi başına yeter: hedef algının durum kodunu taşır. Kural hafızası yalnızca
+ * öğretim satırlarından, sırayla, birebir yeniden kurulur (K5) — algı satırının
+ * bulunduğu dosya silinse bile.
+ */
+export interface OgretimSatiri {
+  tur: "ogretim";
+  /** Öğretimin yazıldığı oturum (araç ya da Orion). */
+  o: string;
+  t: number;
+  /** Düzeltilen algı: oturumu ve kimliği. */
+  hedef: { o: string; id: string };
+  /** Doğru karar. */
+  yon: KapiYonu;
+  kaynak: "ozyn";
+  /** Hedef algının durum kodu (algı satırındaki `isaret`in kopyası). */
+  isaret: string[];
 }
 
 export interface UyanisSatiri {
@@ -112,7 +159,13 @@ export interface OturumSatiri {
   beyin: string;
 }
 
-export type KararSatiri = OturumSatiri | AlgiSatiri | UyanisSatiri;
+export type KararSatiri = OturumSatiri | AlgiSatiri | UyanisSatiri | OgretimSatiri;
+
+/** Algı satırına öğrenen kapıdan gelen ekler. */
+export interface AlgiEki {
+  isaret?: string[];
+  golge?: GolgeKarari | null;
+}
 
 /** Uyanış satırında köprünün doldurduğu alanlar (kimlik ve zaman kayıttan gelir). */
 export type UyanisBilgisi = Omit<UyanisSatiri, "tur" | "o" | "id" | "t">;
@@ -162,11 +215,13 @@ export class KararKaydi {
   }
 
   /** Bir algıyı ve kapının onun için verdiği kararı yazar. Algı kimliğini döner. */
-  algi(a: Algi, ozet: string, kapi: KapiKarari): string {
+  algi(a: Algi, ozet: string, kapi: KapiKarari, ek: AlgiEki = {}): string {
     const id = `a${++this._algiSira}`;
     const k = kisalt(ozet, SINIR.ozet);
     const satir: AlgiSatiri = { tur: "algi", o: this.oturum, id, t: this._simdi(), algi: a.tur, ozet: k.metin, kapi };
     if (k.kesik) satir.kesik = true;
+    if (ek.isaret) satir.isaret = ek.isaret;
+    if (ek.golge !== undefined) satir.golge = ek.golge;
     switch (a.tur) {
       case "terminal":
         if (a.kod !== undefined) satir.kod = a.kod;
@@ -184,6 +239,13 @@ export class KararKaydi {
     }
     this._dus(satir);
     return id;
+  }
+
+  /** Öğretmenin bir kapı kararını düzeltmesini yazar (toplantı 2026-09-27 K1). */
+  ogretim(hedef: { o: string; id: string }, yon: KapiYonu, isaret: string[]): OgretimSatiri {
+    const satir: OgretimSatiri = { tur: "ogretim", o: this.oturum, t: this._simdi(), hedef, yon, kaynak: "ozyn", isaret };
+    this._dus(satir);
+    return satir;
   }
 
   /** Bir beyin turunu (uyanışı) ve LLM'in ne yaptığını yazar. Uyanış kimliğini döner. */

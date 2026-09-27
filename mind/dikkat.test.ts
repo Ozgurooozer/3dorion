@@ -1,7 +1,7 @@
 "use strict";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { Dikkat } from "./dikkat.ts";
+import { Dikkat, kanalAcikMi } from "./dikkat.ts";
 import type { Algi } from "../protocol/algi.ts";
 
 /** Kontrollü saat: bütçe/tekrar/kısma testleri gerçek zamana bağlı olmamalı. */
@@ -128,4 +128,25 @@ test("sayaç geçen ve düşeni ayrı tutar", () => {
   const c = d.sayac();
   assert.equal(c.gecen, 1);
   assert.ok(c.dusen >= 1);
+});
+
+test("kanalAcikMi, dikkatin kanal kararıyla birebir aynı — öğrenen kapı aynı kuralı görür", () => {
+  // Izgara: her algı türü; sonuç için her durum. Kanal kapalıysa dikkat
+  // tik_yasak ya da yerel_kanal der; açıksa bu iki sebepten hiçbirini demez.
+  const orion = {} as never, oyuncu = {} as never;
+  const izgara: Algi[] = [
+    { tur: "tik", t: 0, dt: 0.05, orion, oyuncu },
+    { tur: "dunya", orion, oyuncu, nesneler: [], capalar: [] },
+    { tur: "yakin", nesneler: [] },
+    { tur: "duydum", metin: "x", kesin: true },
+    { tur: "olay", ad: "ozyn_yaklasti" },
+    { tur: "terminal", kuyruk: "x", kesildi: false },
+    { tur: "gordum", ne: "onumde", metin: "masa" },
+    ...(["basladi", "bitti", "iptal", "hata"] as const).map((durum): Algi => ({ tur: "sonuc", sonuc: { niyet_id: "n_1", durum } })),
+  ];
+  for (const a of izgara) {
+    const k = new Dikkat().karar(a);
+    const kanalKapali = !k.gecsin && (k.sebep === "tik_yasak" || k.sebep === "yerel_kanal");
+    assert.equal(kanalAcikMi(a), !kanalKapali, `${a.tur}${a.tur === "sonuc" ? `/${a.sonuc.durum}` : ""}`);
+  }
 });

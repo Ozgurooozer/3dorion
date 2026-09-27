@@ -59,6 +59,7 @@ import { niyetDogrula } from "../protocol/dogrula.ts";
 import type { Niyet } from "../protocol/niyet.ts";
 import { varlik } from "./varlik.ts";
 import { Kopru } from "../bridge/kopru.ts";
+import type { OgretimSatiri } from "../mind/kararKaydi.ts";
 import { OpenCodeBeyni } from "../bridge/opencode.ts";
 import { DisBeyin } from "../bridge/disBeyin.ts";
 import { KayitBeyni } from "../bridge/kayitBeyni.ts";
@@ -275,6 +276,17 @@ function eskiHafizayiOku(): unknown[] {
  * `localStorage`a gider, dosyaya DOKUNULMAZ. Aksi hâlde okunamayan ama
  * sağlam olan dosya, oturum boyunca eski veriyle ezilirdi.
  */
+/**
+ * ÖĞRENEN KAPI (spec 08, toplantı 2026-09-27 K5): kural hafızası kayıttaki
+ * öğretim satırlarından kurulur. Host yoksa (tarayıcıda geliştirme) boş doğar;
+ * okuma hatası Orion'u durdurmaz ama görünür olur.
+ */
+function ogretimleriYukle(): OgretimSatiri[] {
+  const k = (globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru;
+  try { return (k?.ogretimOku?.() ?? []) as OgretimSatiri[]; }
+  catch (err) { console.warn("[KAPI] ogretimler okunamadi, bos hafizayla basliyor:", err); return []; }
+}
+
 function hafizaDeposuKur(): { oku(): unknown[]; yaz(aniler: unknown[]): void } {
   const k = (globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru;
   const dosya = k?.hafizaOku && k.hafizaYaz && k.hafizaYazSenkron ? k : null;
@@ -1425,6 +1437,8 @@ function beyniBagla(a: Avatar): void {
     // arayüz dar olduğu için değişiklik bu blokla sınırlı (K7). Karar
     // `mind/hafizaGocu.ts` → `depoYukle`de; burada yalnızca G/Ç bağlanır.
     hafizaDeposu: hafizaDeposuKur(),
+    // ÖĞRENEN KAPI (K3, K5): gölgede — kapının kararını değiştirmez, kayda yazar.
+    ogretimler: ogretimleriYukle(),
     // İçerik süzgeci: hangi algının beyne değeceğine karar verir.
     // Kural tabanlı; ÖLÇÜLDÜ (mind/akis-olcum.ts, 12 gerçek komut çıktısı,
     // 12/12 ideal uyandırma). Spec'in önerdiği 270M model ölçümde elendi:
@@ -1545,6 +1559,10 @@ function beyniBagla(a: Avatar): void {
   // susuyordu; ne Ozyn ne günlük sebebi söylüyordu. Bu Orion'un sözü DEĞİL —
   // sistem bildirimi olarak altyazıya düşer, TTS'e gitmez.
   let sonAriza = 0;
+  // Öğretim dosyasına düşen yeni ders (tools/ogret.ts) yeniden başlatmadan uygulanır.
+  (globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru?.ogretimDinle?.((s) => {
+    if (kopru?.ogretimUygula(s as OgretimSatiri)) console.log("[KAPI] yeni ogretim uygulandi");
+  });
   kopru.arizaDinle((m) => {
     // Aynı arıza saniyede bir tekrar etmesin; ekranı doldurur.
     const simdi = Date.now();

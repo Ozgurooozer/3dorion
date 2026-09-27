@@ -20,7 +20,7 @@
 //
 // Bağımlılık: mind/kararKaydi.ts (tipler). Dosya sistemi yok: metin alır.
 "use strict";
-import type { AlgiSatiri, KararSatiri, UyanisSatiri } from "./kararKaydi.ts";
+import type { AlgiSatiri, KararSatiri, OgretimSatiri, UyanisSatiri } from "./kararKaydi.ts";
 
 /** Uyanıştan sonra Ozyn'in sözü bu süre içinde gelirse tepki sayılır. */
 export const TEPKI_PENCERESI_MS = 60_000;
@@ -46,6 +46,8 @@ export interface KararZinciri {
   oturumlar: string[];
   algilar: AlgiSatiri[];
   uyanislar: UyanisZinciri[];
+  /** Öğretim satırları, kayıttaki sırasıyla. */
+  ogretimler: OgretimSatiri[];
   /** JSON olmayan ya da tanınmayan satır sayısı. */
   bozuk: number;
 }
@@ -58,7 +60,7 @@ export function kayitOku(metin: string): { satirlar: KararSatiri[]; bozuk: numbe
     if (!ham.trim()) continue;
     try {
       const s = JSON.parse(ham) as KararSatiri;
-      if (s && (s.tur === "oturum" || s.tur === "algi" || s.tur === "uyanis") && typeof s.o === "string") satirlar.push(s);
+      if (s && (s.tur === "oturum" || s.tur === "algi" || s.tur === "uyanis" || s.tur === "ogretim") && typeof s.o === "string") satirlar.push(s);
       else bozuk++;
     } catch {
       bozuk++;
@@ -72,10 +74,12 @@ export function zincirKur(satirlar: KararSatiri[], bozuk = 0): KararZinciri {
   const oturumlar: string[] = [];
   const algilar: AlgiSatiri[] = [];
   const uyanislar: UyanisSatiri[] = [];
+  const ogretimler: OgretimSatiri[] = [];
   for (const s of satirlar) {
     if (s.tur === "oturum") { if (!oturumlar.includes(s.o)) oturumlar.push(s.o); }
     else if (s.tur === "algi") algilar.push(s);
-    else uyanislar.push(s);
+    else if (s.tur === "uyanis") uyanislar.push(s);
+    else ogretimler.push(s);
   }
 
   const anahtar = (o: string, id: string) => `${o}/${id}`;
@@ -105,7 +109,7 @@ export function zincirKur(satirlar: KararSatiri[], bozuk = 0): KararZinciri {
     return z;
   });
 
-  return { oturumlar, algilar, uyanislar: zincir, bozuk };
+  return { oturumlar, algilar, uyanislar: zincir, ogretimler, bozuk };
 }
 
 /**

@@ -39,6 +39,24 @@ export interface DikkatKarari {
   sebep?: "tik_yasak" | "yerel_kanal" | "tekrar" | "kisildi" | "butce" | "onemsiz";
 }
 
+/**
+ * Algının kanalı beyne AÇIK mı? Dikkatin ilk iki kuralı: mutlak tik yasağı ve
+ * varsayılan kanal (başarısız niyet sonucu istisnası dahil). Öğrenilmiş hiçbir
+ * kural bunları aşamaz (mind/icgudu.ts: `dikkat.tik_yasak`, `dikkat.yerel_kanal`
+ * ezilemez).
+ *
+ * TEK KAYNAK: dikkat kararı da, öğrenen kapı da (bridge/kopru.ts) bunu kullanır.
+ * İki kopya ayrışsaydı öğrenen kapı, kanalı hiç açılmayacak algıları öğrenmeye
+ * kalkardı — bir "yakın nesneler" listesini uyandırmayı öğrenmek gibi.
+ */
+export function kanalAcikMi(a: Algi): boolean {
+  if (a.tur === "tik") return false;
+  if (VARSAYILAN_KANAL[a.tur as AlgiTur] === "beyin") return true;
+  // İstisna: başarısız niyet sonucu beyni ilgilendirir — Orion yapamadığını
+  // bilmezse aynı emri tekrar eder.
+  return a.tur === "sonuc" && a.sonuc.durum === "hata";
+}
+
 /** Beyni ilgilendirmeyen, yalnızca gürültü üreten olay adları. */
 const ONEMSIZ_OLAYLAR = new Set(["kamera_degisti", "ipucu", "fare_kilidi"]);
 
@@ -75,14 +93,9 @@ export class Dikkat {
     // 1) Mutlak yasak. Bu satır kaldırılamaz; testi var.
     if (a.tur === "tik") return { gecsin: false, sebep: "tik_yasak" };
 
-    // 2) Varsayılan kanal yerelse, dikkat onu beyne YÜKSELTEMEZ.
-    if (VARSAYILAN_KANAL[a.tur as AlgiTur] !== "beyin") {
-      // İstisna: başarısız niyet sonucu beyni ilgilendirir — Orion yapamadığını
-      // bilmezse aynı emri tekrar eder.
-      if (!(a.tur === "sonuc" && a.sonuc.durum === "hata")) {
-        return { gecsin: false, sebep: "yerel_kanal" };
-      }
-    }
+    // 2) Varsayılan kanal yerelse, dikkat onu beyne YÜKSELTEMEZ (istisnası
+    //    `kanalAcikMi`de: başarısız niyet sonucu).
+    if (!kanalAcikMi(a)) return { gecsin: false, sebep: "yerel_kanal" };
 
     // 3) Önemsiz olay gürültüsü
     if (a.tur === "olay" && ONEMSIZ_OLAYLAR.has(a.ad)) {

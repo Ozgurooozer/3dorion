@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { KARAR_ONEKI, gunlukYol, kararSatiriMi, kararYaziciKur } from "./kararDosyasi.js";
+import { KARAR_ONEKI, gunlukYol, kararSatiriMi, kararYaziciKur, ogretimYolu, ogretimleriOku, yeniSatirlar } from "./kararDosyasi.js";
 import { KARAR_ONEKI as KAYIT_ONEKI } from "../mind/kararKaydi.ts";
 
 function geciciDizin(): string {
@@ -94,4 +94,52 @@ test("yazılamayan disk fırlatmaz; hata sayılır ve bir kez uyarılır", () =>
   y.yaz(satir({ tur: "algi" }));
   y.yaz(satir({ tur: "algi" }));
   assert.deepEqual({ hata: y.sayac().hata, uyari: uyarilar.length }, { hata: 2, uyari: 1 });
+});
+
+// ── Öğretim dosyası (toplantı 2026-09-27 K1, K5) ───────────────────────────
+
+test("öğretim dosyası kaydın klasöründe; sabit kipte sabit dosyanın yanında", () => {
+  assert.deepEqual(
+    [path.basename(ogretimYolu({ kok: "/kok" })), path.dirname(ogretimYolu({ kok: "/kok" })), path.dirname(ogretimYolu({ sabitDosya: "/deneme/canli.jsonl" }))],
+    ["ogretim.jsonl", path.normalize("/kok"), path.normalize("/deneme")],
+  );
+});
+
+test("ogretimleriOku: günlük kipte klasördeki her dosyadan yalnız öğretim satırlarını toplar", () => {
+  const kok = geciciDizin();
+  fs.writeFileSync(path.join(kok, "2026-09-27.jsonl"), `${JSON.stringify({ tur: "algi", id: "a1" })}\n${JSON.stringify({ tur: "ogretim", t: 1 })}\n`);
+  fs.writeFileSync(path.join(kok, "ogretim.jsonl"), `${JSON.stringify({ tur: "ogretim", t: 2 })}\n{bozuk\n`);
+  fs.writeFileSync(path.join(kok, "notlar.txt"), `${JSON.stringify({ tur: "ogretim", t: 3 })}\n`);
+  assert.deepEqual((ogretimleriOku({ kok }) as { t: number }[]).map((s) => s.t), [1, 2]);
+});
+
+test("ogretimleriOku: sabit kipte yalnız sabit dosya ve öğretim dosyası okunur", () => {
+  const d = geciciDizin();
+  const sabit = path.join(d, "canli.jsonl");
+  fs.writeFileSync(sabit, `${JSON.stringify({ tur: "ogretim", t: 1 })}\n`);
+  fs.writeFileSync(path.join(d, "ogretim.jsonl"), `${JSON.stringify({ tur: "ogretim", t: 2 })}\n`);
+  fs.writeFileSync(path.join(d, "baska.jsonl"), `${JSON.stringify({ tur: "ogretim", t: 9 })}\n`);
+  assert.deepEqual((ogretimleriOku({ sabitDosya: sabit }) as { t: number }[]).map((s) => s.t), [1, 2]);
+});
+
+test("ogretimleriOku: klasör ya da dosya yoksa boş liste", () => {
+  const d = geciciDizin();
+  assert.deepEqual([ogretimleriOku({ kok: path.join(d, "yok") }), ogretimleriOku({ sabitDosya: path.join(d, "yok.jsonl") })], [[], []]);
+});
+
+test("yeniSatirlar: yalnız TAM satırlar; yarım son satır sonraki okumaya kalır", () => {
+  const d = geciciDizin();
+  const yol = path.join(d, "ogretim.jsonl");
+  fs.writeFileSync(yol, `${JSON.stringify({ n: 1 })}\n{"n":`);
+  const ilk = yeniSatirlar(yol, 0);
+  fs.appendFileSync(yol, `2}\n`);
+  const ikinci = yeniSatirlar(yol, ilk.konum);
+  assert.deepEqual([ilk.satirlar, ikinci.satirlar], [[{ n: 1 }], [{ n: 2 }]]);
+});
+
+test("yeniSatirlar: dosya kısaldıysa (yeniden yaratıldı) baştan okur; dosya yoksa boş", () => {
+  const d = geciciDizin();
+  const yol = path.join(d, "ogretim.jsonl");
+  fs.writeFileSync(yol, `${JSON.stringify({ n: 7 })}\n`);
+  assert.deepEqual([yeniSatirlar(yol, 10_000).satirlar, yeniSatirlar(path.join(d, "yok"), 5)], [[{ n: 7 }], { satirlar: [], konum: 0 }]);
 });

@@ -29,4 +29,7 @@ contextBridge.exposeInMainWorld("kopru", {
   // MCP rölesi (spec 05 Aşama 1): main'deki uca gelen `tools/*` istekleri.
   mcpDinle:         (cb) => dinle(OLAY.mcpIstek, cb),
   mcpYanitla:       (id, sonuc, hata) => ipcRenderer.send(CAGRI.mcpYanit, { id, sonuc, hata }),
+  // Öğrenen kapı (spec 08, K5): açılışta öğretimler SENKRON, sonra yenileri olay olarak.
+  ogretimOku:       () => ipcRenderer.sendSync(CAGRI.ogretimOku),
+  ogretimDinle:     (cb) => dinle(OLAY.ogretim, cb),
 });

@@ -2727,6 +2727,52 @@ sınav üzerinde ayar yapmak olurdu. Yeni bir hakem ancak yeni bir kalibrasyon k
 - Kapının yetkisi: önce gölge.
 - Durum koduna bağlam eklenmesi.
 
+## 2026-09-27 — KT2 toplantısı ve 1. adım: öğretim, gölge, kayıttan yeniden kurulum — canlı koşudan önce
+
+**Toplantı** (vault `forum/beyin0fis/toplantilar/2026-09-27-ogrenen-kapi`; Ozyn tam yetki verdi):
+
+| karar | oylama |
+|---|---|
+| K1 — Öğretmen Ozyn; kanal önce terminal aracı, sonra zihin duvarı paneli | P 37 · K 34 · S 25 |
+| K2 — Motor büyüyen kural hafızası; yetkiden önce mantar gövdesi, tam anı ve lojistikle kıyas | B 38 · A 33 · D 24 · C 22 |
+| K3 — Yetki gölge | G 39 · T 30 · Y 17 |
+| K4 — Bağlam ayrı adımda | O 34 · L 26 |
+| K5 — Hafıza kayıttan yeniden kurulur | K 42 · F 20 |
+
+**Ne yapıldı `[TEST]`** (spec: `docs/specs/09-ogrenen-kapi.md`):
+- `mind/durumKodu.ts`: doğuştan kodlayıcı.
+- `mind/kuralHafizasi.ts`: okunur kurallar; tek deneme, genelleme, istisna.
+- `mind/ogretim.ts`: öğretim satırı ve kayıttan yeniden kurulum.
+- Köprü: her öğrenilebilir algıya `isaret` (durum kodu) ve `golge` (hafızanın uygulanmayan kararı) yazılır. `ogret` ve
+  `ogretimUygula` yöntemleri eklendi; aynı satır iki kez uygulanmaz.
+- Kanal kuralı tek kaynak: `kanalAcikMi` (mind/dikkat.ts).
+  - Test gerçek bir inceliği yakaladı: "yakın nesneler" algısını ezilebilir bir refleks kuralı düşürüyor.
+  - Ama kanalı zaten kapalı; bu yüzden öğrenilemez olmalı. Artık öyle.
+- Host:
+  - açılışta öğretimleri senkron okur;
+  - `ogretim.jsonl`'ı izler, yeni dersi renderer'a iletir.
+- `tools/ogret.ts`: `liste`, `ogret`, `hafiza`.
+- Testler: 1604 yeşil. Bozma denemesi: 20 mutantın 20'si yakalandı.
+
+**Canlı doğrulama (G10) — yöntem:**
+1. **Koşu 1:** `gorudene`, qwen2.5:7b, ayrı kayıt klasörü.
+2. **Ders:** Koşu 1'deki gerçek kabuk hatası (`boyle_bir_komut_yok`, çıkış kodu 1) araçla "sus" diye öğretilir.
+   Gerekçe: Ozyn ekranın başındayken kendi yazım hatasını zaten görüyor. Tercih örneği bu; içgüdüye karşı bir ders
+   (`refleks.terminal.kod_hata` geçirir).
+3. **Koşu 2:** Aynı klasörde. Koşu sırasında öğretim dosyasına bir ders daha eklenir (izleyici yolu için).
+
+**Öngörüler:**
+- **G10-1:** Koşu 1'de afiş, `dir` ve kabuk hatası `isaret` taşır, `golge` null. Ajanda niyetinin "bitti" sonucu
+  `isaret` taşımaz (yerel kanal).
+- **G10-2:** Ders tek öğretim satırı yazar. `ogret.ts hafiza` K1'i, hatanın işaretleri → sus olarak gösterir.
+- **G10-3:** Koşu 2'nin açılışında "[KAPI] kural hafizasi: 1 ogretim, 1 kural" görünür. Kabuk hatasının `golge`si
+  `{sus, K1, 1}` olur. Kapının kararı yine "geçti" kalır ve bir uyanış izler: davranış aynı.
+- **G10-4:** Koşu sırasında eklenen ders canlıya ulaşır: "[KAPI] yeni ogretim uygulandi" tam bir kez görünür.
+
+**Yanlışlayıcılar:**
+- Koşu 2'de gölge null → yeniden kurulum çalışmıyor.
+- Kapı "düştü" ya da uyanış yok → davranış değişmiş. Bu en ağır hata olur.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
