@@ -1,6 +1,7 @@
 # Büyük resim
 
-Tarih: 2026-09-26 · Durum: **TASLAK, Ozyn onayı bekliyor**. Onaysız kod yok.
+Tarih: 2026-09-26 · Durum: **yön onaylandı** (Ozyn, 2026-09-27: "tüm izinlerin var… istediğin şekilde çalış…
+atlas kurallarına uy"). KT1 uygulandı: `docs/specs/08-karar-kaydi.md`.
 Neden: Ozyn 2026-09-26'da hedeften kayıldığını söyledi; bu not hedefi, nerede kaydığımızı ve yeni yönü tek yerde toplar.
 
 ## 1. Hedef, Ozyn'in sözleriyle
@@ -119,9 +120,33 @@ yazılı; ileride omurilik adayı.
   kanıtlarsa devreye girer.
 - **Sonra:** öbür karar noktaları (inisiyatif, hafıza çağırma), görsel ve ses hafızaları, omurilik.
 
+## 5b. Başarı yolu (2026-09-27)
+
+**Başarı:** Orion tanıdık bir durumda LLM'e sormadan doğru ve açıklanabilir bir karar veriyor; yeni ya da emin olmadığı
+durumda LLM'i uyandırıyor.
+
+| ölçü | başarı |
+|---|---|
+| LLM'e soru sayısı | düşüyor, karar kalitesi düşmeden (ana ölçü) |
+| tek düzeltmeyle öğrenme | Ozyn bir kararı bir kez düzeltince aynı durum bir dahakine doğru (sinekteki gibi tek deneme) |
+| izlenebilirlik | her kararın hangi kuraldan (içgüdü ya da öğrenilmiş) ve hangi deneyimden geldiği görünüyor |
+| unutmama | yeni kural eskileri bozmuyor |
+
+**Neden bu sıra, brain-lab'in ölçülmüş dersleri:**
+- Seyrek ödülden kendi başına öğrenme tıkandı: A3'te kural 15 kat yavaş büyüdü.
+- Öğretmenden öğrenme çalıştı: T1'de 10 denekten 10'u öğrendi.
+- Büyüyen hafıza çalıştı: A2'de isabet %98.
+
+Bu yüzden ödülle değil öğretmenle başlanır: öğretmen LLM'in kendi kararları, Ozyn'in düzeltmesi LLM'inkinden üstün.
+
+**İçgüdüler (Ozyn, 2026-09-27):** kayıt ve kapının elle yazılmış kuralları doğuştan içgüdülerdir (`mind/icgudu.ts`).
+Öğrenilen kurallar bunların etrafında büyür. Güvenlik içgüdülerini (maliyet tavanı, sözleşme, insan onayı) hiçbir
+öğrenilmiş kural ezemez.
+
 ## 6. Ozyn'e açık sorular
 
-1. 3D ofis şimdiye kadar kapsam dışıydı. KT1, Orion'a davranışı değiştirmeyen bir kayıt anahtarı ekler. Olur mu?
+1. ~~3D ofis şimdiye kadar kapsam dışıydı. KT1, Orion'a davranışı değiştirmeyen bir kayıt anahtarı ekler. Olur mu?~~
+   Cevap (2026-09-27): tüm izinler var; kayıt bir anahtar değil, doğuştan bir içgüdü olarak eklendi.
 2. İyi bir uyandırma nedir? LLM bir şey yaptı mı, Ozyn tepki verdi mi? Bu, KT2 tasarımının asıl sorusu.
 3. İlk karar noktası kapı mı olsun, yoksa başka biri mi (inisiyatif, hafıza çağırma)?
 4. Adlar birleşsin mi? brain-lab'de Alice ve Bob, Orion'da sağ lob, sol lob ve refleks var.

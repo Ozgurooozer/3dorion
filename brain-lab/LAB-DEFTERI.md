@@ -2467,6 +2467,44 @@ E 14).
 - Her biri ayrı değişken olarak taranır.
 - Birincil ölçüler: yönlendirme (yön öğrenme) ve A3'teki hatırlama lezyonu.
 
+## 2026-09-27 — Yön uygulanıyor: KT1, karar kaydı ve içgüdüler — canlı koşudan önce
+
+**Bağlam:**
+- 2026-09-26 akşamı Ozyn hedeften kaydığımızı söyledi; `BUYUK-RESIM.md` yazıldı.
+- 2026-09-27 Ozyn: "tüm izinlerin var. Kayıt ekleyeceksen bunu içgüdü kuralları olarak, doğuştan gelen kurallar olarak
+  ekleyebilirsin. İstediğin şekilde çalış, istediğini araştır, indir, test et. Atlas kurallarına uy."
+- Çalışma artık Orion'un karar seviyesinde. Yemek dünyası donduruldu.
+
+**Ne yapıldı `[TEST]`** (spec: `docs/specs/08-karar-kaydi.md`):
+- `mind/icgudu.ts`: Orion'un kapısındaki elle yazılmış kurallar 34 kalıcı kimlikli içgüdü oldu. Güvenlik içgüdülerini
+  hiçbir öğrenilmiş kural ezemez; içerik yargıları ezilebilir. `KuralRefleksi` her kararında kimliğini döndürüyor.
+- `mind/kararKaydi.ts`: kayıt içgüdüsü. Köprü her algıyı, kapının kararını ve kararı veren içgüdüyü, her LLM uyanışını
+  ve LLM'in ne yaptığını yazar. Kimlik zinciri: algı → uyanış → niyet → sonuç.
+- `mind/kararZinciri.ts`: kaydı geri okur ve zinciri kurar. Özet aracı da, öğrenen kapı da bunu kullanacak.
+- `host/kararDosyasi.js`: kayıt günlük dosyaya yazılır.
+- `tools/karar-ozet.ts`: bugünkü kapının taban çizgisi.
+- Testler: 1435 eski test yeşil, 84 yeni test, toplam 1519. Bozma denemesinde 27 mutantın 27'si yakalandı.
+
+**Kod okurken bulunan (canlıda sınanacak):**
+- Kompozisyon kökü terminal bloğu için refleksi süreyle (`sureMs`) çağırıp sonucu günlüğe `[ALGI] … terfi=` olarak
+  yazıyor. `sessizdene` senaryosu da bu kopya kararı ölçüyor.
+- Köprüdeki süzgeç ise refleksi süresiz çağırıyor: `Algi` tipinde süre alanı yok.
+- Yani "uzun süren başarılı komut bildirilir" kuralı (`refleks.terminal.kod_uzun`) canlı kapıda hiç çalışmıyor olabilir.
+
+**Öngörüler (canlı koşu, `ORION_KARAR_DOSYASI` ile; koşmadan önce):**
+- **Ö1:** Kayıt dosyası oluşur. Bozuk satır 0. İlk satır `oturum`.
+- **Ö2** (`sessizdene`, anlık sessiz komut `$null = 1`): algı satırı düşer (`gecti: false`). `[SESSIZDENE]` günlüğü de
+  "0 terfi" der; ikisi tutarlı.
+- **Ö3** (`sessizdene`, uzun sessiz komut `Start-Sleep 1600 ms`):
+  - `[SESSIZDENE]` günlüğü "≥1 terfi" der, çünkü kopya kararı süreyle ölçüyor.
+  - Kayıttaki algı satırı ise `gecti: false` olur: `refleks.terminal.kod_rutin`, kabuk entegrasyonu yoksa
+    `refleks.terminal.gurultu`.
+  - **Yanlışlayıcı:** kayıtta bu algı `gecti: true` ya da `kod_uzun` ise öngörü çürür.
+- **Ö4** (`gorudene`): açılış afişi ve başarılı rutin komut düşer. Gerçek kabuk hatası `refleks.terminal.kod_hata` ile
+  geçer ve en az bir uyanışın `algilar` listesinde görünür.
+- **Ö5:** LLM uyanıp niyet ürettiyse, uyanış satırındaki niyet kimlikleri günlükteki `[BEYIN→NIYET]` satırlarıyla
+  bire bir aynıdır.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
