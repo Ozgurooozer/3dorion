@@ -18,7 +18,7 @@ import { kimlik } from "../protocol/temel.ts";
 import { Dikkat, kanalAcikMi, type DikkatAyari } from "../mind/dikkat.ts";
 import { KararKaydi, type AlgiEki, type KapiKarari, type OgretimSatiri, type UyanisBilgisi } from "../mind/kararKaydi.ts";
 import { ICGUDULER, dikkatKurali, type IcguduKimligi } from "../mind/icgudu.ts";
-import { durumKodu } from "../mind/durumKodu.ts";
+import { durumKodu, type KapiBaglami } from "../mind/durumKodu.ts";
 import type { KuralHafizasi, KapiYonu } from "../mind/kuralHafizasi.ts";
 import { deneyimKimligi, kuralHafizasiKur, ogretimAnahtari } from "../mind/ogretim.ts";
 import { Hafiza, kuralOnemi, type AniTuru } from "../mind/hafiza.ts";
@@ -69,6 +69,12 @@ export interface KopruAyari {
    * kayda yazar, kapının kararını DEĞİŞTİRMEZ.
    */
   ogretimler?: readonly OgretimSatiri[];
+  /**
+   * BAĞLAM (toplantı 2026-09-27 K4): algı anında Ozyn'in durumu — mesafe, bakış,
+   * yüzey. Öğrenen kapının durum koduna girer. YAPISAL: düzyazı dünya metni
+   * ayrıştırılmaz. Hatası yutulur; bağlamsız kod yazılır.
+   */
+  baglam?: () => KapiBaglami | null;
   /**
    * Modelin araç çağırmadan ürettiği DÜZ METİN. Bu metin kullanıcıya
    * ULAŞMAZ (protokolde konuşmak bir eylemdir) — ama davranış ölçümü için
@@ -443,7 +449,10 @@ export class Kopru {
   private _kaydet(a: Algi, ozet: string, kapi: KapiKarari): string {
     let ek: AlgiEki = {};
     if (ICGUDULER[kapi.kural].ezilebilir && kanalAcikMi(a)) {
-      const isaret = durumKodu(a, kapi.kural);
+      let baglam: KapiBaglami | undefined;
+      try { baglam = this._ayar.baglam?.() ?? undefined; }
+      catch (err) { console.warn("[KAPI] baglam okunamadi, baglamsiz kod yaziliyor:", err); }
+      const isaret = durumKodu(a, kapi.kural, baglam);
       if (isaret.length > 0) {
         const g = this._kuralHafizasi.karar(isaret);
         ek = { isaret, golge: g ? { yon: g.yon, noron: g.noron.id, pay: Number(g.pay.toFixed(3)) } : null };

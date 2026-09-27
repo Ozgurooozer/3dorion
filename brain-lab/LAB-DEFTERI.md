@@ -2987,6 +2987,20 @@ Karıştırılmış öğretmen, qwen-masada: B yeni 14/24 (%58), B-K1 4/10 (%40)
   olmalı. Kurallar okunur ve küçük kalır; genelleme D'ninki gibi olur.
 - Sınaması üçüncü bir taze havuzda yapılmalı.
 
+## 2026-09-27 — K4 bağlam: durum koduna Ozyn'in durumu — canlı koşudan önce
+
+**Yapılan `[TEST]`:**
+- `durumKodu` bağlam alıyor:
+  - `ozyn:yakin|orta|uzak` (olayınkiyle aynı sınırlar, 1,5 m ve 3,5 m);
+  - `ozyn:bakiyor`;
+  - `ozyn_yuzey:<yüzey>`.
+- Köprü onu kompozisyon kökünün yapısal geri çağrısından (`baglam`) alıyor. Kaynak `oyuncu.oyuncuDurumu()`; dünya metni
+  ayrıştırılmıyor. Okunamazsa kod bağlamsız yazılıyor.
+- 7 yeni test; bozma denemesi 5/5; toplam 1629 test yeşil.
+
+**Öngörü (canlı gorudene koşusu):** Terminal algılarının `isaret`inde `ozyn_yuzey:monitor` ve bir `ozyn:` mesafe kovası
+bulunur, çünkü senaryo Ozyn'i monitöre geçiriyor. **Yanlışlayıcı:** hiçbir algıda `ozyn` işareti yok.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.

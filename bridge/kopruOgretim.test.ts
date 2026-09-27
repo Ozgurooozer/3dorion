@@ -161,3 +161,30 @@ test("LLM'in kendi niyetinin hatası, elle niyetinkinden öğrenilen kurala tak�
   k.algi({ tur: "sonuc", sonuc: { niyet_id: "n_abc", durum: "hata", not: "çapa bulunamadı: tahtaa" } });
   assert.equal(algilar()[1]!.golge, null);
 });
+
+// ── Bağlam (K4) ────────────────────────────────────────────────────────────
+
+test("bağlam köprüden durum koduna geçer", () => {
+  const satirlar: KararSatiri[] = [];
+  const k = new Kopru({
+    beyin: new SahteBeyin(), niyetGonder: () => {}, dunyaDurumu: () => "Oda.", toplamaMs: 10,
+    baglam: () => ({ mesafe: 0.9, bakiyor: true, yuzey: "monitor" }),
+    kararKaydi: new KararKaydi({ yaz: (s) => satirlar.push(JSON.parse(s.slice(KARAR_ONEKI.length + 1))) }),
+  });
+  k.algi(elleHata(1));
+  const a = satirlar.find((s): s is AlgiSatiri => s.tur === "algi")!;
+  assert.deepEqual(a.isaret!.filter((x) => x.startsWith("ozyn")), ["ozyn:bakiyor", "ozyn:yakin", "ozyn_yuzey:monitor"]);
+});
+
+test("bağlam okunamazsa köprü bağlamsız kod yazar ve çalışmaya devam eder", (t) => {
+  t.mock.method(console, "warn", () => {});
+  const satirlar: KararSatiri[] = [];
+  const k = new Kopru({
+    beyin: new SahteBeyin(), niyetGonder: () => {}, dunyaDurumu: () => "Oda.", toplamaMs: 10,
+    baglam: () => { throw new Error("oyuncu yok"); },
+    kararKaydi: new KararKaydi({ yaz: (s) => satirlar.push(JSON.parse(s.slice(KARAR_ONEKI.length + 1))) }),
+  });
+  k.algi(elleHata(1));
+  const a = satirlar.find((s): s is AlgiSatiri => s.tur === "algi")!;
+  assert.deepEqual({ isaretVar: (a.isaret?.length ?? 0) > 0, baglamVar: a.isaret!.some((x) => x.startsWith("ozyn")) }, { isaretVar: true, baglamVar: false });
+});

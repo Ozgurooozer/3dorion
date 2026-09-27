@@ -81,3 +81,29 @@ test("kelimeler en çok KELIME_SINIRI tane alır", () => {
   const metin = Array.from({ length: 40 }, (_, i) => `kelime${"abcdefghijklmnopqrstuvwxyz"[i % 26]}${"abcdefghijklmnopqrstuvwxyz"[Math.floor(i / 26)]}`).join(" ");
   assert.equal(kelimeler(metin).length, KELIME_SINIRI);
 });
+
+// ── Bağlam (toplantı 2026-09-27 K4) ────────────────────────────────────────
+
+const HATA = { tur: "terminal" as const, kuyruk: "boom", kesildi: false, kod: 1 };
+const baglamIsaretleri = (b?: Parameters<typeof durumKodu>[2]) =>
+  durumKodu(HATA, "refleks.terminal.kod_hata", b).filter((s) => s.startsWith("ozyn"));
+
+test("bağlam yoksa kodda Ozyn işareti yok — eski kod birebir", () => {
+  assert.deepEqual(baglamIsaretleri(), []);
+});
+
+test("bağlam: mesafe kovası, bakış ve yüzey kodlanır", () => {
+  assert.deepEqual(baglamIsaretleri({ mesafe: 1.1, bakiyor: true, yuzey: "monitor" }), ["ozyn:bakiyor", "ozyn:yakin", "ozyn_yuzey:monitor"]);
+});
+
+test("bağlam: mesafe kovaları olayınkiyle aynı sınırlar (1,5 m ve 3,5 m)", () => {
+  assert.deepEqual([1.49, 1.5, 3.49, 3.5].map((m) => baglamIsaretleri({ mesafe: m })), [["ozyn:yakin"], ["ozyn:orta"], ["ozyn:orta"], ["ozyn:uzak"]]);
+});
+
+test("bağlam: bakmıyorsa, yüzey yoksa ya da mesafe sayı değilse o işaret kodlanmaz", () => {
+  assert.deepEqual(baglamIsaretleri({ mesafe: Number.NaN, bakiyor: false, yuzey: null }), []);
+});
+
+test("bağlam öğrenilemez algıya işaret eklemez: konuşmanın kodu boş kalır", () => {
+  assert.deepEqual(durumKodu({ tur: "duydum", metin: "x", kesin: true }, "kopru.konusma", { mesafe: 1, bakiyor: true }), []);
+});

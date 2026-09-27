@@ -15,6 +15,12 @@
 //   olay:<ad>, kaynak:<k>, yuzey:<y>, mesafe:yakin|orta|uzak   olay
 //   durum:<d>, niyet_kaynagi:<önek>   sonuç: niyeti kim verdi (n = LLM, elle, ajanda…)
 //   k:<kelime>               metnin içerik kelimeleri (en çok KELIME_SINIRI)
+//   ozyn:yakin|orta|uzak, ozyn:bakiyor, ozyn_yuzey:<y>   BAĞLAM: algı anında Ozyn nerede,
+//                            Orion'a bakıyor mu, hangi yüzeyde çalışıyor (toplantı 2026-09-27 K4)
+//
+// NEDEN BAĞLAM: aynı hata çıktısı, Ozyn ekranın başındayken ve odanın öbür
+// ucundayken farklı değerde olabilir. T0c'de hakemlerin kararını bağlam çevirdi.
+// Olayın kendi ayrıntısındaki `mesafe:` ile karışmasın diye önek `ozyn`.
 //
 // NEDEN niyet_kaynagi: gerçek kayıtta (2026-09-27) elle verilen `kalk`
 // niyetlerinin hatası LLM'i üç kez uyandırdı; LLM o niyetleri hiç vermemişti.
@@ -81,12 +87,28 @@ function mesafeKovasi(m: number): "yakin" | "orta" | "uzak" {
 }
 
 /**
+ * Algı anının bağlamı: Ozyn'in durumu (world/player → `OyuncuDurumu`'ndan).
+ * Hepsi isteğe bağlı: bilinmeyen alan kodlanmaz.
+ */
+export interface KapiBaglami {
+  mesafe?: number;
+  bakiyor?: boolean;
+  /** Ozyn'in etkileşimde olduğu yüzey ("monitor", "tahta"…); yoksa null. */
+  yuzey?: string | null;
+}
+
+/**
  * Algının durum kodu. Konuşma ve bakış cevabı için boş küme: öğrenen kapı
  * onlara karar veremez.
  */
-export function durumKodu(a: Algi, icgudu: IcguduKimligi): string[] {
+export function durumKodu(a: Algi, icgudu: IcguduKimligi, baglam?: KapiBaglami): string[] {
   if (a.tur === "duydum" || a.tur === "gordum" || a.tur === "tik") return [];
   const k = new Set<string>([`tur:${a.tur}`, `icgudu:${icgudu}`]);
+  if (baglam) {
+    if (typeof baglam.mesafe === "number" && Number.isFinite(baglam.mesafe)) k.add(`ozyn:${mesafeKovasi(baglam.mesafe)}`);
+    if (baglam.bakiyor === true) k.add("ozyn:bakiyor");
+    if (typeof baglam.yuzey === "string" && baglam.yuzey) k.add(`ozyn_yuzey:${baglam.yuzey}`);
+  }
   const ekle = (w: string[]) => { for (const x of w) k.add(`k:${x}`); };
   switch (a.tur) {
     case "terminal": {

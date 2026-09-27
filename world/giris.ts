@@ -1439,6 +1439,12 @@ function beyniBagla(a: Avatar): void {
     hafizaDeposu: hafizaDeposuKur(),
     // ÖĞRENEN KAPI (K3, K5): gölgede — kapının kararını değiştirmez, kayda yazar.
     ogretimler: ogretimleriYukle(),
+    // BAĞLAM (K4): algı anında Ozyn nerede, Orion'a bakıyor mu, hangi yüzeyde.
+    // Yapısal — dünya metni ayrıştırılmaz. Öğrenen kapının durum koduna girer.
+    baglam: () => {
+      const o = oyuncu.oyuncuDurumu();
+      return { mesafe: o.mesafe, bakiyor: o.bakiyor, yuzey: o.etkilesim };
+    },
     // İçerik süzgeci: hangi algının beyne değeceğine karar verir.
     // Kural tabanlı; ÖLÇÜLDÜ (mind/akis-olcum.ts, 12 gerçek komut çıktısı,
     // 12/12 ideal uyandırma). Spec'in önerdiği 270M model ölçümde elendi:
