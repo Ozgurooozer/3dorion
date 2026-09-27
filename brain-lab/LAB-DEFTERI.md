@@ -3244,6 +3244,88 @@ Yeni durumda karar verme oranı: B %72–81, B-J ve B-JT %50–59, D %50–61.
   - R3 ya da R4 tutmazsa ölçü sızıyor: durulur, hiçbir değişken benimsenmez.
   - B-JT Ö-b'yi kaçırırsa küçük hafızanın ezberi bozuluyor demektir: benimsenmez.
 
+## 2026-09-27 — H-K2 sonucu: taze havuzda iki değişken de D kadar genellemedi — reddedildi, B kalır
+
+**Ne koşuldu:**
+- Kod: commit ab13a07. Ön-kayıt bir önceki girdide.
+- Havuz 4: 40 yeni gerçek komut, 23'ü başarılı, 17'si hatalı. İçgüdü 20 durumu geçiriyor.
+- Etiketler: qwen hakemi, "masada" 21 evet / 19 hayır, "uzakta" 25 / 15. Etiketler koşudan önce incelenmedi.
+- Koşu: `curut --motorlar=hk2`, tohum 31–50, 400 olay, yeni payı %40.
+- Kayıt: `brain-lab/data/kapi/4/curut.json`, `curut.log`.
+
+**Sonuç `[ÖLÇÜLDÜ]`** (20 tohumun toplamı; yüzde):
+
+| öğretmen | motor | genel | ikinci | yeni: karar | yeni: doğru | yeni son (içgüdü) | boyut |
+|---|---|---|---|---|---|---|---|
+| masada (%53 evet) | içgüdü | 87,5 | 87,3 | — | — | 86,6 | 0 |
+| | B | 98,2 | 99,9 | 74 | 81,5 (189/232) | 80,6 | 22 |
+| | B-J | 96,4 | 98,1 | 62 | 78,5 (153/195) | 80,6 | 22 |
+| | B-JT | 98,4 | 99,9 | 62 | 82,1 (160/195) | 82,8 | 22 |
+| | D | 98,5 | 100 | 50 | 86,0 (135/157) | 83,1 | 400 |
+| uzakta (%63 evet) | içgüdü | 77,7 | 77,3 | — | — | 76,8 | 0 |
+| | B | 97,5 | 100 | 74 | 75,4 (175/232) | 76,1 | 21 |
+| | B-J | 97,6 | 99,4 | 67 | 88,6 (187/211) | 86,0 | 21 |
+| | B-JT | 97,7 | 99,9 | 67 | 81,5 (172/211) | 81,2 | 21 |
+| | D | 97,8 | 100 | 50 | 93,6 (147/157) | 79,6 | 400 |
+
+**Eşli testler** (tohum başına genel doğruluk farkı; işaret testi p / Wilcoxon p):
+
+| fark | masada | uzakta |
+|---|---|---|
+| B-J − B | −1,79 puan (0,003 / 0,003) | +0,13 (0,064 / 0,145) |
+| B-JT − B | +0,15 (0,25 / 0,25) | +0,26 (0,0005 / 0,002) |
+| B-J − D | −2,06 (2·10⁻⁶ / 9·10⁻⁵) | −0,23 (1,0 / 0,48) |
+| B-JT − D | −0,12 (0,12 / 0,75) | −0,09 (0,30 / 0,80) |
+| B − D | −0,3 (0,12 / 0,75) | −0,4 (0,55 / 0,055) |
+
+**Kontroller** (sızıntı ya da yapaylık yok):
+- R3: ikinci görülüş %48,8–52,8.
+- R4: her motor %100, içgüdüyle aynı.
+- R5: silinen durumlar içgüdünün −3,2 … +7,3 puanında; korunanlar %96,8–100.
+
+**Benimseme kuralı** (kaynaktaki kesin değerler):
+
+| koşul | B-J masada | B-J uzakta | B-JT masada | B-JT uzakta |
+|---|---|---|---|---|
+| Ö-a: yeni ≥ D − 5 | 78,46 < 80,99 ✗ | 88,626 < 88,631 ✗ | 82,05 ✓ | 81,52 < 88,63 ✗ |
+| Ö-b: ikinci ≥ 97 | 98,1 ✓ | 99,4 ✓ | 99,9 ✓ | 99,9 ✓ |
+| Ö-c: genel ≥ B − 0,5 | 96,44 < 97,73 ✗ | 97,60 ✓ | 98,38 ✓ | 97,74 ✓ |
+| Ö-d: kontrol | ✓ | ✓ | ✓ | ✓ |
+
+Hiçbir değişken dört koşulu iki öğretmende de sağlamadı. **Ön-kayıtlı kurala göre B kalır; H-K2 reddedildi.**
+Anahtar kodda duruyor, varsayılanı "altkume" (H-K1'deki gibi). Canlı öngörü HK2-7 koşulmadı: benimseme yok.
+
+**Karne:**
+- **HK2-1 ✗:** B-J Ö-a'yı da kaçırdı: masada açıkça, uzakta 0,005 puanla. Ö-c'yi masada kaçırdı.
+- **HK2-2 ✗:** B-JT Ö-a'yı uzakta kaçırdı (81,5; sınır 88,6).
+- **HK2-3 ✓:** B uzakta D'nin 18 puan altında; masada 4,5.
+- **HK2-4 yarı ✗:** Masada B'den 11,8 puan daha az karar verdiler ✓. Uzakta 6,7 puan ✗.
+- **HK2-5 ✓:** Yeni son ortalaması B-JT %82,0, B %78,4.
+- **HK2-6 ✓:** Boyut aynı (22 ve 21 nöron).
+- **Yanlışlayıcılar tetiklenmedi:** R3 ve R4 temiz; B-JT'nin ikinci görülüşü %99,9.
+
+**Yorum:**
+- **H-K2'nin sözü taze havuzda tutmadı.** Söz, "kural hafızası D kadar iyi genellesin" idi.
+  - İki değişkenin genellemesi öğretmene göre ters dönüyor: B-J uzakta iyi (%88,6), masada kötü (%78,5); B-JT tam
+    tersi.
+  - Hiçbiri iki öğretmende de D'ye yaklaşmıyor.
+  - Taramadaki "B-J her kolda D kadar" sonucu, kullanılmış veride seçimin ürünüydü. Onay sınaması bu yüzden vardı.
+- **B-JT zararsız ama kural genellemeyi şart koştu.**
+  - Genel doğrulukta B'yi geçiyor (+0,15 ve +0,26 puan; ikincisi anlamlı) ve D'den ayırt edilemiyor.
+  - Tek deneme %99,9.
+  - Benimseme kuralını sonradan gevşetmiyorum.
+- **Yeni durumda kapının son kararı öğretmene göre değişiyor.**
+  - Masada her öğrenen içgüdünün altında: −3,5 … −6,0 puan.
+  - Uzakta B-J +9,2, B-JT +4,4, D +2,8.
+  - Bu alanda yeni duruma genelleme güvenilmez kalıyor ve motor değişikliği bunu çözmüyor.
+  - Öğrenmenin değeri tekrar eden durumda: ikinci görülüş %98–100; genel doğrulukta içgüdüye göre +10 … +20 puan.
+- **B ile D farkı:** Havuz 4'te anlamlı değil (−0,3 ve −0,4 puan). Çürütmedeki "B, D'den tutarlı biçimde biraz az
+  doğru" bulgusuyla aynı yönde, daha küçük.
+- **Gelen yorumla uyumu:** Bu sonuç, gelen yorumdaki "yenilik motorda değil sistemde" gözlemiyle uyumlu.
+
+**Sonraki:** Karar Ozyn'in. Önerim: motor ayarını burada bırakmak, B'yi gölgede tutmak ve asıl kazancı gerçek
+kullanım verisinde aramak.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.

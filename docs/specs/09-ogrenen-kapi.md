@@ -88,7 +88,7 @@ node --experimental-strip-types tools/ogret.ts hafiza                     # öğ
 
 ## Çevrimdışı kıyas ve çürütme özeti (`brain-lab/LAB-DEFTERI.md`, 2026-09-27)
 
-Özet, Atlas çürütme bataryasından sağ çıkan hali (3 havuz, 20 taze tohum).
+Özet, Atlas çürütme bataryasından (3 havuz, 20 taze tohum) ve H-K2 onay sınamasından (havuz 4) sağ çıkan hali.
 - **Tek deneme ve unutmama sağ çıktı.**
   - B (kural hafızası) ve D (tam anı) ikinci görülüşte %99–100 doğru, hiç görülmemiş havuzda da.
   - Tutarsız öğretmende şansa düşüyor: ölçü sızmıyor.
@@ -98,12 +98,15 @@ node --experimental-strip-types tools/ogret.ts hafiza                     # öğ
   - B'ninki güvenilmez: %35–81; bir havuzda sınıf oranının altında.
   - D'ninki daha iyi: %60–100.
   - Karar anında kapsama şartı (H-K1) B'yi temkinli yaptı ama daha doğru yapmadı; reddedildi.
-  - Öneri H-K2: B karar anında D gibi Jaccard benzerliği kullansın.
+  - Karar anında Jaccard (H-K2) da reddedildi: taze havuz 4'te (tohum 31–50, ön-kayıtlı) iki değişkenin hiçbiri
+    (B-J, B-JT) iki öğretmende de D'nin genellemesine yaklaşmadı. Anahtar kodda (`kararOlcusu`), varsayılan
+    "altkume". Yeni durumda kapının son kararı öğretmene göre içgüdünün 6 puan altı ile 9 puan üstü arasında
+    oynuyor: bu alanda yeni duruma genelleme güvenilmez, öğrenmenin değeri tekrar eden durumda.
 - Sinek modeli (A), bu uygulamayla başarısız: kodu ortak işaretler baskılıyor.
 
 ## Açık (sırayla, toplantı K7)
 
-1. ~~Çevrimdışı kıyas (BY36)~~: yapıldı. B kaldı; H-K2 önerildi.
+1. ~~Çevrimdışı kıyas (BY36)~~: yapıldı. B kaldı. ~~H-K2 (BY40)~~: sınandı, reddedildi; B kalır.
 2. ~~Bağlam (BY37)~~: yapıldı (G11).
 3. **Zihin duvarı paneli (BY38):** `world/` boşalınca.
 4. **Yetki:** Ozyn'in kararı.
