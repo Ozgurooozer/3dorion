@@ -13,6 +13,7 @@
 //
 // Kullanım: node --experimental-strip-types tools/kapi-yakala.ts [--kume=1|2] [--cikti=brain-lab/data/kapi/terminal.json]
 //   --kume=2: ikinci, TAZE komut kümesi (H-K1 sınaması; bu kümede ayar yapılmaz).
+//   --kume=3: üçüncü küme (Atlas çürütmesi R2; hiç kullanılmamış durumlar).
 "use strict";
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -69,6 +70,12 @@ function yakala(): void {
     'test("toplama", () => { assert.equal(1 + 1, 2); });',
     'test("carpma", () => { assert.equal(2 * 3, 7); });',
   ].join("\n"));
+  const patlak3 = path.join(gecici, "tarih.test.mjs");
+  fs.writeFileSync(patlak3, [
+    'import { test } from "node:test";',
+    'import assert from "node:assert/strict";',
+    'test("yil", () => { assert.equal(new Date(0).getUTCFullYear(), 1971); });',
+  ].join("\n"));
   const patlak2 = path.join(gecici, "metin.test.mjs");
   fs.writeFileSync(patlak2, [
     'import { test } from "node:test";',
@@ -112,6 +119,39 @@ function yakala(): void {
     ["ps", "Get-Process -Name olmayan_surec"],
   ];
 
+  // ÜÇÜNCÜ KÜME (Atlas çürütmesi R2): ilk ikisinden farklı, hiç kullanılmamış komutlar.
+  // Ağa çıkmaz, dosya yazmaz, kişisel veri göstermez (`git remote -v` gibi komutlar bilerek yok).
+  const ucuncu: [string, string][] = [
+    ["yazim", "gti diff"],
+    ["yazim", "Get-Itme package.json"],
+    ["yazim", "npmm run test"],
+    ["yazim", "clera"],
+    ["yazim", "noed --version"],
+    ["git", "git log --oneline -2 --stat"],
+    ["git", "git tag --list"],
+    ["git", "git stash list"],
+    ["git", "git ls-files mind | Measure-Object -Line"],
+    ["git", "git diff --name-only HEAD~2"],
+    ["liste", "dir protocol"],
+    ["liste", "Get-ChildItem host -Filter *.js"],
+    ["liste", "dir docs"],
+    ["node", "node -e \"setTimeout(() => console.log('bitti'), 1200)\""],
+    ["node", "node -e \"console.log(process.platform)\""],
+    ["node", "node -e \"JSON.parse('{bozuk')\""],
+    ["node", "node -e \"require('olmayan_modul')\""],
+    ["node", "node -e \"process.exitCode = 4\""],
+    ["test", "node --experimental-strip-types --test mind/icgudu.test.ts"],
+    ["test", "node --experimental-strip-types --test mind/durumKodu.test.ts"],
+    ["test", `node --test "${patlak3}"`],
+    ["surum", "git --version"],
+    ["surum", "npm -v"],
+    ["npm", "npm run typecheck"],
+    ["ps", "Get-Content olmayan.log"],
+    ["ps", "Select-String -Path package.json -Pattern typecheck"],
+    ["ps", "[int]'abc'"],
+    ["ps", "Get-ChildItem -Path olmayan_klasor"],
+  ];
+
   const birinci: [string, string][] = [
     ["yazim", "boyle_bir_komut_yok"],
     ["yazim", "pyhton --version"],
@@ -145,7 +185,8 @@ function yakala(): void {
     ["ps", "Get-Content package.json -TotalCount 3"],
   ];
 
-  const komutlar = arg("kume", "1") === "2" ? ikinci : birinci;
+  const kume = arg("kume", "1");
+  const komutlar = kume === "3" ? ucuncu : kume === "2" ? ikinci : birinci;
   const sonuc: YakalananKomut[] = [];
   for (const [aile, komut] of komutlar) {
     const t0 = Date.now();
@@ -155,12 +196,14 @@ function yakala(): void {
     const sureMs = Date.now() - t0;
     const kod = r.status ?? 1;
     // Görünen komut, geçici yol yerine sabit bir ad taşısın: gerçek kayıtta da dosya adı görünür.
-    const gorunen = komut.replace(patlak, "patlak.test.mjs").replace(patlak2, "metin.test.mjs");
+    const gorunen = komut.replace(patlak, "patlak.test.mjs").replace(patlak2, "metin.test.mjs").replace(patlak3, "tarih.test.mjs");
     const cikti = `${r.stdout ?? ""}${r.stderr ? `\n${r.stderr}` : ""}`
       .split(pathToFileURL(patlak).href).join("patlak.test.mjs")
       .split(patlak).join("patlak.test.mjs")
       .split(pathToFileURL(patlak2).href).join("metin.test.mjs")
-      .split(patlak2).join("metin.test.mjs");
+      .split(patlak2).join("metin.test.mjs")
+      .split(pathToFileURL(patlak3).href).join("tarih.test.mjs")
+      .split(patlak3).join("tarih.test.mjs");
     sonuc.push({ aile, komut: gorunen, kod, sureMs, kuyruk: kuyrukKur(gorunen, cikti) });
     console.log(`${aile.padEnd(8)} kod=${String(kod).padEnd(3)} ${String(sureMs).padStart(6)} ms  ${gorunen}`);
   }

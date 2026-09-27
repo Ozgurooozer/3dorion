@@ -3008,6 +3008,47 @@ bulunur, çünkü senaryo Ozyn'i monitöre geçiriyor. **Yanlışlayıcı:** hi�
   geçiş"i Orion'un monitörünü açıyor, Ozyn'in etkileşim yüzeyini değiştirmiyor. Duman koşusunda Ozyn açılış konumunda
   duruyor (4,6 m, Orion'a bakıyor).
 
+## 2026-09-27 — Atlas çürütme bataryası (KT2 iddiaları) — koşmadan önce
+
+Ozyn: "Atlas testlerini de yap." Atlas kuralı: "öğreniyor / çalışıyor" iddiası çürütme denemesinden önce yazılmaz. Bu
+oturumda Atlas ajan tipi tanımlı değil; batarya Atlas kartına ve kurallarına uyarak ana oturumda koşuluyor.
+
+**Görev kartı**
+
+| alan | içerik |
+|---|---|
+| Soru | Raporun KT2 iddiaları bir çürütme bataryasından sağ çıkıyor mu? |
+| İddialar | **İ1** canlı ders sonraki oturumda doğru kuraldan kullanılıyor, davranış değişmiyor · **İ2** tek deneme: ikinci görülüş %99–100, unutma yok · **İ3** B, D kadar doğru ve ~9 kat küçük · **İ4** yeni duruma genelleme zayıf (sınıf oranı düzeyinde) · **İ5** hiçbir LLM öğretmeni %80'i geçmiyor |
+| Aşama | ölçüm tohumlarından ayrı taze tohumlar (11–30, 20 tohum); hiç kullanılmamış yeni bir havuz |
+| Bütçe | çevrimdışı dakikalar; canlı 2 koşu; LLM yalnız havuz 3 etiketi için (yerel qwen) |
+| Dur kuralı | R3 ya da R4 bir yapaylık gösterirse durulur, İ2/İ3 geri çekilir |
+
+**Batarya ve öngörüler** (öğretmen: qwen-masada ve qwen-uzakta):
+- **R1 taze tohumlar** (havuz 1 ve 2):
+  - B ve D ikinci görülüşte ≥ %97.
+  - B'nin genel doğruluğu D'ninkinden en fazla 2 puan farklı.
+  - B'nin boyutu D'ninkinin ≤ 1/5'i.
+- **R2 taze havuz 3** (kapi-yakala kümesi 3: hiç kullanılmamış gerçek komutlar): R1'in aynısı. B'nin yeni doğruluğu en
+  fazla sınıf oranı + 15 puan.
+- **R3 tutarsız öğretmen:** etiket her olayda yeniden çekilir (aynı oran). Bu durumda B ve D ikinci görülüşte %40–65'e
+  düşer. **Düşmezse ölçüde sızıntı var; dur.**
+- **R4 içgüdü öğretmeni:** etiket = içgüdünün kararı. B ve D, içgüdü ikizini geçemez (fark ±1 puan). **Geçerse yapaylık;
+  dur.**
+- **R5 lezyon:** Akış ortasında, görülen durumların yarısının dersleri defterden çıkarılıp hafıza yeniden kurulur.
+  - Silinen durumların silmeden sonraki ilk kararı, içgüdünün aynı olaylardaki doğruluğuna düşer (±10 puan).
+  - Korunanlar ≥ %97 kalır.
+- **R6 eşli istatistik** (tohum başına, 20 tohum):
+  - B > içgüdü: işaret testi p < 0,001.
+  - B ile D arasındaki fark anlamlı değil (p > 0,05).
+- **R7 sağlamlık** (B): akış 100 ve 1000 olay; Zipf üssü 0,5 ve 1,2. Dördünde de ikinci görülüş ≥ %95.
+- **R8 öğretmen iddiası (yeni LLM çağrısı yok):** Havuz 1'deki 26 küme durumunda "uzakta" bağlamının hakem etiketleri de
+  insan etiketine göre < %80 uyuşur.
+- **R9 canlı** (güncel sürüm, bağlamlı): aynı kayıt klasöründe iki koşu.
+  - Dersli koşuda kabuk hatasının gölgesi {sus, K1}. Eski ders bağlamsız koddan doğmuştu; koşul yeni kodun alt kümesi
+    olduğu için eşleşmeli.
+  - Ders dosyası kaldırılınca gölge null.
+  - İki koşuda senaryonun üç algısının kapı kararları aynı.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.

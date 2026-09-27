@@ -4,7 +4,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   AniMotoru, IcguduIkizi, KuralMotoru, LojistikMotor, MantarMotoru,
-  akisKur, kapiVeKod, karistir, olc, ozet32, rastgele, type Akis, type Durum, type Etiketler,
+  akisKur, icguduOgretmeni, kapiVeKod, karistir, olc, olcLezyonlu, ozet32, rastgele, tohumlar, tutarsizOgretmen,
+  type Akis, type Durum, type Etiketler,
 } from "./kapi-deney.ts";
 
 /** Üç durumlu oyuncak havuz: a ve c içgüdüden geçer, b düşer. */
@@ -90,4 +91,54 @@ test("kapı kararı ve durum kodu gerçek köprüden: kabuk hatası geçer, konu
   const hata = kapiVeKod({ tur: "terminal", kuyruk: "PS C:\\x> gti status\ngti : The term 'gti' is not recognized", kesildi: false, kod: 1 });
   const soz = kapiVeKod({ tur: "duydum", metin: "merhaba", kesin: true });
   assert.deepEqual({ kural: hata?.kapi.kural, gecti: hata?.kapi.gecti, soz }, { kural: "refleks.terminal.kod_hata", gecti: true, soz: null });
+});
+
+// ── Çürütme bataryası ──────────────────────────────────────────────────────
+
+test("olay başına etiket: aynı durum ardışık iki etiketle gelirse ezber ikinciyi bilemez", () => {
+  // a dört kez; etiketler sırayla evet, hayır, evet, hayır.
+  const akis: Akis = { olaylar: ["a", "a", "a", "a"], yeniler: new Set() };
+  const o = olc(new AniMotoru(), akis, HAVUZ, (_id, t) => t % 2 === 0);
+  assert.deepEqual({ ikinci: `${o.ikinciDogru}/${o.ikinciN}`, akilN: o.akilN }, { ikinci: "0/1", akilN: 0 });
+});
+
+test("tutarsız öğretmen belirlenimci, olay olay değişir, etiketsiz durumda null", () => {
+  const e1 = tutarsizOgretmen(ETIKET, HAVUZ, 3), e2 = tutarsizOgretmen(ETIKET, HAVUZ, 3);
+  const dizi1 = Array.from({ length: 40 }, (_, t) => e1("a", t)), dizi2 = Array.from({ length: 40 }, (_, t) => e2("a", t));
+  assert.deepEqual(
+    { ayni: JSON.stringify(dizi1) === JSON.stringify(dizi2), degisiyor: new Set(dizi1).size === 2, etiketsiz: e1("yok", 0) },
+    { ayni: true, degisiyor: true, etiketsiz: null },
+  );
+});
+
+test("içgüdü öğretmeni içgüdünün kararıdır", () => {
+  assert.deepEqual(icguduOgretmeni(HAVUZ), { a: true, b: false, c: true });
+});
+
+test("lezyon: bütün dersler silinirse karar içgüdüye döner; hiçbiri silinmezse ezber korunur", () => {
+  // a'yı öğretmen "sus" diye öğretiyor, içgüdü "uyan" diyor: fark görünür.
+  const e: Etiketler = { a: false, b: false };
+  // Beşinci olay (a) silmeden sonraki İKİNCİ görülüş: sayılmamalı.
+  const akis: Akis = { olaylar: ["a", "b", "a", "b", "a"], yeniler: new Set() };
+  const hepsi = olcLezyonlu(() => new AniMotoru(), akis, HAVUZ, e, 1, 1);
+  const hic = olcLezyonlu(() => new AniMotoru(), akis, HAVUZ, e, 0, 1);
+  assert.deepEqual(
+    { silinen: `${hepsi.silinenDogru}/${hepsi.silinenN}`, silinenIcgudu: hepsi.silinenIcgudu, korunan: `${hic.korunanDogru}/${hic.korunanN}` },
+    { silinen: "1/2", silinenIcgudu: 1, korunan: "2/2" },
+  );
+});
+
+test("tohum listesi: aralık ve virgüllü liste", () => {
+  assert.deepEqual([tohumlar("11-13"), tohumlar("1,5")], [[11, 12, 13], [1, 5]]);
+});
+
+test("Zipf üssü akışı gerçekten şekillendirir: 0'da düz (en sık / en seyrek ≤ 1,5), 2'de dik (≥ 3)", () => {
+  const oran = (us: number) => {
+    const say = new Map<string, number>();
+    for (const id of akisKur(HAVUZ, 2, 600, 0, us).olaylar) say.set(id, (say.get(id) ?? 0) + 1);
+    const v = [...say.values()];
+    return Math.max(...v) / Math.min(...v);
+  };
+  const [duz, dik] = [oran(0), oran(2)];
+  assert.ok(duz <= 1.5 && dik >= 3, `düz ${duz.toFixed(2)}, dik ${dik.toFixed(2)}`);
 });

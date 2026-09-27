@@ -294,7 +294,7 @@ export interface Akis {
  * Tekrarlı akış. Durumlar tohumla karıştırılır; sıradaki r'inci durumun ağırlığı
  * 1/r^0,8 (sık olan sık gelir). Her aileden durumların `yeniOran` kadarı (varsayılan %20) yeni ayrılır.
  */
-export function akisKur(havuz: readonly Durum[], tohum: number, n: number, yeniOran = 0.2): Akis {
+export function akisKur(havuz: readonly Durum[], tohum: number, n: number, yeniOran = 0.2, us = 0.8): Akis {
   const r = rastgele(tohum);
   const karisik = [...havuz].map((d) => ({ d, s: r() })).sort((a, b) => a.s - b.s).map((x) => x.d);
   const aileler = new Map<string, Durum[]>();
@@ -304,7 +304,7 @@ export function akisKur(havuz: readonly Durum[], tohum: number, n: number, yeniO
     const kac = Math.floor(liste.length * yeniOran);
     for (const d of liste.slice(0, kac)) yeniler.add(d.id);
   }
-  const agirlik = karisik.map((_, i) => 1 / Math.pow(i + 1, 0.8));
+  const agirlik = karisik.map((_, i) => 1 / Math.pow(i + 1, us));
   const cek = (izinli: (d: Durum) => boolean): string => {
     let top = 0;
     for (const [i, d] of karisik.entries()) if (izinli(d)) top += agirlik[i]!;
@@ -324,6 +324,8 @@ export function akisKur(havuz: readonly Durum[], tohum: number, n: number, yeniO
 // ── Ölçüm ────────────────────────────────────────────────────────────────────
 
 export type Etiketler = Record<string, boolean | null | undefined>;
+/** Olay başına etiket (çürütme: tutarsız öğretmen): aynı durum her olayda farklı etiket alabilir. */
+export type EtiketFn = (id: string, t: number) => boolean | null | undefined;
 
 export interface Olcum {
   motor: string;
@@ -355,7 +357,7 @@ export type Politika = Motor | "hep-uyan" | "hep-sus" | "kahin";
  * SIRALI ölçüm: her olayda önce karar (motor emin değilse içgüdü), sonra ders.
  * Etiketi olmayan olay ne ölçülür ne öğretilir.
  */
-export function olc(politika: Politika, akis: Akis, havuz: readonly Durum[], etiket: Etiketler): Olcum {
+export function olc(politika: Politika, akis: Akis, havuz: readonly Durum[], etiket: Etiketler | EtiketFn): Olcum {
   const bul = new Map(havuz.map((d) => [d.id, d]));
   const motor = typeof politika === "string" ? null : politika;
   const ad = typeof politika === "string" ? politika : politika.ad;
@@ -364,7 +366,7 @@ export function olc(politika: Politika, akis: Akis, havuz: readonly Durum[], eti
   const ilkCeyrek = new Set<string>();
   for (const [t, id] of akis.olaylar.entries()) {
     const d = bul.get(id)!;
-    const e = etiket[id];
+    const e = typeof etiket === "function" ? etiket(id, t) : etiket[id];
     const kacinci = (gorulme.get(id) ?? 0) + 1;
     gorulme.set(id, kacinci);
     if (t < akis.olaylar.length / 4) ilkCeyrek.add(id);
@@ -385,8 +387,9 @@ export function olc(politika: Politika, akis: Akis, havuz: readonly Durum[], eti
     motor?.ogren(d.isaret, dogruYon, `${id}#${t}`);
   }
   if (motor) {
-    for (const id of ilkCeyrek) {
-      const e = etiket[id];
+    // Olay başına etiketle (tutarsız öğretmen) "doğru karar" tanımsız: akıl ölçülmez.
+    for (const id of typeof etiket === "function" ? [] : ilkCeyrek) {
+      const e = (etiket as Etiketler)[id];
       if (e === null || e === undefined) continue;
       o.akilN++;
       const k = motor.karar(bul.get(id)!.isaret);
@@ -405,6 +408,96 @@ export function karistir(etiket: Etiketler, havuz: readonly Durum[], tohum: numb
   const out: Etiketler = {};
   idler.forEach((id, i) => { out[id] = degerler[i]; });
   return out;
+}
+
+// ── Çürütme bataryası (Atlas, Themis 1.6) ──────────────────────────────────
+
+/**
+ * R3 — TUTARSIZ ÖĞRETMEN: her olayda etiket yeniden çekilir (gerçek öğretmenin
+ * "evet" oranıyla). Aynı durum ardışık görülüşlerinde farklı etiket alabilir; ikinci
+ * görülüşü "doğru" bilmek artık ezberle mümkün değildir. Ölçü yine yüksek çıkarsa
+ * etiket karardan önce sızıyor demektir.
+ */
+export function tutarsizOgretmen(etiket: Etiketler, havuz: readonly Durum[], tohum: number): EtiketFn {
+  const etiketli = havuz.filter((d) => etiket[d.id] !== null && etiket[d.id] !== undefined);
+  const oran = etiketli.length ? etiketli.filter((d) => etiket[d.id]).length / etiketli.length : 0.5;
+  const r = rastgele(tohum);
+  const cekilen: boolean[] = [];
+  return (id, t) => {
+    if (etiket[id] === null || etiket[id] === undefined) return null;
+    while (cekilen.length <= t) cekilen.push(r() < oran);
+    return cekilen[t]!;
+  };
+}
+
+/** R4 — İÇGÜDÜ ÖĞRETMENİ: etiket = içgüdünün kararı. Öğrenen motorun içgüdüyü geçmesi imkânsız olmalı. */
+export function icguduOgretmeni(havuz: readonly Durum[]): Etiketler {
+  return Object.fromEntries(havuz.map((d) => [d.id, d.kapi.gecti]));
+}
+
+export interface LezyonOlcumu {
+  /** Silinen durumların silmeden sonraki İLK görülüşü: kaç olay, motorlu karar doğru, içgüdü doğru. */
+  silinenN: number;
+  silinenDogru: number;
+  silinenIcgudu: number;
+  /** Korunan durumların silmeden sonraki ilk görülüşü. */
+  korunanN: number;
+  korunanDogru: number;
+}
+
+/**
+ * R5 — LEZYON: akışın ortasında, o ana kadar görülen durumların `oran` kadarının
+ * dersleri defterden çıkarılır ve hafıza kalan derslerden yeniden kurulur (K5:
+ * hafıza = derslerin tekrarı). Kararlar gerçekten o derslerden geliyorsa, silinen
+ * durumların kararı içgüdüye döner; korunanlarınki değişmez.
+ */
+export function olcLezyonlu(fabrika: () => Motor, akis: Akis, havuz: readonly Durum[], etiket: Etiketler, oran: number, tohum: number): LezyonOlcumu {
+  const bul = new Map(havuz.map((d) => [d.id, d]));
+  const orta = Math.floor(akis.olaylar.length / 2);
+  const dersler: { id: string; isaret: string[]; yon: KapiYonu; deneyim: string }[] = [];
+  const o: LezyonOlcumu = { silinenN: 0, silinenDogru: 0, silinenIcgudu: 0, korunanN: 0, korunanDogru: 0 };
+  let motor = fabrika();
+  let silinen = new Set<string>();
+  const once = new Set<string>();
+  const sonraGorulen = new Set<string>();
+  for (const [t, id] of akis.olaylar.entries()) {
+    if (t === orta) {
+      const r = rastgele(tohum);
+      const aday = [...once].map((x) => ({ x, s: r() })).sort((a, b) => a.s - b.s).map((a) => a.x);
+      silinen = new Set(aday.slice(0, Math.round(aday.length * oran)));
+      motor = fabrika();
+      for (const d of dersler) if (!silinen.has(d.id)) motor.ogren(d.isaret, d.yon, d.deneyim);
+    }
+    const d = bul.get(id)!;
+    const e = etiket[id];
+    if (e === null || e === undefined) continue;
+    const dogru: KapiYonu = e ? "uyan" : "sus";
+    const icgudu: KapiYonu = d.kapi.gecti ? "uyan" : "sus";
+    const son = motor.karar(d.isaret) ?? icgudu;
+    if (t >= orta && once.has(id) && !sonraGorulen.has(id)) {
+      sonraGorulen.add(id);
+      if (silinen.has(id)) {
+        o.silinenN++;
+        if (son === dogru) o.silinenDogru++;
+        if (icgudu === dogru) o.silinenIcgudu++;
+      } else {
+        o.korunanN++;
+        if (son === dogru) o.korunanDogru++;
+      }
+    }
+    if (t < orta) once.add(id);
+    const deneyim = `${id}#${t}`;
+    dersler.push({ id, isaret: d.isaret, yon: dogru, deneyim });
+    motor.ogren(d.isaret, dogru, deneyim);
+  }
+  return o;
+}
+
+/** Tohum listesi: "11-30" ya da "1,2,3". */
+export function tohumlar(metin: string): number[] {
+  const m = /^(\d+)-(\d+)$/.exec(metin);
+  if (m) { const [a, b] = [Number(m[1]), Number(m[2])]; return Array.from({ length: b - a + 1 }, (_, i) => a + i); }
+  return metin.split(",").map(Number);
 }
 
 // ── Komut satırı ─────────────────────────────────────────────────────────────
@@ -488,8 +581,136 @@ async function calistir(): Promise<void> {
     console.log(`\nyazıldı: ${VERI}/sonuc.json`);
     return;
   }
-  console.error("kullanım: kapi-deney.ts havuz | etiketle --ogretmen=qwen|haiku --baglam=masada|uzakta | kos [--tohumlar=1,2,3,4,5] [--olay=400]");
+  if (komut === "curut") {
+    await curut();
+    return;
+  }
+  console.error("kullanım: kapi-deney.ts havuz | etiketle --ogretmen=qwen|haiku --baglam=masada|uzakta | kos [--tohumlar=1,2,3,4,5] [--olay=400] | curut [--tohumlar=11-30]");
   process.exit(2);
+}
+
+/**
+ * ATLAS ÇÜRÜTME BATARYASI (defter 2026-09-27): R1/R2 taze tohum ve taze havuz,
+ * R3 tutarsız öğretmen, R4 içgüdü öğretmeni, R5 lezyon, R6 eşli istatistik,
+ * R7 sağlamlık, R8 öğretmen iddiası (kayıtlı etiketlerden, yeni LLM çağrısı yok).
+ */
+async function curut(): Promise<void> {
+  const { signTest, wilcoxon } = await import("../brain-lab/experiments/stats.ts");
+  const ts = tohumlar(arg("tohumlar", "11-30"));
+  const havuzlar = arg("havuzlar", "brain-lab/data/kapi,brain-lab/data/kapi/2,brain-lab/data/kapi/3").split(",");
+  const ogretmenler = arg("ogretmenler", "qwen-masada,qwen-uzakta").split(",");
+  const n = Number(arg("olay", "400"));
+  const yz = (a: number, b: number) => (b === 0 ? "—" : `%${(100 * a / b).toFixed(1)}`);
+  const rapor: Record<string, unknown>[] = [];
+  for (const veri of havuzlar) {
+    if (!fs.existsSync(`${veri}/havuz.json`)) { console.log(`(havuz yok: ${veri})`); continue; }
+    const havuz = JSON.parse(fs.readFileSync(`${veri}/havuz.json`, "utf8")) as Durum[];
+    for (const og of ogretmenler) {
+      const dosya = `${veri}/etiket-${og}.json`;
+      if (!fs.existsSync(dosya)) { console.log(`(etiket yok: ${dosya})`); continue; }
+      const etiket = JSON.parse(fs.readFileSync(dosya, "utf8")) as Etiketler;
+      const degerler = Object.values(etiket).filter((v) => v !== null && v !== undefined);
+      const evetOrani = degerler.filter(Boolean).length / Math.max(1, degerler.length);
+      const bas = `${veri.replace("brain-lab/data/", "")} · ${og}`;
+
+      // R1/R2 + R6: taze tohumlar, tohum başına eşli.
+      const top: Record<string, Olcum> = {};
+      const dogruluk: Record<string, number[]> = { icgudu: [], B: [], D: [] };
+      for (const tohum of ts) {
+        const akis = akisKur(havuz, tohum, n);
+        for (const [ad, m] of [["icgudu", new IcguduIkizi()], ["B", new KuralMotoru()], ["D", new AniMotoru()]] as const) {
+          const o = olc(m, akis, havuz, etiket);
+          dogruluk[ad]!.push(o.dogru / o.n);
+          const t = top[ad];
+          if (!t) top[ad] = { ...o };
+          else for (const k of Object.keys(o) as (keyof Olcum)[]) if (k !== "motor") (t[k] as number) += o[k] as number;
+        }
+      }
+      const fark = (a: number[], b: number[]) => a.map((x, i) => x - b[i]!);
+      const bIc = fark(dogruluk.B!, dogruluk.icgudu!), bD = fark(dogruluk.B!, dogruluk.D!);
+      const ort = (x: number[]) => x.reduce((s, v) => s + v, 0) / x.length;
+      console.log(`\n== ${bas} (evet oranı %${(100 * evetOrani).toFixed(0)}; ${ts.length} tohum × ${n} olay)`);
+      for (const ad of ["icgudu", "B", "D"]) {
+        const o = top[ad]!;
+        console.log(`R1  ${ad.padEnd(6)} genel ${yz(o.dogru, o.n)}  ikinci ${yz(o.ikinciDogru, o.ikinciN)} (${o.ikinciDogru}/${o.ikinciN})  yeni karar ${yz(o.yeniKarar, o.yeniN)} doğru ${yz(o.yeniDogru, o.yeniKarar)}  akıl ${yz(o.akilDogru, o.akilKarar)}  boyut ${(o.boyut / ts.length).toFixed(0)}`);
+      }
+      const sBI = signTest(bIc), wBI = wilcoxon(bIc), sBD = signTest(bD), wBD = wilcoxon(bD);
+      console.log(`R6  B−içgüdü: ort ${(100 * ort(bIc)).toFixed(1)} puan · işaret p ${sBI.p.toExponential(2)} · Wilcoxon p ${wBI.p.toExponential(2)}`);
+      console.log(`R6  B−D:      ort ${(100 * ort(bD)).toFixed(1)} puan · işaret p ${sBD.p.toFixed(3)} · Wilcoxon p ${wBD.p.toFixed(3)}`);
+
+      // R3: tutarsız öğretmen.
+      const r3: Record<string, [number, number]> = { B: [0, 0], D: [0, 0] };
+      for (const tohum of ts) {
+        const akis = akisKur(havuz, tohum, n);
+        for (const [ad, m] of [["B", new KuralMotoru()], ["D", new AniMotoru()]] as const) {
+          const o = olc(m, akis, havuz, tutarsizOgretmen(etiket, havuz, 5000 + tohum));
+          r3[ad]![0] += o.ikinciDogru; r3[ad]![1] += o.ikinciN;
+        }
+      }
+      console.log(`R3  tutarsız öğretmen, ikinci görülüş: B ${yz(...r3.B!)} · D ${yz(...r3.D!)}`);
+
+      // R4: içgüdü öğretmeni.
+      const icE = icguduOgretmeni(havuz);
+      const r4: Record<string, [number, number]> = { icgudu: [0, 0], B: [0, 0], D: [0, 0] };
+      for (const tohum of ts) {
+        const akis = akisKur(havuz, tohum, n);
+        for (const [ad, m] of [["icgudu", new IcguduIkizi()], ["B", new KuralMotoru()], ["D", new AniMotoru()]] as const) {
+          const o = olc(m, akis, havuz, icE);
+          r4[ad]![0] += o.dogru; r4[ad]![1] += o.n;
+        }
+      }
+      console.log(`R4  içgüdü öğretmeni, genel: içgüdü ${yz(...r4.icgudu!)} · B ${yz(...r4.B!)} · D ${yz(...r4.D!)}`);
+
+      // R5: lezyon (derslerin yarısı defterden çıkarılır).
+      const r5: Record<string, LezyonOlcumu> = {};
+      for (const tohum of ts) {
+        const akis = akisKur(havuz, tohum, n);
+        for (const [ad, f] of [["B", () => new KuralMotoru()], ["D", () => new AniMotoru()]] as const) {
+          const o = olcLezyonlu(f, akis, havuz, etiket, 0.5, 7000 + tohum);
+          const t = r5[ad];
+          if (!t) r5[ad] = { ...o };
+          else for (const k of Object.keys(o) as (keyof LezyonOlcumu)[]) t[k] += o[k];
+        }
+      }
+      for (const ad of ["B", "D"]) {
+        const o = r5[ad]!;
+        console.log(`R5  ${ad} lezyon: silinen ${yz(o.silinenDogru, o.silinenN)} (içgüdü aynı olaylarda ${yz(o.silinenIcgudu, o.silinenN)}, n ${o.silinenN}) · korunan ${yz(o.korunanDogru, o.korunanN)} (n ${o.korunanN})`);
+      }
+
+      // R7: sağlamlık (B).
+      const r7: string[] = [];
+      for (const [nn, us] of [[100, 0.8], [1000, 0.8], [400, 0.5], [400, 1.2]] as const) {
+        let ik = 0, ikN = 0, d = 0, dN = 0;
+        for (const tohum of ts) {
+          const o = olc(new KuralMotoru(), akisKur(havuz, tohum, nn, 0.2, us), havuz, etiket);
+          ik += o.ikinciDogru; ikN += o.ikinciN; d += o.dogru; dN += o.n;
+        }
+        r7.push(`${nn}/${us}: ikinci ${yz(ik, ikN)} genel ${yz(d, dN)}`);
+      }
+      console.log(`R7  B sağlamlık (olay/üs): ${r7.join(" · ")}`);
+
+      rapor.push({ havuz: veri, ogretmen: og, evetOrani, R1: top, R6: { bIcgudu: { ort: ort(bIc), isaret: sBI, wilcoxon: wBI }, bD: { ort: ort(bD), isaret: sBD, wilcoxon: wBD } }, R3: r3, R4: r4, R5: r5, R7: r7 });
+    }
+  }
+
+  // R8: öğretmen iddiası — kayıtlı hakem etiketlerinin kümenin insan etiketiyle uyuşması (havuz 1).
+  const h1 = `${havuzlar[0]}/havuz.json`;
+  if (fs.existsSync(h1)) {
+    const havuz = JSON.parse(fs.readFileSync(h1, "utf8")) as Durum[];
+    const kume = havuz.filter((d) => d.insan !== undefined);
+    const satirlar: string[] = [];
+    for (const og of ["qwen-masada", "qwen-uzakta", "haiku-masada", "haiku-uzakta"]) {
+      const f = `${havuzlar[0]}/etiket-${og}.json`;
+      if (!fs.existsSync(f)) continue;
+      const e = JSON.parse(fs.readFileSync(f, "utf8")) as Etiketler;
+      const uyusan = kume.filter((d) => e[d.id] === d.insan).length;
+      satirlar.push(`${og} ${uyusan}/${kume.length} (%${(100 * uyusan / kume.length).toFixed(0)})`);
+    }
+    console.log(`\nR8  hakem etiketlerinin insan etiketiyle uyuşması (küme, ${kume.length} durum): ${satirlar.join(" · ")}`);
+    rapor.push({ R8: satirlar });
+  }
+  fs.writeFileSync("brain-lab/data/kapi/curut.json", JSON.stringify(rapor, null, 1));
+  console.log("\nyazıldı: brain-lab/data/kapi/curut.json");
 }
 
 if (import.meta.main) await calistir();
