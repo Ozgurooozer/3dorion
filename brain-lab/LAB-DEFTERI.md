@@ -2548,6 +2548,43 @@ kendiliğinden birikmeye başlar.
 
 **Sonraki:** KT2, öğrenen kapının tasarımı. Motor adayları araştırılıp toplantıya gidecek.
 
+## 2026-09-27 — KT2 T0: öğretmen kalibrasyonu — koşmadan önce
+
+**Soru:** Öğrenen kapının öğretmeni LLM'in kendi davranışı olabilir mi?
+- Öğretmenin sorusu: "Bu algıyla uyandırılsaydın bir şey yapar mıydın?"
+- Talimat susmaya açıkça izin veriyor; rutin başarılı çıktıda susmayı doğru davranış sayıyor.
+- LLM yine de her şeye tepki veriyorsa öğretmen ayırt edici değildir. O zaman kapı yalnızca "her zaman uyandır"ı öğrenir.
+
+**Neden şimdi:** Motor seçimi toplantısından önce en ucuz ve belirleyici teşhis bu (Themis 1.2). Öğretmen kötüyse hangi
+motor seçilirse seçilsin yanlış şeyi öğrenir.
+
+**Veri ve bağlam:**
+- Gerçek kullanım çok az: 11 günde hafızaya giren 33 algı (14 konuşma, 6 terminal, 6 olay, 7 sonuç).
+- Gerçek kayıttaki 4 uyanışın 4'ü hatayla bitti; varsayılan beyin (OpenRouter'da ücretsiz model) 404 veriyor.
+- Kalibrasyon kümesi `mind/refleksKumesi.ts`: 31 etiketli durum, etiketler model çıktısı görülmeden yazıldı; 10'u düşman
+  durum. Bugün `refleks-olcum.ts`'ten taşındı, kelimesi kelimesine.
+- Yan bulgu: bu kümenin terminal dışı satırları 18 Eylül öncesinin Türkçe öneklerini taşıyor. Tür verilmeden okununca
+  kural refleksi bugün 20/31 (%65) alıyor, belgelenen %100 değil. Canlıda refleks türle çağrıldığı için bu bir gerileme
+  değil, bayat bir ölçü.
+
+**Yöntem** (`tools/ogretmen.ts kalibre`):
+- Her durum gerçek köprüden LLM'e verilir: her soruda yeni bir köprü, süzgeçsiz, hafızası ve geçmişi boş.
+- Bağlam "masada": Ozyn monitörde çalışıyor.
+- Model qwen2.5:7b (canlının yerel beyni, sıcaklık 0,6). Her durum 3 kez sorulur; karar çoğunlukla verilir.
+- Eylem: dünyaya giden niyet ya da konuşmaya çevrilen metin (`uyanisEyleme`).
+- Sayım: 27 durum. Konuşma (2) içgüdüyle hep geçtiği için sayılmaz; görüntü (2) sorulamaz.
+
+**Öngörüler:**
+- **T0-1:** İnsan etiketiyle uyuşma %60–75 (~18/27). **Yanlışlayıcı:** ≥ %80.
+- **T0-2:** Hatalar çoğunlukla "boşa" (LLM gürültüye tepki verir): boşa ≥ 2 × kaçırılan.
+- **T0-3:** Oybirliği (3/3 aynı karar) durumların ≥ %70'inde.
+- **T0-4:** İki konuşma durumunda LLM her seferinde bir şey yapar.
+
+**Karar kuralı (koşmadan önce):**
+- Uyuşma ≥ %80 (≥ 22/27) ve kaçırılan ≤ 2 ise öğretmen "LLM'in davranışı" olarak kabul edilir.
+- Değilse aynı protokol claude:haiku ile denenir.
+- O da geçmezse "hakem" sorusu tasarlanıp kalibre edilir: "Orion buna tepki vermeli mi?"
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
