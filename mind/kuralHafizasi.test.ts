@@ -134,3 +134,34 @@ test("belirlenimci: aynı olay dizisi aynı hafızayı kurar", () => {
   };
   assert.equal(kur(), kur());
 });
+
+// ── Karar anında kapsama (H-K1) ────────────────────────────────────────────
+
+test("kapsama eşiği varsayılan 0: genel kural, kendinden çok daha zengin bir algıda da karar verir (eski davranış)", () => {
+  const h = new KuralHafizasi();
+  h.ogren(["tur:terminal", "icgudu:x", "k:a"], "sus", "d1");
+  h.ogren(["tur:terminal", "icgudu:x", "k:b"], "sus", "d2");   // genelleşir: {tur, icgudu}
+  const zengin = ["tur:terminal", "icgudu:x", "k:c", "k:d", "k:e", "k:f", "k:g", "k:h"];
+  assert.equal(h.karar(zengin)?.yon, "sus");
+});
+
+test("kapsama eşiği 0,5: kural algının yarısından azını kapsıyorsa karar yok — kapı içgüdüye bırakır", () => {
+  const h = new KuralHafizasi({ kapsamaEsigi: 0.5 });
+  h.ogren(["tur:terminal", "icgudu:x", "k:a"], "sus", "d1");
+  h.ogren(["tur:terminal", "icgudu:x", "k:b"], "sus", "d2");
+  const zengin = ["tur:terminal", "icgudu:x", "k:c", "k:d", "k:e", "k:f", "k:g", "k:h"];
+  assert.equal(h.karar(zengin), null);
+});
+
+test("kapsama eşiği tek denemeyi bozmaz: aynı durum tam kapsanır (1,0)", () => {
+  const h = new KuralHafizasi({ kapsamaEsigi: 0.5 });
+  h.ogren(ELLE_HATA, "sus", "d1");
+  assert.equal(h.karar(ELLE_HATA)?.yon, "sus");
+});
+
+test("kapsama sınırı: tam 0,5 kapsanan algıda karar verir", () => {
+  const h = new KuralHafizasi({ kapsamaEsigi: 0.5 });
+  h.ogren(["tur:olay", "icgudu:y", "k:a", "k:b"], "uyan", "d1");
+  h.ogren(["tur:olay", "icgudu:y", "k:a", "k:c"], "uyan", "d2");   // {tur, icgudu, k:a}
+  assert.equal(h.karar(["tur:olay", "icgudu:y", "k:a", "k:x", "k:y", "k:z"])?.yon, "uyan");
+});

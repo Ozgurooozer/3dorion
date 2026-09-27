@@ -2920,6 +2920,34 @@ Karıştırılmış öğretmen, qwen-masada: B %90 · ikinci 296/303 · yeni 15/
 - **Öngörü:** yeni durumlarda karar oranı ≤ %30 olur, karar verdiklerinde doğruluk ≥ %75; ikinci görülüş ≥ %95 kalır.
 - Sınama taze tohumlarda (6–10) ve taze bir durum havuzunda (yeni gerçek komutlar) yapılır; bu havuzda ayar yapılmaz.
 
+## 2026-09-27 — H-K1 sınaması — koşmadan önce
+
+**Yapılan:**
+- `KuralHafizasi` artık `kapsamaEsigi` anahtarını alıyor. Varsayılan 0, yani eski davranış; eski 16 test birebir geçiyor.
+- 4 yeni test: eşik 0,5'te zengin algıda genel kural karar vermiyor; aynı durumda tek deneme bozulmuyor; tam 0,5
+  kapsanan algıda karar veriliyor.
+
+**Taze havuz** (`brain-lab/data/kapi/2/`):
+- İlk kümeden farklı 30 gerçek komut (`kapi-yakala.ts --kume=2`): yazım hataları, git, listeler, node, testler, sürüm,
+  npm, PowerShell hataları.
+- İçgüdü bunların 12'sini geçiriyor.
+- qwen hakemi (bağımsız etiketçi): "masada" 17 evet / 13 hayır, "uzakta" 18 / 12.
+- Bu havuzda ayar yapılmaz.
+
+**Koşu:** `kos --veri=brain-lab/data/kapi/2 --motorlar=hk1 --tohumlar=6,7,8,9,10 --olay=400 --yeni=0.4`.
+- Motorlar: içgüdü, B (varsayılan), B-K1 (kapsama 0,5), D, kâhin.
+- Yeni payı %40: bu havuzun küçük ailelerinde %20 sıfıra yuvarlanıyor. Pay koşmadan önce sabitlendi.
+
+**Öngörüler** (iki qwen öğretmeninde de):
+- **HK1-1:** B-K1, yeni durumların ilk görülüşünde ≤ %30'una karar verir. B ≥ %60'ına verir.
+- **HK1-2:** B-K1'in yeni durumlarda verdiği kararların doğruluğu ≥ %75.
+- **HK1-3:** B-K1'in ikinci görülüş doğruluğu ≥ %95.
+- **HK1-4:** B-K1'in genel doğruluğu, B'ninkinden en fazla 2 puan düşük.
+
+**Yanlışlayıcılar:**
+- HK1-2 tutmazsa kapsama doğru çare değil.
+- HK1-3 tutmazsa anahtar ezberi bozuyor.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.

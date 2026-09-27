@@ -68,6 +68,15 @@ export interface KuralHafizasiAyari {
   enAzKosul?: number;
   /** Kararın geçerli sayılması için çoğunluğun asgari payı. Varsayılan 0,75. */
   guvenPayi?: number;
+  /**
+   * KARAR ANINDA KAPSAMA (H-K1, defter 2026-09-27): kararı veren kuralın koşulu
+   * algının işaretlerinin en az bu kadarını kapsamalı. Varsayılan 0: yalnızca
+   * "koşul algıda var mı" sorulur (eski davranış, birebir).
+   *
+   * Neden: çevrimdışı kıyasta kesişimle küçülen kurallar pek çok YENİ durumla
+   * tam eşleşti ve orada sınıf oranı düzeyinde karar verdi (aşırı genelleme).
+   */
+  kapsamaEsigi?: number;
 }
 
 const kesisim = (a: ReadonlySet<string>, b: readonly string[]): string[] => b.filter((x) => a.has(x));
@@ -79,12 +88,14 @@ export class KuralHafizasi {
   private _alfa: number;
   private _enAzKosul: number;
   private _guvenPayi: number;
+  private _kapsamaEsigi: number;
 
   constructor(ayar: KuralHafizasiAyari = {}) {
     this._uyaniklik = ayar.uyaniklik ?? 0.5;
     this._alfa = ayar.alfa ?? 0.5;
     this._enAzKosul = ayar.enAzKosul ?? 2;
     this._guvenPayi = ayar.guvenPayi ?? 0.75;
+    this._kapsamaEsigi = ayar.kapsamaEsigi ?? 0;
   }
 
   get noronlar(): readonly HafizaNoronu[] { return this._noronlar; }
@@ -106,6 +117,8 @@ export class KuralHafizasi {
     if (kod.length === 0) return null;
     const n = this._enOzgul(new Set(kod));
     if (!n) return null;
+    // En özgül kural kapsamayı geçemiyorsa daha genel olanlar hiç geçemez.
+    if (n.kosul.length / new Set(kod).size < this._kapsamaEsigi) return null;
     const toplam = n.sayac.uyan + n.sayac.sus;
     if (toplam === 0) return null;
     const yon: KapiYonu = n.sayac.uyan >= n.sayac.sus ? "uyan" : "sus";

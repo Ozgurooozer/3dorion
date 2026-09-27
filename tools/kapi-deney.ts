@@ -36,7 +36,8 @@ import type { Algi } from "../protocol/algi.ts";
 import { durumdanAlgi, BAGLAMLAR } from "./ogretmen.ts";
 import type { YakalananKomut } from "./kapi-yakala.ts";
 
-const VERI = "brain-lab/data/kapi";
+/** Veri klasörü: `--veri=` ile değişir (taze havuz ayrı klasörde durur). */
+const VERI = process.argv.find((a) => a.startsWith("--veri="))?.slice(7) ?? "brain-lab/data/kapi";
 
 // ── Durum havuzu ─────────────────────────────────────────────────────────────
 
@@ -108,17 +109,22 @@ const SONUCLAR: { aile: string; algi: Algi }[] = [
   { aile: "ajanda", algi: { tur: "sonuc", sonuc: { niyet_id: "ajanda_mujtf2g3_2", durum: "hata", not: "zaten oturuyorsun. Önce `kalk` niyeti gönder." } } },
 ];
 
-export function havuzKur(terminal: YakalananKomut[]): Durum[] {
+/** `yalnizTerminal`: taze havuz için yalnız verilen terminal çıktıları (küme, olay ve sonuç ilk havuzda kullanıldı). */
+export function havuzKur(terminal: YakalananKomut[], yalnizTerminal = false): Durum[] {
   const aday: Omit<Durum, "kapi" | "isaret">[] = [];
-  for (const [i, d] of KUME.entries()) {
-    const a = durumdanAlgi(d);
-    if (a) aday.push({ id: `kume${i}`, kaynak: "kume", aile: d.grup, algi: a, insan: d.beklenen });
+  if (!yalnizTerminal) {
+    for (const [i, d] of KUME.entries()) {
+      const a = durumdanAlgi(d);
+      if (a) aday.push({ id: `kume${i}`, kaynak: "kume", aile: d.grup, algi: a, insan: d.beklenen });
+    }
   }
   for (const [i, t] of terminal.entries()) {
     aday.push({ id: `term${i}`, kaynak: "terminal", aile: t.aile, algi: { tur: "terminal", kuyruk: t.kuyruk, kesildi: false, kod: t.kod } });
   }
-  for (const [i, o] of OLAYLAR.entries()) aday.push({ id: `olay${i}`, kaynak: "olay", aile: o.aile, algi: o.algi });
-  for (const [i, s] of SONUCLAR.entries()) aday.push({ id: `sonuc${i}`, kaynak: "sonuc", aile: s.aile, algi: s.algi });
+  if (!yalnizTerminal) {
+    for (const [i, o] of OLAYLAR.entries()) aday.push({ id: `olay${i}`, kaynak: "olay", aile: o.aile, algi: o.algi });
+    for (const [i, s] of SONUCLAR.entries()) aday.push({ id: `sonuc${i}`, kaynak: "sonuc", aile: s.aile, algi: s.algi });
+  }
   const havuz: Durum[] = [];
   for (const d of aday) {
     const k = kapiVeKod(d.algi);
@@ -141,10 +147,14 @@ export interface Motor {
 /** Ortak güven eşiği: her motor aynı çoğunluk payıyla karar verir (adil kıyas). */
 export const GUVEN = 0.75;
 
-/** B — büyüyen kural hafızası (mind/kuralHafizasi.ts), varsayılan ayarlar. */
+/** B — büyüyen kural hafızası (mind/kuralHafizasi.ts). `kapsama` > 0: H-K1 anahtarı açık. */
 export class KuralMotoru implements Motor {
-  readonly ad = "B kural";
-  private h = new KuralHafizasi({ guvenPayi: GUVEN });
+  readonly ad: string;
+  private h: KuralHafizasi;
+  constructor(kapsama = 0) {
+    this.ad = kapsama > 0 ? `B-K1 ${kapsama}` : "B kural";
+    this.h = new KuralHafizasi({ guvenPayi: GUVEN, kapsamaEsigi: kapsama });
+  }
   karar(i: readonly string[]) { return this.h.karar(i)?.yon ?? null; }
   ogren(i: readonly string[], y: KapiYonu, d: string) { this.h.ogren(i, y, d); }
   boyut() { return this.h.noronlar.length; }
@@ -282,16 +292,16 @@ export interface Akis {
 
 /**
  * Tekrarlı akış. Durumlar tohumla karıştırılır; sıradaki r'inci durumun ağırlığı
- * 1/r^0,8 (sık olan sık gelir). Her aileden durumların ~%20'si yeni ayrılır.
+ * 1/r^0,8 (sık olan sık gelir). Her aileden durumların `yeniOran` kadarı (varsayılan %20) yeni ayrılır.
  */
-export function akisKur(havuz: readonly Durum[], tohum: number, n: number): Akis {
+export function akisKur(havuz: readonly Durum[], tohum: number, n: number, yeniOran = 0.2): Akis {
   const r = rastgele(tohum);
   const karisik = [...havuz].map((d) => ({ d, s: r() })).sort((a, b) => a.s - b.s).map((x) => x.d);
   const aileler = new Map<string, Durum[]>();
   for (const d of karisik) { const k = `${d.kaynak}/${d.aile}`; aileler.set(k, [...(aileler.get(k) ?? []), d]); }
   const yeniler = new Set<string>();
   for (const liste of aileler.values()) {
-    const kac = Math.floor(liste.length * 0.2);
+    const kac = Math.floor(liste.length * yeniOran);
     for (const d of liste.slice(0, kac)) yeniler.add(d.id);
   }
   const agirlik = karisik.map((_, i) => 1 / Math.pow(i + 1, 0.8));
@@ -412,7 +422,7 @@ async function calistir(): Promise<void> {
   const komut = process.argv[2];
   if (komut === "havuz") {
     const terminal = JSON.parse(fs.readFileSync(`${VERI}/terminal.json`, "utf8")) as YakalananKomut[];
-    const havuz = havuzKur(terminal);
+    const havuz = havuzKur(terminal, process.argv.includes("--yalniz-terminal"));
     fs.writeFileSync(`${VERI}/havuz.json`, JSON.stringify(havuz, null, 1));
     const say = (f: (d: Durum) => boolean) => havuz.filter(f).length;
     console.log(`havuz: ${havuz.length} öğrenilebilir durum (küme ${say((d) => d.kaynak === "kume")}, terminal ${say((d) => d.kaynak === "terminal")}, olay ${say((d) => d.kaynak === "olay")}, sonuç ${say((d) => d.kaynak === "sonuc")}); içgüdü geçirdi ${say((d) => d.kapi.gecti)}`);
@@ -447,13 +457,16 @@ async function calistir(): Promise<void> {
     for (const f of fs.readdirSync(VERI).filter((f) => f.startsWith("etiket-") && f.endsWith(".json")).sort()) {
       ogretmenler.push([f.slice(7, -5), JSON.parse(fs.readFileSync(`${VERI}/${f}`, "utf8")) as Etiketler]);
     }
-    const motorlar = (): Politika[] => [new IcguduIkizi(), new KuralMotoru(), new MantarMotoru(), new AniMotoru(), new LojistikMotor(), "kahin"];
+    // --motorlar=hk1: H-K1 sınaması — B varsayılan ile B-K1 (kapsama 0,5) yan yana, D ve kâhin kıyas.
+    const motorlar = (): Politika[] => arg("motorlar", "hepsi") === "hk1"
+      ? [new IcguduIkizi(), new KuralMotoru(), new KuralMotoru(0.5), new AniMotoru(), "kahin"]
+      : [new IcguduIkizi(), new KuralMotoru(), new MantarMotoru(), new AniMotoru(), new LojistikMotor(), "kahin"];
     const sonuc: Record<string, unknown>[] = [];
     for (const [ad, etiket] of ogretmenler) {
       for (const karisik of [false, true]) {
         const toplam = new Map<string, Olcum>();
         for (const tohum of tohumlar) {
-          const akis = akisKur(havuz, tohum, n);
+          const akis = akisKur(havuz, tohum, n, Number(arg("yeni", "0.2")));
           const e = karisik ? karistir(etiket, havuz, 1000 + tohum) : etiket;
           for (const m of motorlar()) {
             const o = olc(m, akis, havuz, e);

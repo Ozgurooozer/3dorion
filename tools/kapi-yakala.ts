@@ -11,7 +11,8 @@
 // Komutlar kaynak dosyalara yazmaz ve ağa çıkmaz. `vite build` yalnız `dist/` derleme
 // çıktısını yeniler; başarısız test dosyası geçici klasöre yazılıp silinir.
 //
-// Kullanım: node --experimental-strip-types tools/kapi-yakala.ts [--cikti=brain-lab/data/kapi/terminal.json]
+// Kullanım: node --experimental-strip-types tools/kapi-yakala.ts [--kume=1|2] [--cikti=brain-lab/data/kapi/terminal.json]
+//   --kume=2: ikinci, TAZE komut kümesi (H-K1 sınaması; bu kümede ayar yapılmaz).
 "use strict";
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -68,8 +69,50 @@ function yakala(): void {
     'test("toplama", () => { assert.equal(1 + 1, 2); });',
     'test("carpma", () => { assert.equal(2 * 3, 7); });',
   ].join("\n"));
+  const patlak2 = path.join(gecici, "metin.test.mjs");
+  fs.writeFileSync(patlak2, [
+    'import { test } from "node:test";',
+    'import assert from "node:assert/strict";',
+    'test("selamlama", () => { assert.equal("merhaba".toUpperCase(), "MERHABA"); });',
+    'test("ters çevirme", () => { assert.equal([..."abc"].reverse().join(""), "cab"); });',
+  ].join("\n"));
 
-  const komutlar: [string, string][] = [
+  // İKİNCİ KÜME (H-K1 sınaması için TAZE durumlar): birinci kümeden farklı komutlar.
+  // Bu kümede hiçbir ayar yapılmaz; yalnız ön-kayıtlı hipotez sınanır.
+  const ikinci: [string, string][] = [
+    ["yazim", "gitt log"],
+    ["yazim", "nmp --version"],
+    ["yazim", "Get-Chlditem"],
+    ["yazim", "cd olmayan_klasor"],
+    ["yazim", "ndoe index.js"],
+    ["git", "git status --porcelain"],
+    ["git", "git rev-parse --short HEAD"],
+    ["git", "git log -1 --format=%s"],
+    ["git", "git log --oneline -3 -- mind"],
+    ["git", "git diff --stat HEAD~3 HEAD~1"],
+    ["git", "git branch"],
+    ["liste", "dir tools"],
+    ["liste", "dir bridge"],
+    ["liste", "Get-ChildItem docs\\specs"],
+    ["liste", "dir *.json"],
+    ["node", "node -e \"console.log(JSON.stringify({a:1}))\""],
+    ["node", "node -e \"console.error('bir sorun var')\""],
+    ["node", "node -e \"process.exit(2)\""],
+    ["node", "node -e \"null.x\""],
+    ["node", "node -p \"1+1\""],
+    ["test", "node --experimental-strip-types --test mind/zaman.test.ts mind/ajanda.test.ts"],
+    ["test", "node --experimental-strip-types --test mind/kuralHafizasi.test.ts"],
+    ["test", `node --test "${patlak2}"`],
+    ["surum", "npx tsc --version"],
+    ["surum", "npx vite --version"],
+    ["npm", "npm run"],
+    ["npm", "npm config get registry"],
+    ["ps", "Get-Location"],
+    ["ps", "Remove-Item olmayan.txt"],
+    ["ps", "Get-Process -Name olmayan_surec"],
+  ];
+
+  const birinci: [string, string][] = [
     ["yazim", "boyle_bir_komut_yok"],
     ["yazim", "pyhton --version"],
     ["yazim", "gti status"],
@@ -102,6 +145,7 @@ function yakala(): void {
     ["ps", "Get-Content package.json -TotalCount 3"],
   ];
 
+  const komutlar = arg("kume", "1") === "2" ? ikinci : birinci;
   const sonuc: YakalananKomut[] = [];
   for (const [aile, komut] of komutlar) {
     const t0 = Date.now();
@@ -111,10 +155,12 @@ function yakala(): void {
     const sureMs = Date.now() - t0;
     const kod = r.status ?? 1;
     // Görünen komut, geçici yol yerine sabit bir ad taşısın: gerçek kayıtta da dosya adı görünür.
-    const gorunen = komut.replace(patlak, "patlak.test.mjs");
+    const gorunen = komut.replace(patlak, "patlak.test.mjs").replace(patlak2, "metin.test.mjs");
     const cikti = `${r.stdout ?? ""}${r.stderr ? `\n${r.stderr}` : ""}`
       .split(pathToFileURL(patlak).href).join("patlak.test.mjs")
-      .split(patlak).join("patlak.test.mjs");
+      .split(patlak).join("patlak.test.mjs")
+      .split(pathToFileURL(patlak2).href).join("metin.test.mjs")
+      .split(patlak2).join("metin.test.mjs");
     sonuc.push({ aile, komut: gorunen, kod, sureMs, kuyruk: kuyrukKur(gorunen, cikti) });
     console.log(`${aile.padEnd(8)} kod=${String(kod).padEnd(3)} ${String(sureMs).padStart(6)} ms  ${gorunen}`);
   }
