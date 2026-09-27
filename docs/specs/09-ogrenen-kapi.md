@@ -86,17 +86,19 @@ node --experimental-strip-types tools/ogret.ts hafiza                     # öğ
 
 | G11 | Bağlam koda girer: mesafe kovası, bakış, yüzey. Bilinmeyen alan kodlanmaz. Bağlam okunamazsa köprü bağlamsız kod yazar. | `[TEST]` 7 test; bozma 5/5 |
 
-## Çevrimdışı kıyas özeti (`brain-lab/LAB-DEFTERI.md`, 2026-09-27)
+## Çevrimdışı kıyas ve çürütme özeti (`brain-lab/LAB-DEFTERI.md`, 2026-09-27)
 
-- **Tek deneme ve unutmama güçlü.**
-  - B (kural hafızası) ve D (tam anı) ikinci görülüşte %99–100 doğru. İlk çeyrekte görülenleri akış sonunda da doğru
-    veriyorlar.
-  - B, D ile aynı doğrulukta (%94–95) ve ~9 kat küçük.
-- **Gerçekten yeni duruma genelleme zayıf.** Yeni durumlarda kararlar sınıf oranı düzeyinde.
-  - B aşırı genelliyor: kesişimle küçülen kurallar çok yeni durumla eşleşiyor.
+Özet, Atlas çürütme bataryasından sağ çıkan hali (3 havuz, 20 taze tohum).
+- **Tek deneme ve unutmama sağ çıktı.**
+  - B (kural hafızası) ve D (tam anı) ikinci görülüşte %99–100 doğru, hiç görülmemiş havuzda da.
+  - Tutarsız öğretmende şansa düşüyor: ölçü sızmıyor.
+  - Lezyonda ders gidince karar içgüdüye dönüyor: karar o dersten geliyor.
+- **Doğruluk ve boyut:** B, D'den tutarlı biçimde 0,2–1,2 puan daha az doğru (p < 0,001); 9–25 kat küçük ve okunur.
+- **Yeni duruma genelleme havuza bağlı.**
+  - B'ninki güvenilmez: %35–81; bir havuzda sınıf oranının altında.
+  - D'ninki daha iyi: %60–100.
   - Karar anında kapsama şartı (H-K1) B'yi temkinli yaptı ama daha doğru yapmadı; reddedildi.
-  - D, benzerliği bütün koda göre (Jaccard) ölçüyor ve iki havuzda da en iyi genelledi. Öneri H-K2: B karar anında
-    Jaccard kullansın.
+  - Öneri H-K2: B karar anında D gibi Jaccard benzerliği kullansın.
 - Sinek modeli (A), bu uygulamayla başarısız: kodu ortak işaretler baskılıyor.
 
 ## Açık (sırayla, toplantı K7)

@@ -3049,6 +3049,74 @@ oturumda Atlas ajan tipi tanımlı değil; batarya Atlas kartına ve kuralların
   - Ders dosyası kaldırılınca gölge null.
   - İki koşuda senaryonun üç algısının kapı kararları aynı.
 
+## 2026-09-27 — Atlas çürütme sonucu: İ1, İ2, İ5 sağ çıktı; İ3 düzeltildi; İ4 yazıldığı haliyle çürüdü
+
+**Ne koşuldu:**
+- Kod 327a1d6.
+- `kapi-deney.ts curut --tohumlar=11-30`: 3 havuz × 2 öğretmen × 20 tohum × 400 olay. Havuz 3 (28 gerçek komut) hiç
+  kullanılmamıştı.
+- Canlı R9: scratchpad `canli4/`, güncel sürüm.
+- Kayıt: `brain-lab/data/kapi/curut.json`.
+
+**Dur kuralı tetiklenmedi:**
+- R3 (tutarsız öğretmen): ikinci görülüş %47–63'e düştü. Sızıntı yok.
+- R4 (içgüdü öğretmeni): öğrenenler içgüdüyü geçemedi (%99,7–100'e karşı %100). Yapaylık yok.
+
+**Sonuç `[ÖLÇÜLDÜ]`** (20 taze tohum; B = kural hafızası, D = tam anı):
+
+| havuz · öğretmen | B ikinci | D ikinci | B genel · D genel | B−D | B yeni | D yeni | boyut B / D |
+|---|---|---|---|---|---|---|---|
+| 1 · qwen-masada (%51 evet) | %99,8 | %100 | %93,6 · %94,8 | −1,2 | %60 | %63 | 45 / 400 |
+| 1 · qwen-uzakta (%72) | %99,4 | %100 | %94,2 · %95,3 | −1,2 | %61 | %60 | 45 / 400 |
+| 2 · qwen-masada (%57) | %99,0 | %100 | %97,5 · %98,2 | −0,7 | **%48** | %66 | 23 / 400 |
+| 2 · qwen-uzakta (%60) | %99,0 | %100 | %97,3 · %97,9 | −0,6 | **%35** | %66 | 23 / 400 |
+| 3 · qwen-masada (%54) | %100 | %100 | %99,5 · %99,7 | −0,2 | **%81** | **%100** | 16 / 400 |
+| 3 · qwen-uzakta (%57) | %100 | %100 | %99,3 · %99,4 | −0,2 | %72 | %100 | 16 / 400 |
+
+**Diğer testler:**
+- **R5 lezyon** (derslerin yarısı defterden çıkarıldı):
+  - B'de silinen durumların ilk kararı, içgüdünün aynı olaylardaki doğruluğuna döndü: fark −2,3 ile +1,9 puan arası.
+  - Korunanlar %98–100 kaldı.
+  - D'de silinenler içgüdünün 0–7,8 puan üstünde kaldı; komşu anılardan kısmen toparlıyor.
+- **R6:** B > içgüdü, 6 kolun hepsinde 20/20 tohum; işaret testi p = 1,9·10⁻⁶. **B < D de 6 kolun hepsinde tutarlı ve
+  anlamlı** (p < 0,001).
+- **R7:** B'nin ikinci görülüş doğruluğu dört ayarda da (100 ve 1000 olay; Zipf üssü 0,5 ve 1,2) %98,7–100.
+- **R8:** 26 küme durumunda hakem etiketleri insan etiketiyle %50–69 uyuşuyor (qwen-masada %69, qwen-uzakta %62,
+  Haiku %54 ve %50). Hepsi < %80.
+- **R9 canlı:**
+  - Dersli koşu: kabuk hatası `{sus, K1}`, afiş ve `dir` `{sus, K2}`.
+  - Ders kaldırılınca üçünde de gölge null.
+  - Kapı kararları ve uyanış iki koşuda aynı.
+  - Bağlam eklenmeden verilmiş ders, bağlamlı kodla da eşleşti.
+
+**Öngörü karnesi:**
+- R1 ✓ (ikinci ≥ %97; fark ≤ 2 puan; boyut ≤ 1/5).
+- R2 kısmen ✗: havuz 3'te B'nin yeni doğruluğu %81 ve %72, "sınıf oranı + 15" sınırının (%69, %72) üstünde. Genelleme
+  öngörülenden iyi.
+- R3 ✓, R4 ✓.
+- R5 ✓ (B tam öngörüldüğü gibi; D'nin toparlaması ±10 içinde).
+- R6 yarı ✗: B > içgüdü ✓, ama B ile D farkı anlamlı.
+- R7 ✓, R8 ✓, R9 ✓.
+
+**İddiaların hükmü:**
+- **İ1, canlı ders:** sağ çıktı. Ders olunca gölge dersi gösteriyor, ders kaldırılınca null oluyor; kapı değişmiyor.
+- **İ2, tek deneme ve unutmama:** sağ çıktı.
+  - Taze tohumlarda ve hiç görülmemiş havuzda %99–100.
+  - Tutarsız öğretmende şansa düşüyor, yani ölçü sızmıyor.
+  - Lezyon, kararın o dersten geldiğini gösteriyor.
+- **İ3, "B, D kadar doğru ve ~9 kat küçük":** düzeltildi.
+  - B, D'den tutarlı biçimde biraz daha az doğru (0,2–1,2 puan; 6 kolda da p < 0,001).
+  - Küçüklük sağ çıktı: 9–25 kat.
+- **İ4, "yeni duruma genelleme zayıf, sınıf oranı düzeyinde":** yazıldığı haliyle **çürüdü**.
+  - Genelleme durum kümesine bağlı. B'nin yeni doğruluğu havuz 2'de %35–48 (sınıf oranının altında), havuz 3'te %72–81.
+  - D %60–100, her havuzda B'ye eşit ya da üstünde.
+  - Doğru ifade: "B'nin genellemesi güvenilmez; D'ninki daha iyi."
+- **İ5, hiçbir LLM öğretmeni %80'i geçmiyor:** sağ çıktı; "uzakta" bağlamında da geçmiyor.
+
+**Anlamı:** Öğrenen kapının asıl işi sağlam: tekrar eden durumu tek derste doğru öğreniyor, unutmuyor, kararının
+kaynağı tek tek gösterilebiliyor. Zayıf yeri yeni durum ve D bu konuda B'den iyi. H-K2 önerisini (B karar anında Jaccard
+kullansın) destekliyor. Karar Ozyn'in.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
