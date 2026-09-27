@@ -45,7 +45,7 @@ mekanizması yok.
 | modül | ne kararı verir | bugün nasıl |
 |---|---|---|
 | `mind/dikkat.ts` | bu algı beyne gitsin mi? | sabit kurallar: kanal, tekrar penceresi 4 sn, terminal kısma 2,5 sn, dakikada 20 bütçe |
-| `mind/refleks.ts` | büyük beyni uyandırmaya değer mi? | küçük yerel modelin yargısı (functiongemma-270m) |
+| `mind/refleks.ts` | büyük beyni uyandırmaya değer mi? | elle yazılmış kurallar (`KuralRefleksi`); 270M model 2026-09-12'de ölçümle elendi |
 | `mind/yerelTepki.ts` | LLM susarken ne yapılır? | kurallar |
 | `mind/inisiyatif.ts` | kendiliğinden ne zaman davranılır? | güç bütçesi ve fayda formülü |
 | `mind/hafiza.ts` | hangi hatıra çağrılır? | Generative Agents puanı |
@@ -56,6 +56,14 @@ mekanizması yok.
 - Kayıt: `ORION_KAYIT=1` ile yalnız LLM'in girdisi ve çıktısı tutuluyor. Diskte 3 örnek (`fixtures/beyin`) ve 10 sadakat
   testi (`fixtures/sadakat`) var.
 - Ham algı akışı, kapının kararları ve bu kararların sonuçları kaydedilmiyor.
+- Kapı için bir ölçü düzeneği zaten var; KT2'nin ilk kalibrasyon kümesi bunlar:
+  - `mind/refleks-olcum.ts`: 31 etiketli durum, düşman durumlar dahil. Etiketler model çıktısı görülmeden yazılmış.
+  - `mind/akis-olcum.ts`: 13 gerçek komutun çıktısı.
+- Orion'un kendi dersi: kural süzgeci uydurma kümede %100 aldı, ama gerçek terminal çıktısında tek bir `npm test`
+  beyni 11 kez uyandırdı (spec 01, "Asıl birim parça değil, KOMUT"). Elle yazılmış sınav yetmiyor; gerçek kayıt
+  gerekiyor.
+- Öğrenilen kuralların Orion'da yeri hazır: refleks kararı "LLM'i uyandırma, şu küçük niyeti yap" diyebiliyor
+  (`RefleksKarar.niyet`).
 
 ### brain-lab: taşınan ve donan parçalar
 
