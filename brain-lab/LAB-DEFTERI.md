@@ -3432,6 +3432,76 @@ Refleks (Faz D) adımları sırayla, her birinin sonucunu bekleyerek gönderir.
 - Ayrıca `yaz` içeren görev beceri olmamalı: yazının içeriği sözden geliyor, v1 onu parametre yapmıyor. Kısmi tekrar
   görevi yarım bırakırdı.
 
+## 2026-09-28 — Beceri refleksi Faz B: görev, beceri hafızası, çevrimdışı ölçüm — B9 ölçümünden önce
+
+**Yapılan `[TEST]`** (commit c4fefcb). Davranış değişmez; yeni kod yalnız kaydı okur.
+- `mind/gorev.ts`: görev = tek kesin sözle tetiklenen, dış kökenli, bedensel niyetlerle yapılan iş.
+  - Niyet sınıfları tek tabloda: bedensel, eşlik (söz, sorgu), engel (yazı, komut).
+  - Söz anahtarı = çerçeve (çapa dışı sözcükler) + yuvalar (çapa adları, ekiyle).
+  - Görev sonucu: hata yok, hepsinin sonucu geldi, son adım `bitti`.
+- `mind/beceriHafizasi.ts`: saf ve belirlenimci.
+  - İlk başarı beceri doğurur, sonrakiler sayaca yazılır; pay < 0,75 askıya alır.
+  - Kimlik tariften türer: kayıttan yeniden kurulunca aynı kalır.
+- `tools/beceri-deney.ts`: sıralı ölçüm (her görevde önce karar, sonra öğrenme).
+  - Ölçüler: kapsam, uyum, kazanç, güvensiz adım, "LLM ayrıca konuştu".
+- Kalibrasyon testleri:
+
+  | politika | beklenen |
+  |---|---|
+  | taban "hiç" | kapsam 0 |
+  | tavan "kâhin" | kapsam ve uyum 4/4, kazanç bütün süre |
+  | alışkanlık [otur] | uyum 1/4 |
+  | gerçek hafıza, aynı görev 5 kez | 4 eşleşme, 4 uyum |
+  | gerçek hafıza, aynı söze iki tarif sırayla | 3 eşleşme, 0 uyum |
+
+- 90 test (Faz B dosyaları), toplam 1771 yeşil.
+- Bozma denemesi: 70 mutantın 68'i yakalandı, 2'si eşdeğer:
+  - G7: bugün hiçbir çapa adı öbürünün öneki değil.
+  - G26: `soz` alanı yalnız `duydum` satırında.
+
+**Kod yazarken bulunanlar:**
+1. **İki harfli sözcükler.** Kapının ayıklayıcısı (`kelimeler`) iki harfli sözcükleri atıyor; "kupayı al" ile "kupayı
+   at" aynı anahtar olurdu. İkinci ayıklayıcı yazılmadı; `kelimeler`'e isteğe bağlı ayar eklendi. Kapının varsayılanı
+   aynı, işaretleri değişmez.
+2. **Kelime sınırı.** 16 kelimelik sınır iki uzun sözü aynı anahtara düşürebilirdi. Söz anahtarı sınırsız.
+3. **Aynı çapa iki yuvada.** "masaya git masada otur"da adımdaki `masa`nın hangi yuvadan geldiği belirsiz: anahtar yok.
+4. **Uyumun görmediği.** Uyum yalnız bedensel adımlara bakıyor, refleks sessiz. LLM'in aynı görevde konuştuğu
+   eşleşmeler ayrıca sayılıyor.
+5. **Benim hatam, bozma denemesinde.** Yeni bir test dosyanın paylaşılan `OTUR` sabitini değiştiriyordu. Taban
+   kırmızıydı ve her mutant "yakalandı" göründü. Test düzeltildi (kendi nesnesiyle). Betiğe bekçi eklendi: taban
+   yeşil değilse deneme başlamaz. İkinci koşuda her mutantı hedeflediği test yakaladı.
+
+**Veri durumu** (yapı yoklaması, ölçüm değil):
+- Gerçek kayıt: 2026-09-27 (60 uyanış, 4 söz) ve 2026-09-28 (26 uyanış, 6 söz).
+- Gövdeli uyanış 0, metinli söz 0: Orion Faz A'dan önceki sürümle açılmış. **B9 verisi, Orion yeni sürümle açılınca
+  birikmeye başlar.**
+- Bu iki günün 10 sözünden ikisi bedensel görev ("masaya git", "başka bir yere git"); hiçbiri tekrarlanmıyor.
+- Canlı koşuların tek görevi (`tahtabeyin`) `yaz` içeriyor, görev sayılmıyor. Bugünkü veriyle ölçüm 0 görev verir;
+  koşulmadı.
+
+**B9 ön-kaydı** (adım 4 haftasının sonunda koşulur):
+- **Veri:** `%APPDATA%/3dorion/karar-kaydi`'nin bütün dosyaları. Faz A'dan önceki satırlar görev üretmez (gövde yok),
+  süzmeye gerek yok.
+- **Komut:** `node --experimental-strip-types tools/beceri-deney.ts`, ayrıca `--json` ile kayıt.
+- **Kod:** c4fefcb ya da ölçüm yoluna (`mind/gorev.ts`, `mind/beceriHafizasi.ts`, `tools/beceri-deney.ts`)
+  dokunmayan sonraki bir commit. Dokunan olursa ölçüm eski kodla da koşulur ve ikisi yazılır.
+- **Öngörüler:**
+  - **B9-1:** Görev sayısı ≤ 15. Neden: iki günde 10 söz vardı, ikisi bedensel.
+  - **B9-2:** Eşleşme ≤ 3, kapsam < %25. Doğal kullanımda aynı çerçeve az tekrarlanır.
+  - **B9-3:** Faz D'nin taslak barı (gölgede ≥ 20 eşleşme) doğal kullanımla bir haftada dolmaz.
+  - **B9-4:** Güvensiz adım 0.
+  - **B9-5:** Eşleşme ≥ 3 ise uyum ≥ %67: LLM aynı söze çoğunlukla aynı adımları verir. Eşleşme < 3 ise uyum
+    yorumlanmaz.
+  - **B9-6:** Eşleşmelerin yarısından çoğunda LLM ayrıca konuşur ("Tamam" gibi). Refleksin sessizliği görünür bir fark
+    olur.
+- **Çürütücüler:**
+  - Görev ≥ 30 ya da kapsam ≥ %40: doğal kullanımda bedensel görev sandığımdan sık. Refleksin değeri yüksek, Faz D'nin
+    barı doğal kullanımla toplanabilir.
+  - Görev < 5: çevrimdışı ölçüm doğal kullanım hakkında bir şey söyleyemez. Faz D'nin barı bilinçli bir senaryoyla
+    toplanır (`becerdene`); bu durumda karar Ozyn'in.
+
+**Sonraki:** Faz C (canlı gölge). Davranış değiştirmiyor; kanıtı aynı bedensel görevi iki kez söyleyen bir senaryo.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.

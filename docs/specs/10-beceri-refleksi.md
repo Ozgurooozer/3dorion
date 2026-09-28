@@ -1,7 +1,9 @@
 # Spec 10 — Beceri refleksi: bir kez başarılan görev, parametreleriyle refleks olur
 
 Tarih: 2026-09-28 · Durum: **onaylandı** (Ozyn, `/goal`: "fazları düzgünce test ederek bitir"); açık sorularda
-öneriler uygulanıyor. Faz A bitti; B–D sürüyor, E ayrı tasarım.
+öneriler uygulanıyor. Faz A bitti. Faz B'nin kodu bitti (c4fefcb); gerçek kayıtla ölçümü (B9) hafta sonunda, ön-kaydı
+defterde. C–D sürüyor, E ayrı tasarım. Uygulama `/goal` ile öne alındı; ölçümlerin ve yetkinin zamanı aşağıdaki
+tablodaki gibi kalır.
 Üst belgeler: `docs/specs/08-karar-kaydi.md` (karar kaydı), `docs/specs/09-ogrenen-kapi.md` (öğrenen kapı),
 `brain-lab/BUYUK-RESIM.md`.
 
@@ -24,8 +26,8 @@ beyne iletilecek; o parametreler içinde aynı görevi modüler, esnek şekilde 
 
 - **Görev:** Ozyn'in tek bir kesin sözüyle (`duydum`, `kesin: true`) tetiklenen ve başka hiçbir algıyla tetiklenmeyen
   uyanış. Görevin adımları, o uyanışın dünyaya gönderdiği bedensel niyetlerdir.
-- **Başarı:** Görevin bütün bedensel niyetleri `bitti` ile döndü. Hiçbiri `hata` ya da `iptal` değil, hepsinin sonucu
-  geldi.
+- **Başarı:** Görevin hiçbir bedensel niyeti `hata` değil, hepsinin sonucu geldi ve sonuncusu `bitti`. Öncekilerin
+  `iptal`i, sonraki emrin onu geçmesidir (ayrıntı: "Beceri çıkarma" 3).
 - **Beceri:** İlk başarıdan doğan kayıt. Taşıdıkları:
   - görev anahtarı: sözün çerçevesi ve parametre yuvaları;
   - adımlar: niyetler, argümanları yuvalara bağlı;
@@ -64,7 +66,7 @@ BECERİ HAFIZASI (mind/beceriHafizasi.ts, saf) — parametre içinde eşleşen b
 KARAR KAYDI — uyanış (niyetler + gövdeleri, Faz A) · sonuçlar · beceri gölgesi (Faz C) · refleks uyanışı (Faz D)
    │
    ▼
-BECERİ ÇIKARICI (saf) — tek sözle tetiklenmiş, bedensel niyetlerinin hepsi "bitti" olan görev
+BECERİ ÇIKARICI (saf) — tek sözle tetiklenmiş, hatasız, son bedensel niyeti "bitti" olan görev
    ├── ilk başarı → beceri doğar (Ozyn: "bir kere başarılı yapınca")
    ├── sonraki başarı / hata → sayaçlar; karar payı 0,75 (öğrenen kapıyla aynı)
    └── hafıza açılışta kayıttan birebir yeniden kurulur (defter ilkesi, spec 09 K5)
@@ -80,7 +82,7 @@ BECERİ ÇIKARICI (saf) — tek sözle tetiklenmiş, bedensel niyetlerinin hepsi
 ## Beceri çıkarma (v1, Faz B'de ölçülür)
 
 1. **Tetik:** Uyanışı yalnız bir kesin `duydum` algısı tetiklemiş olmalı. Birden çok tetik belirsizdir; beceri
-   doğmaz.
+   doğmaz. Uyanışın kökeni dış olmalı: Orion'un kendi girişimi (inisiyatif) beceri doğurmaz.
 2. **Bedensel niyetler:** `git`, `otur`, `kalk`, `bak`, `al`, `birak`, `dur`, `jest`, `poz`, `odaklan`.
    Beceriye girmeyenler:
    - `komut`: asla. Kabuk komutu kendiliğinden tekrarlanmaz (güvenlik).
@@ -98,12 +100,23 @@ BECERİ ÇIKARICI (saf) — tek sözle tetiklenmiş, bedensel niyetlerinin hepsi
      (`world/avatar/yurutucu.ts`). LLM aynı turda `git masa` + `otur` gönderince `otur`, `git`i geçer. İlk taslaktaki
      "hepsi bitti" şartı bu yüzden gerçekte hiç sağlanmazdı.
    - Refleks (Faz D) adımları sırayla, her birinin sonucunu bekleyerek gönderir.
-4. **Anahtar:**
+4. **Anahtar** (`mind/gorev.ts` `sozAnahtari`):
    - Sözün sözcükleri `mind/durumKodu.ts` `kelimeler` ile çıkar: küçük harf, dolgu atılır. Karşılaştırmada Türkçe
      karakterler katlanır (ı→i, ö→o, ü→u, ş→s, ç→c, ğ→g).
-   - Bir çapa adıyla başlayan sözcük yuva olur ("masaya" → `masa`, "pencereye" → `pencere`, "kapıya" → `kapi`).
-   - Kalan sözcükler çerçevedir.
-5. **Adımlar:** Bir yuvanın çapa adına eşit argüman yuva işareti alır; öbür argümanlar sabittir.
+   - Ayıklayıcı aynı, ayarı farklı (`enKisa: 2`, sınırsız). Kapının varsayılanı iki harfli sözcükleri atar; o zaman
+     "kupayı al" ile "kupayı at" aynı anahtar olurdu. Kelime sınırı da iki uzun sözü aynı anahtara düşürebilirdi.
+   - Çapa adı ve bilinen bir ek (hal eki, 3. tekil iyelik + hal eki, ünsüz yumuşaması) yuva olur: "masaya" → `masa`,
+     "masasına" → `masa`, "kapıya" → `kapi`, "günlüğe" → `gunluk`. Ek listesi kapalı: "masal", "kapital",
+     "tahtalar" yuva değil.
+   - Rica ve seslenme sözcükleri ("Orion", "lütfen", "hadi") çerçeveye girmez. Kalan sözcükler çerçevedir.
+   - Anahtar olamayan söz: çerçevesi boş ("masa") ya da aynı çapa iki ayrı yuvada ("masaya git masada otur"). İkincide
+     adımdaki çapanın hangi yuvadan geldiği belirsiz; yanlış bağ başka bir sözde yanlış çapaya götürür.
+   - İki kelimelik iç ad (`oda_ortasi`) v1'de yuva olmaz; sözcükleri çerçevede kalır.
+5. **Adımlar:** Bir yuvanın çapa adına eşit argüman yuva işareti alır; öbür argümanlar sabittir. Çapa değerli
+   alanlar: hedefi çapa olan `git`, `bak`, `jest` (`hedef.ad`) ile `otur` ve `odaklan` (`capa`). Nesne, oyuncu ya da
+   nokta hedefi sabittir.
+   - **Tarif ve kimlik:** Tarif = çerçeve + yuva sayısı + yuvadan arındırılmış adımlar. Kimlik bu içerikten türer
+     (FNV-1a, anahtar sırasından bağımsız JSON): hafıza kayıttan yeniden kurulunca kimlik aynı kalır.
 6. **Sayaç:** Aynı anahtarla gelen sonraki başarı ya da hata sayaçlara yazılır. Karar payı 0,75'in altına düşen beceri
    askıya alınır; yeni bir başarı onu geri getirir.
 
@@ -130,9 +143,12 @@ Bunlar kabul ölçütüdür; her fazın commit'inden önce denetlenir.
    - Sözcük ayıklama yalnız `kelimeler`'den gelir; ikinci bir ayıklayıcı yazılmaz.
    - Çapa adları tek listeden gelir. `protocol/temel.ts`'e çalışma zamanı listesi (`CAPALAR`) eklenir ve `CapaAdi` ondan
      türetilir. Bir bekçi testi, dünyanın kaydettiği çapaların bu listeyle aynı olduğunu sınar.
-   - Bedensel niyet kümesi tek sabittir (`BEDENSEL_NIYETLER`). Bekçi testi, her niyet türünün "bedensel" ya da
-     "bedensel değil" diye sınıflanmasını zorlar; yeni tür sınıfsız kalamaz.
-   - Görev başarısı tek fonksiyondur (`gorevBasarili`); köprü de çevrimdışı araç da onu kullanır.
+   - Niyet sınıfları tek tablodur (`mind/gorev.ts` `SINIF`, `niyetSinifi`): bedensel, eşlik (söz, sorgu), engel (yazı,
+     komut). Tablo `Record<NiyetTur, …>`: protokole yeni tür eklenince tip denetimi sınıfını sorar, sınıfsız kalamaz.
+   - Görev sonucu tek fonksiyondur (`gorevSonucu`); köprü de çevrimdışı araç da onu kullanır.
+   - Güven payı tek sabittir (`VARSAYILAN_GUVEN_PAYI`, `mind/kuralHafizasi.ts`); öğrenen kapı, kıyas düzeneği ve beceri
+     hafızası aynı payı kullanır. İçerik özeti tek fonksiyondur (`mind/ozet32.ts`).
+   - Zaman sırası tek fonksiyondur (`zamanSirali`): sıralı ölçüm ve kayıttan kurma ona dayanır.
 3. **Yapı, metin değil.**
    - Niyetler kayda yapı (gövde) olarak girer; özetten ya da günlükten ayrıştırılmaz.
    - Söz, algı satırına metin olarak girer.
@@ -164,7 +180,9 @@ Bunlar kabul ölçütüdür; her fazın commit'inden önce denetlenir.
 12. **Commit disiplini.**
     - Faz başına küçük, tek amaçlı commit'ler; yalnız bu işin dosyaları.
     - Ölçümden önce commit.
-    - `world/`'e dokunulmaz: Faz A–D `world/` gerektirmiyor.
+    - `world/`'e dokunulmaz: Faz A–D `world/` gerektirmiyor. Tek istisna kural 2'nin bekçisi: dünyanın çapa kaydını
+      sınayan `world/level/capalar.test.ts`'teki kopya liste, protokolün `CAPALAR`ına bağlandı (yalnız test, yalnız
+      `protocol/`'den alır).
 13. **Dosya hijyeni.**
     - Dosyanın kendi satır sonu korunur; Python'la bayt sayılarak doğrulanır.
     - Ters eğik çizgili içerik Write/Edit ile yazılır.
@@ -186,22 +204,30 @@ Bunlar kabul ölçütüdür; her fazın commit'inden önce denetlenir.
 | B2 | `duydum` algı satırı sözün metnini ve kesinliğini taşır | A | `[TEST]` 2bf7353 |
 | B3 | Davranış aynı: köprü testleri ve betikli oturum aynı uyanış ve niyetleri üretir | A | `[TEST]` eski 1686 test birebir; kayıt yalnız yazılır |
 | B4 | Canlı: senaryo koşusunda uyanış satırlarında gövdeler, söz satırlarında metin var | A | `[ÖLÇÜLDÜ]` `tahtabeyin`: 5/5 niyet gövdeli, söz satırı metinli, bozuk satır 0 |
-| B5 | Çıkarıcı: tek kesin sözle tetiklenmiş, bedensel niyetlerinin hepsi `bitti` olan uyanıştan beceri doğar. Çok tetikli, hatalı, iptalli, sonuçsuz, yalnız sözlü ya da `komut`lu uyanıştan doğmaz | B | `[PLAN]` |
-| B6 | Yuvalar: sözdeki çapa adı (ekiyle) yuva olur, sözde geçmeyen argüman sabit kalır | B | `[PLAN]` |
-| B7 | Eşleşme: aynı çerçeve + tanınan çapa → adımlar yeni çapayla; farklı çerçeve ya da pay < 0,75 → eşleşmez | B | `[PLAN]` |
-| B8 | Belirlenimci: aynı kayıt aynı hafızayı kurar | B | `[PLAN]` |
-| B9 | Ölçüm (gerçek kayıt, ön-kayıtlı): kapsam, uyum, kazanılacak uyanış ve süre | B | `[PLAN]` |
+| B5 | Çıkarıcı: tek kesin sözle tetiklenmiş, son bedensel adımı `bitti` ve hiçbir adımı `hata` olmayan uyanıştan beceri doğar. Çok tetikli, inisiyatif kökenli, kesin olmayan, hatalı, sonuçsuz, yalnız sözlü, `yaz`lı ya da `komut`lu uyanıştan doğmaz | B | `[TEST]` c4fefcb |
+| B6 | Yuvalar: sözdeki çapa adı (ekiyle) yuva olur, sözde geçmeyen argüman sabit kalır | B | `[TEST]` c4fefcb; ek ızgarası, bağlama ızgarası |
+| B7 | Eşleşme: aynı çerçeve + tanınan çapa → adımlar yeni çapayla; farklı çerçeve ya da pay < 0,75 → eşleşmez | B | `[TEST]` c4fefcb |
+| B8 | Belirlenimci: aynı kayıt aynı hafızayı kurar | B | `[TEST]` c4fefcb; JSON eşitliği, kimlik kayıt sırasından bağımsız |
+| B9 | Ölçüm (gerçek kayıt, ön-kayıtlı): kapsam, uyum, kazanılacak uyanış ve süre | B | `[ÖN-KAYIT]` defter 2026-09-28; ölçü kalibre `[TEST]`; koşu hafta sonunda |
 | B10 | Gölge: eşleşen sözde `beceriGolge` yazılır; kapı ve uyanış değişmez | C | `[PLAN]` |
 | B11 | Kayıttan yeniden kurulan hafıza canlıdakine eşit | C | `[PLAN]` |
 | B12 | Yetki anahtarı kapalıyken köprü birebir aynı (bekçi) | D | `[PLAN]` |
 | B13 | Anahtar açıkken: eşleşen görevde LLM uyanmaz; adımlar `niyetGonder` ile gider; bir adım hata verirse kalanlar gönderilmez, hata LLM'e geçer | D | `[PLAN]` |
 | B14 | Canlı `becerdene`: ilk söz LLM'le, aynı söz ikinci kez refleksle; ikinci seferde uyanış yok | D | `[PLAN]` |
-| B15 | Her fazda bozma denemesi: bütün mutantlar yakalanır ya da eşdeğerliği yazılı | A–D | `[PLAN]` |
+| B15 | Her fazda bozma denemesi: bütün mutantlar yakalanır ya da eşdeğerliği yazılı | A–D | A: 9/9 · B: 70'te 68, 2 eşdeğer (G7 hiçbir çapa adı öbürünün öneki değil; G26 `soz` yalnız `duydum` satırında) |
 
-**Ölçüler (Faz B ve C):**
+**Ölçüler (Faz B ve C; `tools/beceri-deney.ts`, sıralı: her görevde önce karar, sonra öğrenme):**
 - **Kapsam:** Görevlerin kaçında parametre içinde bir beceri eşleşirdi.
-- **Uyum:** Eşleşen görevlerde becerinin adımları LLM'in gerçekten yaptığıyla aynı mıydı.
+- **Uyum:** Eşleşen görevlerde becerinin adımları LLM'in gerçekten yaptığıyla birebir aynı mıydı (gövde eşitliği).
 - **Kazanç:** Kazanılacak uyanış sayısı ve süresi.
+- **LLM ayrıca konuştu:** Eşleşen görevlerin kaçında LLM söz ya da sorgu da verdi. Uyum yalnız bedensel adımlara bakar,
+  refleks ise sessizdir; bu sayı uyumun göremediği farkı gösterir.
+- **Güvensiz adım:** Eşleşmelerin önerdiği bedensel olmayan adım. Yapıca 0 olmalı.
+- Ölçüye yalnız LLM'in planladığı görevler girer. Refleksin kendi yürütümü hafızayı besler ama ölçülmez: bir beceri
+  kendini doğrulayamaz.
+- Kalibrasyon (Themis 1.1): taban "hiç" kapsam 0; tavan "kâhin" kapsam ve uyum %100; sabit adımlı alışkanlık, uyumu
+  yalnız o adımlı görevlerde. Gerçek hafıza bilinen akışlarda: aynı görev n kez → (n−1)/n eşleşme; aynı söze iki
+  tarif sırayla → 3 eşleşme, 0 uyum.
 
 Faz D'nin barı ön-kayıtta dondurulur. Taslak:
 - gölgede en az 20 eşleşme;
