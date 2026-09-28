@@ -2346,16 +2346,23 @@ if (new URLSearchParams(location.search).has("tahtabeyin")) {
 // Kanıt kayıtta: ORION_KARAR_DOSYASI ile ayrı dosya; `tools/beceri-deney.ts` okur (ölçü +
 // gölge denetimi). Çapalar görünen etiketi iç adıyla aynı olanlar (pencere, sandalye): LLM
 // etiketi ad diye verirse "bilinmeyen çapa" (BY39-2d) görevi düşürmesin.
+// Sözler ve her birinden sonraki bekleme `?becerdenesoz=soz@ms|soz@ms|…` ile değişir (ORION_BECERDENE_SOZLER;
+// spec 10 çürütme bataryası L1/L2: kesme için kısa bekleme, başarısız refleks için başka söz).
+const BECERDENE_VARSAYILAN = "pencereye git@16000|sandalyeye git@16000|pencereye git@16000";
 if (new URLSearchParams(location.search).has("becerdene")) {
   void (async () => {
     const bekle = (ms: number) => new Promise((r) => setTimeout(r, ms));
     await bekle(2500);
     const k = kopru as Kopru | null;
     if (!k) { console.log("[BECERDENE] KALDI kopru yok"); return; }
-    for (const [i, soz] of ["pencereye git", "sandalyeye git", "pencereye git"].entries()) {
+    const sozler = (new URLSearchParams(location.search).get("becerdenesoz") ?? BECERDENE_VARSAYILAN).split("|").map((p) => {
+      const [soz, ms] = p.split("@");
+      return { soz: (soz ?? "").trim(), ms: Number(ms) || 16_000 };
+    });
+    for (const [i, { soz, ms }] of sozler.entries()) {
       const once = k.sayac().dusunme;
       k.algi({ tur: "duydum", kesin: true, metin: soz });
-      await bekle(16_000);
+      await bekle(ms);
       const konum = (orion as Avatar | null)?.durum().konum;
       console.log(`[BECERDENE] ${i + 1}. soz "${soz}" · uyanis +${k.sayac().dusunme - once} · refleks toplam ${k.sayac().refleks}`
         + ` · konum=${konum ? `${konum.x.toFixed(1)},${konum.z.toFixed(1)}` : "?"} · beceri=${k.beceriHafizasi.beceriler.length}`);
