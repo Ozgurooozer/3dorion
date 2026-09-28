@@ -33,6 +33,7 @@ const REFLEKS_IZGARASI: Record<string, RefleksGirdi> = {
   "refleks.gordum.cevap": { tur: "gordum", ozet: `${OZET_ONEKI.gordum}in front of you): masa` },
   "refleks.sonuc.hata": { tur: "sonuc", ozet: `${OZET_ONEKI.sonuc}n_a1 → hata (çapa bulunamadı)` },
   "refleks.sonuc.rutin": { tur: "sonuc", ozet: `${OZET_ONEKI.sonuc}n_a1 → bitti` },
+  "refleks.sonuc.elle_hata": { tur: "sonuc", niyetKaynagi: "elle", ozet: `${OZET_ONEKI.sonuc}elle_a1 → hata (zaten ayaktasın)` },
   "refleks.anlik.rutin": { tur: "dunya", ozet: `${OZET_ONEKI.dunya} duruyor, Ozyn 2.0m away` },
   "refleks.taninmayan": { ozet: "hiçbir öneke uymayan biçim" },
 };

@@ -75,6 +75,15 @@ export type Algi =
        * olabilir. EK alan olduğu için mevcut üretici/tüketicileri kırmaz.
        */
       kod?: number;
+      /**
+       * Komutun ÇALIŞMA SÜRESİ (ms), kabuğun OSC 133 işaretlerinden. "Uzun iş
+       * başarıyla bitti" içgüdüsü (mind/refleks.ts, `kod_uzun`) buna bakar.
+       *
+       * Neden sonradan: süre giriş noktasında biliniyordu ama algıya girmiyordu;
+       * köprünün süzgeci onu hiç görmediği için kural canlı kapıda ölüydü (karar
+       * kaydı, 2026-09-27). EK alan: mevcut üretici/tüketicileri kırmaz.
+       */
+      sureMs?: number;
     }
   /** Gönderilmiş bir niyetin akıbeti. */
   | { tur: "sonuc";    sonuc: NiyetSonucu }

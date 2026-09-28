@@ -105,6 +105,8 @@ export const ICGUDULER = {
     aciklama: "Beynin kendi sorduğu sorunun cevabı her zaman terfi eder." },
   "refleks.sonuc.hata": { katman: "refleks", ezilebilir: true,
     aciklama: "Niyet başarısız oldu: terfi eder, Orion yapamadığını öğrensin." },
+  "refleks.sonuc.elle_hata": { katman: "refleks", ezilebilir: true,
+    aciklama: "Elle verilen niyet (Ozyn'in tuşu ya da konsolu) başarısız oldu: süzülür; o niyeti LLM vermedi." },
   "refleks.sonuc.rutin": { katman: "refleks", ezilebilir: true,
     aciklama: "Niyet başarıyla bitti: süzülür, bağlamı şişirmesin." },
   "refleks.anlik.rutin": { katman: "refleks", ezilebilir: true,

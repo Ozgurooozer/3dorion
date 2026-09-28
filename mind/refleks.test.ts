@@ -2,11 +2,13 @@
 "use strict";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { OllamaRefleks, KuralRefleksi } from "./refleks.ts";
+import fs from "node:fs";
+import path from "node:path";
+import { OllamaRefleks, KuralRefleksi, UZUN_ISLEM_MS, refleksGirdisi } from "./refleks.ts";
 // Önek ÜRETİMDEN gelir, elle yazılmaz: bu dosya eskiden "Terminal çıktısı:"
 // diye sabit bir metin besliyordu ve `ozetle` öneki değiştirince test hâlâ
 // yeşil kalıyordu — ölü bir dalı canlı sanıyorduk (spec 06 §6.8).
-import { OZET_ONEKI } from "../protocol/algi.ts";
+import { OZET_ONEKI, ozetle, type Algi } from "../protocol/algi.ts";
 
 function yanit(icerik: unknown, ok = true, status = 200) {
   return {
@@ -244,4 +246,83 @@ test("BAŞARILI niyet sonucu hâlâ süzülür — kural yalnızca `gordum` içi
 test("BAŞARISIZ niyet sonucu yine terfi eder", () => {
   const k = new KuralRefleksi().karar({ tur: "sonuc", ozet: "Niyet n_1 → hata (uzakta)" });
   assert.equal(k.terfi, true);
+});
+
+// ── ELLE VERİLEN NİYETİN HATASI (BY39) ─────────────────────────────────────
+// Gerçek kayıtta (2026-09-27) Ozyn'in 1–6 tuşlarıyla verdiği `kalk` niyetlerinin
+// hatası LLM'i üç kez uyandırdı; LLM o niyetleri hiç vermemişti. Ozyn
+// 2026-09-28'de "uyanmasın, yerel kalsın" dedi. Girdiler gerçek algıdan, köprünün
+// kullandığı `ozetle` ve `refleksGirdisi` ile kurulur.
+
+function sonucKarari(niyet_id: string, durum: "hata" | "bitti", not?: string) {
+  const a: Algi = { tur: "sonuc", sonuc: { niyet_id, durum, not } };
+  return new KuralRefleksi().karar(refleksGirdisi(a, ozetle(a)));
+}
+
+test("elle verilen niyetin hatası LLM'i uyandırmaz: refleks.sonuc.elle_hata", () => {
+  const k = sonucKarari("elle_mujgw1q1", "hata", "zaten ayaktasın; `kalk` yapacak bir şey yok");
+  assert.deepEqual({ terfi: k.terfi, kural: k.kural }, { terfi: false, kural: "refleks.sonuc.elle_hata" });
+});
+
+test("LLM'in kendi niyetinin hatası yine uyandırır", () => {
+  const k = sonucKarari("n_mujtafb3_3", "hata", "bilinmeyen çapa/nesne: 'beyaz tahta'.");
+  assert.deepEqual({ terfi: k.terfi, kural: k.kural }, { terfi: true, kural: "refleks.sonuc.hata" });
+});
+
+test("ajandanın niyet hatası yine uyandırır: yalnız elle verilen yerel kalır", () => {
+  const k = sonucKarari("ajanda_mujtf2g3_2", "hata", "zaten oturuyorsun. Önce `kalk` niyeti gönder.");
+  assert.equal(k.kural, "refleks.sonuc.hata");
+});
+
+test("elle verilen niyetin BAŞARISI da rutin: süzülür", () => {
+  assert.equal(sonucKarari("elle_mujgw1q1", "bitti").kural, "refleks.sonuc.rutin");
+});
+
+// ── SÜRE ALGIDAN GELİR (BY39, kod_uzun) ────────────────────────────────────
+// Süre giriş noktasında biliniyordu ama algıya girmiyordu: köprünün süzgeci
+// `kod_uzun`u hiç göremedi (karar kaydı 2026-09-27). Artık terminal algısı
+// süreyi taşıyor; süzgeç girdisi algıdan kuruluyor.
+
+function terminalKarari(sureMs: number | undefined) {
+  const a: Algi = { tur: "terminal", kuyruk: "(komut çıktı üretmedi)", kesildi: false, kod: 0, sureMs };
+  return new KuralRefleksi().karar(refleksGirdisi(a, ozetle(a)));
+}
+
+test("uzun süren sessiz başarı, köprünün girdisiyle kod_uzun olur", () => {
+  assert.deepEqual(
+    { terfi: terminalKarari(1600).terfi, kural: terminalKarari(1600).kural },
+    { terfi: true, kural: "refleks.terminal.kod_uzun" },
+  );
+});
+
+test("süresi olmayan terminal algısı kod_uzun'a ulaşamaz (canlıdaki eski hata)", () => {
+  assert.equal(terminalKarari(undefined).kural, "refleks.terminal.kod_rutin");
+});
+
+test("eşik sınırı: tam UZUN_ISLEM_MS uzun sayılır, bir ms eksiği sayılmaz", () => {
+  assert.deepEqual(
+    [terminalKarari(UZUN_ISLEM_MS).kural, terminalKarari(UZUN_ISLEM_MS - 1).kural],
+    ["refleks.terminal.kod_uzun", "refleks.terminal.kod_rutin"],
+  );
+});
+
+test("refleksGirdisi yalnız ilgili türe ekler: konuşmada kod, süre, kaynak yok", () => {
+  const a: Algi = { tur: "duydum", metin: "merhaba", kesin: true };
+  const g = refleksGirdisi(a, ozetle(a));
+  assert.deepEqual({ kod: g.kod, sureMs: g.sureMs, niyetKaynagi: g.niyetKaynagi, tur: g.tur }, { kod: undefined, sureMs: undefined, niyetKaynagi: undefined, tur: "duydum" });
+});
+
+// ── TEK KAYNAK (bekçi) ─────────────────────────────────────────────────────
+// Süzgeç girdisi elle kurulmaz: kurulduğu her yer `refleksGirdisi` çağırır.
+// Eskiden üç yerde ayrı yazılıyordu ve biri süreyi unuttu (yukarıda).
+
+test("TEK KAYNAK: giriş noktası ve düzenek süzgeç girdisini elle kurmaz", () => {
+  const kok = path.resolve(import.meta.dirname, "..");
+  const elleKuran = ["world/giris.ts", "tools/kapi-deney.ts"].flatMap((d) => {
+    const metin = fs.readFileSync(path.join(kok, d), "utf8");
+    const kurulan = metin.match(/\brefleks\.karar\(\s*\{/g)?.length ?? 0;
+    const cagri = metin.match(/\brefleksGirdisi\(/g)?.length ?? 0;
+    return kurulan > 0 || cagri === 0 ? [`${d}: elle kurulan ${kurulan}, refleksGirdisi ${cagri}`] : [];
+  });
+  assert.deepEqual(elleKuran, []);
 });

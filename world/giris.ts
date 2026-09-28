@@ -57,6 +57,7 @@ import { DUGUMLER } from "./surfaces/semaCekirdek.ts";
 import { TAHTA, GUNLUK, SEMA, GOZ_YUKSEKLIK } from "./level/olculer.ts";
 import { niyetDogrula } from "../protocol/dogrula.ts";
 import type { Niyet } from "../protocol/niyet.ts";
+import { ozetle, type Algi } from "../protocol/algi.ts";
 import { varlik } from "./varlik.ts";
 import { Kopru } from "../bridge/kopru.ts";
 import type { OgretimSatiri } from "../mind/kararKaydi.ts";
@@ -74,7 +75,7 @@ import { odadaSure, sessizlikSozu, gununVakti } from "../mind/zaman.ts";
 import { depoYukle } from "../mind/hafizaGocu.ts";
 import { GucButcesi, Inisiyatif } from "../mind/inisiyatif.ts";
 import { McpBeyin } from "../bridge/mcpBeyin.ts";
-import { KuralRefleksi, UZUN_ISLEM_MS } from "../mind/refleks.ts";
+import { KuralRefleksi, UZUN_ISLEM_MS, refleksGirdisi } from "../mind/refleks.ts";
 import { OnayKapisi } from "../mind/onayKapisi.ts";
 import { riskEtiketi } from "../mind/komutRiski.ts";
 import { OlayUretici } from "./olayUretici.ts";
@@ -679,26 +680,27 @@ saat.dinle((t, dt) => {
       const kodu = bekleyenKod ?? undefined;
       bekleyenKod = null; bekleyenSure = undefined;
       console.log(`[KABUK] sessiz basari: kod=${kodu ?? "?"} sure=${sure ?? "?"}ms`);
-      kopru.algi({ tur: "terminal", kuyruk: "(komut çıktı üretmedi)", kesildi: false, kod: kodu });
+      kopru.algi({ tur: "terminal", kuyruk: "(komut çıktı üretmedi)", kesildi: false, kod: kodu, sureMs: sure });
     }
 
     if (blok) {
-      // Kod ve süre ÖNCE alınır: süzgeç kararını da algı da aynı değerleri
-      // kullanmalı, yoksa logdaki gerekçe ile beyne giden şey ayrışır.
       const kod = bekleyenKod ?? undefined;
       const sure = bekleyenSure;
       bekleyenKod = null;
       bekleyenSure = undefined;
       sessizBitisBekliyor = false;
 
-      const gecti = refleks.karar({
-        tur: "terminal", kod, sureMs: sure,
-        ozet: `Terminal çıktısı:\n${blok}`,
-      });
+      // Günlük ve görü kancası köprünün süzgeciyle AYNI kararı görür: beyne
+      // giden algının kendisi, köprünün özeti (`ozetle`) ve tek kaynaklı girdi
+      // (`refleksGirdisi`). Eskiden burada elle kurulan girdi süreyi taşıyor,
+      // köprününki taşımıyordu: `kod_uzun` canlıda ölüydü ama `sessizdene` bu
+      // kopyayı ölçtüğü için "geçti" diyordu (karar kaydı, 2026-09-27).
+      const algi: Algi = { tur: "terminal", kuyruk: blok, kesildi: kesildiMi(blok), kod, sureMs: sure };
+      const gecti = refleks.karar(refleksGirdisi(algi, ozetle(algi)));
       console.log(`[ALGI] terminal blok (${blok.split("\n").length} satir) -> terfi=${gecti.terfi} (${gecti.gerekce})`);
       const kanca = (window as unknown as { _goruKanca?: (b: string, t: boolean) => void })._goruKanca;
       if (kanca) kanca(blok, gecti.terfi);
-      kopru.algi({ tur: "terminal", kuyruk: blok, kesildi: kesildiMi(blok), kod });
+      kopru.algi(algi);
     }
   }
 
@@ -1330,13 +1332,19 @@ function beyniBagla(a: Avatar): void {
         zamanAsimiMs: 10_000,
       }) },
   ];
-  // Başlangıç: `?beyin=` listede varsa o, yoksa opencode. Liste TEK kaynak;
+  // VARSAYILAN BEYİN: Claude Haiku (Ozyn, 2026-09-28). OpenRouter'daki ücretsiz
+  // Ling modeli kalktı: karar kaydında dört uyanışın dördü 404 ile bitti
+  // (2026-09-27). Haiku zaten bağlı (adaptörünü Electron başlatıyor) ve
+  // ölçülmüştü (2,8–3,6 sn). OpenCode seçenek olarak duruyor; yedek model yine
+  // YOK: seçilen beyin düşerse Orion kurallı varlık kipinde kalır.
+  const VARSAYILAN_BEYIN = "claude:haiku";
+  // Başlangıç: `?beyin=` listede varsa o, yoksa varsayılan. Liste TEK kaynak;
   // bilinen adları ayrıca yazmak, yeni seçenek eklenince sessizce ayrışırdı.
-  // Bilinmeyen değer çökertmez — eskiden de opencode'a düşüyordu.
+  // Bilinmeyen değer çökertmez: varsayılana düşer.
   const istek = q.get("beyin");
-  const baslangic = secenekler.some((s) => s.ad === istek) ? istek! : "opencode";
+  const baslangic = secenekler.some((s) => s.ad === istek) ? istek! : VARSAYILAN_BEYIN;
   if (istek && baslangic !== istek) {
-    console.warn(`[BEYIN] bilinmeyen beyin '${istek}', opencode ile başlanıyor`);
+    console.warn(`[BEYIN] bilinmeyen beyin '${istek}', ${VARSAYILAN_BEYIN} ile başlanıyor`);
   }
   const secici = new SecilebilirBeyin(secenekler, baslangic, {
     bildir: (o) => {
@@ -1476,10 +1484,9 @@ function beyniBagla(a: Avatar): void {
       // çağrı ZATEN her algıda ve tam karar anında çalışıyor.
       sema.vur("algi", a.tur);
       sema.vur("suzgec");
-      const k = refleks.karar({
-        ozet, tur: a.tur,
-        kod: a.tur === "terminal" ? a.kod : undefined,
-      });
+      // Girdi tek kaynaktan (mind/refleks.ts `refleksGirdisi`): süre, çıkış kodu
+      // ve niyetin kaynağı algıdan gelir, burada elle kurulmaz.
+      const k = refleks.karar(refleksGirdisi(a, ozet));
       sema.vur(k.terfi ? "dikkat" : "refleks", k.terfi ? "" : "süzüldü");
       // Kimlik de döner: karar kaydı hangi içgüdünün karar verdiğini yazar (spec 08).
       return { gecsin: k.terfi, kural: k.kural, gerekce: k.gerekce };
@@ -2221,10 +2228,13 @@ if (new URLSearchParams(location.search).has("zihindene")) {
         return s;
       };
       const once = deger("beyin.aktif");
+      // Reddedilen geçiş modeli değiştirmemeli: kıyas başlangıç modeliyle, adla
+      // değil (varsayılan beyin 2026-09-28'de değişti; ad yazılı olsaydı kırılırdı).
+      const oncekiModel = deger("beyin.model");
 
       const r = await gec("dis");
       const disSonra = { model: deger("beyin.model"), aktif: deger("beyin.aktif") };
-      console.log(`[ZIHINDENE] SECICI-RED ${disSonra.model === "opencode" && String(disSonra.aktif).includes("reddedildi") ? "GECTI" : "KALDI"}` +
+      console.log(`[ZIHINDENE] SECICI-RED ${disSonra.model === oncekiModel && String(disSonra.aktif).includes("reddedildi") ? "GECTI" : "KALDI"}` +
         ` — yazma=${r?.oldu} model=${disSonra.model} aktif=${disSonra.aktif}`);
 
       const y = await gec("yerel:qwen2.5");

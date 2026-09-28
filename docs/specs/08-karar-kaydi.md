@@ -21,7 +21,8 @@ Orion'un kendi dersi de aynı yönde (spec 01): kural süzgeci elle yazılmış 
 
 Ozyn'in modeli (2026-09-26): "Ana bir bölge var, bu kurallar hiç değişmiyor. Etrafında diğer bölgeler gelişiyor."
 
-- **Ana bölge:** Orion'un kapısındaki elle yazılmış kurallar. Her birine kalıcı bir kimlik verildi (34 içgüdü).
+- **Ana bölge:** Orion'un kapısındaki elle yazılmış kurallar. Her birine kalıcı bir kimlik verildi: 31 içgüdü
+  (`refleks.sonuc.elle_hata` 2026-09-28'de eklendi; ilk yazımda "34" deniyordu, koddaki sayı 30'du).
   Her karar, onu hangi içgüdünün verdiğini taşır.
 - **Etrafı:** öğrenilen kurallar (KT2) bunların etrafında büyür ve aynı kayda kendi kimlikleriyle yazılır.
 
@@ -101,9 +102,16 @@ Başlangıçta yol `[KARAR-DOSYASI]` satırıyla söylenir.
 - Köprüdeki süzgeç ise süreyi göremiyor, çünkü terminal algısında süre alanı yok.
 - `sessizdene`'de `Start-Sleep 1600 ms` için senaryo "terfi=1, geçti" dedi. Kayıt, bloğun `kod_rutin` ile düştüğünü
   gösterdi; köprü sayacı da `dusunme: 0` dedi.
-- **Düzeltme adayı:**
-  - terminal algısına `sureMs` eklenir, süzgece geçirilir;
-  - `sessizdene` kopya kararı değil gerçek kapıyı (kayıt ya da köprü sayacı) ölçer.
+- **Düzeltildi (2026-09-28, BY39):**
+  - Terminal algısı süreyi taşıyor (`protocol/algi.ts` `sureMs`).
+  - Süzgecin girdisi tek kaynaktan kuruluyor (`mind/refleks.ts` `refleksGirdisi`): köprünün süzgeci, kökün `[ALGI]`
+    günlüğü ve çevrimdışı düzenek aynı algıdan, aynı özetle karar alıyor; bekçi testi elle kurulan girdiyi yakalar.
+  - `[ÖLÇÜLDÜ]` `sessizdene`: 1,7 sn'lik başarılı komutun algısı kayıtta `refleks.terminal.kod_uzun` ile geçti ve
+    uyanış hatasız bitti; anlık komutlar `kod_rutin` ile düştü.
+
+**Elle verilen niyetin hatası (2026-09-28, BY39):** Ozyn'in tuşla ya da konsoldan verdiği niyet başarısız olunca LLM
+uyanmıyor. Yeni içgüdü `refleks.sonuc.elle_hata`, ezilebilir: tek dersle "uyan" diye öğretilebilir. Niyetin kaynağı
+süzgece yapıyla geçiyor (`niyetKaynagi`); özet metninden ayrıştırılmıyor. `[TEST]`: canlıda elle niyet senaryosu yok.
   - Orion'un davranışını değiştirdiği için Ozyn'in kararına bırakıldı.
 
 ## Kapsam dışı (bilerek)

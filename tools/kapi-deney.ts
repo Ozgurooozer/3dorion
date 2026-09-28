@@ -29,7 +29,7 @@ import fs from "node:fs";
 import { Kopru } from "../bridge/kopru.ts";
 import type { Beyin, BeyinCikti } from "../bridge/beyin.ts";
 import { KARAR_ONEKI, KararKaydi, type AlgiSatiri, type KapiKarari } from "../mind/kararKaydi.ts";
-import { KuralRefleksi } from "../mind/refleks.ts";
+import { KuralRefleksi, refleksGirdisi } from "../mind/refleks.ts";
 import { KUME } from "../mind/refleksKumesi.ts";
 import { KuralHafizasi, type KapiYonu, type KararOlcusu } from "../mind/kuralHafizasi.ts";
 import type { Algi } from "../protocol/algi.ts";
@@ -72,7 +72,7 @@ export function kapiVeKod(a: Algi): { kapi: KapiKarari; isaret: string[] } | nul
     beyin: new SessizBeyin(), niyetGonder: () => {}, dunyaDurumu: () => "", toplamaMs: 60_000,
     dikkat: { simdi: () => 1_000_000_000 },
     suzgec: (x, ozet) => {
-      const r = refleks.karar({ ozet, tur: x.tur, kod: x.tur === "terminal" ? x.kod : undefined });
+      const r = refleks.karar(refleksGirdisi(x, ozet));
       return { gecsin: r.terfi, kural: r.kural, gerekce: r.gerekce };
     },
     kararKaydi: new KararKaydi({ yaz: (s) => { const j = JSON.parse(s.slice(KARAR_ONEKI.length + 1)); if (j.tur === "algi") satirlar.push(j); } }),

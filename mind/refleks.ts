@@ -12,14 +12,16 @@
 //   - terfi: false + niyet → küçük, geri dönüşü olmayan bir yerel tepki ver
 //     (ör. sesin geldiği yöne "bak") ve ana beyni HİÇ rahatsız etme
 //
-// Bağımlılık: yalnızca protocol/. Ollama'ya HTTP ile konuşur (fetch),
-// Babylon yok. hazirMi() başarısız olursa (model çekilmemiş/servis kapalı)
-// arayan taraf HER ZAMAN terfi:true varsaymalı — refleks "belki yanlışlıkla
-// atlama" değil, en fazla "gereksiz uyandırma" riski taşımalı.
+// Bağımlılık: protocol/; mind/ içinden yalnız icgudu.ts (tip) ve durumKodu.ts
+// (niyet kaynağı). Ollama'ya HTTP ile konuşur (fetch), Babylon yok. hazirMi()
+// başarısız olursa (model çekilmemiş/servis kapalı) arayan taraf HER ZAMAN
+// terfi:true varsaymalı — refleks "belki yanlışlıkla atlama" değil, en fazla
+// "gereksiz uyandırma" riski taşımalı.
 "use strict";
 import type { Niyet } from "../protocol/niyet.ts";
-import { OZET_ONEKI, type AlgiTur } from "../protocol/algi.ts";
+import { OZET_ONEKI, type Algi, type AlgiTur } from "../protocol/algi.ts";
 import type { RefleksKurali } from "./icgudu.ts";
+import { niyetKaynagi } from "./durumKodu.ts";
 
 export interface RefleksGirdi {
   /** Kısa, tek satırlık algı özeti (protocol/algi.ts ozetle() çıktısı). */
@@ -45,8 +47,35 @@ export interface RefleksGirdi {
    * `cd` 5 ms surer, kimse beklemez; `npm test` 3 sn surer, Ozyn ekrana bakar.
    */
   sureMs?: number;
+  /**
+   * Niyet sonucunda niyeti KİMİN verdiği: `n` (LLM), `elle` (Ozyn'in tuşu ya
+   * da konsolu), `ajanda`… (mind/durumKodu.ts `niyetKaynagi`). Elle verilen
+   * niyetin hatası LLM'i uyandırmaz: o niyeti LLM vermedi, uyanınca yapmadığı
+   * bir şeye tepki veriyordu (karar kaydı 2026-09-27; Ozyn 2026-09-28 onayladı).
+   */
+  niyetKaynagi?: string;
   /** Son N terfi kararının özeti — "aynı şeyi tekrar terfi ettirme" bağlamı. */
   baglam?: readonly string[];
+}
+
+/**
+ * Bir algıdan refleks girdisi. Köprünün süzgeci ve giriş noktasının günlüğü
+ * (world/giris.ts) ile çevrimdışı düzenek (tools/kapi-deney.ts) AYNI eşlemeyi
+ * buradan alır.
+ *
+ * Neden tek kaynak: eşleme bu üç yerde ayrı ayrı yazılıyordu. Giriş noktası
+ * süreyi veriyor, köprünün süzgeci vermiyordu: `kod_uzun` canlı kapıda ölüydü ve
+ * onu ölçen senaryo (`sessizdene`) kopyayı ölçtüğü için "geçti" diyordu.
+ * Bekçi: refleks.test.ts "TEK KAYNAK".
+ */
+export function refleksGirdisi(a: Algi, ozet: string): RefleksGirdi {
+  return {
+    ozet,
+    tur: a.tur,
+    kod: a.tur === "terminal" ? a.kod : undefined,
+    sureMs: a.tur === "terminal" ? a.sureMs : undefined,
+    niyetKaynagi: a.tur === "sonuc" ? niyetKaynagi(a.sonuc.niyet_id) : undefined,
+  };
 }
 
 export interface RefleksKarar {
@@ -175,9 +204,10 @@ export class KuralRefleksi implements Refleks {
 
     if (t === "sonuc" || (!t && o.startsWith(OZET_ONEKI.sonuc))) {
       const hata = /→\s*hata/.test(o);
-      return hata
-        ? { terfi: true, gerekce: "niyet hatası", kural: "refleks.sonuc.hata" }
-        : { terfi: false, gerekce: "rutin başarı", kural: "refleks.sonuc.rutin" };
+      if (!hata) return { terfi: false, gerekce: "rutin başarı", kural: "refleks.sonuc.rutin" };
+      return g.niyetKaynagi === "elle"
+        ? { terfi: false, gerekce: "elle verilen niyetin hatası: LLM o niyeti vermedi", kural: "refleks.sonuc.elle_hata" }
+        : { terfi: true, gerekce: "niyet hatası", kural: "refleks.sonuc.hata" };
     }
 
     // Dünya/yakın anlık görüntüleri istenmeden gelirse rutindir.
