@@ -3642,6 +3642,54 @@ kalır.
 - Refleksin bir adım sonucu uyanış tetiklerse `kopru.refleks` canlıda çalışmıyor demektir.
 - Refleks `zaman_asimi` ile biterse adımın sonucu köprüye dönmüyor demektir: canlı kablolama hatası.
 
+## 2026-09-28 — Faz D sonucu: yetki açıkken ikinci ve üçüncü söz LLM'siz yürüdü (B14)
+
+**Ne koşuldu:**
+- Kod a6cd3e8, öngörüler 0f1e03f.
+- `ORION_BECERI=1` ile `3dorion.bat becerdene`, beyin Claude Haiku.
+- Kayıt: scratchpad `canli8/becerdene-d.jsonl` (16 satır, bozuk 0); günlük `canli8/becerdene-d.log`.
+
+**Sonuç `[ÖLÇÜLDÜ]`:**
+
+| söz | kim yaptı | dünyaya giden | sonuç | süre | konum sonrası |
+|---|---|---|---|---|---|
+| 1. "pencereye git" | LLM (u1) | `git pencere` (+ söz) | bitti; beceri `Bab3ff9c2` doğdu | düşünme 2,8 sn | 1.8, −2.6 |
+| 2. "sandalyeye git" | refleks (r1) | `jest başını_sallıyor`, `git sandalye` | ikisi de bitti; `basari` | 2,4 sn, yürüyüş dahil | 0.2, −1.7 |
+| 3. "pencereye git" | refleks (r2) | `jest başını_sallıyor`, `git pencere` | ikisi de bitti; `basari` | 2,0 sn, yürüyüş dahil | 1.8, −2.6 |
+
+- Kayıtta tek uyanış (u1), iki refleks satırı.
+- Refleksin 6 adım sonucu (jestler ve yürüyüşlerin `basladi`/`bitti`si) `kopru.refleks` ile, geçmedi. Hiçbiri uyanış
+  tetiklemedi.
+- Ara durum `basladi` canlıda da refleksi ne ilerletti ne kesti.
+- Beceri sonda başarı 3, hata 0.
+- Gölge denetimi 3/3 aynı.
+- Electron süreci kalmadı.
+
+**Karne:**
+- **DG1 ✓:** 1. sözde LLM uyandı; `git pencere`, beceri doğdu.
+- **DG2 ✓:** 2. sözde uyanış +0, refleks +1. Onay jesti ve `git sandalye` `refleks_…` kimlikleriyle gitti; Orion sandalyeye
+  vardı; `basari`.
+- **DG3 ✓:** 3. sözde uyanış +0; pencereye vardı; `basari`.
+- **DG4 ✓:** Beceri tek; başarı 3, hata 0.
+- **DG5 ✓:** Adım sonuçları `kopru.refleks` ile, geçmedi; uyanış tetiklemedi.
+- **DG6 ✓:** Onay jestinin sonucu `bitti` geldi ve refleksi etkilemedi.
+- **DG7 ✓:** Gölge denetimi 3/3 aynı.
+- **DG8 ✗, yanlış yönde değil ama aralık dışı:** Refleks süresi 2,0–2,4 sn ölçüldü, öngörü 3–12 sn idi. Pencere ile
+  sandalye arası yürüyüş sandığımdan kısa. Görevin tamamı, LLM'in yalnız düşünme süresinden (2,8 sn) kısa sürdü.
+- **DG9 ✓:** Bozuk satır 0; Electron kendini kapattı.
+- **Yanlışlayıcılar tetiklenmedi.**
+
+**Yorum, ölçülenden fazlasını iddia etmeden:**
+- **Gösterilen:** Yetki açıkken zincir canlıda doğru çalışıyor. Söz → gölge kararı → refleks → onay jesti ve adım →
+  sonucu refleks okuyor → hafıza sayacı. LLM'e gidilmedi. İki görevde yaklaşık 5,6 sn düşünme ve iki LLM çağrısı
+  kazanıldı.
+- **Gösterilmeyen:** Hata ve zaman aşımı yolları canlıda koşulmadı; yalnız testte var (`[TEST]`). Refleks, LLM'in "Tamam."
+  sözünü yapmadı; yerine baş sallama gitti (açık soru 1'in önerisi).
+- **Yetki gerçek kullanımda KAPALI kalıyor.** Açılması adım 6'dan sonra, kendi ön-kayıtlı barıyla. Taslak bar: gölgede en
+  az 20 eşleşme, uyum en az %90, güvensiz adım 0. Bu koşu yalnız mekanizmanın canlıda doğru çalıştığını gösteriyor.
+- **Açmadan önce Ozyn'in kararı gereken soru:** "Bu beceri yanlış" dersi (sil mi, yasakla mı). Başarıyla biten ama yanlış
+  bir tarifi sayaçlar askıya almaz.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.

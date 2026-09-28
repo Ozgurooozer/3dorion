@@ -2,8 +2,10 @@
 
 Tarih: 2026-09-28 · Durum: **onaylandı** (Ozyn, `/goal`: "fazları düzgünce test ederek bitir"); açık sorularda
 öneriler uygulanıyor. Faz A bitti. Faz B'nin kodu bitti (c4fefcb); gerçek kayıtla ölçümü (B9) hafta sonunda, ön-kaydı
-defterde. Faz C bitti: gölge canlıda (3b8d5ef, `becerdene` ölçüldü). D sürüyor, E ayrı tasarım. Uygulama `/goal` ile öne
-alındı; ölçümlerin ve yetkinin zamanı aşağıdaki tablodaki gibi kalır.
+defterde. Faz C bitti: gölge canlıda (3b8d5ef, `becerdene` ölçüldü). Faz D'nin kodu bitti (a6cd3e8): yetki anahtarı
+varsayılan KAPALI; açıkken zincir canlıda ölçüldü (B14). Gerçek kullanımda yetkinin açılması adım 6'dan sonra, kendi
+ön-kayıtlı barıyla. E ayrı tasarım. Uygulama `/goal` ile öne alındı; ölçümlerin ve yetkinin zamanı aşağıdaki
+tablodaki gibi kalır.
 Üst belgeler: `docs/specs/08-karar-kaydi.md` (karar kaydı), `docs/specs/09-ogrenen-kapi.md` (öğrenen kapı),
 `brain-lab/BUYUK-RESIM.md`.
 
@@ -148,6 +150,30 @@ BECERİ ÇIKARICI (saf) — tek sözle tetiklenmiş, hatasız, son bedensel niye
   - Gerekirse host ağır metin alanlarını (özet, dünya) taşımaz; görev onları kullanmıyor.
   - Aylık izlenir.
 
+## Yetki (Faz D)
+
+- **Anahtar:** `beceriYetkisi`, varsayılan KAPALI; canlıda yalnız `ORION_BECERI=1` → `?beceri=1`. Kapalıyken köprü Faz
+  C'dekiyle birebir aynıdır (B12).
+- **Eşleşen kesin söz (anahtar açık):**
+  - Söz kayda gölgesiyle yazılır ve anı olur; LLM uyanmaz.
+  - Önce onay jesti gider (`jest: başını_sallıyor`). Adım değildir; sonucu beklenmez.
+  - Sonra adımlar sırayla gider: her biri `niyetDogrula`dan geçer (adım kayıttan gelir, doğrulayıcı atlanmaz) ve
+    `niyetGonder` ile gönderilir. Sonucu beklenir (varsayılan en çok 30 sn). Kimlikler `refleks_…`.
+- **Adım sonuçları:** refleks okur, beyne gitmez (içgüdü `kopru.refleks`, ezilemez). Geç gelen sonuç (onay jesti,
+  kesilmiş adım) yalnız kayıtta kalır; ara durum `basladi` ne ilerletir ne keser.
+- **Bitiş:**
+  - **Başarı:** Söz konuşma geçmişine girmez; LLM sonraki turunda cevapsız bir istek görüp onu yeniden yapmaz.
+  - **Hata ya da zaman aşımı:** Kalan adımlar gönderilmez. Söz konuşma geçmişine ve tampona döner; yanına sebebini
+    söyleyen bir geri besleme eklenir. LLM hemen uyanır ve görevi kendisi yapar. Bu düzeltme turu görev sayılmaz: geri
+    besleme vardır.
+  - **İptal ya da yeni söz:** Yeni emir kazanır, refleks sessizce kesilir. `durdur` da keser.
+- **Kayıt ve hafıza:**
+  - Her refleks turu bir `refleks` satırı yazar: söz, beceri, onay, adımlar, bitiş, süre.
+  - Refleks turu da görevdir. Beceri doğurmaz; sonucu yürütülen becerinin sayacına kimlikle yazılır. Hata payı düşürür;
+    pay 0,75'in altına inince beceri askıya alınır ve söz yine LLM'e gider.
+- **Ölçüye girmez:** Refleks turları `tools/beceri-deney.ts`'in kapsam ve uyumuna girmez; bir beceri kendini
+  doğrulayamaz.
+
 ## Kod kalitesi — önceden belirlenen kurallar
 
 Bunlar kabul ölçütüdür; her fazın commit'inden önce denetlenir.
@@ -228,10 +254,10 @@ Bunlar kabul ölçütüdür; her fazın commit'inden önce denetlenir.
 | B9 | Ölçüm (gerçek kayıt, ön-kayıtlı): kapsam, uyum, kazanılacak uyanış ve süre | B | `[ÖN-KAYIT]` defter 2026-09-28; ölçü kalibre `[TEST]`; koşu hafta sonunda |
 | B10 | Gölge: eşleşen sözde `beceriGolge` yazılır; kapı ve uyanış değişmez | C | `[TEST]` 3b8d5ef bekçi (becerili ve becerisiz köprü aynı niyet ve uyanış) · `[ÖLÇÜLDÜ]` `becerdene`: 3 söz, 3 uyanış; 2. ve 3. sözde gölge `[git sandalye]`, `[git pencere]` |
 | B11 | Kayıttan yeniden kurulan hafıza canlıdakine eşit | C | `[TEST]` 3b8d5ef (dinleyici diske gidenin aynısını alır) · `[ÖLÇÜLDÜ]` gölge denetimi 3/3 aynı |
-| B12 | Yetki anahtarı kapalıyken köprü birebir aynı (bekçi) | D | `[PLAN]` |
-| B13 | Anahtar açıkken: eşleşen görevde LLM uyanmaz; adımlar `niyetGonder` ile gider; bir adım hata verirse kalanlar gönderilmez, hata LLM'e geçer | D | `[PLAN]` |
-| B14 | Canlı `becerdene`: ilk söz LLM'le, aynı söz ikinci kez refleksle; ikinci seferde uyanış yok | D | `[PLAN]` |
-| B15 | Her fazda bozma denemesi: bütün mutantlar yakalanır ya da eşdeğerliği yazılı | A–D | A: 9/9 · B: 70'te 68, 2 eşdeğer (G7 hiçbir çapa adı öbürünün öneki değil; G26 `soz` yalnız `duydum` satırında) · C: 38'de 35, 3 eşdeğer (C14 defterin süzgeci yalnız bellek için; C24 gölge hatası testte tetiklenemez; C28 NTFS dizini sıralı verir) |
+| B12 | Yetki anahtarı kapalıyken köprü birebir aynı (bekçi) | D | `[TEST]` a6cd3e8: anahtarsız ve `false` köprü aynı niyet ve uyanış; eşleşen becerili köprü LLM'i uyandırır, refleks yok |
+| B13 | Anahtar açıkken: eşleşen görevde LLM uyanmaz; adımlar `niyetGonder` ile gider; bir adım hata verirse kalanlar gönderilmez, hata LLM'e geçer | D | `[TEST]` a6cd3e8: sıralı adım, hata, iptal, zaman aşımı, yeni söz, doğrulayıcı, geç gelen sonuç, `basladi`, `durdur` |
+| B14 | Canlı `becerdene`: ilk söz LLM'le, aynı söz ikinci kez refleksle; ikinci seferde uyanış yok | D | `[ÖLÇÜLDÜ]` `ORION_BECERI=1`: 1. söz LLM'le, 2. ve 3. söz refleksle (uyanış +0, `basari`, 2,0–2,4 sn yürüyüş dahil); adım sonuçları `kopru.refleks`, gölge denetimi 3/3. Hata ve zaman aşımı yolları canlıda koşulmadı |
+| B15 | Her fazda bozma denemesi: bütün mutantlar yakalanır ya da eşdeğerliği yazılı | A–D | A: 9/9 · B: 70'te 68, 2 eşdeğer (G7 hiçbir çapa adı öbürünün öneki değil; G26 `soz` yalnız `duydum` satırında) · C: 38'de 35, 3 eşdeğer (C14 defterin süzgeci yalnız bellek için; C24 gölge hatası testte tetiklenemez; C28 NTFS dizini sıralı verir) · D: 33/33 |
 
 **Ölçüler (Faz B ve C; `tools/beceri-deney.ts`, sıralı: her görevde önce karar, sonra öğrenme):**
 - **Kapsam:** Görevlerin kaçında parametre içinde bir beceri eşleşirdi.
