@@ -33,7 +33,7 @@ import path from "node:path";
 import { BeceriDefteri } from "../mind/beceriDefteri.ts";
 import { BeceriHafizasi } from "../mind/beceriHafizasi.ts";
 import { gorevler, niyetSinifi, zamanSirali, type GorevOrnegi, type GorevSonucu } from "../mind/gorev.ts";
-import type { BeceriGolgesi, KararSatiri } from "../mind/kararKaydi.ts";
+import type { AlgiSatiri, BeceriGolgesi, KararSatiri } from "../mind/kararKaydi.ts";
 import { zincirKur } from "../mind/kararZinciri.ts";
 import type { Niyet } from "../protocol/niyet.ts";
 import { dosyalardanOku } from "./karar-ozet.ts";
@@ -145,7 +145,11 @@ export interface GolgeDenetimi {
  * Bilinen sınır: kayıttaki söz `SINIR.metin`e kesilmiş olabilir; köprü tam metinle karar
  * verdi. Böyle bir söz farklı çıkarsa sebebi budur (sözler kısa, beklenmiyor).
  */
-export function golgeDenetimi(satirlar: readonly KararSatiri[]): GolgeDenetimi {
+export function golgeDenetimi(
+  satirlar: readonly KararSatiri[],
+  /** Her gölgeli söz için (isteğe bağlı): yazılan ve yeniden hesaplanan. Lezyon denetimi (tools/beceri-curut.ts) bütün kararları görür. */
+  gozlem?: (satir: AlgiSatiri, canli: BeceriGolgesi | null, kayittan: BeceriGolgesi | null) => void,
+): GolgeDenetimi {
   const oturumlar = new Map<string, KararSatiri[]>();
   for (const s of satirlar) {
     const liste = oturumlar.get(s.o);
@@ -160,6 +164,7 @@ export function golgeDenetimi(satirlar: readonly KararSatiri[]): GolgeDenetimi {
       if (s.tur === "algi" && s.beceriGolge !== undefined) {
         const canli = s.beceriGolge;
         const kayittan = defter.golge(s.soz?.metin ?? "");
+        gozlem?.(s, canli, kayittan);
         d.golgeli++;
         if (canli) d.eslesen++;
         if (isDeepStrictEqual(canli, kayittan)) d.ayni++;
