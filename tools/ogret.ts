@@ -5,6 +5,8 @@
 // satırlarından yeniden kurulur — bu araç da hafızayı öyle kurar ve gösterir.
 //
 // Kullanım (kayıt varsayılan olarak %APPDATA%/3dorion/karar-kaydi):
+//   npm run ogret   ya da   3dorion.bat ogret          (= gozden: günlük öğretim)
+//   node --experimental-strip-types tools/ogret.ts gozden [--son=20] [--kayit=klasör|dosya]
 //   node --experimental-strip-types tools/ogret.ts liste [--son=20] [--kayit=klasör|dosya]
 //   node --experimental-strip-types tools/ogret.ts ogret <oturum/algı> <uyan|sus> [--kayit=…]
 //   node --experimental-strip-types tools/ogret.ts hafiza [--kayit=…]
@@ -18,6 +20,7 @@
 "use strict";
 import fs from "node:fs";
 import path from "node:path";
+import readline from "node:readline";
 import { kayitOku, uyanisEyleme, zincirKur, type KararZinciri } from "../mind/kararZinciri.ts";
 import type { AlgiSatiri, KararSatiri, OgretimSatiri } from "../mind/kararKaydi.ts";
 import { kuralHafizasiKur, ogretimKur } from "../mind/ogretim.ts";
@@ -65,6 +68,14 @@ export interface ListeSatiri {
 }
 
 const golgeMetni = (g: { yon: KapiYonu; noron: string } | null | undefined): string => (g ? `${g.yon} (${g.noron})` : "—");
+const tek = (s: string, n: number) => s.replace(/\s+/g, " ").slice(0, n);
+const saat = (t: number) => new Date(t).toLocaleTimeString("tr-TR");
+
+/** Bugünkü hafızanın bir durum kodu için kararı, okunur: "sus (K2)" ya da "—". */
+function simdiMetni(hafiza: KuralHafizasi, isaret: readonly string[]): string {
+  const k = hafiza.karar(isaret);
+  return k ? `${k.yon} (${k.noron.id})` : "—";
+}
 
 /** Son `son` öğrenilebilir algı, eskiden yeniye. */
 export function ogrenilebilirListe(zincir: KararZinciri, hafiza: KuralHafizasi, son: number): ListeSatiri[] {
@@ -81,15 +92,74 @@ export function ogrenilebilirListe(zincir: KararZinciri, hafiza: KuralHafizasi, 
     .slice(-son)
     .map((a) => {
       const anahtar = `${a.o}/${a.id}`;
-      const k = hafiza.karar(a.isaret!);
       return {
         anahtar, algi: a,
         sonra: a.kapi.gecti ? (uyanisi.get(anahtar) ?? "uyanış kaydı yok") : null,
         ders: dersler.get(anahtar) ?? null,
         golge: golgeMetni(a.golge),
-        simdi: k ? `${k.yon} (${k.noron.id})` : "—",
+        simdi: simdiMetni(hafiza, a.isaret!),
       };
     });
+}
+
+// ── Gözden geçirme (Ozyn'in günlük öğretimi) ─────────────────────────────────
+//
+// `liste` + `ogret` iki adımlıydı: anahtarı kopyala, komutu yaz. Her gün ders
+// vermenin asıl engeli buydu (gelen yorum, 2026-09-27: "asıl risk veri").
+// `gozden` öğretilmemiş son kararları tek tek gösterir; tek tuşla ders olur.
+
+/** Gözden geçirmede bir cevap: öğretilen yön, geç ya da çık. */
+export type GozdenCevabi = KapiYonu | "gec" | "cik";
+
+/** Tuşu cevaba çevirir: u uyan, s sus, g ya da Enter geç, ç/c/q çık. Tanınmayan null (yeniden sorulur). */
+export function cevapCoz(girdi: string): GozdenCevabi | null {
+  const t = girdi.trim().toLocaleLowerCase("tr-TR");
+  if (t === "u") return "uyan";
+  if (t === "s") return "sus";
+  if (t === "" || t === "g") return "gec";
+  if (t === "ç" || t === "c" || t === "q") return "cik";
+  return null;
+}
+
+/** Gözden geçirilecekler: henüz dersi olmayan öğrenilebilir kararlar, eskiden yeniye. */
+export function gozdenListesi(liste: readonly ListeSatiri[]): ListeSatiri[] {
+  return liste.filter((s) => s.ders === null);
+}
+
+/** Bir kararın gözden geçirme metni: ne oldu, kapı ne dedi, LLM ne yaptı, hafıza ne diyor. */
+export function gozdenMetni(s: ListeSatiri, sira: number, toplam: number): string[] {
+  const a = s.algi;
+  return [
+    `[${sira}/${toplam}] ${saat(a.t)}  ${a.algi}  ${a.kapi.gecti ? "GEÇTİ" : "düştü"} (${a.kapi.kural})${s.sonra ? ` → ${s.sonra}` : ""}`,
+    `  gölge: ${s.golge} · şimdi: ${s.simdi}`,
+    ...a.ozet.split("\n").slice(0, 6).map((l) => `  │ ${l.slice(0, 120)}`),
+  ];
+}
+
+export interface DersSonucu {
+  satir: OgretimSatiri;
+  /** Ozyn'e gösterilecek satırlar: ne yazıldı, hafıza artık ne diyor. */
+  metin: string[];
+}
+
+/**
+ * Bir algıya ders verir: öğretim satırını kurar, dosyaya ekler, hafızanın yeni
+ * kararını söyler. `ogret` ve `gozden` aynı yoldan geçer. Güvenlik içgüdüsünün
+ * kararı öğretilemez: `ogretimKur` hata döner (bekçi, mind/ogretim.ts).
+ */
+export function dersVer(yer: KayitYeri, satirlar: readonly KararSatiri[], a: AlgiSatiri, yon: KapiYonu, t: number): DersSonucu | { hata: string } {
+  const s = ogretimKur(a, yon, "ogret-araci", t);
+  if ("hata" in s) return s;
+  ogretimYaz(yer.ogretimDosyasi, s);
+  const k = kuralHafizasiKur([...satirlar, s]).hafiza.karar(s.isaret);
+  return {
+    satir: s,
+    metin: [
+      `ders yazıldı: ${a.o}/${a.id} → ${yon}  (${yer.ogretimDosyasi})`,
+      `  algı: ${tek(a.ozet, 100)}`,
+      k ? `  hafıza artık: ${k.yon} — ${k.noron.id}: ${k.noron.kosul.join(" ∧ ")}` : "  hafıza bu durumda henüz emin değil (çelişen dersler)",
+    ],
+  };
 }
 
 /** "oturum/algı" anahtarıyla algıyı bulur. */
@@ -120,10 +190,7 @@ function arg(ad: string, varsayilan: string): string {
   return p ? p.slice(ad.length + 3) : varsayilan;
 }
 
-const tek = (s: string, n: number) => s.replace(/\s+/g, " ").slice(0, n);
-const saat = (t: number) => new Date(t).toLocaleTimeString("tr-TR");
-
-function calistir(): void {
+async function calistir(): Promise<void> {
   const komut = process.argv[2];
   const yer = kayitYeri(arg("kayit", path.join(process.env.APPDATA ?? "", "3dorion", "karar-kaydi")));
   const { zincir, satirlar } = kayitYukle(yer);
@@ -147,24 +214,56 @@ function calistir(): void {
     if (!anahtar || (yon !== "uyan" && yon !== "sus")) { console.error("kullanım: ogret <oturum/algı> <uyan|sus>"); process.exit(2); }
     const a = algiBul(zincir, anahtar);
     if (!a) { console.error(`kayıtta yok: ${anahtar}`); process.exit(1); }
-    const s = ogretimKur(a, yon, "ogret-araci", Date.now());
-    if ("hata" in s) { console.error(s.hata); process.exit(1); }
-    ogretimYaz(yer.ogretimDosyasi, s);
-    const yeni = kuralHafizasiKur([...satirlar, s]).hafiza;
-    const k = yeni.karar(s.isaret);
-    console.log(`ders yazıldı: ${anahtar} → ${yon}  (${yer.ogretimDosyasi})`);
-    console.log(`  algı: ${tek(a.ozet, 100)}`);
-    console.log(k ? `  hafıza artık: ${k.yon} — ${k.noron.id}: ${k.noron.kosul.join(" ∧ ")}` : "  hafıza bu durumda henüz emin değil (çelişen dersler)");
+    const d = dersVer(yer, satirlar, a, yon, Date.now());
+    if ("hata" in d) { console.error(d.hata); process.exit(1); }
+    for (const satir of d.metin) console.log(satir);
     return;
   }
+
+  if (komut === "gozden") return gozdenGecir(yer, satirlar, zincir, Number(arg("son", "20")));
 
   if (komut === "hafiza") {
     for (const satir of hafizaMetni(hafiza)) console.log(satir);
     return;
   }
 
-  console.error("kullanım: ogret.ts liste [--son=20] | ogret <oturum/algı> <uyan|sus> | hafiza   [--kayit=klasör|dosya]");
+  console.error("kullanım: ogret.ts gozden [--son=20] | liste [--son=20] | ogret <oturum/algı> <uyan|sus> | hafiza   [--kayit=klasör|dosya]");
   process.exit(2);
 }
 
-if (import.meta.main) calistir();
+/**
+ * Etkileşimli gözden geçirme. Girdi satır satır okunur: dosyadan ya da borudan
+ * gelen cevaplar da çalışır, girdi bitince (EOF) çıkılır. Hafıza her dersten
+ * sonra yeniden kurulur: sonraki kararın "şimdi"si o dersi de görür.
+ */
+async function gozdenGecir(yer: KayitYeri, satirlar: KararSatiri[], zincir: KararZinciri, son: number): Promise<void> {
+  const liste = gozdenListesi(ogrenilebilirListe(zincir, kuralHafizasiKur(satirlar).hafiza, son));
+  if (liste.length === 0) { console.log("gözden geçirilecek karar yok: son öğrenilebilir kararların hepsinin dersi var ya da kayıt boş"); return; }
+  const rl = readline.createInterface({ input: process.stdin, terminal: false });
+  const satir = rl[Symbol.asyncIterator]();
+  const yeni: KararSatiri[] = [];
+  try {
+    for (const [i, s] of liste.entries()) {
+      const hafiza = kuralHafizasiKur([...satirlar, ...yeni]).hafiza;
+      console.log("");
+      for (const l of gozdenMetni({ ...s, simdi: simdiMetni(hafiza, s.algi.isaret!) }, i + 1, liste.length)) console.log(l);
+      let cevap: GozdenCevabi | null = null;
+      while (cevap === null) {
+        process.stdout.write("  doğrusu? [u]yan · [s]us · [g]eç · [ç]ık: ");
+        const r = await satir.next();
+        cevap = r.done ? "cik" : cevapCoz(r.value);
+      }
+      if (cevap === "cik") break;
+      if (cevap === "gec") continue;
+      const d = dersVer(yer, [...satirlar, ...yeni], s.algi, cevap, Date.now());
+      if ("hata" in d) { console.log(`  ${d.hata}`); continue; }
+      yeni.push(d.satir);
+      for (const l of d.metin) console.log(`  ${l}`);
+    }
+  } finally {
+    rl.close();
+  }
+  console.log(`\n${yeni.length} ders verildi.${yeni.length ? " Orion açıksa dersler hemen uygulanır." : ""}`);
+}
+
+if (import.meta.main) await calistir();

@@ -62,12 +62,22 @@ Ozyn: tools/ogret.ts ── öğretim satırı ──┘  (açılışta kayıtta
 ## Kullanım
 
 ```
+3dorion.bat ogret   ya da   npm run ogret                                 # günlük öğretim (gozden)
+node --experimental-strip-types tools/ogret.ts gozden [--son=20]          # aynısı, seçenekle
 node --experimental-strip-types tools/ogret.ts liste [--son=20]           # son öğrenilebilir kararlar
 node --experimental-strip-types tools/ogret.ts ogret <oturum/algı> <uyan|sus>
 node --experimental-strip-types tools/ogret.ts hafiza                     # öğrenilen kurallar
 ```
 
-`--kayit=<klasör|dosya>` başka bir kayıt okur; varsayılan `%APPDATA%/3dorion/karar-kaydi`.
+- **`gozden`** (2026-09-28): dersi olmayan son kararları tek tek gösterir.
+  - Her kararda: kapının kararı, LLM uyandıysa ne yaptığı, gölge ve bugünkü hafıza.
+  - Tuşlar: `u` uyan, `s` sus, `g` ya da Enter geç, `ç`/`c`/`q` çık.
+  - `ogret` ile aynı ders yolunu kullanır (`dersVer`). Hafıza her dersten sonra yeniden kurulur.
+  - Girdi borudan da gelebilir; girdi bitince çıkılır.
+- **Seçenek:** yalnız `node` komutuyla verilir.
+  - `3dorion.bat` `=` işaretinden böler.
+  - PowerShell, `npm run ogret -- …` komutundaki `--`'yi yutar.
+- **`--kayit=<klasör|dosya>`** başka bir kayıt okur; varsayılan `%APPDATA%/3dorion/karar-kaydi`.
 
 ## Kabul ölçütleri
 

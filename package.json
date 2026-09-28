@@ -10,6 +10,7 @@
     "dev": "vite",
     "exp": "node --experimental-strip-types brain-lab/experiments/lab.ts",
     "lab": "vite brain-lab/viewer --port 5190",
+    "ogret": "node --experimental-strip-types tools/ogret.ts gozden",
     "build": "vite build",
     "start": "npm run build && electron ."
   },

@@ -13,6 +13,7 @@ rem    3dorion.bat test       birim testleri + tip kontrolu
 rem    3dorion.bat otodene    sahnede otomatik entegrasyon denemesi (4 kontrol)
 rem    3dorion.bat gorudene   Orion terminali GORUYOR mu? (3 kontrol, gercek komut)
 rem    3dorion.bat olcum      gercek cikti uzerinde suzgec olcumu (tablo)
+rem    3dorion.bat ogret      gunluk ogretim: son kararlari gozden gecir, tek tusla ders ver
 rem    3dorion.bat sessizdene sessiz basarili komut Orion'a ulasiyor mu
 rem    3dorion.bat yuzdene   agiz senkronu ve goz kirpma MESH uzerinde oynuyor mu
 rem    3dorion.bat hafizadene eski bilgi 13 tur sonra hatirlaniyor mu
@@ -60,6 +61,7 @@ if /i "%MOD%"=="test"     goto :test
 if /i "%MOD%"=="otodene"  goto :otodene
 if /i "%MOD%"=="gorudene" goto :gorudene
 if /i "%MOD%"=="olcum"    goto :olcum
+if /i "%MOD%"=="ogret"    goto :ogret
 if /i "%MOD%"=="sessizdene" goto :sessizdene
 if /i "%MOD%"=="davranis" goto :davranis
 if /i "%MOD%"=="yuzdene"  goto :yuzdene
@@ -241,6 +243,15 @@ if "%~2"=="" (
   goto :son
 )
 call npx node --experimental-strip-types mind\akis-olcum.ts "%~2"
+goto :son
+
+:ogret
+echo [ogret] Orion'un son kapi kararlari tek tek: [u]yan / [s]us / [g]ec / [c]ik
+echo   (Orion aciksa dersler hemen uygulanir; kayit: %APPDATA%\3dorion\karar-kaydi)
+rem Secenek almaz: batch `--son=50` gibi degerleri "=" isaretinden boler, secenek
+rem sessizce kaybolurdu. Secenek gerekirse dogrudan node komutu (asagidaki echo).
+echo   (secenekle: node --experimental-strip-types tools\ogret.ts gozden --son=50 --kayit=yol)
+node --experimental-strip-types tools\ogret.ts gozden
 goto :son
 
 :test

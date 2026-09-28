@@ -8,7 +8,8 @@ import path from "node:path";
 import { KARAR_ONEKI, KararKaydi, type AlgiSatiri, type KararSatiri } from "../mind/kararKaydi.ts";
 import { kuralHafizasiKur, ogretimKur } from "../mind/ogretim.ts";
 import { zincirKur } from "../mind/kararZinciri.ts";
-import { algiBul, hafizaMetni, kayitYeri, kayitYukle, ogrenilebilirListe, ogretimYaz } from "./ogret.ts";
+import { spawnSync } from "node:child_process";
+import { algiBul, cevapCoz, dersVer, gozdenListesi, gozdenMetni, hafizaMetni, kayitYeri, kayitYukle, ogrenilebilirListe, ogretimYaz } from "./ogret.ts";
 
 const ELLE = ["durum:hata", "icgudu:refleks.sonuc.hata", "k:zaten", "niyet_kaynagi:elle", "tur:sonuc"];
 
@@ -88,4 +89,99 @@ test("hafıza dökümü: boşken söyler; doluyken kural, yön, sayaç ve kanıt
     { bos, dolu: dolu[0] },
     { bos: ["(hafıza boş: henüz ders yok)"], dolu: `K1: ${ELLE.join(" ∧ ")} → sus (uyan 0 · sus 1) · kanıt 1: o1/a1` },
   );
+});
+
+// ── Gözden geçirme (gozden) ────────────────────────────────────────────────
+
+/** Kaydı geçici bir klasöre yazar; araç onu gerçek kayıt gibi okur. */
+function kayitKlasoru(satirlar: KararSatiri[]): string {
+  const d = geciciDizin();
+  fs.writeFileSync(path.join(d, "2026-09-27.jsonl"), satirlar.map((s) => JSON.stringify(s)).join("\n") + "\n");
+  return d;
+}
+
+test("cevap: u uyan, s sus, g ve Enter geç, ç/c/q çık; büyük harf de; tanınmayan null", () => {
+  const tuslar = ["u", "S", "g", "", "  ", "ç", "Ç", "c", "q", "x", "uyan"];
+  assert.deepEqual(tuslar.map(cevapCoz), ["uyan", "sus", "gec", "gec", "gec", "cik", "cik", "cik", "cik", null, null]);
+});
+
+test("gözden listesi yalnız dersi olmayan kararları alır", () => {
+  const satirlar = kayit();
+  const a = satirlar.find((s): s is AlgiSatiri => s.tur === "algi" && s.id === "a1")!;
+  const ders = ogretimKur(a, "sus", "ogret-araci", 99_999);
+  assert.ok(!("hata" in ders));
+  const once = gozdenListesi(ogrenilebilirListe(zincirKur(satirlar), kuralHafizasiKur(satirlar).hafiza, 20));
+  const sonra = gozdenListesi(ogrenilebilirListe(zincirKur([...satirlar, ders]), kuralHafizasiKur([...satirlar, ders]).hafiza, 20));
+  assert.deepEqual({ once: once.map((s) => s.anahtar), sonra: sonra.length }, { once: ["o1/a1"], sonra: 0 });
+});
+
+test("gözden metni: sıra, kapının kararı, uyanışın sonucu, gölge ve hafıza görünür", () => {
+  const [s] = ogrenilebilirListe(zincirKur(kayit()), kuralHafizasiKur([]).hafiza, 20);
+  const [bas, golge] = gozdenMetni(s!, 1, 3);
+  assert.deepEqual(
+    { sira: bas!.startsWith("[1/3]"), kapi: bas!.includes("GEÇTİ (refleks.sonuc.hata) → sustu"), golge },
+    { sira: true, kapi: true, golge: "  gölge: — · şimdi: —" },
+  );
+});
+
+test("ders ver: öğretim dosyaya eklenir ve hafızanın yeni kararı söylenir", () => {
+  const satirlar = kayit();
+  const yer = kayitYeri(kayitKlasoru(satirlar));
+  const a = satirlar.find((s): s is AlgiSatiri => s.tur === "algi" && s.id === "a1")!;
+  const d = dersVer(yer, satirlar, a, "sus", 50_000);
+  assert.ok(!("hata" in d), "ders verilemedi");
+  const yazilan = fs.readFileSync(yer.ogretimDosyasi, "utf8").trim().split("\n").map((l) => JSON.parse(l));
+  assert.deepEqual(
+    { yazilan: yazilan.map((o) => o.yon), hafiza: d.metin[2] },
+    { yazilan: ["sus"], hafiza: `  hafıza artık: sus — K1: ${ELLE.join(" ∧ ")}` },
+  );
+});
+
+test("ders ver: öğrenilemez algı (konuşma) reddedilir, dosyaya bir şey yazılmaz", () => {
+  const satirlar = kayit();
+  const yer = kayitYeri(kayitKlasoru(satirlar));
+  const soz = satirlar.find((s): s is AlgiSatiri => s.tur === "algi" && s.algi === "duydum")!;
+  const d = dersVer(yer, satirlar, soz, "sus", 50_000);
+  assert.deepEqual({ hata: "hata" in d, dosya: fs.existsSync(yer.ogretimDosyasi) }, { hata: true, dosya: false });
+});
+
+/** Aracı gerçek süreç olarak koşar; cevaplar stdin'den gelir. */
+function gozdenKos(klasor: string, girdi: string): { cikti: string; dersler: string[] } {
+  const kok = path.resolve(import.meta.dirname, "..");
+  const r = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", path.join(kok, "tools", "ogret.ts"), "gozden", `--kayit=${klasor}`], { input: girdi, encoding: "utf8" });
+  const dosya = path.join(klasor, "ogretim.jsonl");
+  const dersler = fs.existsSync(dosya) ? fs.readFileSync(dosya, "utf8").trim().split("\n").map((l) => JSON.parse(l).yon) : [];
+  return { cikti: r.stdout, dersler };
+}
+
+test("uçtan uca: tanınmayan tuş yeniden sorulur, 's' ders yazar", () => {
+  const r = gozdenKos(kayitKlasoru(kayit()), "x\ns\n");
+  assert.deepEqual({ dersler: r.dersler, ozet: r.cikti.includes("1 ders verildi") }, { dersler: ["sus"], ozet: true });
+});
+
+/** İki öğrenilebilir kararlı kayıt. `ayniKod`: iki kararın durum kodu aynı (ders ikinciye yansımalı). */
+function ikiKararliKayit(ayniKod = false): KararSatiri[] {
+  const satirlar: KararSatiri[] = [];
+  let t = 1_000;
+  const k = new KararKaydi({ oturum: "o2", simdi: () => (t += 1_000), yaz: (s) => satirlar.push(JSON.parse(s.slice(KARAR_ONEKI.length + 1))) });
+  k.oturumBasi("sahte");
+  for (const id of ["n_a", "n_b"]) {
+    k.algi({ tur: "sonuc", sonuc: { niyet_id: id, durum: "hata", not: "bilinmeyen çapa" } }, `Intent ${id} → hata`, { gecti: true, kural: "refleks.sonuc.hata" },
+      { isaret: ["durum:hata", "icgudu:refleks.sonuc.hata", `k:${ayniKod ? "ortak" : id}`, "niyet_kaynagi:n", "tur:sonuc"], golge: null });
+  }
+  return satirlar;
+}
+
+test("uçtan uca: girdi biterse (EOF) ilk kararda ders yazmadan çıkar", () => {
+  const r = gozdenKos(kayitKlasoru(ikiKararliKayit()), "");
+  assert.deepEqual(
+    { dersler: r.dersler, ilk: r.cikti.includes("[1/2]"), ikinci: r.cikti.includes("[2/2]"), ozet: r.cikti.includes("0 ders verildi") },
+    { dersler: [], ilk: true, ikinci: false, ozet: true },
+  );
+});
+
+test("uçtan uca: ders sonraki kararın 'şimdi'sine hemen yansır (hafıza her dersten sonra yeniden kurulur)", () => {
+  const r = gozdenKos(kayitKlasoru(ikiKararliKayit(true)), "s\nç\n");
+  const ikinci = r.cikti.slice(r.cikti.indexOf("[2/2]"));
+  assert.deepEqual({ dersler: r.dersler, simdi: ikinci.includes("şimdi: sus (K1)") }, { dersler: ["sus"], simdi: true });
 });
