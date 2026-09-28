@@ -3326,6 +3326,43 @@ Anahtar kodda duruyor, varsayılanı "altkume" (H-K1'deki gibi). Canlı öngör�
 **Sonraki:** Karar Ozyn'in. Önerim: motor ayarını burada bırakmak, B'yi gölgede tutmak ve asıl kazancı gerçek
 kullanım verisinde aramak.
 
+## 2026-09-28 — Yol haritası (BY44) adım 1–3: K4 bekçisi, Orion bulguları, günlük öğretim
+
+**Bağlam:** Ozyn: "yol haritasına geçelim", "önce planla sonra yap", "kod kalitesini de düzgün tut". Plan onaylandı.
+
+**Ozyn'in kararları:**
+- Elle verilen niyetin hatası LLM'i uyandırmaz.
+- Varsayılan beyin Claude Haiku.
+- `world/giris.ts` şimdi düzenlenir; yalnız kendi hunk'larım commit'lenir (avatar hunk'ı çalışma kopyasında kaldı).
+
+**Yapılan:**
+
+| adım | ne | commit | sınama |
+|---|---|---|---|
+| 1 | K4 bekçisi: `world/` beyni (bridge/, mind/) tanımaz; tek istisna kompozisyon kökü | a5aaba4 | 9 test; bozma 9/10, yaşayan eşdeğer (yazılı) |
+| 2a | `kod_uzun` canlı: terminal algısı süreyi taşıyor, süzgeç girdisi tek kaynaktan (`refleksGirdisi`) | f747e27 | bozma 9/9 |
+| 2b | Elle verilen niyetin hatası yerel: içgüdü `refleks.sonuc.elle_hata` | f747e27 | `[TEST]` |
+| 2c | Varsayılan beyin `claude:haiku` (Ling ücretsiz modeli 404) | f747e27 | canlı |
+| 3 | `ogret.ts gozden`, `3dorion.bat ogret`, `npm run ogret` | bc89a8c | 15 test, iki uçtan uca; bozma 11/11 |
+
+**Canlı `[ÖLÇÜLDÜ]`** (`3dorion.bat sessizdene`, ayrı kayıt dosyası; scratchpad `canli5/`):
+- 1,7 sn'lik başarılı komutun algısı kayıtta `refleks.terminal.kod_uzun` ile geçti.
+- Anlık komutlar `kod_rutin` ile düştü.
+- Uyanış Haiku ile hatasız bitti (2,7 sn, konuştu). Varsayılan beyin günlükte `başlangıç: claude:haiku`.
+- Önceki koşuda aynı senaryo, kayıtta `kod_rutin` ile düşen bir algıya "geçti" demişti. Nedeni girişteki kopya karardı;
+  kopya artık yok.
+
+**Düzeltmeler (kendi yanlışlarım):**
+- Spec 08 ve bu defterin 2026-09-27 KT1 girdisi "34 içgüdü" diyordu. Kodda ilk commit'ten beri 30 kimlik vardı; bugün
+  31. Spec düzeltildi; eski girdi olduğu gibi duruyor.
+- Git Bash'te `grep -c $'\r'` CRLF satırlarını saymıyor. Bu defter ve `mind/refleks.test.ts` karışık satır sonuyla
+  kalmıştı: çalışma kopyasında CRLF'ye çevrildi. Git LF sakladığı için commit içeriği etkilenmedi.
+
+**Bekleyen:**
+- **BY39'un 2d maddesi (çapa adı "beyaz tahta"):** çözüm `world/avatar/yurutucu.ts`'e düşüyor; dosya avatar işinde.
+- **Adım 4, bir hafta gerçek kullanım:** Ozyn Orion'u yeni sürümle açar, günde bir `3dorion.bat ogret`.
+- **Adım 5, kıyasın ön-kaydı:** hafta içinde hazırlanır.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
