@@ -9,6 +9,7 @@
 "use strict";
 import type { Beyin, BeyinGirdisi, BeyinCikti, AracCagrisi } from "./beyin.ts";
 import { TEMEL_TALIMAT } from "./talimat.ts";
+import { adEsit, OLLAMA_VARSAYILAN_ADRES } from "./ollamaKatalog.ts";
 
 export interface OllamaAyari {
   model?: string;
@@ -16,6 +17,23 @@ export interface OllamaAyari {
   /** Yanıt bu süreyi aşarsa iptal — dünya donmamalı. */
   zamanAsimiMs?: number;
   sicaklik?: number;
+  /**
+   * Katalogdan gelen yetenekler (`bridge/ollamaKatalog.ts`). `null`/yok =
+   * bilinmiyor → eski davranış (araçlar gönderilir, `think` gönderilmez).
+   *
+   * NEDEN GEREKLİ: Ollama, araç desteklemeyen bir modele `tools` gönderilince
+   * isteği 400 ile REDDEDER ("does not support tools"); `think` alanı da
+   * düşünmeyen modelde aynı hatayı verir. Yetenek bilinmeden her iki alan da
+   * kör atılıyordu — katalogdaki bir modeli seçmek ilk turda patlamak demekti.
+   */
+  yetenekler?: readonly string[] | null;
+  /**
+   * Model bellekte ne kadar sıcak kalsın (Ollama `keep_alive`). Varsayılan
+   * 30 dk: Orion'un turları seyrek (dakikada ≤ 20) ve Ollama'nın 5 dk'lık
+   * varsayılanı her sessizlikten sonra modeli boşaltıp ilk cevabı saniyelerce
+   * geciktiriyordu.
+   */
+  sicakTut?: string;
 }
 
 interface OllamaAracCagrisi { function?: { name?: string; arguments?: unknown } }
@@ -30,12 +48,39 @@ export class OllamaBeyni implements Beyin {
   private _adres: string;
   private _zamanAsimi: number;
   private _sicaklik: number;
+  private _yetenekler: readonly string[] | null;
+  private _sicakTut: string;
 
   constructor(ayar: OllamaAyari = {}) {
     this.ad = ayar.model ?? "qwen2.5:7b";
-    this._adres = (ayar.adres ?? "http://127.0.0.1:11434").replace(/\/+$/, "");
+    this._adres = (ayar.adres ?? OLLAMA_VARSAYILAN_ADRES).replace(/\/+$/, "");
     this._zamanAsimi = ayar.zamanAsimiMs ?? 20_000;
     this._sicaklik = ayar.sicaklik ?? 0.6;
+    this._yetenekler = ayar.yetenekler ?? null;
+    this._sicakTut = ayar.sicakTut ?? "30m";
+  }
+
+  /** Araçlar gönderilsin mi: bilinmiyorsa EVET (eski davranış). */
+  get aracli(): boolean {
+    return this._yetenekler ? this._yetenekler.includes("tools") : true;
+  }
+
+  /**
+   * Modeli belleğe yükler — seçim anında çağrılır, ilk düşünceyi beklemeden.
+   *
+   * Boş istemli `/api/generate` Ollama'nın belgelenmiş "yükle" yoludur.
+   * 7B bir modelin soğuk yüklenmesi 5–15 sn sürebiliyor; bunu Ozyn'in ilk
+   * cümlesine yüklemek "Orion donuk" izlenimi veriyordu. FIRLATMAZ.
+   */
+  async isit(): Promise<boolean> {
+    try {
+      const y = await fetch(`${this._adres}/api/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: this.ad, keep_alive: this._sicakTut }),
+      });
+      return y.ok;
+    } catch { return false; }
   }
 
   async hazirMi(): Promise<boolean> {
@@ -46,7 +91,9 @@ export class OllamaBeyni implements Beyin {
       clearTimeout(saat);
       if (!y.ok) return false;
       const d = await y.json() as { models?: { name?: string }[] };
-      return (d.models ?? []).some((m) => m.name === this.ad);
+      // `qwen3` ile `qwen3:latest` aynı model — birebir eşitlik, etiketsiz
+      // yazılmış kurulu bir modeli "hazır değil" diye reddediyordu.
+      return (d.models ?? []).some((m) => typeof m.name === "string" && adEsit(m.name, this.ad));
     } catch { return false; }
   }
 
@@ -77,11 +124,21 @@ ${girdi.sabit}` : (girdi.talimat ?? TEMEL_TALIMAT) },
       model: this.ad,
       messages: mesajlar,
       stream: false,
+      keep_alive: this._sicakTut,
       options: { temperature: this._sicaklik },
-      tools: girdi.araclar.map((a) => ({
+      // Araçsız model: `tools` HİÇ gönderilmez (Ollama 400 verir). Orion yine
+      // konuşabilir — köprü düz metindeki satır sözleşmesini (`KOMUT:`,
+      // `TAHTA:`) `metinKurtar` ile niyete çevirir.
+      tools: this.aracli ? girdi.araclar.map((a) => ({
         type: "function",
         function: { name: a.ad, description: a.aciklama, parameters: a.sema },
-      })),
+      })) : [],
+      // Düşünen modeller (qwen3, deepseek-r1) varsayılan olarak önce uzun bir
+      // iç monolog üretir: ölçülmemiş ama saniyeler. Refleks değil düşünce
+      // katmanı olsa da Orion'un turu konuşma hızında kalmalı; kapatılır.
+      // Yalnızca yeteneği BİLİNEN modelde: bilinmeyene `think` göndermek
+      // düşünmeyen modelde 400 demek.
+      ...(this._yetenekler?.includes("thinking") ? { think: false } : {}),
     };
 
     // Tanilama dokumu: canli istegin TAM olarak ne oldugunu gormek icin.

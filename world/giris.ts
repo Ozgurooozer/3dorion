@@ -66,6 +66,10 @@ import { OpenCodeBeyni } from "../bridge/opencode.ts";
 import { DisBeyin } from "../bridge/disBeyin.ts";
 import { KayitBeyni } from "../bridge/kayitBeyni.ts";
 import { OllamaBeyni } from "../bridge/ollama.ts";
+import { ollamaTara, type OllamaKatalogu } from "../bridge/ollamaKatalog.ts";
+import { yerelSecenekler, yerelAd, yereldenModel, kartlariKur } from "../bridge/beyinKatalogu.ts";
+import { modelSeciciKur } from "./arayuz/modelSecici.ts";
+import type { ModelSeciciKaynagi } from "./arayuz/modelSeciciCekirdek.ts";
 import { SecilebilirBeyin, type BeyinSecenegi } from "../bridge/secilebilirBeyin.ts";
 import type { Beyin } from "../bridge/beyin.ts";
 import { MetinGirdi } from "../voice/metin-girdi.ts";
@@ -1273,6 +1277,9 @@ function dunyaDurumuMetni(): string {
   ].filter(Boolean).join(" ");
 }
 
+/** Model seçici penceresi — beyin bağlanınca kurulur (seçiciye ihtiyaç duyar). */
+let modelSecici: ReturnType<typeof modelSeciciKur> | null = null;
+
 function beyniBagla(a: Avatar): void {
   // ORION_MODEL secimi: olcum duzenegi ayni kalsin, yalnizca beyin degissin.
   // Boylece model karsilastirmasi TEK degiskenli olur.
@@ -1316,8 +1323,10 @@ function beyniBagla(a: Avatar): void {
         sifre: q.get("sifre") || undefined,
         zamanAsimiMs: 30_000,
       }) },
-    { ad: "yerel:qwen2.5", kur: () => new OllamaBeyni({ model: "qwen2.5:7b" }) },
-    { ad: "yerel:qwen3", kur: () => new OllamaBeyni({ model: "qwen3:4b" }) },
+    // YEREL MODELLER ELLE YAZILMAZ: açılışta Ollama'dan taranır (aşağıda,
+    // `ollamaTara`). Eskiden burada `qwen2.5:7b` ve `qwen3:4b` sabitti; yeni
+    // indirilen model kod değiştirmeden seçilemiyordu, silinen model ise
+    // listede durup seçilince sessizce düşüyordu.
     // Claude Haiku — ADI AÇIK OLSUN. Eskiden yalnızca `dis` vardı ve panelde
     // o adla duruyordu: Ozyn için Haiku diye bir seçenek görünmüyordu, üstelik
     // `tools/claude-beyin.ts`i ayrı bir terminalde elle başlatmak gerekiyordu
@@ -1354,6 +1363,14 @@ function beyniBagla(a: Avatar): void {
   // bilinen adları ayrıca yazmak, yeni seçenek eklenince sessizce ayrışırdı.
   // Bilinmeyen değer çökertmez: varsayılana düşer.
   const istek = q.get("beyin");
+  const ollamaAdres = q.get("ollama") || undefined;
+  // `?beyin=yerel:<model>` TARAMAYI BEKLEMEZ: açıkça istenen model hemen
+  // seçenek olur (ölçüm düzenekleri açılış beynini kesin bilmeli). Kurulu
+  // değilse sağlık kontrolü söyler; tarama sonra aynı adı ezmeden geçer.
+  const istenenYerel = istek ? yereldenModel(istek) : null;
+  if (istenenYerel) {
+    secenekler.push({ ad: yerelAd(istenenYerel), kur: () => new OllamaBeyni({ model: istenenYerel, adres: ollamaAdres }) });
+  }
   const baslangic = secenekler.some((s) => s.ad === istek) ? istek! : VARSAYILAN_BEYIN;
   if (istek && baslangic !== istek) {
     console.warn(`[BEYIN] bilinmeyen beyin '${istek}', ${VARSAYILAN_BEYIN} ile başlanıyor`);
@@ -1363,6 +1380,12 @@ function beyniBagla(a: Avatar): void {
       if (o.tur === "gecti") {
         sema.ariza("beyin", false);
         sema.not("beyin", kisaAd(beyin.ad));
+        sema.lob("beyin", yereldenModel(o.hedef) !== null ? "yerel" : "bulut");
+        // Yerel model seçildiyse ŞİMDİ belleğe yüklenir: soğuk yükleme 5–15 sn
+        // ve bunu Ozyn'in ilk cümlesi ödememeli.
+        const ic = secici.ic;
+        if (ic instanceof OllamaBeyni) void ic.isit();
+        seciminiHatirla(o.hedef);
         gunluk.ekle("iyi", "beyin", `sol lob değişti: ${beyin.ad}`);
         altyaziGoster(`düşünce artık ${beyin.ad}`, 2600);
       } else {
@@ -1373,6 +1396,55 @@ function beyniBagla(a: Avatar): void {
   });
   const beyin: Beyin = secici;
   console.log(`[BEYIN] seçenekler: ${secici.secenekAdlari().join(", ")} · başlangıç: ${secici.aktif}`);
+  sema.lob("beyin", istenenYerel && baslangic === istek ? "yerel" : "bulut");
+
+  // ── OLLAMA TARAMASI: kurulu modeller açılışta seçenek olur ───────────
+  //
+  // Beklenmez: Ollama kapalıysa oda 2,5 sn donmamalı. Sonuç gelince
+  // seçenekler EKLENİR (var olan ad ezilmez) ve seçici penceresi tazelenir.
+  // Kapalıysa bu da görünür: pencerede "Ollama yok — ollama serve".
+  let ollamaKatalogu: OllamaKatalogu | null = null;
+  const ollamayiTara = async (): Promise<void> => {
+    const k = await ollamaTara({ adres: ollamaAdres });
+    ollamaKatalogu = k;
+    const eklenen = secici.secenekEkle(yerelSecenekler(k));
+    if (k.ulasildi) {
+      console.log(`[OLLAMA] ${k.surum ?? "?"} · ${k.modeller.length} model (${eklenen} yeni seçenek): ` +
+        k.modeller.map((m) => `${m.ad}${m.yuklu ? "*" : ""}`).join(", "));
+    } else {
+      console.warn(`[OLLAMA] taranamadı: ${k.hata}`);
+    }
+    modelSecici?.tazele();
+  };
+  const ollamaHazir = ollamayiTara();
+
+  // SON SEÇİM HATIRLANIR — ama yalnızca elle açılışta. Senaryolar (`*dene`,
+  // hepsi `sessiz=1` taşır) ve `?beyin=` açılış beynini KESİN bilmeli; bir
+  // önceki oturumda kalmış tercih ölçüm koşusunun beynini sessizce
+  // değiştirirse iki koşu artık aynı düzenek değildir.
+  const HATIRA_ANAHTARI = "orionBeyin";
+  const hatirlasin = !q.has("beyin") && !q.has("sessiz");
+  function seciminiHatirla(ad: string): void {
+    if (!hatirlasin) return;
+    try { localStorage.setItem(HATIRA_ANAHTARI, ad); } catch { /* depolama kapalı: önemsiz */ }
+  }
+  if (hatirlasin) {
+    let onceki: string | null = null;
+    try { onceki = localStorage.getItem(HATIRA_ANAHTARI); } catch { /* yok say */ }
+    if (onceki && onceki !== secici.aktif) {
+      // Tarama bitince: yerel model ancak o zaman seçenek olur. Geçiş yine
+      // sağlık kontrolünden geçer; model silindiyse varsayılan kalır ve
+      // sebep günlükte okunur.
+      void ollamaHazir.then(() => {
+        if (!secici.secenekVarMi(onceki!)) {
+          console.warn(`[BEYIN] hatırlanan beyin '${onceki}' artık yok, ${secici.aktif} kalıyor`);
+          return;
+        }
+        console.log(`[BEYIN] son seçim hatırlandı: ${onceki}`);
+        secici.iste(onceki!);
+      });
+    }
+  }
   /** Panel notu için kısa ad: `opencode:saglayici/model` → `model`. */
   const kisaAd = (ad: string) => ad.replace(/^opencode:/, "").split("/").pop() ?? ad;
 
@@ -1556,6 +1628,55 @@ function beyniBagla(a: Avatar): void {
   ]);
   sema.panoBagla(panoKaydi);
   panoKaydiGlobal = panoKaydi;
+
+  // ── MODEL SEÇİCİ (M) ─────────────────────────────────────────────────
+  //
+  // Yazma yolu İKİNCİ BİR YOL DEĞİL: pencerenin seçimi devre panosunun
+  // teyit yolundan geçer (`beyin.model` tehlikeli sınıfta). Pencere teyidi
+  // kendisi soruyor (iki adımlı Enter), burada onaylanıyor. Böylece günlük,
+  // liste dışı değer kontrolü ve "bekleyen ezilemez" kuralı tek kaynakta kalır.
+  const seciciKaynagi: ModelSeciciKaynagi = {
+    kartlar: () => kartlariKur(secici.secenekAdlari(), ollamaKatalogu),
+    durum: () => {
+      const g = secici.gecis;
+      return {
+        aktif: secici.aktif, istenen: secici.istenen, gecis: g.tur,
+        ...(g.tur !== "sakin" ? { hedef: g.hedef } : {}),
+        ...(g.tur === "reddedildi" ? { sebep: g.sebep } : {}),
+      };
+    },
+    sec: (ad) => {
+      const bekleyen = panoKaydi.bekleyenTeyit();
+      // Duvarda AÇIK bir beyin teyidi varsa bu seçim onun yerine geçer (aynı
+      // soru, yeni cevap). Başka bir düğmenin teyidi EZİLMEZ: sebebi söylenir.
+      if (bekleyen?.dugmeAdi === "beyin.model") panoKaydi.teyitIptal();
+      const t = panoKaydi.teyitIste("beyin.model", ad);
+      if (t.sebep !== "teyit bekleniyor") return t.sebep || "teyit açılamadı";
+      const acilan = panoKaydi.bekleyenTeyit();
+      if (!acilan || acilan.dugmeAdi !== "beyin.model" || acilan.yeni !== ad) return "teyit kayboldu";
+      const s = panoKaydi.teyitliYaz(acilan.jeton);
+      return s.oldu ? "" : s.sebep;
+    },
+    yenile: ollamayiTara,
+    tarama: () => ollamaKatalogu && {
+      ulasildi: ollamaKatalogu.ulasildi, surum: ollamaKatalogu.surum,
+      modelSayisi: ollamaKatalogu.modeller.length, an: ollamaKatalogu.an,
+      ...(ollamaKatalogu.hata ? { hata: ollamaKatalogu.hata } : {}),
+    },
+  };
+  modelSecici = modelSeciciKur({
+    kaynak: seciciKaynagi,
+    kok: document.getElementById("modelSecici") as HTMLElement,
+    rozet: document.getElementById("beyinRozet") as HTMLElement,
+    // M bir harftir: terminal/panel odaktayken, sohbet ya da onay açıkken değil.
+    tusSerbest: () => oyuncu.oyuncuDurumu().etkilesim === null
+      && sohbet.dataset.acik !== "1" && onayKapisi.durum !== "bekliyor",
+  });
+  (globalThis as unknown as Record<string, unknown>).orionModel = {
+    ac: () => modelSecici?.ac(),
+    tara: ollamayiTara,
+    katalog: () => ollamaKatalogu,
+  };
   console.log(`[PANO] ${panoKaydi.moduller().length} modül, ` +
     `${panoKaydi.goruntu().reduce((n, m) => n + m.dugmeler.length, 0)} tel bağlandı`);
 
@@ -2255,7 +2376,9 @@ if (new URLSearchParams(location.search).has("zihindene")) {
       console.log(`[ZIHINDENE] SECICI-RED ${disSonra.model === oncekiModel && String(disSonra.aktif).includes("reddedildi") ? "GECTI" : "KALDI"}` +
         ` — yazma=${r?.oldu} model=${disSonra.model} aktif=${disSonra.aktif}`);
 
-      const y = await gec("yerel:qwen2.5");
+      // Yerel seçenekler artık Ollama taramasından gelir: önce bitsin.
+      await (globalThis as unknown as { orionModel?: { tara(): Promise<void> } }).orionModel?.tara();
+      const y = await gec("yerel:qwen2.5:7b");
       const yerelSonra = { model: deger("beyin.model"), aktif: deger("beyin.aktif") };
       console.log(`[ZIHINDENE] SECICI-GECIS ${yerelSonra.aktif === "qwen2.5:7b" ? "GECTI" : "KALDI"}` +
         ` — yazma=${y?.oldu} once=${once} model=${yerelSonra.model} aktif=${yerelSonra.aktif}`);

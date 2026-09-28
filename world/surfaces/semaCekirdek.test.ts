@@ -104,13 +104,19 @@ test("bilinmeyen düğüm okumak çökmez — boş durum döner", () => {
 // Eski matematik burada REFERANS olarak yeniden yazılıyor — iki bağımsız
 // uygulama aynı sonucu veriyorsa taşıma temizdir.
 
-/** `sema.ts`'in taşınmadan ÖNCEKİ hesabı, birebir. */
+/**
+ * Geometrinin BAĞIMSIZ referans hesabı. İlk hâli `sema.ts`'in taşınmadan
+ * önceki matematiğiydi; 2026-09-28 tasarımında başlığın altına sütun başlık
+ * şeridi (yüksekliğin %6'sı) eklendi ve referans ona göre güncellendi.
+ * Kapının işi aynı: iki ayrı yazılmış hesap aynı kutuları vermeli.
+ */
 function eskiMatematik(genislik: number, yukseklik: number) {
   const kenar = Math.round(yukseklik * 0.04);
   const basYuk = Math.round(yukseklik * 0.11);
   const altYuk = Math.round(yukseklik * 0.10);
-  const alanY0 = basYuk;
-  const alanYuk = yukseklik - basYuk - altYuk;
+  const sutunYuk = Math.round(yukseklik * 0.06);
+  const alanY0 = basYuk + sutunYuk;
+  const alanYuk = yukseklik - basYuk - sutunYuk - altYuk;
   const ham = yerlesim(genislik, alanYuk, kenar);
   const kutular = new Map<string, Kutu>();
   for (const [ad, k] of ham) kutular.set(ad, { ...k, y: k.y + alanY0 });
@@ -224,18 +230,21 @@ test("ASİMETRİ: v ters çevrilirse REFLEKS yerine HAFIZA seçilir — tuzak bu
   // yerleşim dikey simetrik demektir ve bu test artık ters çevrimi yakalamaz.
   const ayna = dugumBulUv(alan, u, 1 - v);
   assert.notEqual(ayna, "refleks", "ayna aynı düğüme düştü — test körleşmiş");
-  assert.equal(ayna, "hafiza", "ayna beklenen komşuya düşmedi");
+  // 2026-09-28: sütun başlık şeridi alanı aşağı kaydırdı; ayna artık HAFIZA
+  // kutusunun birkaç piksel üstündeki boşluğa da düşebilir. İkisi de tuzağın
+  // ta kendisi (yanlış seçim ya da kayıp seçim); tek şart REFLEKS olmaması.
+  assert.ok(ayna === "hafiza" || ayna === null, `ayna beklenmedik düğüme düştü: ${ayna}`);
 });
 
 test("ASİMETRİ: BAKIŞ'ın aynası BOŞLUĞA düşer — ters çevrim seçimi kaybeder", () => {
-  // BAKIŞ sütun 4 / satır -1'de; sütun 4 / satır +1 boş. Ters çevrimde
+  // BAKIŞ sütun 4 / satır +1'de; sütun 4 / satır -1 boş. Ters çevrimde
   // tıklama hiçbir şey seçmez: "tıkladım ama açılmadı" diye okunur, panel
   // bozuk sanılır. REFLEKS testi yanlış seçimi, bu test kayıp seçimi tutar.
   const alan = semaAlani(910, 512);
   const k = semaYerlesimi(alan).get("bakis")!;
   const { u, v } = pikselUv(alan, k.x + k.g / 2, k.y + k.yuk / 2);
   assert.equal(dugumBulUv(alan, u, v), "bakis");
-  assert.equal(dugumBulUv(alan, u, 1 - v), null, "sütun 4 satır +1 boş olmalı");
+  assert.equal(dugumBulUv(alan, u, 1 - v), null, "sütun 4 satır -1 boş olmalı");
 });
 
 test("uvdenPiksel v=1 ÜSTE, v=0 ALTA düşer", () => {
@@ -267,4 +276,37 @@ test("dugumTanim her düğüm için açıklama döner, bilinmeyende null", () =>
     assert.ok(!t.aciklama.includes("\n"), `${d.ad} açıklaması çok satırlı — panel tek satır çizer`);
   }
   assert.equal(dugumTanim("yok_boyle"), null);
+});
+
+// ── Tasarım 2026-09-28: sütun başlıkları ve lob geçersiz kılma ─────────────
+
+test("her sütunun bir başlığı var ve başlık kutunun ortasında", async () => {
+  const { SUTUN_ADLARI, sutunSeritleri, DUGUMLER } = await import("./semaCekirdek.ts");
+  const alan = semaAlani(910, 512);
+  const seritler = sutunSeritleri(alan);
+  assert.equal(SUTUN_ADLARI.length, seritler.length, "sütun adı sayısı sütun sayısıyla ayrıştı");
+  const kutular = semaYerlesimi(alan);
+  for (const d of DUGUMLER) {
+    const k = kutular.get(d.ad)!;
+    assert.ok(Math.abs(k.x + k.g / 2 - seritler[d.sutun]!.merkez) < 0.5, `${d.ad} sütun ortasında değil`);
+  }
+});
+
+test("sütun şeridine tıklamak düğüm SEÇMEZ", () => {
+  const alan = semaAlani(910, 512);
+  for (const x of [100, 455, 800]) {
+    assert.equal(dugumBul(alan, x, alan.basYuk + alan.sutunYuk / 2), null);
+  }
+});
+
+test("lob geçersiz kılma: DÜŞÜNCE yerel modelde yerel renkte", async () => {
+  const { etkinLob } = await import("./semaCekirdek.ts");
+  const d = semaDurumuKur();
+  assert.equal(etkinLob("beyin", d.oku("beyin")), "bulut");
+  d.lobYaz("beyin", "yerel");
+  assert.equal(etkinLob("beyin", d.oku("beyin")), "yerel");
+  d.vur("beyin");
+  assert.equal(d.oku("beyin").lob, "yerel", "vuruş lobu sıfırladı");
+  d.lobYaz("beyin", null);
+  assert.equal(etkinLob("beyin", d.oku("beyin")), "bulut");
 });

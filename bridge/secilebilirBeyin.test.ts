@@ -197,3 +197,25 @@ test("secenekAdlari panele sırayla verilir", () => {
   ], "a");
   assert.deepEqual(s.secenekAdlari(), ["a", "b"]);
 });
+
+test("ÇALIŞIRKEN EKLENEN seçenek seçilebilir; var olan ad ezilmez", async () => {
+  // Yerel modeller açılıştan SONRA Ollama taramasıyla gelir. Aynı model
+  // yeniden taramada tekrar gelir: kurulu örneği ezmek yüklü modeli ve
+  // oturum geçmişini çöpe atardı.
+  const b1 = sayacli(sahte("B1").b);
+  const b2 = sayacli(sahte("B2").b);
+  const s = new SecilebilirBeyin([{ ad: "a", kur: () => sahte("A").b }], "a");
+  assert.match(s.iste("yerel:b"), /böyle bir beyin yok/, "eklenmeden seçilebildi");
+
+  assert.equal(s.secenekEkle([{ ad: "yerel:b", kur: b1.kur }]), 1);
+  assert.ok(s.secenekVarMi("yerel:b"));
+  assert.equal(s.iste("yerel:b"), "");
+  await s.gecisBitti();
+  assert.equal(s.ad, "B1");
+
+  assert.equal(s.secenekEkle([{ ad: "yerel:b", kur: b2.kur }, { ad: "a", kur: b2.kur }]), 0,
+    "var olan ad yeniden sayıldı");
+  assert.equal(s.ad, "B1", "yeniden tarama kurulu beyni ezdi");
+  assert.equal(b2.kac(), 0);
+  assert.deepEqual(s.secenekAdlari(), ["a", "yerel:b"]);
+});

@@ -10,6 +10,7 @@ import { PiperSesi, piperBul } from "./ses.js";
 import { hafizaDosyasiOku, hafizaDosyasiYaz } from "./hafizaDosyasi.js";
 import { kararYaziciKur, ogretimYolu, ogretimleriOku, satirlariOku, yeniSatirlar } from "./kararDosyasi.js";
 import { mcpSunucuKur } from "./mcpSunucu.js";
+import { ollamaHazirla, ollamaAdresi } from "./ollamaSunucu.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const KOK = path.resolve(__dirname, "..");
@@ -164,6 +165,9 @@ function pencereAc() {
   if (process.env.ORION_BEYIN) parcalar.push(`beyin=${encodeURIComponent(process.env.ORION_BEYIN)}`);
   if (process.env.ORION_KAYIT === "1") parcalar.push("kayit=1");
   if (process.env.ORION_BEYIN_ADRES) parcalar.push(`beyinadres=${encodeURIComponent(process.env.ORION_BEYIN_ADRES)}`);
+  // Ollama başka bir adreste koşuyorsa (Ollama'nın kendi OLLAMA_HOST'u)
+  // renderer'daki tarama ve yerel beyinler de oraya gitsin.
+  if (process.env.OLLAMA_HOST) parcalar.push(`ollama=${encodeURIComponent(ollamaAdresi(process.env.OLLAMA_HOST))}`);
   if (process.env.ORION_OPENCODE) parcalar.push(`opencode=${encodeURIComponent(process.env.ORION_OPENCODE)}`);
   if (process.env.OPENCODE_SERVER_PASSWORD) parcalar.push(`sifre=${encodeURIComponent(process.env.OPENCODE_SERVER_PASSWORD)}`);
   const sorgu = parcalar.length ? { search: `?${parcalar.join("&")}` } : {};
@@ -419,7 +423,29 @@ function claudeBeyniBaslat() {
   }
 }
 
-app.whenReady().then(() => { claudeBeyniBaslat(); mcpUcuBaslat(); return pencereAc(); });
+// ── Ollama ────────────────────────────────────────────────────────────────
+//
+// Model seçici kurulu yerel modelleri açılışta tarıyor; Ollama kapalıysa
+// burada başlatılır (host/ollamaSunucu.js). Pencere BEKLER, çünkü tarama
+// pencere açılır açılmaz koşuyor — ama tavan 8 sn ve Ollama kurulu değilse
+// ya da zaten ayaktaysa bekleme milisaniyeler. `ORION_OLLAMA=0` ile kapalı.
+let ollama = null;
+
+async function ollamaBaslat() {
+  try {
+    ollama = await ollamaHazirla({ spawn });
+  } catch (e) {
+    // ollamaHazirla fırlatmaz; yine de açılış hiçbir koşulda buna takılmasın.
+    console.warn(`[ollama] hazirlanamadi: ${e?.message ?? e}`);
+  }
+}
+
+app.whenReady().then(async () => {
+  claudeBeyniBaslat();
+  mcpUcuBaslat();
+  await ollamaBaslat();
+  return pencereAc();
+});
 app.on("activate", () => { if (BrowserWindow.getAllWindows().length === 0) pencereAc(); });
 app.on("window-all-closed", () => { if (process.platform !== "darwin") app.quit(); });
 app.on("before-quit", () => {
@@ -429,4 +455,6 @@ app.on("before-quit", () => {
   // Adaptör bizim başlattığımız süreç: arkada kalıp portu tutmasın.
   if (claudeBeyni) { try { claudeBeyni.kill(); } catch { /* kapanışta önemsiz */ } claudeBeyni = null; }
   if (mcpUcu) { try { mcpUcu.kapat(); } catch { /* kapanışta önemsiz */ } mcpUcu = null; }
+  // Yalnızca BİZİM başlattığımız Ollama kapanır; Ozyn'in açtığına dokunulmaz.
+  if (ollama) { ollama.kapat(); ollama = null; }
 });

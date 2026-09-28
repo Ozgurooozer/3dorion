@@ -26,6 +26,16 @@
    Tek yardımcıya indirilmeli.
 3. **`world/surfaces/sema.ts` testsiz** (824 satır). Saf yardımcılar
    (`satirla`, `suredenBeri`, `degerYaz`) canvas'sız sınanabilir.
+   — **2026-09-28 kısmen:** çizim `semaCizim.ts`e ayrıldı (Babylon'suz),
+   `sema.ts` 278 satıra indi; tasarım `/world/surfaces/sema-deneme.html`
+   sayfasında sahnesiz görülüyor. Çizimin kendisi hâlâ birim testsiz.
+- **Model seçici (M) + Ollama taraması canlıda KOŞULMADI** [YAZILDI-KOŞULMADI]
+  (2026-09-28). Birim testli ve tarayıcıda sahte kaynakla sürüldü; gerçek
+  Ollama + Electron ile ilk koşuda bakılacaklar: `host/ollamaSunucu.js`
+  Windows'ta `ollama serve`'ü açabiliyor mu (tepsi uygulaması zaten açıksa
+  "zaten ayakta" demeli), `zihindene` SECICI-GECIS kapısı yeni adla
+  (`yerel:qwen2.5:7b`) geçiyor mu, `think:false` qwen3'te turu kısaltıyor mu
+  (ölçülmedi).
 4. ~~**Sonra teze dön — önce cevabın KULLANILMASI.**~~ — **ÇÖZÜLDÜ**
    (2026-09-17/18). Aşağıda "ÇÖZÜLENLER".
 

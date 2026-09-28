@@ -52,7 +52,12 @@ export const DUGUMLER: readonly Dugum[] = [
   // gelir, burada beyin bilgiyi KENDİ ister (dunya_sor). Ayrı kutu olması
   // bu yüzden: "ALGI" içinde göstermek iki farklı yönü tek şeymiş gibi
   // okutuyordu.
-  { ad: "bakis",   etiket: "BAKIŞ",    lob: "yerel", sutun: 4, satir: -1,
+  //
+  // ALT SATIRDA (2026-09-28; önceden satır -1): üst satırdayken REFLEKS →
+  // NİYET oku ya DÜŞÜNCE kutusunun içinden ya da BAKIŞ'ın üstünden geçmek
+  // zorundaydı ve ekranda "refleks düşünceye gidiyor" diye okunuyordu. Alt
+  // satır zaten beynin GİRDİLERİNİN (HAFIZA) satırı; BAKIŞ da bir girdi.
+  { ad: "bakis",   etiket: "BAKIŞ",    lob: "yerel", sutun: 4, satir: 1,
     aciklama: "Beynin KENDİ istediği bilgi: odaya bakma sorgusunun cevabı." },
   { ad: "niyet",   etiket: "NİYET",    lob: "ortak", sutun: 4, satir: 0,
     aciklama: "Karar eyleme dönüşür; protokol doğrulamasından geçer." },
@@ -60,6 +65,16 @@ export const DUGUMLER: readonly Dugum[] = [
     aciklama: "Komut önerileri burada bekler. Ozyn onaylamadan hiçbir komut çalışmaz." },
   { ad: "beden",   etiket: "BEDEN",    lob: "yerel", sutun: 5, satir: 0,
     aciklama: "Avatar gerçekten hareket eder: yürür, bakar, yazar, konuşur." },
+] as const;
+
+/**
+ * Sütun başlıkları — şemayı TABLO gibi okutur: soldan sağa her sütun bir
+ * aşama. Eskiden kutular başıboş duruyordu ve "REFLEKS neden DİKKAT'in
+ * üstünde" sorusunun cevabı (aynı aşamanın yan dalı) hiçbir yerde yazmıyordu.
+ * İndeks = `Dugum.sutun`. Uzunluk sütun sayısıyla eşit olmalı (testli).
+ */
+export const SUTUN_ADLARI: readonly string[] = [
+  "GİRİŞ", "SÜZME", "KARAR", "DİL", "NİYET", "EYLEM",
 ] as const;
 
 /** Aralarındaki oklar: [kaynak, hedef]. */
@@ -87,6 +102,14 @@ export interface DugumDurumu {
   not: string;
   /** Arızalı mı — kırmızı çizilir. */
   arizali: boolean;
+  /**
+   * Lob, TANIMDAN FARKLIYSA. `null` = tanımdaki lob.
+   *
+   * DÜŞÜNCE tanımda "bulut", ama Ozyn yerel bir Ollama modeli seçtiğinde
+   * düşünce artık yerelde koşuyor. Şemanın rengi bunu söylemeli: yalan
+   * söyleyen renk, hiç renk olmamasından kötüdür.
+   */
+  lob: Dugum["lob"] | null;
 }
 
 export interface SemaDurumu {
@@ -96,6 +119,8 @@ export interface SemaDurumu {
   /** Not günceller ama sayacı ARTIRMAZ (durum bilgisi, olay değil). */
   notYaz(ad: string, not: string): void;
   ariza(ad: string, arizali: boolean, not?: string): void;
+  /** Düğümün lobunu değiştir (`null` = tanımdakine dön). */
+  lobYaz(ad: string, lob: Dugum["lob"] | null): void;
   /**
    * Parıltı yoğunluğu 0..1 — `sonAn`dan bu yana geçen süreye göre söner.
    * Çizim bunu doğrudan alfa olarak kullanır.
@@ -110,7 +135,7 @@ export function semaDurumuKur(): SemaDurumu {
   const harita = new Map<string, DugumDurumu>();
   const al = (ad: string): DugumDurumu => {
     let d = harita.get(ad);
-    if (!d) { d = { sayac: 0, sonAn: 0, not: "", arizali: false }; harita.set(ad, d); }
+    if (!d) { d = { sayac: 0, sonAn: 0, not: "", arizali: false, lob: null }; harita.set(ad, d); }
     return d;
   };
 
@@ -125,6 +150,7 @@ export function semaDurumuKur(): SemaDurumu {
       d.arizali = false;
     },
     notYaz(ad, not) { al(ad).not = not; },
+    lobYaz(ad, lob) { al(ad).lob = lob; },
     ariza(ad, arizali, not) {
       const d = al(ad);
       d.arizali = arizali;
@@ -199,7 +225,9 @@ export interface SemaAlani {
   basYuk: number;
   /** Alt durum şeridi yüksekliği. */
   altYuk: number;
-  /** Şema alanının üst kenarı (= basYuk). */
+  /** Sütun başlıkları şeridi (başlığın hemen altında). */
+  sutunYuk: number;
+  /** Şema alanının üst kenarı (= basYuk + sutunYuk). */
   y0: number;
   /** Şema alanının yüksekliği (şeritler düşülmüş). */
   alanYuk: number;
@@ -211,10 +239,13 @@ export function semaAlani(genislik: number, yukseklik: number): SemaAlani {
   const kenar = Math.round(yukseklik * 0.04);
   const basYuk = Math.round(yukseklik * 0.11);
   const altYuk = Math.round(yukseklik * 0.10);
+  // Sütun başlık şeridi yeni tasarımla geldi (2026-09-28): kutular onun
+  // ALTINDA başlar. Oran burada, çizim ve tıklama aynı sayıyı okur.
+  const sutunYuk = Math.round(yukseklik * 0.06);
   return {
-    genislik, yukseklik, kenar, basYuk, altYuk,
-    y0: basYuk,
-    alanYuk: yukseklik - basYuk - altYuk,
+    genislik, yukseklik, kenar, basYuk, altYuk, sutunYuk,
+    y0: basYuk + sutunYuk,
+    alanYuk: yukseklik - basYuk - sutunYuk - altYuk,
   };
 }
 
@@ -273,6 +304,26 @@ export function dugumBulUv(
   if (!Number.isFinite(u) || !Number.isFinite(v)) return null;
   const { px, py } = uvdenPiksel(alan, u, v);
   return dugumBul(alan, px, py, dugumler);
+}
+
+/**
+ * Sütun şeritleri (x aralıkları) — tablo zemini ve sütun başlıkları.
+ * `yerlesim()` ile AYNI hücre hesabı: başlık, altındaki kutunun tam ortasında.
+ */
+export function sutunSeritleri(
+  alan: SemaAlani, dugumler: readonly Dugum[] = DUGUMLER,
+): { x: number; g: number; merkez: number }[] {
+  const sutunlar = Math.max(...dugumler.map((d) => d.sutun)) + 1;
+  const hucreG = (alan.genislik - alan.kenar * 2) / sutunlar;
+  return Array.from({ length: sutunlar }, (_, i) => {
+    const x = alan.kenar + i * hucreG;
+    return { x, g: hucreG, merkez: x + hucreG / 2 };
+  });
+}
+
+/** Düğümün o anki lobu: durumdaki geçersiz kılma, yoksa tanım. */
+export function etkinLob(ad: string, s: Pick<DugumDurumu, "lob">): Dugum["lob"] {
+  return s.lob ?? dugumTanim(ad)?.lob ?? "ortak";
 }
 
 /** Bir düğümün tanımı — detay görünümü ve pano kaydı buradan okur. */

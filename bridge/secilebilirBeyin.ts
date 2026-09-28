@@ -96,6 +96,31 @@ export class SecilebilirBeyin implements Beyin {
   secenekAdlari(): readonly string[] { return [...this._secenekler.keys()]; }
 
   /**
+   * Çalışırken seçenek ekler. Dönüş: eklenen seçenek sayısı.
+   *
+   * NEDEN: yerel modeller artık açılışta Ollama'dan TARANIYOR ve tarama
+   * asenkron — seçici kurulduğunda liste henüz yok. Seçiciyi taramayı
+   * bekleyerek kurmak açılışı Ollama'ya bağlardı (kapalıysa 2,5 sn donuk oda).
+   *
+   * Var olan ad EZİLMEZ, sessizce atlanır: yeniden taramada aynı model tekrar
+   * gelir ve kurulu (önbellekli) örneği çöpe atmak, yüklü modeli ve OpenCode
+   * oturum geçmişini gereksiz yere kaybetmek olurdu. Silme YOK: kaldırılan bir
+   * model seçilirse sağlık kontrolü zaten reddeder ve sebebi görünür.
+   */
+  secenekEkle(secenekler: readonly BeyinSecenegi[]): number {
+    let n = 0;
+    for (const s of secenekler) {
+      if (this._secenekler.has(s.ad)) continue;
+      this._secenekler.set(s.ad, s);
+      n++;
+    }
+    return n;
+  }
+
+  /** Bu ad seçenek listesinde var mı. */
+  secenekVarMi(ad: string): boolean { return this._secenekler.has(ad); }
+
+  /**
    * Geçiş iste. Dönüş: `""` = kabul (kontrol başladı ya da zaten aktif),
    * aksi hâlde red sebebi. FIRLATMAZ — panel tıklamasından çağrılıyor.
    */

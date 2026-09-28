@@ -91,7 +91,10 @@
   }
   #sohbetGirdi:focus { border-color: #4d5fa8; }
   #sohbetGirdi::placeholder { color: #5d688f; }
+
 </style>
+<!-- Model seçici (M) — stili modülün yanında: world/arayuz/modelSecici.ts -->
+<link rel="stylesheet" href="/world/arayuz/modelSecici.css" />
 </head>
 <body>
   <canvas id="tuval"></canvas>
@@ -109,6 +112,8 @@
     <div class="gerekce" id="onayGerekce"></div>
     <div class="tuslar"><kbd>Y</kbd> onayla ve calistir &nbsp;·&nbsp; <kbd>N</kbd> reddet &nbsp;·&nbsp; <kbd>Esc</kbd> reddet</div>
   </div>
+  <button id="beyinRozet" type="button" title="düşünce modelini seç (M)"></button>
+  <div id="modelSecici" data-acik="0"></div>
   <div id="sohbet">
     <input id="sohbetGirdi" type="text" autocomplete="off" spellcheck="false"
            placeholder="Orion'a yaz… (T ile aç, Enter gönder, Esc kapat)" />
