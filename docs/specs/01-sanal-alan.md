@@ -580,7 +580,7 @@ Bu dilim bitmeden hiçbir modül genişletilmez.
 | K1 | Dünya tick'i 20Hz ± %5, 10 dakika boyunca sapma yok | tick sayacı logu |
 | K2 | 60 FPS (1080p, RTX 4060), avatar + terminal yüzeyi açıkken | Babylon FPS sayacı |
 | K3 | Ses turu (girdi bitişi → TTS başlangıcı) < 1.5 sn | zaman damgalı log — TTS payı ölçüldü: 101-125 ms |
-| K4 | `world/` içinde `bridge`/`mind`/molp import'u: **0** | grep denetimi, CI |
+| K4 | `world/` içinde `bridge`/`mind`/molp import'u: **0** (tek istisna kompozisyon kökü `world/giris.ts`) | bekçi testi `world/bagimlilik.test.ts` (2026-09-28; yalnız tip importu da sayılır) |
 | K5 | `tik` algısı beyin kanalına: **0 kez** | protokol testi + çalışma logu |
 | K6 | Monitörde `claude` çalışır, çıktı 3D yüzeyde okunur | ekran görüntüsü |
 | K7 | Orion'un `git`/`bak`/`yaz` niyetleri avatarı gerçekten hareket ettirir | video |

@@ -57,7 +57,7 @@ voice/      STT (text-input stand-in today; no microphone hardware present) + TT
 host/       Electron main process: pty, IPC, window, injects a PowerShell `prompt` function for OSC 133 exit-code signaling.
 ```
 
-**Dependency direction is one-way and enforced by convention, not tooling:** `world -> protocol`, `bridge -> protocol`, `mind -> protocol`. `world/` must never import `bridge/`, `mind/`, or any brain code — a violation is an architecture bug, not a style nit (this is spec accept-criterion K4, meant to be grep-checkable). If you're touching `world/`, ask whether what you're adding belongs there or in `mind/`/`bridge/` instead.
+**Dependency direction is one-way:** `world -> protocol`, `bridge -> protocol`, `mind -> protocol`. `world/` must never import `bridge/`, `mind/`, or any brain code — a violation is an architecture bug, not a style nit (spec accept-criterion K4). A guard test enforces it (`world/bagimlilik.test.ts`, type-only imports included); the one documented exception is the composition root `world/giris.ts`, which wires the brain to the body. If you're touching `world/`, ask whether what you're adding belongs there or in `mind/`/`bridge/` instead.
 
 ### `protocol/` — the contract
 
