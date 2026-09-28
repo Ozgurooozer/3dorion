@@ -21,7 +21,7 @@
 // Bağımlılık: protocol/ (tipler, CAPALAR), mind/kararZinciri.ts (tipler),
 // mind/durumKodu.ts (kelimeler). Saf: dosya, saat, dünya yok.
 "use strict";
-import { CAPALAR, type CapaAdi } from "../protocol/temel.ts";
+import { CAPALAR, katla, type CapaAdi } from "../protocol/temel.ts";
 import type { Niyet, NiyetTur } from "../protocol/niyet.ts";
 import type { AlgiSatiri, KararSatiri, UyanisSatiri } from "./kararKaydi.ts";
 import type { KararZinciri, NiyetAkibeti, RefleksZinciri } from "./kararZinciri.ts";
@@ -46,9 +46,8 @@ export function niyetSinifi(tur: NiyetTur): NiyetSinifi {
 
 // ── Söz anahtarı ───────────────────────────────────────────────────────────
 
-/** Türkçe karakter katlama: "Kapıya" ile "kapiya" aynı sözcük sayılsın (çapa adları ASCII). */
-const KATLAMA: Record<string, string> = { "ı": "i", "ö": "o", "ü": "u", "ş": "s", "ç": "c", "ğ": "g", "â": "a", "î": "i", "û": "u" };
-const katla = (w: string): string => w.replace(/[ıöüşçğâîû]/g, (h) => KATLAMA[h]!);
+// Türkçe karakter katlama protokolden (`katla`, tek kaynak): "Kapıya" ile "kapiya" aynı sözcük
+// sayılsın (çapa adları ASCII). Çapa çözümü (protocol/temel.ts `capaCoz`) aynı katlamayı kullanır.
 
 /**
  * Çapa adından sonra gelebilecek ekler (katlanmış). Hal ekleri tek başına ya da 3.

@@ -12,7 +12,14 @@ import {
   tumCapalar, yakinCapalar, yaklastiMi,
 } from "./capalar.ts";
 import { carpisiyorMu, SINIR } from "./olculer.ts";
-import { CAPALAR } from "../../protocol/temel.ts";
+import { CAPALAR, CAPA_ETIKETLERI } from "../../protocol/temel.ts";
+
+test("dünyanın gösterdiği etiketler protokolün etiket tablosundan (BY39-2d: çapa çözümü aynı tabloyu kullanır)", () => {
+  assert.deepEqual(
+    Object.fromEntries(tumCapalar().map((c) => [c.ad, c.etiket])),
+    Object.fromEntries(CAPALAR.map((c) => [c, CAPA_ETIKETLERI[c]])),
+  );
+});
 
 test("dünyanın çapaları protokolün listesiyle birebir aynı: eksik de fazla da yok", () => {
   // Liste TEK yerde: protocol/temel.ts `CAPALAR`. Burada yeniden yazılmaz;

@@ -5,7 +5,7 @@
 // Bağımlılık yok — elle yazılmış doğrulayıcı (şema kütüphanesi taşımıyoruz).
 "use strict";
 import { POZLAR, JESTLER, type Niyet, type NiyetTur } from "./niyet.ts";
-import type { Hedef } from "./temel.ts";
+import { capaCoz, type Hedef } from "./temel.ts";
 
 export type Sonuc<T> = { ok: true; deger: T } | { ok: false; hata: string };
 
@@ -22,6 +22,12 @@ const TURLER: readonly NiyetTur[] = [
 const sayi = (v: unknown): boolean => typeof v === "number" && Number.isFinite(v);
 const yazi = (v: unknown): boolean => typeof v === "string" && v.length > 0;
 
+/**
+ * Çapa adı (BY39-2d): etiket ya da yazım biçimi iç ada çevrilir ("beyaz tahta" → tahta);
+ * bilinmeyen ad olduğu gibi geçer — dünya reddeder, hata metni LLM'e döner (bugünkü gibi).
+ */
+const capaAdi = (ad: string): string => capaCoz(ad) ?? ad;
+
 function hedefDogrula(h: unknown, alan: string): Sonuc<Hedef> {
   if (h === null || typeof h !== "object") return { ok: false, hata: `${alan}: nesne olmalı` };
   const o = h as Record<string, unknown>;
@@ -33,7 +39,7 @@ function hedefDogrula(h: unknown, alan: string): Sonuc<Hedef> {
       return { ok: true, deger: { tip: "nesne", ad: o.ad as string } };
     case "capa":
       if (!yazi(o.ad)) return { ok: false, hata: `${alan}.ad: boş olmayan metin olmalı` };
-      return { ok: true, deger: { tip: "capa", ad: o.ad as string } };
+      return { ok: true, deger: { tip: "capa", ad: capaAdi(o.ad as string) } };
     case "nokta":
       if (!sayi(o.x) || !sayi(o.y) || !sayi(o.z))
         return { ok: false, hata: `${alan}: x/y/z sonlu sayı olmalı` };
@@ -88,7 +94,7 @@ export function niyetDogrula(ham: unknown): Sonuc<Niyet> {
 
     case "otur":
       if (o.capa !== undefined && !yazi(o.capa)) return { ok: false, hata: "capa: metin olmalı" };
-      return { ok: true, deger: { tur: "otur", capa: o.capa as string | undefined } };
+      return { ok: true, deger: { tur: "otur", capa: o.capa === undefined ? undefined : capaAdi(o.capa as string) } };
 
     case "soyle": {
       if (!yazi(o.metin)) return { ok: false, hata: "metin: boş olmayan metin olmalı" };
@@ -128,7 +134,7 @@ export function niyetDogrula(ham: unknown): Sonuc<Niyet> {
 
     case "odaklan":
       if (!yazi(o.capa)) return { ok: false, hata: "capa: boş olmayan metin olmalı" };
-      return { ok: true, deger: { tur: "odaklan", capa: o.capa as string } };
+      return { ok: true, deger: { tur: "odaklan", capa: capaAdi(o.capa as string) } };
 
     case "sor": {
       const ne = o.ne;

@@ -4,6 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { niyetDogrula, METIN_SINIRI } from "./dogrula.ts";
+import { CAPALAR, CAPA_ETIKETLERI, capaCoz } from "./temel.ts";
 import { POZLAR, JESTLER, SURELI_NIYETLER, okunurMu } from "./niyet.ts";
 import { VARSAYILAN_KANAL, ozetle, OZET_ONEKI } from "./algi.ts";
 import { zarfla, SURUM } from "./temel.ts";
@@ -56,6 +57,56 @@ test("negatif mesafe reddedilir", () => {
 test("bak: null serbest bakış demektir, geçerlidir", () => {
   const r = niyetDogrula({ tur: "bak", hedef: null });
   assert.equal(r.ok, true);
+});
+
+// ── Çapa adı çözümü (BY39-2d) ──────────────────────────────────────────────
+// LLM odadaki çapaları görünen etiketleriyle görür ("beyaz tahta") ve iç adı bazen yanlış
+// yazar ("odanin_ortasi"; canlı, 2026-09-28). Doğrulayıcı bilinen biçimleri iç ada çevirir;
+// bilinmeyeni olduğu gibi bırakır: dünya reddeder, hata metni LLM'e döner (bugünkü gibi).
+
+test("capaCoz ızgarası: iç ad, etiket, büyük harf, Türkçe karakter ve boşluk/alt çizgi biçimleri iç ada çözülür", () => {
+  const izgara: [string, string | null][] = [
+    ["tahta", "tahta"], ["beyaz tahta", "tahta"], ["Beyaz Tahta", "tahta"], ["beyaz_tahta", "tahta"],
+    ["çalışma masası", "masa"], ["calisma masasi", "masa"], ["masa", "masa"],
+    ["odanın ortası", "oda_ortasi"], ["odanin_ortasi", "oda_ortasi"], ["oda_ortasi", "oda_ortasi"], ["oda ortasi", "oda_ortasi"],
+    ["monitör", "monitor"], ["Monitor", "monitor"], ["kapı", "kapi"], ["KAPI", "kapi"],
+    ["yönetim terminali", "admin"], ["beyin şeması", "sema"], ["beyin günlüğü", "gunluk"],
+    ["  pencere ", "pencere"], ["sandalye", "sandalye"],
+    ["mutfak", null], ["oda", null], ["tahtalar", null], ["", null],
+  ];
+  assert.deepEqual(izgara.map(([ad]) => capaCoz(ad)), izgara.map(([, c]) => c));
+});
+
+test("her çapanın etiketi kendi çapasına çözülür: iki çapa aynı biçime düşmez", () => {
+  assert.deepEqual(CAPALAR.map((c) => capaCoz(CAPA_ETIKETLERI[c])), [...CAPALAR]);
+});
+
+test("doğrulayıcı çapa adını iç ada çevirir: git/bak/jest hedefi, otur ve odaklan çapası", () => {
+  const sonuc = [
+    niyetDogrula({ tur: "git", hedef: { tip: "capa", ad: "beyaz tahta" } }),
+    niyetDogrula({ tur: "bak", hedef: { tip: "capa", ad: "Monitör" } }),
+    niyetDogrula({ tur: "jest", jest: "işaret_ediyor", hedef: { tip: "capa", ad: "kapı" } }),
+    niyetDogrula({ tur: "otur", capa: "Sandalye" }),
+    niyetDogrula({ tur: "odaklan", capa: "beyin şeması" }),
+  ].map((r) => (r.ok ? JSON.parse(JSON.stringify(r.deger)) : r.hata));
+  assert.deepEqual(sonuc, [
+    { tur: "git", hedef: { tip: "capa", ad: "tahta" } },
+    { tur: "bak", hedef: { tip: "capa", ad: "monitor" } },
+    { tur: "jest", jest: "işaret_ediyor", hedef: { tip: "capa", ad: "kapi" } },
+    { tur: "otur", capa: "sandalye" },
+    { tur: "odaklan", capa: "sema" },
+  ]);
+});
+
+test("bilinmeyen çapa adı ve nesne adı doğrulayıcıdan olduğu gibi geçer (dünya karar verir)", () => {
+  const sonuc = [
+    niyetDogrula({ tur: "git", hedef: { tip: "capa", ad: "mutfak" } }),
+    niyetDogrula({ tur: "git", hedef: { tip: "nesne", ad: "beyaz tahta" } }),
+  ].map((r) => (r.ok ? JSON.parse(JSON.stringify(r.deger)) : r.hata));
+  assert.deepEqual(sonuc, [
+    { tur: "git", hedef: { tip: "capa", ad: "mutfak" } },
+    { tur: "git", hedef: { tip: "nesne", ad: "beyaz tahta" } },
+  ]);
 });
 
 test("soyle: boş metin reddedilir, sınır aşımı reddedilir", () => {

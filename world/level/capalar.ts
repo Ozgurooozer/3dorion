@@ -9,7 +9,7 @@
 // bu dosya `node --test` altında doğrudan koşabiliyor (capalar.test.ts).
 // Babylon `Vector3` gereken yerde `capaGeometri.ts` dönüştürür.
 "use strict";
-import type { CapaAdi, Vec3 } from "../../protocol/temel.ts";
+import { CAPA_ETIKETLERI, type CapaAdi, type Vec3 } from "../../protocol/temel.ts";
 import { MASA, MONITOR, SANDALYE, TAHTA, PENCERE, KAPI, SEMA, GUNLUK, ADMIN } from "./olculer.ts";
 
 /**
@@ -70,7 +70,7 @@ const KAYIT: readonly Capa[] = [
     yon: ARKAYA,
     yaklasmaYaricapi: 1.6,
     eylemler: ["odaklan", "al", "birak", "bak"],
-    etiket: "çalışma masası",
+    etiket: CAPA_ETIKETLERI.masa,
   },
   {
     ad: "monitor",
@@ -79,7 +79,7 @@ const KAYIT: readonly Capa[] = [
     yon: ARKAYA,
     yaklasmaYaricapi: 2.0,
     eylemler: ["odaklan", "kullan", "bak"],
-    etiket: "monitör",
+    etiket: CAPA_ETIKETLERI.monitor,
   },
   {
     ad: "sandalye",
@@ -88,7 +88,7 @@ const KAYIT: readonly Capa[] = [
     yon: ARKAYA,
     yaklasmaYaricapi: 0.9,
     eylemler: ["otur", "kalk"],
-    etiket: "sandalye",
+    etiket: CAPA_ETIKETLERI.sandalye,
   },
   {
     ad: "tahta",
@@ -97,7 +97,7 @@ const KAYIT: readonly Capa[] = [
     yon: SOLA,
     yaklasmaYaricapi: 1.5,
     eylemler: ["yaz", "odaklan", "bak"],
-    etiket: "beyaz tahta",
+    etiket: CAPA_ETIKETLERI.tahta,
   },
   {
     ad: "pencere",
@@ -106,7 +106,7 @@ const KAYIT: readonly Capa[] = [
     yon: ARKAYA,
     yaklasmaYaricapi: 1.6,
     eylemler: ["bak", "odaklan"],
-    etiket: "pencere",
+    etiket: CAPA_ETIKETLERI.pencere,
   },
   {
     ad: "kapi",
@@ -115,7 +115,7 @@ const KAYIT: readonly Capa[] = [
     yon: ONE,
     yaklasmaYaricapi: 1.4,
     eylemler: ["bak"],
-    etiket: "kapı",
+    etiket: CAPA_ETIKETLERI.kapi,
   },
   // ── Zihin duvarı (sağ duvar, normal -X) ────────────────────────────────
   // Durak panelin SOLUNDA (-X yönünde), yüzü duvara dönük: SAGA bakış.
@@ -126,7 +126,7 @@ const KAYIT: readonly Capa[] = [
     yon: SAGA,
     yaklasmaYaricapi: 1.8,
     eylemler: ["bak", "odaklan"],
-    etiket: "beyin şeması",
+    etiket: CAPA_ETIKETLERI.sema,
   },
   {
     ad: "gunluk",
@@ -135,7 +135,7 @@ const KAYIT: readonly Capa[] = [
     yon: SAGA,
     yaklasmaYaricapi: 1.8,
     eylemler: ["bak", "odaklan"],
-    etiket: "beyin günlüğü",
+    etiket: CAPA_ETIKETLERI.gunluk,
   },
   {
     ad: "admin",
@@ -144,7 +144,7 @@ const KAYIT: readonly Capa[] = [
     yon: ARKAYA,
     yaklasmaYaricapi: 1.6,
     eylemler: ["odaklan", "kullan", "bak"],
-    etiket: "yönetim terminali",
+    etiket: CAPA_ETIKETLERI.admin,
   },
   {
     ad: "oda_ortasi",
@@ -154,7 +154,7 @@ const KAYIT: readonly Capa[] = [
     yon: ARKAYA,
     yaklasmaYaricapi: 1.0,
     eylemler: ["bak"],
-    etiket: "odanın ortası",
+    etiket: CAPA_ETIKETLERI.oda_ortasi,
   },
 ];
 
