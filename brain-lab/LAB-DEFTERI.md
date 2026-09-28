@@ -3760,6 +3760,90 @@ yazılmaz. KT2 bataryasındaki gibi (2026-09-27), batarya Atlas kartına ve kura
       değilse LLM uyanır.
     - Çürütücü: 1. sözde uyanış yoksa İ4(d) canlıda kalır; 2. sözde refleks yürürse askıya alma canlıda kalır.
 
+## 2026-09-28 — Atlas çürütme sonucu (spec 10): İ1–İ7 sağ çıktı; kesme yolu yalnız birim testte ve canlıda sınandı
+
+**Ne koşuldu:**
+- Ön-kayıt 2d1baf0; düzenek c60d799 (`tools/beceri-curut.ts`); senaryo parametresi ef25306.
+- **Çevrimdışı:** `tools/beceri-curut.ts --tohumlar=1-40`. Her tohum 3 oturum × 20 olay, 4 koşu. Sanal saatle 3 sn sürdü.
+  Kayıt `brain-lab/data/beceri/curut.json`.
+- **Canlı:** Beyin Claude Haiku, yetki açık.
+  - L1: scratchpad `canli9/becerdene-l1.jsonl`, Faz D kaydının kopyası.
+  - L2: scratchpad `canli10/becerdene-l2.jsonl`, etiketli fikstür ve canlı oturum.
+
+**Koşmadan önce düzenekte iki düzeltme** (ön-kayıttan sonra, koşudan önce yapıldı; ikisi de burada yazılı):
+1. **Denetim (e).** "Gölgesi dolu her kesin söz" yerine "kapıdan geçen kesin söz" oldu. Dikkat bir sözü tekrar ya da
+   bütçe yüzünden düşürebilir; kapı önce karar verdiği için o zaman ne LLM ne refleks yürür. Koşuda böyle söz çıkmadı
+   (0); bu dal yalnız kalibrasyon testinde sınandı.
+2. **Sanal saat.** Gerçek saatli ilk düzenek yük altında tekrarlanamadı; bozma denemesinin taban bekçisi yakaladı. LLM
+   uzun düşünürken sonraki olay gelince kısa zamanlayıcıların sırası gerçek geçen süreye bağlı kalıyordu. Düzenek
+   node:test'in sahte zamanlayıcısına geçti. Ön-kayıttaki zaman anlamı aynı kaldı (80 ms aralık, 200 ms uzun düşünme,
+   30 ms zaman aşımı), yalnız saat sanal.
+- Düzeneğin kalibrasyonu: 18 test; her denetçi bozuk kayıtta alarm veriyor. Bozma denemesi 15/15.
+
+**Sonuç `[ÖLÇÜLDÜ]`** (40 tohum):
+
+| denetim | temiz tohum | sayılar |
+|---|---|---|
+| R1 kapalı: gölge = kayıt | 40/40 | 1490/1490 gölge aynı |
+| R1 kapalı: canlı hafıza = kayıttan | 40/40 | |
+| R1 açık: gölge = kayıt | 40/40 | 1490/1490 gölge aynı |
+| R1 açık: canlı hafıza = kayıttan | 40/40 | |
+| R2 geçmişli = geçmişsiz | 40/40 | 0 farklı oturum |
+| R3 `false` = anahtarsız | 40/40 | 0 farklı oturum |
+| R4 a–f (yetki açık) | her biri 40/40 | 0 ihlal; 670 refleks turu |
+| R5 uyum: gerçek · karışık | — | %76,9 (379/493) · %5,0 (26/521) |
+| R6 lezyon | 40/40 | öneren 0; 225 farkın hepsi silinen beceriden; 40 tohumun hepsinde fark vardı |
+
+R4'ün sınadığı durumlar:
+- Bitişler: başarı 488, hata 43, zaman aşımı 139, **kesildi 0**.
+- İki adımlı refleks: 132.
+- İlk sözü önceki oturumun becerisiyle yürüyen oturum: 43.
+
+**Canlı `[ÖLÇÜLDÜ]`:**
+- **L1:**
+  - Açılışta geçmişten 1 beceri kuruldu. Üç sözde de uyanış +0.
+  - Refleks satırları: başarı (1,85 sn), kesildi (0,8 sn; 3. söz geldi), başarı.
+  - Kesilen adımın geç gelen `iptal`i yalnız kayıtta kaldı.
+  - Beceri başarı 5, hata 0; kesilen tur sayılmadı.
+  - Son konum pencereye 0,5 m uzakta: dünya 3. refleksin `git`ini 32 ms'de `bitti` saydı (varış yarıçapı içinde).
+- **L2:**
+  - Fikstür beceri: "odaya git" → `git "beyaz tahta"`.
+  - 1. söz: refleks yürüdü, dünya "bilinmeyen çapa/nesne: 'beyaz tahta'" dedi, refleks `hata` ile bitti. LLM notla
+    uyandı (u1: tetik söz, geri besleme 1).
+  - Beceri başarı 1, hata 1 ile askıya girdi. 2. ve 3. sözde gölge null, refleks yok, LLM uyandı.
+  - LLM'in kendi denemesi de başarısız oldu: `git odanin_ortasi` (uydurma ad; doğrusu `oda_ortasi`). Yeni beceri doğmadı.
+
+**Karne:**
+- R1 ✓ (iki kipte 40/40), R2 ✓, R3 ✓.
+- R4 ✓; "toplam refleks > 100" şartı sağlandı (670).
+- R5 ✓: gerçek %76,9, %70–90 aralığında; karışık %5,0, ≤ %20.
+- R6 ✓.
+- L1 ✓ (son konum, dünyanın varış yarıçapı notuyla).
+- L2 ✓: 3. sözde koşullu öngörünün "LLM uyanır" dalı gerçekleşti.
+- Dur kuralı tetiklenmedi.
+
+**İddiaların hükmü:**
+- **İ1, canlı = kayıt:** sağ çıktı. 1490 gölgenin hepsi aynı; hafıza 40/40 eşit; iki kipte.
+- **İ2, gölge davranışı değiştirmez:** sağ çıktı.
+- **İ3, yetki kapalı = anahtarsız:** sağ çıktı.
+- **İ4, yetki açık:** sağ çıktı.
+  - Güvensiz adım yok, sıra bozulmadı, adım sonucu beyne gitmedi.
+  - Hata ve zaman aşımında LLM devraldı (182 tur).
+  - Gölgede yazılan ile yapılan aynı.
+  - **Kesme yolu çevrimdışı bataryada hiç işlenmedi.** Düzenekte refleks 1–30 ms'de bitiyor, olaylar 80 ms arayla
+    geliyor. Bu yol yalnız birim testte ve canlı L1'de (1 kez) sınandı.
+- **İ5, ölçü sızmıyor:** sağ çıktı; karıştırınca uyum %77'den %5'e düştü.
+- **İ6, kararın kaynağı gösterilebilir:** sağ çıktı. Kanıt silinince tarif hiç önerilmedi; her fark ondandı.
+- **İ7, canlı:** sağ çıktı. Oturumdan oturuma geçiş, başarısız refleksin LLM'e dönüşü, askıya alma ve kesme canlıda
+  görüldü.
+
+**Yeni bulgu:** Haiku yalnız görünen etiketi ("beyaz tahta") vermiyor, iç adın yanlış biçimini de uyduruyor
+("odanin_ortasi" = "odanın ortası" etiketinin katlanmış yazımı). BY39-2d'nin onaylı tasarımı, yani çapayı iç adla ya da
+etiketle çözen tek fonksiyon, hem LLM'in hem becerilerin başarısını artırır. Sıradaki iş olarak önerilir.
+
+**Sınır:** Sahte LLM ve sahte dünya kurgudur. Sonuç şunu der: köprü, kayıt, defter ve yürütücü bu akışlarda iddiaları
+bozmadı. "Gerçek kullanımda refleks yararlı" demez; onu B9 söyleyecek.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
