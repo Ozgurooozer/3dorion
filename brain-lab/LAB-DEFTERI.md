@@ -3690,6 +3690,76 @@ kalır.
 - **Açmadan önce Ozyn'in kararı gereken soru:** "Bu beceri yanlış" dersi (sil mi, yasakla mı). Başarıyla biten ama yanlış
   bir tarifi sayaçlar askıya almaz.
 
+## 2026-09-28 — Atlas çürütme bataryası: spec 10 iddiaları (beceri refleksi) — koşmadan önce
+
+Ozyn: "Atlas kuralları ile test et ve devam et." Atlas kuralı: "çalışıyor" iddiası bir çürütme denemesinden önce
+yazılmaz. KT2 bataryasındaki gibi (2026-09-27), batarya Atlas kartına ve kurallarına uyarak ana oturumda koşulur.
+
+**Görev kartı**
+
+| alan | içerik |
+|---|---|
+| Soru | Spec 10'un iddiaları hiç kullanılmamış rastgele oturumlarda ve canlıda iki yeni koşulda çürütmeye dayanıyor mu? |
+| İddialar | **İ1** canlı hafıza = kayıttan kurulan (B11) · **İ2** gölge davranışı değiştirmez (B10) · **İ3** yetki kapalıyken köprü aynı (B12) · **İ4** yetki açıkken: güvensiz adım yok, adımlar sırayla, adım sonucu beyne gitmez, başarısızlıkta LLM devralır, yazılan ile yapılan aynı (B13) · **İ5** çevrimdışı uyum ölçüsü sızmıyor · **İ6** kararın kaynağı gösterilebilir · **İ7** canlı: beceri oturumdan oturuma geçer, başarısız refleks LLM'e döner, askıdaki beceri yürümez, yeni söz refleksi keser |
+| Aşama | 40 rastgele akış (tohum 1–40; spec 10 için hiç kullanılmadı) × 3 oturum × 20 olay; canlı 2 koşu |
+| Bütçe | Çevrimdışı ~15 dk; canlı 2 koşu (Haiku) |
+| Dur kuralı | Bir denetim tek bir tohumda bozulsa bile dur, teşhis et, yeni bir testle düzelt; iddia düzelene kadar geri çekilir. R5 sızıntı gösterirse (karıştırılmış uyum ≥ %40), ölçü geri çekilir. |
+
+**Düzenek** (`tools/beceri-curut.ts`, yazılacak): gerçek köprü, sahte beyin ve sahte dünya, tohumlu.
+- **Akış:** Her olayın %70'i söz, %30'u başka algı (terminal ya da olay; kapı gerçek kural refleksi).
+  - Söz şablonları: "Xya git", "Xya git otur", "Xya bak", "Xya odaklan", "merhaba", "dizini listele". X, sözde
+    anılabilen altı çapadan biri.
+  - Sözlerin %10'u kesin değil (ara tanıma).
+- **Sahte LLM:**
+  - %80 doğru tarif (yarısında ayrıca "Tamam." der).
+  - %10 başka tarif, %5 yanlış çapa, %5 boş cevap.
+  - "Dizini listele"ye komut, "merhaba"ya söz verir.
+  - Bazen (%15) uzun düşünür; sonraki olay düşünürken gelir.
+- **Sahte dünya:**
+  - Adım sonuçları: %85 `bitti` (bazen önce `basladi`), %7 `hata`, %3 sonraki emir gelince `iptal`, %5 hiç.
+  - %10 sonuç bir sonraki olaydan sonra gelir: geç sonuç ve araya giren söz.
+- Oturum 2 ve 3, önceki oturumların satırlarıyla açılır (host'un yaptığı gibi).
+- Denetçilerin her biri, bilerek bozulmuş bir kayıtta alarm verdiği sınanarak kalibre edilir.
+
+**Batarya ve öngörüler:**
+- **R1 (İ1):** Yetki kapalı ve açık kiplerinde, her akışta:
+  - Gölge denetimi: yeniden hesaplanan = yazılan, %100.
+  - Son oturumun canlı hafızası, bütün satırlardan kurulana eşit (JSON).
+  - Öngörü: iki kipte de 40/40.
+- **R2 (İ2, B10):** Aynı akış, geçmişli ve geçmişsiz: her oturumda dünyaya giden niyetler ve uyanış sayısı birebir aynı.
+  Öngörü: 40/40.
+- **R3 (İ3, B12):** Aynı akış, yetki `false` ve yetki hiç verilmemiş: birebir aynı. Öngörü: 40/40.
+- **R4 (İ4, B13)**, yetki açık, her akışta:
+  - (a) Refleks kimlikli bütün niyetler bedensel.
+  - (b) Bir turda k+1. adım ancak k. adımın `bitti`sinden sonra gider.
+  - (c) Refleks kimlikli her sonuç `kopru.refleks` ile yazılır, geçmez, hiçbir uyanışı tetiklemez.
+  - (d) Hata ya da zaman aşımıyla biten refleksin sözü bir uyanışın tetiğindedir; başarı ya da kesilmeyle biten
+    hiçbirinin sözü değildir.
+  - (e) Gölgesi dolu her kesin söz için tam bir refleks satırı var; gölgesi boş olan için hiç yok.
+  - (f) Refleksin gönderdiği adımlar, gölgenin adımlarının öneki.
+  - Öngörü: 40/40, her denetimde 0 ihlal.
+  - Ek şart: toplam refleks sayısı > 100 olmalı; olmazsa bu iddia sınanmamış sayılır.
+- **R5 (İ5, sızıntı):** Yetki kapalı; gerçek akışın uyumu ile LLM'in adım listeleri görevler arasında karıştırılmış
+  akışın uyumu karşılaştırılır.
+  - Öngörü: gerçek %70–90, karıştırılmış ≤ %20.
+  - Çürütücü: karıştırılmış ≥ %40.
+- **R6 (İ6, lezyon):** Her akışta en çok başarılı tarifin görevleri kayıttan silinir.
+  - Yeniden hesaplanan hiçbir gölge o tarifi önermez.
+  - Canlı ile yeniden hesaplanan arasındaki her fark o tarifi içerir.
+  - Öngörü: 40/40.
+- **R7 (İ7, canlı):**
+  - **L1, geçmiş kayıtla açılış ve kesme.** Faz D koşusunun kaydının kopyasıyla, yetki açık. Sözler: "pencereye git"
+    (16 sn), "sandalyeye git" (0,8 sn sonra), "pencereye git" (16 sn).
+    - Öngörü: üç sözde de uyanış +0; refleks satırları `basari`, `kesildi`, `basari`; Orion sonda pencerede.
+    - Çürütücü: 1. sözde LLM uyanırsa host'un geçmiş okuma yolu canlıda çalışmıyor demektir.
+  - **L2, başarısız refleks.** Elle yazılmış, etiketli bir fikstür geçmiş: "odaya git" → `git {capa: "beyaz tahta"}`,
+    `bitti`. Bu, LLM'in gerçek etiket hatası (BY39-2d). Yetki açık; "odaya git" üç kez, 16 sn arayla.
+    - Öngörü, 1. söz: refleks, dünya "bilinmeyen çapa" der, refleks `hata`, LLM notla uyanır.
+    - Öngörü, 2. söz: beceri askıda (pay 0,5); refleks yok, LLM uyanır.
+    - Öngörü, 3. söz: 2. sözdeki LLM görevi başarılıysa onun tarifi yeni beceri olur ve refleksle yürür (uyanış +0);
+      değilse LLM uyanır.
+    - Çürütücü: 1. sözde uyanış yoksa İ4(d) canlıda kalır; 2. sözde refleks yürürse askıya alma canlıda kalır.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
