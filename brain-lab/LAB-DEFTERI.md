@@ -3399,6 +3399,39 @@ Refleks (Faz D) adımları sırayla, her birinin sonucunu bekleyerek gönderir.
 
 **Yanlışlayıcı:** Uyanıştaki bir niyet gövdesizse ya da söz satırında `soz` yoksa Faz A canlıda çalışmıyor.
 
+## 2026-09-28 — Faz A sonucu: gövde ve söz canlı kayıtta; senaryo, bilinen çapa etiketi hatasıyla kaldı
+
+**Ne koşuldu:**
+- Kod 2bf7353, `3dorion.bat tahtabeyin`, beyin Claude Haiku.
+- Kayıt: scratchpad `canli6/tahtabeyin.jsonl` (8 satır); günlük `canli6/tahtabeyin.log`.
+
+**Sonuç `[ÖLÇÜLDÜ]`:**
+
+| niyet | gövde | akıbet |
+|---|---|---|
+| u1 · `git` | `hedef {tip: "capa", ad: "beyaz tahta"}` | hata: bilinmeyen çapa/nesne: 'beyaz tahta' |
+| u1 · `yaz` | `metin: "suzgec bitti"` | hata: tahtaya uzaktan yazamazsın |
+| u1 · `soyle` | `metin: "Tamam."` | sonuç gelmez (ses hattı sonuç yaymıyor) |
+| u2 (hataların takibi) · `git` | aynı etiket | aynı hata |
+
+**Karne:**
+- **A1 ✓:** `soz = {metin: "tahtaya git ve 'suzgec bitti' yaz", kesin: true}`.
+- **A2 yarı ✓:** Her niyetin gövdesi var. Ama `git`in hedefi "tahta" değil, "beyaz tahta": LLM görünen etiketi verdi.
+- **A3 ✓:** Sonuçlar niyetlere bağlandı.
+- **A4 ✓:** Bozuk satır 0; yazılamayan 0.
+- **A5 ✗:** Senaryo kaldı. Neden Faz A değil: Haiku da, daha önce qwen'in yaptığı gibi, görünen çapa etiketini kullanıyor
+  (BY39'un açık maddesi 2d). Faz A davranışa dokunmuyor.
+- **Yanlışlayıcı tetiklenmedi:** gövdesiz niyet yok, `soz` var.
+
+**Beceri refleksi için bulgu:**
+- Etiket hatası LLM'in görevlerini başarısız kılıyor, başarısız görevden beceri doğmaz.
+- Etiket hatası düzelirse refleksin kapsamı büyür.
+- Düzeltme dünyaya dokunmadan yapılabilir: çapa adları ve görünen etiketleri tek listede `protocol/`'e alınır,
+  doğrulayıcı etiketi iç ada çevirir, dünya testi iki listenin eşitliğini bekler. Bu 2d'nin onaylı tasarımıyla aynı ("tek
+  fonksiyon").
+- Ayrıca `yaz` içeren görev beceri olmamalı: yazının içeriği sözden geliyor, v1 onu parametre yapmıyor. Kısmi tekrar
+  görevi yarım bırakırdı.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.

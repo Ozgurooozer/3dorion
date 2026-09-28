@@ -1,6 +1,7 @@
 # Spec 10 — Beceri refleksi: bir kez başarılan görev, parametreleriyle refleks olur
 
-Tarih: 2026-09-28 · Durum: **TASLAK, Ozyn'in onayını bekliyor.** Kod yok.
+Tarih: 2026-09-28 · Durum: **onaylandı** (Ozyn, `/goal`: "fazları düzgünce test ederek bitir"); açık sorularda
+öneriler uygulanıyor. Faz A bitti; B–D sürüyor, E ayrı tasarım.
 Üst belgeler: `docs/specs/08-karar-kaydi.md` (karar kaydı), `docs/specs/09-ogrenen-kapi.md` (öğrenen kapı),
 `brain-lab/BUYUK-RESIM.md`.
 
@@ -84,10 +85,19 @@ BECERİ ÇIKARICI (saf) — tek sözle tetiklenmiş, bedensel niyetlerinin hepsi
    Beceriye girmeyenler:
    - `komut`: asla. Kabuk komutu kendiliğinden tekrarlanmaz (güvenlik).
    - `soyle` ve `yaz`: içerik üretimi, tekrar edilmez (bayat söz).
+   - `yaz` ya da `komut` içeren uyanıştan beceri hiç doğmaz: yazının içeriği sözden gelir ve v1 onu parametre
+     yapmaz; yalnız bedensel kısmı tekrar etmek görevi yarım bırakırdı (Faz A canlı koşusunda görüldü).
    - `sor`: bilgi toplar, reflekste anlamı yok.
 
    Bedensel niyet yoksa beceri doğmaz.
-3. **Başarı:** Bütün bedensel niyetler `bitti` olmalı. Sonucu gelmeyen niyet varsa görev başarılı sayılmaz.
+3. **Başarı:**
+   - Hiçbir bedensel niyet `hata` değil.
+   - Son bedensel niyet `bitti`.
+   - Her bedensel niyetin sonucu gelmiş.
+   - Öncekilerin `iptal`i başarısızlık değil: dünya "en son emir kazanır" kuralıyla çalışıyor
+     (`world/avatar/yurutucu.ts`). LLM aynı turda `git masa` + `otur` gönderince `otur`, `git`i geçer. İlk taslaktaki
+     "hepsi bitti" şartı bu yüzden gerçekte hiç sağlanmazdı.
+   - Refleks (Faz D) adımları sırayla, her birinin sonucunu bekleyerek gönderir.
 4. **Anahtar:**
    - Sözün sözcükleri `mind/durumKodu.ts` `kelimeler` ile çıkar: küçük harf, dolgu atılır. Karşılaştırmada Türkçe
      karakterler katlanır (ı→i, ö→o, ü→u, ş→s, ç→c, ğ→g).
@@ -172,10 +182,10 @@ Bunlar kabul ölçütüdür; her fazın commit'inden önce denetlenir.
 
 | # | ölçüt | faz | durum |
 |---|---|---|---|
-| B1 | Uyanış satırındaki her niyet gövdesini taşır, metin alanları kesilir; gövdesiz eski satırlar okunur | A | `[PLAN]` |
-| B2 | `duydum` algı satırı sözün metnini ve kesinliğini taşır | A | `[PLAN]` |
-| B3 | Davranış aynı: köprü testleri ve betikli oturum aynı uyanış ve niyetleri üretir | A | `[PLAN]` |
-| B4 | Canlı: senaryo koşusunda uyanış satırlarında gövdeler, söz satırlarında metin var | A | `[PLAN]` |
+| B1 | Uyanış satırındaki her niyet gövdesini taşır, metin alanları kesilir; gövdesiz eski satırlar okunur | A | `[TEST]` 2bf7353 |
+| B2 | `duydum` algı satırı sözün metnini ve kesinliğini taşır | A | `[TEST]` 2bf7353 |
+| B3 | Davranış aynı: köprü testleri ve betikli oturum aynı uyanış ve niyetleri üretir | A | `[TEST]` eski 1686 test birebir; kayıt yalnız yazılır |
+| B4 | Canlı: senaryo koşusunda uyanış satırlarında gövdeler, söz satırlarında metin var | A | `[ÖLÇÜLDÜ]` `tahtabeyin`: 5/5 niyet gövdeli, söz satırı metinli, bozuk satır 0 |
 | B5 | Çıkarıcı: tek kesin sözle tetiklenmiş, bedensel niyetlerinin hepsi `bitti` olan uyanıştan beceri doğar. Çok tetikli, hatalı, iptalli, sonuçsuz, yalnız sözlü ya da `komut`lu uyanıştan doğmaz | B | `[PLAN]` |
 | B6 | Yuvalar: sözdeki çapa adı (ekiyle) yuva olur, sözde geçmeyen argüman sabit kalır | B | `[PLAN]` |
 | B7 | Eşleşme: aynı çerçeve + tanınan çapa → adımlar yeni çapayla; farklı çerçeve ya da pay < 0,75 → eşleşmez | B | `[PLAN]` |
