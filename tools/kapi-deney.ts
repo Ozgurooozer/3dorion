@@ -31,7 +31,8 @@ import type { Beyin, BeyinCikti } from "../bridge/beyin.ts";
 import { KARAR_ONEKI, KararKaydi, type AlgiSatiri, type KapiKarari } from "../mind/kararKaydi.ts";
 import { KuralRefleksi, refleksGirdisi } from "../mind/refleks.ts";
 import { KUME } from "../mind/refleksKumesi.ts";
-import { KuralHafizasi, type KapiYonu, type KararOlcusu } from "../mind/kuralHafizasi.ts";
+import { KuralHafizasi, VARSAYILAN_GUVEN_PAYI, type KapiYonu, type KararOlcusu } from "../mind/kuralHafizasi.ts";
+import { ozet32 } from "../mind/ozet32.ts";
 import type { Algi } from "../protocol/algi.ts";
 import { durumdanAlgi, BAGLAMLAR } from "./ogretmen.ts";
 import type { YakalananKomut } from "./kapi-yakala.ts";
@@ -145,7 +146,7 @@ export interface Motor {
 }
 
 /** Ortak güven eşiği: her motor aynı çoğunluk payıyla karar verir (adil kıyas). */
-export const GUVEN = 0.75;
+export const GUVEN = VARSAYILAN_GUVEN_PAYI;
 
 /**
  * B — büyüyen kural hafızası (mind/kuralHafizasi.ts). `kapsama` > 0: H-K1 anahtarı açık.
@@ -163,13 +164,6 @@ export class KuralMotoru implements Motor {
   karar(i: readonly string[]) { return this.h.karar(i)?.yon ?? null; }
   ogren(i: readonly string[], y: KapiYonu, d: string) { this.h.ogren(i, y, d); }
   boyut() { return this.h.noronlar.length; }
-}
-
-/** FNV-1a 32 bit. */
-export function ozet32(s: string): number {
-  let h = 0x811c9dc5;
-  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
-  return h >>> 0;
 }
 
 /** mulberry32: tohumlu, belirlenimci. */

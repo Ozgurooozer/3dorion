@@ -47,16 +47,33 @@ const DOLGU = new Set([
   "bir", "ve", "ile", "için", "bu", "şu", "da", "de", "ki", "mi", "ne", "gibi", "daha", "çok", "var", "yok",
 ]);
 
-/** Metnin içerik kelimeleri: küçük harf, harf dizileri, 3–24 karakter, dolgu atılır, ilk KELIME_SINIRI tanesi. */
-export function kelimeler(metin: string): string[] {
+/**
+ * Ayıklamanın ayarı. Varsayılanlar kapının durum kodu içindir ve DEĞİŞMEZ: değişirse
+ * öğrenilmiş kuralların işaretleri kayar. Başka bir tüketici (spec 10 söz anahtarı)
+ * ikinci bir ayıklayıcı yazmak yerine ayarı verir.
+ */
+export interface KelimeAyari {
+  /** En kısa kelime (harf). Varsayılan 3: terminal çıktısındaki "ok", "ab" gibi kırıntılar atılsın. */
+  enKisa?: number;
+  /** En çok kaç kelime. Varsayılan KELIME_SINIRI. */
+  sinir?: number;
+}
+
+/**
+ * Metnin içerik kelimeleri: küçük harf, harf dizileri, 3–24 karakter, dolgu atılır, tekrar
+ * yok, ilk KELIME_SINIRI tanesi. En kısa uzunluk ve sınır `ayar`la değişir; gerisi değişmez.
+ */
+export function kelimeler(metin: string, ayar: KelimeAyari = {}): string[] {
+  const enKisa = ayar.enKisa ?? 3;
+  const sinir = ayar.sinir ?? KELIME_SINIRI;
   const out: string[] = [];
   const gorulen = new Set<string>();
   for (const m of metin.toLocaleLowerCase("tr-TR").matchAll(/\p{L}+/gu)) {
     const w = m[0];
-    if (w.length < 3 || w.length > 24 || DOLGU.has(w) || gorulen.has(w)) continue;
+    if (w.length < enKisa || w.length > 24 || DOLGU.has(w) || gorulen.has(w)) continue;
     gorulen.add(w);
     out.push(w);
-    if (out.length >= KELIME_SINIRI) break;
+    if (out.length >= sinir) break;
   }
   return out;
 }

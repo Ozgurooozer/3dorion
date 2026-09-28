@@ -82,6 +82,15 @@ test("kelimeler en çok KELIME_SINIRI tane alır", () => {
   assert.equal(kelimeler(metin).length, KELIME_SINIRI);
 });
 
+test("kelimeler ayarı, enKisa 2: iki harfli kelime kalır; tek harfli ve dolgu yine atılır", () => {
+  assert.deepEqual(kelimeler("Kupayı al ve o da git", { enKisa: 2 }), ["kupayı", "al", "git"]);
+});
+
+test("kelimeler ayarı, sınırsız: 40 kelimenin hepsi alınır", () => {
+  const metin = Array.from({ length: 40 }, (_, i) => `kelime${"abcdefghijklmnopqrstuvwxyz"[i % 26]}${"abcdefghijklmnopqrstuvwxyz"[Math.floor(i / 26)]}`).join(" ");
+  assert.equal(kelimeler(metin, { sinir: Infinity }).length, 40);
+});
+
 // ── Bağlam (toplantı 2026-09-27 K4) ────────────────────────────────────────
 
 const HATA = { tur: "terminal" as const, kuyruk: "boom", kesildi: false, kod: 1 };

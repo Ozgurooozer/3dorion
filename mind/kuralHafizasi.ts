@@ -35,6 +35,12 @@
 
 export type KapiYonu = "uyan" | "sus";
 
+/**
+ * Karar için çoğunluğun asgari payı. Tek kaynak: öğrenen kapı (burada), beceri
+ * refleksi (mind/beceriHafizasi.ts, spec 10) ve kıyas düzeneği aynı payı kullanır.
+ */
+export const VARSAYILAN_GUVEN_PAYI = 0.75;
+
 export interface HafizaNoronu {
   /** "K1", "K2"… doğum sırasıyla, asla yeniden kullanılmaz. */
   id: string;
@@ -134,7 +140,7 @@ export class KuralHafizasi {
     this._uyaniklik = ayar.uyaniklik ?? 0.5;
     this._alfa = ayar.alfa ?? 0.5;
     this._enAzKosul = ayar.enAzKosul ?? 2;
-    this._guvenPayi = ayar.guvenPayi ?? 0.75;
+    this._guvenPayi = ayar.guvenPayi ?? VARSAYILAN_GUVEN_PAYI;
     this._kapsamaEsigi = ayar.kapsamaEsigi ?? 0;
     this._kararOlcusu = ayar.kararOlcusu ?? "altkume";
     this._jaccardEsigi = ayar.jaccardEsigi ?? 0.5;

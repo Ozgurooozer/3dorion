@@ -39,11 +39,19 @@ export type Hedef =
  * çıkarmak kırıcıdır. `monitor` T1'den sonra eklendi: `OyuncuDurumu.etkilesim`
  * zaten bu adı anıyordu ve `odaklan` niyeti onu hedef alıyor.
  */
-export type CapaAdi =
-  | "masa" | "sandalye" | "tahta" | "pencere" | "kapi" | "oda_ortasi" | "monitor"
+export const CAPALAR = [
+  "masa", "sandalye", "tahta", "pencere", "kapi", "oda_ortasi", "monitor",
   // Zihin duvarı (sağ duvar): Orion'un kendi işleyişini gösteren yüzeyler.
   // Orion oraya YÜRÜYEBİLİR — kendi durumuna bakmak bir eylemdir.
-  | "sema" | "gunluk" | "admin";
+  "sema", "gunluk", "admin",
+] as const;
+
+/**
+ * Çapa adı. Tip `CAPALAR`dan türer: çalışma zamanında da tek liste var (beceri
+ * refleksi sözdeki çapa adlarını bununla tanır, spec 10). Dünyanın kayıt
+ * defterinin bu listeye eşitliğini world/level/capalar.test.ts bekler.
+ */
+export type CapaAdi = (typeof CAPALAR)[number];
 
 export interface Vec3 { x: number; y: number; z: number }
 

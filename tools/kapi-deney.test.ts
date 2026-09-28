@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   AniMotoru, IcguduIkizi, KuralMotoru, LojistikMotor, MantarMotoru,
-  akisKur, icguduOgretmeni, kapiVeKod, karistir, olc, olcLezyonlu, ozet32, rastgele, tohumlar, tutarsizOgretmen,
+  akisKur, icguduOgretmeni, kapiVeKod, karistir, olc, olcLezyonlu, rastgele, tohumlar, tutarsizOgretmen,
   type Akis, type Durum, type Etiketler,
 } from "./kapi-deney.ts";
 
@@ -83,8 +83,8 @@ test("mantar gövdesi kodu en çok 100 hücre ve aynı tohumla aynıdır", () =>
   assert.deepEqual({ uzunluk: a.length <= 100 && a.length > 0, ayni: JSON.stringify(a) === JSON.stringify(b) }, { uzunluk: true, ayni: true });
 });
 
-test("karma ve rastgele: FNV-1a bilinen değerler; mulberry32 tohumlu", () => {
-  assert.deepEqual([ozet32(""), ozet32("a"), rastgele(1)() === rastgele(1)()], [0x811c9dc5, 0xe40c292c, true]);
+test("rastgele: mulberry32 tohumlu (FNV-1a karmasının testi mind/ozet32.test.ts'te)", () => {
+  assert.equal(rastgele(1)(), rastgele(1)());
 });
 
 test("kapı kararı ve durum kodu gerçek köprüden: kabuk hatası geçer, konuşma öğrenilemez", () => {

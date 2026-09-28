@@ -12,18 +12,12 @@ import {
   tumCapalar, yakinCapalar, yaklastiMi,
 } from "./capalar.ts";
 import { carpisiyorMu, SINIR } from "./olculer.ts";
+import { CAPALAR } from "../../protocol/temel.ts";
 
-// İlk yedisi spec'ten; son üçü zihin duvarı ile geldi (şema/günlük panelleri
-// ve yönetim terminali). Sayı burada TEK yerde tutulur.
-const ZORUNLU = [
-  "masa", "sandalye", "tahta", "pencere", "kapi", "oda_ortasi", "monitor",
-  "sema", "gunluk", "admin",
-] as const;
-
-test("beklenen çapaların hepsi kayıtlı, fazlası yok", () => {
-  const adlar = capaAdlari();
-  for (const a of ZORUNLU) assert.ok(adlar.includes(a), `eksik çapa: ${a}`);
-  assert.equal(tumCapalar().length, ZORUNLU.length);
+test("dünyanın çapaları protokolün listesiyle birebir aynı: eksik de fazla da yok", () => {
+  // Liste TEK yerde: protocol/temel.ts `CAPALAR`. Burada yeniden yazılmaz;
+  // beceri refleksi sözdeki çapa adlarını o listeyle tanır (spec 10).
+  assert.deepEqual([...capaAdlari()].sort(), [...CAPALAR].sort());
 });
 
 test("capaBul ada göre doğru çapayı döner", () => {
@@ -106,7 +100,7 @@ test("eylem listeleri spec'e uygun", () => {
 test("yakinCapalar menzili uygular ve yakından uzağa sıralar", () => {
   const orta = { x: 0, z: 0 };
   const hepsi = yakinCapalar(orta, 100);
-  assert.equal(hepsi.length, ZORUNLU.length);
+  assert.equal(hepsi.length, CAPALAR.length);
   assert.equal(hepsi[0]?.capa.ad, "oda_ortasi");
   for (let i = 1; i < hepsi.length; i++) {
     assert.ok(hepsi[i]!.mesafe >= hepsi[i - 1]!.mesafe, "sıralama bozuk");
