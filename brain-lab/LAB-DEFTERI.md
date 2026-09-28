@@ -3590,6 +3590,58 @@ Refleks (Faz D) adımları sırayla, her birinin sonucunu bekleyerek gönderir.
 
 **Sonraki:** Faz D (yetki anahtarı, varsayılan kapalı). Açılması adım 6'dan sonra, kendi ön-kayıtlı barıyla.
 
+## 2026-09-28 — Beceri refleksi Faz D: yetki (anahtar kapalı doğar) — `becerdene` yetkili koşusundan önce
+
+**Yapılan `[TEST]`** (commit a6cd3e8). Anahtar `beceriYetkisi` varsayılan olarak KAPALI. Kapalıyken köprü Faz C'dekiyle
+birebir aynı (B12 bekçileri).
+
+Açıkken eşleşen kesin sözde LLM uyanmaz. Sıra şöyle:
+1. Önce onay jesti (baş sallama). Adım değildir; sonucu beklenmez.
+2. Sonra becerinin adımları sırayla. Her biri doğrulanır, `niyetGonder` ile gider, sonucu beklenir.
+
+Adım sonuçlarını refleks okur, beyne gitmez (yeni içgüdü `kopru.refleks`, ezilemez). Bitiş durumları:
+- **Hata ya da zaman aşımı:** kalan adımlar gönderilmez; söz, sebep notuyla LLM'e döner.
+- **İptal ya da yeni söz:** refleks sessizce kesilir.
+- **Başarı:** söz konuşma geçmişine girmez; LLM cevapsız bir istek görüp onu yeniden yapmaz.
+
+Kayıt ve hafıza:
+- Yeni kayıt satırı `refleks`.
+- Refleks turu da görevdir. Sonucu, yürütülen becerinin sayacına kimlikle yazılır: hata payı düşürür, askıya alınan
+  becerili söz yine LLM'e gider.
+- Günlük özet refleksleri sayar.
+
+Sınamalar:
+- 23 yeni köprü testi.
+- Bozma denemesi: 33 mutant, 33 yakalandı.
+- Toplam 1846 test yeşil.
+
+**Yetkinin açılması bu koşu değil.** Spec 10'a göre yetki adım 6'dan (kapı yetkisi) sonra, kendi ön-kayıtlı barıyla
+açılır. Bu koşu yalnız B14'ü ölçer: yetki açıkken zincir canlıda doğru çalışıyor mu. Gerçek kullanımda anahtar kapalı
+kalır.
+
+**Canlı koşu:**
+- `ORION_BECERI=1` ile `3dorion.bat becerdene`. Beyin Claude Haiku.
+- Kayıt yeni bir dosyaya; geçmişsiz, beceri yok.
+- Aynı üç söz: "pencereye git", "sandalyeye git", "pencereye git".
+
+**Öngörüler:**
+- **DG1:** 1. söz LLM'i uyandırır (hafıza boş): `git pencere`, başarı, beceri doğar.
+- **DG2:** 2. sözde uyanış +0, refleks +1. Dünyaya `jest başını_sallıyor` ve `git sandalye` gider (kimlikler
+  `refleks_…`). Orion sandalyeye varır; refleks satırı `basari`.
+- **DG3:** 3. sözde uyanış +0, refleks +1; pencereye varır, `basari`.
+- **DG4:** Sonda beceri tek; başarı 3, hata 0.
+- **DG5:** Refleksin adım sonuçları kayıtta `kopru.refleks` ile, geçmedi. Hiçbiri uyanış tetiklemez.
+- **DG6:** Onay jestinin sonucu ne olursa olsun refleksi etkilemez. Bu modelde jest klibi yok; sonuç `hata` ya da
+  `bitti` olabilir.
+- **DG7:** Gölge denetimi 3/3 aynı.
+- **DG8:** Refleks süresi (yürüyüş dahil) 3–12 sn. Kazanç sözü başına bir LLM uyanışı, ~3 sn düşünme.
+- **DG9:** Bozuk satır 0; Electron koşu sonunda kendini kapatır.
+
+**Yanlışlayıcılar:**
+- 2. ya da 3. sözde LLM uyanırsa B14 kalır.
+- Refleksin bir adım sonucu uyanış tetiklerse `kopru.refleks` canlıda çalışmıyor demektir.
+- Refleks `zaman_asimi` ile biterse adımın sonucu köprüye dönmüyor demektir: canlı kablolama hatası.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
