@@ -35,6 +35,7 @@ import type { Niyet } from "../protocol/niyet.ts";
 import { niyetSinifi, sozAnahtari, zamanSirali, type GorevOrnegi, type SozAnahtari } from "./gorev.ts";
 import { VARSAYILAN_GUVEN_PAYI } from "./kuralHafizasi.ts";
 import { ozet32 } from "./ozet32.ts";
+import { capaCoz } from "../protocol/temel.ts";
 
 /** Bir adımın bir alanı, sözün bir yuvasına bağlı: `adimlar[adim]` içindeki `yol`, `yuvalar[yuva]` olur. */
 export interface YuvaBagi {
@@ -85,6 +86,19 @@ function capaAlanlari(n: Niyet): { yol: string[]; deger: string }[] {
   if ("hedef" in n && n.hedef && n.hedef.tip === "capa") out.push({ yol: ["hedef", "ad"], deger: n.hedef.ad });
   if ("capa" in n && typeof n.capa === "string") out.push({ yol: ["capa"], deger: n.capa });
   return out;
+}
+
+/**
+ * Adımın çapa alanları iç ada çevrilmiş kopyası (BY39-2d). Doğrulayıcı yeni niyetleri zaten iç adla
+ * verir; eski kayıtta etiketle ya da başka yazımla duran adım ("beyaz tahta", "Pencere") da aynı tarife
+ * düşsün, yuva bağı iç adla kurulsun ve refleksin göndereceği adım gölgede yazılanla aynı olsun.
+ * Tek çözüm fonksiyonu: protocol/temel.ts `capaCoz` (bilinmeyen ad olduğu gibi kalır).
+ */
+function kanonik(n: Niyet): Niyet {
+  const k = structuredClone(n) as Niyet;
+  if ("hedef" in k && k.hedef && k.hedef.tip === "capa") k.hedef.ad = capaCoz(k.hedef.ad) ?? k.hedef.ad;
+  if ("capa" in k && typeof k.capa === "string") (k as { capa: string }).capa = capaCoz(k.capa) ?? k.capa;
+  return k;
 }
 
 /** Sözde geçen bir çapaya eşit olan her alan o yuvaya bağlanır; kalanlar sabittir. */
@@ -158,7 +172,7 @@ export class BeceriHafizasi {
       b.kanit.push(g.kimlik);
       return { tur: g.sonuc, beceri: b.id, gorev: g.kimlik };
     }
-    const adimlar = g.adimlar.map((a) => a.govde);
+    const adimlar = g.adimlar.map((a) => kanonik(a.govde));
     const baglar = baglariKur(g.anahtar, adimlar);
     const id = beceriKimligi(g.anahtar, adimlar, baglar);
     const b = this._beceriler.find((x) => x.id === id);
@@ -166,7 +180,7 @@ export class BeceriHafizasi {
       if (g.sonuc !== "basari") return null;
       this._beceriler.push({
         id, cerceve: [...g.anahtar.cerceve], yuvaSayisi: g.anahtar.yuvalar.length,
-        adimlar: structuredClone(adimlar) as Niyet[], baglar,
+        adimlar, baglar,
         sayac: { basari: 1, hata: 0 }, kanit: [g.kimlik], dogum: ++this._dogum, ornek: g.soz,
       });
       return { tur: "dogdu", beceri: id, gorev: g.kimlik };

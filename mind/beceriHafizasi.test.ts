@@ -77,6 +77,22 @@ test("yuva bağlama ızgarası: çapa değerli her alan bağlanır; çapa olmaya
   assert.deepEqual(bulunan, izgara.map(([, , , beklenen]) => beklenen));
 });
 
+test("farklı yazılmış çapa iç adla öğrenilir: tarif birleşir, yuva bağlanır (BY39-2d; eski kayıt)", () => {
+  const h = new BeceriHafizasi();
+  h.ogren(gorev("pencereye git", [{ tur: "git", hedef: { tip: "capa", ad: "Pencere" } }], "basari", 1));
+  h.ogren(gorev("sandalyeye git", [git("sandalye")], "basari", 2));
+  assert.deepEqual(
+    { sayi: h.beceriler.length, sayac: h.beceriler[0]?.sayac, oneri: h.karar("kapıya git")?.adimlar },
+    { sayi: 1, sayac: { basari: 2, hata: 0 }, oneri: [git("kapi")] },
+  );
+});
+
+test("etiketle yazılmış sabit çapa iç adla önerilir: refleksin göndereceği, gölgede yazılanla aynı", () => {
+  const h = new BeceriHafizasi();
+  h.ogren(gorev("odaya git", [{ tur: "git", hedef: { tip: "capa", ad: "beyaz tahta" } }, { tur: "otur", capa: "Sandalye" }]));
+  assert.deepEqual(h.karar("odaya git")?.adimlar, [git("tahta"), { tur: "otur", capa: "sandalye" }]);
+});
+
 test("sözde geçmeyen argüman sabit kalır", () => {
   const h = new BeceriHafizasi();
   h.ogren(gorev("masaya git", [git("sandalye")]));
