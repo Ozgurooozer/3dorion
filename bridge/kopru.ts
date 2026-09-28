@@ -16,7 +16,9 @@ import { ozetle } from "../protocol/algi.ts";
 import type { Niyet, NiyetSonucu } from "../protocol/niyet.ts";
 import { kimlik } from "../protocol/temel.ts";
 import { Dikkat, kanalAcikMi, type DikkatAyari } from "../mind/dikkat.ts";
-import { KararKaydi, niyetKaydi, type AlgiEki, type KapiKarari, type OgretimSatiri, type UyanisBilgisi } from "../mind/kararKaydi.ts";
+import { KararKaydi, niyetKaydi, type AlgiEki, type BeceriGolgesi, type KapiKarari, type KararSatiri, type OgretimSatiri, type UyanisBilgisi } from "../mind/kararKaydi.ts";
+import { BeceriDefteri } from "../mind/beceriDefteri.ts";
+import type { BeceriHafizasi } from "../mind/beceriHafizasi.ts";
 import { ICGUDULER, dikkatKurali, type IcguduKimligi } from "../mind/icgudu.ts";
 import { durumKodu, type KapiBaglami } from "../mind/durumKodu.ts";
 import type { KuralHafizasi, KapiYonu } from "../mind/kuralHafizasi.ts";
@@ -69,6 +71,14 @@ export interface KopruAyari {
    * kayda yazar, kapının kararını DEĞİŞTİRMEZ.
    */
   ogretimler?: readonly OgretimSatiri[];
+  /**
+   * BECERİ REFLEKSİ (spec 10): kayıttaki GEÇMİŞ oturumların görev satırları (host
+   * okur, seçim mind/gorev.ts `GOREV_SATIRLARI`). Köprü beceri hafızasını bunlardan
+   * ve kendi kaydının satırlarından kurar (defter ilkesi, mind/beceriDefteri.ts).
+   * Faz C: GÖLGEDE — kesin sözde hafızanın ne yapacağı söz satırına yazılır
+   * (`beceriGolge`); kapı, uyanış ve niyetler değişmez. Verilmezse geçmişsiz başlar.
+   */
+  gorevSatirlari?: readonly KararSatiri[];
   /**
    * BAĞLAM (toplantı 2026-09-27 K4): algı anında Ozyn'in durumu — mesafe, bakış,
    * yüzey. Öğrenen kapının durum koduna girer. YAPISAL: düzyazı dünya metni
@@ -204,6 +214,10 @@ export class Kopru {
   private _ogrenilebilir = new Map<string, string[]>();
   /** Uygulanmış öğretim satırları — aynı satır iki yoldan gelirse bir kez uygulanır. */
   private _uygulanan = new Set<string>();
+  /** Beceri refleksinin defteri (spec 10) — Faz C'de gölgede. */
+  private _beceri: BeceriDefteri;
+  /** Defterin kayıt dinlemesinden çıkış (kapanışta). */
+  private _beceriDinlemesi: () => void;
   /** Bu turda hangi algi turleri geldi — talimat buna gore daralir. */
   private _turTurleri = new Set<string>();
   /** Bu turda hafızaya yazılan içerikler — sorgu ve dışlama için. */
@@ -244,6 +258,17 @@ export class Kopru {
     if (kurulum.uygulanan || kurulum.atlanan.length) {
       console.log(`[KAPI] kural hafizasi: ${kurulum.uygulanan} ogretim, ${this._kuralHafizasi.noronlar.length} kural${kurulum.atlanan.length ? `, ${kurulum.atlanan.length} satir atlandi` : ""}`);
     }
+    // Spec 10: beceri defteri geçmiş oturumlardan kurulur, bu oturumu kendi kaydından
+    // dinler (diske gidenin aynısı: canlı hafıza kayıttan kurulana eşit kalır). Geçmiş
+    // okunamazsa Orion durmaz: geçmişsiz başlar, görünür biçimde.
+    try { this._beceri = new BeceriDefteri(ayar.gorevSatirlari ?? []); }
+    catch (err) {
+      console.warn("[BECERI] gecmis gorev satirlari okunamadi, gecmissiz basliyor:", err);
+      this._beceri = new BeceriDefteri();
+    }
+    this._beceriDinlemesi = this._kayit.dinle((s) => this._beceri.ekle(s));
+    const beceriSayisi = this._beceri.hafiza.beceriler.length;
+    if (beceriSayisi) console.log(`[BECERI] ${beceriSayisi} beceri gecmis oturumlardan kuruldu (golgede)`);
 
     // Geçmiş oturumların anıları. Hata yutulur: bozuk bir kayıt yüzünden
     // dünya açılmamazlık edemez.
@@ -458,6 +483,10 @@ export class Kopru {
         ek = { isaret, golge: g ? { yon: g.yon, noron: g.noron.id, pay: Number(g.pay.toFixed(3)) } : null };
       }
     }
+    if (a.tur === "duydum" && a.kesin) {
+      const g = this._beceriGolgesi(a.metin);
+      if (g !== undefined) ek.beceriGolge = g;
+    }
     const id = this._kayit.algi(a, ozet, kapi, ek);
     if (ek.isaret) {
       this._ogrenilebilir.set(id, ek.isaret);
@@ -501,6 +530,24 @@ export class Kopru {
   /** Öğrenen kapının hafızası — panel ve araçlar okur. */
   get kuralHafizasi(): KuralHafizasi { return this._kuralHafizasi; }
 
+  /** Beceri hafızası (spec 10) — panel, araçlar ve testler okur. */
+  get beceriHafizasi(): BeceriHafizasi { return this._beceri.hafiza; }
+
+  /**
+   * BECERİ GÖLGESİ (spec 10, Faz C): hafıza bu kesin söz için ne yapardı? Yazılır,
+   * UYGULANMAZ. Karar söz satırı yazılmadan önce verilir: sözün kendi görevi henüz
+   * hafızada yok (sıralı; çevrimdışı ölçüm de böyle sayar). Hata yutulur: gölge kapıyı
+   * ve uyanışı asla bozmaz, o zaman alan yazılmaz (undefined).
+   */
+  private _beceriGolgesi(soz: string): BeceriGolgesi | null | undefined {
+    try {
+      return this._beceri.golge(soz);
+    } catch (err) {
+      console.warn("[BECERI] golge hesaplanamadi:", err);
+      return undefined;
+    }
+  }
+
   /** Algıdan hafızaya yazılacak SADE içeriği çıkarır (kalıp değil). */
   private _aniIcerigi(a: Algi, ozet: string): { tur: AniTuru; icerik: string } {
     switch (a.tur) {
@@ -531,6 +578,7 @@ export class Kopru {
   /** Bekleyen işleri iptal eder. Kapanışta çağrılır. */
   durdur(): void {
     this._durduruldu = true;
+    this._beceriDinlemesi();
     if (this._zamanlayici) { clearTimeout(this._zamanlayici); this._zamanlayici = null; }
     // Bekleyen hafıza yazması VARSA hemen tamamla: kapanışta 3 sn'lik
     // pencereyi beklemek son anıları kaybetmek demek.

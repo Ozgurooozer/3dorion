@@ -59,6 +59,12 @@ export interface Kopru {
   ogretimOku(): unknown[];
   /** Öğretim dosyasına düşen yeni satır (ör. tools/ogret.ts) — canlı hafızaya. */
   ogretimDinle(cb: (satir: unknown) => void): () => void;
+  /**
+   * Beceri refleksi (spec 10): kayıttan seçilen satırlar — türü `turler`de olanlar ve
+   * algı türü `algilar`da olan algı satırları. SENKRON — köprü beceri defterini kurucuda
+   * kurar. Doğrulanmamış veridir; defter bozuk geçmişte geçmişsiz başlar.
+   */
+  kayitSatirlariOku(secim: { turler: readonly string[]; algilar: readonly string[] }): unknown[];
 }
 
 declare global {

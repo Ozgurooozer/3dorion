@@ -5,11 +5,14 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { KARAR_ONEKI, KararKaydi, type AlgiSatiri, type KararSatiri } from "../mind/kararKaydi.ts";
+import { KARAR_ONEKI, KararKaydi, niyetKaydi, type AlgiSatiri, type KararSatiri } from "../mind/kararKaydi.ts";
+import { beceriHafizasiKur } from "../mind/beceriHafizasi.ts";
+import { sozAnahtari, type GorevOrnegi } from "../mind/gorev.ts";
+import type { Niyet } from "../protocol/niyet.ts";
 import { kuralHafizasiKur, ogretimKur } from "../mind/ogretim.ts";
 import { zincirKur } from "../mind/kararZinciri.ts";
 import { spawnSync } from "node:child_process";
-import { algiBul, cevapCoz, dersVer, gozdenListesi, gozdenMetni, hafizaMetni, kayitYeri, kayitYukle, ogrenilebilirListe, ogretimYaz } from "./ogret.ts";
+import { BECERI_ACIKLAMASI, adimMetni, algiBul, beceriMetni, cevapCoz, dersVer, gozdenListesi, gozdenMetni, hafizaMetni, kayitYeri, kayitYukle, ogrenilebilirListe, ogretimYaz } from "./ogret.ts";
 
 const ELLE = ["durum:hata", "icgudu:refleks.sonuc.hata", "k:zaten", "niyet_kaynagi:elle", "tur:sonuc"];
 
@@ -184,4 +187,87 @@ test("uçtan uca: ders sonraki kararın 'şimdi'sine hemen yansır (hafıza her 
   const r = gozdenKos(kayitKlasoru(ikiKararliKayit(true)), "s\nç\n");
   const ikinci = r.cikti.slice(r.cikti.indexOf("[2/2]"));
   assert.deepEqual({ dersler: r.dersler, simdi: ikinci.includes("şimdi: sus (K1)") }, { dersler: ["sus"], simdi: true });
+});
+
+// ── Beceriler (spec 10) ────────────────────────────────────────────────────
+
+test("adım metni ızgarası: her bedensel niyet kısa haliyle, yuva köşeli parantezde", () => {
+  const capa = (ad: string) => ({ tip: "capa" as const, ad });
+  const HEDEF = new Set(["hedef.ad"]), CAPA = new Set(["capa"]);
+  const izgara: [Niyet, ReadonlySet<string>, string][] = [
+    [{ tur: "git", hedef: capa("masa") }, new Set(), "git masa"],
+    [{ tur: "git", hedef: capa("pencere") }, HEDEF, "git [pencere]"],
+    [{ tur: "git", hedef: { tip: "nesne", ad: "kupa" } }, new Set(), "git nesne:kupa"],
+    [{ tur: "git", hedef: { tip: "oyuncu" } }, new Set(), "git Ozyn"],
+    [{ tur: "git", hedef: { tip: "nokta", x: 1, y: 0, z: 2 } }, new Set(), "git (1, 0, 2)"],
+    [{ tur: "git", hedef: capa("masa"), mesafe: 1.5 }, new Set(), "git masa (1.5 m)"],
+    [{ tur: "bak", hedef: null }, new Set(), "bak serbest"],
+    [{ tur: "bak", hedef: capa("tahta") }, HEDEF, "bak [tahta]"],
+    [{ tur: "jest", jest: "başını_sallıyor" }, new Set(), "jest başını_sallıyor"],
+    [{ tur: "jest", jest: "işaret_ediyor", hedef: capa("kapi") }, HEDEF, "jest işaret_ediyor → [kapi]"],
+    [{ tur: "otur" }, new Set(), "otur"],
+    [{ tur: "otur", capa: "sandalye" }, CAPA, "otur [sandalye]"],
+    [{ tur: "odaklan", capa: "monitor" }, new Set(), "odaklan monitor"],
+    [{ tur: "poz", poz: "oturuyor" }, new Set(), "poz oturuyor"],
+    [{ tur: "al", nesne: "kupa" }, new Set(), "al kupa"],
+    [{ tur: "birak" }, new Set(), "birak"],
+    [{ tur: "kalk" }, new Set(), "kalk"],
+    [{ tur: "dur" }, new Set(), "dur"],
+  ];
+  assert.deepEqual(izgara.map(([n, y]) => adimMetni(n, y)), izgara.map(([, , m]) => m));
+});
+
+/** Bir görev örneği: adımların hepsi bitti. */
+function gorevOrnegi(soz: string, adimlar: Niyet[], sonuc: "basari" | "hata", t: number): GorevOrnegi {
+  return {
+    kaynak: "uyanis", kimlik: `o1/u${t}`, t, soz, anahtar: sozAnahtari(soz)!,
+    adimlar: adimlar.map((govde) => ({ govde, durum: "bitti" as const })), eslik: 0, sonuc, sureMs: 1000,
+  };
+}
+
+test("beceri dökümü: boş hafıza söylenir", () => {
+  assert.deepEqual(beceriMetni(beceriHafizasiKur([])), ["(beceri yok: henüz bir kez başarılmış bedensel görev yok)"]);
+});
+
+test("beceri dökümü: etkin beceri — durum, pay, sayaç, kanıt, ilk söz, çerçeve, yuva, adımlar", () => {
+  const git = (ad: string): Niyet => ({ tur: "git", hedef: { tip: "capa", ad } });
+  const h = beceriHafizasiKur([
+    gorevOrnegi("pencereye git otur", [git("pencere"), { tur: "otur" }], "basari", 1),
+    gorevOrnegi("masaya git otur", [git("masa"), { tur: "otur" }], "basari", 2),
+  ]);
+  assert.deepEqual(beceriMetni(h), [
+    `${h.beceriler[0]!.id} · ETKİN · pay 1,00 (başarı 2 · hata 0) · kanıt 2: o1/u1, o1/u2`,
+    `  ilk söz: "pencereye git otur" · çerçeve: git otur · yuva: 1`,
+    "  adımlar: git [pencere] → otur",
+  ]);
+});
+
+test("beceri dökümü: payı 0,75'in altındaki beceri ASKIDA", () => {
+  const h = beceriHafizasiKur([
+    gorevOrnegi("masaya otur", [{ tur: "otur" }], "basari", 1),
+    gorevOrnegi("masaya otur", [{ tur: "otur" }], "hata", 2),
+  ]);
+  assert.match(beceriMetni(h)[0]!, / · ASKIDA · pay 0,50 \(başarı 1 · hata 1\)/);
+});
+
+test("uçtan uca: `beceriler` kayıttan kurulan becerileri açıklamasıyla yazar", () => {
+  const satirlar: KararSatiri[] = [];
+  let t = 1_000;
+  const k = new KararKaydi({ oturum: "o1", simdi: () => (t += 1_000), yaz: (s) => satirlar.push(JSON.parse(s.slice(KARAR_ONEKI.length + 1))) });
+  k.oturumBasi("sahte");
+  const a = k.algi({ tur: "duydum", metin: "pencereye git", kesin: true }, "ozet", { gecti: true, kural: "kopru.konusma" });
+  k.uyanis({ algilar: [a], geriBesleme: 0, beyin: "sahte", sureMs: 5, koken: "dis", takip: false, anilar: 0, dunya: "", cagrilar: [], niyetler: [niyetKaydi("n_1", { tur: "git", hedef: { tip: "capa", ad: "pencere" } })], reddedilen: 0, kurtarilan: 0, konusulanMetin: false, yutulanSoz: 0 });
+  k.algi({ tur: "sonuc", sonuc: { niyet_id: "n_1", durum: "bitti" } }, "ozet", { gecti: false, kural: "refleks.sonuc.rutin" });
+  const kok = path.resolve(import.meta.dirname, "..");
+  const r = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", path.join(kok, "tools", "ogret.ts"), "beceriler", `--kayit=${kayitKlasoru(satirlar)}`], { encoding: "utf8" });
+  const cikti = r.stdout.split(/\r?\n/);
+  assert.deepEqual(
+    { aciklama: cikti.slice(0, BECERI_ACIKLAMASI.length), adimlar: cikti.find((l) => l.startsWith("  adımlar:")) },
+    { aciklama: BECERI_ACIKLAMASI, adimlar: "  adımlar: git [pencere]" },
+  );
+});
+
+test("beceri dökümü: bağ yalnız kendi adımında — aynı alan adlı sabit adım köşesiz kalır", () => {
+  const h = beceriHafizasiKur([gorevOrnegi("sandalyeye otur", [{ tur: "otur", capa: "sandalye" }, { tur: "odaklan", capa: "monitor" }], "basari", 1)]);
+  assert.equal(beceriMetni(h)[2], "  adımlar: otur [sandalye] → odaklan monitor");
 });

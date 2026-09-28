@@ -20,14 +20,20 @@
 // politikalarda sınanır — taban "hic" (hiç eşleşmez), tavan "kahin" (her görevde LLM'in
 // adımları), alışkanlık (her görevde aynı sabit adımlar).
 //
+// GÖLGE DENETİMİ (Faz C, B11): canlıda söz satırına yazılan her `beceriGolge`, kayıttan
+// aynı satır sırasıyla, köprünün kullandığı defterle (mind/beceriDefteri.ts) yeniden
+// hesaplanır. Hepsi aynıysa canlı hafıza kayıttan kurulana eşittir (defter ilkesi).
+//
 // Kullanım:
 //   node --experimental-strip-types tools/beceri-deney.ts [dosya|klasör …] [--json]
 // Argüman yoksa gerçek kullanımın kaydı okunur: %APPDATA%/3dorion/karar-kaydi.
 "use strict";
 import { isDeepStrictEqual } from "node:util";
 import path from "node:path";
+import { BeceriDefteri } from "../mind/beceriDefteri.ts";
 import { BeceriHafizasi } from "../mind/beceriHafizasi.ts";
 import { gorevler, niyetSinifi, zamanSirali, type GorevOrnegi, type GorevSonucu } from "../mind/gorev.ts";
+import type { BeceriGolgesi, KararSatiri } from "../mind/kararKaydi.ts";
 import { zincirKur } from "../mind/kararZinciri.ts";
 import type { Niyet } from "../protocol/niyet.ts";
 import { dosyalardanOku } from "./karar-ozet.ts";
@@ -110,6 +116,62 @@ export function olc(p: Politika, liste: readonly GorevOrnegi[]): BeceriOlcumu {
   return o;
 }
 
+// ── Gölge denetimi: canlı = kayıt (spec 10, B11) ───────────────────────────
+
+export interface GolgeFarki {
+  /** Söz satırının kimliği (`oturum/algı`). */
+  algi: string;
+  soz: string;
+  canli: BeceriGolgesi | null;
+  kayittan: BeceriGolgesi | null;
+}
+
+export interface GolgeDenetimi {
+  /** Gölgesi yazılmış kesin söz (Faz C'den sonraki satırlar). */
+  golgeli: number;
+  /** Gölgelerden eşleşme bulunanlar (null olmayan). */
+  eslesen: number;
+  /** Yeniden hesaplanan gölge, canlıda yazılanla birebir aynı. */
+  ayni: number;
+  farkli: GolgeFarki[];
+}
+
+/**
+ * CANLI = KAYIT (B11): kayıttaki her beceri gölgesi, kayıttan AYNI SIRAYLA yeniden
+ * kurulan defterle (mind/beceriDefteri.ts, köprünün kullandığı sınıf) yeniden hesaplanır.
+ * Köprü gibi: bir oturumun geçmişi ondan önce başlamış oturumların satırlarıdır; kendi
+ * satırları sırayla eklenir; karar söz satırı eklenmeden önce verilir.
+ *
+ * Bilinen sınır: kayıttaki söz `SINIR.metin`e kesilmiş olabilir; köprü tam metinle karar
+ * verdi. Böyle bir söz farklı çıkarsa sebebi budur (sözler kısa, beklenmiyor).
+ */
+export function golgeDenetimi(satirlar: readonly KararSatiri[]): GolgeDenetimi {
+  const oturumlar = new Map<string, KararSatiri[]>();
+  for (const s of satirlar) {
+    const liste = oturumlar.get(s.o);
+    if (liste) liste.push(s);
+    else oturumlar.set(s.o, [s]);
+  }
+  const d: GolgeDenetimi = { golgeli: 0, eslesen: 0, ayni: 0, farkli: [] };
+  const gecmis: KararSatiri[] = [];
+  for (const oturum of [...oturumlar.values()].sort((a, b) => a[0]!.t - b[0]!.t)) {
+    const defter = new BeceriDefteri(gecmis);
+    for (const s of oturum) {
+      if (s.tur === "algi" && s.beceriGolge !== undefined) {
+        const canli = s.beceriGolge;
+        const kayittan = defter.golge(s.soz?.metin ?? "");
+        d.golgeli++;
+        if (canli) d.eslesen++;
+        if (isDeepStrictEqual(canli, kayittan)) d.ayni++;
+        else d.farkli.push({ algi: `${s.o}/${s.id}`, soz: s.soz?.metin ?? "", canli, kayittan });
+      }
+      defter.ekle(s);
+    }
+    gecmis.push(...oturum);
+  }
+  return d;
+}
+
 export interface KayitOlcumu {
   dosyalar: string[];
   bozuk: number;
@@ -118,9 +180,10 @@ export interface KayitOlcumu {
   /** Bütün uyanışların düşünme süresi toplamı (ms). */
   uyanisMs: number;
   olcum: BeceriOlcumu;
+  golge: GolgeDenetimi;
 }
 
-/** Kayıt dosyalarından (ya da klasörlerinden) görevleri çıkarır ve gerçek hafızayla ölçer. */
+/** Kayıt dosyalarından (ya da klasörlerinden) görevleri çıkarır, gerçek hafızayla ölçer, gölgeleri denetler. */
 export function kayittanOlc(yollar: string[]): KayitOlcumu {
   const { satirlar, bozuk, dosyalar } = dosyalardanOku(yollar);
   const z = zincirKur(satirlar, bozuk);
@@ -129,6 +192,7 @@ export function kayittanOlc(yollar: string[]): KayitOlcumu {
     uyanis: z.uyanislar.length,
     uyanisMs: z.uyanislar.reduce((s, u) => s + u.uyanis.sureMs, 0),
     olcum: olc(new BeceriHafizasi(), gorevler(z)),
+    golge: golgeDenetimi(satirlar),
   };
 }
 
@@ -149,6 +213,12 @@ function yazdir(r: KayitOlcumu): void {
   p(`| LLM ayrıca konuştu | ${o.eslikli}/${o.eslesen} | eşleşen görevde LLM söz ya da sorgu da verdi; refleks orada sessiz kalırdı (uyum bunu görmez) | — |`);
   p(`| beceri | ${o.beceri} | ölçü sonunda hafızadaki beceri | — |`);
   p(`| LLM'in sonucu (eşleşenlerde) | başarı ${o.eslesenSonuc.basari}, hata ${o.eslesenSonuc.hata}, belirsiz ${o.eslesenSonuc.belirsiz} | eşleşen görevi LLM kendisi yaparken nasıl bitti | — |`);
+  const g = r.golge;
+  if (g.golgeli > 0) {
+    p();
+    p(`Gölge denetimi (B11, canlı = kayıt): ${g.golgeli} gölgeli söz, ${g.eslesen} eşleşmeli; yeniden hesaplanınca ${g.ayni} aynı, ${g.farkli.length} farklı.`);
+    for (const f of g.farkli) p(`  FARKLI ${f.algi} "${f.soz}": canlı ${JSON.stringify(f.canli)} · kayıttan ${JSON.stringify(f.kayittan)}`);
+  }
   if (o.eslesmeler.length === 0) return;
   p();
   p("Eşleşmeler:");

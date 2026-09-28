@@ -61,26 +61,47 @@ function satirlariAyristir(metin) {
 }
 
 /**
- * Kayıttaki TÜM öğretim satırları (K5: hafıza bunlardan kurulur). Günlük kipte
- * klasördeki her `.jsonl` okunur (uygulama içinden öğretim günlük dosyaya, araçtan
- * gelen öğretim dosyasına düşer); sabit kipte o dosya ile öğretim dosyası.
- * Dosya yoksa boş liste. Okuma hatası fırlatır — "öğretim yok" demek hafızayı
- * sessizce sıfırlamak olurdu.
+ * Kaydın okunacak dosyaları. Günlük kipte klasördeki her `.jsonl`, adıyla (tarih)
+ * sıralı: uygulama içinden öğretim günlük dosyaya, araçtan gelen öğretim dosyasına
+ * düşer. Sabit kipte o dosya ile yanındaki öğretim dosyası.
  *
  * @param {{ kok?: string, sabitDosya?: string }} ayar
  */
-export function ogretimleriOku(ayar) {
-  const dosyalar = [];
-  if (ayar.sabitDosya) dosyalar.push(ayar.sabitDosya, ogretimYolu(ayar));
-  else if (ayar.kok && fs.existsSync(ayar.kok)) {
-    for (const f of fs.readdirSync(ayar.kok).filter((f) => f.endsWith(".jsonl")).sort()) dosyalar.push(path.join(ayar.kok, f));
-  }
+function kayitDosyalari(ayar) {
+  if (ayar.sabitDosya) return [ayar.sabitDosya, ogretimYolu(ayar)];
+  if (!ayar.kok || !fs.existsSync(ayar.kok)) return [];
+  return fs.readdirSync(ayar.kok).filter((f) => f.endsWith(".jsonl")).sort().map((f) => path.join(ayar.kok, f));
+}
+
+/**
+ * Kayıttan bir SEÇİM: türü `secim.turler`de olan satırlar ve algı türü
+ * `secim.algilar`da olan algı satırları, dosya ve satır sırasıyla. Seçimi renderer
+ * verir (spec 10: mind/gorev.ts `GOREV_SATIRLARI`); süzme burada yapılır ki IPC yalnız
+ * gerekeni taşısın. Aynı kural mind/gorev.ts `gorevSatiriMi`de de yazılı (bu dosya
+ * TypeScript'i yükleyemez); eşitliği kararDosyasi.test.ts bekler.
+ *
+ * Dosya yoksa boş liste. Okuma hatası fırlatır — "satır yok" demek hafızayı sessizce
+ * sıfırlamak olurdu.
+ *
+ * @param {{ kok?: string, sabitDosya?: string }} ayar
+ * @param {{ turler: readonly string[], algilar: readonly string[] }} secim
+ */
+export function satirlariOku(ayar, secim) {
+  const turler = new Set(secim.turler);
+  const algilar = new Set(secim.algilar);
   const out = [];
-  for (const d of dosyalar) {
+  for (const d of kayitDosyalari(ayar)) {
     if (!fs.existsSync(d)) continue;
-    for (const s of satirlariAyristir(fs.readFileSync(d, "utf8"))) if (s && s.tur === "ogretim") out.push(s);
+    for (const s of satirlariAyristir(fs.readFileSync(d, "utf8"))) {
+      if (s && (turler.has(s.tur) || (s.tur === "algi" && algilar.has(s.algi)))) out.push(s);
+    }
   }
   return out;
+}
+
+/** Kayıttaki TÜM öğretim satırları (K5: kural hafızası bunlardan kurulur). */
+export function ogretimleriOku(ayar) {
+  return satirlariOku(ayar, { turler: ["ogretim"], algilar: [] });
 }
 
 /**

@@ -32,4 +32,6 @@ contextBridge.exposeInMainWorld("kopru", {
   // Öğrenen kapı (spec 08, K5): açılışta öğretimler SENKRON, sonra yenileri olay olarak.
   ogretimOku:       () => ipcRenderer.sendSync(CAGRI.ogretimOku),
   ogretimDinle:     (cb) => dinle(OLAY.ogretim, cb),
+  // Beceri refleksi (spec 10): geçmiş oturumların görev satırları, açılışta SENKRON.
+  kayitSatirlariOku: (secim) => ipcRenderer.sendSync(CAGRI.kayitSatirlariOku, secim),
 });

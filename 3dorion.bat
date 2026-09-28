@@ -24,6 +24,8 @@ rem    3dorion.bat gordene    Orion odayi goruyor mu (cevap konuma bagli mi)
 rem    3dorion.bat senaryodene senaryo kipi rakip niyetleri susturuyor mu
 rem    3dorion.bat pybeyin    beyni PYTHON surecinde kostur (dil bagimsizlik kaniti)
 rem    3dorion.bat tahtabeyin uctan uca: soyle -> beyin -> yuru -> tahtaya yaz
+rem    3dorion.bat becerdene  beceri refleksi (spec 10): ayni cerceveli uc soz; golge,
+rem                           ORION_BECERI=1 ile refleks (kaydi ORION_KARAR_DOSYASI'na ver)
 rem    3dorion.bat davranis   Orion gorduguna DOGRU tepki veriyor mu (3 senaryo)
 rem    3dorion.bat soyle "merhaba"   sadece bir cumle soylet
 rem
@@ -73,6 +75,7 @@ if /i "%MOD%"=="admindene" goto :admindene
 if /i "%MOD%"=="zihindene" goto :zihindene
 if /i "%MOD%"=="tahtadene" goto :tahtadene
 if /i "%MOD%"=="tahtabeyin" goto :tahtabeyin
+if /i "%MOD%"=="becerdene" goto :becerdene
 if /i "%MOD%"=="gelistir" goto :gelistir
 if /i "%MOD%"=="soyle"    goto :soyle
 if /i "%MOD%"=="hizli"    goto :baslat
@@ -176,6 +179,16 @@ if errorlevel 1 goto :hata
 set "ORION_TAHTABEYIN=1"
 set "ORION_SMOKE=1"
 set "ORION_SMOKE_MS=32000"
+call npx electron .
+goto :son
+
+:becerdene
+echo [becerdene] beceri refleksi: ayni cerceveli uc soz (pencere, sandalye, pencere)
+call npx vite build
+if errorlevel 1 goto :hata
+set "ORION_BECERDENE=1"
+set "ORION_SMOKE=1"
+set "ORION_SMOKE_MS=62000"
 call npx electron .
 goto :son
 

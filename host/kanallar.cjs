@@ -32,6 +32,11 @@ const CAGRI = {
    * SENKRON — köprü kural hafızasını kurucuda kurar.
    */
   ogretimOku:        "ogretim:oku",
+  /**
+   * Beceri refleksi (spec 10): kayıttan seçilen satırlar — geçmiş oturumların görev
+   * satırları. SENKRON — köprü beceri defterini kurucuda kurar.
+   */
+  kayitSatirlariOku: "kayit:satirlar",
 };
 
 /** Main → renderer (tek yönlü olay). */

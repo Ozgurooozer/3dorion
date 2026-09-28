@@ -12,9 +12,12 @@ import os from "node:os";
 import path from "node:path";
 import { BeceriHafizasi } from "../mind/beceriHafizasi.ts";
 import { sozAnahtari, type GorevOrnegi, type GorevSonucu } from "../mind/gorev.ts";
-import { KARAR_ONEKI, KararKaydi, niyetKaydi, type UyanisBilgisi } from "../mind/kararKaydi.ts";
+import { KARAR_ONEKI, KararKaydi, niyetKaydi, type KararSatiri, type UyanisBilgisi } from "../mind/kararKaydi.ts";
 import type { Niyet } from "../protocol/niyet.ts";
-import { kayittanOlc, olc } from "./beceri-deney.ts";
+import { golgeDenetimi, kayittanOlc, olc } from "./beceri-deney.ts";
+import { Kopru } from "../bridge/kopru.ts";
+import { KuralRefleksi, refleksGirdisi } from "../mind/refleks.ts";
+import { kayitOku } from "../mind/kararZinciri.ts";
 
 const git = (ad: string): Niyet => ({ tur: "git", hedef: { tip: "capa", ad } });
 const OTUR: Niyet = { tur: "otur" };
@@ -180,6 +183,71 @@ test("uçtan uca: kayıt dosyasından iki kez söylenen görev → 1 eşleşme, 
       { dosya: r.dosyalar.length, uyanis: r.uyanis, gorev: r.olcum.gorev, eslesen: r.olcum.eslesen, uyumlu: r.olcum.uyumlu, kazancMs: r.olcum.kazancMs },
       { dosya: 1, uyanis: 2, gorev: 2, eslesen: 1, uyumlu: 1, kazancMs: 2500 },
     );
+  } finally {
+    fs.rmSync(klasor, { recursive: true, force: true });
+  }
+});
+
+// ── Gölge denetimi: canlı = kayıt (B11) ────────────────────────────────────
+
+/** Gerçek köprüyle bir oturum: sahte beyin her söze sıradaki `git <çapa>`yı verir, dünya hemen `bitti` der. */
+async function kopruOturumu(sozler: [string, string][], ayar: { oturum: string; saat: number; gecmis?: readonly KararSatiri[] }): Promise<KararSatiri[]> {
+  let saat = ayar.saat;
+  const metin: string[] = [];
+  const cevaplar = sozler.map(([, capa]) => ({ metin: "", cagrilar: [{ ad: "dunya_git", girdi: { hedef: { tip: "capa", ad: capa } } }] }));
+  const beyin = { ad: "sahte", hazirMi: async () => true, dusun: async () => cevaplar.shift() ?? { metin: "", cagrilar: [] } };
+  const refleks = new KuralRefleksi();
+  let k: Kopru;
+  k = new Kopru({
+    beyin,
+    niyetGonder: (_n, id) => queueMicrotask(() => k.sonuc({ niyet_id: id, durum: "bitti" })),
+    dunyaDurumu: () => "Oda.", toplamaMs: 10, simdi: () => saat,
+    dikkat: { simdi: () => (saat += 10_000) },
+    suzgec: (a, ozet) => { const r = refleks.karar(refleksGirdisi(a, ozet)); return { gecsin: r.terfi, kural: r.kural, gerekce: r.gerekce }; },
+    kararKaydi: new KararKaydi({ yaz: (s) => metin.push(s.slice(KARAR_ONEKI.length + 1)), simdi: () => (saat += 1), oturum: ayar.oturum }),
+    ...(ayar.gecmis ? { gorevSatirlari: ayar.gecmis } : {}),
+  });
+  for (const [soz] of sozler) {
+    k.algi({ tur: "duydum", metin: soz, kesin: true });
+    await new Promise((r) => setTimeout(r, 80));
+  }
+  k.durdur();
+  return kayitOku(metin.join("\n")).satirlar;
+}
+
+test("gölge denetimi: köprünün yazdığı her gölge, kayıttan aynı sırayla yeniden hesaplanınca aynı", async () => {
+  const satirlar = await kopruOturumu([["pencereye git", "pencere"], ["sandalyeye git", "sandalye"], ["masaya git", "masa"]], { oturum: "o1", saat: 1_000_000 });
+  const d = golgeDenetimi(satirlar);
+  assert.deepEqual({ golgeli: d.golgeli, eslesen: d.eslesen, ayni: d.ayni }, { golgeli: 3, eslesen: 2, ayni: 3 });
+});
+
+test("gölge denetimi, iki oturum: ikincinin geçmişi birincinin satırları (köprünün açılışta okuduğu gibi)", async () => {
+  const bir = await kopruOturumu([["pencereye git", "pencere"]], { oturum: "o1", saat: 1_000_000 });
+  const iki = await kopruOturumu([["sandalyeye git", "sandalye"]], { oturum: "o2", saat: 2_000_000, gecmis: bir });
+  const d = golgeDenetimi([...bir, ...iki]);
+  assert.deepEqual({ golgeli: d.golgeli, eslesen: d.eslesen, ayni: d.ayni }, { golgeli: 2, eslesen: 1, ayni: 2 });
+});
+
+test("gölge denetimi farkı yakalar (kalibrasyon): kayıttaki gölge bozulursa o söz farklı sayılır", async () => {
+  const satirlar = await kopruOturumu([["pencereye git", "pencere"], ["sandalyeye git", "sandalye"]], { oturum: "o1", saat: 1_000_000 });
+  const bozuk = satirlar.map((s) => (s.tur === "algi" && s.beceriGolge ? { ...s, beceriGolge: { ...s.beceriGolge, adimlar: [] } } : s));
+  const d = golgeDenetimi(bozuk);
+  assert.deepEqual({ ayni: d.ayni, farkli: d.farkli.map((f) => f.soz) }, { ayni: 1, farkli: ["sandalyeye git"] });
+});
+
+test("gölge denetimi: oturum sırası satır sırasından değil zamandan (dosyalar karışık verilse de)", async () => {
+  const bir = await kopruOturumu([["pencereye git", "pencere"]], { oturum: "o1", saat: 1_000_000 });
+  const iki = await kopruOturumu([["sandalyeye git", "sandalye"]], { oturum: "o2", saat: 2_000_000, gecmis: bir });
+  assert.equal(golgeDenetimi([...iki, ...bir]).ayni, 2);
+});
+
+test("uçtan uca gölge: köprü oturumunun kayıt dosyası okununca gölgeler denetlenir, hepsi aynı", async () => {
+  const klasor = fs.mkdtempSync(path.join(os.tmpdir(), "beceri-deney-golge-"));
+  try {
+    const satirlar = await kopruOturumu([["pencereye git", "pencere"], ["sandalyeye git", "sandalye"]], { oturum: "o1", saat: 1_000_000 });
+    fs.writeFileSync(path.join(klasor, "o1.jsonl"), `${satirlar.map((s) => JSON.stringify(s)).join("\n")}\n`, "utf8");
+    const g = kayittanOlc([klasor]).golge;
+    assert.deepEqual({ golgeli: g.golgeli, eslesen: g.eslesen, ayni: g.ayni }, { golgeli: 2, eslesen: 1, ayni: 2 });
   } finally {
     fs.rmSync(klasor, { recursive: true, force: true });
   }

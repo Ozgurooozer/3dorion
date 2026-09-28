@@ -10,6 +10,7 @@
 //   node --experimental-strip-types tools/ogret.ts liste [--son=20] [--kayit=klasör|dosya]
 //   node --experimental-strip-types tools/ogret.ts ogret <oturum/algı> <uyan|sus> [--kayit=…]
 //   node --experimental-strip-types tools/ogret.ts hafiza [--kayit=…]
+//   node --experimental-strip-types tools/ogret.ts beceriler [--kayit=…]   (spec 10; salt okur)
 //
 // Öğretim `ogretim.jsonl` dosyasına eklenir (kaydın klasöründe; sabit dosya
 // verilirse onun yanında). Orion açıksa host dosyayı izler ve dersi yeniden
@@ -24,7 +25,11 @@ import readline from "node:readline";
 import { kayitOku, uyanisEyleme, zincirKur, type KararZinciri } from "../mind/kararZinciri.ts";
 import type { AlgiSatiri, KararSatiri, OgretimSatiri } from "../mind/kararKaydi.ts";
 import { kuralHafizasiKur, ogretimKur } from "../mind/ogretim.ts";
-import type { KapiYonu, KuralHafizasi } from "../mind/kuralHafizasi.ts";
+import { VARSAYILAN_GUVEN_PAYI, type KapiYonu, type KuralHafizasi } from "../mind/kuralHafizasi.ts";
+import { beceriHafizasiKur, type BeceriHafizasi } from "../mind/beceriHafizasi.ts";
+import { gorevler } from "../mind/gorev.ts";
+import type { Niyet } from "../protocol/niyet.ts";
+import type { Hedef } from "../protocol/temel.ts";
 
 export interface KayitYeri {
   /** Okunacak kayıt dosyaları. */
@@ -179,6 +184,52 @@ export function hafizaMetni(hafiza: KuralHafizasi): string[] {
   });
 }
 
+// ── Beceriler (spec 10) ────────────────────────────────────────────────────
+
+/** Bedensel bir adımın kısa hali; sözün çapasıyla değişen alan (yuva) köşeli parantezde. */
+export function adimMetni(n: Niyet, yuvaYollari: ReadonlySet<string> = new Set()): string {
+  const deger = (yol: string, v: string) => (yuvaYollari.has(yol) ? `[${v}]` : v);
+  const hedef = (h: Hedef | null) =>
+    h === null ? "serbest" : h.tip === "capa" ? deger("hedef.ad", h.ad) : h.tip === "nesne" ? `nesne:${h.ad}` : h.tip === "oyuncu" ? "Ozyn" : `(${h.x}, ${h.y}, ${h.z})`;
+  switch (n.tur) {
+    case "git": return `git ${hedef(n.hedef)}${n.mesafe !== undefined ? ` (${n.mesafe} m)` : ""}`;
+    case "bak": return `bak ${hedef(n.hedef)}`;
+    case "jest": return `jest ${n.jest}${n.hedef ? ` → ${hedef(n.hedef)}` : ""}`;
+    case "otur": return n.capa ? `otur ${deger("capa", n.capa)}` : "otur";
+    case "odaklan": return `odaklan ${deger("capa", n.capa)}`;
+    case "poz": return `poz ${n.poz}`;
+    case "al": return `al ${n.nesne}`;
+    default: return n.tur;
+  }
+}
+
+/**
+ * Beceri hafızasının okunur dökümü. Her becerinin durumu, payı, sayacı ve kanıtı;
+ * doğuran söz, çerçevesi, yuva sayısı ve adımları.
+ */
+export function beceriMetni(h: BeceriHafizasi): string[] {
+  if (h.beceriler.length === 0) return ["(beceri yok: henüz bir kez başarılmış bedensel görev yok)"];
+  return h.beceriler.flatMap((b) => {
+    const toplam = b.sayac.basari + b.sayac.hata;
+    const pay = b.sayac.basari / toplam;
+    const durum = pay >= VARSAYILAN_GUVEN_PAYI ? "ETKİN" : "ASKIDA";
+    const adimlar = b.adimlar.map((n, i) => adimMetni(n, new Set(b.baglar.filter((x) => x.adim === i).map((x) => x.yol.join(".")))));
+    return [
+      `${b.id} · ${durum} · pay ${pay.toFixed(2).replace(".", ",")} (başarı ${b.sayac.basari} · hata ${b.sayac.hata}) · kanıt ${b.kanit.length}: ${b.kanit.slice(-3).join(", ")}`,
+      `  ilk söz: "${b.ornek}" · çerçeve: ${b.cerceve.join(" ")} · yuva: ${b.yuvaSayisi}`,
+      `  adımlar: ${adimlar.join(" → ")}`,
+    ];
+  });
+}
+
+/** Dökümün başındaki açıklama: sayıların ve işaretlerin anlamı. */
+export const BECERI_ACIKLAMASI = [
+  "Beceri: Ozyn'in bir sözüyle başlayıp bir kez başarılan bedensel görev (spec 10).",
+  `ETKİN = pay ≥ ${String(VARSAYILAN_GUVEN_PAYI).replace(".", ",")}: refleks bunu yapabilir · ASKIDA = hatalar payı düşürdü, yeni başarı geri getirir.`,
+  "[köşeli] = sözdeki çapayla değişen yuva: \"pencereye git\"ten doğan beceri \"sandalyeye git\"te sandalyeye gider.",
+  "Gölgede: Orion becerileri henüz kendisi yürütmez; kayda \"ne yapardı\" yazar (beceriGolge).",
+];
+
 /** Öğretimi dosyaya ekler; satırı döner. */
 export function ogretimYaz(dosya: string, satir: OgretimSatiri): void {
   fs.mkdirSync(path.dirname(dosya), { recursive: true });
@@ -227,7 +278,12 @@ async function calistir(): Promise<void> {
     return;
   }
 
-  console.error("kullanım: ogret.ts gozden [--son=20] | liste [--son=20] | ogret <oturum/algı> <uyan|sus> | hafiza   [--kayit=klasör|dosya]");
+  if (komut === "beceriler") {
+    for (const satir of [...BECERI_ACIKLAMASI, "", ...beceriMetni(beceriHafizasiKur(gorevler(zincir)))]) console.log(satir);
+    return;
+  }
+
+  console.error("kullanım: ogret.ts gozden [--son=20] | liste [--son=20] | ogret <oturum/algı> <uyan|sus> | hafiza | beceriler   [--kayit=klasör|dosya]");
   process.exit(2);
 }
 

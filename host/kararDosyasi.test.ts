@@ -12,8 +12,9 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { KARAR_ONEKI, gunlukYol, kararSatiriMi, kararYaziciKur, ogretimYolu, ogretimleriOku, yeniSatirlar } from "./kararDosyasi.js";
-import { KARAR_ONEKI as KAYIT_ONEKI } from "../mind/kararKaydi.ts";
+import { KARAR_ONEKI, gunlukYol, kararSatiriMi, kararYaziciKur, ogretimYolu, ogretimleriOku, satirlariOku, yeniSatirlar } from "./kararDosyasi.js";
+import { KARAR_ONEKI as KAYIT_ONEKI, type KararSatiri } from "../mind/kararKaydi.ts";
+import { GOREV_SATIRLARI, gorevSatiriMi } from "../mind/gorev.ts";
 
 function geciciDizin(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), "orion-karar-"));
@@ -142,4 +143,41 @@ test("yeniSatirlar: dosya kısaldıysa (yeniden yaratıldı) baştan okur; dosya
   const yol = path.join(d, "ogretim.jsonl");
   fs.writeFileSync(yol, `${JSON.stringify({ n: 7 })}\n`);
   assert.deepEqual([yeniSatirlar(yol, 10_000).satirlar, yeniSatirlar(path.join(d, "yok"), 5)], [[{ n: 7 }], { satirlar: [], konum: 0 }]);
+});
+
+// ── Seçilen satırlar (spec 10: beceri defterinin geçmişi) ──────────────────
+
+/** Her türden birer satır: seçimin neyi alıp neyi bıraktığı görünsün. */
+const IZGARA = [
+  { tur: "oturum", o: "o1", t: 1 },
+  { tur: "algi", o: "o1", id: "a1", t: 2, algi: "duydum" },
+  { tur: "algi", o: "o1", id: "a2", t: 3, algi: "terminal" },
+  { tur: "uyanis", o: "o1", id: "u1", t: 4 },
+  { tur: "algi", o: "o1", id: "a3", t: 5, algi: "sonuc" },
+  { tur: "algi", o: "o1", id: "a4", t: 6, algi: "olay" },
+  { tur: "ogretim", o: "o1", t: 7 },
+];
+
+test("satirlariOku: türü seçilen satırlar ve algı türü seçilen algı satırları; başkası değil", () => {
+  const kok = geciciDizin();
+  fs.writeFileSync(path.join(kok, "2026-09-28.jsonl"), `${IZGARA.map((s) => JSON.stringify(s)).join("\n")}\n{bozuk\n`);
+  const r = satirlariOku({ kok }, { turler: ["uyanis"], algilar: ["duydum", "sonuc"] }) as { t: number }[];
+  assert.deepEqual(r.map((s) => s.t), [2, 4, 5]);
+});
+
+test("satirlariOku: seçim kuralı renderer'dakiyle aynı (mind/gorev.ts gorevSatiriMi) — iki yazım ayrışmasın", () => {
+  const kok = geciciDizin();
+  fs.writeFileSync(path.join(kok, "2026-09-28.jsonl"), `${IZGARA.map((s) => JSON.stringify(s)).join("\n")}\n`);
+  assert.deepEqual(satirlariOku({ kok }, GOREV_SATIRLARI), IZGARA.filter((s) => gorevSatiriMi(s as KararSatiri)));
+});
+
+test("satirlariOku: günlük kipte dosyalar tarih sırasıyla okunur", () => {
+  const kok = geciciDizin();
+  fs.writeFileSync(path.join(kok, "2026-09-28.jsonl"), `${JSON.stringify({ tur: "uyanis", t: 2 })}\n`);
+  fs.writeFileSync(path.join(kok, "2026-09-27.jsonl"), `${JSON.stringify({ tur: "uyanis", t: 1 })}\n`);
+  assert.deepEqual((satirlariOku({ kok }, GOREV_SATIRLARI) as { t: number }[]).map((s) => s.t), [1, 2]);
+});
+
+test("satirlariOku: klasör yoksa boş liste", () => {
+  assert.deepEqual(satirlariOku({ kok: path.join(geciciDizin(), "yok") }, GOREV_SATIRLARI), []);
 });

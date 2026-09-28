@@ -193,3 +193,58 @@ test("uyanış satırı niyet kayıtlarını gövdeleriyle aynen taşır", () =>
   kayit.uyanis({ ...BOS_UYANIS, niyetler });
   assert.deepEqual((satirlar()[0] as UyanisSatiri).niyetler, niyetler);
 });
+
+// ── Satır dinleyicisi ve beceri gölgesi (spec 10, Faz C) ───────────────────
+// Köprünün beceri hafızası kendi oturumunun satırlarını dinleyiciden alır. Dinleyici
+// DİSKE YAZILANIN AYNISINI alır (JSON'dan geri okunmuş hali): canlıda kurulan hafıza
+// kayıttan kurulana yapıca eşit kalsın (defter ilkesi, spec 09 K5).
+
+test("dinleyici diske yazılan satırın aynısını alır: JSON'dan geri okunmuş hali", () => {
+  const { kayit, satirlar } = kaydedici();
+  const duyulan: KararSatiri[] = [];
+  kayit.dinle((s) => duyulan.push(s));
+  kayit.algi({ tur: "duydum", metin: "masaya git", kesin: true }, "ozet", GECTI);
+  kayit.uyanis({ ...BOS_UYANIS, niyetler: [niyetKaydi("n_1", { tur: "git", hedef: { tip: "capa", ad: "masa" }, mesafe: undefined })] });
+  assert.deepEqual(duyulan, satirlar());
+});
+
+test("dinleyici yazılamayan satırı almaz: kayda girmeyen şeyden öğrenilmez", () => {
+  const kayit = new KararKaydi({ yaz: () => { throw new Error("disk dolu"); } });
+  const duyulan: KararSatiri[] = [];
+  kayit.dinle((s) => duyulan.push(s));
+  kayit.algi({ tur: "duydum", metin: "x", kesin: true }, "x", GECTI);
+  assert.equal(duyulan.length, 0);
+});
+
+test("dinleyicinin hatası kaydı bozmaz: satır yazılır, öbür dinleyici de alır", () => {
+  const { kayit, ham } = kaydedici();
+  const duyulan: KararSatiri[] = [];
+  kayit.dinle(() => { throw new Error("dinleyici çöktü"); });
+  kayit.dinle((s) => duyulan.push(s));
+  kayit.algi({ tur: "duydum", metin: "x", kesin: true }, "x", GECTI);
+  assert.deepEqual({ yazilan: ham.length, duyulan: duyulan.length, kayip: kayit.yazilamayan }, { yazilan: 1, duyulan: 1, kayip: 0 });
+});
+
+test("dinleyiciden çıkılınca sonraki satırlar gelmez", () => {
+  const { kayit } = kaydedici();
+  const duyulan: KararSatiri[] = [];
+  const cik = kayit.dinle((s) => duyulan.push(s));
+  kayit.algi({ tur: "duydum", metin: "bir", kesin: true }, "x", GECTI);
+  cik();
+  kayit.algi({ tur: "duydum", metin: "iki", kesin: true }, "x", GECTI);
+  assert.equal(duyulan.length, 1);
+});
+
+test("beceri gölgesi verilirse algı satırına yazılır; eşleşme yoksa null olarak", () => {
+  const { kayit, satirlar } = kaydedici();
+  const golge = { beceri: "B0000abcd", pay: 1, adimlar: [{ tur: "git", hedef: { tip: "capa", ad: "masa" } }] as Niyet[] };
+  kayit.algi({ tur: "duydum", metin: "masaya git", kesin: true }, "x", GECTI, { beceriGolge: golge });
+  kayit.algi({ tur: "duydum", metin: "masaya git", kesin: true }, "x", GECTI, { beceriGolge: null });
+  assert.deepEqual(satirlar().map((s) => (s as AlgiSatiri).beceriGolge), [golge, null]);
+});
+
+test("beceri gölgesi verilmezse alan hiç yazılmaz", () => {
+  const { kayit, satirlar } = kaydedici();
+  kayit.algi({ tur: "duydum", metin: "masaya git", kesin: false }, "x", GECTI);
+  assert.equal("beceriGolge" in satirlar()[0]!, false);
+});

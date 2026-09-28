@@ -8,7 +8,7 @@ import path from "node:path";
 import fs from "node:fs";
 import { PiperSesi, piperBul } from "./ses.js";
 import { hafizaDosyasiOku, hafizaDosyasiYaz } from "./hafizaDosyasi.js";
-import { kararYaziciKur, ogretimYolu, ogretimleriOku, yeniSatirlar } from "./kararDosyasi.js";
+import { kararYaziciKur, ogretimYolu, ogretimleriOku, satirlariOku, yeniSatirlar } from "./kararDosyasi.js";
 import { mcpSunucuKur } from "./mcpSunucu.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -131,6 +131,7 @@ function pencereAc() {
   if (process.env.ORION_HAFIZADENE === "1") parcalar.push("hafizadene=1", "sessiz=1");
   if (process.env.ORION_TAHTADENE === "1") parcalar.push("tahtadene=1", "sessiz=1");
   if (process.env.ORION_TAHTABEYIN === "1") parcalar.push("tahtabeyin=1", "sessiz=1");
+  if (process.env.ORION_BECERDENE === "1") parcalar.push("becerdene=1", "sessiz=1");
   if (process.env.ORION_ONAYDENE === "1") parcalar.push("onaydene=1", "sessiz=1");
   if (process.env.ORION_TEZDENE === "1") parcalar.push("tezdene=1", "sessiz=1");
   if (process.env.ORION_ZIHINDENE === "1") parcalar.push("zihindene=1", "sessiz=1");
@@ -238,6 +239,18 @@ ipcMain.on(CAGRI.ogretimOku, (e) => {
   try { e.returnValue = ogretimleriOku(KARAR_AYARI); }
   catch (hata) {
     console.error(`[ogretim] okunamadi: ${hata?.message ?? hata}`);
+    e.returnValue = [];
+  }
+});
+
+// BECERİ REFLEKSİ (spec 10): renderer beceri defterini açılışta geçmiş oturumların
+// görev satırlarından kurar. Seçimi renderer verir (mind/gorev.ts `GOREV_SATIRLARI`),
+// süzme burada: IPC yalnız gerekeni taşır. Okuma hatası Orion'u durdurmaz: boş liste,
+// hata görünür.
+ipcMain.on(CAGRI.kayitSatirlariOku, (e, secim) => {
+  try { e.returnValue = satirlariOku(KARAR_AYARI, secim); }
+  catch (hata) {
+    console.error(`[beceri] kayit satirlari okunamadi: ${hata?.message ?? hata}`);
     e.returnValue = [];
   }
 });

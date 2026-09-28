@@ -93,6 +93,22 @@ export interface AlgiSatiri {
    * null = hafızada emin bir kural yok. Alan yoksa algı öğrenilebilir değil.
    */
   golge?: GolgeKarari | null;
+  /**
+   * BECERİ GÖLGESİ (spec 10, Faz C): kesin sözde beceri hafızası ne yapardı?
+   * Uygulanmaz; LLM yine uyanır. null = parametre içinde eşleşen beceri yok. Alan
+   * yoksa söz kesin değildi ya da algı söz değil.
+   */
+  beceriGolge?: BeceriGolgesi | null;
+}
+
+/** Beceri hafızasının bir söz için verdiği (uygulanmayan) karar. */
+export interface BeceriGolgesi {
+  /** Eşleşen becerinin kimliği ("B" + 8 hane, tariften türer). */
+  beceri: string;
+  /** Becerinin başarı payı. */
+  pay: number;
+  /** Refleksin göndereceği adımlar: yuvalar bu sözün çapalarıyla dolu. */
+  adimlar: Niyet[];
 }
 
 /** Kural hafızasının bir algı için verdiği (uygulanmayan) karar. */
@@ -199,10 +215,11 @@ export interface OturumSatiri {
 
 export type KararSatiri = OturumSatiri | AlgiSatiri | UyanisSatiri | OgretimSatiri;
 
-/** Algı satırına öğrenen kapıdan gelen ekler. */
+/** Algı satırına öğrenen kapıdan ve beceri hafızasından gelen ekler. */
 export interface AlgiEki {
   isaret?: string[];
   golge?: GolgeKarari | null;
+  beceriGolge?: BeceriGolgesi | null;
 }
 
 /** Uyanış satırında köprünün doldurduğu alanlar (kimlik ve zaman kayıttan gelir). */
@@ -237,6 +254,7 @@ export class KararKaydi {
   private _algiSira = 0;
   private _uyanisSira = 0;
   private _yazilamayan = 0;
+  private _dinleyiciler = new Set<(s: KararSatiri) => void>();
 
   constructor(ayar: KararKaydiAyari = {}) {
     this.oturum = ayar.oturum ?? kimlik("o");
@@ -246,6 +264,19 @@ export class KararKaydi {
 
   /** Kaydın yazılamadığı satır sayısı — kayıp sessiz olmasın. */
   get yazilamayan(): number { return this._yazilamayan; }
+
+  /**
+   * Yazılan her satırı dinler (spec 10, Faz C: köprünün beceri hafızası kendi
+   * oturumunu buradan öğrenir). Dinleyici DİSKE GİDENİN AYNISINI alır: satırın
+   * JSON'dan geri okunmuş hali. Bellekteki nesne `undefined` alanlar taşıyabilir
+   * (doğrulayıcının `mesafe`si); canlıda kurulan hafıza kayıttan kurulandan bu
+   * yüzden ayrışmasın. Yazılamayan satır dinleyiciye de gitmez; dinleyicinin
+   * hatası kaydı bozmaz. Çıkış fonksiyonu döner.
+   */
+  dinle(cb: (s: KararSatiri) => void): () => void {
+    this._dinleyiciler.add(cb);
+    return () => { this._dinleyiciler.delete(cb); };
+  }
 
   /** Oturumun ilk satırı: biçim sürümü ve beyin. */
   oturumBasi(beyin: string): void {
@@ -260,6 +291,7 @@ export class KararKaydi {
     if (k.kesik) satir.kesik = true;
     if (ek.isaret) satir.isaret = ek.isaret;
     if (ek.golge !== undefined) satir.golge = ek.golge;
+    if (ek.beceriGolge !== undefined) satir.beceriGolge = ek.beceriGolge;
     switch (a.tur) {
       case "terminal":
         if (a.kod !== undefined) satir.kod = a.kod;
@@ -313,6 +345,10 @@ export class KararKaydi {
     }
     // Kayıt kararı ASLA bozmaz: yazıcı patlarsa satır kaybolur ama sayılır.
     try { this._yaz(`${KARAR_ONEKI} ${json}`); }
-    catch { this._yazilamayan++; }
+    catch { this._yazilamayan++; return; }
+    for (const d of this._dinleyiciler) {
+      try { d(JSON.parse(json) as KararSatiri); }
+      catch (err) { console.warn("[karar] satir dinleyicisi hatasi:", err); }
+    }
   }
 }

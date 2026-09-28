@@ -19,6 +19,14 @@ export interface KararYazici {
 export function ogretimYolu(ayar: { kok?: string; sabitDosya?: string }): string;
 /** Kayıttaki tüm öğretim satırları (ayrıştırılmış, `tur: "ogretim"` olanlar). */
 export function ogretimleriOku(ayar: { kok?: string; sabitDosya?: string }): unknown[];
+/**
+ * Kayıttan seçilen satırlar: türü `turler`de olanlar ve algı türü `algilar`da olan
+ * algı satırları (spec 10: geçmiş oturumların görev satırları).
+ */
+export function satirlariOku(
+  ayar: { kok?: string; sabitDosya?: string },
+  secim: { turler: readonly string[]; algilar: readonly string[] },
+): unknown[];
 /** `konum` baytından sonraki tam satırlar ve yeni konum. */
 export function yeniSatirlar(yol: string, konum: number): { satirlar: unknown[]; konum: number };
 

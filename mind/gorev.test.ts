@@ -6,9 +6,9 @@
 "use strict";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { KARAR_ONEKI, KararKaydi, niyetKaydi, type UyanisBilgisi } from "./kararKaydi.ts";
+import { KARAR_ONEKI, KararKaydi, niyetKaydi, type KararSatiri, type UyanisBilgisi } from "./kararKaydi.ts";
 import { kayitOku, zincirKur } from "./kararZinciri.ts";
-import { gorevler, gorevSonucu, niyetSinifi, sozAnahtari, zamanSirali } from "./gorev.ts";
+import { gorevler, gorevSatiriMi, gorevSonucu, niyetSinifi, sozAnahtari, zamanSirali } from "./gorev.ts";
 import type { Niyet, NiyetTur } from "../protocol/niyet.ts";
 
 // ── Niyet sınıfları ────────────────────────────────────────────────────────
@@ -129,7 +129,9 @@ const OTUR: Niyet = { tur: "otur" };
 /** Gerçek kayıtla bir söz + uyanış + sonuçlar yazar; görevleri döner. */
 function kayittanGorev(ayar: {
   soz?: string; kesin?: boolean; niyetler?: Niyet[]; durumlar?: ("bitti" | "iptal" | "hata" | null)[];
-  koken?: "dis" | "inisiyatif"; ekTetik?: boolean; govdesiz?: boolean;
+  koken?: "dis" | "inisiyatif"; ekTetik?: boolean; govdesiz?: boolean; geriBesleme?: number;
+  /** Satırlar host'un okuduğu gibi süzülür (`gorevSatiriMi`): tetikleyen olay satırı düşer. */
+  suz?: boolean;
 }) {
   const satirlar: string[] = [];
   const k = new KararKaydi({ oturum: "o1", simdi: () => 1_000, yaz: (s) => satirlar.push(s.slice(KARAR_ONEKI.length + 1)) });
@@ -137,11 +139,12 @@ function kayittanGorev(ayar: {
   const algilar = [k.algi({ tur: "duydum", metin: ayar.soz ?? "masaya git otur", kesin: ayar.kesin ?? true }, "ozet", GECTI)];
   if (ayar.ekTetik) algilar.push(k.algi({ tur: "olay", ad: "oyuncu_odaya_girdi" }, "ozet", { gecti: true, kural: "refleks.olay.dunya" }));
   const niyetler = (ayar.niyetler ?? [GIT_MASA, OTUR]).map((n, i) => (ayar.govdesiz ? { id: `n_${i}`, tur: n.tur } : niyetKaydi(`n_${i}`, n)));
-  k.uyanis({ ...UYANIS, algilar, niyetler, koken: ayar.koken ?? "dis" });
+  k.uyanis({ ...UYANIS, algilar, niyetler, koken: ayar.koken ?? "dis", geriBesleme: ayar.geriBesleme ?? 0 });
   (ayar.durumlar ?? ["iptal", "bitti"]).forEach((durum, i) => {
     if (durum) k.algi({ tur: "sonuc", sonuc: { niyet_id: `n_${i}`, durum } }, `Intent n_${i} → ${durum}`, { gecti: false, kural: "refleks.sonuc.rutin" });
   });
-  return gorevler(zincirKur(kayitOku(satirlar.join("\n")).satirlar));
+  const okunan = kayitOku(satirlar.join("\n")).satirlar;
+  return gorevler(zincirKur(ayar.suz ? okunan.filter(gorevSatiriMi) : okunan));
 }
 
 test("tek kesin sözle tetiklenen, son adımı bitti olan uyanış bir başarılı görevdir", () => {
@@ -178,6 +181,33 @@ test("görev doğmaz: bedensel niyeti olmayan uyanış (yalnız söz)", () => {
 
 test("görev doğmaz: iki algıyla tetiklenen uyanış (tetik belirsiz)", () => {
   assert.equal(kayittanGorev({ ekTetik: true }).length, 0);
+});
+
+test("görev doğmaz: iki algıyla tetiklenen uyanış, öbür algının satırı süzülüp okunmamış olsa da", () => {
+  assert.equal(kayittanGorev({ ekTetik: true, suz: true }).length, 0);
+});
+
+test("görev doğmaz: tetikte geri besleme de var (reddedilen çağrının düzeltme turu)", () => {
+  assert.equal(kayittanGorev({ geriBesleme: 1 }).length, 0);
+});
+
+test("süzülmüş okuma görev kaybetmez: tek sözlü görev süzülünce de aynı", () => {
+  assert.deepEqual(kayittanGorev({ suz: true }), kayittanGorev({}));
+});
+
+test("görev satırı seçimi (ızgara): uyanış, söz ve sonuç satırları; başka algı, oturum ve öğretim değil", () => {
+  const satir = (x: object) => x as KararSatiri;
+  const izgara: [KararSatiri, boolean][] = [
+    [satir({ tur: "uyanis" }), true],
+    [satir({ tur: "algi", algi: "duydum" }), true],
+    [satir({ tur: "algi", algi: "sonuc" }), true],
+    [satir({ tur: "algi", algi: "terminal" }), false],
+    [satir({ tur: "algi", algi: "olay" }), false],
+    [satir({ tur: "algi", algi: "gordum" }), false],
+    [satir({ tur: "oturum" }), false],
+    [satir({ tur: "ogretim" }), false],
+  ];
+  assert.deepEqual(izgara.map(([s]) => gorevSatiriMi(s)), izgara.map(([, b]) => b));
 });
 
 test("görev doğmaz: kesin olmayan söz (ara tanıma)", () => {

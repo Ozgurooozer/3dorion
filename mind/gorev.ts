@@ -23,7 +23,7 @@
 "use strict";
 import { CAPALAR, type CapaAdi } from "../protocol/temel.ts";
 import type { Niyet, NiyetTur } from "../protocol/niyet.ts";
-import type { AlgiSatiri, UyanisSatiri } from "./kararKaydi.ts";
+import type { AlgiSatiri, KararSatiri, UyanisSatiri } from "./kararKaydi.ts";
 import type { KararZinciri, NiyetAkibeti } from "./kararZinciri.ts";
 import { kelimeler, type KelimeAyari } from "./durumKodu.ts";
 
@@ -167,13 +167,36 @@ export interface GorevOrnegi {
   sureMs: number;
 }
 
+/** Kayıttan bir satır seçimi: türü `turler`de olan satırlar ve algı türü `algilar`da olan algı satırları. */
+export interface KayitSecimi {
+  turler: readonly string[];
+  algilar: readonly string[];
+}
+
+/**
+ * Görevlerin kurulduğu satırlar: uyanışlar, sözler (tetik ve anahtar) ve sonuçlar
+ * (akıbet). TEK KAYNAK: köprü kendi oturumundan bunları toplar; host geçmiş
+ * oturumlardan bunları okur (seçim IPC ile gider, host/kararDosyasi.js `satirlariOku`;
+ * eşitliği host/kararDosyasi.test.ts bekler). Başka satır görev kurmaz; okunmaması
+ * açılışı ve belleği küçük tutar.
+ */
+export const GOREV_SATIRLARI: KayitSecimi = { turler: ["uyanis"], algilar: ["duydum", "sonuc"] };
+
+export function gorevSatiriMi(s: KararSatiri): boolean {
+  return GOREV_SATIRLARI.turler.includes(s.tur) || (s.tur === "algi" && GOREV_SATIRLARI.algilar.includes(s.algi));
+}
+
 /**
  * Tek kesin sözle tetiklenmiş bir uyanıştan görev: sözün metni, bedensel adımlar.
  * Görev değilse null: kök dış değil, tetik tek söz değil, engel niyet var, bedensel
  * niyet yok, bir adımın gövdesi yok (Faz A öncesi satır) ya da söz anahtar olamıyor.
+ *
+ * Tetik sayısı uyanış satırının KENDİ listesinden (`algilar`) ve geri beslemesinden
+ * sayılır, bulunan satırlardan değil: süzülmüş okumada (GOREV_SATIRLARI) söz dışındaki
+ * tetik satırı okunmaz; bulunanları saymak iki tetikli uyanışı tek tetikli gösterirdi.
  */
 function uyanistanGorev(u: UyanisSatiri, tetikleyenler: readonly AlgiSatiri[], niyetler: readonly NiyetAkibeti[]): GorevOrnegi | null {
-  if (u.koken !== "dis" || tetikleyenler.length !== 1) return null;
+  if (u.koken !== "dis" || u.algilar.length !== 1 || u.geriBesleme !== 0 || tetikleyenler.length !== 1) return null;
   const soz = tetikleyenler[0]!;
   if (soz.algi !== "duydum" || !soz.soz?.kesin) return null;
   const sinif = niyetler.map((n) => niyetSinifi(n.tur as NiyetTur));

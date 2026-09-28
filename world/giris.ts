@@ -60,7 +60,8 @@ import type { Niyet } from "../protocol/niyet.ts";
 import { ozetle, type Algi } from "../protocol/algi.ts";
 import { varlik } from "./varlik.ts";
 import { Kopru } from "../bridge/kopru.ts";
-import type { OgretimSatiri } from "../mind/kararKaydi.ts";
+import type { KararSatiri, OgretimSatiri } from "../mind/kararKaydi.ts";
+import { GOREV_SATIRLARI } from "../mind/gorev.ts";
 import { OpenCodeBeyni } from "../bridge/opencode.ts";
 import { DisBeyin } from "../bridge/disBeyin.ts";
 import { KayitBeyni } from "../bridge/kayitBeyni.ts";
@@ -286,6 +287,17 @@ function ogretimleriYukle(): OgretimSatiri[] {
   const k = (globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru;
   try { return (k?.ogretimOku?.() ?? []) as OgretimSatiri[]; }
   catch (err) { console.warn("[KAPI] ogretimler okunamadi, bos hafizayla basliyor:", err); return []; }
+}
+
+/**
+ * BECERİ REFLEKSİ (spec 10): beceri defteri geçmiş oturumların görev satırlarından
+ * kurulur. Seçim tek kaynaktan (mind/gorev.ts `GOREV_SATIRLARI`), süzme host'ta. Host
+ * yoksa ya da okuyamazsa defter geçmişsiz başlar, bu oturumdan öğrenir.
+ */
+function gorevSatirlariniYukle(): KararSatiri[] {
+  const k = (globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru;
+  try { return (k?.kayitSatirlariOku?.(GOREV_SATIRLARI) ?? []) as KararSatiri[]; }
+  catch (err) { console.warn("[BECERI] gorev satirlari okunamadi, gecmissiz basliyor:", err); return []; }
 }
 
 function hafizaDeposuKur(): { oku(): unknown[]; yaz(aniler: unknown[]): void } {
@@ -1447,6 +1459,9 @@ function beyniBagla(a: Avatar): void {
     hafizaDeposu: hafizaDeposuKur(),
     // ÖĞRENEN KAPI (K3, K5): gölgede — kapının kararını değiştirmez, kayda yazar.
     ogretimler: ogretimleriYukle(),
+    // BECERİ REFLEKSİ (spec 10, Faz C): gölgede — kesin sözde hafızanın ne yapacağını
+    // söz satırına yazar; kapı, uyanış ve niyetler değişmez.
+    gorevSatirlari: gorevSatirlariniYukle(),
     // BAĞLAM (K4): algı anında Ozyn nerede, Orion'a bakıyor mu, hangi yüzeyde.
     // Yapısal — dünya metni ayrıştırılmaz. Öğrenen kapının durum koduna girer.
     baglam: () => {
@@ -2318,6 +2333,32 @@ if (new URLSearchParams(location.search).has("tahtabeyin")) {
     console.log(`[TAHTABEYIN] orion konumu=${konum ? `${konum.x.toFixed(1)},${konum.z.toFixed(1)}` : "?"}`);
     for (const s of satirlar) console.log(`[TAHTABEYIN]   tahtada: "${s}"`);
     console.log(`[TAHTABEYIN] ${satirlar.length > 0 ? "GECTI" : "KALDI"} beyin tahtaya yazdirdi mi (satir=${satirlar.length})`);
+  })();
+}
+
+// ── BECERİ denemesi (?becerdene=1) — spec 10, Faz C/D ─────────────────────
+// Aynı çerçeveli üç söz. 1: "pencereye git" — LLM planlar, görev biter, beceri doğar.
+// 2: "sandalyeye git" — Faz C'de gölge söz satırına yazılır ve LLM yine planlar; Faz D'de
+// (`?beceri=1`) refleks yürütür, LLM uyanmaz. 3: "pencereye git" yine.
+// Kanıt kayıtta: ORION_KARAR_DOSYASI ile ayrı dosya; `tools/beceri-deney.ts` okur (ölçü +
+// gölge denetimi). Çapalar görünen etiketi iç adıyla aynı olanlar (pencere, sandalye): LLM
+// etiketi ad diye verirse "bilinmeyen çapa" (BY39-2d) görevi düşürmesin.
+if (new URLSearchParams(location.search).has("becerdene")) {
+  void (async () => {
+    const bekle = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    await bekle(2500);
+    const k = kopru as Kopru | null;
+    if (!k) { console.log("[BECERDENE] KALDI kopru yok"); return; }
+    for (const [i, soz] of ["pencereye git", "sandalyeye git", "pencereye git"].entries()) {
+      const once = k.sayac().dusunme;
+      k.algi({ tur: "duydum", kesin: true, metin: soz });
+      await bekle(16_000);
+      const konum = (orion as Avatar | null)?.durum().konum;
+      console.log(`[BECERDENE] ${i + 1}. soz "${soz}" · uyanis +${k.sayac().dusunme - once}`
+        + ` · konum=${konum ? `${konum.x.toFixed(1)},${konum.z.toFixed(1)}` : "?"} · beceri=${k.beceriHafizasi.beceriler.length}`);
+    }
+    const beceriler = k.beceriHafizasi.beceriler.map((b) => `${b.id} "${b.ornek}" basari ${b.sayac.basari} hata ${b.sayac.hata}`);
+    console.log(`[BECERDENE] bitti · beceriler: ${beceriler.join(" | ") || "yok"}`);
   })();
 }
 
