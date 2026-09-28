@@ -2,8 +2,8 @@
 
 Tarih: 2026-09-28 · Durum: **onaylandı** (Ozyn, `/goal`: "fazları düzgünce test ederek bitir"); açık sorularda
 öneriler uygulanıyor. Faz A bitti. Faz B'nin kodu bitti (c4fefcb); gerçek kayıtla ölçümü (B9) hafta sonunda, ön-kaydı
-defterde. C–D sürüyor, E ayrı tasarım. Uygulama `/goal` ile öne alındı; ölçümlerin ve yetkinin zamanı aşağıdaki
-tablodaki gibi kalır.
+defterde. Faz C bitti: gölge canlıda (3b8d5ef, `becerdene` ölçüldü). D sürüyor, E ayrı tasarım. Uygulama `/goal` ile öne
+alındı; ölçümlerin ve yetkinin zamanı aşağıdaki tablodaki gibi kalır.
 Üst belgeler: `docs/specs/08-karar-kaydi.md` (karar kaydı), `docs/specs/09-ogrenen-kapi.md` (öğrenen kapı),
 `brain-lab/BUYUK-RESIM.md`.
 
@@ -131,6 +131,23 @@ BECERİ ÇIKARICI (saf) — tek sözle tetiklenmiş, hatasız, son bedensel niye
 - **Neden katı:** Genelleme ancak gölgede ölçülünce gevşetilir. Öğrenen kapıda yeni duruma genelleme iki kez
   reddedildi (H-K1, H-K2); aynı hatayı burada ölçmeden yapmayalım.
 
+## Canlı defter (Faz C)
+
+- **Geçmiş:** Host açılışta kayıttan yalnız görev satırlarını okur: uyanış, söz, sonuç (`GOREV_SATIRLARI`, senkron
+  IPC `kayit:satirlar`). Seçim renderer'dan gelir, süzme host'ta yapılır. İki yazımın eşitliğini test bekler.
+- **Defter** (`mind/beceriDefteri.ts`): geçmiş oturumlar bir kez göreve çevrilir, satırlar tutulmaz.
+- **Bu oturum:** Satırlar köprünün kendi kaydından dinlenir (`KararKaydi.dinle`). Dinleyici diske gidenin aynısını alır,
+  yani JSON'dan geri okunmuş hali. Canlı hafıza bu yüzden kayıttan kurulana yapıca eşit kalır.
+- **Gölge:** Kesin sözde karar söz satırı yazılmadan önce verilir (sıralı).
+  - Kayıttaki hali tek fonksiyondur (`BeceriDefteri.golge`).
+  - Çevrimdışı denetim (`tools/beceri-deney.ts` `golgeDenetimi`) aynı fonksiyonla, aynı satır sırasıyla yeniden hesaplar.
+- **Tek görev iki uyanışa yayılırsa** (önce `sor`, cevaptan sonra `git`): v1 onu görmez. Tetik söz değil bakış
+  cevabıdır.
+- **Açılış maliyeti `[ÖLÇÜLDÜ]`:** gerçek kayıt, 2 gün, 1935 satır, 505 KB; okuma 4–6 ms, defter 2–4 ms.
+  - Kayıt büyüdükçe bu da büyür.
+  - Gerekirse host ağır metin alanlarını (özet, dünya) taşımaz; görev onları kullanmıyor.
+  - Aylık izlenir.
+
 ## Kod kalitesi — önceden belirlenen kurallar
 
 Bunlar kabul ölçütüdür; her fazın commit'inden önce denetlenir.
@@ -209,12 +226,12 @@ Bunlar kabul ölçütüdür; her fazın commit'inden önce denetlenir.
 | B7 | Eşleşme: aynı çerçeve + tanınan çapa → adımlar yeni çapayla; farklı çerçeve ya da pay < 0,75 → eşleşmez | B | `[TEST]` c4fefcb |
 | B8 | Belirlenimci: aynı kayıt aynı hafızayı kurar | B | `[TEST]` c4fefcb; JSON eşitliği, kimlik kayıt sırasından bağımsız |
 | B9 | Ölçüm (gerçek kayıt, ön-kayıtlı): kapsam, uyum, kazanılacak uyanış ve süre | B | `[ÖN-KAYIT]` defter 2026-09-28; ölçü kalibre `[TEST]`; koşu hafta sonunda |
-| B10 | Gölge: eşleşen sözde `beceriGolge` yazılır; kapı ve uyanış değişmez | C | `[PLAN]` |
-| B11 | Kayıttan yeniden kurulan hafıza canlıdakine eşit | C | `[PLAN]` |
+| B10 | Gölge: eşleşen sözde `beceriGolge` yazılır; kapı ve uyanış değişmez | C | `[TEST]` 3b8d5ef bekçi (becerili ve becerisiz köprü aynı niyet ve uyanış) · `[ÖLÇÜLDÜ]` `becerdene`: 3 söz, 3 uyanış; 2. ve 3. sözde gölge `[git sandalye]`, `[git pencere]` |
+| B11 | Kayıttan yeniden kurulan hafıza canlıdakine eşit | C | `[TEST]` 3b8d5ef (dinleyici diske gidenin aynısını alır) · `[ÖLÇÜLDÜ]` gölge denetimi 3/3 aynı |
 | B12 | Yetki anahtarı kapalıyken köprü birebir aynı (bekçi) | D | `[PLAN]` |
 | B13 | Anahtar açıkken: eşleşen görevde LLM uyanmaz; adımlar `niyetGonder` ile gider; bir adım hata verirse kalanlar gönderilmez, hata LLM'e geçer | D | `[PLAN]` |
 | B14 | Canlı `becerdene`: ilk söz LLM'le, aynı söz ikinci kez refleksle; ikinci seferde uyanış yok | D | `[PLAN]` |
-| B15 | Her fazda bozma denemesi: bütün mutantlar yakalanır ya da eşdeğerliği yazılı | A–D | A: 9/9 · B: 70'te 68, 2 eşdeğer (G7 hiçbir çapa adı öbürünün öneki değil; G26 `soz` yalnız `duydum` satırında) |
+| B15 | Her fazda bozma denemesi: bütün mutantlar yakalanır ya da eşdeğerliği yazılı | A–D | A: 9/9 · B: 70'te 68, 2 eşdeğer (G7 hiçbir çapa adı öbürünün öneki değil; G26 `soz` yalnız `duydum` satırında) · C: 38'de 35, 3 eşdeğer (C14 defterin süzgeci yalnız bellek için; C24 gölge hatası testte tetiklenemez; C28 NTFS dizini sıralı verir) |
 
 **Ölçüler (Faz B ve C; `tools/beceri-deney.ts`, sıralı: her görevde önce karar, sonra öğrenme):**
 - **Kapsam:** Görevlerin kaçında parametre içinde bir beceri eşleşirdi.
@@ -260,5 +277,9 @@ kuramaz.
    Öğrenen kapıdaki güven payıyla aynı.
 4. **Beceriyi öğretebilmek.** Öneri: Faz C'de `ogret gozden` becerileri de göstersin; "bu beceri yanlış" dersi onu
    siler.
+   - Yapılan (Faz C): `ogret beceriler` salt okur döküm; her sayının anlamı üstte yazılı.
+   - Açık, Ozyn'in kararı: "bu beceri yanlış" dersi beceriyi silsin mi, tarifi yasaklasın mı? Silinen beceri, LLM aynı
+     tarifi sürdürürse yeniden doğar. Öneri: yasak. Başarıyla biten ama yanlış olan bir tarifi sayaçlar askıya almaz; bu
+     ders yetki açılmadan önce gerekli.
 5. **Faz E, beceri LLM'e araç olarak verilsin mi?** Voyager'daki beceri kütüphanesi gibi: LLM bilinen becerileri tek
    araçla çağırır, onlardan yeni görev kurar. Öneri: Faz D ölçüldükten sonra ayrı bir tasarımla.

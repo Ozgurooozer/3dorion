@@ -3546,6 +3546,50 @@ Refleks (Faz D) adımları sırayla, her birinin sonucunu bekleyerek gönderir.
 - Gölge denetiminde bir tek farklı gölge çıkarsa canlı hafıza kayıttan ayrışmıştır: B11 canlıda kalır.
 - Eşleşen bir sözden sonra LLM uyanmazsa gölge davranışı değiştirmiştir: B10 canlıda kalır.
 
+## 2026-09-28 — Faz C sonucu: gölge canlıda doğru, canlı hafıza kayıttan kurulana eşit
+
+**Ne koşuldu:**
+- Kod 3b8d5ef, öngörüler dbf06c2.
+- `3dorion.bat becerdene`, beyin Claude Haiku.
+- Kayıt: scratchpad `canli7/becerdene-c.jsonl` (14 satır, bozuk 0); günlük `canli7/becerdene-c.log`.
+- Ölçüm: `tools/beceri-deney.ts`.
+
+**Sonuç `[ÖLÇÜLDÜ]`:**
+
+| söz | gölge (söz satırında) | LLM'in niyetleri | süre | konum sonrası |
+|---|---|---|---|---|
+| 1. "pencereye git" | `null` | `git pencere` + `soyle "Tamam."` | 3,1 sn | 1.8, −2.6 (pencere) |
+| 2. "sandalyeye git" | `Bab3ff9c2`, pay 1, `[git sandalye]` | `git sandalye` + `soyle "Tamam."` | 3,0 sn | 0.2, −1.7 (sandalye) |
+| 3. "pencereye git" | `Bab3ff9c2`, pay 1, `[git pencere]` | `git pencere` + `soyle "Tamam."` | 2,7 sn | 1.8, −2.6 (pencere) |
+
+- **Ölçü:** görev 3; eşleşme 2 (kapsam 2/3); uyum 2/2; kazanç 2 uyanış, 5,6 sn (bütün uyanışlar 8,7 sn); güvensiz adım
+  0.
+- **LLM ayrıca konuştu:** 2/2 ("Tamam.").
+- **Gölge denetimi (B11):** 3 gölgeli söz, yeniden hesaplanınca 3'ü de aynı.
+- **Beceri:** tek beceri (`git ⟨yuva⟩`), üç görevden başarı 3, hata 0.
+- Kayıtta bozuk satır 0; koşudan sonra Electron süreci kalmadı.
+
+**Karne:**
+- **CG1 ✓:** Üç sözün her biri LLM'i bir kez uyandırdı. Gölge davranışı değiştirmedi.
+- **CG2 ✓:** İlk sözde gölge `null`.
+- **CG3 ✓:** `git pencere` → `bitti`; beceri doğdu (çerçeve `git`, 1 yuva).
+- **CG4 ✓:** 2. sözde gölge `[git sandalye]`, pay 1.
+- **CG5 ✓:** 3. sözde gölge `[git pencere]`, pay 1.
+- **CG6 ✓:** Gölge denetimi 3/3 aynı.
+- **CG7 ✓, öngörülenden iyi:** Uyum 2/2. LLM "sandalyeye git"e `otur` eklemedi.
+- **CG8 ✓:** Bozuk satır 0.
+- **Yanlışlayıcılar tetiklenmedi.**
+
+**Yorum, ölçülenden fazlasını iddia etmeden:**
+- **Kurgu.** Senaryo tasarlanmış: aynı çerçeve üç kez söylendi, kapsam kurgudan geliyor. Doğal kullanımdaki kapsamı B9
+  söyleyecek.
+- **Gösterilen.** Zincir canlıda çalışıyor: kayıt → görev → beceri → yeni çapayla gölge. Canlı hafıza kayıttan kurulanla
+  aynı kararı veriyor.
+- **Uyumun görmediği fark.** LLM her görevde "Tamam." da dedi. Refleks yetkiliyken bu söz olmayacak. Açık soru 1'in
+  önerisi (söz yerine `jest: başını_sallıyor`) bu farkı karşılıyor. B9-6 öngörüsünün yönü burada da görüldü, ama n=2.
+
+**Sonraki:** Faz D (yetki anahtarı, varsayılan kapalı). Açılması adım 6'dan sonra, kendi ön-kayıtlı barıyla.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
