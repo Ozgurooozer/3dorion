@@ -3363,6 +3363,42 @@ kullanım verisinde aramak.
 - **Adım 4, bir hafta gerçek kullanım:** Ozyn Orion'u yeni sürümle açar, günde bir `3dorion.bat ogret`.
 - **Adım 5, kıyasın ön-kaydı:** hafta içinde hazırlanır.
 
+## 2026-09-28 — Beceri refleksi (spec 10) Faz A: niyet gövdesi ve söz kayıtta — canlı koşudan önce
+
+**Bağlam:** Ozyn `/goal` ile spec 10'un fazlarını onayladı: "fazları düzgünce test ederek bitir, atlas kurallarına uy,
+acele etme, kalite kod yaz, mimariyi takip et". Açık sorularda spec'teki önerilerle ilerleniyor.
+
+**Yapılan `[TEST]`** (commit 2bf7353):
+- Uyanış satırındaki her niyet gövdesini taşıyor (`niyetKaydi`). Gövde derin kopya; metin alanları `SINIR.metin`'e
+  kesiliyor.
+- `duydum` algı satırı `soz {metin, kesin}` taşıyor.
+- Zincirde `NiyetAkibeti.govde`.
+- Gövdesiz eski satırlar okunmaya devam ediyor.
+- 13 test yeni ya da güncel; bozma denemesi 9/9; 1699 test yeşil.
+
+**Kod okurken bulunan (Faz B'yi değiştirir):** Dünya "en son emir kazanır" kuralıyla çalışıyor
+(`world/avatar/yurutucu.ts`): LLM aynı turda `git masa` + `otur` gönderince `otur`, `git`'i `iptal` ediyor. Spec'teki
+"bütün adımlar bitti" şartı gerçekte hiç sağlanmazdı. Faz B'nin başarı tanımı bu yüzden şöyle olacak:
+- hiçbir adım `hata` değil;
+- son bedensel adım `bitti`;
+- öncekilerin `iptal`i, sonraki emrin onu geçmesi sayılır.
+
+Refleks (Faz D) adımları sırayla, her birinin sonucunu bekleyerek gönderir.
+
+**Canlı koşu:** `3dorion.bat tahtabeyin`, `ORION_KARAR_DOSYASI` ile ayrı bir kayıt. Senaryo Ozyn adına "tahtaya git ve
+'suzgec bitti' yaz" der. Beyin varsayılan (Claude Haiku).
+
+**Öngörüler:**
+- **A1:** Söz algısının satırında `soz = {metin: "tahtaya git ve 'suzgec bitti' yaz", kesin: true}` var.
+- **A2:** O sözün tetiklediği uyanışın her niyetinde `govde` var. `git` niyetinin gövdesi
+  `hedef {tip: "capa", ad: "tahta"}` taşıyor.
+- **A3:** Sonuç algıları niyetlere kimlikle bağlanıyor. Zincirde her bedensel niyetin akıbeti var.
+- **A4:** Kayıtta bozuk satır yok; yazılamayan satır 0.
+- **A5:** Davranış aynı: senaryonun kendi ölçütü (tahtaya yazıldı mı) önceki koşulardaki gibi. Bu LLM'e bağlı; tutmazsa
+  Faz A'ya değil beyne bakılır, ayrıca yazılır.
+
+**Yanlışlayıcı:** Uyanıştaki bir niyet gövdesizse ya da söz satırında `soz` yoksa Faz A canlıda çalışmıyor.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
