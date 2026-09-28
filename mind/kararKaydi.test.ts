@@ -5,8 +5,9 @@
 "use strict";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { KARAR_ONEKI, KARAR_SURUMU, KararKaydi, SINIR, kisalt, type AlgiSatiri, type KararSatiri, type UyanisBilgisi } from "./kararKaydi.ts";
+import { KARAR_ONEKI, KARAR_SURUMU, KararKaydi, SINIR, kisalt, niyetKaydi, type AlgiSatiri, type KararSatiri, type UyanisBilgisi, type UyanisSatiri } from "./kararKaydi.ts";
 import type { KapiKarari } from "./kararKaydi.ts";
+import type { Niyet } from "../protocol/niyet.ts";
 
 /** Satırları JSON olarak toplayan kayıt; saat sabit. */
 function kaydedici(): { kayit: KararKaydi; ham: string[]; satirlar: () => KararSatiri[] } {
@@ -136,4 +137,59 @@ test("iki kayıt iki ayrı oturum kimliği alır", () => {
   const a = new KararKaydi({ yaz: () => {} });
   const b = new KararKaydi({ yaz: () => {} });
   assert.notEqual(a.oturum, b.oturum);
+});
+
+// ── Söz ve niyet gövdesi yapı olarak (spec 10, Faz A) ──────────────────────
+// Beceri refleksi bir görevin nasıl yapıldığını kayıttan çıkarır: Ozyn'in sözü
+// ve dünyaya giden niyetin kendisi (hangi çapa) yapı olarak durmalı. Özet metni
+// ayrıştırılmaz (spec 10, kod kalitesi kuralı 3).
+
+test("söz algısı sözün metnini ve kesinliğini yapı olarak taşır", () => {
+  const { kayit, satirlar } = kaydedici();
+  kayit.algi({ tur: "duydum", metin: "masaya git otur", kesin: true }, 'Ozyn said: "masaya git otur"', GECTI);
+  assert.deepEqual((satirlar()[0] as AlgiSatiri).soz, { metin: "masaya git otur", kesin: true });
+});
+
+test("ara tanıma da yazılır, kesinliği false", () => {
+  const { kayit, satirlar } = kaydedici();
+  kayit.algi({ tur: "duydum", metin: "masaya", kesin: false }, "ozet", GECTI);
+  assert.equal((satirlar()[0] as AlgiSatiri).soz?.kesin, false);
+});
+
+test("uzun söz metni sınırda kesilir", () => {
+  const { kayit, satirlar } = kaydedici();
+  kayit.algi({ tur: "duydum", metin: "a".repeat(SINIR.metin + 50), kesin: true }, "ozet", GECTI);
+  assert.equal((satirlar()[0] as AlgiSatiri).soz?.metin.length, SINIR.metin);
+});
+
+test("söz dışındaki algı `soz` alanını hiç yazmaz", () => {
+  const { kayit, satirlar } = kaydedici();
+  kayit.algi({ tur: "olay", ad: "oyuncu_odaya_girdi" }, "ozet", GECTI);
+  assert.equal("soz" in (satirlar()[0] as AlgiSatiri), false);
+});
+
+test("niyet kaydı niyetin gövdesini taşır; hedef yapısı olduğu gibi", () => {
+  const n: Niyet = { tur: "git", hedef: { tip: "capa", ad: "masa" } };
+  assert.deepEqual(niyetKaydi("n_1", n), { id: "n_1", tur: "git", govde: { tur: "git", hedef: { tip: "capa", ad: "masa" } } });
+});
+
+test("niyet kaydında uzun metin alanları sınırda kesilir", () => {
+  const n: Niyet = { tur: "komut", metin: "x".repeat(SINIR.metin + 10), gerekce: "y".repeat(SINIR.metin + 10) };
+  const g = niyetKaydi("n_1", n).govde as { metin: string; gerekce: string };
+  assert.deepEqual([g.metin.length, g.gerekce.length], [SINIR.metin, SINIR.metin]);
+});
+
+test("niyet kaydı gövdeyi kopyalar: niyet sonradan değişse kayıt değişmez", () => {
+  const n = { tur: "git", hedef: { tip: "capa", ad: "masa" } } as const satisfies Niyet;
+  const degisken = structuredClone(n) as { tur: "git"; hedef: { tip: "capa"; ad: string } };
+  const k = niyetKaydi("n_1", degisken);
+  degisken.hedef.ad = "tahta";
+  assert.equal((k.govde as { hedef: { ad: string } }).hedef.ad, "masa");
+});
+
+test("uyanış satırı niyet kayıtlarını gövdeleriyle aynen taşır", () => {
+  const { kayit, satirlar } = kaydedici();
+  const niyetler = [niyetKaydi("n_1", { tur: "git", hedef: { tip: "capa", ad: "masa" } }), niyetKaydi("n_2", { tur: "otur" })];
+  kayit.uyanis({ ...BOS_UYANIS, niyetler });
+  assert.deepEqual((satirlar()[0] as UyanisSatiri).niyetler, niyetler);
 });

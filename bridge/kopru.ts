@@ -16,7 +16,7 @@ import { ozetle } from "../protocol/algi.ts";
 import type { Niyet, NiyetSonucu } from "../protocol/niyet.ts";
 import { kimlik } from "../protocol/temel.ts";
 import { Dikkat, kanalAcikMi, type DikkatAyari } from "../mind/dikkat.ts";
-import { KararKaydi, type AlgiEki, type KapiKarari, type OgretimSatiri, type UyanisBilgisi } from "../mind/kararKaydi.ts";
+import { KararKaydi, niyetKaydi, type AlgiEki, type KapiKarari, type OgretimSatiri, type UyanisBilgisi } from "../mind/kararKaydi.ts";
 import { ICGUDULER, dikkatKurali, type IcguduKimligi } from "../mind/icgudu.ts";
 import { durumKodu, type KapiBaglami } from "../mind/durumKodu.ts";
 import type { KuralHafizasi, KapiYonu } from "../mind/kuralHafizasi.ts";
@@ -696,7 +696,8 @@ export class Kopru {
         }
         this._ayar.niyetGonder(d.deger, id);
         this._sayac.niyet++;
-        uyanis.niyetler.push({ id, tur: d.deger.tur });
+        // Gövdesiyle (spec 10, Faz A): beceri refleksi görevin nasıl yapıldığını buradan öğrenir.
+        uyanis.niyetler.push(niyetKaydi(id, d.deger));
       }
 
       // ── Düz metin kurtarma ──────────────────────────────────────────────
@@ -732,7 +733,7 @@ export class Kopru {
           if (d.deger.tur === "soyle") { this._konusmaYay(d.deger.metin); this._gecmis.push({ rol: "orion", metin: d.deger.metin, arac: true }); this._kirp(); }
           this._ayar.niyetGonder(d.deger, id);
           this._sayac.niyet++;
-          uyanis.niyetler.push({ id, tur: d.deger.tur });
+          uyanis.niyetler.push(niyetKaydi(id, d.deger));
         }
 
         if (konusulabilir && this._konusmaDinleyiciler.size && this._sozuGecir(konusulabilir)) {

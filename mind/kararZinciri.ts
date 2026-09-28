@@ -18,9 +18,10 @@
 //                        olduğunu kayıt bilemez. Pencere kısa tutuldu; tepki
 //                        "sonra konuştu" demektir, "buna cevap verdi" değil.
 //
-// Bağımlılık: mind/kararKaydi.ts (tipler). Dosya sistemi yok: metin alır.
+// Bağımlılık: mind/kararKaydi.ts ve protocol/niyet.ts (tipler). Dosya sistemi yok: metin alır.
 "use strict";
 import type { AlgiSatiri, KararSatiri, OgretimSatiri, UyanisSatiri } from "./kararKaydi.ts";
+import type { Niyet } from "../protocol/niyet.ts";
 
 /** Uyanıştan sonra Ozyn'in sözü bu süre içinde gelirse tepki sayılır. */
 export const TEPKI_PENCERESI_MS = 60_000;
@@ -28,6 +29,8 @@ export const TEPKI_PENCERESI_MS = 60_000;
 export interface NiyetAkibeti {
   id: string;
   tur: string;
+  /** Niyetin kendisi (spec 10, Faz A); eski satırlarda yok. */
+  govde?: Niyet;
   /** Son kesin durum ("basladi" ara durumdur, sayılmaz). Sonuç hiç gelmediyse yok. */
   durum?: "bitti" | "iptal" | "hata";
   /** Sonuç algısının özeti (ör. "Ozyn komutu reddetti…"). */
@@ -100,8 +103,11 @@ export function zincirKur(satirlar: KararSatiri[], bozuk = 0): KararZinciri {
       .map((id) => algiHaritasi.get(anahtar(u.o, id)))
       .filter((a): a is AlgiSatiri => a !== undefined);
     const niyetler: NiyetAkibeti[] = u.niyetler.map((n) => {
+      const akibet: NiyetAkibeti = { id: n.id, tur: n.tur };
+      if (n.govde) akibet.govde = n.govde;
       const s = sonuclar.get(anahtar(u.o, n.id));
-      return s ? { id: n.id, tur: n.tur, durum: s.durum as NiyetAkibeti["durum"], not: s.ozet } : { id: n.id, tur: n.tur };
+      if (s) { akibet.durum = s.durum as NiyetAkibeti["durum"]; akibet.not = s.ozet; }
+      return akibet;
     });
     const soz = sozler.find((a) => a.o === u.o && a.t > u.t && a.t - u.t <= TEPKI_PENCERESI_MS);
     const z: UyanisZinciri = { uyanis: u, tetikleyenler, niyetler };

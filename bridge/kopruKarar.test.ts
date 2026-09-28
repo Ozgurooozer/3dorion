@@ -172,12 +172,29 @@ test("düşen algı hiçbir uyanışın tetikleyicisi olarak görünmez", async 
   assert.equal(uyanislar().some((u) => u.algilar.includes(dusen.id)), false);
 });
 
-test("uyanış satırı dünyaya giden niyetin kimliğini ve türünü taşır", async () => {
+test("uyanış satırı dünyaya giden niyetin kimliğini, türünü ve gövdesini taşır", async () => {
   const b = new SahteBeyin({ metin: "", cagrilar: [cagri("dunya_git", { hedef: { tip: "capa", ad: "tahta" } })] });
   const { k, niyetler, uyanislar } = kur(b);
   k.algi({ tur: "duydum", metin: "tahtaya git", kesin: true });
   await bekle(60);
-  assert.deepEqual(uyanislar()[0]?.niyetler, [{ id: niyetler[0]!.id, tur: "git" }]);
+  assert.deepEqual(uyanislar()[0]?.niyetler, [{ id: niyetler[0]!.id, tur: "git", govde: { tur: "git", hedef: { tip: "capa", ad: "tahta" } } }]);
+});
+
+test("uyanış satırındaki gövde dünyaya gönderilen niyetin aynısıdır (spec 10, Faz A)", async () => {
+  const b = new SahteBeyin({ metin: "", cagrilar: [cagri("dunya_git", { hedef: { tip: "capa", ad: "masa" } }), cagri("dunya_otur", {})] });
+  const { k, niyetler, uyanislar } = kur(b);
+  k.algi({ tur: "duydum", metin: "masaya git otur", kesin: true });
+  await bekle(60);
+  // Kayıt JSON'dur: doğrulayıcının koyduğu `undefined` alanlar (ör. `mesafe`) yazılmaz.
+  // Karşılaştırma gönderilen niyetin JSON haliyle.
+  assert.deepEqual(uyanislar()[0]?.niyetler.map((n) => n.govde), niyetler.map((x) => JSON.parse(JSON.stringify(x.n))));
+});
+
+test("söz algısının satırı sözün metnini ve kesinliğini taşır (spec 10, Faz A)", async () => {
+  const { k, algilar } = kur(new SahteBeyin());
+  k.algi({ tur: "duydum", metin: "masaya git otur", kesin: true });
+  await bekle(40);
+  assert.deepEqual(algilar()[0]?.soz, { metin: "masaya git otur", kesin: true });
 });
 
 test("uyanış satırı LLM'in çağırdığı araçları ve beynin adını taşır", async () => {
@@ -271,7 +288,10 @@ test("düz metnin içinden kurtarılan çağrı sayılır ve niyeti listelenir",
   k.algi({ tur: "duydum", metin: "bana bak", kesin: true });
   await bekle(60);
   const u = uyanislar()[0]!;
-  assert.deepEqual({ kurtarilan: u.kurtarilan, niyetler: u.niyetler }, { kurtarilan: 1, niyetler: [{ id: niyetler[0]!.id, tur: "bak" }] });
+  assert.deepEqual(
+    { kurtarilan: u.kurtarilan, niyetler: u.niyetler },
+    { kurtarilan: 1, niyetler: [{ id: niyetler[0]!.id, tur: "bak", govde: niyetler[0]!.n }] },
+  );
 });
 
 test("uyanış satırı getirilen anı sayısını taşır", async (t) => {

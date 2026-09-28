@@ -16,8 +16,10 @@
 //
 // ZİNCİR — her halka bir öncekine kimlikle bağlanır:
 //   algı (a…)  → kapı kararı: geçti mi, hangi içgüdü karar verdi
+//                (söz algısı sözün metnini yapı olarak taşır — spec 10)
 //   uyanış (u…) → hangi algılar tetikledi, LLM ne yaptı, ne kadar sürdü
-//   niyet (protokol kimliği) → uyanış satırında listelenir
+//   niyet (protokol kimliği) → uyanış satırında GÖVDESİYLE listelenir (hangi
+//                çapaya gidildi: beceri refleksi görevi buradan öğrenir, spec 10)
 //   sonuç algısı → `niyet` alanıyla geri bağlanır (onay kapısının evet/hayırı da)
 //   Ozyn'in tepkisi → uyanıştan sonraki ilk `duydum` (çözümleme aracı bağlar)
 //   öğretim (Ozyn) → `hedef` alanıyla bir algıya bağlanır: o kararın doğrusu
@@ -37,7 +39,7 @@
 // Bağımlılık: protocol/ ve mind/icgudu.ts. Babylon yok, Electron yok, dosya yok.
 "use strict";
 import type { Algi, AlgiTur } from "../protocol/algi.ts";
-import type { NiyetSonucu, NiyetTur } from "../protocol/niyet.ts";
+import type { Niyet, NiyetSonucu, NiyetTur } from "../protocol/niyet.ts";
 import { kimlik } from "../protocol/temel.ts";
 import type { IcguduKimligi } from "./icgudu.ts";
 import type { KapiYonu } from "./kuralHafizasi.ts";
@@ -73,6 +75,12 @@ export interface AlgiSatiri {
   /** sonuc: hangi niyetin akıbeti — uyanışın `niyetler` listesine geri bağ. */
   niyet?: string;
   durum?: NiyetSonucu["durum"];
+  /**
+   * duydum: Ozyn'in sözü (kesilmiş) ve tanımanın kesinliği. Beceri refleksinin
+   * görev anahtarı buradan çıkar (spec 10); özet metni ("Ozyn said: …") bir
+   * arayüz değildir, ayrıştırılmaz.
+   */
+  soz?: { metin: string; kesin: boolean };
   kapi: KapiKarari;
   /**
    * Öğrenen kapının gördüğü DURUM KODU (mind/durumKodu.ts). Yalnızca kararı
@@ -138,8 +146,8 @@ export interface UyanisSatiri {
   metin?: string;
   /** LLM'in çağırdığı araçların adları (geçersizler dahil). */
   cagrilar: string[];
-  /** Dünyaya giden niyetler: protokol kimliği ve türü. */
-  niyetler: { id: string; tur: NiyetTur }[];
+  /** Dünyaya giden niyetler: protokol kimliği, türü ve gövdesi (bkz. `niyetKaydi`). */
+  niyetler: NiyetKaydi[];
   /** Protokol doğrulamasından geçemeyen çağrı sayısı. */
   reddedilen: number;
   /** Düz metnin içinden kurtarılıp niyete çevrilen çağrı sayısı. */
@@ -150,6 +158,36 @@ export interface UyanisSatiri {
   yutulanSoz: number;
   /** Beyin hatası (varsa). */
   hata?: string;
+}
+
+/**
+ * Dünyaya giden bir niyetin kayıttaki hali.
+ *
+ * `govde` (spec 10, Faz A): niyetin kendisi. Beceri refleksi bir görevin NASIL
+ * yapıldığını buradan öğrenir: "git" yetmez, hangi çapaya gidildiği gerekir.
+ * 2026-09-28'den önceki satırlarda yoktur; okuyan taraf yokluğunu kaldırır.
+ */
+export interface NiyetKaydi {
+  id: string;
+  tur: NiyetTur;
+  govde?: Niyet;
+}
+
+/**
+ * Niyetin kayıttaki hali: gövdenin DERİN kopyası, uzun metin alanları
+ * (`soyle`/`yaz`/`komut` metni, `komut` gerekçesi) `SINIR.metin`'e kesilmiş.
+ *
+ * Neden kopya: niyet nesnesi köprüden dünyaya gider; sonradan değişirse kayıt
+ * değişmemeli. Neden alan listesi yok: hangi alanın metin olduğu niyet türünden
+ * türe değişir; her dizgi alanına aynı sınırı uygulamak yeni bir niyet türü
+ * eklendiğinde de doğru kalır (kısa alanlara dokunmaz).
+ */
+export function niyetKaydi(id: string, n: Niyet): NiyetKaydi {
+  const govde = structuredClone(n) as Niyet & Record<string, unknown>;
+  for (const [ad, deger] of Object.entries(govde)) {
+    if (typeof deger === "string") govde[ad] = kisalt(deger, SINIR.metin).metin;
+  }
+  return { id, tur: n.tur, govde };
 }
 
 export interface OturumSatiri {
@@ -235,6 +273,9 @@ export class KararKaydi {
       case "sonuc":
         satir.niyet = a.sonuc.niyet_id;
         satir.durum = a.sonuc.durum;
+        break;
+      case "duydum":
+        satir.soz = { metin: kisalt(a.metin, SINIR.metin).metin, kesin: a.kesin };
         break;
     }
     this._dus(satir);

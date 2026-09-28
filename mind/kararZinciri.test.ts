@@ -4,7 +4,7 @@
 "use strict";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { KARAR_ONEKI, KararKaydi, type KapiKarari, type UyanisBilgisi } from "./kararKaydi.ts";
+import { KARAR_ONEKI, KararKaydi, niyetKaydi, type KapiKarari, type UyanisBilgisi } from "./kararKaydi.ts";
 import { TEPKI_PENCERESI_MS, kayitOku, uyanisEyleme, zincirKur } from "./kararZinciri.ts";
 
 const GECTI: KapiKarari = { gecti: true, kural: "kopru.konusma" };
@@ -110,4 +110,21 @@ test("uyanış niyet ürettiyse ya da metni konuşulduysa eylemdir, değilse bo�
     [uyanisEyleme(u({})), uyanisEyleme(u({ niyetler: [{ id: "n", tur: "bak" }] })), uyanisEyleme(u({ konusulanMetin: true }))],
     [false, true, true],
   );
+});
+
+// ── Niyet gövdesi zincirde (spec 10, Faz A) ────────────────────────────────
+
+test("niyet akıbeti niyetin gövdesini taşır", () => {
+  const k = kayitci("o1");
+  k.kayit.uyanis({ ...UYANIS, niyetler: [niyetKaydi("n_1", { tur: "git", hedef: { tip: "capa", ad: "masa" } })] });
+  k.kayit.algi({ tur: "sonuc", sonuc: { niyet_id: "n_1", durum: "bitti" } }, "Intent n_1 → bitti", { gecti: false, kural: "refleks.sonuc.rutin" });
+  const z = zincirKur(kayitOku(k.metin()).satirlar);
+  assert.deepEqual(z.uyanislar[0]!.niyetler[0]?.govde, { tur: "git", hedef: { tip: "capa", ad: "masa" } });
+});
+
+test("gövdesiz eski uyanış satırı da okunur; akıbette gövde alanı hiç yok", () => {
+  const k = kayitci("o1");
+  k.kayit.uyanis({ ...UYANIS, niyetler: [{ id: "n_1", tur: "git" }] });
+  const z = zincirKur(kayitOku(k.metin()).satirlar);
+  assert.deepEqual(z.uyanislar[0]!.niyetler[0], { id: "n_1", tur: "git" });
 });
