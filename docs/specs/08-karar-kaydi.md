@@ -21,15 +21,16 @@ Orion'un kendi dersi de aynı yönde (spec 01): kural süzgeci elle yazılmış 
 
 Ozyn'in modeli (2026-09-26): "Ana bir bölge var, bu kurallar hiç değişmiyor. Etrafında diğer bölgeler gelişiyor."
 
-- **Ana bölge:** Orion'un kapısındaki elle yazılmış kurallar. Her birine kalıcı bir kimlik verildi: 31 içgüdü
-  (`refleks.sonuc.elle_hata` 2026-09-28'de eklendi; ilk yazımda "34" deniyordu, koddaki sayı 30'du).
+- **Ana bölge:** Orion'un kapısındaki elle yazılmış kurallar. Her birine kalıcı bir kimlik verildi: 32 içgüdü.
+  - 2026-09-28'de iki eklendi: `refleks.sonuc.elle_hata` ve `kopru.refleks` (spec 10 Faz D).
+  - İlk yazımda "34" deniyordu; koddaki sayı 30'du.
   Her karar, onu hangi içgüdünün verdiğini taşır.
 - **Etrafı:** öğrenilen kurallar (KT2) bunların etrafında büyür ve aynı kayda kendi kimlikleriyle yazılır.
 
 | grup | örnek kimlik | öğrenilmiş kural ezebilir mi |
 |---|---|---|
 | kayıt | `kayit` | hayır |
-| köprü | `kopru.konusma`, `kopru.zincir`, `kopru.guvenli_taraf` | hayır |
+| köprü | `kopru.konusma`, `kopru.zincir`, `kopru.guvenli_taraf`, `kopru.refleks` (refleksin kendi adımının sonucu beyne gitmez) | hayır |
 | dikkat, mekanik sınırlar | `dikkat.tik_yasak`, `dikkat.butce`, `dikkat.tekrar`, `dikkat.kisildi`, `dikkat.yerel_kanal` | hayır |
 | dikkat, gürültü olay | `dikkat.onemsiz` | evet |
 | refleks, sözleşme | `refleks.konusma`, `refleks.gordum.cevap` | hayır |
@@ -55,6 +56,15 @@ JSONL; her satırda oturum kimliği `o`. Satır türleri:
   - LLM'in düz metni ve çağırdığı araçlar;
   - dünyaya giden niyetler (kimlik ve tür);
   - reddedilen, metinden kurtarılan ve yutulan sayıları; konuşmaya çevrilen metin; hata.
+- **`ogretim`** (spec 09): Ozyn'in bir kapı kararını düzeltmesi.
+- **`refleks`** (spec 10 Faz D, eklemeli; sürüm aynı): bir kesin sözü LLM'e sormadan beceriyle yürüten tur.
+  - Tetikleyen söz algısının kimliği ve yürütülen becerinin kimliği.
+  - Onay jesti; adım değildir.
+  - Gönderilen adımlar, gövdeleriyle.
+  - Bitiş (başarı / hata / kesildi / zaman aşımı) ve süre.
+  - Adımların sonucu, uyanıştaki gibi niyet kimliğiyle bağlanır.
+- `algi` satırında spec 10'un eklemeli alanları: `soz` (söz metni ve kesinliği), `beceriGolge` (beceri hafızasının
+  kararı).
 
 Zincir kimliklerle kurulur (`mind/kararZinciri.ts`): algı → uyanış → niyet → sonuç algısı. Onay kapısının evet/hayırı
 sonuç algısı olarak gelir. Tek zamana dayalı bağ Ozyn'in tepkisidir: uyanıştan sonraki 60 sn içindeki ilk söz.

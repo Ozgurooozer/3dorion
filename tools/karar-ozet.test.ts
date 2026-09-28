@@ -61,3 +61,13 @@ test("boş kayıtta süreler yok, sayılar sıfır", () => {
   const o = ozetCikar(zincirKur([]));
   assert.deepEqual({ uyanis: o.uyanis, ortanca: o.sureOrtanca, eylemli: o.eylemliUyanis }, { uyanis: 0, ortanca: null, eylemli: 0 });
 });
+
+test("refleks turları (spec 10, Faz D) bitişe göre sayılır; refleksi olmayan kayıtta boş", () => {
+  const satirlar: string[] = [];
+  const k = new KararKaydi({ oturum: "o1", simdi: () => 1_000, yaz: (s) => satirlar.push(s.slice(KARAR_ONEKI.length + 1)) });
+  for (const bitis of ["basari", "hata", "basari", "kesildi"] as const) k.refleks({ algi: "a1", beceri: "B1", niyetler: [], bitis, sureMs: 1 });
+  assert.deepEqual(
+    { refleks: ozetCikar(zincirKur(kayitOku(satirlar.join("\n")).satirlar)).refleks, bos: bilinenOzet().refleks },
+    { refleks: { basari: 2, hata: 1, kesildi: 1 }, bos: {} },
+  );
+});

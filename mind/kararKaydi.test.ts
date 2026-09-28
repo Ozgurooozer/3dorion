@@ -248,3 +248,23 @@ test("beceri gölgesi verilmezse alan hiç yazılmaz", () => {
   kayit.algi({ tur: "duydum", metin: "masaya git", kesin: false }, "x", GECTI);
   assert.equal("beceriGolge" in satirlar()[0]!, false);
 });
+
+// ── Refleks satırı (spec 10, Faz D) ─────────────────────────────────────────
+// Refleks bir sözü LLM'e sormadan beceriyle yürütür: uyanış yok, bu satır var.
+
+test("refleks satırı: söz, beceri, onay jesti, gönderilen adımlar gövdeleriyle, bitiş ve süre", () => {
+  const { kayit, satirlar } = kaydedici();
+  const onay = niyetKaydi("refleks_1", { tur: "jest", jest: "başını_sallıyor" });
+  const adim = niyetKaydi("refleks_2", { tur: "git", hedef: { tip: "capa", ad: "sandalye" } });
+  const id = kayit.refleks({ algi: "a3", beceri: "B0000abcd", onay, niyetler: [adim], bitis: "basari", sureMs: 4200 });
+  assert.deepEqual(
+    { id, satir: satirlar()[0] },
+    { id: "r1", satir: { tur: "refleks", o: "o_test", id: "r1", t: 1_000, algi: "a3", beceri: "B0000abcd", onay, niyetler: [adim], bitis: "basari", sureMs: 4200 } },
+  );
+});
+
+test("refleks kimlikleri oturum içinde sırayla artar ve algı/uyanış kimliklerinden ayrıdır", () => {
+  const { kayit } = kaydedici();
+  const b = { algi: "a1", beceri: "B1", niyetler: [], bitis: "kesildi" as const, sureMs: 0 };
+  assert.deepEqual([kayit.refleks(b), kayit.uyanis(BOS_UYANIS), kayit.refleks(b)], ["r1", "u1", "r2"]);
+});

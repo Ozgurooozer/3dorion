@@ -213,7 +213,35 @@ export interface OturumSatiri {
   beyin: string;
 }
 
-export type KararSatiri = OturumSatiri | AlgiSatiri | UyanisSatiri | OgretimSatiri;
+/** Refleksin nasıl bittiği. */
+export type RefleksBitisi = "basari" | "hata" | "kesildi" | "zaman_asimi";
+
+/**
+ * REFLEKS (spec 10, Faz D): kesin bir sözü LLM'e sormadan bir beceriyle yürüten tur.
+ * Uyanışın karşılığıdır — uyanış yok, bu satır var. Adımların akıbeti sonuç
+ * algılarından niyet kimliğiyle bağlanır (uyanıştaki gibi, mind/kararZinciri.ts).
+ * Eklemeli bir satır türü: `KARAR_SURUMU` aynı kalır.
+ */
+export interface RefleksSatiri {
+  tur: "refleks";
+  o: string; id: string; t: number;
+  /** Tetikleyen söz algısının kimliği. */
+  algi: string;
+  /** Yürütülen becerinin kimliği. */
+  beceri: string;
+  /** Onay jesti: adım değildir, sonucu beklenmez (spec 10 açık soru 1). */
+  onay?: NiyetKaydi;
+  /** Gönderilen adımlar, sırayla, gövdeleriyle. Hata ya da kesilmeden sonrakiler gönderilmez, burada da yoktur. */
+  niyetler: NiyetKaydi[];
+  bitis: RefleksBitisi;
+  /** Başlangıçtan bitişe süre (ms). */
+  sureMs: number;
+}
+
+export type KararSatiri = OturumSatiri | AlgiSatiri | UyanisSatiri | OgretimSatiri | RefleksSatiri;
+
+/** Refleks satırında köprünün doldurduğu alanlar (kimlik ve zaman kayıttan gelir). */
+export type RefleksBilgisi = Omit<RefleksSatiri, "tur" | "o" | "id" | "t">;
 
 /** Algı satırına öğrenen kapıdan ve beceri hafızasından gelen ekler. */
 export interface AlgiEki {
@@ -253,6 +281,7 @@ export class KararKaydi {
   private _simdi: () => number;
   private _algiSira = 0;
   private _uyanisSira = 0;
+  private _refleksSira = 0;
   private _yazilamayan = 0;
   private _dinleyiciler = new Set<(s: KararSatiri) => void>();
 
@@ -332,6 +361,13 @@ export class KararKaydi {
     };
     if (metin) satir.metin = kisalt(metin, SINIR.metin).metin;
     this._dus(satir);
+    return id;
+  }
+
+  /** Bir refleks turunu (spec 10, Faz D) yazar. Refleks kimliğini döner. */
+  refleks(b: RefleksBilgisi): string {
+    const id = `r${++this._refleksSira}`;
+    this._dus({ tur: "refleks", o: this.oturum, id, t: this._simdi(), ...b });
     return id;
   }
 

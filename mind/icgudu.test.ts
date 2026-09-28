@@ -121,7 +121,7 @@ test("dikkatin her düşürme sebebi listede bir içgüdü ve hepsi üretilebili
 test("güvenlik içgüdülerini hiçbir öğrenilmiş kural ezemez", () => {
   // Maliyet tavanı, sözleşme ve insan denetimi deneyimle gevşemez.
   const guvenlik: IcguduKimligi[] = [
-    "kayit", "kopru.konusma", "kopru.zincir", "kopru.guvenli_taraf",
+    "kayit", "kopru.konusma", "kopru.zincir", "kopru.guvenli_taraf", "kopru.refleks",
     "dikkat.tik_yasak", "dikkat.yerel_kanal", "dikkat.kisildi", "dikkat.tekrar", "dikkat.butce",
     "refleks.konusma", "refleks.gordum.cevap", "onay.insan",
   ];

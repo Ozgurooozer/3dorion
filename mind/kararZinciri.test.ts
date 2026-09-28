@@ -128,3 +128,29 @@ test("gövdesiz eski uyanış satırı da okunur; akıbette gövde alanı hiç y
   const z = zincirKur(kayitOku(k.metin()).satirlar);
   assert.deepEqual(z.uyanislar[0]!.niyetler[0], { id: "n_1", tur: "git" });
 });
+
+// ── Refleks (spec 10, Faz D) ────────────────────────────────────────────────
+
+test("kayitOku refleks satırını tanır (bozuk saymaz)", () => {
+  const { satirlar, bozuk } = kayitOku('{"tur":"refleks","o":"x","id":"r1","t":1,"algi":"a1","beceri":"B1","niyetler":[],"bitis":"basari","sureMs":1}');
+  assert.deepEqual({ satir: satirlar.length, bozuk }, { satir: 1, bozuk: 0 });
+});
+
+test("refleks tetikleyen söze ve adımlarının sonuçlarına kimlikle bağlanır", () => {
+  const k = kayitci("o1");
+  k.saat(1_000);
+  const a = k.kayit.algi({ tur: "duydum", metin: "sandalyeye git", kesin: true }, "ozet", GECTI);
+  const adim = niyetKaydi("refleks_2", { tur: "git", hedef: { tip: "capa", ad: "sandalye" } });
+  k.kayit.algi({ tur: "sonuc", sonuc: { niyet_id: "refleks_2", durum: "bitti" } }, "ozet", { gecti: false, kural: "kopru.refleks" });
+  k.kayit.refleks({ algi: a, beceri: "B1", niyetler: [adim], bitis: "basari", sureMs: 3000 });
+  const [r] = zincirKur(kayitOku(k.metin()).satirlar).refleksler;
+  assert.deepEqual(
+    { soz: r?.soz?.soz?.metin, niyetler: r?.niyetler.map((n) => ({ id: n.id, durum: n.durum, govde: n.govde })) },
+    { soz: "sandalyeye git", niyetler: [{ id: "refleks_2", durum: "bitti", govde: adim.govde }] },
+  );
+});
+
+test("tanınmayan satır türü öğretim sayılmaz (zincire dışarıdan gelen satır)", () => {
+  const z = zincirKur([{ tur: "baska", o: "x", t: 1 } as unknown as Parameters<typeof zincirKur>[0][number]]);
+  assert.equal(z.ogretimler.length, 0);
+});

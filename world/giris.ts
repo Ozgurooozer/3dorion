@@ -1462,6 +1462,9 @@ function beyniBagla(a: Avatar): void {
     // BECERİ REFLEKSİ (spec 10, Faz C): gölgede — kesin sözde hafızanın ne yapacağını
     // söz satırına yazar; kapı, uyanış ve niyetler değişmez.
     gorevSatirlari: gorevSatirlariniYukle(),
+    // BECERİ YETKİSİ (Faz D): ANAHTAR, varsayılan KAPALI. Yalnız `?beceri=1` (ORION_BECERI=1)
+    // ile açılır; açılması ön-kayıtlı barı geçmeye bağlı (spec 10).
+    beceriYetkisi: new URLSearchParams(location.search).has("beceri"),
     // BAĞLAM (K4): algı anında Ozyn nerede, Orion'a bakıyor mu, hangi yüzeyde.
     // Yapısal — dünya metni ayrıştırılmaz. Öğrenen kapının durum koduna girer.
     baglam: () => {
@@ -2354,7 +2357,7 @@ if (new URLSearchParams(location.search).has("becerdene")) {
       k.algi({ tur: "duydum", kesin: true, metin: soz });
       await bekle(16_000);
       const konum = (orion as Avatar | null)?.durum().konum;
-      console.log(`[BECERDENE] ${i + 1}. soz "${soz}" · uyanis +${k.sayac().dusunme - once}`
+      console.log(`[BECERDENE] ${i + 1}. soz "${soz}" · uyanis +${k.sayac().dusunme - once} · refleks toplam ${k.sayac().refleks}`
         + ` · konum=${konum ? `${konum.x.toFixed(1)},${konum.z.toFixed(1)}` : "?"} · beceri=${k.beceriHafizasi.beceriler.length}`);
     }
     const beceriler = k.beceriHafizasi.beceriler.map((b) => `${b.id} "${b.ornek}" basari ${b.sayac.basari} hata ${b.sayac.hata}`);

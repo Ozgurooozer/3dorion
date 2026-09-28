@@ -16,6 +16,10 @@
 //   - Tarif = çerçeve + yuva sayısı + adımların yuvadan arındırılmış hali. Kimlik bu
 //     içerikten türer (FNV-1a): hafıza kayıttan yeniden kurulunca da aynı kalır, kayıt
 //     sırası ya da doğum sırası kimliği değiştirmez.
+//   - Refleks yürütümü (Faz D) beceri doğurmaz; sonucu yürüttüğü becerinin sayacına
+//     KİMLİKLE yazılır (tarifle değil: hatadan sonra gönderilmeyen adımlar tarifi eksik
+//     gösterirdi). Başarı güveni artırır, hata payı düşürür; pay 0,75'in altına inince
+//     beceri askıya alınır ve söz yine LLM'e gider.
 //
 // KARAR: sözün çerçevesi birebir aynı, yuva sayısı aynı, payı (başarı / toplam)
 // `VARSAYILAN_GUVEN_PAYI`'nın üstünde olan beceriler aday. Çok başarılı olan, eşitlikte
@@ -145,6 +149,15 @@ export class BeceriHafizasi {
     // Güvenlik (spec 10): yalnız bedensel adımlar tekrarlanır. Görev çıkarıcısı zaten
     // süzer; burada ikinci kez sorulur ki elle kurulmuş bir görev de `komut` sokamasın.
     if (g.adimlar.some((a) => niyetSinifi(a.govde.tur) !== "bedensel")) return null;
+    // REFLEKS YÜRÜTÜMÜ (Faz D): sonuç yürütülen becerinin sayacına yazılır, doğum yok.
+    // Tarife bakılmaz: hatadan sonra gönderilmeyen adımlar tarifi eksik gösterirdi.
+    if (g.beceri !== undefined) {
+      const b = this._beceriler.find((x) => x.id === g.beceri);
+      if (!b) return null;
+      b.sayac[g.sonuc]++;
+      b.kanit.push(g.kimlik);
+      return { tur: g.sonuc, beceri: b.id, gorev: g.kimlik };
+    }
     const adimlar = g.adimlar.map((a) => a.govde);
     const baglar = baglariKur(g.anahtar, adimlar);
     const id = beceriKimligi(g.anahtar, adimlar, baglar);

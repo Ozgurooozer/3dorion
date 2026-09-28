@@ -49,6 +49,8 @@ export interface KararOzeti {
   onay: Record<string, number>;
   /** Eylemli uyanışların kaçından sonra Ozyn pencere içinde konuştu. */
   tepkili: number;
+  /** Refleks turları (spec 10, Faz D: LLM'e sormadan yürütülen söz), bitişe göre. */
+  refleks: Record<string, number>;
 }
 
 /** En yakın sıra yöntemiyle yüzdelik: sıralı dizinin ⌈p·n⌉'inci elemanı. */
@@ -116,7 +118,15 @@ export function ozetCikar(z: KararZinciri): KararOzeti {
     koken, takip, anili,
     tetikleyenler: [...tetik.values()].sort((a, b) => b.uyanis - a.uyanis || a.kural.localeCompare(b.kural)),
     niyetTurleri, akibet, onay, tepkili,
+    refleks: sayim(z.refleksler.map((r) => r.refleks.bitis)),
   };
+}
+
+/** Değerleri sayar: ["a", "b", "a"] → { a: 2, b: 1 }. */
+function sayim(degerler: readonly string[]): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const d of degerler) out[d] = (out[d] ?? 0) + 1;
+  return out;
 }
 
 /** Dosya ya da klasör listesinden tüm .jsonl satırlarını okur. */
@@ -169,6 +179,7 @@ function yazdir(o: KararOzeti, dosyalar: string[]): void {
   p(`AKIBET: ${Object.entries(o.akibet).map(([k, n]) => `${k} ${n}`).join(", ") || "—"}`);
   p(`ONAY (komut önerisi): ${Object.entries(o.onay).map(([k, n]) => `${k} ${n}`).join(", ") || "—"}`);
   p(`TEPKİ: eylemli uyanıştan sonra Ozyn konuştu ${o.tepkili}/${o.eylemliUyanis}`);
+  p(`REFLEKS (LLM'siz yürütülen söz, spec 10): ${Object.entries(o.refleks).map(([k, n]) => `${k} ${n}`).join(", ") || "—"}`);
 }
 
 if (import.meta.main) {

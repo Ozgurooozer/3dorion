@@ -213,3 +213,41 @@ test("kanıt: beceriyi doğuran ve besleyen görevlerin kimlikleri", () => {
   h.ogren(gorev("pencereye git otur", [git("pencere"), OTUR], "basari", 2));
   assert.deepEqual(h.beceriler[0]?.kanit, ["o1/u1", "o1/u2"]);
 });
+
+// ── Refleks görevleri (spec 10, Faz D) ─────────────────────────────────────
+
+/** Bir refleks görevi: yürütülen becerinin kimliğiyle; adımlar verilen durumlarla. */
+function refleksGorevi(beceri: string, soz: string, adimlar: [Niyet, "bitti" | "hata" | "iptal"][], sonuc: GorevSonucu, t: number): GorevOrnegi {
+  return {
+    kaynak: "refleks", kimlik: `o1/r${t}`, t, soz, anahtar: sozAnahtari(soz)!, beceri,
+    adimlar: adimlar.map(([govde, durum]) => ({ govde, durum })), eslik: 0, sonuc, sureMs: 0,
+  };
+}
+
+test("refleks görevi yürüttüğü becerinin sayacına yazılır: başarı artar", () => {
+  const h = new BeceriHafizasi();
+  h.ogren(gorev("masaya git otur", [git("masa"), OTUR], "basari", 1));
+  const id = h.beceriler[0]!.id;
+  const olay = h.ogren(refleksGorevi(id, "pencereye git otur", [[git("pencere"), "bitti"], [OTUR, "bitti"]], "basari", 2));
+  assert.deepEqual({ olay: olay?.tur, sayac: h.beceriler[0]!.sayac, kanit: h.beceriler[0]!.kanit }, { olay: "basari", sayac: { basari: 2, hata: 0 }, kanit: ["o1/u1", "o1/r2"] });
+});
+
+test("refleksin hatası, adımları eksik kalsa da (kalanlar gönderilmedi) yürüttüğü beceriye yazılır", () => {
+  const h = new BeceriHafizasi();
+  h.ogren(gorev("masaya git otur", [git("masa"), OTUR], "basari", 1));
+  h.ogren(refleksGorevi(h.beceriler[0]!.id, "kapıya git otur", [[git("kapi"), "hata"]], "hata", 2));
+  assert.deepEqual({ sayi: h.beceriler.length, sayac: h.beceriler[0]!.sayac }, { sayi: 1, sayac: { basari: 1, hata: 1 } });
+});
+
+test("refleks görevi beceri doğurmaz: hafızada olmayan beceri kimliği yok sayılır", () => {
+  const h = new BeceriHafizasi();
+  const olay = h.ogren(refleksGorevi("B00000000", "pencereye git", [[git("pencere"), "bitti"]], "basari", 1));
+  assert.deepEqual({ olay, sayi: h.beceriler.length }, { olay: null, sayi: 0 });
+});
+
+test("belirsiz refleks görevi (kesildi, zaman aşımı) sayaca yazılmaz", () => {
+  const h = new BeceriHafizasi();
+  h.ogren(gorev("pencereye git", [git("pencere")], "basari", 1));
+  const olay = h.ogren(refleksGorevi(h.beceriler[0]!.id, "sandalyeye git", [[git("sandalye"), "iptal"]], "belirsiz", 2));
+  assert.deepEqual({ olay, sayac: h.beceriler[0]!.sayac }, { olay: null, sayac: { basari: 1, hata: 0 } });
+});

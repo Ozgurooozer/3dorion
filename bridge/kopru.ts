@@ -16,11 +16,12 @@ import { ozetle } from "../protocol/algi.ts";
 import type { Niyet, NiyetSonucu } from "../protocol/niyet.ts";
 import { kimlik } from "../protocol/temel.ts";
 import { Dikkat, kanalAcikMi, type DikkatAyari } from "../mind/dikkat.ts";
-import { KararKaydi, niyetKaydi, type AlgiEki, type BeceriGolgesi, type KapiKarari, type KararSatiri, type OgretimSatiri, type UyanisBilgisi } from "../mind/kararKaydi.ts";
+import { KararKaydi, niyetKaydi, type AlgiEki, type BeceriGolgesi, type KapiKarari, type KararSatiri, type NiyetKaydi, type OgretimSatiri, type RefleksBitisi, type UyanisBilgisi } from "../mind/kararKaydi.ts";
+import { niyetDogrula } from "../protocol/dogrula.ts";
 import { BeceriDefteri } from "../mind/beceriDefteri.ts";
 import type { BeceriHafizasi } from "../mind/beceriHafizasi.ts";
 import { ICGUDULER, dikkatKurali, type IcguduKimligi } from "../mind/icgudu.ts";
-import { durumKodu, type KapiBaglami } from "../mind/durumKodu.ts";
+import { durumKodu, niyetKaynagi, type KapiBaglami } from "../mind/durumKodu.ts";
 import type { KuralHafizasi, KapiYonu } from "../mind/kuralHafizasi.ts";
 import { deneyimKimligi, kuralHafizasiKur, ogretimAnahtari } from "../mind/ogretim.ts";
 import { Hafiza, kuralOnemi, type AniTuru } from "../mind/hafiza.ts";
@@ -79,6 +80,16 @@ export interface KopruAyari {
    * (`beceriGolge`); kapı, uyanış ve niyetler değişmez. Verilmezse geçmişsiz başlar.
    */
   gorevSatirlari?: readonly KararSatiri[];
+  /**
+   * BECERİ YETKİSİ (spec 10, Faz D) — ANAHTAR, varsayılan KAPALI. Açıkken parametre
+   * içinde eşleşen kesin sözde LLM uyanmaz: önce onay jesti, sonra becerinin adımları
+   * SIRAYLA, her birinin sonucu beklenerek, doğrulanıp `niyetGonder` ile gider (tek yol).
+   * Kapalıyken köprü Faz C'dekiyle birebir aynıdır (B12). Açılması ön-kayıtlı barı
+   * geçmeye bağlı (spec 10); canlıda `?beceri=1`.
+   */
+  beceriYetkisi?: boolean;
+  /** Refleksin bir adımının sonucunu en çok ne kadar beklediği (ms). Varsayılan REFLEKS_ZAMAN_ASIMI_MS. */
+  refleksZamanAsimiMs?: number;
   /**
    * BAĞLAM (toplantı 2026-09-27 K4): algı anında Ozyn'in durumu — mesafe, bakış,
    * yüzey. Öğrenen kapının durum koduna girer. YAPISAL: düzyazı dünya metni
@@ -153,6 +164,39 @@ export interface KopruSayaci {
   zincirKesilen: number;
   /** İnisiyatif zincirinde yutulan susma ilanı ("Sessiz kalıyorum…"). */
   yutulanSusma: number;
+  /** Beceriyle, LLM'e sormadan yürütülmeye başlanan söz (spec 10, Faz D). Yetki kapalıyken hep 0. */
+  refleks: number;
+}
+
+/** Refleks niyetlerinin kimlik öneki (`kimlik(REFLEKS_ONEKI)`); sonuçları `niyetKaynagi` ile tanınır. */
+export const REFLEKS_ONEKI = "refleks";
+
+/**
+ * Refleksin söz yerine verdiği onay (spec 10 açık soru 1): uydurma söz sessizlikten
+ * kötüdür (sağ lob ilkesi, mind/yerelTepki.ts). Adım değildir; sonucu beklenmez.
+ */
+export const REFLEKS_ONAYI: Niyet = { tur: "jest", jest: "başını_sallıyor" };
+
+/** Bir adımın sonucu en çok bu kadar beklenir (ms): odanın bir ucundan öbürüne yürümek ~10 sn. */
+export const REFLEKS_ZAMAN_ASIMI_MS = 30_000;
+
+/** Süren bir refleks turu (spec 10, Faz D). */
+interface SurenRefleks {
+  /** Tetikleyen söz: kayıttaki kimliği, metni ve özeti (başarısızlıkta LLM'e bunlar döner). */
+  algi: string;
+  soz: string;
+  ozet: string;
+  beceri: string;
+  adimlar: Niyet[];
+  /** Sıradaki adımın indeksi. */
+  sira: number;
+  /** Sonucu beklenen adımın niyet kimliği. */
+  bekleyen: string | null;
+  onay?: NiyetKaydi;
+  /** Gönderilen adımlar (doğrulanmış halleriyle), sırayla. */
+  gonderilen: NiyetKaydi[];
+  baslangic: number;
+  zamanlayici: ReturnType<typeof setTimeout> | null;
 }
 
 /**
@@ -227,7 +271,9 @@ export class Kopru {
   private _dusunuyor = false;
   /** Düşünme sürerken yeni girdi geldiyse, bitince bir tur daha dön. */
   private _tekrarGerek = false;
-  private _sayac: KopruSayaci = { dusunme: 0, niyet: 0, reddedilenCagri: 0, hata: 0, suzulen: 0, kurtarilanMetin: 0, kurtarilanCagri: 0, yutulanCop: 0, zincirKesilen: 0, yutulanSusma: 0 };
+  private _sayac: KopruSayaci = { dusunme: 0, niyet: 0, reddedilenCagri: 0, hata: 0, suzulen: 0, kurtarilanMetin: 0, kurtarilanCagri: 0, yutulanCop: 0, zincirKesilen: 0, yutulanSusma: 0, refleks: 0 };
+  /** Süren refleks turu (spec 10, Faz D); yoksa null. */
+  private _refleks: SurenRefleks | null = null;
   /** Kalan takip turu hakkı — bkz. ZINCIR_AZAMI. */
   private _zincirKalan = ZINCIR_AZAMI;
   /**
@@ -268,7 +314,8 @@ export class Kopru {
     }
     this._beceriDinlemesi = this._kayit.dinle((s) => this._beceri.ekle(s));
     const beceriSayisi = this._beceri.hafiza.beceriler.length;
-    if (beceriSayisi) console.log(`[BECERI] ${beceriSayisi} beceri gecmis oturumlardan kuruldu (golgede)`);
+    if (beceriSayisi) console.log(`[BECERI] ${beceriSayisi} beceri gecmis oturumlardan kuruldu (${ayar.beceriYetkisi ? "YETKILI" : "golgede"})`);
+    if (ayar.beceriYetkisi) console.log("[BECERI] YETKI ACIK: eslesen kesin sozde LLM uyanmaz, beceri refleksle yurur (spec 10 Faz D)");
 
     // Geçmiş oturumların anıları. Hata yutulur: bozuk bir kayıt yüzünden
     // dünya açılmamazlık edemez.
@@ -367,6 +414,19 @@ export class Kopru {
     // Boş özet = `tik`. Beyin kanalına asla girmez (protocol/SOZLESME.md).
     if (!ozet) return;
 
+    // REFLEKSİN KENDİ ADIMLARININ SONUCU (spec 10, Faz D; içgüdü `kopru.refleks`):
+    // refleks okur, beyne gitmez. Refleks bittikten sonra gelen geç sonuç (onay
+    // jesti, kesilen adımın iptali) da beyne gitmez; yalnız kayıtta kalır.
+    if (a.tur === "sonuc" && niyetKaynagi(a.sonuc.niyet_id) === REFLEKS_ONEKI) {
+      this._kaydet(a, ozet, { gecti: false, kural: "kopru.refleks" });
+      this._refleksSonucu(a.sonuc);
+      return;
+    }
+
+    // BECERİ GÖLGESİ (spec 10, Faz C): kesin sözde hafızanın kararı. Söz satırına
+    // yazılır; yetki açıksa (Faz D) aynı karar yürütülür — yazılanla yapılan aynıdır.
+    const golge = a.tur === "duydum" && a.kesin ? this._beceriGolgesi(a.metin) : undefined;
+
     // ZİNCİR BÜTÇESİ (bkz. ZINCIR_AZAMI). Hakkı biten bakış cevabı beyni
     // uyandırmaz — ama KAYBOLMAZ: çalışma belleğine yazılır, bir sonraki
     // gerçek tetikte ŞİMDİ satırında yaşıyla görünür.
@@ -411,7 +471,17 @@ export class Kopru {
     if (!k.gecsin) {
       // Dikkat düşürdüğünde sebebini HEP söyler (icgudu.test.ts bekçisi);
       // sebepsiz düşüş kayıtta çelişkili görünsün diye `dikkat.gecti` yazılır.
-      this._kaydet(a, ozet, { gecti: false, kural: k.sebep ? dikkatKurali(k.sebep) : "dikkat.gecti" });
+      this._kaydet(a, ozet, { gecti: false, kural: k.sebep ? dikkatKurali(k.sebep) : "dikkat.gecti" }, golge);
+      return;
+    }
+
+    // Ozyn'in her sözü süren refleksi keser: yeni emir kazanır (dünyadaki kuralla aynı).
+    if (a.tur === "duydum") this._refleksBitir("kesildi");
+
+    // YETKİ (spec 10, Faz D): eşleşen kesin söz LLM'e gitmez; beceri refleksle yürür.
+    // `golge` yalnız kesin sözde vardır. Tampon, tur ve konuşma geçmişi DEĞİŞMEZ.
+    if (golge && a.tur === "duydum" && this._ayar.beceriYetkisi) {
+      this._refleksBaslat(a, ozet, kapi, golge);
       return;
     }
 
@@ -424,7 +494,7 @@ export class Kopru {
     }
 
     this._tampon.push(ozet);
-    this._tamponIdleri.push(this._kaydet(a, ozet, kapi));
+    this._tamponIdleri.push(this._kaydet(a, ozet, kapi, golge));
 
     // Beyne giden her algı hafızaya da yazılır. Önem KURALLA belirlenir —
     // her anı için bir LLM turu ödemek ölçülmüş bir fayda olmadan kabul
@@ -471,7 +541,7 @@ export class Kopru {
    * Kanalı beyne kapalı algı da öğrenilemez: içerik yargısı onu ezilebilir bir
    * kuralla düşürmüş olsa bile, kanal kuralı (ezilemez) onu yine düşürürdü.
    */
-  private _kaydet(a: Algi, ozet: string, kapi: KapiKarari): string {
+  private _kaydet(a: Algi, ozet: string, kapi: KapiKarari, beceriGolge?: BeceriGolgesi | null): string {
     let ek: AlgiEki = {};
     if (ICGUDULER[kapi.kural].ezilebilir && kanalAcikMi(a)) {
       let baglam: KapiBaglami | undefined;
@@ -483,10 +553,8 @@ export class Kopru {
         ek = { isaret, golge: g ? { yon: g.yon, noron: g.noron.id, pay: Number(g.pay.toFixed(3)) } : null };
       }
     }
-    if (a.tur === "duydum" && a.kesin) {
-      const g = this._beceriGolgesi(a.metin);
-      if (g !== undefined) ek.beceriGolge = g;
-    }
+    // Beceri gölgesi `algi()`de bir kez hesaplanır (kesin söz): yazılan ile yürütülen aynı nesne.
+    if (beceriGolge !== undefined) ek.beceriGolge = beceriGolge;
     const id = this._kayit.algi(a, ozet, kapi, ek);
     if (ek.isaret) {
       this._ogrenilebilir.set(id, ek.isaret);
@@ -548,6 +616,107 @@ export class Kopru {
     }
   }
 
+  // ── Refleks (spec 10, Faz D) ─────────────────────────────────────────────
+
+  /**
+   * YETKİLİ REFLEKS: sözü LLM'e sormadan becerinin adımlarıyla yürütür.
+   *
+   * Söz kayda yazılır (gölgesiyle) ve anı olur; ama KONUŞMA GEÇMİŞİNE girmez: LLM
+   * sonraki turunda cevapsız bir istek görüp onu yeniden yapmasın. Başarısızlıkta söz
+   * geçmişe ve tampona döner (bkz. `_refleksBitir`). Önce onay jesti — adım değildir,
+   * sonucu beklenmez — sonra adımlar sırayla.
+   */
+  private _refleksBaslat(a: Algi & { tur: "duydum" }, ozet: string, kapi: KapiKarari, golge: BeceriGolgesi): void {
+    const algi = this._kaydet(a, ozet, kapi, golge);
+    const { tur: aniTur, icerik } = this._aniIcerigi(a, ozet);
+    this._hafiza.ekle(icerik, aniTur, kuralOnemi(aniTur, icerik));
+    this._hafizaYaz();
+    this._dikkat.sifirla();
+    this._sayac.refleks++;
+    console.log(`[BECERI] refleks: "${a.metin}" → ${golge.beceri} (${golge.adimlar.length} adim, pay ${golge.pay})`);
+    const r: SurenRefleks = {
+      algi, soz: a.metin, ozet, beceri: golge.beceri, adimlar: golge.adimlar,
+      sira: 0, bekleyen: null, gonderilen: [], baslangic: Date.now(), zamanlayici: null,
+    };
+    this._refleks = r;
+    const onay = niyetDogrula(REFLEKS_ONAYI);
+    if (onay.ok) {
+      const id = kimlik(REFLEKS_ONEKI);
+      r.onay = niyetKaydi(id, onay.deger);
+      this._ayar.niyetGonder(onay.deger, id);
+      this._sayac.niyet++;
+    }
+    this._refleksAdimi();
+  }
+
+  /**
+   * Sıradaki adımı DOĞRULAYIP gönderir (tek yol: `niyetGonder`; doğrulayıcı atlanmaz —
+   * adım kayıttan geliyor). Adım kalmadıysa refleks başarıyla biter. Beklenen kimlik ve
+   * zaman aşımı GÖNDERMEDEN ÖNCE kurulur: dünya sonucu senkron verirse de yakalansın.
+   */
+  private _refleksAdimi(): void {
+    const r = this._refleks;
+    if (!r) return;
+    const n = r.adimlar[r.sira];
+    if (!n) { this._refleksBitir("basari"); return; }
+    const d = niyetDogrula(n);
+    if (!d.ok) { this._refleksBitir("hata", `step "${n.tur}" is not valid: ${d.hata}`); return; }
+    const id = kimlik(REFLEKS_ONEKI);
+    r.bekleyen = id;
+    r.gonderilen.push(niyetKaydi(id, d.deger));
+    r.zamanlayici = setTimeout(() => this._refleksBitir("zaman_asimi"), this._ayar.refleksZamanAsimiMs ?? REFLEKS_ZAMAN_ASIMI_MS);
+    this._ayar.niyetGonder(d.deger, id);
+    this._sayac.niyet++;
+  }
+
+  /**
+   * Refleks niyetinin sonucu: beklenen adımınsa refleksi ilerletir. Onay jestinin ya da
+   * kesilmiş bir adımın geç gelen sonucu yalnız kayıtta kalır.
+   */
+  private _refleksSonucu(s: NiyetSonucu): void {
+    const r = this._refleks;
+    if (!r || s.niyet_id !== r.bekleyen || s.durum === "basladi") return;
+    if (r.zamanlayici) { clearTimeout(r.zamanlayici); r.zamanlayici = null; }
+    r.bekleyen = null;
+    if (s.durum === "bitti") { r.sira++; this._refleksAdimi(); }
+    else if (s.durum === "hata") this._refleksBitir("hata", s.not);
+    else this._refleksBitir("kesildi");   // iptal: yeni bir emir adımı geçti
+  }
+
+  /**
+   * Refleksi bitirir ve satırını yazar; süren refleks yoksa bir şey yapmaz.
+   *
+   * Başarı ve kesilme sessizdir. Hata ve zaman aşımında söz LLM'e döner (B13): konuşma
+   * geçmişine girer, özeti tampona, sebebi geri besleme olarak yanına; LLM hemen uyanır
+   * ve görevi kendisi yapar. Kalan adımlar gönderilmez.
+   */
+  private _refleksBitir(bitis: RefleksBitisi, sebep?: string): void {
+    const r = this._refleks;
+    if (!r) return;
+    this._refleks = null;
+    if (r.zamanlayici) clearTimeout(r.zamanlayici);
+    this._kayit.refleks({
+      algi: r.algi, beceri: r.beceri, ...(r.onay ? { onay: r.onay } : {}),
+      niyetler: r.gonderilen, bitis, sureMs: Date.now() - r.baslangic,
+    });
+    console.log(`[BECERI] refleks bitti: ${bitis}${sebep ? ` (${sebep})` : ""}`);
+    if (bitis === "basari" || bitis === "kesildi" || this._durduruldu) return;
+
+    const adim = r.gonderilen.at(-1)?.tur ?? "?";
+    const neden = bitis === "zaman_asimi" ? "no result in time" : (sebep ?? "failed");
+    this._gecmis.push({ rol: "kullanici", metin: r.soz });
+    this._kirp();
+    this._tampon.push(r.ozet);
+    this._tamponIdleri.push(r.algi);
+    this._tampon.push(`Your automatic attempt at this request stopped at step "${adim}": ${neden}. Do it yourself.`);
+    this._tamponIdleri.push(null);
+    this._turTurleri.add("duydum");
+    this._turIcerikleri.push(r.soz);
+    this._turDis = true;
+    this._zincirKalan = ZINCIR_AZAMI;
+    this._hemenDusun();
+  }
+
   /** Algıdan hafızaya yazılacak SADE içeriği çıkarır (kalıp değil). */
   private _aniIcerigi(a: Algi, ozet: string): { tur: AniTuru; icerik: string } {
     switch (a.tur) {
@@ -578,6 +747,8 @@ export class Kopru {
   /** Bekleyen işleri iptal eder. Kapanışta çağrılır. */
   durdur(): void {
     this._durduruldu = true;
+    // Süren refleks kesilir ve satırı yazılır (defter dinlerken: canlı = kayıt kalsın).
+    this._refleksBitir("kesildi");
     this._beceriDinlemesi();
     if (this._zamanlayici) { clearTimeout(this._zamanlayici); this._zamanlayici = null; }
     // Bekleyen hafıza yazması VARSA hemen tamamla: kapanışta 3 sn'lik

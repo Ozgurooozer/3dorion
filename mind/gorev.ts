@@ -24,7 +24,7 @@
 import { CAPALAR, type CapaAdi } from "../protocol/temel.ts";
 import type { Niyet, NiyetTur } from "../protocol/niyet.ts";
 import type { AlgiSatiri, KararSatiri, UyanisSatiri } from "./kararKaydi.ts";
-import type { KararZinciri, NiyetAkibeti } from "./kararZinciri.ts";
+import type { KararZinciri, NiyetAkibeti, RefleksZinciri } from "./kararZinciri.ts";
 import { kelimeler, type KelimeAyari } from "./durumKodu.ts";
 
 export type NiyetSinifi = "bedensel" | "eslik" | "engel";
@@ -165,6 +165,12 @@ export interface GorevOrnegi {
   sonuc: GorevSonucu;
   /** LLM'in düşünme süresi (ms): refleksin kazanacağı süre. Refleks yürütümünde 0. */
   sureMs: number;
+  /**
+   * Refleks yürütümünde yürütülen becerinin kimliği (spec 10, Faz D). Sonuç doğrudan
+   * onun sayacına yazılır; tarif eşlemesine bırakılmaz: hata ya da kesilmeden sonra
+   * gönderilmeyen adımlar tarifi eksik gösterir ve hata başka (olmayan) bir tarife düşerdi.
+   */
+  beceri?: string;
 }
 
 /** Kayıttan bir satır seçimi: türü `turler`de olan satırlar ve algı türü `algilar`da olan algı satırları. */
@@ -180,7 +186,7 @@ export interface KayitSecimi {
  * eşitliği host/kararDosyasi.test.ts bekler). Başka satır görev kurmaz; okunmaması
  * açılışı ve belleği küçük tutar.
  */
-export const GOREV_SATIRLARI: KayitSecimi = { turler: ["uyanis"], algilar: ["duydum", "sonuc"] };
+export const GOREV_SATIRLARI: KayitSecimi = { turler: ["uyanis", "refleks"], algilar: ["duydum", "sonuc"] };
 
 export function gorevSatiriMi(s: KararSatiri): boolean {
   return GOREV_SATIRLARI.turler.includes(s.tur) || (s.tur === "algi" && GOREV_SATIRLARI.algilar.includes(s.algi));
@@ -220,11 +226,33 @@ export function zamanSirali<T extends { t: number }>(liste: readonly T[]): T[] {
   return [...liste].sort((a, b) => a.t - b.t);
 }
 
-/** Kayıttaki bütün görevler, zaman sırasıyla (eşitlikte kayıt sırası). */
+/**
+ * Bir refleks turundan görev (spec 10, Faz D): sözü, gönderilen adımları ve yürütülen
+ * beceriyle. Söz satırı okunmadıysa, söz anahtar olamıyorsa ya da bir adım gövdesiz veya
+ * bedensel değilse null (refleks yalnız bedensel adım gönderir; bu ikinci kez sorulur).
+ */
+function refleksGorevi(z: RefleksZinciri): GorevOrnegi | null {
+  const soz = z.soz?.soz;
+  if (!soz) return null;
+  const anahtar = sozAnahtari(soz.metin);
+  if (!anahtar) return null;
+  if (z.niyetler.some((n) => !n.govde || niyetSinifi(n.tur as NiyetTur) !== "bedensel")) return null;
+  const adimlar: GorevAdimi[] = z.niyetler.map((n) => (n.durum ? { govde: n.govde!, durum: n.durum } : { govde: n.govde! }));
+  return {
+    kaynak: "refleks", kimlik: `${z.refleks.o}/${z.refleks.id}`, t: z.refleks.t, soz: soz.metin, anahtar,
+    adimlar, eslik: 0, sonuc: gorevSonucu(adimlar), sureMs: 0, beceri: z.refleks.beceri,
+  };
+}
+
+/** Kayıttaki bütün görevler — LLM'in uyanışları ve refleks turları — zaman sırasıyla (eşitlikte kayıt sırası). */
 export function gorevler(z: KararZinciri): GorevOrnegi[] {
   const out: GorevOrnegi[] = [];
   for (const { uyanis, tetikleyenler, niyetler } of z.uyanislar) {
     const g = uyanistanGorev(uyanis, tetikleyenler, niyetler);
+    if (g) out.push(g);
+  }
+  for (const r of z.refleksler) {
+    const g = refleksGorevi(r);
     if (g) out.push(g);
   }
   return zamanSirali(out);

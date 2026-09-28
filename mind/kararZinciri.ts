@@ -20,7 +20,7 @@
 //
 // Bağımlılık: mind/kararKaydi.ts ve protocol/niyet.ts (tipler). Dosya sistemi yok: metin alır.
 "use strict";
-import type { AlgiSatiri, KararSatiri, OgretimSatiri, UyanisSatiri } from "./kararKaydi.ts";
+import type { AlgiSatiri, KararSatiri, NiyetKaydi, OgretimSatiri, RefleksSatiri, UyanisSatiri } from "./kararKaydi.ts";
 import type { Niyet } from "../protocol/niyet.ts";
 
 /** Uyanıştan sonra Ozyn'in sözü bu süre içinde gelirse tepki sayılır. */
@@ -45,10 +45,20 @@ export interface UyanisZinciri {
   tepki?: { algi: AlgiSatiri; gecikmeMs: number };
 }
 
+/** Refleks turu (spec 10, Faz D): tetikleyen söz ve gönderilen adımların akıbeti. */
+export interface RefleksZinciri {
+  refleks: RefleksSatiri;
+  /** Tetikleyen söz algısı; satırı okunmadıysa yok. */
+  soz?: AlgiSatiri;
+  niyetler: NiyetAkibeti[];
+}
+
 export interface KararZinciri {
   oturumlar: string[];
   algilar: AlgiSatiri[];
   uyanislar: UyanisZinciri[];
+  /** Refleks turları (spec 10, Faz D), kayıttaki sırasıyla. */
+  refleksler: RefleksZinciri[];
   /** Öğretim satırları, kayıttaki sırasıyla. */
   ogretimler: OgretimSatiri[];
   /** JSON olmayan ya da tanınmayan satır sayısı. */
@@ -63,7 +73,7 @@ export function kayitOku(metin: string): { satirlar: KararSatiri[]; bozuk: numbe
     if (!ham.trim()) continue;
     try {
       const s = JSON.parse(ham) as KararSatiri;
-      if (s && (s.tur === "oturum" || s.tur === "algi" || s.tur === "uyanis" || s.tur === "ogretim") && typeof s.o === "string") satirlar.push(s);
+      if (s && (s.tur === "oturum" || s.tur === "algi" || s.tur === "uyanis" || s.tur === "ogretim" || s.tur === "refleks") && typeof s.o === "string") satirlar.push(s);
       else bozuk++;
     } catch {
       bozuk++;
@@ -77,12 +87,15 @@ export function zincirKur(satirlar: KararSatiri[], bozuk = 0): KararZinciri {
   const oturumlar: string[] = [];
   const algilar: AlgiSatiri[] = [];
   const uyanislar: UyanisSatiri[] = [];
+  const refleksSatirlari: RefleksSatiri[] = [];
   const ogretimler: OgretimSatiri[] = [];
   for (const s of satirlar) {
     if (s.tur === "oturum") { if (!oturumlar.includes(s.o)) oturumlar.push(s.o); }
     else if (s.tur === "algi") algilar.push(s);
     else if (s.tur === "uyanis") uyanislar.push(s);
-    else ogretimler.push(s);
+    else if (s.tur === "refleks") refleksSatirlari.push(s);
+    // Açık tür denetimi: dışarıdan gelen (ör. host'un seçtiği) tanınmayan bir satır öğretim sayılmasın.
+    else if (s.tur === "ogretim") ogretimler.push(s);
   }
 
   const anahtar = (o: string, id: string) => `${o}/${id}`;
@@ -98,24 +111,33 @@ export function zincirKur(satirlar: KararSatiri[], bozuk = 0): KararZinciri {
 
   const sozler = algilar.filter((a) => a.algi === "duydum");
 
+  /** Bir turun (uyanış ya da refleks) niyetlerinin akıbeti: kimlikle, oturum içinde. */
+  const akibetler = (o: string, liste: readonly NiyetKaydi[]): NiyetAkibeti[] => liste.map((n) => {
+    const akibet: NiyetAkibeti = { id: n.id, tur: n.tur };
+    if (n.govde) akibet.govde = n.govde;
+    const s = sonuclar.get(anahtar(o, n.id));
+    if (s) { akibet.durum = s.durum as NiyetAkibeti["durum"]; akibet.not = s.ozet; }
+    return akibet;
+  });
+
   const zincir: UyanisZinciri[] = uyanislar.map((u) => {
     const tetikleyenler = u.algilar
       .map((id) => algiHaritasi.get(anahtar(u.o, id)))
       .filter((a): a is AlgiSatiri => a !== undefined);
-    const niyetler: NiyetAkibeti[] = u.niyetler.map((n) => {
-      const akibet: NiyetAkibeti = { id: n.id, tur: n.tur };
-      if (n.govde) akibet.govde = n.govde;
-      const s = sonuclar.get(anahtar(u.o, n.id));
-      if (s) { akibet.durum = s.durum as NiyetAkibeti["durum"]; akibet.not = s.ozet; }
-      return akibet;
-    });
     const soz = sozler.find((a) => a.o === u.o && a.t > u.t && a.t - u.t <= TEPKI_PENCERESI_MS);
-    const z: UyanisZinciri = { uyanis: u, tetikleyenler, niyetler };
+    const z: UyanisZinciri = { uyanis: u, tetikleyenler, niyetler: akibetler(u.o, u.niyetler) };
     if (soz) z.tepki = { algi: soz, gecikmeMs: soz.t - u.t };
     return z;
   });
 
-  return { oturumlar, algilar, uyanislar: zincir, ogretimler, bozuk };
+  const refleksler: RefleksZinciri[] = refleksSatirlari.map((r) => {
+    const z: RefleksZinciri = { refleks: r, niyetler: akibetler(r.o, r.niyetler) };
+    const soz = algiHaritasi.get(anahtar(r.o, r.algi));
+    if (soz) z.soz = soz;
+    return z;
+  });
+
+  return { oturumlar, algilar, uyanislar: zincir, refleksler, ogretimler, bozuk };
 }
 
 /**

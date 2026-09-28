@@ -59,6 +59,8 @@ export const ICGUDULER = {
     aciklama: "İçerik süzgeci çökerse algı geçirilir: gereksiz uyandırmak, sessizce atlamaktan iyidir." },
   "kopru.suzgec": { katman: "kopru", ezilebilir: true,
     aciklama: "Kimlik vermeyen bir içerik süzgecinin kararı (eski imza: yalnızca evet/hayır)." },
+  "kopru.refleks": { katman: "kopru", ezilebilir: false,
+    aciklama: "Beceri refleksinin kendi adımının sonucunu refleks okur, beyne gitmez; refleks başarısız olursa söz notla birlikte beyne döner (spec 10)." },
 
   // ── Dikkat (mekanik sınırlar, mind/dikkat.ts) ─────────────────────────────
   "dikkat.tik_yasak": { katman: "dikkat", ezilebilir: false,

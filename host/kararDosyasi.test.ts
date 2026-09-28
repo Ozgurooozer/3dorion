@@ -156,6 +156,7 @@ const IZGARA = [
   { tur: "algi", o: "o1", id: "a3", t: 5, algi: "sonuc" },
   { tur: "algi", o: "o1", id: "a4", t: 6, algi: "olay" },
   { tur: "ogretim", o: "o1", t: 7 },
+  { tur: "refleks", o: "o1", id: "r1", t: 8 },
 ];
 
 test("satirlariOku: türü seçilen satırlar ve algı türü seçilen algı satırları; başkası değil", () => {

@@ -206,6 +206,7 @@ test("görev satırı seçimi (ızgara): uyanış, söz ve sonuç satırları; b
     [satir({ tur: "algi", algi: "gordum" }), false],
     [satir({ tur: "oturum" }), false],
     [satir({ tur: "ogretim" }), false],
+    [satir({ tur: "refleks" }), true],
   ];
   assert.deepEqual(izgara.map(([s]) => gorevSatiriMi(s)), izgara.map(([, b]) => b));
 });
@@ -229,4 +230,62 @@ test("görev doğmaz: çerçevesi boş söz (yalnız çapa adı)", () => {
 test("hata veren görev de çıkarılır (sayaç için), sonucu hata", () => {
   const [g] = kayittanGorev({ durumlar: ["hata", null] });
   assert.equal(g?.sonuc, "hata");
+});
+
+// ── Refleks turu görev olarak (spec 10, Faz D) ─────────────────────────────
+// Refleksin sonucu yürüttüğü becerinin sayacına yazılır: başarısı güveni artırır,
+// hatası payı düşürür. Ölçüm onu saymaz (tools/beceri-deney.ts: beceri kendini doğrulamaz).
+
+const SANDALYE: Niyet = { tur: "git", hedef: { tip: "capa", ad: "sandalye" } };
+
+/** Gerçek kayıtla bir söz ve onu yürüten refleks; adım sonuçları verilen durumlarla. */
+function refleksGorevleri(ayar: { durumlar?: ("bitti" | "iptal" | "hata" | null)[]; bitis?: "basari" | "hata" | "kesildi" | "zaman_asimi"; sozsuz?: boolean } = {}) {
+  const satirlar: string[] = [];
+  const k = new KararKaydi({ oturum: "o1", simdi: () => 5_000, yaz: (s) => satirlar.push(s.slice(KARAR_ONEKI.length + 1)) });
+  k.oturumBasi("sahte");
+  const a = ayar.sozsuz ? "a99" : k.algi({ tur: "duydum", metin: "sandalyeye git", kesin: true }, "ozet", GECTI);
+  const niyetler = [niyetKaydi("refleks_1", SANDALYE)];
+  (ayar.durumlar ?? ["bitti"]).forEach((durum, i) => {
+    if (durum) k.algi({ tur: "sonuc", sonuc: { niyet_id: `refleks_${i + 1}`, durum } }, "ozet", { gecti: false, kural: "kopru.refleks" });
+  });
+  k.refleks({ algi: a, beceri: "Bab3ff9c2", niyetler, bitis: ayar.bitis ?? "basari", sureMs: 3000 });
+  return gorevler(zincirKur(kayitOku(satirlar.join("\n")).satirlar));
+}
+
+test("refleks turu bir görevdir: kaynak refleks, yürütülen beceri, söz, adımlar, sonuç; LLM süresi 0", () => {
+  const [g] = refleksGorevleri();
+  assert.deepEqual(
+    { kaynak: g?.kaynak, kimlik: g?.kimlik, beceri: g?.beceri, soz: g?.soz, adimlar: g?.adimlar, sonuc: g?.sonuc, sureMs: g?.sureMs },
+    { kaynak: "refleks", kimlik: "o1/r1", beceri: "Bab3ff9c2", soz: "sandalyeye git", adimlar: [{ govde: SANDALYE, durum: "bitti" }], sonuc: "basari", sureMs: 0 },
+  );
+});
+
+test("refleksin adımı hata verirse görev hatadır; yeni emrin geçtiği (iptal) refleks belirsizdir", () => {
+  const sonuc = [refleksGorevleri({ durumlar: ["hata"], bitis: "hata" })[0]?.sonuc, refleksGorevleri({ durumlar: ["iptal"], bitis: "kesildi" })[0]?.sonuc];
+  assert.deepEqual(sonuc, ["hata", "belirsiz"]);
+});
+
+test("refleksin söz satırı okunmadıysa görev yok", () => {
+  assert.equal(refleksGorevleri({ sozsuz: true }).length, 0);
+});
+
+test("uyanış görevleri de refleks görevleri de aynı listede, zaman sırasıyla", () => {
+  const satirlar: string[] = [];
+  let t = 0;
+  const k = new KararKaydi({ oturum: "o1", simdi: () => (t += 1000), yaz: (s) => satirlar.push(s.slice(KARAR_ONEKI.length + 1)) });
+  const a1 = k.algi({ tur: "duydum", metin: "masaya git otur", kesin: true }, "ozet", GECTI);
+  k.uyanis({ ...UYANIS, algilar: [a1], niyetler: [niyetKaydi("n_1", GIT_MASA)] });
+  k.algi({ tur: "sonuc", sonuc: { niyet_id: "n_1", durum: "bitti" } }, "ozet", { gecti: false, kural: "refleks.sonuc.rutin" });
+  const a2 = k.algi({ tur: "duydum", metin: "sandalyeye git", kesin: true }, "ozet", GECTI);
+  k.algi({ tur: "sonuc", sonuc: { niyet_id: "refleks_1", durum: "bitti" } }, "ozet", { gecti: false, kural: "kopru.refleks" });
+  k.refleks({ algi: a2, beceri: "B1", niyetler: [niyetKaydi("refleks_1", SANDALYE)], bitis: "basari", sureMs: 1 });
+  assert.deepEqual(gorevler(zincirKur(kayitOku(satirlar.join("\n")).satirlar)).map((g) => g.kaynak), ["uyanis", "refleks"]);
+});
+
+test("refleks satırında bedensel olmayan adım varsa görev yok (ikinci kez sorulur)", () => {
+  const satirlar: string[] = [];
+  const k = new KararKaydi({ oturum: "o1", simdi: () => 5_000, yaz: (s) => satirlar.push(s.slice(KARAR_ONEKI.length + 1)) });
+  const a = k.algi({ tur: "duydum", metin: "dizini listele", kesin: true }, "ozet", GECTI);
+  k.refleks({ algi: a, beceri: "B1", niyetler: [niyetKaydi("refleks_1", { tur: "komut", metin: "dir", gerekce: "g" })], bitis: "basari", sureMs: 1 });
+  assert.equal(gorevler(zincirKur(kayitOku(satirlar.join("\n")).satirlar)).length, 0);
 });

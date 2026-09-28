@@ -132,6 +132,8 @@ function pencereAc() {
   if (process.env.ORION_TAHTADENE === "1") parcalar.push("tahtadene=1", "sessiz=1");
   if (process.env.ORION_TAHTABEYIN === "1") parcalar.push("tahtabeyin=1", "sessiz=1");
   if (process.env.ORION_BECERDENE === "1") parcalar.push("becerdene=1", "sessiz=1");
+  // Beceri yetkisi (spec 10, Faz D): anahtar varsayılan kapalı; yalnız açıkça istenince.
+  if (process.env.ORION_BECERI === "1") parcalar.push("beceri=1");
   if (process.env.ORION_ONAYDENE === "1") parcalar.push("onaydene=1", "sessiz=1");
   if (process.env.ORION_TEZDENE === "1") parcalar.push("tezdene=1", "sessiz=1");
   if (process.env.ORION_ZIHINDENE === "1") parcalar.push("zihindene=1", "sessiz=1");
