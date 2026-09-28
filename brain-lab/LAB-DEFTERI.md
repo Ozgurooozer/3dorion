@@ -3502,6 +3502,50 @@ Refleks (Faz D) adımları sırayla, her birinin sonucunu bekleyerek gönderir.
 
 **Sonraki:** Faz C (canlı gölge). Davranış değiştirmiyor; kanıtı aynı bedensel görevi iki kez söyleyen bir senaryo.
 
+## 2026-09-28 — Beceri refleksi Faz C: canlı gölge — `becerdene` koşusundan önce
+
+**Yapılan `[TEST]`** (commit 3b8d5ef). Davranış değişmez: kesin sözde beceri hafızasının ne yapacağı söz satırına yazılır
+(`beceriGolge`); kapı, uyanış ve niyetler aynı kalır.
+- **Kayıt:** `KararKaydi.dinle` satır dinleyicisi. Dinleyici diske gidenin aynısını alır, yani JSON'dan geri okunmuş
+  hali. Böylece köprünün canlı hafızası kayıttan kurulana yapıca eşit kalır; bellekteki niyet `mesafe: undefined`
+  taşısa bile.
+- **Defter** (`mind/beceriDefteri.ts`): geçmiş oturumlar açılışta bir kez göreve çevrilir. Bu oturumun satırları
+  dinleyiciden gelir; hafıza yeni görev satırıyla kirlenir, sonraki kararda yeniden kurulur.
+- **Host:** geçmiş oturumların görev satırları senkron IPC ile gelir. Seçim renderer'dan (`GOREV_SATIRLARI`), süzme
+  host'ta; iki yazımın eşitliğini test bekler.
+- **Araçlar:** `ogret beceriler` salt okur döküm. `beceri-deney` gölge denetimi (B11): kayıttaki her gölge aynı satır
+  sırasıyla köprünün defteriyle yeniden hesaplanır. Denetim, bozulmuş gölgeyi yakalıyor (kalibrasyon testi).
+- **Bekçiler:** B10 (becerili ve becerisiz köprü aynı niyetleri gönderir, aynı sayıda uyanır); B11 (canlı hafıza =
+  yazdığı satırlardan kurulan); bozuk geçmiş Orion'u durdurmaz.
+- **Açılış maliyeti `[ÖLÇÜLDÜ]`** (gerçek kayıt, 2 gün): 1935 satır, 505 KB, okuma 4–6 ms, defter 2–4 ms.
+- **Testler:** toplam 1811 yeşil.
+- **Bozma denemesi:** 38 mutant, 35 yakalandı, 3 eşdeğer:
+  - C14: defterin satır süzgeci yalnız belleği küçük tutar, sonucu değiştirmez.
+  - C24: gölgedeki hata yakalama testte tetiklenemez; bu oturumun satırlarını kendi yazıcımız üretir.
+  - C28: NTFS dizini sıralı verir; `sort` başka dosya sistemleri için.
+
+**Canlı koşu:**
+- `3dorion.bat becerdene`, beyin Claude Haiku (varsayılan).
+- Kayıt `ORION_KARAR_DOSYASI` ile yeni bir dosyaya (geçmişsiz).
+- Senaryo Ozyn adına üç söz söyler, her birinden sonra 16 sn bekler: "pencereye git", "sandalyeye git", "pencereye git".
+- Sonra `node --experimental-strip-types tools/beceri-deney.ts <dosya>` koşulur (ölçü + gölge denetimi).
+
+**Öngörüler:**
+- **CG1:** Her söz LLM'i uyandırır: günlükte üç sözün de "uyanis +N" değeri ≥ 1. Gölge davranışı değiştirmez.
+- **CG2:** 1. sözün satırında gölge `null` (hafıza boş).
+- **CG3:** 1. sözde LLM `git {hedef: pencere}` verir, sonucu `bitti`; görev başarılı olur, beceri doğar (çerçeve
+  `git`, 1 yuva).
+- **CG4:** 2. sözün satırında gölge `{adimlar: [git sandalye], pay: 1}`.
+- **CG5:** 3. sözün satırında gölge `[git pencere]` (2. görev aynı tarifle başarılıysa pay 1, başarı 2).
+- **CG6:** Gölge denetimi: 3 gölgeli söz, 3'ü de yeniden hesaplanınca aynı.
+- **CG7:** Ölçü: görev 3, eşleşme 2. Uyum en az 1/2: LLM "sandalyeye git"te `otur` da ekleyebilir, o zaman tarif
+  farklı olur.
+- **CG8:** Bozuk satır 0.
+
+**Yanlışlayıcılar:**
+- Gölge denetiminde bir tek farklı gölge çıkarsa canlı hafıza kayıttan ayrışmıştır: B11 canlıda kalır.
+- Eşleşen bir sözden sonra LLM uyanmazsa gölge davranışı değiştirmiştir: B10 canlıda kalır.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
