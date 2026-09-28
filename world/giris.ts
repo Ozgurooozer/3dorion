@@ -67,7 +67,8 @@ import { DisBeyin } from "../bridge/disBeyin.ts";
 import { KayitBeyni } from "../bridge/kayitBeyni.ts";
 import { OllamaBeyni } from "../bridge/ollama.ts";
 import { ollamaTara, type OllamaKatalogu } from "../bridge/ollamaKatalog.ts";
-import { yerelSecenekler, yerelAd, yereldenModel, kartlariKur } from "../bridge/beyinKatalogu.ts";
+import { opencodeTara, type OpenCodeKatalogu } from "../bridge/opencodeKatalog.ts";
+import { yerelSecenekler, yerelAd, yereldenModel, bulutSecenekler, kartlariKur } from "../bridge/beyinKatalogu.ts";
 import { modelSeciciKur } from "./arayuz/modelSecici.ts";
 import type { ModelSeciciKaynagi } from "./arayuz/modelSeciciCekirdek.ts";
 import { SecilebilirBeyin, type BeyinSecenegi } from "../bridge/secilebilirBeyin.ts";
@@ -1418,6 +1419,26 @@ function beyniBagla(a: Avatar): void {
   };
   const ollamaHazir = ollamayiTara();
 
+  // ── OPENCODE TARAMASI: bağlı sağlayıcıların araçlı+ücretsiz modelleri ─
+  //
+  // Aynı kalıp: beklenmez, sonuç gelince seçenekler EKLENİR. Yeni sağlayıcı
+  // (NVIDIA gibi) eklemek burayı DEĞİŞTİRMEZ — OpenCode'a kimlik bilgisi
+  // girilince tarama onu otomatik bulur (bkz. `opencodeKatalog.ts`).
+  const opencodeAdres = q.get("opencode") || undefined;
+  let opencodeKatalogu: OpenCodeKatalogu | null = null;
+  const opencodeyiTara = async (): Promise<void> => {
+    const k = await opencodeTara({ adres: opencodeAdres });
+    opencodeKatalogu = k;
+    const eklenen = secici.secenekEkle(bulutSecenekler(k, { sifre: q.get("sifre") || undefined }));
+    if (k.ulasildi) {
+      console.log(`[OPENCODE] ${k.saglayicilar.join(", ") || "sağlayıcı yok"} · ${k.modeller.length} model (${eklenen} yeni seçenek)`);
+    } else {
+      console.warn(`[OPENCODE] taranamadı: ${k.hata}`);
+    }
+    modelSecici?.tazele();
+  };
+  const opencodeHazir = opencodeyiTara();
+
   // SON SEÇİM HATIRLANIR — ama yalnızca elle açılışta. Senaryolar (`*dene`,
   // hepsi `sessiz=1` taşır) ve `?beyin=` açılış beynini KESİN bilmeli; bir
   // önceki oturumda kalmış tercih ölçüm koşusunun beynini sessizce
@@ -1432,10 +1453,10 @@ function beyniBagla(a: Avatar): void {
     let onceki: string | null = null;
     try { onceki = localStorage.getItem(HATIRA_ANAHTARI); } catch { /* yok say */ }
     if (onceki && onceki !== secici.aktif) {
-      // Tarama bitince: yerel model ancak o zaman seçenek olur. Geçiş yine
-      // sağlık kontrolünden geçer; model silindiyse varsayılan kalır ve
+      // Tarama bitince: yerel/bulut model ancak o zaman seçenek olur. Geçiş
+      // yine sağlık kontrolünden geçer; model silindiyse varsayılan kalır ve
       // sebep günlükte okunur.
-      void ollamaHazir.then(() => {
+      void Promise.all([ollamaHazir, opencodeHazir]).then(() => {
         if (!secici.secenekVarMi(onceki!)) {
           console.warn(`[BEYIN] hatırlanan beyin '${onceki}' artık yok, ${secici.aktif} kalıyor`);
           return;
@@ -1635,8 +1656,9 @@ function beyniBagla(a: Avatar): void {
   // teyit yolundan geçer (`beyin.model` tehlikeli sınıfta). Pencere teyidi
   // kendisi soruyor (iki adımlı Enter), burada onaylanıyor. Böylece günlük,
   // liste dışı değer kontrolü ve "bekleyen ezilemez" kuralı tek kaynakta kalır.
+  const hepsiniTara = async (): Promise<void> => { await Promise.all([ollamayiTara(), opencodeyiTara()]); };
   const seciciKaynagi: ModelSeciciKaynagi = {
-    kartlar: () => kartlariKur(secici.secenekAdlari(), ollamaKatalogu),
+    kartlar: () => kartlariKur(secici.secenekAdlari(), ollamaKatalogu, opencodeKatalogu),
     durum: () => {
       const g = secici.gecis;
       return {
@@ -1657,7 +1679,7 @@ function beyniBagla(a: Avatar): void {
       const s = panoKaydi.teyitliYaz(acilan.jeton);
       return s.oldu ? "" : s.sebep;
     },
-    yenile: ollamayiTara,
+    yenile: hepsiniTara,
     tarama: () => ollamaKatalogu && {
       ulasildi: ollamaKatalogu.ulasildi, surum: ollamaKatalogu.surum,
       modelSayisi: ollamaKatalogu.modeller.length, an: ollamaKatalogu.an,
@@ -1674,8 +1696,9 @@ function beyniBagla(a: Avatar): void {
   });
   (globalThis as unknown as Record<string, unknown>).orionModel = {
     ac: () => modelSecici?.ac(),
-    tara: ollamayiTara,
+    tara: hepsiniTara,
     katalog: () => ollamaKatalogu,
+    bulutKatalog: () => opencodeKatalogu,
   };
   console.log(`[PANO] ${panoKaydi.moduller().length} modül, ` +
     `${panoKaydi.goruntu().reduce((n, m) => n + m.dugmeler.length, 0)} tel bağlandı`);

@@ -5,20 +5,28 @@
 // yalnızca çıplak adlar (`yerel:qwen3`) −/+ ile tek tek dönüyordu ve hangi
 // seçeneğin ne olduğunu bilmek kodu okumayı gerektiriyordu.
 //
-// Bu dosya iki şey üretir, ikisi de Ollama kataloğundan (TEK KAYNAK):
-//   1. yerel beyin SEÇENEKLERİ — kurulu ve sohbet edebilen her model için
+// Bu dosya iki şey üretir, YEREL Ollama kataloğundan VE BULUT OpenCode
+// kataloğundan (ikisi de TEK KAYNAK):
+//   1. beyin SEÇENEKLERİ — kurulu/uygun her model için
 //   2. seçici KARTLARI — her seçenek için okunur bir tanıtım
+//
+// BULUT (OpenCode) yeni: `opencodeKatalog.ts` OpenCode sunucusuna BAĞLI her
+// sağlayıcıyı (openrouter, nvidia, ...) tarar. Yeni sağlayıcı eklemek
+// (`PUT /auth/<id>`) bu dosyayı DEĞİŞTİRMEZ — liste otomatik büyür.
 //
 // Kart tipi burada tanımlı; `world/arayuz/modelSecici.ts` AYNI BİÇİMİ kendi
 // tarafında yeniden tanımlar (yapısal tip). K4: `world/` `bridge/`i import
 // etmez; bağlantıyı kompozisyon kökü kurar.
 //
-// Bağımlılık: ollama.ts, ollamaKatalog.ts, secilebilirBeyin.ts (yalnızca tip).
+// Bağımlılık: ollama.ts, ollamaKatalog.ts, opencode.ts, opencodeKatalog.ts,
+// secilebilirBeyin.ts (yalnızca tip).
 "use strict";
 import { OllamaBeyni } from "./ollama.ts";
 import {
   aracDestekler, boyutYaz, sohbetEdebilir, type OllamaKatalogu, type OllamaModeli,
 } from "./ollamaKatalog.ts";
+import { OpenCodeBeyni } from "./opencode.ts";
+import type { OpenCodeKatalogu, OpenCodeModeli } from "./opencodeKatalog.ts";
 import type { BeyinSecenegi } from "./secilebilirBeyin.ts";
 
 export const YEREL_ONEK = "yerel:";
@@ -51,6 +59,18 @@ export function yereldenModel(ad: string): string | null {
 }
 
 /**
+ * BULUT (OpenCode) taranmış seçenek adı: sabit `opencode` seçeneğiyle
+ * ÇAKIŞMAZ (o tek başına duran ad, bunlar `/` taşır). `providerID` seçici
+ * anahtarına girer ki aynı `modelID`nin iki sağlayıcıda görünmesi (nadir ama
+ * mümkün, ör. ileride aynı model hem openrouter hem nvidia'da) tek karta
+ * çökmesin.
+ */
+export const BULUT_ONEKI = "opencode:";
+export function bulutAd(providerID: string, modelID: string): string {
+  return `${BULUT_ONEKI}${providerID}/${modelID}`;
+}
+
+/**
  * Kataloktaki sohbet edebilen her model için bir seçenek.
  *
  * Yetenekler beyne TAŞINIR: araçsız modele `tools`, düşünmeyene `think`
@@ -70,8 +90,50 @@ export function yerelSecenekler(
 }
 
 /**
- * Sabit (Ollama dışı) seçeneklerin tanıtımı. Sayılar ÖLÇÜLMÜŞ olanlardır;
- * kaynakları `world/giris.ts`teki seçenek yorumlarında.
+ * Kataloktaki her BULUT modeli için bir seçenek (araç çağırabilir VE
+ * ücretsiz — süzgeç `opencodeKatalog.ts`te). `zamanAsimiMs` uzun tutulur:
+ * bulut modeli soğuk açılışta yavaş olabilir (bkz. `claude:haiku` yorumu).
+ */
+export function bulutSecenekler(
+  katalog: OpenCodeKatalogu, ayar: { adres?: string; sifre?: string; zamanAsimiMs?: number } = {},
+): BeyinSecenegi[] {
+  return katalog.modeller.map((m) => ({
+    ad: bulutAd(m.providerID, m.modelID),
+    kur: () => new OpenCodeBeyni({
+      providerID: m.providerID, modelID: m.modelID,
+      adres: ayar.adres ?? katalog.adres, sifre: ayar.sifre,
+      zamanAsimiMs: ayar.zamanAsimiMs ?? 30_000,
+    }),
+  }));
+}
+
+/** `128000` → `128K bağlam`; `0` ya da bilinmiyorsa `""` (rozet eklenmez). */
+function baglamYaz(tokenSayisi: number): string {
+  if (!(tokenSayisi > 0)) return "";
+  return tokenSayisi >= 1000 ? `${Math.round(tokenSayisi / 1000)}K bağlam` : `${tokenSayisi} bağlam`;
+}
+
+/** Tek bir OpenCode (bulut) modelinin kartı. */
+export function bulutKart(m: OpenCodeModeli): ModelKarti {
+  const rozetler: { metin: string; ton: RozetTonu }[] = [
+    { metin: m.saglayiciAdi, ton: "notr" },
+    { metin: "ücretsiz", ton: "iyi" },
+    { metin: "araç ✓", ton: "iyi" },
+  ];
+  if (m.dusunurMu) rozetler.push({ metin: "düşünür", ton: "notr" });
+  if (m.gorurMu) rozetler.push({ metin: "görür", ton: "notr" });
+  const baglam = baglamYaz(m.baglamPenceresi);
+  if (baglam) rozetler.push({ metin: baglam, ton: "notr" });
+  return {
+    ad: bulutAd(m.providerID, m.modelID), baslik: m.ad, grup: "bulut",
+    aciklama: [m.aile && `${m.aile} ailesi`, `${m.saglayiciAdi} · bulut, ağ gerekir`].filter(Boolean).join(" · "),
+    rozetler, uygun: true,
+  };
+}
+
+/**
+ * Sabit (Ollama/OpenCode-katalog dışı) seçeneklerin tanıtımı. Sayılar
+ * ÖLÇÜLMÜŞ olanlardır; kaynakları `world/giris.ts`teki seçenek yorumlarında.
  */
 const SABIT: Record<string, Omit<ModelKarti, "ad" | "uygun">> = {
   "claude:haiku": {
@@ -125,15 +187,23 @@ export function yerelKart(m: OllamaModeli): ModelKarti {
  * olup seçilemeyen modeller (gömme). Seçenekte olup katalogda OLMAYAN yerel ad
  * (ör. `?beyin=yerel:x` ile açılış, sonra model silindi) de kart alır —
  * gizlemek "aktif beyin listede yok" tuhaflığı yaratırdı.
+ *
+ * `bulut` isteğe bağlı (üçüncü parametre): OpenCode kataloğu henüz taranmamış
+ * ya da hiç kullanılmıyorsa (ör. eski testler) `null`/atlanmış kalabilir.
  */
 export function kartlariKur(
   secenekAdlari: readonly string[], katalog: OllamaKatalogu | null,
+  bulut: OpenCodeKatalogu | null = null,
 ): ModelKarti[] {
   const kartlar: ModelKarti[] = [];
   const katalogAdlari = new Set<string>();
   for (const m of katalog?.modeller ?? []) {
     kartlar.push(yerelKart(m));
     katalogAdlari.add(yerelAd(m.ad));
+  }
+  for (const m of bulut?.modeller ?? []) {
+    kartlar.push(bulutKart(m));
+    katalogAdlari.add(bulutAd(m.providerID, m.modelID));
   }
   for (const ad of secenekAdlari) {
     if (katalogAdlari.has(ad)) continue;
