@@ -3906,6 +3906,44 @@ karar, örn. kullanıcı mesajı niyeti/aciliyeti) çıkarsa yeniden değerlendi
 `ruleLambda` 0,97 yanında düşünülebilir. (2) İstersen H3B99 için `curut` (CROSS + LOCAL + lezyon) ile "yön bilgisiz hareket"
 okumasını sına. (3) Kayıtlı denekle tam bit-birebir yeniden eğitim kontrolü henüz yapılmadı.
 
+## 2026-09-29 — Ön-kayıt 004 Bölüm A sonucu: zaman uzun izli kuralları çok iyileştiriyor, yönü yine öğretmiyor
+
+`[ÖLÇÜLDÜ]` Kod `2d736a9` + `kural-olcum.ts`; `npm run exp -- tara H3B H3B97 H3B99 --egitim 200`; çıktılar
+`data/screen-H3B-summary.json` vb. (yeniden yazıldı, 40 bölümlük satırlar `results.jsonl`'de duruyor), ölçüler
+`node --experimental-strip-types brain-lab/experiments/kural-olcum.ts 200 H3B H3B97 H3B99`. Oda 3, seed 1–5 × iki grup,
+200 eğitim + 10 değerlendirme, aynı dünyalar. Ozyn'in gözlemi ("deneyleri kısa tutuyoruz") bu deneyi başlattı.
+
+| koşul | eğitim | kural ağırlığı | kendi / öbür | kendi > öbür | dürtü | hayatta | G7 | G6m |
+|---|---|---|---|---|---|---|---|---|
+| H3B | 40 | 0,017 | 0,018 / 0,006 | 10/10 | 0,351 | %48 | 0,371 | 0,020 |
+| H3B | 200 | 0,088 | 0,080 / 0,045 | 9/10 | 0,398 | %45 | 0,527 | 0,018 |
+| H3B97 | 40 | 0,049 | 0,041 / 0,026 | 8/10 | 0,350 | %49 | 0,335 | 0,006 |
+| H3B97 | 200 | 0,312 | 0,259 / 0,192 | 9/10 | 0,193 | %79 | 0,440 | 0,003 |
+| H3B99 | 40 | 0,196 | 0,179 / 0,224 | 6/10 | 0,278 | %60 | 0,243 | −0,004 |
+| H3B99 | 200 | 0,537 | 0,565 / 0,515 | 8/10 | 0,163 | %75 | 0,334 | −0,036 |
+
+**Öngörü karnesi (öngörüler koşmadan önce `preregistration-004`'te)**
+| # | sonuç |
+|---|---|
+| A1 H3B ağırlığı ≥ 3× ve < 0,12 | ✓ 5,2×, 0,088 |
+| A2 H3B ≥ 9/10; H3B97 ve H3B99 ≤ 8/10 | ✗ kısmen: H3B 9/10 ✓, H3B99 8/10 ✓, **H3B97 9/10** (öngörü ≤ 8) |
+| A3 G6m hiçbir koşulda ≥ 0,05 değil | ✓ 0,018 / 0,003 / −0,036 |
+| A4 H3B dürtüsü 0,30'un altına düşer; H3B99'da fark < 0,05 | ✗ ikisi de: H3B **kötüleşti** (0,351 → 0,398), H3B99 0,278 → 0,163 |
+
+**Yorum (ölçülenden fazlasını iddia etmeden)**
+- Zaman belirleyici çıktı: uzun izli koşullar 200 bölümde dürtüyü yarıya yakın düşürdü (H3B97 0,35 → 0,19, hayatta %79) —
+  40 bölüm gerçekten kısaydı. Kural ağırlığı H3B97'de 0,31, kapasite fikstürünün (~0,25) üstüne çıktı.
+- λ 0,9'lu H3B ise zamanla **iyileşmedi**, dürtüsü 0,351 → 0,398. Ağırlık büyüdü ama yararı yok: kısa izle büyüyen kural,
+  hatırlanınca hareketi artırıyor gibi görünüyor ama bu kazanç getirmiyor. Bu bir okuma, sınanmadı.
+- Yön ölçüsü G6m üç koşulda da ≈ 0 kaldı; H3B99'da kural ağırlıkları iki tarafa da yaklaşık eşit (0,56 / 0,52). Dürtü
+  kazancı, yönlendirmeden gelmiyor. Yine "yön bilgisiz hareket" okuması: H3B97/H3B99'un kazancı gerçek öğrenme mi,
+  sabit bir hareket alışkanlığı mı, CROSS/LOCAL kontrolü olmadan söylenemez. n = 10.
+- 200 bölüm, uzun izle daha iyi; sonuç 40 bölümde "işe yaramıyor" denen bir yöntemin yanlış ölçü uzunluğundan çıktığını
+  gösteriyor. Sonraki deneylerde eğitim uzunluğu tek bir sabit olmamalı (öğrenme eğrisi kaydıyla ölçülmeli).
+
+**Sonraki:** Bölüm B (yön bilgisi içgüdü olarak) Ozyn'in onayını bekliyor. İstenirse H3B97 için `curut` (CROSS + LOCAL +
+lezyon, 200 bölüm): kazanç gerçek öğrenme mi, hareket alışkanlığı mı.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
