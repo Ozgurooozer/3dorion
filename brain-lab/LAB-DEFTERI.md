@@ -3868,6 +3868,44 @@ ve <1 ms; laya için veri toplayıp ince ayar yapmanın (Kaggle GPU, saatler) ö
 laya/` (venv + iki deney betiği) silinmedi, duruyor — laya'nın güçlü olduğu bir iş (doğal dil metni üzerinde tipli
 karar, örn. kullanıcı mesajı niyeti/aciliyeti) çıkarsa yeniden değerlendirilebilir.
 
+## 2026-09-29 — Ön-kayıt 003 sonucu: uzun iz kural ağırlığını büyütüyor ama yönü öğretmiyor
+
+`[ÖLÇÜLDÜ]` Kod `2d736a9` (`ruleLambda`, varsayılan kapalı; 6 test, 8/8 bozma yakalandı). `npm run exp -- tara H3B97` ve
+`tara H3D97 H3B99`; çıktılar `data/screen-H3B97-summary.json`, `-H3D97-`, `-H3B99-`. Kural ağırlıkları ve G7/G6m
+`recall-a3.ts` işlevleriyle (`ruleWeights`, `aggregateRecall`) kayıtlı defterlerden okundu; oda 3, seed 1–5 × iki grup,
+40 + 10 bölüm, H3B/H3D referansları kayıtlı satırlar (λ 0,9).
+
+| koşul | ort. kural ağırlığı | kendi / öbür taraf | kendi > öbür | dürtü | hayatta | G7 kapı payı | G6m |
+|---|---|---|---|---|---|---|---|
+| H3B (λ 0,9) | 0,017 | 0,018 / 0,006 | 10/10 | 0,351 | %48 | 0,371 | 0,020 |
+| H3B97 | 0,049 | 0,041 / 0,026 | 8/10 | 0,350 | %49 | 0,335 | 0,006 |
+| H3B99 | 0,196 | 0,179 / 0,224 | 6/10 | 0,278 | %60 | 0,243 | −0,004 |
+| H3D (λ 0,9) | 0,031 | 0,025 / 0,026 | 4/10 | 0,554 | %22 | 0,498 | 0,000 |
+| H3D97 | 0,066 | 0,042 / 0,045 | 5/10 | 0,306 | %53 | 0,378 | 0,006 |
+
+**Öngörü karnesi (öngörüler koşmadan önce `preregistration-003`'te; yeniden yazılmadı)**
+| # | sonuç |
+|---|---|
+| Ö1 kural ağırlığı ≥ 2× | ✓ H3B97 2,9× (H3B99 11,7×) |
+| Ö2 H3B97 < 0,12 | ✓ 0,049 (ama H3B99 0,196: kapasite fikstürünün ~0,25'ine yaklaştı) |
+| Ö3 hafıza kullanımı H3B'den iyi, ikizle fark anlamsız | ✗ H3B97 dürtüde eşit (0,350 vs 0,351), G6m kötüleşti (0,020 → 0,006), kendi > öbür 10 → 8. İkizle fark anlamlı çıktı (Wilcoxon p 0,004), ama ölçüt kötü kurulmuştu: ikiz tüm öğrenmeyi kapatıyor, H3B de aynı farkı gösterir; doğru kıyas H3B'ye karşı |
+| Ö4 H3B99, H3B97'den iyi değil | ✗ H3B99 dürtüde belirgin iyi (0,278 vs 0,350), hayatta %60 |
+| Ö5 aç/tok ayrımı yok | ölçülmedi (yalnız kapı payı ve yön bakıldı) |
+
+**Yorum (ölçülenden fazlasını iddia etmeden)**
+- İz uzayınca kural ağırlığı büyüdü: teşhisteki "iz kısa" kısmı doğru. Bu yönde çalışan bir kaldıraç.
+- Ama ağırlık **taraf ayırmıyor**: λ arttıkça kendi > öbür 10 → 8 → 6/10, G6m 0,020 → 0,006 → −0,004. Uzun iz, hatırlamayı
+  art arda dönüşlere ve sonraki öğüne aynı kredi olarak bağlıyor; hangi tarafın doğru olduğunu ayıramıyor.
+- H3B99 ve H3D97'deki dürtü kazancı (0,35 → 0,28 / 0,55 → 0,31) yönlendirmeden gelmiyor. En olası okuma: "hatırlanınca
+  hareket et" (yön bilgisiz), yani S1n'de zaten görülen hareket öğrenmesi. Bu **bir okuma, sınanmadı**: CROSS/LOCAL kontrolü
+  ve lezyon koşulmadı; n = 10.
+- H3D97 gösteriyor ki H3D'nin kötü tabanı (0,554) kısmen iz kısalığındandı; B ≠ D farkı kararlı bir bulgu olarak alınmamalı.
+- Teşhisin ikinci parçası (eleştirmen yemeğe değer vermiyor, temsil açığı) bu deneyle kapanmadı; ikisi ayrı çalışıyor.
+
+**Sonraki (Ozyn'e):** (1) A3b'ye dön: yön bilgisini taşıyacak temsil/değer (eleştirmen etkileşimi ya da hatıraya kredi taşıma),
+`ruleLambda` 0,97 yanında düşünülebilir. (2) İstersen H3B99 için `curut` (CROSS + LOCAL + lezyon) ile "yön bilgisiz hareket"
+okumasını sına. (3) Kayıtlı denekle tam bit-birebir yeniden eğitim kontrolü henüz yapılmadı.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
