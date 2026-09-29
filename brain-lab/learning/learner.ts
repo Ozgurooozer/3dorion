@@ -25,6 +25,8 @@ import { isPlastic, regionOf } from "../regions/index.ts";
 export interface LearningParams {
   readonly eta: number; // learning rate
   readonly lambda: number; // eligibility memory per tick, in [0, 1)
+  /** Eligibility memory of the rule synapses only (recalled sense → Go/NoGo; prereg 003). null = they use lambda. */
+  readonly ruleLambda: number | null;
   readonly quantum: number; // smallest weight change that is applied and recorded
   readonly wMax: number; // weights stay in [0, wMax] (learning pathways are excitatory)
   /** A frozen learner computes everything but changes nothing: the control twin. */
@@ -55,7 +57,7 @@ export interface LearningParams {
 }
 
 export const DEFAULT_LEARNING: LearningParams = Object.freeze({
-  eta: 0.1, lambda: 0.9, quantum: 0.001, wMax: 2, frozen: false,
+  eta: 0.1, lambda: 0.9, ruleLambda: null, quantum: 0.001, wMax: 2, frozen: false,
   learnGo: true, learnNoGo: true, senseFilter: null, dopamine: "full",
   gate: "neuron", dipFloor: null, scaling: false,
 });
@@ -83,7 +85,7 @@ export class Learner {
   constructor(graph: BrainGrafi, ledger: Ledger, params: Partial<LearningParams> = {}, grow: readonly Pair[] = []) {
     this.params = { ...DEFAULT_LEARNING, ...params };
     const p = this.params;
-    if (!(p.eta >= 0) || !(p.lambda >= 0 && p.lambda < 1) || !(p.quantum > 0) || !(p.wMax > 0) || (p.dipFloor !== null && !(p.dipFloor >= 0))) {
+    if (!(p.eta >= 0) || !(p.lambda >= 0 && p.lambda < 1) || (p.ruleLambda !== null && !(p.ruleLambda >= 0 && p.ruleLambda < 1)) || !(p.quantum > 0) || !(p.wMax > 0) || (p.dipFloor !== null && !(p.dipFloor >= 0))) {
       throw new RangeError(`bad learning params ${JSON.stringify(p)}`);
     }
     if (!ledger.matches(graph)) throw new Error(`${ledger.subjectId}: live brain does not match its ledger before learning starts`);
@@ -189,11 +191,11 @@ export class Learner {
 
   /** Step 4 of a tick: mark which learning edges just carried a signal into an active target. */
   updateEligibility(previousOutputs: Readonly<Record<string, number>>, outputs: Readonly<Record<string, number>>): void {
-    const { lambda, gate } = this.params;
+    const { gate } = this.params;
     const mark = (from: string, to: string, selector: string, e: number) => {
       const pre = gate === "selected" ? this.older[from] ?? 0 : previousOutputs[from] ?? 0;
       const post = gate === "selected" ? outputs[selector] ?? 0 : outputs[to] ?? 0;
-      return lambda * e + pre * post;
+      return this.traceMemory(from) * e + pre * post;
     };
     for (const s of this.synapses) s.e = mark(s.edge.from, s.edge.to, s.selector, s.e);
     for (const c of this.candidates) c.e = mark(c.from, c.to, c.selector, c.e);
@@ -205,15 +207,20 @@ export class Learner {
    * tick and picks actions on this tick, so pre is the sense now and post is 1 for the actions taken.
    */
   updateEligibilityDirect(senses: Readonly<Record<string, number>>, selected: Readonly<Record<string, 0 | 1>>): void {
-    const { lambda } = this.params;
     for (const s of this.synapses) {
       const action = s.selector.slice("bg.out.".length);
-      s.e = lambda * s.e + (senses[s.edge.from] ?? 0) * (selected[action] ?? 0);
+      s.e = this.traceMemory(s.edge.from) * s.e + (senses[s.edge.from] ?? 0) * (selected[action] ?? 0);
     }
     for (const c of this.candidates) {
       const action = c.selector.slice("bg.out.".length);
-      c.e = lambda * c.e + (senses[c.from] ?? 0) * (selected[action] ?? 0);
+      c.e = this.traceMemory(c.from) * c.e + (senses[c.from] ?? 0) * (selected[action] ?? 0);
     }
+  }
+
+  /** Eligibility memory of a synapse from `from`: rule synapses (recalled senses) may keep a longer one (ruleLambda). */
+  private traceMemory(from: string): number {
+    const { lambda, ruleLambda } = this.params;
+    return ruleLambda !== null && regionOf(from)?.region === "rec" ? ruleLambda : lambda;
   }
 
   /**

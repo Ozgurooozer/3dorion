@@ -84,6 +84,10 @@ export const CONDITIONS: Readonly<Record<string, ConditionDef>> = Object.freeze(
   // sparse growth from nothing does against a dense random start.
   H3B: { what: "room 3 (scarce): S1n + memory recall, rule synapses grown (B)", spec: () => ({ ...S1N, memory: { recall: {} } }), born: { recall: { rules: "grown" as const } }, world: ROOM3 },
   H3D: { what: "room 3 (scarce): S1n + memory recall, rule synapses innate (D)", spec: () => ({ ...S1N, memory: { recall: {} } }), born: { recall: { rules: "innate" as const } }, world: ROOM3 },
+  // Prereg 003 (data/preregistration-003-kural-lambda.md): H3B / H3D with a longer eligibility trace on the rule synapses only.
+  H3B97: { what: "room 3 (scarce): S1n + memory recall, rule synapses grown (B), rule trace λ 0.97 (prereg 003)", spec: () => ({ ...S1N, memory: { recall: {} }, learning: learn({ dipFloor: null, ruleLambda: 0.97 }) }), born: { recall: { rules: "grown" as const } }, world: ROOM3 },
+  H3D97: { what: "room 3 (scarce): S1n + memory recall, rule synapses innate (D), rule trace λ 0.97 (prereg 003)", spec: () => ({ ...S1N, memory: { recall: {} }, learning: learn({ dipFloor: null, ruleLambda: 0.97 }) }), born: { recall: { rules: "innate" as const } }, world: ROOM3 },
+  H3B99: { what: "room 3 (scarce): S1n + memory recall, rule synapses grown (B), rule trace λ 0.99 (prereg 003)", spec: () => ({ ...S1N, memory: { recall: {} }, learning: learn({ dipFloor: null, ruleLambda: 0.99 }) }), born: { recall: { rules: "grown" as const } }, world: ROOM3 },
 });
 
 export function condition(code: string): ConditionDef {
