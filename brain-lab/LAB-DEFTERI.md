@@ -3844,6 +3844,30 @@ etiketle çözen tek fonksiyon, hem LLM'in hem becerilerin başarısını artır
 **Sınır:** Sahte LLM ve sahte dünya kurgudur. Sonuç şunu der: köprü, kayıt, defter ve yürütücü bu akışlarda iddiaları
 bozmadı. "Gerçek kullanımda refleks yararlı" demez; onu B9 söyleyecek.
 
+## 2026-09-29 — laya (NandhaKishorM/laya) kabuk komutu risk sınıflandırmasında OLUMSUZ
+
+**Soru:** `mind/komutRiski.ts`teki regex tabanlı risk sınıflandırıcısına (okur/değiştirir/yıkıcı) laya
+(ModernBERT-large, 421M, tipli karar — choice/score/noul, tek ileri geçişte) ek/alternatif olur mu?
+
+**Yöntem:** `brain-lab/laya/` altında ayrı bir Python venv, `pip install laya`. `mind/komutRiski.test.ts`teki 24
+etiketli örnek (aynı proje, aynı tanım) laya'nın `Router.predict`ine bir `choice` sorusuyla (okur/değiştirir/yıkıcı
+kriterleriyle) verildi. Önce laya'nın çalıştığı doğrulandı (İngilizce destek bileti örneğinde department/urgency/
+churn_risk doğru çıktı, CPU'da ~280 ms/çağrı — GPU yok, VRAM Ollama'da).
+
+**Sonuç `[ÖLÇÜLDÜ]`:** 10/24 doğru (%41,7). Güven skorları çoğunlukla 0,45–0,55 — model gerçekten kararsız.
+En kritik sınıfta bile kaçırdı: `rm -rf node_modules` (yıkıcı) → "değiştirir"; `ls -la`, `git status`, `npm test`,
+`ollama list` (hepsi okur) → "yıkıcı"/"değiştirir".
+
+**Yorum:** Laya doğal dil (destek bileti, e-posta, müşteri mesajı) üzerinde eğitilmiş; kabuk komutu sözdizimi
+(`rm -rf`, `git push --force`) o dağılıma benzemiyor — zero-shot kabuk komutu okuyamıyor. README'nin kendi
+ölçümü de bunu destekliyor: ince ayarsız temel model tipik-karar benchmarkında 0,362, ince ayarlı 0,766 — yani
+laya'nın kendisi de "temel model zayıf, ince ayar şart" diyor.
+
+**Karar:** Entegrasyon YAPILMADI. Mevcut regex sınıflandırıcı bu örneklerde zaten %100 doğru, senkron, bağımlılıksız
+ve <1 ms; laya için veri toplayıp ince ayar yapmanın (Kaggle GPU, saatler) ölçülmüş bir kazancı yok. `brain-lab/
+laya/` (venv + iki deney betiği) silinmedi, duruyor — laya'nın güçlü olduğu bir iş (doğal dil metni üzerinde tipli
+karar, örn. kullanıcı mesajı niyeti/aciliyeti) çıkarsa yeniden değerlendirilebilir.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.

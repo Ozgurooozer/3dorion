@@ -3,6 +3,7 @@ dist/
 .vite/
 *.log
 .venv-needle/
+brain-lab/laya/.venv/
 graphify-out/
 .opencode/
 
