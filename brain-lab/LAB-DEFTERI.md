@@ -4407,6 +4407,35 @@ görülürken yapılan hamleden sonraki tikin δ'sı: o yana dönüş / öbür y
 | D1 | KL'de o yana dönüşten sonraki δ öbür yanadan büyük, K0'dan daha çok öğrenende (sayı K0'dakinden en az 2 fazla) | değilse: yön kazancı δ'nın dönüşü ayırt etmesinden gelmiyor; izin aktörle zamanlaması (uygunluk izinin δ ile çakışması) incelenir |
 | D2 | KL'de yemekten önceki 20 tik, bütün tiklerden daha pozitif; K0'dan belirgin (fark en az 2 kat) | değilse: iz değeri yemekten öne taşımıyor |
 
+## 2026-09-30 — δ teşhisi sonucu: izli eleştirmen her dönüşü cezalandırıyor; Kart 5 (hareket-kör eleştirmen) — koşmadan önce
+
+`delta-teshis.ts patient H3B97 KL KN KLN` (öngörüler `fbf127f`'de). Her oda yeniden yaşandı, son dünya hash'leri kayıtla aynı.
+
+| kol | yemek bir yandayken hamleden sonraki δ: o yana · öbür yana · dönmeden | o yana > öbür yana | dönüş sayısı o yana / öbür / dönmeden | yemekten önceki 20 tik δ / tüm tikler |
+|---|---|---|---|---|
+| H3B97 | −0,0010 · −0,0014 · +0,0001 | 4/10 | 1291 / 563 / 1555 | 0,0002 / 0,0000 |
+| KL | −0,0041 · −0,0042 · **+0,0015** | 5/10 | 1210 / **230** / 2142 | 0,0005 / 0,0002 |
+| KN | −0,0001 · −0,0001 · 0,0000 | 3/10 | 2460 / 927 / 1751 | 0,0000 / 0,0000 |
+| KLN | −0,0069 · −0,0045 · **+0,0019** | 1/10 | 1248 / 282 / 3112 | 0,0008 / 0,0002 |
+
+**Karne:** D1 ✗ (δ yemeğe doğru dönüşü öbür yanadan ayırt etmiyor; KLN'de ters). D2 ✗ (KL farkı K0'ın 1,5 katı, eşik 2).
+
+**Okuma:** izli kollarda δ **her dönüşü** cezalandırıp düz gitmeyi ödüllendiriyor. Dünyada dönmek enerji harcamıyor
+(yalnız itiş: `motorEnergyCost · |thrust|`). Ceza eleştirmenden: öğrenilmiş ağırlıklar (10 öğrenen ortalaması):
+
+| kol | proprio.left / right | proprio.forward | need*proprio.forward | need*ray2.food |
+|---|---|---|---|---|
+| H3B97 | −0,0004 / −0,0003 | 0,024 | — | — |
+| KL | −0,0061 / −0,0045 | 0,020 | — | — |
+| KLN | −0,024 / −0,010 | −0,015 | **0,185** | 0,150 |
+
+Eleştirmen durumu değil **hareketi** yargılıyor ("açken ileri gitmek iyi, dönmek kötü"). KL'nin yön kazancının bir kısmı
+gereksiz dönüşün bastırılması olabilir: öbür yana dönüş 563 → 230, yemeğe doğru dönüş aynı kaldı. Ozyn: "Dönmek neden ceza
+versin ki?" — vermemeli; eleştirmen kendi hareketini görmemeli.
+
+**Kart 5 `[TEST]`:** `critic: { proprio: false }` (bozma 3/3, kapalıyken bit-birebir, 2031/2031). Kollar KLw, KLNw; ön-kayıt
+`data/preregistration-008-hareket-kor-elestirmen.md` (P1–P6).
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.

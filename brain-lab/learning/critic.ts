@@ -37,6 +37,13 @@ export interface CriticParams {
    * Hunger neurons gate the dopamine response to food cues the same way. Absent: the senses and the bias only.
    */
   readonly features?: "need";
+  /**
+   * false: the critic does not see the body's own movement (proprio.*, and need*proprio.* with "need"). It judges the
+   * situation — what is seen, what is needed — not the move being made. Measured 2026-09-30 (Kart 4, δ diagnosis): with a
+   * trace the critic learned turning is bad (proprio left/right −0.006 to −0.024) and moving on when hungry is good
+   * (need*proprio.forward 0.185), so every turn heard a negative δ, toward the food or away. Absent: movement is seen.
+   */
+  readonly proprio?: false;
 }
 
 export const DEFAULT_CRITIC: CriticParams = Object.freeze({ alpha: 0.05, gamma: 0.99, quantum: 0.0005, normalize: false });
@@ -57,6 +64,7 @@ export class Critic {
     if (!(p.alpha >= 0) || !(p.gamma >= 0 && p.gamma <= 1) || !(p.quantum > 0)) throw new RangeError(`bad critic params ${JSON.stringify(p)}`);
     if (p.lambda !== undefined && !(p.lambda >= 0 && p.lambda <= 1)) throw new RangeError(`critic lambda must be in [0, 1], got ${p.lambda}`);
     if (p.lambda !== undefined && p.normalize) throw new RangeError("critic lambda with normalize: the normalised step has no single ‖x‖² over a trace");
+    if (p.proprio !== undefined && p.proprio !== false) throw new RangeError(`critic proprio is false or absent, got ${JSON.stringify(p.proprio)}`);
     if (p.features !== undefined && p.features !== "need") throw new RangeError(`critic features must be "need", got ${JSON.stringify(p.features)}`);
     this.ledger = ledger;
     this.cfg = cfg;
@@ -65,6 +73,7 @@ export class Critic {
 
   features(obs: Observation): Record<string, number> {
     const x: Record<string, number> = { ...(encodeObservation(obs, this.cfg) as Record<string, number>), bias: 1 };
+    if (this.params.proprio === false) for (const f of Object.keys(x)) if (f.startsWith("proprio.")) delete x[f];
     if (this.params.features !== "need") return x;
     const hunger = x["intero.hunger"]!;
     for (const f of Object.keys(x)) if (!NOT_GATED.has(f)) x[`need*${f}`] = x[f]! * hunger;

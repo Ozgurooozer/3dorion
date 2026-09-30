@@ -12,7 +12,9 @@ test("KL, KN and KLN are H3B97 with one critic change each (or both), born the s
   assert.deepEqual(spec("KL"), withCritic({ lambda: 0.9 }));
   assert.deepEqual(spec("KN"), withCritic({ features: "need" }));
   assert.deepEqual(spec("KLN"), withCritic({ lambda: 0.9, features: "need" }));
-  for (const code of ["KL", "KN", "KLN"]) {
+  assert.deepEqual(spec("KLw"), withCritic({ lambda: 0.9, proprio: false }));
+  assert.deepEqual(spec("KLNw"), withCritic({ lambda: 0.9, features: "need", proprio: false }));
+  for (const code of ["KL", "KN", "KLN", "KLw", "KLNw"]) {
     assert.deepEqual(condition(code).born, condition("H3B97").born, code);
     assert.equal(condition(code).world, ROOM3, code);
   }

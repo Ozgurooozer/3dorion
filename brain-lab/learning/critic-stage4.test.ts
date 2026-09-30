@@ -89,8 +89,27 @@ test("lambda: in ONE pass value reaches the state two steps before the meal; TD(
   assert.ok(wallThenFoodThenMeal(0.9) > 0.001, `λ 0.9: ${wallThenFoodThenMeal(0.9)}`);
 });
 
+test("proprio false: the critic does not see the body's own movement (no proprio.*, no need*proprio.*); the rest is kept", () => {
+  const moving: Observation = { ...obs(0.4, 2), motion: { forward: 0.8, turn: -0.5 } };
+  const all = new Critic(ledgerFor(1), C, { features: "need" }).features(moving);
+  const world = new Critic(ledgerFor(1), C, { features: "need", proprio: false }).features(moving);
+  assert.ok(Object.keys(all).some((f) => f.includes("proprio.")), "the test needs proprio features to remove");
+  assert.deepEqual(world, Object.fromEntries(Object.entries(all).filter(([f]) => !f.includes("proprio."))));
+  assert.ok(!("proprio" in new Critic(ledgerFor(1), C).params), "absent by default");
+});
+
+test("proprio false: a turn no longer changes the critic's value, whatever it learned about movement", () => {
+  const ledger = ledgerFor(2);
+  for (const f of ["proprio.left", "proprio.right", "proprio.forward"]) ledger.record({ kind: "critic", tick: 0, episode: 1, cause: ["td"], feature: f, before: 0, after: -0.5 });
+  const straight: Observation = { ...obs(0.4, 2), motion: { forward: 0.8, turn: 0 } };
+  const turning: Observation = { ...straight, motion: { forward: 0.3, turn: 1 } };
+  const sees = new Critic(ledger, C), blind = new Critic(ledger, C, { proprio: false });
+  assert.notEqual(sees.value(turning), sees.value(straight));
+  assert.equal(blind.value(turning), blind.value(straight));
+});
+
 test("refused: lambda outside [0, 1], lambda with normalize, unknown features", () => {
-  for (const p of [{ lambda: -0.1 }, { lambda: 1.1 }, { lambda: 0.9, normalize: true }, { features: "all" as never }]) {
+  for (const p of [{ lambda: -0.1 }, { lambda: 1.1 }, { lambda: 0.9, normalize: true }, { features: "all" as never }, { proprio: true as never }]) {
     assert.throws(() => new Critic(ledgerFor(6), C, p), RangeError, JSON.stringify(p));
   }
 });
