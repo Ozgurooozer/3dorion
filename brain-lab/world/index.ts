@@ -2,7 +2,7 @@
 "use strict";
 
 export type { Action, DoneCause, EntityKind, Motion, Observation, Ray, RayHit, StepResult, World } from "./world.ts";
-export { DEFAULT_CONFIG, makeConfig, type WorldConfig } from "./config.ts";
+export { DEFAULT_CONFIG, makeConfig, type FoodSide, type WorldConfig } from "./config.ts";
 export { Room, type RoomState } from "./room.ts";
 export { runEpisode, type EpisodeHooks, type EpisodeSummary, type Policy, type TickRecord } from "./episode.ts";
 export { Rng } from "./rng.ts";

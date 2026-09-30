@@ -5,7 +5,9 @@
 //   npm run exp -- curut <KOD>          falsify: fresh seeds 11–20, CROSS, LOCAL, lesions, rooms, groups, stats
 //   npm run exp -- teshis <dosya...>    what was learned (diagnose.ts), read-only
 //   npm run exp -- liste                the condition catalogue
-// Options: --isci N (worker threads; default cores − 2), --egitim N, --degerlendirme N.
+// Options: --isci N (worker threads; default cores − 2), --egitim N|auto, --degerlendirme N.
+//   --egitim auto: train each learner until its training drive stops improving (harness.ts AUTO, TASARIM-009 §0.1);
+//   its CROSS and LOCAL controls then live exactly as many episodes per stage as the learner they are paired with.
 //
 // Every subject row is also appended to data/results.jsonl (one line per learner, with its twin), so
 // every result of every command can be queried in one place (e.g. with DuckDB).
@@ -27,7 +29,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const DATA = join(HERE, "../data");
 const GROUPS: InnateGroup[] = ["reflexless", "reflexive"];
 
-interface Options { workers: number; train: number; evaluate: number }
+interface Options { workers: number; train: number | "auto"; evaluate: number }
 
 function parse(argv: string[]): { command: string; args: string[]; opts: Options } {
   const opts: Options = { workers: Math.max(1, availableParallelism() - 2), train: 40, evaluate: 10 };
@@ -36,7 +38,7 @@ function parse(argv: string[]): { command: string; args: string[]; opts: Options
     const a = argv[i]!;
     const value = () => { const v = Number(argv[++i]); if (!Number.isInteger(v) || v < 1) throw new Error(`${a} needs a positive integer`); return v; };
     if (a === "--isci") opts.workers = value();
-    else if (a === "--egitim") opts.train = value();
+    else if (a === "--egitim") { if (argv[i + 1] === "auto") { opts.train = "auto"; i++; } else opts.train = value(); }
     else if (a === "--degerlendirme") opts.evaluate = value();
     else args.push(a);
   }
@@ -61,6 +63,20 @@ const subjects = (code: string, seeds: number[], control: Control, o: Options, l
  */
 const summaryName = (stem: string, o: Options) =>
   `${stem}${o.train === 40 && o.evaluate === 10 ? "" : `-e${o.train}x${o.evaluate}`}-summary.json`;
+/**
+ * Learners first, then each control paired with its learner (same seed and group) for exactly the episodes per stage the
+ * learner lived, so an auto-trained learner never meets a control trained for less. Returns rows per control, in order.
+ */
+async function learnersThenControls(code: string, seeds: number[], controls: Control[], o: Options, label: string, codeCommit: string, world?: WorldConfig): Promise<Row[][]> {
+  const learners = rowsOf(await run(subjects(code, seeds, null, o, label, world), o, codeCommit));
+  const rest = controls.filter((c) => c !== null);
+  if (rest.length === 0) return [learners];
+  const jobs: SubjectJob[] = rest.flatMap((control) => learners.map((r) => ({
+    kind: "subject" as const, code, control, seed: r.seed, group: r.group, world, trainEpisodes: o.train, stageEpisodes: r.trained, evalEpisodes: o.evaluate, label,
+  })));
+  const done = rowsOf(await run(jobs, o, codeCommit));
+  return [learners, ...rest.map((_, i) => done.slice(i * learners.length, (i + 1) * learners.length))];
+}
 const rowsOf = (results: JobResult[]) => results.map((r) => { if (r.kind !== "subject") throw new Error("expected a subject result"); return r.row; });
 
 function record(command: string, code: string, control: Control, world: WorldConfig, rows: Row[], codeCommit: string, o: Options) {
@@ -69,7 +85,7 @@ function record(command: string, code: string, control: Control, world: WorldCon
     date, codeCommit, command, code, control: control ?? "none", food: world.foodCount, threats: world.threatCount, energy: world.initialEnergy,
     trainEpisodes: o.train, evalEpisodes: o.evaluate,
     seed: r.seed, group: r.group, learner: r.learner.id, twin: r.twin.id, l: r.l, t: r.t, y: r.y,
-    weightEntries: r.weightEntries, criticEntries: r.criticEntries, trainPerK: r.trainPerK,
+    weightEntries: r.weightEntries, criticEntries: r.criticEntries, trainPerK: r.trainPerK, trained: r.trained, trainDrive: r.trainDrive,
   }));
   appendFileSync(join(DATA, "results.jsonl"), lines.join("\n") + "\n");
 }
@@ -104,9 +120,7 @@ async function screenOrConfirm(command: "tara" | "dogrula", codes: string[], o: 
     const def = condition(code);
     const world = def.world ?? ROOM1;
     const controls: Control[] = command === "tara" ? [null] : [null, "CROSS"];
-    const jobs = controls.flatMap((c) => subjects(code, seeds, c, o, `lab ${command}`));
-    const results = rowsOf(await run(jobs, o, codeCommit));
-    const byControl = controls.map((c, i) => results.slice(i * seeds.length * 2, (i + 1) * seeds.length * 2));
+    const byControl = await learnersThenControls(code, seeds, controls, o, `lab ${command}`, codeCommit);
     console.log(`\n${code} — ${def.what} (${command}, ${seeds.length * 2} denek)`);
     console.log(`  öğrenen   ${evalLine(byControl[0]!.map((r) => r.l))}`);
     console.log(`  ikiz      ${evalLine(byControl[0]!.map((r) => r.t))}`);
@@ -130,9 +144,7 @@ async function falsify(code: string, o: Options, codeCommit: string) {
   const fresh = [11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
   const n = fresh.length * 2;
   console.log(`\nÇÜRÜTME ${code} — ${def.what} (taze seed'ler 11–20, ${n} denek)`);
-  const firstWave = [...subjects(code, fresh, null, o, "lab curut"), ...subjects(code, fresh, "CROSS", o, "lab curut"), ...subjects(code, fresh, "LOCAL", o, "lab curut")];
-  const wave = rowsOf(await run(firstWave, o, codeCommit));
-  const [main, cross, local] = [wave.slice(0, n), wave.slice(n, 2 * n), wave.slice(2 * n)];
+  const [main, cross, local] = (await learnersThenControls(code, fresh, [null, "CROSS", "LOCAL"], o, "lab curut", codeCommit)) as [Row[], Row[], Row[]];
   record("curut", code, null, world, main, codeCommit, o);
   record("curut", code, "CROSS", world, cross, codeCommit, o);
   record("curut", code, "LOCAL", world, local, codeCommit, o);
@@ -178,7 +190,7 @@ async function main() {
   else if (command === "curut") { for (const code of args) await falsify(code, opts, codeCommit); }
   else if (command === "teshis") execSync(`node --experimental-strip-types ${JSON.stringify(join(HERE, "diagnose.ts"))} ${args.map((a) => JSON.stringify(a)).join(" ")}`, { stdio: "inherit" });
   else if (command === "liste") for (const [code, c] of Object.entries(CONDITIONS)) console.log(`${code.padEnd(8)} ${c.what}`);
-  else console.log("komutlar: tara <KOD...> | dogrula <KOD...> | curut <KOD> | teshis <dosya...> | liste   (--isci N, --egitim N, --degerlendirme N)");
+  else console.log("komutlar: tara <KOD...> | dogrula <KOD...> | curut <KOD> | teshis <dosya...> | liste   (--isci N, --egitim N|auto, --degerlendirme N)");
   console.log("done");
 }
 

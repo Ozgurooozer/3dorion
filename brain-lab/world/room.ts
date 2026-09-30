@@ -9,7 +9,7 @@
 "use strict";
 
 import { makeConfig, type WorldConfig } from "./config.ts";
-import { foodKeepouts, sampleFreePosition, spawnEntities, type Entity } from "./entities.ts";
+import { foodKeepouts, placeFood, spawnEntities, type Entity } from "./entities.ts";
 import { dist } from "./geometry.ts";
 import { fnv1a } from "./hash.ts";
 import { moveBody, newBody, type Body } from "./physics.ts";
@@ -99,7 +99,7 @@ export class Room implements World {
       const e = this.entities[i]!;
       if (e.kind === "food" && dist(b, e) < cfg.bodyRadius + e.r) {
         eaten++;
-        const p = sampleFreePosition(this.rng, cfg, e.r, foodKeepouts(cfg, b, this.entities));
+        const p = placeFood(this.rng, cfg, b, foodKeepouts(cfg, b, this.entities));
         this.entities[i] = { ...e, ...p };
       } else if (e.kind === "threat" && dist(b, e) < e.r) {
         damage += cfg.threatDamage;

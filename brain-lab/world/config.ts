@@ -3,6 +3,8 @@
 // so a replay or hash always knows which physics it ran under.
 "use strict";
 
+export interface FoodSide { readonly min: number; readonly max: number; readonly near: number; readonly far: number }
+
 export interface WorldConfig {
   readonly width: number;
   readonly height: number;
@@ -25,6 +27,12 @@ export interface WorldConfig {
   readonly foodClearance: number; // extra gap between new food and the body
   readonly threatClearance: number; // extra gap between a threat and the body at birth
   readonly rayAngles: readonly number[]; // relative to heading
+  /**
+   * The side room (TASARIM-009 §0.3): when set, every food — first placed and each time it grows back — appears beside
+   * the body, |bearing| in [min, max] rad from its heading at that moment, at [near, far] m, left or right at random.
+   * Absent in every other room, which then is bit-for-bit the room it always was.
+   */
+  readonly foodSide?: FoodSide;
   readonly rayRange: number;
 }
 
@@ -58,8 +66,17 @@ export function makeConfig(overrides: Partial<WorldConfig> = {}): WorldConfig {
     ...overrides,
     rayAngles: Object.freeze([...(overrides.rayAngles ?? DEFAULT_CONFIG.rayAngles)]),
   };
+  // A room without the side rule carries no foodSide key at all, so its config (and every record of it) is unchanged.
+  if (c.foodSide === undefined) delete (c as { foodSide?: FoodSide }).foodSide;
+  else {
+    const s = c.foodSide;
+    if (!(s.min >= 0 && s.min <= s.max && s.max <= Math.PI) || !(s.near > 0 && s.near <= s.far) || ![s.min, s.max, s.near, s.far].every(Number.isFinite)) {
+      throw new RangeError(`config.foodSide needs 0 ≤ min ≤ max ≤ π and 0 < near ≤ far, got ${JSON.stringify(s)}`);
+    }
+    (c as { foodSide?: FoodSide }).foodSide = Object.freeze({ min: s.min, max: s.max, near: s.near, far: s.far });
+  }
   for (const [k, v] of Object.entries(c)) {
-    if (k === "rayAngles") continue;
+    if (k === "rayAngles" || k === "foodSide") continue;
     if (typeof v !== "number" || !Number.isFinite(v) || v < 0) throw new RangeError(`config.${k} must be a finite number >= 0, got ${v}`);
   }
   for (const a of c.rayAngles) if (!Number.isFinite(a)) throw new RangeError(`config.rayAngles has ${a}`);

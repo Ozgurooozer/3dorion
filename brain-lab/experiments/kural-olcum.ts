@@ -1,7 +1,7 @@
 // brain-lab/experiments/kural-olcum.ts — what the rule synapses grew, and how the recalled memory is used, for the
 // screened learners of any conditions at a given training length (prereg 003/004). Read-only.
 //
-//   node --experimental-strip-types brain-lab/experiments/kural-olcum.ts <trainEpisodes> KOD [KOD…]
+//   node --experimental-strip-types brain-lab/experiments/kural-olcum.ts <trainEpisodes|auto> KOD [KOD…]
 //
 // recordedRows keeps only 40-episode rows; here the rows of the wanted length are relabelled 40 in memory (never written)
 // so the same reader serves any length.
@@ -18,10 +18,10 @@ import { aggregateRecall, learnerRecallLives, ruleWeights } from "./recall-a3.ts
 const DATA = join(dirname(fileURLToPath(import.meta.url)), "../data");
 
 /** The results lines of `code`s screened with `train` training episodes, relabelled as 40 for the shared readers. */
-export function linesOfLength(lines: readonly string[], train: number): string[] {
+export function linesOfLength(lines: readonly string[], train: number | "auto"): string[] {
   return lines.filter((t) => t.trim() !== "").flatMap((t) => {
-    const r = JSON.parse(t) as { trainEpisodes?: number };
-    return (r.trainEpisodes ?? 40) === train ? [JSON.stringify({ ...r, trainEpisodes: 40 })] : [];
+    const r = JSON.parse(t) as { trainEpisodes?: number | "auto" };
+    return String(r.trainEpisodes ?? 40) === String(train) ? [JSON.stringify({ ...r, trainEpisodes: 40 })] : [];
   });
 }
 
@@ -29,7 +29,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const [train, ...codes] = process.argv.slice(2);
   if (!train || codes.length === 0) throw new Error("usage: kural-olcum.ts <trainEpisodes> KOD [KOD…]");
   const store = new RegistryStore(DATA, { readOnly: true });
-  const lines = linesOfLength(readFileSync(join(DATA, "results.jsonl"), "utf8").split("\n"), Number(train));
+  const lines = linesOfLength(readFileSync(join(DATA, "results.jsonl"), "utf8").split("\n"), train === "auto" ? "auto" : Number(train));
   const m = (xs: number[]) => xs.reduce((a, x) => a + x, 0) / xs.length;
   for (const code of codes) {
     const world = condition(code).world!;

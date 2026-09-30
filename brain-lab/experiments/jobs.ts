@@ -25,7 +25,13 @@ export interface SubjectJob {
   readonly group: InnateGroup;
   /** Room override (e.g. other food counts); default the condition's room. */
   readonly world?: WorldConfig;
-  readonly trainEpisodes: number;
+  /** Episodes per curriculum stage that has none of its own: a number, or "auto" (harness.ts AUTO). */
+  readonly trainEpisodes: number | "auto";
+  /**
+   * Fixed episodes per stage, overriding the rest: a control (CROSS, LOCAL) lives exactly as long as the learner it is
+   * paired with, so an auto-trained learner never faces a control trained for less (TASARIM-009 §0.1).
+   */
+  readonly stageEpisodes?: readonly number[];
   readonly evalEpisodes: number;
   readonly label: string;
 }
@@ -59,9 +65,17 @@ export function runJob(job: Job, ctx: JobContext): JobResult {
     return { kind: "lesion", clone: clone.id, eval: evaluate(store, clone, world, job.evalEpisodes, ctx.codeCommit, job.label, evaluationSpec(spec)) };
   }
   const transform = job.control === "CROSS" ? crossDopamine() : job.control === "LOCAL" ? localDopamine() : undefined;
+  // The curriculum (one stage in `world` without one). A room override replaces the last stage's room, where the subject
+  // is evaluated; earlier stages stay the path to it.
+  const stagesDef = def.curriculum ?? [{ world }];
+  if (job.stageEpisodes && job.stageEpisodes.length !== stagesDef.length) throw new Error(`${job.code}: ${job.stageEpisodes.length} stage lengths for ${stagesDef.length} stages`);
+  const curriculum = stagesDef.map((st, i) => ({
+    world: i === stagesDef.length - 1 && job.world ? job.world : st.world,
+    episodes: job.stageEpisodes?.[i] ?? ("episodes" in st && st.episodes !== undefined ? st.episodes : job.trainEpisodes),
+  }));
   const r = runCondition(store, {
     condition: { code: `${job.code}${job.control ? `:${job.control}` : ""}`, what: def.what, spec: transform ? { ...spec, deltaTransform: transform } : spec },
-    world, seeds: [job.seed], groups: [job.group], trainEpisodes: job.trainEpisodes, evalEpisodes: job.evalEpisodes,
+    world, seeds: [job.seed], groups: [job.group], trainEpisodes: job.trainEpisodes, evalEpisodes: job.evalEpisodes, curriculum,
     codeCommit: ctx.codeCommit, label: job.label, born: def.born,
   });
   return { kind: "subject", row: r.rows[0]! };

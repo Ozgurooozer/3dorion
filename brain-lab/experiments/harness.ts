@@ -10,7 +10,7 @@ import { episodeEvents, type Subject } from "../registry/index.ts";
 import type { EpisodeLine, RegistryStore, RunHeader } from "../registry/store.ts";
 import { drive } from "../neuromodulation/index.ts";
 import { isPlastic, senseToMotorDelay } from "../regions/index.ts";
-import { Rng, Room, runEpisode, type Action, type EpisodeHooks, type Policy, type WorldConfig } from "../world/index.ts";
+import { Rng, Room, runEpisode, type Action, type EpisodeHooks, type Observation, type Policy, type WorldConfig } from "../world/index.ts";
 import { approach, orientation, sideTurnInformation, steering, steeringIndex, turnToward } from "./measures.ts";
 
 import { MAX_TICKS, evalNoise, evalWorld, trainNoise, trainWorld } from "./seeds.ts";
@@ -61,6 +61,10 @@ export interface Row {
   readonly weightEntries: number;
   readonly criticEntries: number;
   readonly trainPerK: number[]; // per 10-episode block
+  /** Episodes lived in each curriculum stage (one stage without a curriculum). */
+  readonly trained: number[];
+  /** Training drive per AUTO.block-episode block (TASARIM-009 §0.1). */
+  readonly trainDrive: number[];
 }
 
 const mean = (xs: number[]) => xs.reduce((s, x) => s + x, 0) / Math.max(1, xs.length);
@@ -248,24 +252,96 @@ export function evaluateWithYoked(store: RegistryStore, s: Subject, world: World
 
 /** Train a subject; returns meals/1000 ticks per 10-episode block. */
 export function train(store: RegistryStore, s: Subject, world: WorldConfig, episodes: number, spec: Condition["spec"], codeCommit: string, label: string): number[] {
+  return trainStages(store, s, [{ world, episodes }], spec, codeCommit, label).perK;
+}
+
+/**
+ * Training "as long as it takes" (TASARIM-009 §0.1): blocks of `block` episodes, each scored by its training drive; stop
+ * once the best of the last `patience` blocks is not `minGain` better than the best before them (at least patience + 1
+ * blocks), and never beyond `cap` episodes. Chosen before measuring; Kart 0 measures where it stops.
+ */
+export const AUTO = Object.freeze({ block: 20, patience: 3, minGain: 0.01, cap: 1000 });
+
+/** Whether a stage's block drives (lower is better) have stopped improving, by the AUTO rule. */
+export function plateaued(drives: readonly number[], p: { patience: number; minGain: number } = AUTO): boolean {
+  // (With exactly `patience` blocks the earlier best is Math.min() of nothing, Infinity, so no plateau either: this line
+  // says it outright.)
+  if (drives.length < p.patience + 1) return false;
+  const before = Math.min(...drives.slice(0, -p.patience));
+  const recent = Math.min(...drives.slice(-p.patience));
+  return recent > before - p.minGain;
+}
+
+/** One room of a curriculum (TASARIM-009 §0.2) and how long to live it: a number of episodes, or "auto" (AUTO rule). */
+export interface TrainStage { readonly world: WorldConfig; readonly episodes: number | "auto" }
+
+export interface Trained {
+  /** Meals/1000 ticks per 10-episode block, over all stages (the historical measure). */
+  readonly perK: number[];
+  /** Training drive per AUTO.block-episode block, over all stages. */
+  readonly drive: number[];
+  /** Episodes lived in each stage. */
+  readonly episodes: number[];
+}
+
+/** Mean drive of one episode on the evaluation's terms: every tick lived, then the last value until MAX_TICKS (dead). */
+function episodeDrive(first: Observation, records: readonly { result: { observation: Observation } }[]): number {
+  let sum = 0, last = first;
+  for (const r of records) { last = r.result.observation; sum += drive(last); }
+  return (sum + drive(last) * (MAX_TICKS - records.length)) / MAX_TICKS;
+}
+
+/**
+ * Train a subject through a curriculum: one agent, one ledger, one training run, the stages in order. Episode numbers
+ * (and with them the training worlds and noise) run on across stages. One stage of a fixed length is exactly the old
+ * train(): the extra drive bookkeeping only reads what happened.
+ */
+export function trainStages(store: RegistryStore, s: Subject, stages: readonly TrainStage[], spec: Condition["spec"], codeCommit: string, label: string): Trained {
+  if (stages.length === 0) throw new Error("a curriculum needs at least one stage");
+  const first = stages[0]!.world;
+  for (const st of stages) {
+    // One brain lives every stage: the same senses (rays) and the same room size (memory, pose), or it is another body.
+    if (JSON.stringify(st.world.rayAngles) !== JSON.stringify(first.rayAngles) || st.world.rayRange !== first.rayRange || st.world.width !== first.width || st.world.height !== first.height) {
+      throw new Error("every curriculum stage must have the same rays and room size");
+    }
+    if (st.episodes !== "auto" && !(Number.isInteger(st.episodes) && st.episodes >= 0)) throw new RangeError(`stage episodes ${st.episodes}`);
+  }
   const ledger = store.openLedger(s.id);
-  const agent = createAgent({ ...spec, cfg: world, ledger, noiseSeed: trainNoise(s.birth.seed) });
-  const run = store.startRun(s.id, `${label} train`, { spec: JSON.parse(JSON.stringify(spec)) }, { codeCommit });
-  const blocks: number[] = [];
-  let bm = 0, bt = 0;
-  for (let ep = 1; ep <= episodes; ep++) {
-    agent.startEpisode(ep);
-    const worldSeed = trainWorld(s.birth.seed, ep);
-    const { records, ...summary } = runEpisode(new Room(worldSeed, world), agent.policy, MAX_TICKS, true, agent.hooks);
-    agent.finishEpisode(summary.ticks);
-    store.appendEpisode(run.id, { episode: ep, worldSeed, summary, events: episodeEvents(records) });
-    bm += summary.foodEaten; bt += summary.ticks;
-    if (ep % 10 === 0) { blocks.push((1000 * bm) / bt); bm = 0; bt = 0; }
+  const agent = createAgent({ ...spec, cfg: first, ledger, noiseSeed: trainNoise(s.birth.seed) });
+  const plain = stages.length === 1 && stages[0]!.episodes !== "auto";
+  const meta = plain ? { spec: JSON.parse(JSON.stringify(spec)) } : { spec: JSON.parse(JSON.stringify(spec)), stages: JSON.parse(JSON.stringify(stages)) };
+  const run = store.startRun(s.id, `${label} train`, meta, { codeCommit });
+  const perK: number[] = [], drives: number[] = [], episodes: number[] = [];
+  let bm = 0, bt = 0, ep = 0;
+  for (const st of stages) {
+    const auto = st.episodes === "auto";
+    const stageDrives: number[] = [];
+    let n = 0, blockDrive = 0;
+    while (auto ? n < AUTO.cap : n < (st.episodes as number)) {
+      ep++; n++;
+      agent.startEpisode(ep);
+      const worldSeed = trainWorld(s.birth.seed, ep);
+      const room = new Room(worldSeed, st.world);
+      const firstObs = room.observe();
+      const { records, ...summary } = runEpisode(room, agent.policy, MAX_TICKS, true, agent.hooks);
+      agent.finishEpisode(summary.ticks);
+      store.appendEpisode(run.id, { episode: ep, worldSeed, summary, events: episodeEvents(records) });
+      bm += summary.foodEaten; bt += summary.ticks;
+      if (ep % 10 === 0) { perK.push((1000 * bm) / bt); bm = 0; bt = 0; }
+      blockDrive += episodeDrive(firstObs, records);
+      if (n % AUTO.block === 0) {
+        stageDrives.push(blockDrive / AUTO.block);
+        drives.push(blockDrive / AUTO.block);
+        blockDrive = 0;
+        if (auto && plateaued(stageDrives)) break;
+      }
+    }
+    episodes.push(n);
   }
   agent.drainWrites();
   if (!ledger.matches(agent.graph)) throw new Error(`${s.id}: live brain differs from its ledger`);
   store.saveLedger(ledger);
-  return blocks;
+  return { perK, drive: drives, episodes };
 }
 
 /**
@@ -286,7 +362,12 @@ export function twinSpec(spec: Condition["spec"]): Partial<AgentSpec> {
 
 export function runCondition(store: RegistryStore, o: {
   condition: Condition; world: WorldConfig; seeds: number[]; groups: InnateGroup[];
-  trainEpisodes: number; evalEpisodes: number; codeCommit: string; label: string;
+  trainEpisodes: number | "auto"; evalEpisodes: number; codeCommit: string; label: string;
+  /**
+   * Training rooms in order (TASARIM-009 §0.2); default one stage: `world` for `trainEpisodes`. Evaluation is always in
+   * `world`, the room the subjects are born into.
+   */
+  curriculum?: readonly TrainStage[];
   /** How learner AND twin are born (both the same way). */
   born?: BirthOptions;
   /** A frozen pre-registration file; required for test seeds (≥ TEST_SEED_FLOOR). */
@@ -307,7 +388,8 @@ export function runCondition(store: RegistryStore, o: {
       }
       const twin = twins.get(key)!;
       const s = birth(store, o.world, seed, group, o.codeCommit, born, undefined, o.preregistration);
-      const trainPerK = train(store, s, o.world, o.trainEpisodes, o.condition.spec, o.codeCommit, `${o.label} ${o.condition.code}`);
+      const stages = o.curriculum ?? [{ world: o.world, episodes: o.trainEpisodes }];
+      const trained = trainStages(store, s, stages, o.condition.spec, o.codeCommit, `${o.label} ${o.condition.code}`);
       const both = evaluateWithYoked(store, s, o.world, o.evalEpisodes, o.codeCommit, o.label, evaluationSpec(o.condition.spec));
       const l = both.subject;
       const ledger = store.openLedger(s.id);
@@ -318,7 +400,7 @@ export function runCondition(store: RegistryStore, o: {
         nogo: mean(plastic.filter((c) => c.to.startsWith("bg.nogo.")).map((c) => c.weight)),
         weightEntries: ledger.entries.filter((e) => e.kind === "weight").length,
         criticEntries: ledger.entries.filter((e) => e.kind === "critic").length,
-        trainPerK,
+        trainPerK: trained.perK, trained: trained.episodes, trainDrive: trained.drive,
       });
     }
   }

@@ -21,6 +21,11 @@ export interface ConditionDef {
   readonly born?: BirthOptions;
   /** The room; default ROOM1. */
   readonly world?: WorldConfig;
+  /**
+   * Training rooms in order (TASARIM-009 §0.2); evaluation stays in `world`. A stage without `episodes` lives as long as
+   * the command says (--egitim N or auto).
+   */
+  readonly curriculum?: readonly { readonly world: WorldConfig; readonly episodes?: number }[];
 }
 
 /** Room 1: 10 food, no threats, born hungry. */
@@ -33,6 +38,13 @@ export const ROOM2 = makeConfig({ initialEnergy: 0.4, threatCount: 2, foodCount:
  * (the seeker survives 92%): in room 1 blind wandering plus "food ahead → forward" came near the ceiling.
  */
 export const ROOM3 = makeConfig({ initialEnergy: 0.8, threatCount: 0, foodCount: 5 });
+/**
+ * The side room, ROOM-S (TASARIM-009 §0.3, 2026-09-30): 3 food, born at energy 0.6, no threats, every food placed beside
+ * the body (50–120° off its heading, 1.5–4 m) when first placed and each time it grows back. Calibrated (seeds 1–8 × 10
+ * rooms, side-room.test.ts): forward only 0 meals, forward + always left 0.20 meals/1000 ticks, blind bursts 1.47, the
+ * seeker 17.4 and 96% alive — a body that does not turn toward what is beside it cannot live here.
+ */
+export const ROOM_S = makeConfig({ initialEnergy: 0.6, threatCount: 0, foodCount: 3, foodSide: { min: (50 * Math.PI) / 180, max: (120 * Math.PI) / 180, near: 1.5, far: 4 } });
 export const room = (food: number, threats = 0) => makeConfig({ initialEnergy: 0.4, threatCount: threats, foodCount: food });
 
 /**

@@ -30,8 +30,31 @@ export function foodKeepouts(cfg: WorldConfig, body: Vec, entities: readonly Ent
   ];
 }
 
+/** Tries a side placement gets before the food falls back to a uniform place (a wall or a threat in the way). */
+export const SIDE_ATTEMPTS = 200;
+
+/**
+ * Where a food appears. Without cfg.foodSide: a uniform free place (the same draws as always). With it (the side room,
+ * TASARIM-009 §0.3): beside the body — left or right, |bearing| in [min, max] from its heading, [near, far] away —
+ * inside the walls and outside every keep-out; after SIDE_ATTEMPTS misses, a uniform free place.
+ */
+export function placeFood(rng: Rng, cfg: WorldConfig, body: Vec & { readonly heading: number }, keepouts: readonly Keepout[]): Vec {
+  const side = cfg.foodSide;
+  if (!side) return sampleFreePosition(rng, cfg, cfg.foodRadius, keepouts);
+  const r = cfg.foodRadius;
+  for (let i = 0; i < SIDE_ATTEMPTS; i++) {
+    const sign = rng.next() < 0.5 ? 1 : -1;
+    const bearing = sign * rng.range(side.min, side.max);
+    const d = rng.range(side.near, side.far);
+    const p = { x: body.x + d * Math.cos(body.heading + bearing), y: body.y + d * Math.sin(body.heading + bearing) };
+    const inside = p.x >= r && p.x <= cfg.width - r && p.y >= r && p.y <= cfg.height - r;
+    if (inside && keepouts.every((k) => dist(p, k.circle) > k.circle.r + r + k.gap)) return p;
+  }
+  return sampleFreePosition(rng, cfg, r, keepouts);
+}
+
 /** Threats first (away from the body), then food (away from body and threats). */
-export function spawnEntities(rng: Rng, cfg: WorldConfig, body: Vec): Entity[] {
+export function spawnEntities(rng: Rng, cfg: WorldConfig, body: Vec & { readonly heading: number }): Entity[] {
   const out: Entity[] = [];
   const bodyZone = { circle: { x: body.x, y: body.y, r: cfg.bodyRadius }, gap: cfg.threatClearance };
   for (let i = 0; i < cfg.threatCount; i++) {
@@ -39,7 +62,7 @@ export function spawnEntities(rng: Rng, cfg: WorldConfig, body: Vec): Entity[] {
     out.push({ id: `threat-${i}`, kind: "threat", ...p, r: cfg.threatRadius });
   }
   for (let i = 0; i < cfg.foodCount; i++) {
-    const p = sampleFreePosition(rng, cfg, cfg.foodRadius, foodKeepouts(cfg, body, out));
+    const p = placeFood(rng, cfg, body, foodKeepouts(cfg, body, out));
     out.push({ id: `food-${i}`, kind: "food", ...p, r: cfg.foodRadius });
   }
   return out;
