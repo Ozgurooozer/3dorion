@@ -149,8 +149,9 @@ function buildBrain(f: Film3D): void {
   });
   // Column and lane labels.
   const col = (region: string, text: string, y = 6.3) => decor.push(label(text, new Vector3(COLUMN_X[region]!, y, 0), 1.7));
-  col("sense", "duyular"); col("rec", "hatırlanan"); col("mem", "hafıza", 7.4); col("hyp", "dürtü · gürültü"); col("cpg", "üreteç");
-  col("bg.go", "Git (üst) · Gitme (alt)"); col("bg.out", "seçim"); col("motor", "motor");
+  // Heights alternate so neighbouring column titles do not overlap from an oblique view.
+  col("sense", "duyular"); col("mem", "hafıza", 8.6); col("rec", "hatırlanan", 7.2); col("hyp", "dürtü · gürültü", 8.6); col("cpg", "üreteç", 7.2);
+  col("bg.go", "Git (üst) · Gitme (alt)", 8.6); col("bg.out", "seçim", 7.2); col("motor", "motor");
   for (const l of LANES) decor.push(label(ACTION_TR[l.action]!, new Vector3(COLUMN_X.motor! + 2.8, 0, l.z), 1.3, "#7d8aa0"));
   decor.push(label("duvar", new Vector3(-2.4, 2.4, 0), 1.2, "#7d8aa0"), label("yemek", new Vector3(-2.4, 0, 0), 1.2, COLOR.food), label("tehlike", new Vector3(-2.4, -2.4, 0), 1.2, COLOR.threat), label("beden", new Vector3(-2.4, -5, 0), 1.2, "#7d8aa0"));
   applyVisibility();
