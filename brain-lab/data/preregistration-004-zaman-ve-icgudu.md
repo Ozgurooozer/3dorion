@@ -35,3 +35,16 @@ Fikir (Ozyn): "rec_i → Go(i yönü)" yapısını öğretmek yerine doğuştan 
   ölçümü: fikstür zaten "ne yapabilir"i veriyor; asıl yeni soru "doğuştan yön + öğrenilmiş büyüklük" birleşimi.
 - Kod: `RecallBirth.rules`'a "directed" + `maxInitial` benzeri ağırlık alanı, bit-birebir test, bozma denemesi; `born`
   koşullarında H3Y3/H3Y6 kodları. **Yalnız onaydan sonra.**
+
+## Bölüm A2 — çürütme bataryası: H3B97 @200 (Ozyn: "sırayla ikisini de dene", 2026-09-30; koşmadan önce)
+Komut: `npm run exp -- curut H3B97 --egitim 200` (taze seed 11–20, CROSS, LOCAL, lezyonlar, diğer odalar). Ayar seed'i
+değil, test seed'i değil. Soru: H3B97'nin 200 bölümdeki kazancı (dürtü 0,193, hayatta %79) gerçek, dopamine bağlı
+öğrenme mi, yoksa yön bilgisiz bir hareket alışkanlığı mı?
+| # | öngörü | çürütülürse |
+|---|---|---|
+| C1 | Taze seed'lerde kazanç sürer: dürtü < 0,30, ikizden eşleştirilmiş fark p < 0,05 | dürtü ≥ 0,30: 1–10 seed'in kazancı seçilim yanlılığıydı, geri çekilir |
+| C2 | CROSS'ta kazanç kaybolur: CROSS dürtüsü ≥ 0,60 | < 0,40: kazanç dopamin bağlı değil (öğrenme değil, alışkanlık) |
+| C3 | LOCAL'de de kaybolur: dürtü ≥ 0,60 | < 0,40: aynı sonuç |
+| C4 | Kural yolu lezyonu (rec → Go doğum değerine) kazancı kaldırır: dürtü ≥ 0,50; ilgisiz yol lezyonu kaldırmaz (< 0,30) | kural lezyonu < 0,30: kazanç kural sinapslarından değil başka yerden |
+| C5 | Yönlendirme (öğrenen − ikiz) taze seed'lerde anlamsız: Wilcoxon p > 0,05 | anlamlıysa: yön bilgisi 200 bölümde öğrenilmiş |
+Ön beklenti (yanlış çıkabilir): C2, C3, C4 tutar (kazanç gerçek ama yönsüz); C5 tutar.
