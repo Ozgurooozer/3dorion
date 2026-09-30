@@ -4309,6 +4309,34 @@ Kaynaklar: Skinner 1948 (psychology.hanover.edu/classes/Learning/papers/Skinner%
 Staddon ve Simmelhag 1971 (Psychological Review 78:3–43); Wiecki vd. 2009 (pubmed 19169674); Izhikevich 2007 (Cerebral
 Cortex); Frémaux vd. 2013 (pmc PMC3623741); Le Möel ve Wystrach 2020 (pmc PMC7034919).
 
+## 2026-09-30 — Kredi teşhisi sonucu: ödül bitişiklikle, yemek anında yazılıyor; ceza her yere dağılıyor
+
+`kredi-teshis.ts patient H3B97 H3M` (öngörüler `e9b68f1`'de, koşmadan önce). Ortalama, 10 öğrenen; "net" = Git değişimi +
+Gitme değişiminin tersi.
+
+| sınıf | H3B97 artış (yemek anında payı) | azalış (yemek anında payı) | net | H3M net |
+|---|---|---|---|---|
+| yan yemek ışını → o yana | 9,89 (%93) | 6,68 (%13) | 3,21 | 3,36 |
+| yan yemek ışını → öbür yana | 6,41 (%97) | 4,21 (%13) | 2,20 | 3,41 |
+| merkez yemek ışını → sol/sağ | 4,30 (%93) | 2,17 (%20) | 2,14 | 3,94 |
+| diğer (açlık, duvar, proprio…) | **185,8** (%88) | **182,2** (%2) | 3,61 | 3,76 |
+
+**Karne:** K1 ✓ (pozitif değişimin %88,9'u yemek anında; H3M %81,7). K2 ✗ (o yana / öbür yana ortalaması 2,02, eşik 2;
+6/10 öğrenende ≥ 2); yan ayrımı var ama zayıf: öbür yana giden ödül o yana gidenin üçte ikisi. K3 ✓ (H3M 1,77, yalnız 1/10 ≥ 2).
+
+**Okuma:**
+- **Ödül bitişiklikle geliyor.** Artışların ~%90'ı yemek tiki ile iki tik sonrası arasında. Azalışlar tersine yemek
+  anlarının dışında, her yere dağılmış (açlık artarken küçük negatif δ). Eleştirmen yemeğe yaklaşmayı önceden
+  ödüllendirmiyor (yemek ağırlığı ≈ 0,01). Bu, literatürdeki bitişiklik öğrenmesi (Skinner) tablosu.
+- **Öğrenmenin çoğu gürültü.** Yemekle ilgisi olmayan dönüş sinapslarında 186 birim yazılıp 182 birim siliniyor: net 3,6.
+  Yemek anında o an açık olan her şey büyüyor, arada her şey küçülüyor. Yan bilgisi taşıyan net fark (3,21 − 2,20 ≈ 1) bu
+  çalkantının yanında çok küçük.
+- Orta hat kuralı yan ayrımını daha da azalttı (öbür yana giden ödül o yana gidene eşitlendi).
+
+**Sonuç:** asıl darboğaz aktör değil, **eleştirmen**: yemeği görmenin değerini öğrenmediği için δ yalnız yemek anında
+geliyor ve kredi bitişikliğe kalıyor. Bu, planın Aşama 4'ünü (eleştirmen) öne çekmeyi destekliyor. Frémaux vd. 2013 de
+aynı yöne işaret ediyor: TD aktör-eleştirmen gezinmesi eleştirmen durum değerini öğrenince çalışıyor. Karar Ozyn'in.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
