@@ -8,7 +8,7 @@ import { actionOfAngle, bornGraph } from "../development/index.ts";
 import { isPlastic } from "../regions/index.ts";
 import { rayNodeId } from "../sensorimotor/encode.ts";
 import { ROOM3 } from "./conditions.ts";
-import { PROBE, turnProbe } from "./yon-teshis.ts";
+import { PROBE, sideSweep, turnProbe } from "./yon-teshis.ts";
 
 /** A newborn with every learning weight at 0: the probe must see nothing but noise. */
 function blank(): BrainGrafi {
@@ -81,6 +81,16 @@ test("a hunger habit stronger than the food margin: food on the habit's side alw
   const p = turnProbe(g, ROOM3);
   assert.equal(p.foodWinsAgainstHabit, 0, "food on the left loses to the habit");
   assert.equal(p.foodWins, 0.5, "half the side rays are on the habit's side and win, half lose");
+});
+
+test("side sweep: a blank brain has no side anywhere; a habit on the centre food ray is found there and nowhere else", () => {
+  const g = blank();
+  assert.ok([...sideSweep(g).values()].every((v) => v === 0));
+  set(g, rayNodeId(2, "food"), "bg.go.right", 1.4);
+  const sweep = sideSweep(g);
+  assert.equal(sweep.get(rayNodeId(2, "food")), -1.4);
+  assert.deepEqual([...sweep].filter(([, v]) => v !== 0).map(([s]) => s), [rayNodeId(2, "food")]);
+  assert.equal(turnProbe(g, ROOM3).hungerSide, 0, "the hunger-only probe cannot see it (Kart 3)");
 });
 
 test("no habit: the habit-free share is the share over all side rays", () => {

@@ -16,7 +16,7 @@ import { fileURLToPath } from "node:url";
 import type { BrainGrafi } from "../brain-ir/ir.ts";
 import { NOISE_IDS, NoiseGenerator, actionOfAngle } from "../development/index.ts";
 import { CompetitiveSelector, DEFAULT_SELECTION } from "../learning/selection.ts";
-import { ACTIONS, OPPOSITE, type ActionName } from "../regions/index.ts";
+import { ACTIONS, OPPOSITE, regionOf, type ActionName } from "../regions/index.ts";
 import { RegistryStore } from "../registry/store.ts";
 import { rayNodeId } from "../sensorimotor/encode.ts";
 import type { WorldConfig } from "../world/index.ts";
@@ -89,6 +89,18 @@ export function turnProbe(graph: BrainGrafi, cfg: WorldConfig, o: ProbeOptions =
   };
 }
 
+/**
+ * Every learning source alone at 1: value(left) − value(right). A side habit may ride on any sense (Kart 3, 2026-09-30: in
+ * H3B97 the centre food ray carried more of it than hunger did), so a claim about one carrier needs this sweep first.
+ */
+export function sideSweep(graph: BrainGrafi): Map<string, number> {
+  const sel = new CompetitiveSelector(graph, PROBE.seed);
+  const sources = new Set(graph.connections.filter((e) => /^bg\.(go|nogo)\.(left|right)$/.test(e.to) && ["sense", "rec"].includes(regionOf(e.from)?.region ?? "")).map((e) => e.from));
+  const out = new Map<string, number>();
+  for (const s of [...sources].sort()) { const v = sel.values({ [s]: 1 }); out.set(s, v.left - v.right); }
+  return out;
+}
+
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const DATA = join(dirname(fileURLToPath(import.meta.url)), "../data");
   const [train, ...codes] = process.argv.slice(2);
@@ -106,5 +118,8 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     console.log(`${code} @${train} n ${rows.length}`);
     console.log(line("  learned", ledgers.map((l) => turnProbe(l.graph, world))));
     console.log(line("  birth  ", ledgers.map((l) => turnProbe(l.birthGraph, world))));
+    const sweeps = ledgers.map((l) => sideSweep(l.graph));
+    const top = [...sweeps[0]!.keys()].map((s) => [s, mean(sweeps.map((m) => Math.abs(m.get(s) ?? 0)))] as const).sort((a, b) => b[1] - a[1]).slice(0, 6);
+    console.log(`  side sweep (mean |L−R|, each sense alone at 1): ${top.map(([s, v]) => `${s} ${f(v)}`).join(" · ")}`);
   }
 }

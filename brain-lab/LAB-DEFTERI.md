@@ -4250,6 +4250,35 @@ yakın pencere; açlık ölümünde Gitme'ye değil; `killed`/`starved` ayrımı
 - Refleksli grubun çarpma refleksi aynalandı (bump → sol ve sağ 0,6); TASARIM-009 §3a.
 - Ön-kayıt `data/preregistration-006-orta-hat.md` (P1–P5, üçlü puanlama). Kollar: H3M vs kayıtlı sabırlı H3B97.
 
+## 2026-09-30 — Kart 3 sonucu: orta hat kuralı alışkanlığı yok etmiyor, yan yemek ışınlarına taşıyor; teşhisim eksikti
+
+Atlas raporu `data/atlas-reports/2026-09-30-kart3-orta-hat.md` (kod `493e71f`, sabırlı, 10 denek, yalnız tarama). H3M
+ortalamaları ve yön sondası `results.jsonl` / `yon-teshis.ts`'ten yeniden hesaplandı, tuttu.
+
+| kol | dürtü | hayatta | yönlendirme | yemek/1000t | yemek farkı | açlık \|sol−sağ\| |
+|---|---|---|---|---|---|---|
+| D0 = H3B97 sabırlı | **0,116** | 0,88 | 0,097 | 3,09 | 0,153 | 0,653 |
+| H3M (+ orta hat) | 0,495 | 0,27 | 0,043 | 1,69 | −0,006 | **0,000** |
+
+**Karne (ön-kayıt 006, üçlü puanlama):** P1 ✓ (açlık sol−sağ tam 0, 10/10; bütün orta hat duyularında 0); P2 kâğıt üstünde ✓
+ama yorumlanmaz (0,508 = doğumdaki şans düzeyi; ölçü alışkanlığı yalnız açlıktan tanımlıyor); P3 ✗ (0,043); P4 ✗ (0,495, 9/10
+kötü); P5 ✗ (yemek farkı −0,006). H3M bağlı bedenini yalnız 7/10 geçiyor (p 0,065): duyduğunu kullandığı gösterilemiyor.
+
+**Ne oldu:** alışkanlık yok olmadı, **yan yemek ışınlarına taşındı**. Her duyu tek başına 1 iken sol − sağ (Atlas'ın taraması):
+H3M'de en büyükleri ray3.food 1,67, ray1.food 1,65, ray4.food 0,94 — dört yan yemek ışını 9/10 denekte bedeni **aynı**
+yana döndürüyor (yemeğin tarafına uyum 0,04; D0'da 0,69). Hatırlanan yemeğin kural sinapsları 10/10 öbür yana büyüdü.
+
+**Teşhisimin eksiği (dürüst kayıt):** yön sondam alışkanlığı yalnız açlıktan ölçtü. Bütün duyular taranınca D0'da
+alışkanlığın asıl taşıyıcısı **merkez ışının yemek duyusuymuş** (1,42), merkez ışının duvarı açlık kadar (0,65). Açlık
+üçüncüydü. Kural doğru yere dokundu ama tedavi etmedi: "hangi yan" ödülü, o an açık olan hangi duyu varsa ona akıyor.
+
+**Ders (yönteme):** tek bir aday nedeni ölçen sonda neden kanıtı değildir. Bir "alışkanlık" iddiasından önce **bütün
+duyular** taranır (her biri tek başına, sol − sağ); tedavi en büyük taşıyıcıya göre seçilir. `yon-teshis.ts` bu taramayı
+kalıcı olarak alacak.
+
+**Sonuç:** H3M doğrulamaya gitmez. Orta hat kuralı kodda kalır (varsayılan kapalı, bit-birebir). Kök sorun "dönüşün yanı
+yemeğin tarafıyla eşleşmiyor" — kredi dağıtımı. Sıradaki adım Ozyn'in kararı (Aşama 3b `lat`, ya da önce kredi teşhisi).
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
