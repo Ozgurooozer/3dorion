@@ -41,10 +41,61 @@ hıza değil kaliteye göre; ölüm deneyimini sonraki nesle içgüdü olarak ak
   beklenti: arayıcı ≫ alışkanlık ≈ taban (yemek/1000 tik), alışkanlığın yönlendirmesi 0.
 
 ## Aşama 1–6 (plan; ayrıntı koşmadan önce eklenir)
-1. Müfredat tabanı: kıt oda tek başına / kolay → yön → kıt / kolay → kıt.
+1. Müfredat tabanı: kıt oda tek başına / kolay → yön → kıt / kolay → kıt. **Sonuç (Kart 1, 2026-09-30):** müfredat yönü
+   öğretmiyor; sabırlı eğitim (`--egitim sabirli`) taban kural oldu.
 2. Ölüm ve acı öğretir: `teachAtDeath` eleştirmenle; tehlikeli oda müfredatta.
-3. Seçici iki tarafı okur (`lat` fark hücreleri, P15–P17) — mimari genişleme.
+3. Seçici iki tarafı okur (`lat` fark hücreleri, P15–P17) — mimari genişleme. **Önce 3a (orta hat kuralı).**
 4. Eleştirmende açlık × duyu etkileşimi — mimari genişleme.
 5. Kanıt biriktiren seçici (sızıntılı birikim + eşik) — mimari genişleme.
 6. Kalıtım: Lamarck (öğrenilenin k = 0,5'i doğuma) ve Darwin/Baldwin (seçilim + doğuştan ağırlıkta mutasyon) paralel,
    rastgele seçilim kontrolüyle, 10 nesil.
+
+## Aşama 2 — ayrıntı (ön-kayıt 005, Kart 2)
+- Mimari yok, bir anahtar: `teachAtDeath: true`. Ölüm δ'sı (sonuç −1, eleştirmen tahmini düşülür) uygun sinapslara ve
+  eleştirmene ölüm tikinde öğretilir. Kapalıyken defter birebir aynı (`experiments/stage2.test.ts`).
+- Kollar: OL1 (kıt oda, D0 = kayıtlı sabırlı H3B97), OT0 / OT1 (oda 2, iki tehlike; kapalı / açık). Hepsi sabırlı eğitim.
+- Planın D2'si ("D1 + tehlikeli oda müfredatı") yerine OT0/OT1: tehlike odasında ölüm ve acının birlikte ne öğrettiği,
+  müfredat karışıklığı olmadan (Kart 1: müfredatın kendisi iki deneği bozdu).
+
+## Aşama 3a — orta hat kuralı (Ozyn onayı 2026-09-30; tasarım)
+
+**Teşhis** (`experiments/yon-teshis.ts`, defter 2026-09-30): yemeğin yönü öğreniliyor (dönüş farkı 0,10–0,18) ama
+açlık tek başına bir yana dönme alışkanlığı öğreniyor (açlık 0,5'te 0,23–0,48). Açlık hep açık; hangi yöne dönülürse
+dönülsün sonra gelen yemek o dönüşü ödüllendiriyor, açlık sabit terim gibi öğreniyor. Yemek alışkanlığın karşı tarafındayken
+dönüş yarışını %16–38 kazanıyor, doğumdaki %48'in altında.
+
+**İlke:** beden iki yanlı simetrik. Tarafı olmayan bir duyu ("orta hat") dönüşün **yönünü** seçemez; yalnız dönmeyi
+artırıp azaltabilir. Doğa yapıyı verir (bu bir bağlantı kuralı), deneyim ağırlığı: hangi duyunun ne kadar döndüreceği yine
+öğrenilir, yalnız sol ve sağ için tek sayı olarak.
+
+**Orta hat duyuları:** `intero.hunger`, `intero.injury`, `touch.bump`, `proprio.forward`, `proprio.backward`, merkez ışının
+bütün türleri (`ray{merkez}.*`) ve merkez ışının hatırlanan duyusu (`rec{merkez}`). Yan ışınlar, onların hatırlananları ve
+`proprio.left/right` yanlıdır, dokunulmaz.
+
+**Kural:** her orta hat duyusu için (Git sol, Git sağ) bir çift, (Gitme sol, Gitme sağ) bir çift. Çiftin iki sinapsı tek
+sinapsın iki kopyası:
+- **Doğumda** eşit: ikisi de iki rastgele ağırlığın ortalaması (kuantuma yuvarlanmış). Doğum grafiği bu haliyle deftere
+  girer; defterin yeniden oynatılması değişmez.
+- **Öğrenmede** tek hesap: çiftin bekleyen değişimi ortak, uygunluğu iki kopyanın uygunluğunun ortalaması; bir kuantum
+  birikince iki sinaps aynı kuantumla değişir, defterde iki LRN kaydı (aynı tik, aynı sebep, aynı büyüklük).
+- Sonuç: seçicide orta hat duyusu sol ve sağa aynı değeri ekler; hangisinin kazanacağını değiştiremez, yalnız dönüşün
+  dinlenmeyi yenip yenmeyeceğini değiştirir.
+
+**Anahtar:** `born: { midline: true }` (doğumda eşitle) ve `learning: { midline: true }` (öğrenmede tek hesap). İkisi
+birlikte açılır; öğrenme anahtarı simetrik olmayan bir doğum grafiği görürse hata verir. Kapalıyken her şey bit-birebir
+aynı (kayıtlı bir H3B97 deneği yeniden eğitilir, kayıtla karşılaştırılır).
+
+**Testler (önce):** doğum simetrisi; bir hayat boyunca her an simetri (değişmez); `yon-teshis` açlık sol−sağ = 0 tam; yan
+duyular etkilenmez; kapalıyken bit-birebir; asimetrik doğumla öğrenme anahtarı reddedilir. Sonra bozma denemesi.
+
+**Kart 3 (ön-kayıt 006, kod bittikten sonra, koşmadan önce):** H3B97 + orta hat (sabırlı) vs H3B97 sabırlı. Beklenen:
+alışkanlığa karşı kazanma ≥ doğumdaki 0,48; yönlendirme artışı ≥ 0,05 (üçlü puanlama). Çürürse: sorun alışkanlık değil, yemek
+farkının büyüklüğü (kredi) → 3b (`lat` fark hücreleri) ya da iz uzunluğu.
+
+## Aşama 5 — Ozyn'in notu: "sürekli hareket etmek zorunda değil, düşünme olarak ekle" (2026-09-30)
+- Bugün dinlenme mümkün (`restBias` 0,3) ama açlık bütün hareketlerin belirginliğini birlikte yükseltiyor (`vigor ·
+  açlık`), bu yüzden aç beden neredeyse hiç durmuyor.
+- Aşama 5'in kanıt biriktiren seçicisi bunu karşılar: belirginlik tik tik birikir; hiçbir aday eşiği geçmezse eksen
+  **bekler** (düşünür). Bekleme bir karar olarak sayılır ve ölçülür: düşünme süresi (tik), düşündükten sonra doğru tarafa
+  dönme oranı, düşünmenin dürtüye maliyeti.
+- Tasarım ayrıntısı Aşama 5 sırasında; 3a'dan sonra sıraya girer.

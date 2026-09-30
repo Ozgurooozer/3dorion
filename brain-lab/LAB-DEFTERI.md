@@ -4197,6 +4197,19 @@ ağırlıklar 0) kazanma 0,498–0,499 (7 gürültü seed'i).
   (açlık alışkanlığı) gösterdi.
 - Sabırlı kural taban eğitim kuralı olur; "en iyi blok" yerine son blokları ölçüt alan düzeltme ayrı test ve ön-kayıtla gelir.
 
+## 2026-09-30 — Kart 2 (Aşama 2: ölüm ve acı öğretsin) — koşmadan önce; Aşama 3a (orta hat kuralı) tasarımı
+
+Ozyn: yön tedavisi olarak **orta hat kuralı**; Aşama 2 paralel koşsun. Ek not: "sürekli hareket etmek zorunda değil,
+düşünme olarak ekle" → TASARIM-009 Aşama 5'e yazıldı (bekleyen eksen = düşünme, ölçülür).
+
+- Ön-kayıt: `data/preregistration-005-olum-aci.md` (P1–P5, dur kuralı). Kollar OL1 (kıt oda, ölüm öğretir; D0 = sabırlı
+  H3B97), OT0 / OT1 (oda 2, iki tehlike; kapalı / açık), sabırlı eğitim, 10'ar denek.
+- `[TEST]` `experiments/stage2.test.ts` 4 test, bozma 5/5. Yeni bulgu: ölüm anında eleştirmen de öğreniyor (TD kayıtları
+  "td" etiketli, "death" değil); test bunu bekliyor.
+- İlk kez Kart 1'in dersiyle puanlanacak: ortalama + eşleştirilmiş ≥ 7/10 + ortanca; biri uymazsa "belirsiz".
+- Aşama 3a tasarımı TASARIM-009'da: tarafı olmayan duyuların (açlık, acı, çarpma, merkez ışın, ileri/geri proprio) sol ve
+  sağ dönüş sinapsı tek sinapsın iki kopyası (doğumda eşit, öğrenmede tek hesap). Kod sırada; testler önce.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
