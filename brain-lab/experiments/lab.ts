@@ -5,7 +5,9 @@
 //   npm run exp -- curut <KOD>          falsify: fresh seeds 11–20, CROSS, LOCAL, lesions, rooms, groups, stats
 //   npm run exp -- teshis <dosya...>    what was learned (diagnose.ts), read-only
 //   npm run exp -- liste                the condition catalogue
-// Options: --isci N (worker threads; default cores − 2), --egitim N|auto, --degerlendirme N.
+// Options: --isci N (worker threads; default cores − 2), --egitim N|auto|sabirli, --degerlendirme N.
+//   --egitim sabirli: the patient rule (harness.ts PATIENT): a plateau stops a learner only once its drive is low, or
+//   after PATIENT.stuckAfter episodes without getting there.
 //   --egitim auto: train each learner until its training drive stops improving (harness.ts AUTO, TASARIM-009 §0.1);
 //   its CROSS and LOCAL controls then live exactly as many episodes per stage as the learner they are paired with.
 //
@@ -20,7 +22,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { InnateGroup } from "../development/index.ts";
 import { CONDITIONS, ROOM1, condition, room } from "./conditions.ts";
-import type { Eval, Row } from "./harness.ts";
+import type { Eval, Row, StageLength } from "./harness.ts";
 import { runJobs, type Control, type Job, type JobResult, type SubjectJob } from "./jobs.ts";
 import { signTest, wilcoxon } from "./stats.ts";
 import type { WorldConfig } from "../world/index.ts";
@@ -29,7 +31,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const DATA = join(HERE, "../data");
 const GROUPS: InnateGroup[] = ["reflexless", "reflexive"];
 
-interface Options { workers: number; train: number | "auto"; evaluate: number }
+interface Options { workers: number; train: StageLength; evaluate: number }
 
 function parse(argv: string[]): { command: string; args: string[]; opts: Options } {
   const opts: Options = { workers: Math.max(1, availableParallelism() - 2), train: 40, evaluate: 10 };
@@ -38,7 +40,10 @@ function parse(argv: string[]): { command: string; args: string[]; opts: Options
     const a = argv[i]!;
     const value = () => { const v = Number(argv[++i]); if (!Number.isInteger(v) || v < 1) throw new Error(`${a} needs a positive integer`); return v; };
     if (a === "--isci") opts.workers = value();
-    else if (a === "--egitim") { if (argv[i + 1] === "auto") { opts.train = "auto"; i++; } else opts.train = value(); }
+    else if (a === "--egitim") {
+      const w = argv[i + 1];
+      if (w === "auto" || w === "sabirli") { opts.train = w === "auto" ? "auto" : "patient"; i++; } else opts.train = value();
+    }
     else if (a === "--degerlendirme") opts.evaluate = value();
     else args.push(a);
   }
@@ -190,7 +195,7 @@ async function main() {
   else if (command === "curut") { for (const code of args) await falsify(code, opts, codeCommit); }
   else if (command === "teshis") execSync(`node --experimental-strip-types ${JSON.stringify(join(HERE, "diagnose.ts"))} ${args.map((a) => JSON.stringify(a)).join(" ")}`, { stdio: "inherit" });
   else if (command === "liste") for (const [code, c] of Object.entries(CONDITIONS)) console.log(`${code.padEnd(8)} ${c.what}`);
-  else console.log("komutlar: tara <KOD...> | dogrula <KOD...> | curut <KOD> | teshis <dosya...> | liste   (--isci N, --egitim N|auto, --degerlendirme N)");
+  else console.log("komutlar: tara <KOD...> | dogrula <KOD...> | curut <KOD> | teshis <dosya...> | liste   (--isci N, --egitim N|auto|sabirli, --degerlendirme N)");
   console.log("done");
 }
 

@@ -10,7 +10,7 @@ import { join } from "node:path";
 import { RegistryStore } from "../registry/store.ts";
 import { makeConfig } from "../world/index.ts";
 import { ROOM1, ROOM_S, condition } from "./conditions.ts";
-import { AUTO, birth, plateaued, trainStages } from "./harness.ts";
+import { AUTO, PATIENT, birth, plateaued, stageDone, trainStages } from "./harness.ts";
 import { runJob } from "./jobs.ts";
 import { trainWorld } from "./seeds.ts";
 
@@ -112,5 +112,52 @@ test("a job's stageEpisodes decide how long each stage lives, and a wrong count 
     assert.equal(r.kind, "subject");
     if (r.kind === "subject") assert.deepEqual(r.row.trained, [7], "the control lived the learner's 7 episodes, not auto");
     assert.throws(() => runJob({ ...job, stageEpisodes: [7, 7] }, { dataRoot: root, codeCommit: "test" }), /2 stage lengths for 1 stages/);
+  } finally { done(); }
+});
+
+// --- the patient rule (Ozyn, 2026-09-30, after Kart 0) -----------------------------------------------------------------
+
+/** Kart 0's reflexive seed 3: training drive by block until AUTO stopped it at episode 100 (results.jsonl, DNK-416x). */
+const STUCK = [0.732, 0.686, 0.686, 0.714, 0.677];
+
+test("stageDone auto: exactly the plateau rule, whatever the drive level", () => {
+  assert.equal(stageDone("auto", STUCK, 100), true, "Kart 0 stopped seed 3 here");
+  assert.equal(stageDone("auto", [0.8, 0.7, 0.6, 0.5], 80), false, "still improving");
+});
+
+test("stageDone patient: a plateau high above the floor does not stop a subject before stuckAfter", () => {
+  assert.equal(stageDone("patient", STUCK, 100), false, "seed 3 keeps training");
+  assert.equal(stageDone("patient", STUCK, PATIENT.stuckAfter - AUTO.block), false, "one block before stuckAfter");
+  assert.equal(stageDone("patient", STUCK, PATIENT.stuckAfter), true, "at stuckAfter: could not learn, stop");
+});
+
+test("stageDone patient: a plateau at or below the floor stops at once, the floor itself included", () => {
+  assert.equal(stageDone("patient", [0.5, 0.2, 0.21, 0.2, 0.2], 100), true, "learned, then flat");
+  assert.equal(stageDone("patient", [0.5, PATIENT.floor, 0.35, 0.35, 0.35], 100), true, "best exactly at the floor");
+  assert.equal(stageDone("patient", [0.5, PATIENT.floor + 0.001, 0.35, 0.35, 0.35], 100), false, "best just above the floor");
+});
+
+test("stageDone patient: never stops without a plateau, even past stuckAfter", () => {
+  assert.equal(stageDone("patient", [0.9, 0.8, 0.7, 0.6, 0.5], PATIENT.stuckAfter + 100), false);
+});
+
+test("a patient stage lives beyond AUTO's stop for a stuck frozen learner: to stuckAfter, not the cap", () => {
+  const { store, done } = fresh();
+  try {
+    const s = birth(store, ROOM1, 2, "reflexless", "test");
+    const t = trainStages(store, s, [{ world: ROOM1, episodes: "patient" }], { ...S1N, learning: { ...S1N.learning, frozen: true } }, "test", "patient");
+    const n = t.episodes[0]!;
+    // A frozen learner never gets below the floor in ROOM1 (it starves): it must stop exactly at stuckAfter or the first
+    // plateau after it.
+    assert.ok(Math.min(...t.drive) > PATIENT.floor, `frozen learner reached ${Math.min(...t.drive)}`);
+    assert.ok(n >= PATIENT.stuckAfter && n < AUTO.cap, `stopped at ${n}`);
+  } finally { done(); }
+});
+
+test("an unknown stage length is refused", () => {
+  const { store, done } = fresh();
+  try {
+    const s = birth(store, ROOM1, 7, "reflexless", "test");
+    assert.throws(() => trainStages(store, s, [{ world: ROOM1, episodes: "forever" as never }], S1N, "test", "x"), RangeError);
   } finally { done(); }
 });

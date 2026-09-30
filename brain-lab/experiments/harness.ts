@@ -272,8 +272,25 @@ export function plateaued(drives: readonly number[], p: { patience: number; minG
   return recent > before - p.minGain;
 }
 
-/** One room of a curriculum (TASARIM-009 §0.2) and how long to live it: a number of episodes, or "auto" (AUTO rule). */
-export interface TrainStage { readonly world: WorldConfig; readonly episodes: number | "auto" }
+/**
+ * The patient rule (Ozyn, 2026-09-30, after Kart 0): AUTO gave up on subjects that had not started learning yet — seed 3
+ * reflexive sat at training drive ~0.7 for 100 episodes and was stopped, though at 200 episodes it had reached 0.03. A
+ * plateau counts as "done" only once the stage's best block is at or below `floor`; a subject still above it keeps
+ * training until `stuckAfter` episodes, and only then may a plateau stop it as "could not learn". Cap as AUTO.
+ */
+export const PATIENT = Object.freeze({ floor: 0.3, stuckAfter: 400 });
+
+/** How long a stage lives: a fixed number of episodes, the AUTO rule, or the patient rule. */
+export type StageLength = number | "auto" | "patient";
+
+/** Whether a stage living by `rule` stops after `n` episodes with these block drives (checked at block ends). */
+export function stageDone(rule: "auto" | "patient", drives: readonly number[], n: number): boolean {
+  if (!plateaued(drives)) return false;
+  return rule === "auto" || Math.min(...drives) <= PATIENT.floor || n >= PATIENT.stuckAfter;
+}
+
+/** One room of a curriculum (TASARIM-009 §0.2) and how long to live it. */
+export interface TrainStage { readonly world: WorldConfig; readonly episodes: StageLength }
 
 export interface Trained {
   /** Meals/1000 ticks per 10-episode block, over all stages (the historical measure). */
@@ -304,20 +321,21 @@ export function trainStages(store: RegistryStore, s: Subject, stages: readonly T
     if (JSON.stringify(st.world.rayAngles) !== JSON.stringify(first.rayAngles) || st.world.rayRange !== first.rayRange || st.world.width !== first.width || st.world.height !== first.height) {
       throw new Error("every curriculum stage must have the same rays and room size");
     }
-    if (st.episodes !== "auto" && !(Number.isInteger(st.episodes) && st.episodes >= 0)) throw new RangeError(`stage episodes ${st.episodes}`);
+    if (typeof st.episodes !== "number" && st.episodes !== "auto" && st.episodes !== "patient") throw new RangeError(`stage episodes ${st.episodes}`);
+    if (typeof st.episodes === "number" && !(Number.isInteger(st.episodes) && st.episodes >= 0)) throw new RangeError(`stage episodes ${st.episodes}`);
   }
   const ledger = store.openLedger(s.id);
   const agent = createAgent({ ...spec, cfg: first, ledger, noiseSeed: trainNoise(s.birth.seed) });
-  const plain = stages.length === 1 && stages[0]!.episodes !== "auto";
+  const plain = stages.length === 1 && typeof stages[0]!.episodes === "number";
   const meta = plain ? { spec: JSON.parse(JSON.stringify(spec)) } : { spec: JSON.parse(JSON.stringify(spec)), stages: JSON.parse(JSON.stringify(stages)) };
   const run = store.startRun(s.id, `${label} train`, meta, { codeCommit });
   const perK: number[] = [], drives: number[] = [], episodes: number[] = [];
   let bm = 0, bt = 0, ep = 0;
   for (const st of stages) {
-    const auto = st.episodes === "auto";
+    const rule = typeof st.episodes === "number" ? null : st.episodes;
     const stageDrives: number[] = [];
     let n = 0, blockDrive = 0;
-    while (auto ? n < AUTO.cap : n < (st.episodes as number)) {
+    while (rule ? n < AUTO.cap : n < (st.episodes as number)) {
       ep++; n++;
       agent.startEpisode(ep);
       const worldSeed = trainWorld(s.birth.seed, ep);
@@ -333,7 +351,7 @@ export function trainStages(store: RegistryStore, s: Subject, stages: readonly T
         stageDrives.push(blockDrive / AUTO.block);
         drives.push(blockDrive / AUTO.block);
         blockDrive = 0;
-        if (auto && plateaued(stageDrives)) break;
+        if (rule && stageDone(rule, stageDrives, n)) break;
       }
     }
     episodes.push(n);
@@ -362,7 +380,7 @@ export function twinSpec(spec: Condition["spec"]): Partial<AgentSpec> {
 
 export function runCondition(store: RegistryStore, o: {
   condition: Condition; world: WorldConfig; seeds: number[]; groups: InnateGroup[];
-  trainEpisodes: number | "auto"; evalEpisodes: number; codeCommit: string; label: string;
+  trainEpisodes: StageLength; evalEpisodes: number; codeCommit: string; label: string;
   /**
    * Training rooms in order (TASARIM-009 §0.2); default one stage: `world` for `trainEpisodes`. Evaluation is always in
    * `world`, the room the subjects are born into.

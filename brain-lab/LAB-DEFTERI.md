@@ -4095,6 +4095,35 @@ tarama).
 Sonraki (öneri, Ozyn'in kararı): durma kuralının sabrı ve eşiği (ör. hiç iyileşmemiş denek için en az bölüm, göreli eşik)
 ölçülerek yeniden seçilmeli; ya da Aşama 1–6 için sabit 200 bölüm kullanılmalı.
 
+## 2026-09-30 — Kart 1: iki eğitim rejimi paralel (sabit 200 / sabırlı) × Aşama 1 müfredat kolları — koşmadan önce
+
+Ozyn: "paralel devam edelim, bakalım Atlas'ın önerisi mi (sabit 200) yoksa seninki mi (sabırlı auto)". İkisi benzer görünür
+ama değil: sabitte her denek eşit süre alır; sabırlıda öğrenen erken biter, takılan en az 400 bölüm alır.
+
+`[TEST]` Sabırlı kural (`--egitim sabirli`, `harness.ts PATIENT`): plato ancak aşamanın en iyi bloğu dürtü ≤ 0,3 ise "bitti"
+sayılır; üstündeyse 400. bölüme kadar sürer, orada plato "öğrenemedi" diye durdurur. Tavan 1000. 7 yeni test, bozma 7/7.
+Kart 0'ın takılan deneği (refleksli seed 3, eğitim dürtüsü ~0,7'de 100 bölüm) testte örnek: auto durdurur, sabırlı durdurmaz.
+
+Aşama 1 kolları (H3B97 beyni, değerlendirme kıt oda ROOM3):
+- M0 = H3B97 (yalnız kıt oda)
+- MU1: kolay oda (ROOM1) → yön odası (ROOM-S) → kıt oda
+- MU2: kolay oda → kıt oda (yön odası yok)
+
+Koşular (paralel, 5'er iş parçacığı):
+- **Sabit** (Atlas A): M0 = kayıtlı H3B97 @200; `tara MU1 --egitim 67` (3 × 67 = 201), `tara MU2 --egitim 100` (2 × 100). Toplam
+  deneyim eşit (~200); ama MU1 kıt odada yalnız 67 bölüm görür — karışıklık, yorumda akılda tutulacak.
+- **Sabırlı** (Atlas B): `tara H3B97 MU1 MU2 --egitim sabirli` — her aşama gerektiği kadar.
+
+| # | öngörü | çürütülürse |
+|---|---|---|
+| P1 | Sabırlı H3B97 dürtüsü ≤ 0,193 (sabit 200) ve Kart 0'ın takılan iki refleksli deneği (seed 1, 3) öğrenir (dürtü < 0,3) | sabırlı > 0,23: fazla eğitim zarar veriyor ya da takılan takılı kalıyor |
+| P2 | Aynı rejimde MU1'in yönlendirmesi M0'ınkinden ≥ 0,05 yüksek | MU1 yönlendirme < M0 + 0,05: yön odası yönü öğretmiyor → sorun temsilde, Aşama 3 öne |
+| P3 | MU2 ≈ M0 yönlendirmede (|fark| < 0,05): yön odası olmayan müfredat yön kazandırmaz | MU2 ≥ M0 + 0,05: kolay oda da yön öğretiyor |
+| P4 | MU1'in kıt odadaki dürtüsü M0'dan en çok 0,05 kötü | > 0,05 kötü: müfredat kıt oda becerisine mal oluyor |
+| P5 | Sabırlıda refleksli grup reflekssizden daha çok bölüm eğitilir | değilse: gecikme gruba bağlı değil |
+
+Dur kuralı: bir koşu çökerse raporla; doğrulama/çürütme bu kartta yok.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.

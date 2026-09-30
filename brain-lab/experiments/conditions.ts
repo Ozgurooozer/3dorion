@@ -105,6 +105,11 @@ export const CONDITIONS: Readonly<Record<string, ConditionDef>> = Object.freeze(
   H3Y3: { what: "room 3 (scarce): S1n + memory recall, rule synapses DIRECTED at 0.3, learning on, rule trace λ 0.97 (prereg 004 B, labelled birth group)", spec: () => ({ ...S1N, memory: { recall: {} }, learning: learn({ dipFloor: null, ruleLambda: 0.97 }) }), born: { recall: { rules: "directed" as const, weight: 0.3 } }, world: ROOM3 },
   H3Y6: { what: "room 3 (scarce): S1n + memory recall, rule synapses DIRECTED at 0.6, learning on, rule trace λ 0.97 (prereg 004 B, labelled birth group)", spec: () => ({ ...S1N, memory: { recall: {} }, learning: learn({ dipFloor: null, ruleLambda: 0.97 }) }), born: { recall: { rules: "directed" as const, weight: 0.6 } }, world: ROOM3 },
   H3Y3f: { what: "room 3 (scarce): S1n + memory recall, rule synapses DIRECTED at 0.3, held (no learning on the rule synapses) (prereg 004 B, labelled birth group)", spec: () => ({ ...S1N, memory: { recall: {} }, learning: learn({ dipFloor: null, senseFilter: "^(?!rec)" }) }), born: { recall: { rules: "directed" as const, weight: 0.3 } }, world: ROOM3 },
+  // TASARIM-009 stage 1 (curriculum base): H3B97's brain, evaluated in room 3, trained through easier rooms first. Stage
+  // lengths come from the command (--egitim N per stage, or auto / sabirli per stage). MU1 goes through the side room
+  // (food never ahead: forward-only earns nothing there), MU2 is the same path without it.
+  MU1: { what: "curriculum room 1 (easy) → side room → room 3 (scarce); H3B97 brain (TASARIM-009 stage 1)", spec: () => ({ ...S1N, memory: { recall: {} }, learning: learn({ dipFloor: null, ruleLambda: 0.97 }) }), born: { recall: { rules: "grown" as const } }, world: ROOM3, curriculum: [{ world: ROOM1 }, { world: ROOM_S }, { world: ROOM3 }] },
+  MU2: { what: "curriculum room 1 (easy) → room 3 (scarce); H3B97 brain (TASARIM-009 stage 1)", spec: () => ({ ...S1N, memory: { recall: {} }, learning: learn({ dipFloor: null, ruleLambda: 0.97 }) }), born: { recall: { rules: "grown" as const } }, world: ROOM3, curriculum: [{ world: ROOM1 }, { world: ROOM3 }] },
 });
 
 export function condition(code: string): ConditionDef {

@@ -13,7 +13,7 @@ import type { InnateGroup } from "../development/index.ts";
 import { RegistryStore } from "../registry/store.ts";
 import type { WorldConfig } from "../world/index.ts";
 import { ROOM1, condition } from "./conditions.ts";
-import { crossDopamine, evaluate, evaluationSpec, lesionClone, localDopamine, runCondition, shuffledClone, type Eval, type Row } from "./harness.ts";
+import { crossDopamine, evaluate, evaluationSpec, lesionClone, localDopamine, runCondition, shuffledClone, type Eval, type Row, type StageLength } from "./harness.ts";
 
 export type Control = "CROSS" | "LOCAL" | null;
 
@@ -25,8 +25,8 @@ export interface SubjectJob {
   readonly group: InnateGroup;
   /** Room override (e.g. other food counts); default the condition's room. */
   readonly world?: WorldConfig;
-  /** Episodes per curriculum stage that has none of its own: a number, or "auto" (harness.ts AUTO). */
-  readonly trainEpisodes: number | "auto";
+  /** Episodes per curriculum stage that has none of its own: a number, "auto" or "patient" (harness.ts AUTO, PATIENT). */
+  readonly trainEpisodes: StageLength;
   /**
    * Fixed episodes per stage, overriding the rest: a control (CROSS, LOCAL) lives exactly as long as the learner it is
    * paired with, so an auto-trained learner never faces a control trained for less (TASARIM-009 §0.1).
