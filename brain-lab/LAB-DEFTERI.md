@@ -4210,6 +4210,36 @@ düşünme olarak ekle" → TASARIM-009 Aşama 5'e yazıldı (bekleyen eksen = d
 - Aşama 3a tasarımı TASARIM-009'da: tarafı olmayan duyuların (açlık, acı, çarpma, merkez ışın, ileri/geri proprio) sol ve
   sağ dönüş sinapsı tek sinapsın iki kopyası (doğumda eşit, öğrenmede tek hesap). Kod sırada; testler önce.
 
+## 2026-09-30 — Kart 2 sonucu: ölüm öğretince beden "açken dur"u öğreniyor ve donup ölüyor; dur kuralı tetiklendi
+
+Atlas raporu `data/atlas-reports/2026-09-30-kart2-olum.md` (kod `35c0b2f`, sabırlı eğitim, 10'ar denek, yalnız tarama).
+Ortalamalar `results.jsonl`'den yeniden hesaplandı, tuttu.
+
+| kol | dürtü | hayatta | zarar/1000t | hareketsiz | yönlendirme |
+|---|---|---|---|---|---|
+| D0 = H3B97 sabırlı (kıt oda) | 0,116 | 0,88 | 0 | 0,687 | 0,097 |
+| OL1 (kıt oda, ölüm öğretir) | **0,704** | **0,00** | 0 | **0,935** | 0,000 |
+| OT0 (oda 2, öğretmez) | 0,555 | 0,31 | 0,121 | 0,651 | 0,184 |
+| OT1 (oda 2, ölüm öğretir) | **0,853** | 0,05 | 0,029 | 0,874 | 0,018 |
+
+Eşleştirilmiş: OL1 − D0 dürtü +0,588 (10/10 kötü); OT1 − OT0 +0,298 (10/10 kötü). OL1 bağlı bedenden ayırt edilemiyor
+(ortanca fark 0).
+
+**Karne (ön-kayıt 005, üçlü puanlama):** P1 ✗ (hayatta 0,00; dur kuralı tetiklendi); P2 ✗ (öncül de yanlış: ölüm
+öğretimi 4000 eğitim bölümünün %73'ünde yazdı, az ve başta değil); P3 kâğıt üstünde ✓ ama **yorumlanmaz** (zarar,
+hareketsizlik ve kısa ömürden düştü; bağlı bedene karşı 4/10); P4 ✗; P5 ✓ (OT0 ikizden 9/10 iyi: H3B97 beyni oda 2'de
+öğrenebiliyor).
+
+**Ne öğretti:** OL1 defterlerindeki 12 254 "death" kaydının hepsi açlık ölümü; Git kayıtlarının %100'ü düşüş, Gitme
+kayıtlarının %100'ü artış; 623 sinaps silindi (çoğu hatırlanan yemek → Git). Açlık → Git toplamı 4,5 → 0,10, açlık → Gitme
+0,35 → 5,2. Döngü: aç beden durmayı öğreniyor, durdukça açlıktan ölüyor, her ölüm durmayı pekiştiriyor. E7'deki aşırı
+hareketle aynı kök (ölüm sebebi eylemden ayırt etmeden öğretiyor), bu kez ters yönde. Yan alışkanlığı küçüldü (0,65 → 0,29)
+ama yemek farkı ve "yemek önde → ileri" de silindi: tedavi değil, yıkım.
+
+**Sonuç:** `teachAtDeath` kapalı kalır. Ölüm yeniden öğretecekse **neyi** öğreteceği ayrı bir tasarım sorusu (yalnız ölüme
+yakın pencere; açlık ölümünde Gitme'ye değil; `killed`/`starved` ayrımı). Ozyn'in kararı; Aşama 3a bundan etkilenmez.
+Ölçülmedi: eleştirmen sapmasının iki ölüm kolunda neden pozitife döndüğü (+0,18, +0,46).
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
