@@ -4279,6 +4279,36 @@ kalıcı olarak alacak.
 **Sonuç:** H3M doğrulamaya gitmez. Orta hat kuralı kodda kalır (varsayılan kapalı, bit-birebir). Kök sorun "dönüşün yanı
 yemeğin tarafıyla eşleşmiyor" — kredi dağıtımı. Sıradaki adım Ozyn'in kararı (Aşama 3b `lat`, ya da önce kredi teşhisi).
 
+## 2026-09-30 — Araştırma: bu sorunlar biliniyor mu? + kredi teşhisi (koşmadan önce)
+
+Ozyn: "Önce kredi teşhisi"; "araştırma da yap, her zaman mutlaka denenmiştir bunlar". Kısa literatür taraması:
+
+| bizde | literatürde | ne diyor |
+|---|---|---|
+| açken / yemek önde iken hep bir yana dönme alışkanlığı (Kart 1, 3) | Skinner 1948 "batıl inanç": zamanlı yemekte güvercinler rastlantısal hareketleri öğrenir (biri saat yönünün tersine dönmeyi) | yalnız **bitişiklik** (ödül anında ne yapılıyorsa) öğretiyorsa rastlantısal hareket pekişir. Staddon ve Simmelhag 1971: hayvanlarda bitişiklik yetmiyor; ödülü **önceden** bildiren davranış seçiliyor |
+| ölüm öğretince donma (Kart 2) | Wiecki, Frank vd. 2009 (Psychopharmacology): D2 blokajında katalepsi duyarlılaşması = Gitme (NoGo) öğrenmesi; aynı Git/Gitme bazal gangliyon modeli | tekrarlanan dopamin düşüşleri Gitme'yi büyütüyor, tepki giderek yavaşlıyor; bir kısmı sönmüyor (gizli Gitme). Kart 2 bunun kendisi |
+| uzun izle kredi | Izhikevich 2007 (distal ödül): uygunluk izi ancak ödülü getiren örüntü tutarlıysa ve öbür etkinlik rastgeleyse doğru sinapsı bulur | bizde dönüş rastgele değil (alışkanlık), iz onu buluyor |
+| eleştirmen yemeği değerli bulmuyor (≈ 0,01) | aktör-eleştirmen kuramı; Frémaux, Sprekeler ve Gerstner 2013 (PLOS CB): sürekli zamanlı TD ile gezinme ancak eleştirmen durumun değerini öğrenince çalışıyor | eleştirmen yemeğe yaklaşmayı ödüllendirmezse δ yalnız yemek anında gelir: öğrenme bitişikliğe döner |
+| yön için sol − sağ karşılaştırması (3b, `lat`) | Le Möel ve Wystrach 2020 (PLOS CB): karınca mantar gövdesinde karşıt süreçler; sol/sağ karşılaştırma açısal hatayla doğrudan ilişkili dümen sinyali veriyor | karşılaştırma **doğuştan yapı**, öğrenilen yalnız hafıza; bizim 3b fikriyle uyumlu |
+
+**Hipotez (bitişiklik):** eleştirmen yemeği görmeyi değerli bulmadığı için δ neredeyse yalnız yemek anında pozitif; o an
+hangi dönüş yapılıyorsa o pekişiyor. Yemek o anda çoğunlukla önde (merkez ışın) → merkez yemek ışını alışkanlığı taşıyor
+(Kart 3'ün taraması: 1,42).
+
+**Araç:** `experiments/kredi-teshis.ts` (`[TEST]` 5 test): bir öğrenenin defterindeki dönüş sinapsı değişimleri
+(Git olduğu gibi, Gitme işareti ters) nerede yazıldı (yemek tiki … +2 tik, ya da başka yerde) ve neyi ödüllendirdi
+(yan yemek ışını → **o yana** / **öbür yana**, merkez yemek ışını, diğer).
+
+| # | öngörü (H3B97 sabırlı, 10 öğrenen) | çürütülürse |
+|---|---|---|
+| K1 | Dönüş sinapslarındaki pozitif değişimin ≥ %70'i yemek anında yazılmış | < %50: kredi çoğunlukla önceden geliyor; bitişiklik okuması yanlış |
+| K2 | Yan yemek ışınlarında "öbür yana" pozitif değişim "o yana"nın en az yarısı: o yana / öbür yana < 2, ≥ 7/10 öğrenende | ≥ 2 çoğunlukta: yanı doğru ödüllendiriyor, sorun başka yerde (ör. Gitme tarafı) |
+| K3 | H3M'de aynı ikisi, daha belirgin (o yana / öbür yana ortalaması H3B97'dekinden küçük) | değilse: orta hat kuralı krediyi değiştirmedi |
+
+Kaynaklar: Skinner 1948 (psychology.hanover.edu/classes/Learning/papers/Skinner%20Superstion%20%281948%20orig%29.pdf);
+Staddon ve Simmelhag 1971 (Psychological Review 78:3–43); Wiecki vd. 2009 (pubmed 19169674); Izhikevich 2007 (Cerebral
+Cortex); Frémaux vd. 2013 (pmc PMC3623741); Le Möel ve Wystrach 2020 (pmc PMC7034919).
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
