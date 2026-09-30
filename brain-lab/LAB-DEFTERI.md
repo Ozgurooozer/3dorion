@@ -4124,6 +4124,79 @@ Koşular (paralel, 5'er iş parçacığı):
 
 Dur kuralı: bir koşu çökerse raporla; doğrulama/çürütme bu kartta yok.
 
+## 2026-09-30 — Kart 1 sonucu: sabırlı rejim kazandı; müfredat yönü öğretmiyor; yön teşhisi: öğrenilen "açken hep bir yana dön" alışkanlığı yemeği bastırıyor
+
+İki Atlas paralel koştu (kod `dd69583`), raporlar `data/atlas-reports/2026-09-30-kart1-sabit.md` ve `…-kart1-sabirli.md`.
+Her rapordan sayılar `results.jsonl`'den yeniden hesaplandı, tuttu (sabit: MU1 yönlendirme 0,181, dürtü 0,175; MU2 0,168 /
+0,293; H3B97@200 0,118 / 0,193. Sabırlı: H3B97 dürtü 0,116; MU1 0,196; MU2 0,219; refleksli s3 `trained [260]` → 0,035,
+s1 `[500]` → 0,349). Yalnız tarama: 10 denek, CROSS ve çürütme yok.
+
+### Rejimler (değerlendirme kıt oda, 10 bölüm)
+
+| kol | sabit: eğitim → dürtü / hayatta / yönlendirme | sabırlı: eğitim ort. → dürtü / hayatta / yönlendirme |
+|---|---|---|
+| M0 = H3B97 | 200 → 0,193 / 0,79 / 0,118 | 180 → **0,116** / 0,88 / 0,097 |
+| MU1 (kolay → yön → kıt) | 67+67+67 → 0,175 / 0,76 / 0,181 | 452 → 0,196 / 0,74 / 0,194 |
+| MU2 (kolay → kıt) | 100+100 → 0,293 / 0,57 / 0,168 | 292 → 0,219 / 0,65 / 0,229 |
+| ikiz | — 0,755 / 0 / 0,006 | aynı |
+
+- **Sabırlı kural kazandı** (Ozyn'in "deneklere daha çok zaman verelim"i): M0 dürtüsü 0,193 → 0,116, ortalama eğitim daha
+  **az** (180 < 200). Öğrenen erken biter, takılan uzun eğitilir. Kart 0'ın kestiği iki refleksli denek sonradan öğrendi:
+  s3 160–180. bölümde (0,69 → 0,09), s1 380. bölümde (0,6 → 0,14; ama değerlendirmede 0,349 kaldı).
+- Belirleyicilik: sabırlıda öbür 8 H3B97 deneği auto ile aynı bölümde durdu, aynı sonucu verdi.
+- **Müfredat bozan iki denek:** reflekssiz s2 ve refleksli s5, kolay odada önce öğrenip sonra bozuldu (0,28 → 0,86; 0,08 →
+  0,59). Sabırlı kural aşamanın **en iyi** bloğuna baktığı için "bitti" dedi; sonraki odalarda 400+ bölüm 0,55–0,78'de
+  kaldılar. Aynı seed'ler yalnız kıt odada iyi öğrendi (0,035, 0,188). Kuralın boşluğu: son bloklar ölçüt olmalı.
+
+### Öngörü karnesi (yeniden yazılmadı; ön-kayıt `2026-09-30 — Kart 1 … koşmadan önce`)
+
+| # | sabit | sabırlı |
+|---|---|---|
+| P1 sabırlı M0 ≤ 0,193 ve s1, s3 < 0,3 | — | ✗ (0,116 ✓, s3 ✓, s1 0,349 ✗) |
+| P2 MU1 yönlendirme ≥ M0 + 0,05 | ✓ harfiyen (+0,063); eşleşmede 6/10, p 0,77 | ✓ harfiyen (+0,097); eşleşmede 7/10, >0 olan 5/10 |
+| P3 \|MU2 − M0\| < 0,05 | ✗ (+0,050) | ✗ (+0,132) |
+| P4 MU1 dürtüsü M0'dan en çok 0,05 kötü | ✓ | ✗ (+0,080; ortanca ters yönde) |
+| P5 sabırlıda refleksli daha uzun eğitilir | — | yalnız H3B97'de ✓ |
+
+**Okuma:** P2 iki rejimde de kâğıt üstünde tuttu ama yön odasına bağlanamaz: yön odası olmayan MU2 aynı kadar ya da daha
+çok yükseldi (P3 ✗). Kazanç (varsa) kolay odadan geliyor ve iki tepeli: 4 denek 0,33–0,68, öbürleri ~0. Bağlı bedene karşı
+yönlendirme hiçbir kolda anlamlı değil. "Müfredat yönü öğretir" yazılamaz.
+
+### Yön teşhisi (yeni araç `experiments/yon-teshis.ts`, `[TEST]` 9 test, bozma 7/7; salt okunur)
+
+Bitmiş beynin dönüş eksenine seçicinin kendi `values()`'ıyla sorulur: yemek yalnız bir yan ışında (yakınlık 0,6, açlık 0,5),
+yana dönüşün değeri öbür yana dönüşten ne kadar fazla (**yemek farkı**), seçicinin kendi gürültüsüyle bu kaç kez kazanıyor;
+yalnız açlıkla sol − sağ (**yan alışkanlığı**); yemek alışkanlığın **karşı** tarafındayken kazanma. Boş beyinde (tüm öğrenen
+ağırlıklar 0) kazanma 0,498–0,499 (7 gürültü seed'i).
+
+| kol | yemek farkı (>0) | kazanma | alışkanlığa karşı kazanma | açlık → sol−sağ \|fark\| | yemek önde → ileri |
+|---|---|---|---|---|---|
+| doğum (hepsi) | 0,001 | 0,504 | 0,481 | 0,022 | 0,004 |
+| H3B97 @200 | 0,109 (8/10) | 0,588 | 0,276 | 0,469 | 1,077 |
+| MU1 @67×3 | 0,143 (7/10) | 0,599 | 0,289 | 0,875 | 1,195 |
+| MU2 @100×2 | 0,099 (8/10) | 0,597 | 0,379 | 0,737 | 1,195 |
+| H3B97 sabırlı | 0,153 (9/10) | 0,559 | **0,162** | 0,653 | 1,074 |
+| MU1 sabırlı | 0,182 (9/10) | 0,607 | 0,304 | 0,845 | 1,192 |
+| MU2 sabırlı | 0,131 (9/10) | 0,596 | 0,262 | 0,950 | 1,194 |
+
+- Yemeğin yönü **öğreniliyor** (fark 0,10–0,18, 7–9/10 pozitif). Temsil tek başına sorun değil.
+- Ama beyin aynı anda **açlık → bir yana dönme** alışkanlığı öğreniyor: açlık 0,5'te 0,23–0,48, yemek farkının 2–4 katı.
+  Açlık neredeyse hep açık; hangi yöne dönülürse dönülsün yemek sonra gelince o dönüş ödüllenir, açlık bir sabit terim
+  (bias) gibi öğrenir. Sonuç: yemek alışkanlığın karşı tarafındaysa kazanma **0,16–0,38, doğumdaki 0,48'in altında**.
+  Öğrenme o tarafta yönü doğuştan daha **kötü** yapıyor.
+- Dönüş alışkanlığı (proprio → aynı yöne dönmeye devam) sorun değil: −0,18 ile +0,06 arası.
+- Bu, Aşama 3'ün (`lat` fark hücreleri) tek başına yetmeyeceğini söylüyor: fark hücreleri yemek farkını büyütebilir ama
+  açlığın dönüş kanallarına giden yolu durdukça alışkanlık yine öğrenilir. Tedavi seçimi Ozyn'in (tasarım kararı).
+
+### Ders (yönteme)
+
+- **Ortalamayla puanlanan yön öngörüsü 2–4 deneğe teslim.** P2 iki rejimde "✓" çıktı, eşleşmede 6–7/10'du. Bundan sonra her
+  yön/fark öngörüsü üç şeyle puanlanır: ortalama farkı, eşleştirilmiş sayım (≥ 7/10) ve ortanca aynı yönde. Biri
+  uymazsa "belirsiz" yazılır, ✓ yazılmaz.
+- **Önce teşhis sonra tedavi** yine kazandırdı: yeni mimari (Aşama 3) kodlanmadan önce basit bir sorgu asıl engeli
+  (açlık alışkanlığı) gösterdi.
+- Sabırlı kural taban eğitim kuralı olur; "en iyi blok" yerine son blokları ölçüt alan düzeltme ayrı test ve ön-kayıtla gelir.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
