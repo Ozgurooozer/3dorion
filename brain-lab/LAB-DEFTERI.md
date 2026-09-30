@@ -4240,6 +4240,16 @@ ama yemek farkı ve "yemek önde → ileri" de silindi: tedavi değil, yıkım.
 yakın pencere; açlık ölümünde Gitme'ye değil; `killed`/`starved` ayrımı). Ozyn'in kararı; Aşama 3a bundan etkilenmez.
 Ölçülmedi: eleştirmen sapmasının iki ölüm kolunda neden pozitife döndüğü (+0,18, +0,46).
 
+## 2026-09-30 — Aşama 3a: orta hat kuralı kodlandı; Kart 3 — koşmadan önce
+
+- `[TEST]` Tarafı olmayan duyuların (açlık, acı, çarpma, ileri/geri proprio, merkez ışın) sol ve sağ dönüş sinapsları tek
+  sinapsın iki kopyası: doğumda eşit, öğrenmede tek hesap. `development/birth.ts` (`midline`, `midlineSources`),
+  `learning/learner.ts` (`midline`), koşul `H3M`. 15 yeni test; bozma 12/12 (ilk turda "ortalama uygunluk" bozması
+  yakalanmıyordu, test eklendi).
+- Kapalıyken bit-birebir: `regression-check.ts H3B97 2` iki denek kayıtla aynı; tam `npm test` 2007/2007.
+- Refleksli grubun çarpma refleksi aynalandı (bump → sol ve sağ 0,6); TASARIM-009 §3a.
+- Ön-kayıt `data/preregistration-006-orta-hat.md` (P1–P5, üçlü puanlama). Kollar: H3M vs kayıtlı sabırlı H3B97.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.

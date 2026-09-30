@@ -104,7 +104,28 @@ export interface BirthSpec {
   readonly generatorToGo?: number;
   /** Recalled senses (TASARIM-008 §16, A3): their nodes and, for the innate control, their rule synapses. */
   readonly recall?: RecallBirth | null;
+  /**
+   * The midline rule (TASARIM-009 §3a): the body is bilaterally symmetric, so a sense with no side (midlineSources) has
+   * one synapse to "turn" in two copies. Born equal: each left/right pair (Go and NoGo) is the mean of its two random
+   * weights, and a reflex from such a sense onto a turn is mirrored onto both sides (bump → turn; the noise picks the
+   * side). Everything else is the newborn it would have been. The learner keeps the pairs equal (LearningParams.midline).
+   */
+  readonly midline?: boolean;
 }
+
+/**
+ * The senses with no side: the body's own (hunger, pain, bump, moving forward or back) and whatever the centre ray sees.
+ * Side rays and proprio left/right are lateral. The centre ray's recalled sense is left out for now: its rule synapses
+ * are born and pruned in life, and pairing growth is a rule of its own (TASARIM-009 §3a).
+ */
+export function midlineSources(cfg: WorldConfig): string[] {
+  const centre = cfg.rayAngles.findIndex((a) => actionOfAngle(a) === "forward");
+  const body = ["touch.bump", "intero.hunger", "intero.injury", "proprio.forward", "proprio.backward"];
+  return [...(centre < 0 ? [] : RAY_KINDS.map((k) => rayNodeId(centre, k))), ...body];
+}
+
+/** The two copies of one midline synapse: (to the left turn, to the right turn), for Go and for NoGo. */
+export const MIDLINE_PAIRS = Object.freeze([["bg.go.left", "bg.go.right"], ["bg.nogo.left", "bg.nogo.right"]] as const);
 
 /**
  * The recalled-sense nodes (region rec, one per ray angle) and how their rule synapses (P18: rec → Go) come to be
@@ -197,6 +218,15 @@ export function bornGraph(cfg: WorldConfig, spec: BirthSpec): BrainGrafi {
       add(s, nodeId("bg.nogo", a), rng.range(0, maxInitial));
     }
   }
+  const midline = spec.midline ? new Set(midlineSources(cfg)) : null;
+  if (midline) { // after every random draw, so the rest of the newborn is the same brain
+    if (expansion) throw new Error("the midline rule pairs sense → turn synapses, which an expansion layer replaces");
+    for (const s of midline) for (const [l, r] of MIDLINE_PAIRS) {
+      const m = (edges.get(`${s}->${l}`)!.weight + edges.get(`${s}->${r}`)!.weight) / 2;
+      add(s, l, m);
+      add(s, r, m);
+    }
+  }
   if (orienting) {
     const mirror = { forward: "forward", left: "right", right: "left" } as const;
     cfg.rayAngles.forEach((angle, i) => {
@@ -208,7 +238,13 @@ export function bornGraph(cfg: WorldConfig, spec: BirthSpec): BrainGrafi {
       }
     });
   }
-  if (spec.group === "reflexive") for (const r of INNATE_REFLEXES) add(r.from, r.to, r.weight);
+  if (spec.group === "reflexive") {
+    for (const r of INNATE_REFLEXES) {
+      const pair = midline?.has(r.from) ? MIDLINE_PAIRS.find((p) => (p as readonly string[]).includes(r.to)) : undefined;
+      if (pair) for (const to of pair) add(r.from, to, r.weight); // mirrored: a sideless sense turns, it does not choose the side
+      else add(r.from, r.to, r.weight);
+    }
+  }
   const recall = spec.recall ?? null;
   if (recall) wireRecall(recall, cfg, spec.seed, nodes, add);
 
@@ -216,7 +252,8 @@ export function bornGraph(cfg: WorldConfig, spec: BirthSpec): BrainGrafi {
     + (expansion ? `-kc${expansion.cells}x${expansion.inputs}t${expansion.threshold}` : "")
     + (spec.bilateral ? "-bilateral" : "")
     + (generatorToGo !== INNATE.generatorToGo ? `-gen${generatorToGo}` : "")
-    + (recall ? `-recall-${recall.rules}${recall.rules === "innate" && (recall.maxInitial ?? DEFAULT_MAX_INITIAL) !== DEFAULT_MAX_INITIAL ? `${recall.maxInitial}` : ""}${recall.rules === "directed" ? `${recall.weight ?? DEFAULT_DIRECTED_WEIGHT}` : ""}` : "");
+    + (recall ? `-recall-${recall.rules}${recall.rules === "innate" && (recall.maxInitial ?? DEFAULT_MAX_INITIAL) !== DEFAULT_MAX_INITIAL ? `${recall.maxInitial}` : ""}${recall.rules === "directed" ? `${recall.weight ?? DEFAULT_DIRECTED_WEIGHT}` : ""}` : "")
+    + (midline ? "-midline" : "");
   const graph: BrainGrafi = { name: `newborn-${spec.group}${tag}`, version: "2", nodes, connections: [...edges.values()] };
   checkPathways(graph); // a birth that breaks its own regions is a bug, not a variation
   return graph;

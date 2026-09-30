@@ -14,7 +14,7 @@
 
 import type { BrainGrafi } from "../brain-ir/ir.ts";
 import { BrainSimulator } from "../brain-ir/simulator.ts";
-import { NoiseGenerator } from "../development/index.ts";
+import { NoiseGenerator, midlineSources } from "../development/index.ts";
 import { DopamineChannel } from "../neuromodulation/index.ts";
 import type { Ledger, LedgerEntry } from "../registry/index.ts";
 import { ACTIONS, nodeId, regionOf } from "../regions/index.ts";
@@ -132,7 +132,7 @@ export function createAgent(spec: AgentSpec): Agent {
   // (D, innate) learns them like any synapse and never prunes them (meeting 2026-09-26-a3-kural-dogumu K1, K2).
   const grows = recall !== null && !spec.ledger.birthGraph.connections.some((e) => regionOf(e.from)?.region === "rec");
   const grow = grows ? recallNodeIds(spec.cfg).flatMap((from) => ACTIONS.map((a) => ({ from, to: nodeId("bg.go", a) }))) : [];
-  const learner = new Learner(graph, spec.ledger, spec.learning, grow);
+  const learner = new Learner(graph, spec.ledger, spec.learning, grow, spec.learning?.midline ? midlineSources(spec.cfg) : []);
   const critic = spec.critic ? new Critic(spec.ledger, spec.cfg, spec.critic) : null;
   const compartments = spec.compartments ? new Compartments(spec.ledger, spec.cfg, spec.compartments) : null;
   if (compartments?.mode === "action" && !critic) throw new Error("action compartments need a critic (they bootstrap on its V)");

@@ -21,6 +21,7 @@ import type { BrainBaglantisi, BrainGrafi } from "../brain-ir/ir.ts";
 import type { Ledger, LedgerEntry } from "../registry/index.ts";
 import { edgeKey } from "../registry/index.ts";
 import { isPlastic, regionOf } from "../regions/index.ts";
+import { MIDLINE_PAIRS } from "../development/index.ts";
 
 export interface LearningParams {
   readonly eta: number; // learning rate
@@ -54,6 +55,13 @@ export interface LearningParams {
    * to its birth sum, keeping their ratios (synaptic scaling, Turrigiano).
    */
   readonly scaling: boolean;
+  /**
+   * The midline rule (TASARIM-009 §3a): the left and right turn synapses (Go, and NoGo) of each midline source are one
+   * synapse in two copies. One pending change, fed by the mean eligibility of the two; when it earns a quantum both copies
+   * move by it and the ledger gets both. The sources come from the room (development/midlineSources); the brain must be
+   * born with each pair equal. Optional and absent by default, so every older spec and params object is unchanged.
+   */
+  readonly midline?: boolean;
 }
 
 export const DEFAULT_LEARNING: LearningParams = Object.freeze({
@@ -76,13 +84,16 @@ export class Learner {
   private episode = 0;
   private older: Readonly<Record<string, number>> = {};
   private readonly birthSums = new Map<string, number>();
+  /** Midline rule: the left copy of each pair → its right copy; the right copies are taught through their left one. */
+  private readonly twinOf = new Map<Synapse, Synapse>();
+  private readonly copies = new Set<Synapse>();
 
   /**
    * `graph` must be the live graph the simulator runs on: weights are changed in place, and synapses are born into it
    * and pruned from it. `grow` names the synapses that grow in life (born at their first earned quantum, pruned at 0):
    * each must be on a learning pathway; those already in the graph are grown ones, the rest are candidates.
    */
-  constructor(graph: BrainGrafi, ledger: Ledger, params: Partial<LearningParams> = {}, grow: readonly Pair[] = []) {
+  constructor(graph: BrainGrafi, ledger: Ledger, params: Partial<LearningParams> = {}, grow: readonly Pair[] = [], midlineSources: readonly string[] = []) {
     this.params = { ...DEFAULT_LEARNING, ...params };
     const p = this.params;
     if (!(p.eta >= 0) || !(p.lambda >= 0 && p.lambda < 1) || (p.ruleLambda !== null && !(p.ruleLambda >= 0 && p.ruleLambda < 1)) || !(p.quantum > 0) || !(p.wMax > 0) || (p.dipFloor !== null && !(p.dipFloor >= 0))) {
@@ -101,6 +112,24 @@ export class Learner {
     const present = new Set(graph.connections.map((c) => edgeKey(c)));
     this.candidates = grow.filter((g) => !present.has(edgeKey(g)) && learns(g)).map((g) => ({ from: g.from, to: g.to, ...Learner.shape(g), e: 0, pending: 0 }));
     for (const s of this.synapses) this.birthSums.set(s.edge.to, (this.birthSums.get(s.edge.to) ?? 0) + s.edge.weight);
+    if (p.midline) this.pairMidline(midlineSources);
+  }
+
+  private pairMidline(sources: readonly string[]): void {
+    if (sources.length === 0) throw new Error("the midline rule needs the room's midline sources");
+    if (this.params.scaling) throw new Error("the midline rule and synaptic scaling cannot both hold: scaling moves each copy by its own cell's sum");
+    const find = (from: string, to: string) => this.synapses.find((s) => s.edge.from === from && s.edge.to === to);
+    for (const from of sources) {
+      for (const [l, r] of MIDLINE_PAIRS) {
+        const left = find(from, l), right = find(from, r);
+        if (!left && !right) continue; // this pathway does not learn (learnGo/learnNoGo, senseFilter)
+        if (!left || !right) throw new Error(`midline ${from}: only one of ${l} / ${r} learns`);
+        if (left.grown || right.grown) throw new Error(`midline ${from}: grown synapses cannot be paired`);
+        if (left.edge.weight !== right.edge.weight) throw new Error(`midline ${from} → ${l} / ${r} is not born symmetric (${left.edge.weight} / ${right.edge.weight})`);
+        this.twinOf.set(left, right);
+        this.copies.add(right);
+      }
+    }
   }
 
   private static shape(c: Pair): { sign: 1 | -1; selector: string } {
@@ -136,11 +165,15 @@ export class Learner {
       return d;
     };
     const global = typeof dopamine === "number" ? shape(dopamine) : null;
+    if (global === null && this.twinOf.size > 0) throw new Error("the midline rule needs one δ for both copies of a pair, not a δ per cell");
     const written: LedgerEntry[] = [];
     if (this.params.frozen || global === 0) return written;
     const { eta, quantum, wMax } = this.params;
     const pruned: Synapse[] = [];
     for (const s of this.synapses) {
+      if (this.copies.has(s)) continue; // taught with its left copy
+      const twin = this.twinOf.get(s);
+      if (twin) { this.teachPair(s, twin, global!, tick, cause, written); continue; }
       const delta = global ?? shape((dopamine as (cell: string) => number)(s.edge.to));
       if (s.e === 0 || delta === 0) continue;
       s.pending += s.sign * eta * delta * s.e;
@@ -187,6 +220,27 @@ export class Learner {
       this.synapses.push({ edge, sign: c.sign, selector: c.selector, e: c.e, pending: c.pending, grown: true });
     }
     return written;
+  }
+
+  /** Midline rule: one pending change for both copies, from their mean eligibility; both move together, both are recorded. */
+  private teachPair(left: Synapse, right: Synapse, delta: number, tick: number, cause: readonly string[], written: LedgerEntry[]): void {
+    const { eta, quantum, wMax } = this.params;
+    const e = (left.e + right.e) / 2;
+    if (e === 0) return;
+    left.pending += left.sign * eta * delta * e;
+    const quanta = Math.trunc(left.pending / quantum);
+    if (quanta === 0) return;
+    const before = left.edge.weight;
+    const after = Math.min(wMax, Math.max(0, before + quanta * quantum));
+    left.pending -= quanta * quantum;
+    if (after === before) { left.pending = 0; return; }
+    for (const s of [left, right]) {
+      written.push(this.ledger.record({
+        kind: "weight", tick, episode: this.episode, cause, edge: { from: s.edge.from, to: s.edge.to },
+        before, after, delta, eligibility: e,
+      }));
+      s.edge.weight = after;
+    }
   }
 
   /** Step 4 of a tick: mark which learning edges just carried a signal into an active target. */

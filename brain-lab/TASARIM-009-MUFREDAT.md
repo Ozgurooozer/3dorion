@@ -68,9 +68,14 @@ dönüş yarışını %16–38 kazanıyor, doğumdaki %48'in altında.
 artırıp azaltabilir. Doğa yapıyı verir (bu bir bağlantı kuralı), deneyim ağırlığı: hangi duyunun ne kadar döndüreceği yine
 öğrenilir, yalnız sol ve sağ için tek sayı olarak.
 
-**Orta hat duyuları:** `intero.hunger`, `intero.injury`, `touch.bump`, `proprio.forward`, `proprio.backward`, merkez ışının
-bütün türleri (`ray{merkez}.*`) ve merkez ışının hatırlanan duyusu (`rec{merkez}`). Yan ışınlar, onların hatırlananları ve
-`proprio.left/right` yanlıdır, dokunulmaz.
+**Orta hat duyuları:** `intero.hunger`, `intero.injury`, `touch.bump`, `proprio.forward`, `proprio.backward` ve merkez ışının
+bütün türleri (`ray{merkez}.*`). Yan ışınlar, onların hatırlananları ve `proprio.left/right` yanlıdır, dokunulmaz.
+- **İlk sürümde dışarıda:** merkez ışının hatırlanan duyusu `rec{merkez}`. Onun sinapsları hayatta doğup ölüyor (büyüyen
+  kural sinapsları); çift halinde doğup ölmeleri ayrı bir kural ister. Kart 3 teşhisi rec{merkez} → sol/sağ farkını ölçer;
+  büyükse ikinci adımda eklenir.
+- **Refleksli grubun çarpma refleksi aynalanır:** bugün `touch.bump → Git sol 0,6` (doğuştan sola dönme). Çarpma tarafsız bir
+  duyu; kurala göre refleks "çarpınca dön" olur, iki tarafta da 0,6; hangi yana döneceğini gürültü seçer. Acı → ileri
+  refleksi dönüş değil, değişmez.
 
 **Kural:** her orta hat duyusu için (Git sol, Git sağ) bir çift, (Gitme sol, Gitme sağ) bir çift. Çiftin iki sinapsı tek
 sinapsın iki kopyası:

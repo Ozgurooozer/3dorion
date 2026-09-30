@@ -115,6 +115,9 @@ export const CONDITIONS: Readonly<Record<string, ConditionDef>> = Object.freeze(
   // pain (injury², already in the felt outcome) and death by harm can both happen: off / on.
   OL1: { what: "room 3 (scarce): H3B97 brain, death teaches (TASARIM-009 stage 2, prereg 005)", spec: () => ({ ...S1N, teachAtDeath: true, memory: { recall: {} }, learning: learn({ dipFloor: null, ruleLambda: 0.97 }) }), born: { recall: { rules: "grown" as const } }, world: ROOM3 },
   OT0: { what: "room 2 (2 threats): H3B97 brain, death does not teach (TASARIM-009 stage 2, prereg 005)", spec: () => ({ ...S1N, memory: { recall: {} }, learning: learn({ dipFloor: null, ruleLambda: 0.97 }) }), born: { recall: { rules: "grown" as const } }, world: ROOM2 },
+  // TASARIM-009 stage 3a (prereg 006): H3B97 with the midline rule — sideless senses (hunger, pain, bump, forward/back,
+  // the centre ray) have one synapse to "turn" in two copies, born equal and taught as one; they cannot learn a side habit.
+  H3M: { what: "room 3 (scarce): H3B97 brain + midline rule (TASARIM-009 stage 3a, prereg 006)", spec: () => ({ ...S1N, memory: { recall: {} }, learning: learn({ dipFloor: null, ruleLambda: 0.97, midline: true }) }), born: { recall: { rules: "grown" as const }, midline: true }, world: ROOM3 },
   OT1: { what: "room 2 (2 threats): H3B97 brain, death teaches (TASARIM-009 stage 2, prereg 005)", spec: () => ({ ...S1N, teachAtDeath: true, memory: { recall: {} }, learning: learn({ dipFloor: null, ruleLambda: 0.97 }) }), born: { recall: { rules: "grown" as const } }, world: ROOM2 },
 });
 
