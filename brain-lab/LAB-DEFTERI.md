@@ -4001,6 +4001,29 @@ kredi ikisine de gidiyor — "ileri" hemen her öğünde seçili olduğu için h
 eksen içi karşıtlığı (sol mu sağ mı) ayrı ölçülmeli. (2) H3Y6 ve H3Y3 (öğrenme açık) durma kuralını Ozyn kaldırırsa.
 (3) Kontrol adilliği: CROSS/LOCAL'in defter kaydı 6–10 kat az.
 
+## 2026-09-30 — TASARIM-009 Aşama 0: düzenek hazır; Kart 0 (gerektiği kadar eğitim) — koşmadan önce
+
+`[TEST]` Kod `0797265`:
+- `--egitim auto`: 20 bölümlük bloklar, son 3 blok önceki en iyiyi 0,01'den az geçince dur, tavan 1000. CROSS/LOCAL eşleştiği
+  öğrenenin bölüm sayısı kadar eğitilir.
+- Müfredat (`curriculum`) ve yön odası ROOM-S (yemek hep yanda, 50–120°, 1,5–4 m).
+- Kapalı yol bit-birebir: `regression-check.ts H3B97 2` → iki denek kayıtla aynı. S1n'de yalnız eski kayıtta olmayan alanlar
+  (`bumpsPerK`, bağlı beden) farklı; ortak sayılar eşit.
+- Testler 19 yeni; bozma 16/16 (bir eşdeğer: `patience` blokta önceki en iyi boş kümenin minimumu = sonsuz).
+
+`[ÖLÇÜLDÜ]` ROOM-S kalibrasyonu (seed 1–8 × 10 oda): yalnız ileri **0** yemek/1000 tik, ileri + hep sol 0,20, kör 1,47, arayıcı
+17,4 (%96 hayatta, yönlendirme 1). Kıt odada (ROOM3) yalnız ileri 0,56 yiyordu; yön odasında dönmeyen yaşayamaz.
+
+**Kart 0 (Atlas):** `npm run exp -- tara H3B97 --egitim auto` (seed 1–5 × iki grup). Soru: öğrenme nerede duruyor, 200 bölüm
+yetmiş miydi?
+
+| # | öngörü | çürütülürse |
+|---|---|---|
+| K0-1 | Durma bölümünün ortancası ≥ 200 | < 120: öğrenme çabuk doyuyor, 200 bölümün kazancı başka bir şeydi |
+| K0-2 | Hiçbir denek tavana (1000) ulaşmaz | ≥ 3 denek tavanda: kural fazla gevşek ya da öğrenme hâlâ sürüyor |
+| K0-3 | Ortalama dürtü H3B97 @200'den kötü değil: ≤ 0,23 (200'de 0,193) | > 0,23: kural erken kesiyor |
+| K0-4 | Yönlendirme < 0,05: zaman yön öğretmez | ≥ 0,05: uzun eğitim yönü de getiriyor |
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
