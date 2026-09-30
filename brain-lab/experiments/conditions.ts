@@ -88,6 +88,11 @@ export const CONDITIONS: Readonly<Record<string, ConditionDef>> = Object.freeze(
   H3B97: { what: "room 3 (scarce): S1n + memory recall, rule synapses grown (B), rule trace λ 0.97 (prereg 003)", spec: () => ({ ...S1N, memory: { recall: {} }, learning: learn({ dipFloor: null, ruleLambda: 0.97 }) }), born: { recall: { rules: "grown" as const } }, world: ROOM3 },
   H3D97: { what: "room 3 (scarce): S1n + memory recall, rule synapses innate (D), rule trace λ 0.97 (prereg 003)", spec: () => ({ ...S1N, memory: { recall: {} }, learning: learn({ dipFloor: null, ruleLambda: 0.97 }) }), born: { recall: { rules: "innate" as const } }, world: ROOM3 },
   H3B99: { what: "room 3 (scarce): S1n + memory recall, rule synapses grown (B), rule trace λ 0.99 (prereg 003)", spec: () => ({ ...S1N, memory: { recall: {} }, learning: learn({ dipFloor: null, ruleLambda: 0.99 }) }), born: { recall: { rules: "grown" as const } }, world: ROOM3 },
+  // Prereg 004 part B: the instinct "what I remember on my left, go left" as a labelled birth group. Y3/Y6 keep learning on the
+  // rule synapses (with the 0.97 rule trace of prereg 003); Y3f holds them (senseFilter excludes rec): the instinct alone.
+  H3Y3: { what: "room 3 (scarce): S1n + memory recall, rule synapses DIRECTED at 0.3, learning on, rule trace λ 0.97 (prereg 004 B, labelled birth group)", spec: () => ({ ...S1N, memory: { recall: {} }, learning: learn({ dipFloor: null, ruleLambda: 0.97 }) }), born: { recall: { rules: "directed" as const, weight: 0.3 } }, world: ROOM3 },
+  H3Y6: { what: "room 3 (scarce): S1n + memory recall, rule synapses DIRECTED at 0.6, learning on, rule trace λ 0.97 (prereg 004 B, labelled birth group)", spec: () => ({ ...S1N, memory: { recall: {} }, learning: learn({ dipFloor: null, ruleLambda: 0.97 }) }), born: { recall: { rules: "directed" as const, weight: 0.6 } }, world: ROOM3 },
+  H3Y3f: { what: "room 3 (scarce): S1n + memory recall, rule synapses DIRECTED at 0.3, held (no learning on the rule synapses) (prereg 004 B, labelled birth group)", spec: () => ({ ...S1N, memory: { recall: {} }, learning: learn({ dipFloor: null, senseFilter: "^(?!rec)" }) }), born: { recall: { rules: "directed" as const, weight: 0.3 } }, world: ROOM3 },
 });
 
 export function condition(code: string): ConditionDef {

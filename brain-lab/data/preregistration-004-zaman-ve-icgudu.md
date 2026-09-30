@@ -48,3 +48,21 @@ değil, test seed'i değil. Soru: H3B97'nin 200 bölümdeki kazancı (dürtü 0,
 | C4 | Kural yolu lezyonu (rec → Go doğum değerine) kazancı kaldırır: dürtü ≥ 0,50; ilgisiz yol lezyonu kaldırmaz (< 0,30) | kural lezyonu < 0,30: kazanç kural sinapslarından değil başka yerden |
 | C5 | Yönlendirme (öğrenen − ikiz) taze seed'lerde anlamsız: Wilcoxon p > 0,05 | anlamlıysa: yön bilgisi 200 bölümde öğrenilmiş |
 Ön beklenti (yanlış çıkabilir): C2, C3, C4 tutar (kazanç gerçek ama yönsüz); C5 tutar.
+
+## Bölüm B — içgüdü olarak yön: koşullar ve öngörüler (Ozyn: "sırayla ikisini de dene", 2026-09-30; koşmadan önce)
+Kod: `rules: "directed"` doğuş grubu (`birth.ts`, 8 test, 10/10 bozma yakalandı), varsayılan değil, adı ağırlığı taşır.
+| kod | ne |
+|---|---|
+| H3Y3f | yön içgüdüsü W 0,3, kural sinapsları **öğrenmeye kapalı** (senseFilter rec'i dışlar): yalnız içgüdü |
+| H3Y3 | W 0,3, kural sinapsları öğrenir, iz λ 0,97 |
+| H3Y6 | W 0,6, aynı |
+Hepsi oda 3, seed 1–5 × iki grup, **200** eğitim + 10 değerlendirme (H3B97 @200 ile aynı). Referans: H3B @200 (dürtü
+0,398, G6m 0,018) ve H3B97 @200 (dürtü 0,193, G6m 0,003, kendi > öbür 9/10).
+| # | öngörü | çürütülürse |
+|---|---|---|
+| B1 | H3Y3f yön ölçüsü (G6m) ≥ 0,05: içgüdü kullanılıyor | < 0,02: hatırlama yönü davranışa taşınmıyor (kapı/seçici sorunu) |
+| B2 | H3Y3f dürtüsü H3B @200'den (0,398) en az 0,05 düşük, 10 çiftin ≥ 7'sinde | değilse: yön bilgisi tek başına yetmez, boyut da gerekli |
+| B3 | H3Y3 dürtüsü ≤ 0,17 (H3B97 @200'ün 0,193'ünden iyi) | ≥ 0,193: içgüdüsel yön, öğrenilmiş boyutun üstüne bir şey eklemiyor |
+| B4 | H3Y3'te öğrenme yönü silmez: kendi > öbür ≥ 9/10, G6m ≥ 0,05 | < 8/10: uzun iz doğuştan yönü bozuyor (yön bilgisiz kredi) |
+| B5 | H3Y6, H3Y3'ten en fazla 0,03 fark eder | > 0,03: kazanç çekim gücünden geliyor |
+Durma kuralı: H3Y3f B1'i tutturmazsa H3Y3/H3Y6 koşulmaz (yönü kullanmayan bir beyinde üstüne öğrenmek anlamsız); rapor.

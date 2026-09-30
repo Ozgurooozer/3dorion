@@ -112,12 +112,20 @@ export interface BirthSpec {
  *   "grown"  (B): none at birth; each is born in life when it first earns a quantum (learner.ts)
  *   "innate" (D): every rec → Go synapse from birth, weak and random in [0, maxInitial] like every learning pathway,
  *            drawn from its own random stream, so the rest of the newborn is the same brain as B's
+ *   "directed" (prereg 004 part B, LABELLED BIRTH GROUP, never a default): one rule synapse per ray from birth, rec{i} →
+ *            the Go of the action ray i points to, all at `weight` — the instinct "what I remember on my left, go left".
+ *            It is the hand-set fixture of recall-a3 made a birth group so it can be measured with and without learning.
  */
 export interface RecallBirth {
-  readonly rules: "grown" | "innate";
+  readonly rules: "grown" | "innate" | "directed";
   /** D's rule synapses start in [0, maxInitial] (default DEFAULT_MAX_INITIAL); 0 makes D the same brain as B. */
   readonly maxInitial?: number;
+  /** Directed group only: the weight of every rule synapse, in (0, INNATE.generatorToGo]; default DEFAULT_DIRECTED_WEIGHT. */
+  readonly weight?: number;
 }
+
+/** A remembered direction pulls about as hard as half a generator drive: enough to act on, not enough to override hunger. */
+export const DEFAULT_DIRECTED_WEIGHT = 0.3;
 
 /**
  * Strongest orienting allowed: sight alone must never select an action. Measured 2026-09-24
@@ -208,7 +216,7 @@ export function bornGraph(cfg: WorldConfig, spec: BirthSpec): BrainGrafi {
     + (expansion ? `-kc${expansion.cells}x${expansion.inputs}t${expansion.threshold}` : "")
     + (spec.bilateral ? "-bilateral" : "")
     + (generatorToGo !== INNATE.generatorToGo ? `-gen${generatorToGo}` : "")
-    + (recall ? `-recall-${recall.rules}${recall.rules === "innate" && (recall.maxInitial ?? DEFAULT_MAX_INITIAL) !== DEFAULT_MAX_INITIAL ? `${recall.maxInitial}` : ""}` : "");
+    + (recall ? `-recall-${recall.rules}${recall.rules === "innate" && (recall.maxInitial ?? DEFAULT_MAX_INITIAL) !== DEFAULT_MAX_INITIAL ? `${recall.maxInitial}` : ""}${recall.rules === "directed" ? `${recall.weight ?? DEFAULT_DIRECTED_WEIGHT}` : ""}` : "");
   const graph: BrainGrafi = { name: `newborn-${spec.group}${tag}`, version: "2", nodes, connections: [...edges.values()] };
   checkPathways(graph); // a birth that breaks its own regions is a bug, not a variation
   return graph;
@@ -242,13 +250,24 @@ function wireExpansion(e: Expansion, senses: readonly string[], seed: number, no
  * other edge, from their own random stream: the rest of the newborn does not depend on them.
  */
 function wireRecall(r: RecallBirth, cfg: WorldConfig, seed: number, nodes: BrainDugumu[], add: (from: string, to: string, w: number) => void): void {
-  if (r.rules !== "grown" && r.rules !== "innate") throw new RangeError(`recall rules must be "grown" or "innate", got ${JSON.stringify(r.rules)}`);
+  if (r.rules !== "grown" && r.rules !== "innate" && r.rules !== "directed") throw new RangeError(`recall rules must be "grown", "innate" or "directed", got ${JSON.stringify(r.rules)}`);
+  if (r.weight !== undefined && r.rules !== "directed") throw new RangeError("only the directed rule synapses have one weight (weight is for the directed group)");
+  if (r.rules === "directed") {
+    if (r.maxInitial !== undefined) throw new RangeError("directed rule synapses have no random birth weights (maxInitial is for the innate control)");
+    const w = r.weight ?? DEFAULT_DIRECTED_WEIGHT;
+    if (!(w > 0 && w <= INNATE.generatorToGo)) throw new RangeError(`directed weight ${w} must be in (0, ${INNATE.generatorToGo}]: a memory may pull as hard as a generator drive, not harder`);
+  }
   const max = r.maxInitial ?? DEFAULT_MAX_INITIAL;
   if (r.rules === "grown" && r.maxInitial !== undefined) throw new RangeError("grown rule synapses have no birth weights (maxInitial is for the innate control)");
   if (!(max >= 0 && max < INNATE.generatorToGo)) throw new RangeError(`recall maxInitial ${max} would let a memory outweigh the generators at birth`);
   const ids = cfg.rayAngles.map((_, i) => recId(i));
   for (const id of ids) nodes.push({ id, type: REGION_TYPE.rec });
   if (r.rules === "grown") return;
+  if (r.rules === "directed") {
+    const w = r.weight ?? DEFAULT_DIRECTED_WEIGHT;
+    cfg.rayAngles.forEach((angle, i) => add(ids[i]!, nodeId("bg.go", actionOfAngle(angle)), w));
+    return;
+  }
   const rng = new Rng(seed * 7919 + 101);
   for (const id of ids) for (const a of ACTIONS) add(id, nodeId("bg.go", a), rng.range(0, max));
 }
