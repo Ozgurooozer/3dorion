@@ -367,7 +367,8 @@ export function localDopamine(delay = 200): NonNullable<AgentSpec["deltaTransfor
 /**
  * Lesion: a clone of a subject whose learned weights on the plastic edges from senses matching
  * `from` are set back to the parent's birth values. The clone is a registered subject (lineage
- * "clone") and every reset is a ledger entry with cause "lesion", so the lesioned brain replays.
+ * "clone") and every reset is a ledger entry with cause "lesion", so the lesioned brain replays. A synapse that grew in life
+ * (it was not in the birth graph) is pruned: its birth weight is "none".
  */
 export function lesionClone(store: RegistryStore, parentId: string, from: RegExp, codeCommit: string): Subject {
   const birthOfParent = new Map(store.openLedger(parentId).birthGraph.connections.map((e) => [`${e.from}->${e.to}`, e.weight]));
@@ -375,7 +376,11 @@ export function lesionClone(store: RegistryStore, parentId: string, from: RegExp
   const ledger = store.openLedger(clone.id);
   for (const e of ledger.graph.connections) {
     if (!isPlastic(e) || !from.test(e.from)) continue;
-    const birthWeight = birthOfParent.get(`${e.from}->${e.to}`)!;
+    const birthWeight = birthOfParent.get(`${e.from}->${e.to}`);
+    if (birthWeight === undefined) { // grown in life (a rule synapse): birth had none, so back at birth is gone
+      ledger.record({ kind: "edge-", tick: 0, episode: 0, cause: ["lesion", from.source], edge: { from: e.from, to: e.to }, before: e.weight });
+      continue;
+    }
     if (e.weight === birthWeight) continue;
     ledger.record({ kind: "weight", tick: 0, episode: 0, cause: ["lesion", from.source], edge: { from: e.from, to: e.to }, before: e.weight, after: birthWeight });
   }

@@ -337,3 +337,19 @@ test("the twin is evaluated with the condition's memory too", () => {
   assert.deepEqual(row.t, evaluate(store, t, world, 2, "test", "test", twinSpec(spec)));
   assert.notDeepEqual(row.t, evaluate(store, t, world, 2, "test", "test", { selection: spec.selection ?? null }), "the memory changes the twin too");
 });
+
+test("lesion: a rule synapse grown in life (absent at birth) is pruned in the clone", () => {
+  const root = mkdtempSync(join(tmpdir(), "brainlab-lesion-grown-"));
+  const store = new RegistryStore(root);
+  const parent = birth(store, HUNGRY, 1, "reflexless", "test", { recall: { rules: "grown" } });
+  const ledger = store.openLedger(parent.id);
+  for (const to of ["bg.go.left", "bg.go.right"]) ledger.record({ kind: "edge+", tick: 1, episode: 1, cause: ["test"], edge: { from: "rec4.food", to, weight: 0.4 } });
+  store.saveLedger(ledger);
+  const has = (l: Ledger) => l.graph.connections.some((e) => e.from.startsWith("rec")); // two neighbours: pruning must not skip the second
+  const clone = lesionClone(store, parent.id, /^rec/, "test");
+  const lesioned = store.openLedger(clone.id);
+  assert.ok(!has(lesioned), "the grown synapse has no birth weight to go back to: it is gone");
+  assert.ok(lesioned.entries.some((e) => e.kind === "edge-" && e.cause.includes("lesion")), "the pruning is on the clone's ledger, as a lesion");
+  assert.ok(has(store.openLedger(parent.id)), "the parent keeps it");
+  assert.ok(lesioned.matches(lesioned.graph), "the clone still replays");
+});
