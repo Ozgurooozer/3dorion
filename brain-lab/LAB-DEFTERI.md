@@ -3944,6 +3944,63 @@ okumasını sına. (3) Kayıtlı denekle tam bit-birebir yeniden eğitim kontrol
 **Sonraki:** Bölüm B (yön bilgisi içgüdü olarak) Ozyn'in onayını bekliyor. İstenirse H3B97 için `curut` (CROSS + LOCAL +
 lezyon, 200 bölüm): kazanç gerçek öğrenme mi, hareket alışkanlığı mı.
 
+## 2026-09-30 — Ön-kayıt 004 A2 (H3B97 çürütme, 200 bölüm) ve B (yön içgüdüsü): kazanç gerçek öğrenme ama yönsüz; içgüdü boğuluyor
+
+`[ÖLÇÜLDÜ]` Kodlar `45ff7eb` (directed doğuş grubu), `44485a6` (lezyon/karıştırma, yaşarken doğan sinapsları tanıyor —
+bataryanın iki çöküşü bunlardı). `npm run exp -- curut H3B97 --egitim 200` → `data/falsify-H3B97-e200x10-summary.json`;
+kural yolu lezyonu ayrıca (bataryada yoktu) → `data/prereg004-C4-rec-lezyonu.log`; `npm run exp -- tara H3Y3f --egitim 200`
+→ `data/screen-H3Y3f-e200x10-summary.json`, ölçüler `kural-olcum.ts 200 H3B H3Y3f`.
+
+**A2 — H3B97 @200, taze seed 11–20 (20 denek)**
+| kol | dürtü | hayatta | yönlendirme |
+|---|---|---|---|
+| öğrenen | 0,248 | %67 | 0,030 |
+| ikiz (donuk) | 0,743 | %1 | 0,004 |
+| CROSS | 0,696 | %3 | 0,016 |
+| LOCAL | 0,740 | %0 | −0,002 |
+| lezyon: yemek ışınları | 0,337 | %58 | −0,011 |
+| lezyon: hatırlanan duyular (kural) | 0,417 | — | — |
+| lezyon: tüm ışınlar | 0,460 | %36 | −0,003 |
+| lezyon: öğrenilen her şey | 0,743 | %1 | 0,004 |
+| karıştırılmış öğrenme | 0,639 | %11 | 0,061 |
+
+| # | sonuç |
+|---|---|
+| C1 taze seed'de dürtü < 0,30, ikizden p < 0,05 | ✓ 0,248; 19/20, Wilcoxon p 4·10⁻⁶ |
+| C2 CROSS ≥ 0,60 | ✓ 0,696 |
+| C3 LOCAL ≥ 0,60 | ✓ 0,740 |
+| C4 kural lezyonu ≥ 0,50 | ✗ 0,417 (13/20 kötüleşti, Wilcoxon p 0,006): kural sinapsları kazancın bir kısmını taşıyor, hepsini değil |
+| C5 yönlendirme anlamsız | ✓ 9/20, p 0,96 |
+
+Denetim: plastisite defter kaydı öğrenen 132 503, CROSS 20 322, LOCAL 12 723 — kontroller çok daha az değişti; "kontrol adil
+mi" sorusu açık (Themis §1.6). Doygunluk: öğrenme ağırlıklarının %0,5–8'i wMax'ta (durma kuralı tetiklenmedi). Beyin 3B
+sayfasında görülen: yemek ışınlarının çoğunun en güçlü bağı **"ileri"** (ışının tarafından bağımsız); açlık → Git de ~2,0.
+
+**Okuma.** H3B97'nin 200 bölümdeki kazancı **bu testlerden sağ çıktı**: taze seed'de sürüyor, dopamin başka bölümden ya da
+gecikmeli gelince kayboluyor, doğru bağlantılara bağlı (karıştırınca gidiyor). Ama öğrenilen **yönsüz**: "yemek gör / hatırla /
+acık → ileri git". Yön (hangi taraf) öğrenilmedi.
+
+**B — yön içgüdüsü (H3Y3f: rec_i → Git(i yönü) 0,3, öğrenmeye kapalı), 200 bölüm, seed 1–5 × iki grup**
+| koşul | dürtü | hayatta | G7 | G6m | kendi > öbür |
+|---|---|---|---|---|---|
+| H3B @200 (referans) | 0,398 | %45 | 0,527 | 0,018 | 9/10 |
+| H3Y3f @200 | 0,472 | %36 | 0,670 | 0,034 | 10/10 (doğuştan) |
+
+| # | sonuç |
+|---|---|
+| B1 G6m ≥ 0,05 | ✗ 0,034 (0,02–0,05 arası: kullanılıyor ama zayıf) |
+| B2 dürtü H3B'den ≥ 0,05 düşük | ✗ 0,472, daha kötü |
+| B3–B5 | koşulmadı — durma kuralı (B1 tutmadı) |
+
+**Okuma.** Doğuştan yön doğru tarafı gösterse de seçimde **boğuluyor**: aynı Git hücresine giden öğrenilmiş, tarafsız
+ağırlıklar ~2,0'a çıkarken 0,3'lük hatıra çekimi toplamı çeviremiyor. Sorun "yön bilgisi yok" değil, "yön bilgisi var ama
+öğrenilen yönsüz alışkanlığa karşı ağırlığı yok". Sınanmadı: H3Y6 (0,6) bunu kısmen gösterirdi; durma kuralı gereği koşmadı.
+
+**Sonraki (Ozyn'e):** (1) Neden yönsüz öğreniyor: seçim eksen başına (ileri/geri, sol/sağ) iki ayrı kazanan seçiyor ve
+kredi ikisine de gidiyor — "ileri" hemen her öğünde seçili olduğu için her yemek ışını "ileri"ye bağlanıyor. Kredi atamasının
+eksen içi karşıtlığı (sol mu sağ mı) ayrı ölçülmeli. (2) H3Y6 ve H3Y3 (öğrenme açık) durma kuralını Ozyn kaldırırsa.
+(3) Kontrol adilliği: CROSS/LOCAL'in defter kaydı 6–10 kat az.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
