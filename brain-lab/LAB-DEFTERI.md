@@ -4349,6 +4349,16 @@ ipucu tepkisini ihtiyaca göre açıyor (PMC12802398); homeostatik RL (Keramati 
   K0 (H3B97 sabırlı): **0,007 / 0,007**. 2026-09-26'nın ideali: ~0,077 / ~0.
 - Ön-kayıt `data/preregistration-007-elestirmen.md` (P1–P5, üçlü puanlama).
 
+## 2026-09-30 — Ozyn: "Yönü biz versek?" — Kart 4'ten sonra karar
+
+- Önceki deneme (ön-kayıt 004 B, H3Y3f): hatırlanan yöne doğuştan dönüş, 0,3 ağırlıkla. Öğrenilen yönsüz ağırlıklar (~2,0)
+  onu bastırdı; dürtü 0,472. Ders: yön verilecekse öğrenmenin ezemeyeceği bir yoldan verilmeli.
+- Aday: ayrı, öğrenmeyen bir yönelme yolu (tektum / üst kolikulus benzeri; Braitenberg çapraz kablolaması). Yan ışında
+  yemek → o yana dönüşün belirginliğine sabit bir katkı. Etiketli doğum grubu, varsayılan kapalı. Soru değişir: "yön
+  verilince beyin gerisini (ne zaman, neye; açlık, hafıza, tehlike) öğrenebilir mi?"; kıyas aynı içgüdülü ikiz.
+- Bugünkü doğum kuralını esnetir (`MAX_ORIENTING` 0,02: "görmek tek başına eylem seçtirmemeli").
+- Ozyn: önce Kart 4 (eleştirmen) beklensin; eleştirmen yönü öğretirse içgüdüye gerek kalmayabilir.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
