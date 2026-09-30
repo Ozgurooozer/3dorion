@@ -4436,6 +4436,37 @@ versin ki?" — vermemeli; eleştirmen kendi hareketini görmemeli.
 **Kart 5 `[TEST]`:** `critic: { proprio: false }` (bozma 3/3, kapalıyken bit-birebir, 2031/2031). Kollar KLw, KLNw; ön-kayıt
 `data/preregistration-008-hareket-kor-elestirmen.md` (P1–P6).
 
+## 2026-09-30 — Kart 5 sonucu: hareket-kör eleştirmen KL'de cezayı kaldırıyor ve yön kalıyor; KLN'de çöküyor
+
+Atlas raporu `data/atlas-reports/2026-09-30-kart5-hareket-kor.md` (kod `32268fa`, 10'ar denek, yalnız tarama). Ortalamalar
+`results.jsonl`'den yeniden hesaplandı, tuttu. Yeniden yaşanan 400 odanın son hash'leri kayıtla aynı.
+
+| kol | dürtü ↓ | hayatta | yönlendirme | yemek/1000t | yön, bağlı bedene karşı | δ farkı (dönmeden − dönüş) | dönüş o yana / öbür / dönmeden |
+|---|---|---|---|---|---|---|---|
+| K0 | 0,116 | 0,88 | 0,097 | 3,09 | 7/10 | 0,0013 | 1291 / 563 / 1555 |
+| KL | 0,078 | 0,92 | 0,265 | 3,07 | 9/10 | 0,0057 | 1210 / 230 / 2142 |
+| **KLw** | 0,078 | 0,92 | **0,194** | **4,26** | 8/10, p 0,010 | **−0,0001** | 1501 / 574 / 1978 |
+| KLN | 0,111 | 0,84 | 0,181 | 3,01 | 10/10 | 0,0076 | 1248 / 282 / 3112 |
+| KLNw | **0,283** | **0,53** | 0,045 | 2,93 | 10/10 | 0,0037 | 619 / 423 / 2296 |
+
+**Karne (ön-kayıt 008):** P1 ✗ (KLw ✓ −0,0001; KLNw ✗ 0,0037); P2 ✗ (KLw 0,194 > 0,185: iz yönü cezasız da veriyor); P3 ✗
+(KLNw 0,045); P4 ✓ (KLNw önde yemek açken 0,052, açken − tokken 0,057); P5 ✓ (KLNw'de δ ilk kez yemeğe doğru dönüşü
+öbür yanadan ayırıyor, 8/10; KLN'de 1/10); P6 ✗ (KLNw 0,283).
+
+**Okuma:**
+- **KLw:** dönüş cezası tam kalktı, öbür yana dönüş bastırılması da (230 → 574); yine de yön 0,194 ve yemek oranı K0'ın 1,4
+  katı, dürtü KL kadar iyi. KL'nin yönünün çoğu cezadan değilmiş. Ama δ yanı ayırt etmiyor (3/10): yön kredisi δ'nın
+  işaretinden değil, izin kredisi yemek anından öne taşımasından geliyor (o yana / öbür yana kredi 4,47).
+- **KLNw:** eleştirmen doğru şeyi öğrendi (en büyük ağırlık açken önde yemek, 0,189; δ yanı ayırt ediyor) ama beden
+  çöktü: hayatta %53, çarpma 176/1000 tik, yemeğe doğru dönüş 1248 → 619. KLN'de "açken ileri git" değeri (0,185) aktöre
+  hareket etmeyi öğretiyordu; o kalkınca açlık ihtiyacı bedeni yürütmüyor. Dönüş cezası proprio olmadan da kısmen
+  sürüyor (başka bir özellikten; ölçülmedi). Aktör proprio'yu hâlâ görüyor (sürdürme −0,62).
+- Ders: doğru öğrenen bir eleştirmen tek başına iyi davranış getirmiyor; aktör ile eleştirmenin ne gördüğü birlikte
+  tasarlanmalı.
+
+**Aday (Atlas ve benim önerim):** KL ve KLw doğrulamaya (20 + CROSS). KLNw bu hâliyle aday değil; önce dönüşten sonraki δ'yı
+özellik katkılarına bölen teşhis.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
