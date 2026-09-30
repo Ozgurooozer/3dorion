@@ -353,3 +353,20 @@ test("lesion: a rule synapse grown in life (absent at birth) is pruned in the cl
   assert.ok(has(store.openLedger(parent.id)), "the parent keeps it");
   assert.ok(lesioned.matches(lesioned.graph), "the clone still replays");
 });
+
+test("shuffle: a rule synapse grown in life counts as a change from 0, and the shuffle neither crashes nor loses any change", () => {
+  const root = mkdtempSync(join(tmpdir(), "brainlab-shuffle-grown-"));
+  const store = new RegistryStore(root);
+  const parent = birth(store, HUNGRY, 1, "reflexless", "test", { recall: { rules: "grown" } });
+  const ledger = store.openLedger(parent.id);
+  ledger.record({ kind: "edge+", tick: 1, episode: 1, cause: ["test"], edge: { from: "rec4.food", to: "bg.go.left", weight: 0.4 } });
+  const e0 = ledger.graph.connections.find((e) => e.from === "ray4.food" && e.to === "bg.go.left")!;
+  ledger.record({ kind: "weight", tick: 1, episode: 1, cause: ["test"], edge: { from: e0.from, to: e0.to }, before: e0.weight, after: e0.weight + 0.2 });
+  store.saveLedger(ledger);
+  const clone = store.openLedger(shuffledClone(store, parent.id, 5, "test").id);
+  const parentBirth = new Map(store.openLedger(parent.id).birthGraph.connections.map((e) => [`${e.from}->${e.to}`, e.weight]));
+  const change = (l: Ledger) => l.graph.connections.filter((e) => /^bg.(go|nogo)./.test(e.to) && /^(ray|touch|intero|proprio|rec)/.test(e.from))
+    .map((e) => e.weight - (parentBirth.get(`${e.from}->${e.to}`) ?? 0));
+  const sorted = (xs: number[]) => xs.map((x) => Math.round(x * 1e9) / 1e9).filter((x) => x !== 0).sort((a, b) => a - b);
+  assert.deepEqual(sorted(change(clone)), sorted(change(store.openLedger(parent.id))), "the changes 0.4 and 0.2 are both still there, on other edges or the same");
+});

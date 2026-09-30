@@ -398,13 +398,14 @@ export function shuffledClone(store: RegistryStore, parentId: string, seed: numb
   const parent = store.openLedger(parentId);
   const birthW = new Map(parent.birthGraph.connections.map((e) => [`${e.from}->${e.to}`, e.weight]));
   const plastic = parent.graph.connections.filter((e) => isPlastic(e));
-  const changes = plastic.map((e) => e.weight - birthW.get(`${e.from}->${e.to}`)!);
+  const born = (e: { from: string; to: string }) => birthW.get(`${e.from}->${e.to}`) ?? 0; // grown in life: born at 0
+  const changes = plastic.map((e) => e.weight - born(e));
   const rng = new Rng(seed);
   for (let i = changes.length - 1; i > 0; i--) { const j = Math.floor(rng.next() * (i + 1)); [changes[i], changes[j]] = [changes[j]!, changes[i]!]; }
   const clone = store.clone(parentId, { codeCommit });
   const ledger = store.openLedger(clone.id);
   plastic.forEach((e, i) => {
-    const target = Math.max(0, birthW.get(`${e.from}->${e.to}`)! + changes[i]!);
+    const target = Math.max(0, born(e) + changes[i]!);
     const now = ledger.graph.connections.find((c) => c.from === e.from && c.to === e.to)!.weight;
     if (target !== now) ledger.record({ kind: "weight", tick: 0, episode: 0, cause: ["shuffle", String(seed)], edge: { from: e.from, to: e.to }, before: now, after: target });
   });
