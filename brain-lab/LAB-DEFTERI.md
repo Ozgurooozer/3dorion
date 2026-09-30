@@ -4024,6 +4024,77 @@ yetmiş miydi?
 | K0-3 | Ortalama dürtü H3B97 @200'den kötü değil: ≤ 0,23 (200'de 0,193) | > 0,23: kural erken kesiyor |
 | K0-4 | Yönlendirme < 0,05: zaman yön öğretmez | ≥ 0,05: uzun eğitim yönü de getiriyor |
 
+## 2026-09-30 — Kart 0 sonucu: kural 80–160. bölümde durduruyor; 200'ün ötesinde kazanç görünmüyor, geç başlayanı kesiyor
+
+`[ÖLÇÜLDÜ]` Atlas, kod `9fc0b4a`: `npm run exp -- tara H3B97 --egitim auto` (seed 1–5 × iki grup, 10 değerlendirme odası),
+74 sn, hata yok. Özet `data/screen-H3B97-eautox10-summary.json`; satırlar `data/results.jsonl` (H3B97, tara,
+trainEpisodes "auto", alan `trained`, `trainDrive`). Kıyas: aynı seed'lerin kayıtlı taramaları @40 (`2d736a9`,
+`screen-H3B97-summary.json`) ve @200 (`42d2baa`, `screen-H3B97-e200x10-summary.json`).
+
+Denek başına (eğitim dürtüsü = 20 bölümlük blokların ortalaması; değerlendirme dürtüsü / yönlendirme):
+
+| grup | seed | durma | eğitim dürtüsü blokları | @40 | @200 | auto |
+|---|---|---|---|---|---|---|
+| reflekssiz | 1 | 100 | 0,175 0,039 0,040 0,045 0,082 | 0,026 / 0,25 | 0,266 / 0,02 | 0,109 / 0,10 |
+| reflekssiz | 2 | 160 | 0,536 0,671 0,542 0,119 0,013 0,018 0,022 0,128 | 0,659 / 0,02 | 0,039 / 0,09 | 0,035 / 0,14 |
+| reflekssiz | 3 | 160 | 0,732 0,698 0,681 0,364 0,022 0,019 0,029 0,078 | 0,693 / 0,00 | 0,332 / 0,02 | 0,108 / 0,09 |
+| reflekssiz | 4 | 120 | 0,666 0,394 0,021 0,043 0,028 0,040 | 0,012 / 0,17 | 0,113 / 0,03 | 0,045 / 0,10 |
+| reflekssiz | 5 | 120 | 0,570 0,225 0,022 0,020 0,035 0,087 | 0,015 / 0,26 | 0,069 / 0,14 | 0,047 / 0,18 |
+| refleksli | 1 | 80 | 0,546 0,657 0,613 0,635 | 0,658 / −0,01 | 0,655 / −0,06 | 0,620 / 0,02 |
+| refleksli | 2 | 160 | 0,622 0,627 0,173 0,089 0,053 0,067 0,066 0,077 | 0,664 / −0,03 | 0,293 / −0,09 | 0,213 / −0,08 |
+| refleksli | 3 | 100 | 0,732 0,686 0,686 0,714 0,677 | 0,705 / 0,02 | 0,031 / −0,01 | 0,654 / −0,01 |
+| refleksli | 4 | 100 | 0,192 0,021 0,094 0,036 0,044 | 0,051 / 0,34 | 0,011 / 0,71 | 0,029 / 0,55 |
+| refleksli | 5 | 120 | 0,649 0,172 0,020 0,033 0,033 0,049 | 0,022 / 0,41 | 0,118 / 0,33 | 0,188 / 0,15 |
+
+Durma: 80, 100×3, 120×3, 160×3 → ortanca **120**, ortalama 122, en çok 160; tavana (1000) varan yok.
+
+Toplu (10 öğrenen; kural ölçümü `kural-olcum.ts`, eleştirmen `diagnose.ts`):
+
+| ölçü | @40 | @200 | auto |
+|---|---|---|---|
+| dürtü (öğrenen) | 0,350 | 0,193 | **0,205** |
+| — reflekssiz / refleksli | 0,281 / 0,420 | 0,164 / 0,222 | 0,069 / 0,341 |
+| hayatta | 0,49 | 0,79 | 0,75 |
+| yönlendirme (>0 olan) | 0,143 (7/10) | 0,118 (7/10) | 0,124 (8/10) |
+| yan bilgisi (bit) | 0,105 | 0,101 | 0,134 |
+| yemek/1000 tik | 2,82 | 3,39 | 2,56 |
+| bağlı beden dürtü / ikiz dürtü | 0,627 / 0,755 | 0,623 / 0,755 | 0,632 / 0,755 |
+| kural ağırlığı ort. (kendi / öbür yan, kendi>öbür) | 0,049 (0,041 / 0,026, 8/10) | 0,312 (0,259 / 0,192, 9/10) | 0,176 (0,146 / 0,089, 9/10) |
+| kapı payı G7 / hatırlama yönlendirmesi G6m | 0,335 / 0,006 | 0,440 / 0,003 | 0,440 / 0,024 |
+| eleştirmen yemek değeri | 0,0043 | 0,0085 | 0,0091 |
+| yemek → Git kendi / öbür yan (kendi>öbür) | 0,347 / 0,200 (6/10) | 0,776 / 0,598 (9/10) | 0,704 / 0,524 (8/10) |
+
+auto'da bağlı bedene karşı: dürtü 10/10 lehte (işaret p 0,002), yönelme 10/10 (p 0,002), yönlendirme 8/10 (işaret p 0,109,
+Wilcoxon p 0,037). Grup içinde (5 denek) en küçük p 0,0625.
+
+Öngörü karnesi (değiştirilmedi):
+
+| # | öngörü | ölçülen | öngörü | çürütme ölçütü |
+|---|---|---|---|---|
+| K0-1 | ortanca durma ≥ 200 | 120 | ✗ | tetiklenmedi (< 120 değil; tam sınırda) |
+| K0-2 | tavana varan yok | en çok 160, 0/10 | ✓ | tetiklenmedi |
+| K0-3 | dürtü ≤ 0,23 | 0,205 | ✓ | tetiklenmedi |
+| K0-4 | yönlendirme < 0,05 | 0,124 | ✗ | tetiklendi (≥ 0,05) |
+
+Yorum (ölçülenin ötesine geçmeden):
+- Öğrenen deneklerde eğitim dürtüsü 40–100. bölümde 0,02–0,04'e iniyor, sonra yerinde sayıyor ya da biraz yükseliyor; kural
+  orada kesiyor. Toplamda auto (ort. 122 bölüm) @200 ile aynı düzeyde (0,205 / 0,193): **bu ölçüyle 200 bölüm yetiyordu; 200'ün
+  ötesinde kazanç beklemek için bir işaret yok.** Kural ağırlıkları @200'ün yarısı kadar büyüdü; davranış farkı küçük.
+- Kural iki refleksli deneği hiç öğrenmeden en erken kesti (seed 1 @80, seed 3 @100). Seed 3 @200'de öğrenmişti (0,031);
+  auto'da 0,654. Refleksli grubun auto dürtüsünün kötüleşmesi (0,222 → 0,341) bundan. Sabır (3 blok = 60 bölüm) geç
+  başlayanı "doymuş" sanıyor; 0,01 mutlak eşik de dürtü 0,02'ye inince görece çok büyük.
+- K0-4'ün eşiği kötü seçilmiş: kayıtlı taramalar zaten 0,143 (@40) ve 0,118 (@200) idi. auto 0,124 onlardan farklı değil;
+  "uzun eğitim yönü getiriyor" diye okunamaz. H3B97'nin 200 bölümlük çürütmesi (2026-09-30) kazancı yönsüz bulmuştu;
+  auto'daki 0,124 de yalnız bir tarama.
+- Eğitim odasında ulaşılan dürtü (0,02) değerlendirmedekinden hep düşük (ör. reflekssiz seed 2: 0,013 / 0,035); ölçülmedi, not.
+
+Ölçülmeyen: auto deneklerinin @200'deki aynı bölümdeki eğitim eğrisi (kayıtlı @200'de `trainDrive` yok); aynı seed'in auto'da
+100. bölümde kesilen deneği ile @200 deneğinin ilk 100 bölümünün aynı olup olmadığı. Doğrulama/çürütme koşulmadı (kart yalnız
+tarama).
+
+Sonraki (öneri, Ozyn'in kararı): durma kuralının sabrı ve eşiği (ör. hiç iyileşmemiş denek için en az bölüm, göreli eşik)
+ölçülerek yeniden seçilmeli; ya da Aşama 1–6 için sabit 200 bölüm kullanılmalı.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
