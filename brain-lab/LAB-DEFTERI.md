@@ -4359,6 +4359,40 @@ ipucu tepkisini ihtiyaca göre açıyor (PMC12802398); homeostatik RL (Keramati 
 - Bugünkü doğum kuralını esnetir (`MAX_ORIENTING` 0,02: "görmek tek başına eylem seçtirmemeli").
 - Ozyn: önce Kart 4 (eleştirmen) beklensin; eleştirmen yönü öğretirse içgüdüye gerek kalmayabilir.
 
+## 2026-09-30 — Kart 4 sonucu: eleştirmen düzelince yön ilk kez geliyor (KLN beş öngörüde de tuttu; yalnız tarama)
+
+Atlas raporu `data/atlas-reports/2026-09-30-kart4-elestirmen.md` (kod `f6cd45c`, sabırlı, 10'ar denek). Birincil ölçüler,
+eleştirmen değeri ve kredi payı `results.jsonl` ve `kredi-teshis.ts`'ten ayrıca yeniden hesaplandı, tuttu.
+
+| kol | dürtü ↓ | hayatta | yönlendirme | yemek/1000t | yön, bağlı bedene karşı | önde yemek açken · tokken | yemek anındaki pay | o yana / öbür yana |
+|---|---|---|---|---|---|---|---|---|
+| K0 = H3B97 | 0,116 | 0,88 | 0,097 | 3,09 | 7/10 | 0,007 · 0,007 | 0,889 | 2,02 |
+| KL (iz) | 0,078 | 0,92 | **0,265** | 3,07 | 9/10, p 0,004 | 0,007 · 0,007 | 0,622 | 4,37 |
+| KN (ihtiyaç) | **0,035** | **0,97** | 0,228 (ortanca 0,108) | **6,87** | 6/10, p 0,084 | 0,020 · 0,000 | 0,799 | 2,00 |
+| KLN (ikisi) | 0,111 | 0,84 | 0,181 | 3,01 | **10/10, p 0,002** | **0,045 · 0,000** | **0,340** | 4,20 |
+
+**Karne (ön-kayıt 007, üçlü puanlama):** P1-KLN ✓ (10–0); P1-KN ✗ (0,020 < 0,03); P1-KL ✗; P2 ✓ (0,340, 10/10 düştü); P3 ✓
+sınırda (0,181, 7–3, ortanca +0,091; +0,05'i geçen 5/10); P4 ✓ (4,20, 9–1); P5 ✓ (0,111).
+
+**Okuma:**
+- Beş başarısız denemeden sonra (müfredat, uzun iz, içgüdü, orta hat, ölüm) yön **ilk kez** bağlı bedene karşı anlamlı
+  (KLN 10/10, KL 9/10). Kredi teşhisinin gösterdiği kök nedene (bitişiklik, eleştirmen) doğrudan dokunan tedavi işe yaradı.
+- KLN'de eleştirmen "açken yemek değerli, tokken değil"i öğrendi (10/10). Ozyn'in en baştaki "duruma bağlı değer" isteği.
+- KLN'de merkez ışındaki yan alışkanlığı 1,42 → 0,37; yan yemek ışınlarının yöne uyumu 0,69 → 0,97. Kart 3'teki "alışkanlık
+  başka duyuya taşındı" deseni burada yok. Kalan en büyük yan sinyali hatırlanan yan yemekte, yönü tutarsız; kural
+  sinapsları üç kolda da öbür yana büyüdü (açık).
+- **KL bulmacası:** eleştirmeni yemeğe değer vermiyor ama yönü en yüksek. İz, krediyi yemek anından öne taşıyor (öbür yana
+  giden net kredi +2,20 → +0,04); hangi ağırlık üzerinden, ölçülmedi.
+- **KN:** dürtüde açık ara en iyi (0,035, yemek oranı 2,2 kat) ama yönü bağlı bedenden ayırt edilemiyor: kazanç yön değil,
+  daha çok ve daha iyi zamanlanmış hareket olabilir.
+- Karıştırıcı: KLN'nin iki refleksli deneği sabırlı kuralın "en iyi blok" boşluğuyla 100. bölümde durdu (0,452, 0,304);
+  çıkarılınca KLN 0,044, K0'ın aynı sekizi 0,137. Puanlamaya girmedi. Kural düzeltmesi hâlâ bekliyor.
+
+**Araç düzeltmesi `[TEST]`:** `yon-teshis` yan taraması duyuları yalnız ilk denekten alıyordu (Atlas buldu; KN'de rec0.food
+0,911 görünmüyordu). `topSides` artık bütün deneklerin birleşimini alıyor; test + geri bozma yakalandı.
+
+**Sıradaki (Ozyn'in kararı):** olumlu iddia için doğrulama (20 + CROSS) ve `curut`. Öneri: KLN ve KL birlikte.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.

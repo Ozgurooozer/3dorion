@@ -101,6 +101,16 @@ export function sideSweep(graph: BrainGrafi): Map<string, number> {
   return out;
 }
 
+/**
+ * The senses with the largest mean |L−R| over subjects. Subjects grow different rule synapses, so the senses are the union
+ * of every sweep (Kart 4: keyed on the first subject alone, rec0.food at 0.911 went missing); a sense a subject lacks is 0.
+ */
+export function topSides(sweeps: readonly Map<string, number>[], n: number): [string, number][] {
+  const senses = new Set(sweeps.flatMap((m) => [...m.keys()]));
+  return [...senses].map((s) => [s, sweeps.reduce((a, m) => a + Math.abs(m.get(s) ?? 0), 0) / sweeps.length] as [string, number])
+    .sort((a, b) => b[1] - a[1]).slice(0, n);
+}
+
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const DATA = join(dirname(fileURLToPath(import.meta.url)), "../data");
   const [train, ...codes] = process.argv.slice(2);
@@ -119,7 +129,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     console.log(line("  learned", ledgers.map((l) => turnProbe(l.graph, world))));
     console.log(line("  birth  ", ledgers.map((l) => turnProbe(l.birthGraph, world))));
     const sweeps = ledgers.map((l) => sideSweep(l.graph));
-    const top = [...sweeps[0]!.keys()].map((s) => [s, mean(sweeps.map((m) => Math.abs(m.get(s) ?? 0)))] as const).sort((a, b) => b[1] - a[1]).slice(0, 6);
+    const top = topSides(sweeps, 6);
     console.log(`  side sweep (mean |L−R|, each sense alone at 1): ${top.map(([s, v]) => `${s} ${f(v)}`).join(" · ")}`);
   }
 }
