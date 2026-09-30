@@ -43,7 +43,7 @@ export function showError(e: unknown): void {
 /** The page tabs, the same on every page; `here` is the current page's file. */
 export function tabs(here: string): string {
   const pages: [string, string][] = [
-    ["deney-odasi.html", "Deney Odası"], ["deneyler.html", "Sonuçlar"], ["guide.html", "Rehber"], ["index.html", "Beyin haritası"],
+    ["deney-odasi.html", "Deney Odası"], ["deneyler.html", "Sonuçlar"], ["guide.html", "Rehber"], ["index.html", "Beyin haritası"], ["beyin3d.html", "Beyin 3B"],
   ];
   return pages.map(([href, label]) => `<a href="./${href}"${href === here ? ' class="here"' : ""}>${label}</a>`).join("");
 }

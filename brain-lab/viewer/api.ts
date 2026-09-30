@@ -6,6 +6,9 @@
 //   GET /api/subject/<DNK-id>   identity, learned matrix, critic food values, training curve
 //   GET /api/arena/<DNK-id>           which learner, which twin, which condition, how many measured rooms
 //   GET /api/arena/<DNK-id>/room/<n>  room n lived by the learner, its yoked body and its twin, filmed tick by tick
+//   GET /api/beyin3d                  recorded learners the 3D brain page can open, newest first
+//   GET /api/beyin3d/<DNK-id>/room/<n>[?sustur=id,id][&dogum=1]  the brain and room n lived with every neuron's activity
+//                                     (sustur: silence neurons; dogum: the brain as born — both counterfactuals)
 // Every answer is JSON; an error is { error } with status 404 (unknown) or 500 (could not read).
 "use strict";
 
@@ -16,6 +19,7 @@ import type { Plugin } from "vite";
 import { RegistryStore } from "../registry/store.ts";
 import { CONDITIONS } from "../experiments/conditions.ts";
 import { recordedEvaluation } from "../experiments/harness.ts";
+import { film3d, subjectRows } from "./beyin3d-data.ts";
 import { Contestant, brainActor, filmRoom, type BrainRecord, type Film, type RecordedEpisode } from "./arena.ts";
 import { recordingActor, yokedActor } from "../experiments/yoked.ts";
 import type { WorldConfig } from "../world/index.ts";
@@ -181,6 +185,7 @@ function arenaSessions(dataRoot: string) {
 /** The request handler, on its own so it can be tested without a server. */
 export function createHandler(dataRoot: string): Handler {
   const arena = arenaSessions(dataRoot);
+  const films3d = new Map<string, string>();
   return (req, res, next) => {
     const { pathname } = new URL(req.url ?? "/", "http://localhost");
     if (!pathname.startsWith("/api/")) return next();
@@ -211,6 +216,31 @@ export function createHandler(dataRoot: string): Handler {
         const n = Number(arenaPath[2]);
         if (n < 1 || n > s.meta.rooms) return send(res, 404, { error: `room ${n}: the experiment measured rooms 1–${s.meta.rooms}` });
         return send(res, 200, arena.room(s, n));
+      }
+      if (pathname === "/api/beyin3d") {
+        const p = join(dataRoot, "results.jsonl");
+        const store = new RegistryStore(dataRoot, { readOnly: true });
+        const rows = existsSync(p) ? subjectRows(readFileSync(p, "utf8").split("\n")) : [];
+        return send(res, 200, rows.filter((r) => existsSync(join(dataRoot, "subjects", r.id))).map((r) => ({ ...r, name: store.loadSubject(r.id).name })));
+      }
+      const b3 = /^\/api\/beyin3d\/(DNK-\d+)\/room\/(\d+)$/.exec(pathname);
+      if (b3) {
+        if (!existsSync(join(dataRoot, "subjects", b3[1]!))) return send(res, 404, { error: `no subject ${b3[1]}` });
+        const q = new URL(req.url ?? "/", "http://localhost").searchParams;
+        const row = readResults(dataRoot).filter((r) => r.learner === b3[1]).at(-1);
+        const silence = (q.get("sustur") ?? "").split(",").filter((x) => x !== "");
+        const birth = q.get("dogum") === "1";
+        // A 200-episode subject takes ~20 s to open (its ledger replays); the last few films are kept.
+        const key = `${b3[1]}/${b3[2]}/${[...silence].sort().join(",")}/${birth}`;
+        let film = films3d.get(key);
+        if (!film) {
+          film = JSON.stringify(film3d(new RegistryStore(dataRoot, { readOnly: true }), b3[1]!, row?.code ?? "", { room: Number(b3[2]), silence, birth }));
+          films3d.set(key, film);
+          if (films3d.size > 6) films3d.delete(films3d.keys().next().value!);
+        }
+        res.statusCode = 200;
+        res.setHeader("content-type", "application/json; charset=utf-8");
+        return res.end(film);
       }
       return send(res, 404, { error: `unknown endpoint ${pathname}` });
     } catch (e) {

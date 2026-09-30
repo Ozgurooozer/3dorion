@@ -50,6 +50,8 @@ export interface Agent {
   /** With competitive selection: the selector and its last choice (salience, exploration). */
   readonly selector: CompetitiveSelector | null;
   readonly lastChoice: Choice | null;
+  /** With competitive selection: the senses the selector read on the last tick (recalled senses included). Read-only view. */
+  readonly lastSenses: Readonly<Record<string, number>> | null;
   /** Call before each episode (numbered from 1). */
   startEpisode(episode: number): void;
   /** Call after each episode: end-of-episode plasticity (scaling). */
@@ -158,6 +160,7 @@ export function createAgent(spec: AgentSpec): Agent {
   let lastDelta = 0;
   let typical = 0; // running mean |δ| for rpeNormalization
   let lastChoice: Choice | null = null;
+  let lastSenses: Readonly<Record<string, number>> | null = null;
 
   const stage = (to: "E1" | "E2", reason: string) => {
     const from = spec.ledger.stage;
@@ -235,6 +238,7 @@ export function createAgent(spec: AgentSpec): Agent {
       }
       const choice = selector.choose(senses); // 3
       lastChoice = choice;
+      lastSenses = senses;
       learner.updateEligibilityDirect(senses, choice.selected); // 4
       previous = CompetitiveSelector.asOutputs(choice);
       return choice.action;
@@ -268,6 +272,7 @@ export function createAgent(spec: AgentSpec): Agent {
     graph,
     get lastDelta() { return lastDelta; },
     get lastChoice() { return lastChoice; },
+    get lastSenses() { return lastSenses; },
     get lastRecall() { return lastRecall; },
     selector,
     startEpisode(n: number) {

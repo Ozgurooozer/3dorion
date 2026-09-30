@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Beyin 3B</title>
+<meta name="description" content="Bir deneğin beynini üç boyutta gez: her nöron, her sinaps, ne öğrendiği ve ölçülen odayı yaşarken tik tik ne yaptığı.">
+<link rel="stylesheet" href="./lab.css">
+<style>
+  main { max-width: none; padding: 12px 14px 20px; }
+  .top { margin-bottom: 8px; } .top h1 { font-size: 22px; } .top .lead { font-size: 13.5px; line-height: 1.45; }
+  .grid3 { display: grid; grid-template-columns: 290px minmax(0, 1fr) 340px; gap: 12px; align-items: start; }
+  .side { position: sticky; top: 10px; max-height: calc(100vh - 20px); overflow: auto; }
+  .side .panel { padding: 12px; }
+  .side h3 { margin: 12px 0 6px; font-size: 13px; color: var(--soft); text-transform: uppercase; letter-spacing: .06em; }
+  .side h3:first-child { margin-top: 0; }
+  label.row { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--soft); padding: 3px 0; cursor: pointer; }
+  select, input[type=search] { width: 100%; }
+  input[type=search] { font: inherit; font-size: 14px; color: var(--text); background: var(--elevated); border: 1px solid var(--border-strong); border-radius: 8px; padding: 7px 10px; }
+  .subjects { max-height: 260px; overflow: auto; margin-top: 6px; display: grid; gap: 4px; }
+  .subjects button { text-align: left; padding: 6px 9px; font-size: 12.5px; display: grid; grid-template-columns: 1fr auto; gap: 4px; }
+  .subjects button.sel { border-color: var(--accent); background: var(--accent-bg); }
+  .subjects button span { color: var(--dim); }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .seg button.sel { border-color: var(--accent); background: var(--accent-bg); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { font-size: 12px; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--elevated); cursor: pointer; }
+  .chip.off { opacity: .4; }
+  .chip i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: 0; }
+
+  .stage { position: relative; background: #070a10; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  #scene { width: 100%; height: calc(100vh - 360px); min-height: 420px; display: block; outline: none; touch-action: none; }
+  .hover { position: absolute; pointer-events: none; background: rgba(18,25,38,.94); border: 1px solid var(--border-strong); border-radius: 8px; padding: 6px 9px; font-size: 12.5px; display: none; max-width: 280px; }
+  .status { position: absolute; left: 12px; top: 10px; font: 12px var(--mono); color: var(--soft); background: rgba(7,10,16,.7); border-radius: 6px; padding: 4px 8px; }
+  .status.cf { color: var(--warn); }
+  .busy { position: absolute; inset: 0; display: none; place-items: center; background: rgba(7,10,16,.65); font-size: 15px; color: var(--soft); }
+  .busy.on { display: grid; }
+  .legend { position: absolute; right: 10px; top: 10px; font-size: 11.5px; color: var(--soft); background: rgba(7,10,16,.75); border-radius: 8px; padding: 6px 9px; line-height: 1.6; }
+  .legend i { display: inline-block; width: 18px; height: 3px; vertical-align: 3px; margin-right: 5px; }
+
+  .transport { display: grid; grid-template-columns: auto auto auto auto 1fr auto; gap: 8px; align-items: center; margin-top: 10px; }
+  .transport input[type=range] { width: 100%; }
+  .tick { font: 13px var(--mono); color: var(--soft); min-width: 110px; text-align: right; }
+  .below { display: grid; grid-template-columns: 170px 1fr; gap: 12px; margin-top: 10px; }
+  #room { width: 170px; height: 170px; background: #101723; border-radius: 10px; border: 1px solid var(--border); }
+  .readout { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; align-content: start; }
+  .readout div { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; }
+  .readout b { display: block; font: 600 17px var(--mono); }
+  .readout span { font-size: 12px; color: var(--dim); }
+  #salience { grid-column: 1 / -1; }
+  .bars { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .bar { font-size: 12px; color: var(--soft); }
+  .bar .track { height: 8px; background: var(--elevated); border-radius: 4px; position: relative; overflow: hidden; margin-top: 3px; }
+  .bar .fill { position: absolute; top: 0; bottom: 0; background: var(--accent); }
+  .bar.on .fill { background: var(--warn); }
+
+  .insp h2 { font-size: 16px; }
+  .insp .kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; font-size: 13px; margin: 8px 0; }
+  .insp .kv dt { color: var(--dim); }
+  .insp .kv dd { font-family: var(--mono); font-size: 12.5px; }
+  .insp table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .insp td, .insp th { padding: 3px 4px; border-bottom: 1px solid var(--border); text-align: left; }
+  .insp th { color: var(--dim); font-weight: 600; }
+  .insp td.n { font-family: var(--mono); text-align: right; }
+  .insp tr.link { cursor: pointer; }
+  .insp tr.link:hover td { background: var(--elevated); }
+  #spark { width: 100%; height: 70px; display: block; background: var(--elevated); border-radius: 8px; margin: 6px 0; cursor: pointer; }
+  .why { font-size: 13px; color: var(--soft); background: var(--elevated); border-radius: 8px; padding: 8px 10px; margin: 6px 0; }
+  .actions { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+  button.warnb { border-color: var(--warn); }
+  @media (max-width: 1100px) { .grid3 { grid-template-columns: 1fr; } .side { position: static; max-height: none; } #scene { height: 60vh; } }
+</style>
+</head>
+<body>
+<main>
+  <div class="top">
+    <div>
+      <div class="eyebrow">brain-lab · beyin haritası</div>
+      <h1>Beyin 3B</h1>
+      <p class="lead">Bir deneğin beyni üç boyutta. Nöronlar küre, sinapslar çizgi. Oynatınca ölçülen odayı yeniden yaşar; parlayan nöron o tik etkindir, akan ışık sinyaldir. Bir şeye tıkla, ne olduğunu ve ne öğrendiğini gör. Bir nöronu sustur, oda sunucuda yeniden yaşansın.</p>
+    </div>
+    <nav class="tabs" id="tabs"></nav>
+  </div>
+
+  <div class="grid3">
+    <aside class="side">
+      <div class="panel">
+        <h3>Denek</h3>
+        <select id="code"></select>
+        <input type="search" id="find" placeholder="DNK no, seed, grup…" style="margin-top:6px">
+        <div class="subjects" id="subjects"></div>
+        <h3>Oda</h3>
+        <select id="roomSel"></select>
+        <h3>Hangi beyin</h3>
+        <div class="seg">
+          <button id="modeRecord" class="sel" title="Deneğin öğrendiği beyin: ölçülen oda birebir yeniden yaşanır">Öğrenmiş</button>
+          <button id="modeBirth" title="Aynı deneğin doğduğu beyin: öğrenme olmasaydı ne yapardı">Doğduğu gibi</button>
+        </div>
+        <h3>Susturulanlar</h3>
+        <div id="silenced" class="chips"><span class="dim" style="font-size:13px">yok — bir nörona tıkla, "Sustur" de</span></div>
+        <h3>Bölgeler</h3>
+        <div id="regions" class="chips"></div>
+        <h3>Sinapslar</h3>
+        <label class="row"><input type="checkbox" id="onlyLearning"> yalnız öğrenen sinapslar</label>
+        <label class="row"><input type="checkbox" id="onlyChanged"> yalnız öğrenmeyle değişenler</label>
+        <label class="row"><input type="checkbox" id="pulses" checked> sinyal akışını göster</label>
+        <label class="row">en küçük ağırlık <input type="range" id="minW" min="0" max="0.5" step="0.005" value="0" style="flex:1"><span id="minWv" class="dim" style="font:12px var(--mono)">0</span></label>
+      </div>
+    </aside>
+
+    <section>
+      <div class="stage">
+        <canvas id="scene"></canvas>
+        <div class="status" id="status">yükleniyor…</div>
+        <div class="legend">
+          <div><i style="background:#4cc38a"></i>iter (Git, uyarıcı)</div>
+          <div><i style="background:#e5484d"></i>tutar (Gitme, ketleyici)</div>
+          <div><i style="background:#f2b84b"></i>öğrenmeyle değişti</div>
+          <div class="dim">kalınlık = ağırlık · parlaklık = etkinlik</div>
+        </div>
+        <div class="hover" id="hover"></div>
+        <div class="busy" id="busy">oda sunucuda yaşatılıyor…</div>
+      </div>
+      <div class="transport">
+        <button id="play">▶ Oynat</button>
+        <button id="back" title="bir tik geri (←)">◀︎</button>
+        <button id="fwd" title="bir tik ileri (→)">▶︎</button>
+        <select id="speed" title="hız">
+          <option value="0.25">¼×</option><option value="1" selected>1× (20 tik/sn)</option><option value="4">4×</option><option value="16">16×</option>
+        </select>
+        <input type="range" id="scrub" min="0" max="0" value="0">
+        <span class="tick" id="tickLbl">tik 0</span>
+      </div>
+      <div class="below">
+        <canvas id="room" width="400" height="400"></canvas>
+        <div class="readout">
+          <div><b id="rEnergy">–</b><span>enerji</span></div>
+          <div><b id="rDrive">–</b><span>dürtü (açlık²+yara²)</span></div>
+          <div><b id="rMeals">–</b><span>öğün</span></div>
+          <div><b id="rDelta">–</b><span>δ (dopamin sürprizi)</span></div>
+          <div id="salience"><div class="bars" id="bars"></div><span id="gate" class="dim"></span></div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="side">
+      <div class="panel insp" id="insp">
+        <h2>Bir şeye tıkla</h2>
+        <p class="explain">Bir nörona tıkla: bölgesi, neye bağlı olduğu, odadaki etkinlik eğrisi. Bir sinapsa tıkla: hangi yolda olduğu, doğumdaki ve şimdiki ağırlığı, bu tikte taşıdığı sinyal.</p>
+        <p class="explain">Fare: sol tuş döndür, sağ tuş kaydır, tekerlek yakınlaş. Boşluk: oynat/durdur. ← →: bir tik.</p>
+      </div>
+    </aside>
+  </div>
+</main>
+<script type="module" src="./beyin3d.ts"></script>
+</body>
+</html>
