@@ -20,9 +20,10 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { actionOfAngle } from "../development/index.ts";
-import type { LedgerEntry } from "../registry/index.ts";
+import { Critic, type CriticParams } from "../learning/critic.ts";
+import type { Ledger, LedgerEntry } from "../registry/index.ts";
 import { RegistryStore } from "../registry/store.ts";
-import type { WorldConfig } from "../world/index.ts";
+import type { Observation, WorldConfig } from "../world/index.ts";
 import { condition } from "./conditions.ts";
 import { recordedRows } from "./harness.ts";
 import { linesOfLength } from "./kural-olcum.ts";
@@ -62,6 +63,23 @@ export function creditSplit(entries: readonly LedgerEntry[], meals: ReadonlyMap<
   return out;
 }
 
+/**
+ * What the learned critic says seeing food ahead (centre ray, 2 m) is worth, hungry (energy 0.4) and sated (0.9): V(food) −
+ * V(nothing seen), everything else equal. Read from the ledger's critic weights with the subject's own critic features.
+ * 2026-09-26 ideal (least squares on real returns, with hunger × food): ~0.077 hungry, ~0 sated.
+ */
+export function foodWorth(ledger: Ledger, cfg: WorldConfig, critic: Partial<CriticParams>): { hungry: number; sated: number } {
+  const c = new Critic(ledger, cfg, critic);
+  const centre = cfg.rayAngles.findIndex((a) => actionOfAngle(a) === "forward");
+  const none = { distance: cfg.rayRange, hit: "none" as const };
+  const at = (energy: number, food: boolean): Observation => ({
+    rays: cfg.rayAngles.map((_, i) => (food && i === centre ? { distance: 2, hit: "food" as const } : none)),
+    bump: false, energy, health: 1, motion: { forward: 0, turn: 0 },
+  });
+  const worth = (energy: number) => c.value(at(energy, true)) - c.value(at(energy, false));
+  return { hungry: worth(0.4), sated: worth(0.9) };
+}
+
 /** Meal ticks by episode, from a subject's training run. */
 export function mealTicks(runs: readonly { header: { purpose: string }; episodes: readonly { episode: number; events: readonly { tick: number; kind: string }[] }[] }[]): Map<number, number[]> {
   const train = runs.find((r) => r.header.purpose.endsWith(" train"));
@@ -90,6 +108,9 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     }
     const all = credits.map((k) => Object.values(k).reduce((a, s) => ({ up: a.up + s.up, upAtMeal: a.upAtMeal + s.upAtMeal }), { up: 0, upAtMeal: 0 }));
     const towardOverAway = credits.map((k) => (k.sideAway.up ? k.sideToward.up / k.sideAway.up : Infinity));
+    const criticParams = condition(code).spec(world).critic ?? {};
+    const worths = rows.map((r) => foodWorth(store.openLedger(r.learner), world, criticParams));
+    console.log(`  critic: food ahead (2 m) worth hungry ${f(mean(worths.map((w) => w.hungry)))} · sated ${f(mean(worths.map((w) => w.sated)))} · hungry > sated ${worths.filter((w) => w.hungry > w.sated).length}/${rows.length}`);
     console.log(`  all turn synapses: share of positive change at meals ${f(mean(all.map((a) => (a.up ? a.upAtMeal / a.up : 0))))} | side toward/away positive ${f(mean(towardOverAway.filter(Number.isFinite)))} (${towardOverAway.filter((x) => x >= 2).length}/${rows.length} ≥ 2)`);
   }
 }

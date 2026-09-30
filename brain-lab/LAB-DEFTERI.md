@@ -4337,6 +4337,18 @@ Gitme değişiminin tersi.
 geliyor ve kredi bitişikliğe kalıyor. Bu, planın Aşama 4'ünü (eleştirmen) öne çekmeyi destekliyor. Frémaux vd. 2013 de
 aynı yöne işaret ediyor: TD aktör-eleştirmen gezinmesi eleştirmen durum değerini öğrenince çalışıyor. Karar Ozyn'in.
 
+## 2026-09-30 — Aşama 4 (eleştirmen) kodlandı; Kart 4 — koşmadan önce
+
+Ozyn: önce eleştirmen teşhisi ve araştırma, sonra "Onay, ikisini de kodla". Eleştirmenin kök nedeni 2026-09-26'da zaten
+ölçülmüştü (yukarıda "Eleştirmen teşhisi sonucu"), tedavi uygulanmamıştı. Literatür: açlık nöronları dopaminin yemek
+ipucu tepkisini ihtiyaca göre açıyor (PMC12802398); homeostatik RL (Keramati ve Gutkin 2014, eLife 04811).
+
+- `[TEST]` `critic.lambda` (4a, özellik izi) ve `critic.features: "need"` (4b, duyu × açlık); 8 test, bozma 9/9; koşullar
+  KL, KN, KLN. Kapalıyken bit-birebir (`regression-check H3B97 2`), tam `npm test` 2023/2023.
+- Yeni ölçü `kredi-teshis.ts foodWorth`: öğrenilmiş eleştirmene "önde 2 m'de yemek görmek ne kadar değerli, açken / tokken".
+  K0 (H3B97 sabırlı): **0,007 / 0,007**. 2026-09-26'nın ideali: ~0,077 / ~0.
+- Ön-kayıt `data/preregistration-007-elestirmen.md` (P1–P5, üçlü puanlama).
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.

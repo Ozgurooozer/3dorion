@@ -2,9 +2,10 @@
 "use strict";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import type { LedgerEntry } from "../registry/index.ts";
+import { bornGraph } from "../development/index.ts";
+import { Ledger, type LedgerEntry } from "../registry/index.ts";
 import { ROOM3 } from "./conditions.ts";
-import { MEAL_WINDOW, creditSplit, mealTicks, turnClass } from "./kredi-teshis.ts";
+import { MEAL_WINDOW, creditSplit, foodWorth, mealTicks, turnClass } from "./kredi-teshis.ts";
 
 // ROOM3 rays: 0, 1 right; 2 centre; 3, 4 left.
 let n = 0;
@@ -40,6 +41,18 @@ test("at a meal means the meal tick up to MEAL_WINDOW ticks after it, in the sam
 test("only dopamine learning counts; critic, scaling or death entries do not", () => {
   const c = creditSplit([entry("ray4.food", "bg.go.left", 0, 0.1, 5, 1, ["scaling"]), entry("ray4.food", "bg.go.left", 0, 0.1, 5, 1, ["death", "starved"])], new Map(), ROOM3);
   assert.equal(c.sideToward.up, 0);
+});
+
+test("food worth: a linear critic's food weight is the worth, hungry or sated; a need weight adds only when hungry", () => {
+  const graph = bornGraph(ROOM3, { seed: 1, group: "reflexless" });
+  const ledger = new Ledger("DNK-0001", graph);
+  for (const [feature, after] of [["ray2.food", 0.1], ["need*ray2.food", 0.5]] as const) ledger.record({ kind: "critic", tick: 0, episode: 1, cause: ["td"], feature, before: 0, after });
+  const proximity = 1 - 2 / ROOM3.rayRange; // food 2 m ahead
+  const linear = foodWorth(ledger, ROOM3, {});
+  assert.ok(Math.abs(linear.hungry - 0.1 * proximity) < 1e-12 && Math.abs(linear.sated - 0.1 * proximity) < 1e-12, JSON.stringify(linear));
+  const need = foodWorth(ledger, ROOM3, { features: "need" });
+  assert.ok(Math.abs(need.hungry - (0.1 + 0.5 * 0.6) * proximity) < 1e-12, `hungry ${need.hungry}`);
+  assert.ok(Math.abs(need.sated - (0.1 + 0.5 * 0.1) * proximity) < 1e-12, `sated ${need.sated}`);
 });
 
 test("meal ticks come from the training run's meal events, by episode", () => {

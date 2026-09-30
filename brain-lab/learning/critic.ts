@@ -24,9 +24,23 @@ export interface CriticParams {
    * ~0.13 — above the baseline's best (0.03) — and the food weights churned (Σ|Δ| 4.7, net 0.004).
    */
   readonly normalize: boolean;
+  /**
+   * TASARIM-009 §4a: an eligibility trace per feature, e_f ← γλ·e_f + x_f(s), and w_f ← w_f + α·δ·e_f (TD(λ), backward
+   * view), so the worth of a meal reaches the moments that led to it in one pass (2026-09-26: TD(0) churned the food
+   * weight 64× its net value; TD(λ 0.9) reached 62–74% of the ideal on the same experience). Cleared each episode.
+   * Absent: TD(0), the critic it always was.
+   */
+  readonly lambda?: number;
+  /**
+   * TASARIM-009 §4b: "need" adds every sense × hunger (need*<sense>; not the bias, not hunger itself), so a sight can be
+   * worth more when hungry (2026-09-26: food ahead is worth ~0 sated and ~0.077 hungry; a linear critic learns the mean).
+   * Hunger neurons gate the dopamine response to food cues the same way. Absent: the senses and the bias only.
+   */
+  readonly features?: "need";
 }
 
 export const DEFAULT_CRITIC: CriticParams = Object.freeze({ alpha: 0.05, gamma: 0.99, quantum: 0.0005, normalize: false });
+const NOT_GATED = new Set(["bias", "intero.hunger"]);
 
 export class Critic {
   readonly params: CriticParams;
@@ -34,18 +48,27 @@ export class Critic {
   private readonly ledger: Ledger;
   private readonly cfg: WorldConfig;
   private readonly pending = new Map<string, number>();
+  /** §4a: the eligibility trace of each feature seen this episode (only with lambda). */
+  private readonly trace = new Map<string, number>();
 
   constructor(ledger: Ledger, cfg: WorldConfig, params: Partial<CriticParams> = {}, prefix = "") {
     this.params = { ...DEFAULT_CRITIC, ...params };
     const p = this.params;
     if (!(p.alpha >= 0) || !(p.gamma >= 0 && p.gamma <= 1) || !(p.quantum > 0)) throw new RangeError(`bad critic params ${JSON.stringify(p)}`);
+    if (p.lambda !== undefined && !(p.lambda >= 0 && p.lambda <= 1)) throw new RangeError(`critic lambda must be in [0, 1], got ${p.lambda}`);
+    if (p.lambda !== undefined && p.normalize) throw new RangeError("critic lambda with normalize: the normalised step has no single ‖x‖² over a trace");
+    if (p.features !== undefined && p.features !== "need") throw new RangeError(`critic features must be "need", got ${JSON.stringify(p.features)}`);
     this.ledger = ledger;
     this.cfg = cfg;
     this.prefix = prefix;
   }
 
   features(obs: Observation): Record<string, number> {
-    return { ...(encodeObservation(obs, this.cfg) as Record<string, number>), bias: 1 };
+    const x: Record<string, number> = { ...(encodeObservation(obs, this.cfg) as Record<string, number>), bias: 1 };
+    if (this.params.features !== "need") return x;
+    const hunger = x["intero.hunger"]!;
+    for (const f of Object.keys(x)) if (!NOT_GATED.has(f)) x[`need*${f}`] = x[f]! * hunger;
+    return x;
   }
 
   value(obs: Observation): number {
@@ -66,8 +89,13 @@ export class Critic {
   learn(s: Observation, delta: number, tick: number, episode: number): LedgerEntry[] {
     if (!Number.isFinite(delta)) throw new RangeError(`critic δ ${delta}`);
     const writes: LedgerEntry[] = [];
-    const { alpha, quantum, normalize } = this.params;
-    const features = Object.entries(this.features(s));
+    const { alpha, quantum, normalize, lambda, gamma } = this.params;
+    let features = Object.entries(this.features(s));
+    if (lambda !== undefined) { // §4a: the features carry their traces instead of this moment's values
+      for (const [f, e] of this.trace) this.trace.set(f, gamma * lambda * e);
+      for (const [f, x] of features) this.trace.set(f, (this.trace.get(f) ?? 0) + x);
+      features = [...this.trace];
+    }
     const step = normalize ? alpha / Math.max(1, features.reduce((e, [, x]) => e + x * x, 0)) : alpha;
     for (const [f, x] of features) {
       if (x === 0) continue;
@@ -83,5 +111,6 @@ export class Critic {
 
   resetPending(): void {
     this.pending.clear();
+    this.trace.clear();
   }
 }

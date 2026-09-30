@@ -97,6 +97,31 @@ duyular etkilenmez; kapalıyken bit-birebir; asimetrik doğumla öğrenme anahta
 alışkanlığa karşı kazanma ≥ doğumdaki 0,48; yönlendirme artışı ≥ 0,05 (üçlü puanlama). Çürürse: sorun alışkanlık değil, yemek
 farkının büyüklüğü (kredi) → 3b (`lat` fark hücreleri) ya da iz uzunluğu.
 
+## Aşama 4 — eleştirmen yemeği değerli bulsun (öne alındı; ONAY BEKLİYOR)
+
+**Neden öne:** Kart 1–3 ve kredi teşhisi (defter 2026-09-30): dönüş ödülünün ~%90'ı yemek anında yazılıyor
+(bitişiklik, Skinner'in "batıl inancı"). Yemek anında o an açık olan her dönüş pekişiyor; yan ayrımı zayıf. Eleştirmen
+yemeği görmeye değer vermediği için (≈ 0,01) yemeğe **yaklaşmak** önceden ödüllenmiyor. Kök neden 2026-09-26'da ölçüldü
+(`critic-diagnosis.ts`), tedavi hiç uygulanmadı:
+- **Temsil:** yemek görmenin değeri açlığa bağlı (önde 2 m'de yemek: tokken ~0, açken ~0,077). Doğrusal eleştirmen
+  ortalamayı öğreniyor (0,022). Açlık × yemek eklenince R² +0,057.
+- **Kural:** TD(0) yemek ağırlığını 64 kat çalkalıyor; aynı deneyimde TD(λ 0,9) idealin %62–74'üne ulaşıyor.
+
+**Literatür:** fare açlık nöronları (AgRP) dopaminin yemek ipucu tepkisini ihtiyaca göre büyütüyor ("need-selective
+gating", PMC12802398); homeostatik RL (Keramati ve Gutkin 2014, eLife): ödülün değeri iç duruma bağlı; aktör-eleştirmen
+izleri (Sutton ve Barto): eleştirmen λ-getirisiyle öğrenir.
+
+**4a — eleştirmen izi** `critic: { lambda: 0.9 }`: her özellik için iz e_f ← γλ·e_f + x_f (bölüm başında 0);
+w_f ← w_f + α·δ·e_f, kuantumla, her değişim defterde (bugünkü gibi). Yoksa bugünkü TD(0), bit-birebir.
+
+**4b — ihtiyaç kapılı özellikler** `critic: { features: "need" }`: her duyu f için (açlık ve sabit terim hariç) bir de
+f × açlık özelliği; defterde `need*<f>` adıyla. Eleştirmen hangi duyunun açken değerli olduğunu kendisi öğrenir (yalnız
+yemek değil; duvar, tehlike, hatırlanan yemek de). Yoksa bugünkü özellikler, bit-birebir. Aktöre dokunmaz.
+
+**Kart 4 (ön-kayıt 007; kod ve testlerden sonra, koşmadan önce):** K0 = kayıtlı sabırlı H3B97; KL (4a), KN (4b), KLN (ikisi).
+Sabırlı eğitim, 10'ar denek. Birincil ölçüler: eleştirmenin "açken önde yemek" değeri, kredi teşhisinde yemek anındaki
+pozitif pay (bitişiklikten çıkış), yönlendirme, dürtü. Yan sonda taraması ile alışkanlık yeniden ölçülür.
+
 ## Aşama 5 — Ozyn'in notu: "sürekli hareket etmek zorunda değil, düşünme olarak ekle" (2026-09-30)
 - Bugün dinlenme mümkün (`restBias` 0,3) ama açlık bütün hareketlerin belirginliğini birlikte yükseltiyor (`vigor ·
   açlık`), bu yüzden aç beden neredeyse hiç durmuyor.
