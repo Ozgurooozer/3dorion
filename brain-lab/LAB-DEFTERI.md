@@ -4393,6 +4393,20 @@ sınırda (0,181, 7–3, ortanca +0,091; +0,05'i geçen 5/10); P4 ✓ (4,20, 9�
 
 **Sıradaki (Ozyn'in kararı):** olumlu iddia için doğrulama (20 + CROSS) ve `curut`. Öneri: KLN ve KL birlikte.
 
+## 2026-09-30 — KL bulmacası: δ teşhisi (koşmadan önce)
+
+Ozyn: doğrulamadan önce KL'yi anla. KL'nin eleştirmeni yemeğe değer vermiyor (önde yemek 0,007) ama yönü en yüksek (0,265).
+
+**Araç** `experiments/delta-teshis.ts` (`[TEST]` 4 test): kayıtlı değerlendirme odaları öğrenme donuk yeniden yaşanır (her oda
+son dünya hash'i kayıtla aynı olmalı, yoksa durur) ve her tikin δ'sı okunur. (a) **Dönüş avantajı:** yemek yalnız bir yanda
+görülürken yapılan hamleden sonraki tikin δ'sı: o yana dönüş / öbür yana / dönmeme. (b) **Yemekten önce:** her yemekten
+önceki 20 tikin ortalama δ'sı, bütün tiklerin ortalamasına karşı.
+
+| # | öngörü | çürütülürse |
+|---|---|---|
+| D1 | KL'de o yana dönüşten sonraki δ öbür yanadan büyük, K0'dan daha çok öğrenende (sayı K0'dakinden en az 2 fazla) | değilse: yön kazancı δ'nın dönüşü ayırt etmesinden gelmiyor; izin aktörle zamanlaması (uygunluk izinin δ ile çakışması) incelenir |
+| D2 | KL'de yemekten önceki 20 tik, bütün tiklerden daha pozitif; K0'dan belirgin (fark en az 2 kat) | değilse: iz değeri yemekten öne taşımıyor |
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
