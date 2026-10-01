@@ -4474,6 +4474,40 @@ Ozyn: "devam önerilerine göre". Ön-kayıt `data/preregistration-009-dogrulama
 tekrarı (belirleyicilik), 6–10 örneklem dışı. H3B97 de doğrulanıyor ki seed 6–10'da kıyas adil olsun. Olumlu iddia ancak
 `curut`tan sonra.
 
+## 2026-10-01 — Araştırma: bu tarz yapılar denenmiş mi?
+
+Ozyn: "Bu tarz yapılar denenmiş mi, lütfen araştır." Evet; bedenli, dopaminle öğrenen küçük beyinler 20 yıldır deneniyor.
+
+| çalışma | ne yaptı | neyi doğuştan verdi | ne öğrendi |
+|---|---|---|---|
+| Evans 2015 (arXiv 1502.06096) | iki yan sensörlü, iki tekerlekli robot; dopaminli STDP; yemek arama | yan yapı: sol/sağ sensör → sol/sağ motor grupları (Braitenberg); dokunma → dopamin (sabit) | yaklaşma ya da kaçınma (50/50 deneme); kap → yemek zinciri %95 |
+| Frémaux, Sprekeler, Gerstner 2013 (PLOS CB) | sürekli zamanlı TD aktör-eleştirmen, su labirenti | yer hücreleri, yön popülasyonu | eleştirmen değeri + aktör yönü; hayvan kadar sürede |
+| Krichmar ve Edelman, Darwin VII (2000'ler) | beyin tabanlı robot, değer sistemi | tat değeri (doğuştan) | görsel kategoriye yaklaşma / kaçınma (koşullanma) |
+| Prescott, Gurney vd. 2006 (Neural Networks) | bazal gangliyon modeli Khepera robotunda | davranışlar elle (duvar izleme, arama, yemek alma) | yalnız seçim; öğrenme yok |
+| Konidaris ve Barto 2006 (SAB) | birden çok dürtülü (açlık, susuzluk) motivasyon sistemi | dürtüler | dürtü öncelikleri |
+| Hinton ve Nowlan 1987 | öğrenme evrime yol gösterir (Baldwin) | — | Aşama 6'nın Darwin/Baldwin kolunu destekliyor |
+
+**Ortak başarı malzemeleri ve bizdeki karşılıkları:**
+1. **Yan yapı tasarımla verilir.** Sol sensör → sol/sağ motor ayrımı (Braitenberg) hazır; öğrenme yalnız işaret ve gücü seçer
+   (yaklaş/kaç). Bizde aktör yanı sıfırdan bulmaya çalışıyor (dört ayrı eylem, her duyu her eyleme). Literatürde 3b
+   (`lat` sol−sağ hücreleri) ya da Ozyn'in "yönü biz versek" fikri hile değil, standart uygulama.
+2. **Ödülü öne taşıyan öğrenilmiş değer.** Evans'ın kap deneyi 1 sn'den uzun gecikmede başarısızdı; dopamin tepkisinin yemekten
+   kaba kaymasını öğreten plastik bağla çözüldü. Bizim Kart 4 bulgusunun (izli, ihtiyaç kapılı eleştirmen) aynısı.
+3. **Ağırlık sınırı ve sönümleme** (Evans: ortalama 2 mV'yi aşınca bütün grup azaltılır). Bizde wMax var; çalkantı (kredi
+   teşhisi: 186 yazılıp 182 silinen) bu tür bir denetimin eksikliğini düşündürüyor.
+4. **Kısa uygunluk izi** (Evans τ ≈ 0,48 sn). Bizim λ 0,9 (20 Hz) ≈ 0,5 sn; uyumlu.
+5. **Bilinen hata:** yemeğin etrafında dönüp durma (Evans "orbiting"; Bing vd. 2019 hedef çevresinde dolanma), sabit ileri
+   hızdan. Bizde de görülebilir; izlenmeli.
+6. Şerit izleme gibi başarılı ağların çoğu her yana ayrı ödül veriyor (denetimli R-STDP, Bing vd. 2019): kredi sorununu
+   atlıyorlar.
+
+**Sonuç:** mimarimiz doğru aile (Git/Gitme, dopamin, eleştirmen, üç faktörlü kural). Literatürden ayrıldığımız tek büyük
+nokta: yanı aktöre sıfırdan buldurmaya çalışmak. 0,3 hedefi için sıradaki doğal adım yan yapıyı doğuştan vermek (3b ya da
+öğrenmeyen bir yönelme yolu), Kart 6'dan sonra.
+
+Kaynaklar: arxiv.org/abs/1502.06096; pmc PMC3623741; eprints.whiterose.ac.uk/107037; casci.binghamton.edu/publications/embrob/krichmar.html;
+cs.toronto.edu/~hinton/absps/evolution.htm; frontiersin.org/journals/neurorobotics/articles/10.3389/fnbot.2019.00018.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
