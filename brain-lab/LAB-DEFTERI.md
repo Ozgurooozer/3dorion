@@ -4573,6 +4573,26 @@ değil, "bu testlerden sağ çıktı".
 
 **Araç notu:** `diagnose.ts` falsify özetlerinin `.main` alanını okumuyor (`.rows` bekliyor); düzeltilecek.
 
+## 2026-10-01 — En değerli kazanç: yöntem (Ozyn: "en değerli kazancı önce not et")
+
+Ozyn sordu: hedefe ulaştığımızı varsayalım, bu model ne işe yarar? Cevap: yemek odasındaki yaratık bir deney tahtası;
+mekanizma Orion'un LLM'i etrafındaki karar katmanına gidecek (`BUYUK-RESIM.md`). Ama bu iki günün **en değerli kazancı
+mekanizmadan çok yöntem**: öğrenen bir karar katmanı kolayca yanlış şeyi öğreniyor ve bunu yakalayan bir laboratuvarımız var.
+Orion'un karar katmanına öğrenme eklendiğinde aynı tuzaklar orada da olacak.
+
+| tuzak (bu iki gün) | neyle yakalandı | kural (bundan sonra) |
+|---|---|---|
+| **Batıl inanç:** ödül anında ne yapılıyorsa o pekişir; açken / yemek önde iken hep bir yana dönme (Skinner 1948) | kredi teşhisi (`kredi-teshis.ts`): pozitif değişimin %89'u yemek anında | ödül önceden gelmeli (değeri öne taşıyan eleştirmen); "kredi nerede yazılıyor" ölçülür |
+| **Donma:** ölüm öğretince "açken dur" (Wiecki ve Frank 2009, Gitme öğrenmesi = katalepsi) | ön-kayıttaki dur kuralı + Gitme ağırlık sayımı | büyük negatif sinyal, sebebi eylemden ayırmadan öğretmez |
+| **Alışkanlığın taşınması:** bir taşıyıcı kapatılınca alışkanlık başka duyuya geçti (orta hat kuralı) | bütün duyuların taranması (`yon-teshis` yan taraması) | bir nedeni adlandırmadan önce **bütün** adaylar taranır |
+| **Yanlış sebepten iyi sonuç:** eleştirmen kendi hareketini görüp her dönüşü cezalandırıyordu, yön kısmen bundandı | δ teşhisi (`delta-teshis.ts`, kayıtla aynı hash'le yeniden yaşama) | iyi bir sonucun mekanizması da ölçülür; eleştirmen durumu yargılar, hareketi değil |
+| **Örneklem savrulması:** 10 denekli tarama "ilk kez yön" dedirtti; 20 denekte H3B97'de de yön vardı, taze seed'lerde ise yoktu | doğrulama (20 + CROSS) ve çürütme (taze seed, kıyas kolu yan yana) | taramadan iddia yok; kıyas kolu aynı seed'lerde yeniden koşulur |
+| **Ortalamaya teslim:** 2–4 denek ortalamayı taşıdı | üçlü puanlama | ortalama + eşleştirilmiş sayım + ortanca; biri uymazsa "belirsiz" |
+| **Doğru öğrenen eleştirmen, çöken beden** (KLNw) | birincil ölçüler + bağlı beden | eleştirmen ve aktörün ne gördüğü birlikte tasarlanır |
+
+Aynı iki günde literatür (Evans 2015, Frémaux vd. 2013) bağımsız olarak aynı sonuca varmış: başarılı bedenli öğrenenler
+ödülü öne taşıyan bir değer öğrenir ve yan yapıyı doğuştan alır. Kural listesi Atlas'a işlendi (`.claude/agents/atlas.md`).
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.

@@ -143,6 +143,17 @@ Bu yüzden ödülle değil öğretmenle başlanır: öğretmen LLM'in kendi kara
 Öğrenilen kurallar bunların etrafında büyür. Güvenlik içgüdülerini (maliyet tavanı, sözleşme, insan onayı) hiçbir
 öğrenilmiş kural ezemez.
 
+## 5c. Yemek dünyasından kazanılan (2026-10-01)
+
+- **Mekanizma:** gecikmeli sonuçtan öğrenmek (izli eleştirmen), duruma bağlı değer (duyu × açlık), sonucu doğru karara
+  bağlamak. KL ve KLw'nin yemeğe yönelmesi çürütme bataryasından sağ çıktı (defter 2026-10-01, Kart 7).
+- **En değerli kazanç: yöntem.** Öğrenen bir karar katmanı kolayca yanlış şeyi öğreniyor (batıl inanç, donma, taşınan
+  alışkanlık, yanlış sebepten iyi sonuç, örneklem savrulması). Bunları yakalayan şey ön-kayıt, CROSS/LOCAL, lezyonlar, üçlü
+  puanlama ve teşhis araçları oldu (tablo: `LAB-DEFTERI.md` 2026-10-01 "En değerli kazanç"). Orion'un kapısına (dikkat,
+  refleks, beceri yetkisi) öğrenme eklendiğinde aynı tuzaklar orada da olacak; bu laboratuvar onları yakalamak için.
+- Aktarımın ilk adayı en dar ve ölçülebilir karar: "bu algı LLM'e gitsin mi?" (`mind/dikkat.ts`), karar kaydı (spec 08)
+  üzerinde yeniden oynatarak.
+
 ## 6. Ozyn'e açık sorular
 
 1. ~~3D ofis şimdiye kadar kapsam dışıydı. KT1, Orion'a davranışı değiştirmeyen bir kayıt anahtarı ekler. Olur mu?~~
