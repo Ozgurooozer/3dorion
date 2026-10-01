@@ -4508,6 +4508,38 @@ nokta: yanı aktöre sıfırdan buldurmaya çalışmak. 0,3 hedefi için sırada
 Kaynaklar: arxiv.org/abs/1502.06096; pmc PMC3623741; eprints.whiterose.ac.uk/107037; casci.binghamton.edu/publications/embrob/krichmar.html;
 cs.toronto.edu/~hinton/absps/evolution.htm; frontiersin.org/journals/neurorobotics/articles/10.3389/fnbot.2019.00018.
 
+## 2026-10-01 — Kart 6 sonucu: yön gerçek ve CROSS'tan sağ çıkıyor, ama H3B97'de de var; "ilk kez yön" iddiamı düzeltiyorum
+
+Atlas raporu `data/atlas-reports/2026-10-01-kart6-dogrulama.md` (kod `4a15aab`, `dogrula H3B97 KL KLw --egitim sabirli`,
+her kolda 20 öğrenen + 20 CROSS). Ortalamalar `results.jsonl`'den yeniden hesaplandı, tuttu.
+
+| kol | dürtü ↓ | yönlendirme (20) | seed 6–10 (örneklem dışı) | yön, bağlı bedene karşı | CROSS dürtü / yön |
+|---|---|---|---|---|---|
+| K0 = H3B97 | 0,084 | 0,157 | **0,216** | **15/20** (p 0,041) | 0,716 / −0,002 |
+| KL | 0,070 | **0,242** | 0,220 | 19/20 (p 4·10⁻⁵) | 0,717 / 0,008 |
+| KLw | 0,084 | 0,219 | 0,245 | 17/20 (p 0,003) | 0,706 / 0,011 |
+
+**Karne (ön-kayıt 009):** C1 ✓ (iki kol da CROSS'u dürtüde 20/20 geçiyor; CROSS'ta yön ~0: kazanç eylem → sonuç bağından);
+C2 ✓ (yön bağlı bedene karşı 19/20 ve 17/20); C3 belirsiz (K0'dan farkı +0,05'i geçen 13/20 ve 11/20); C4 belirsiz (seed
+6–10 ortalamaları 0,220 / 0,245 eşiğin üstünde, ama K0 da 0,216); C5 ✗ (KLw dürtüsü K0'la aynı); C6 ✓ (seed 1–5 satırları
+taramayla 30/30 birebir). Atlas'ın iki puanlama kararı (C3'te "aynı yön" için +0,05 eşiği, C4'te sayımın K0'a karşı
+yapılması) raporda gerekçeli; C4 eşik başına sayılsaydı ✓ olurdu.
+
+**Düzeltme (dürüst kayıt):** Kart 4'ten sonra "yön ilk kez geliyor" dedim. 20 denekte bu doğru değil:
+- **H3B97 de sabırlı eğitimle yön öğreniyor** (0,157, bağlı bedene karşı 15/20). Taramadaki 0,097 seed 1–5'e özgü
+  düşükmüş; seed 6–10'da 0,216. Eski "H3B97'nin öğrendiği yönsüz" bulgusu 200 sabit bölümle (curut, 9/20) ölçülmüştü;
+  sabırlı eğitim bunu değiştirmiş olabilir. Aynı taze seed'lerde ölçülmedi.
+- KL'nin K0'dan üstünlüğü 20 denekte anlamlı değil (13/20, p 0,115); KLw'nin hiç değil (11/20).
+- Eleştirmen düzeltmesi yönü **getirmedi**; yön zaten vardı. Eleştirmenin katkısı ancak aynı taze seed'lerde yan yana
+  ölçülürse ayrılır.
+- Bu, Kart 1'in dersinin tekrarı: 10 denekli tarama ortalaması birkaç denekte savruluyor.
+
+**CROSS adil mi?** CROSS'un ağırlık kaydı öğrenenin %15–21'i. Beklenen davranış: gecikmeli δ o anın uygunluğuyla
+ilişkisiz, işaretleri birbirini götürüyor, kuantum az geçiliyor. Kontrolün zayıflığı değil, tam ölçtüğü şey; yine de ayrı
+ölçülmedi.
+
+**Sıradaki:** ön-kayda göre `curut` — K0, KL, KLw aynı taze seed'lerde (11–20) yan yana.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
