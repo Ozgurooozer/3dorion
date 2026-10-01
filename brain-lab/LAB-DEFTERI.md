@@ -4540,6 +4540,39 @@ ilişkisiz, işaretleri birbirini götürüyor, kuantum az geçiliyor. Kontrolü
 
 **Sıradaki:** ön-kayda göre `curut` — K0, KL, KLw aynı taze seed'lerde (11–20) yan yana.
 
+## 2026-10-01 — Kart 7 sonucu: KL ve KLw'nin yönü çürütme testlerinden sağ çıktı; H3B97'ninki çıkmadı
+
+Atlas raporu `data/atlas-reports/2026-10-01-kart7-curut.md` (kod `60a4f81`, taze seed 11–20 × iki grup, her kolda 20 öğrenen +
+ikiz, bağlı beden, CROSS, LOCAL, 7 lezyon, 2 başka oda). H3B97, KL, KLw ortalamaları, kontroller ve yemek lezyonu özet
+dosyalarından ayrıca yeniden hesaplandı, tuttu.
+
+| kol | dürtü ↓ | CROSS · LOCAL dürtü | yön | yön, bağlıya karşı | yemek ışını lezyonuyla yön | başka odalar (5 · 15 yemek) |
+|---|---|---|---|---|---|---|
+| H3B97 | 0,209 | 0,718 · 0,731 | **0,061** | 15/20 | −0,001 | 10/10 · **5/10** |
+| KL | 0,057 | 0,693 · 0,695 | **0,237** | 17/20 | 0,034 | 10/10 · 10/10 |
+| KLw | **0,050** | 0,709 · 0,692 | **0,252** | **20/20** | 0,029 | 10/10 · 9/10 |
+
+**Karne (ön-kayıt 010):** F1 ✓ üç kol (CROSS ve LOCAL'i 19–20/20 geçiyor); F2 ✓ KL, KLw — ✗ H3B97 (0,061 < 0,12); F3 ✓ KL,
+KLw — belirsiz H3B97; F4 ✓ KL, KLw — belirsiz H3B97 (15 yemekte 5/10); F5 ✓ (KL − H3B97 yön +0,175, 17/20, Wilcoxon p 0,0004);
+F6 ✗ ve ters (proprio lezyonu KLw'ye daha çok zarar veriyor: dürtü +0,114 / KL −0,012; hayatta 0,96 → 0,76). Atlas'ın üç
+puanlama kararı raporda gerekçeli (F3 eşikli sayılsaydı KL ve KLw belirsize düşerdi).
+
+**Hüküm:** **KL ve KLw'nin yemeğe yönelmesi bu testlerden sağ çıktı.** Taze denekler, eylem → sonuç bağı (CROSS, LOCAL), yemek
+görmeye bağlılık (yemek ışını lezyonu yönü öldürüyor; duvar ve beden duyusu lezyonu öldürmüyor), başka odalar. "Kanıtlandı"
+değil, "bu testlerden sağ çıktı".
+
+**Okuma:**
+- Kart 6'nın düzeltmesi ters yönde tamamlandı: H3B97'nin yönü güvenilir değil (seed 1–10'da 0,157, 11–20'de 0,061;
+  reflekssiz grupta −0,031). KL'nin yönü üç örneklemde 0,22–0,24'te sabit. Eleştirmenin izi yönü **güvenilir** kılıyor.
+- Ne öğrenildi: H3B97 yemek → öbür yana da güçlü Git öğreniyor (0,62; "yemek görünce hareket et"), KL ve KLw'de öbür yana
+  neredeyse yok (0,04–0,06), yan ayrımı 18–19/20. Kredi teşhisinin gördüğü şey ("iz krediyi yemek anından öne taşıyor")
+  davranışta karşılığını buldu.
+- KLw (hareket-kör eleştirmen) en iyi kol (dürtü 0,050, yön 0,252, bağlıya 20/20) ama beden duyusuna KL'den çok dayanıyor
+  (nedeni ölçülmedi).
+- Hedef (≥ 0,3, sağ çıkmış) için hâlâ 0,05 kadar uzakta.
+
+**Araç notu:** `diagnose.ts` falsify özetlerinin `.main` alanını okumuyor (`.rows` bekliyor); düzeltilecek.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
