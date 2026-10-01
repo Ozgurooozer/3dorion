@@ -5,29 +5,43 @@
 // referans alındı; oradaki tek 170 satırlık gövde burada adlandırılmış
 // bölümlere ayrıldı ve grid-birimi (`u()`) dolaylılığı kaldırıldı — metre.
 //
+// İKİ KİP (spec 11, `odaKipi.ts`):
+//   "yeni"   — görünüş Blender'dan (assets/oda-esyalar.glb, `odaEsyalari.ts`): kabuk,
+//              cam duvar, ışıklık, bütün eşyalar. Burada yalnız İŞLEV yüzeyleri
+//              (monitörler, tahta, zihin panelleri, manzara, posterler) + ışık kurulur.
+//   "klasik" — eski kutu oda (`?oda=klasik`); glb yüklenemezse yeni kip de buna düşer.
+// İşlev yüzeyleri, çapalar, çarpışma ve ışın ikizleri İKİ KİPTE AYNI: görünüş anahtarı
+// Orion'un davranışını değiştirmez.
+//
 // Performans (K2: 60 FPS, 8GB VRAM):
-//   - Gölge YOK. Tek DirectionalLight + tek HemisphericLight.
+//   - Gölge YOK. Klasik: tek DirectionalLight + tek HemisphericLight.
+//     Yeni: ambient + 2 yön + 4 nokta ışık, parlama katmanı, sis (ölçüldü, spec 11).
 //   - Statik mesh'lerin dünya matrisi ve malzemeleri donduruldu.
 //   - Malzeme sayısı azdır ve paylaşılır — draw call düşük kalır.
 "use strict";
 import type { Scene } from "@babylonjs/core/scene";
+import { Scene as SahneSinifi } from "@babylonjs/core/scene";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
-import { Color3 } from "@babylonjs/core/Maths/math.color";
+import { Color3, Color4 } from "@babylonjs/core/Maths/math.color";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { Texture } from "@babylonjs/core/Materials/Textures/texture";
 import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
 import { DirectionalLight } from "@babylonjs/core/Lights/directionalLight";
+import { PointLight } from "@babylonjs/core/Lights/pointLight";
+import { GlowLayer } from "@babylonjs/core/Layers/glowLayer";
 import { CreateBox } from "@babylonjs/core/Meshes/Builders/boxBuilder";
 import { CreateGround } from "@babylonjs/core/Meshes/Builders/groundBuilder";
 import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import { CreateCylinder } from "@babylonjs/core/Meshes/Builders/cylinderBuilder";
-import { ODA, MASA, MONITOR, SANDALYE, TAHTA, PENCERE, KAPI, SEMA, GUNLUK, ADMIN } from "./olculer.ts";
+import { ODA, MASA, MONITOR, SANDALYE, TAHTA, PENCERE, KAPI, SEMA, GUNLUK, ADMIN, LAMBA } from "./olculer.ts";
 import { varlik } from "../varlik.ts";
+import { odaKipi, type OdaKipi } from "./odaKipi.ts";
+import { esyalariYukle, ODA_ISIK_SAYISI } from "./odaEsyalari.ts";
 
 /** Odanın kurulumundan dönen tutamaçlar. T3 monitör ekranını, T2 zemini ister. */
 export interface OdaKurulumu {
-  /** Üretilen tüm statik mesh'ler — sayım ve temizlik için. */
+  /** Üretilen tüm statik mesh'ler — sayım ve temizlik için. Yeni kipte glb yüklenince büyür. */
   meshler: Mesh[];
   /** Monitör ekran düzlemi. T3 buraya DynamicTexture bağlayacak (yer tutucu). */
   monitorEkran: Mesh;
@@ -43,13 +57,19 @@ export interface OdaKurulumu {
   zemin: Mesh;
   /** Oyuncunun ışın testinde yok sayması gereken mesh'ler (cam, backdrop). */
   seffaflar: Mesh[];
+  /** İstenen kip ve görünüş kurulunca GERÇEKTE kurulan kip (glb yüklenemezse "klasik"). */
+  kip: OdaKipi;
+  hazir: Promise<OdaKipi>;
 }
 
 /** Odanın kaç mesh'ten oluştuğunu HUD'a basmak için son kurulum. */
 let _sonKurulum: OdaKurulumu | null = null;
 export function sonOdaKurulumu(): OdaKurulumu | null { return _sonKurulum; }
 
-export function odaKur(sahne: Scene): OdaKurulumu {
+export function odaKur(
+  sahne: Scene,
+  kip: OdaKipi = odaKipi(typeof location === "undefined" ? "" : location.search),
+): OdaKurulumu {
   const meshler: Mesh[] = [];
   let sira = 0;
   const ad = (on: string) => `${on}_${sira++}`;
@@ -66,6 +86,7 @@ export function odaKur(sahne: Scene): OdaKurulumu {
     m.diffuseColor = new Color3(r, g, b);
     m.emissiveColor = new Color3(r * parlakOran, g * parlakOran, b * parlakOran);
     m.specularColor = new Color3(0.04, 0.04, 0.05);
+    m.maxSimultaneousLights = ODA_ISIK_SAYISI;
     return m;
   };
 
@@ -112,71 +133,46 @@ export function odaKur(sahne: Scene): OdaKurulumu {
   };
 
   const doku = (isim: string, dosya: string): Texture => {
-    const t = new Texture(dosya, sahne, true, false);
+    // invertY = true: PNG satır 0 ÜSTTÜR. `false` iken manzara ve posterler baş aşağı
+    // görünüyordu (binalar tavandan sarkıyordu) — spec 11 görüntü karşılaştırmasında
+    // yakalandı; eski kutu odada da aynı hataydı.
+    const t = new Texture(dosya, sahne, true, true);
     t.name = isim;
     return t;
   };
 
   const G = ODA.genislik, D = ODA.derinlik, Y = ODA.yukseklik, K = ODA.duvarKalinlik;
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // HER İKİ KİPTE: işlev yüzeyleri
+  // ═══════════════════════════════════════════════════════════════════════
+
   // ── [1] Zemin ───────────────────────────────────────────────────────────
+  // Yeni kipte görünmez: Blender'ın ahşap döşemesi 2 mm üstünde. Seçilebilir kalır
+  // (kamera ışını yeri bilsin); görünür kalsaydı ikisi titreşirdi (z-fighting).
   const zemin = CreateGround("zemin", { width: G, height: D, subdivisions: 1 }, sahne);
   zemin.material = mZemin;
+  zemin.isVisible = kip === "klasik";
   meshler.push(zemin);
 
-  // Zemin şeridi: derinlik algısı için ince vurgu hattı (halı kenarı yerine).
-  kutu("hali", 3.6, 0.012, 2.6, 0, 0.006, -1.6, mKoyu);
-
-  // ── [2] Duvarlar + tavan ────────────────────────────────────────────────
-  // Duvarlar odanın DIŞINA taşar (merkez ± (boy/2 + K/2)); iç yüz tam SINIR'da.
-  kutu("duvar_sol",  K, Y, D, -G / 2 - K / 2, Y / 2, 0, mDuvar);
-  kutu("duvar_sag",  K, Y, D,  G / 2 + K / 2, Y / 2, 0, mDuvar);
-  kutu("duvar_on",   G + K * 2, Y, K, 0, Y / 2,  D / 2 + K / 2, mDuvar);
-  // Arka duvar DÖRT parça: pencere boşluğu gerçekten delik olsun diye.
-  // Tek parça bırakılsa manzara düzlemi duvarın içinde kalır ve görünmez.
-  {
-    const zArka = -D / 2 - K / 2;
-    const pSol = PENCERE.x - PENCERE.genislik / 2;   // boşluğun sol kenarı
-    const pSag = PENCERE.x + PENCERE.genislik / 2;
-    const pAlt = PENCERE.y - PENCERE.yukseklik / 2;
-    const pUst = PENCERE.y + PENCERE.yukseklik / 2;
-    const solG = pSol - (-G / 2 - K);
-    kutu("duvar_arka_sol", solG, Y, K, -G / 2 - K + solG / 2, Y / 2, zArka, mDuvar);
-    const sagG = (G / 2 + K) - pSag;
-    kutu("duvar_arka_sag", sagG, Y, K, pSag + sagG / 2, Y / 2, zArka, mDuvar);
-    kutu("duvar_arka_alt", PENCERE.genislik, pAlt, K, PENCERE.x, pAlt / 2, zArka, mDuvar);
-    kutu("duvar_arka_ust", PENCERE.genislik, Y - pUst, K, PENCERE.x, (Y + pUst) / 2, zArka, mDuvar);
-  }
-  kutu("tavan", G + K * 2, K, D + K * 2, 0, Y + K / 2, 0, mTavan);
-
-  // Tavan–duvar birleşimine ince vurgu şeridi (odayı "kutu" olmaktan çıkarır).
-  kutu("seritSol",  0.04, 0.03, D, -G / 2 + 0.02, Y - 0.06, 0, mVurgu);
-  kutu("seritSag",  0.04, 0.03, D,  G / 2 - 0.02, Y - 0.06, 0, mVurgu);
-  kutu("seritArka", G, 0.03, 0.04, 0, Y - 0.06, -D / 2 + 0.02, mVurgu);
-
-  // ── [3] Pencere (arka duvar) ────────────────────────────────────────────
+  // ── [3] Manzara (pencere arkası) ────────────────────────────────────────
+  // Manzara: duvarın ARKASINDA duran ışıklı düzlem. Gerçek gökyüzü yok — tek doku,
+  // gölge maliyeti 0. Klasik: pencere boşluğundan biraz büyük. Yeni: arka duvarın
+  // tamamı eğik cam; düzlem camın en dış noktasının da (üstte ~0.3 m dışarı) ötesinde.
   const seffaflar: Mesh[] = [];
   {
-    const pg = PENCERE.genislik, py = PENCERE.yukseklik;
-    const cerceve = 0.08;
-    // Çerçeve: dört ince kutu, duvarın iç yüzünde.
-    kutu("pen_alt", pg + cerceve * 2, cerceve, 0.10, PENCERE.x, PENCERE.y - py / 2, PENCERE.z, mMetal);
-    kutu("pen_ust", pg + cerceve * 2, cerceve, 0.10, PENCERE.x, PENCERE.y + py / 2, PENCERE.z, mMetal);
-    kutu("pen_sol", cerceve, py, 0.10, PENCERE.x - pg / 2, PENCERE.y, PENCERE.z, mMetal);
-    kutu("pen_sag", cerceve, py, 0.10, PENCERE.x + pg / 2, PENCERE.y, PENCERE.z, mMetal);
-    // Orta dikme
-    kutu("pen_dikme", 0.04, py, 0.08, PENCERE.x, PENCERE.y, PENCERE.z, mMetal);
-
-    // Manzara: duvarın ARKASINDA duran ışıklı düzlem. Pencere boşluğundan
-    // görünür. Gerçek gökyüzü yok — tek doku, gölge maliyeti 0.
-    // Boşluktan biraz büyük: kenarları görünmesin.
-    const manzara = CreatePlane("pen_manzara", { width: pg + 0.5, height: py + 0.5 }, sahne);
-    manzara.position.set(PENCERE.x, PENCERE.y, -ODA.derinlik / 2 - ODA.duvarKalinlik - 0.02);
+    const genis = kip === "klasik" ? PENCERE.genislik + 0.5 : G + 1.0;
+    const yuksek = kip === "klasik" ? PENCERE.yukseklik + 0.5 : Y + 0.8;
+    const manzara = CreatePlane("pen_manzara", { width: genis, height: yuksek }, sahne);
+    if (kip === "klasik") manzara.position.set(PENCERE.x, PENCERE.y, -D / 2 - K - 0.02);
+    else manzara.position.set(0, Y / 2, -D / 2 - 0.75);
     const mManzara = new StandardMaterial("m_manzara", sahne);
     const dManzara = doku("d_manzara", varlik("window-city.png"));
     mManzara.diffuseTexture = dManzara;
     mManzara.emissiveTexture = dManzara;
-    mManzara.emissiveColor = new Color3(0.7, 0.75, 0.9);
+    mManzara.emissiveColor = kip === "klasik" ? new Color3(0.7, 0.75, 0.9) : new Color3(0.95, 0.85, 1.0);
+    mManzara.disableLighting = kip !== "klasik";
+    mManzara.fogEnabled = false;
     mManzara.specularColor = Color3.Black();
     mManzara.backFaceCulling = false;
     manzara.rotation.y = Math.PI; // varsayılan düzlem normali -Z; +Z'ye (odaya) çevir
@@ -184,29 +180,10 @@ export function odaKur(sahne: Scene): OdaKurulumu {
     manzara.metadata = { capa: "pencere" };
     meshler.push(manzara);
     seffaflar.push(manzara);
-
-    // Arka duvarda pencere boşluğu: duvarı tek parça bıraktık, manzarayı
-    // önüne koyduk. Işın testinin manzaradan geçmesi gerekmez (duvar zaten
-    // arkada) ama oyuncu ışını cama çarpmasın diye şeffaf listesine girdi.
   }
 
-  // ── [4] Masa ────────────────────────────────────────────────────────────
-  {
-    const mg = MASA.genislik, md = MASA.derinlik, mu = MASA.ustYuzey;
-    kutu("masa_ust", mg, MASA.kalinlik, md, MASA.x, mu - MASA.kalinlik / 2, MASA.z, mAhsap)
-      .metadata = { capa: "masa" };
-    const ayak = 0.07;
-    for (const sx of [-1, 1] as const) {
-      for (const sz of [-1, 1] as const) {
-        kutu("masa_ayak", ayak, mu - MASA.kalinlik, ayak,
-          MASA.x + sx * (mg / 2 - 0.12), (mu - MASA.kalinlik) / 2, MASA.z + sz * (md / 2 - 0.10), mMetal);
-      }
-    }
-    // Masa altı LED şeridi — ışık yerine emissive; 0 gölge maliyeti.
-    kutu("masa_led", mg - 0.2, 0.015, 0.02, MASA.x, mu - MASA.kalinlik - 0.02, MASA.z + md / 2 - 0.04, mVurgu);
-    // Klavye yer tutucu
-    kutu("klavye", 0.44, 0.02, 0.15, MASA.x, mu + 0.01, MASA.z + 0.22, mKoyu);
-  }
+  // ── [4] Klavye ──────────────────────────────────────────────────────────
+  kutu("klavye", 0.44, 0.02, 0.15, MASA.x, MASA.ustYuzey + 0.01, MASA.z + 0.22, mKoyu);
 
   // ── [5] Monitör — ekran YALNIZCA yer tutucu düzlem (içerik T3'ün işi) ───
   const monitorEkran = CreatePlane("monitor_ekran",
@@ -232,23 +209,7 @@ export function odaKur(sahne: Scene): OdaKurulumu {
     kutu("monitor_taban", 0.34, 0.02, 0.18, MONITOR.x, MASA.ustYuzey + 0.01, MONITOR.z, mMetal);
   }
 
-  // ── [6] Sandalye ────────────────────────────────────────────────────────
-  {
-    const sg = SANDALYE.genislik, sd = SANDALYE.derinlik, so = SANDALYE.oturma;
-    kutu("sandalye_oturak", sg, 0.06, sd, SANDALYE.x, so, SANDALYE.z, mKoyu)
-      .metadata = { capa: "sandalye" };
-    kutu("sandalye_sirt", sg, 0.55, 0.06, SANDALYE.x, so + 0.30, SANDALYE.z + sd / 2 - 0.03, mKoyu);
-    silindir("sandalye_direk", 0.06, so - 0.12, SANDALYE.x, (so - 0.12) / 2, SANDALYE.z, mMetal);
-    // Beş kollu taban — basit yıldız
-    for (let i = 0; i < 5; i++) {
-      const a = (i / 5) * Math.PI * 2;
-      const kol = kutu("sandalye_kol", 0.05, 0.04, 0.28,
-        SANDALYE.x + Math.sin(a) * 0.12, 0.04, SANDALYE.z + Math.cos(a) * 0.12, mMetal);
-      kol.rotation.y = a;
-    }
-  }
-
-  // ── [7] Beyaz tahta (sol duvar) ─────────────────────────────────────────
+  // ── [7] Beyaz tahta yüzeyi (sol duvar) ──────────────────────────────────
   const tahtaYuzey = CreatePlane("tahta_yuzey",
     { width: TAHTA.genislik, height: TAHTA.yukseklik }, sahne);
   {
@@ -259,36 +220,10 @@ export function odaKur(sahne: Scene): OdaKurulumu {
     tahtaYuzey.material = mBeyaz;
     tahtaYuzey.metadata = { capa: "tahta", yerTutucu: true };
     meshler.push(tahtaYuzey);
-    // Çerçeve
-    kutu("tahta_cerceve", 0.05, TAHTA.yukseklik + 0.08, TAHTA.genislik + 0.08,
-      TAHTA.x, TAHTA.y, TAHTA.z, mMetal);
-    // Kalem kanalı
-    kutu("tahta_kanal", 0.10, 0.03, TAHTA.genislik, TAHTA.x + 0.05,
-      TAHTA.y - TAHTA.yukseklik / 2 - 0.06, TAHTA.z, mMetal);
   }
 
-  // ── [8] Kapı (ön duvar) ─────────────────────────────────────────────────
+  // ── [9b] Posterler ──────────────────────────────────────────────────────
   {
-    kutu("kapi_kanat", KAPI.genislik, KAPI.yukseklik, 0.06, KAPI.x, KAPI.y, KAPI.z, mAhsap)
-      .metadata = { capa: "kapi" };
-    kutu("kapi_kasa_sol", 0.07, KAPI.yukseklik + 0.1, 0.09,
-      KAPI.x - KAPI.genislik / 2, KAPI.y, KAPI.z, mMetal);
-    kutu("kapi_kasa_sag", 0.07, KAPI.yukseklik + 0.1, 0.09,
-      KAPI.x + KAPI.genislik / 2, KAPI.y, KAPI.z, mMetal);
-    kutu("kapi_kasa_ust", KAPI.genislik + 0.14, 0.07, 0.09,
-      KAPI.x, KAPI.y + KAPI.yukseklik / 2, KAPI.z, mMetal);
-    silindir("kapi_kol", 0.05, 0.10, KAPI.x - KAPI.genislik / 2 + 0.18, 1.05, KAPI.z - 0.06, mVurgu)
-      .rotation.x = Math.PI / 2;
-  }
-
-  // ── [9] Raf + posterler (dekor; raf ENGELLER'de tanımlı) ────────────────
-  {
-    const rx = -G / 2 + 0.22, rz = 2.4;
-    kutu("raf_govde", 0.44, 1.8, 1.8, rx, 0.9, rz, mAhsap);
-    for (const ry of [0.5, 1.0, 1.5]) {
-      kutu("raf_kitap", 0.30, 0.24, 1.5, rx + 0.05, ry, rz, mVurgu);
-    }
-
     const poster = (isim: string, dosya: string, x: number, y: number, z: number, dony: number) => {
       const p = CreatePlane(isim, { width: 0.9, height: 1.2 }, sahne);
       p.position.set(x, y, z);
@@ -314,40 +249,25 @@ export function odaKur(sahne: Scene): OdaKurulumu {
     poster("poster2", varlik("poster-2.png"), -1.8, 1.7, D / 2 - 0.04, 0);
   }
 
-  // ── [10] Işık — ambient + tek yönlü. Gölge YOK (K2 bütçesi). ───────────
-  const ambient = new HemisphericLight("isik_ambient", new Vector3(0, 1, 0), sahne);
-  ambient.intensity = 0.62;
-  ambient.diffuse = new Color3(0.78, 0.82, 0.95);
-  ambient.groundColor = new Color3(0.16, 0.17, 0.24);
-
-  // Yön: pencereden içeriye (arka-üstten öne-aşağıya).
-  const gunes = new DirectionalLight("isik_yon", new Vector3(-0.25, -0.75, 0.62), sahne);
-  gunes.position = new Vector3(PENCERE.x, 3.0, PENCERE.z - 1);
-  gunes.intensity = 0.85;
-  gunes.diffuse = new Color3(1.0, 0.96, 0.88);
-  // Gölge haritası bilerek kurulmadı: 8GB VRAM tavanı + 60 FPS hedefi.
-  // Gerekirse tek bir 1024 CascadedShadowGenerator eklenebilir; MVP'de yok.
-
   // ── [10b] ZİHİN DUVARI — sağ duvarda iki salt-okunur panel ──────────────
   //
   // Orion'un kendi işleyişi odada görünür olsun diye. İçerik `world/surfaces/`
-  // altındaki çizicilerin işi; burada yalnızca yüzey ve çerçeve var.
+  // altındaki çizicilerin işi; burada yalnızca yüzey var (çerçeve: klasikte kodda,
+  // yenide Blender'da).
   //
   // Yüzey -X'e bakar (sağ duvardan odaya): Y ekseninde +90°.
   function zihinPaneli(isim: string, capa: string, o: { x: number; y: number; z: number; genislik: number; yukseklik: number }): Mesh {
     const p = CreatePlane(isim, { width: o.genislik, height: o.yukseklik }, sahne);
     p.position.set(o.x - 0.03, o.y, o.z);
     p.rotation.y = Math.PI / 2;
-    const mat = new StandardMaterial(`m_${isim}`, sahne);
-    mat.diffuseColor = new Color3(0.02, 0.03, 0.05);
-    mat.emissiveColor = new Color3(0.04, 0.07, 0.11);
-    mat.specularColor = Color3.Black();
-    mat.backFaceCulling = false;
-    p.material = mat;
+    const m = new StandardMaterial(`m_${isim}`, sahne);
+    m.diffuseColor = new Color3(0.02, 0.03, 0.05);
+    m.emissiveColor = new Color3(0.04, 0.07, 0.11);
+    m.specularColor = Color3.Black();
+    m.backFaceCulling = false;
+    p.material = m;
     p.metadata = { capa, yerTutucu: true };
     meshler.push(p);
-    // Çerçeve: panel duvara yapışık görünmesin.
-    kutu(`${isim}_cerceve`, 0.04, o.yukseklik + 0.07, o.genislik + 0.07, o.x, o.y, o.z, mMetal);
     return p;
   }
   const semaYuzey = zihinPaneli("sema_yuzey", "sema", SEMA);
@@ -377,19 +297,223 @@ export function odaKur(sahne: Scene): OdaKurulumu {
     kutu("admin_taban", 0.24, 0.02, 0.14, ADMIN.x, MASA.ustYuzey + 0.01, ADMIN.z, mMetal);
   }
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // YALNIZ KLASİK: kutu kabuk ve eşyalar (yeni kipte glb yüklenemezse de kurulur)
+  // ═══════════════════════════════════════════════════════════════════════
+  function klasikDekor(): void {
+    // Zemin şeridi: derinlik algısı için ince vurgu hattı (halı kenarı yerine).
+    kutu("hali", 3.6, 0.012, 2.6, 0, 0.006, -1.6, mKoyu);
+    zemin.isVisible = true;
+
+    // ── [2] Duvarlar + tavan ──────────────────────────────────────────────
+    // Duvarlar odanın DIŞINA taşar (merkez ± (boy/2 + K/2)); iç yüz tam SINIR'da.
+    kutu("duvar_sol",  K, Y, D, -G / 2 - K / 2, Y / 2, 0, mDuvar);
+    kutu("duvar_sag",  K, Y, D,  G / 2 + K / 2, Y / 2, 0, mDuvar);
+    kutu("duvar_on",   G + K * 2, Y, K, 0, Y / 2,  D / 2 + K / 2, mDuvar);
+    // Arka duvar DÖRT parça: pencere boşluğu gerçekten delik olsun diye.
+    // Tek parça bırakılsa manzara düzlemi duvarın içinde kalır ve görünmez.
+    {
+      const zArka = -D / 2 - K / 2;
+      const pSol = PENCERE.x - PENCERE.genislik / 2;   // boşluğun sol kenarı
+      const pSag = PENCERE.x + PENCERE.genislik / 2;
+      const pAlt = PENCERE.y - PENCERE.yukseklik / 2;
+      const pUst = PENCERE.y + PENCERE.yukseklik / 2;
+      const solG = pSol - (-G / 2 - K);
+      kutu("duvar_arka_sol", solG, Y, K, -G / 2 - K + solG / 2, Y / 2, zArka, mDuvar);
+      const sagG = (G / 2 + K) - pSag;
+      kutu("duvar_arka_sag", sagG, Y, K, pSag + sagG / 2, Y / 2, zArka, mDuvar);
+      kutu("duvar_arka_alt", PENCERE.genislik, pAlt, K, PENCERE.x, pAlt / 2, zArka, mDuvar);
+      kutu("duvar_arka_ust", PENCERE.genislik, Y - pUst, K, PENCERE.x, (Y + pUst) / 2, zArka, mDuvar);
+    }
+    kutu("tavan", G + K * 2, K, D + K * 2, 0, Y + K / 2, 0, mTavan);
+
+    // Tavan–duvar birleşimine ince vurgu şeridi (odayı "kutu" olmaktan çıkarır).
+    kutu("seritSol",  0.04, 0.03, D, -G / 2 + 0.02, Y - 0.06, 0, mVurgu);
+    kutu("seritSag",  0.04, 0.03, D,  G / 2 - 0.02, Y - 0.06, 0, mVurgu);
+    kutu("seritArka", G, 0.03, 0.04, 0, Y - 0.06, -D / 2 + 0.02, mVurgu);
+
+    // ── [3] Pencere çerçevesi (arka duvar) ────────────────────────────────
+    {
+      const pg = PENCERE.genislik, py = PENCERE.yukseklik;
+      const cerceve = 0.08;
+      kutu("pen_alt", pg + cerceve * 2, cerceve, 0.10, PENCERE.x, PENCERE.y - py / 2, PENCERE.z, mMetal);
+      kutu("pen_ust", pg + cerceve * 2, cerceve, 0.10, PENCERE.x, PENCERE.y + py / 2, PENCERE.z, mMetal);
+      kutu("pen_sol", cerceve, py, 0.10, PENCERE.x - pg / 2, PENCERE.y, PENCERE.z, mMetal);
+      kutu("pen_sag", cerceve, py, 0.10, PENCERE.x + pg / 2, PENCERE.y, PENCERE.z, mMetal);
+      // Orta dikme
+      kutu("pen_dikme", 0.04, py, 0.08, PENCERE.x, PENCERE.y, PENCERE.z, mMetal);
+    }
+
+    // ── [4] Masa ──────────────────────────────────────────────────────────
+    {
+      const mg = MASA.genislik, md = MASA.derinlik, mu = MASA.ustYuzey;
+      kutu("masa_ust", mg, MASA.kalinlik, md, MASA.x, mu - MASA.kalinlik / 2, MASA.z, mAhsap)
+        .metadata = { capa: "masa" };
+      const ayak = 0.07;
+      for (const sx of [-1, 1] as const) {
+        for (const sz of [-1, 1] as const) {
+          kutu("masa_ayak", ayak, mu - MASA.kalinlik, ayak,
+            MASA.x + sx * (mg / 2 - 0.12), (mu - MASA.kalinlik) / 2, MASA.z + sz * (md / 2 - 0.10), mMetal);
+        }
+      }
+      // Masa altı LED şeridi — ışık yerine emissive; 0 gölge maliyeti.
+      kutu("masa_led", mg - 0.2, 0.015, 0.02, MASA.x, mu - MASA.kalinlik - 0.02, MASA.z + md / 2 - 0.04, mVurgu);
+    }
+
+    // ── [6] Sandalye ──────────────────────────────────────────────────────
+    {
+      const sg = SANDALYE.genislik, sd = SANDALYE.derinlik, so = SANDALYE.oturma;
+      kutu("sandalye_oturak", sg, 0.06, sd, SANDALYE.x, so, SANDALYE.z, mKoyu)
+        .metadata = { capa: "sandalye" };
+      kutu("sandalye_sirt", sg, 0.55, 0.06, SANDALYE.x, so + 0.30, SANDALYE.z + sd / 2 - 0.03, mKoyu);
+      silindir("sandalye_direk", 0.06, so - 0.12, SANDALYE.x, (so - 0.12) / 2, SANDALYE.z, mMetal);
+      // Beş kollu taban — basit yıldız
+      for (let i = 0; i < 5; i++) {
+        const a = (i / 5) * Math.PI * 2;
+        const kol = kutu("sandalye_kol", 0.05, 0.04, 0.28,
+          SANDALYE.x + Math.sin(a) * 0.12, 0.04, SANDALYE.z + Math.cos(a) * 0.12, mMetal);
+        kol.rotation.y = a;
+      }
+    }
+
+    // ── [7] Tahta çerçevesi + kalem kanalı ────────────────────────────────
+    kutu("tahta_cerceve", 0.05, TAHTA.yukseklik + 0.08, TAHTA.genislik + 0.08,
+      TAHTA.x, TAHTA.y, TAHTA.z, mMetal);
+    kutu("tahta_kanal", 0.10, 0.03, TAHTA.genislik, TAHTA.x + 0.05,
+      TAHTA.y - TAHTA.yukseklik / 2 - 0.06, TAHTA.z, mMetal);
+
+    // ── [8] Kapı (ön duvar) ───────────────────────────────────────────────
+    {
+      kutu("kapi_kanat", KAPI.genislik, KAPI.yukseklik, 0.06, KAPI.x, KAPI.y, KAPI.z, mAhsap)
+        .metadata = { capa: "kapi" };
+      kutu("kapi_kasa_sol", 0.07, KAPI.yukseklik + 0.1, 0.09,
+        KAPI.x - KAPI.genislik / 2, KAPI.y, KAPI.z, mMetal);
+      kutu("kapi_kasa_sag", 0.07, KAPI.yukseklik + 0.1, 0.09,
+        KAPI.x + KAPI.genislik / 2, KAPI.y, KAPI.z, mMetal);
+      kutu("kapi_kasa_ust", KAPI.genislik + 0.14, 0.07, 0.09,
+        KAPI.x, KAPI.y + KAPI.yukseklik / 2, KAPI.z, mMetal);
+      silindir("kapi_kol", 0.05, 0.10, KAPI.x - KAPI.genislik / 2 + 0.18, 1.05, KAPI.z - 0.06, mVurgu)
+        .rotation.x = Math.PI / 2;
+    }
+
+    // ── [9] Raf (dekor; raf ENGELLER'de tanımlı) ──────────────────────────
+    {
+      const rx = -G / 2 + 0.22, rz = 2.4;
+      kutu("raf_govde", 0.44, 1.8, 1.8, rx, 0.9, rz, mAhsap);
+      for (const ry of [0.5, 1.0, 1.5]) {
+        kutu("raf_kitap", 0.30, 0.24, 1.5, rx + 0.05, ry, rz, mVurgu);
+      }
+    }
+
+    // ── [10b] Zihin paneli çerçeveleri ────────────────────────────────────
+    for (const o of [SEMA, GUNLUK]) {
+      kutu("zihin_cerceve", 0.04, o.yukseklik + 0.07, o.genislik + 0.07, o.x, o.y, o.z, mMetal);
+    }
+  }
+
+  // ── [10] Işık ───────────────────────────────────────────────────────────
+  if (kip === "klasik") {
+    // Ambient + tek yönlü. Gölge YOK (K2 bütçesi).
+    const ambient = new HemisphericLight("isik_ambient", new Vector3(0, 1, 0), sahne);
+    ambient.intensity = 0.62;
+    ambient.diffuse = new Color3(0.78, 0.82, 0.95);
+    ambient.groundColor = new Color3(0.16, 0.17, 0.24);
+
+    // Yön: pencereden içeriye (arka-üstten öne-aşağıya).
+    const gunes = new DirectionalLight("isik_yon", new Vector3(-0.25, -0.75, 0.62), sahne);
+    gunes.position = new Vector3(PENCERE.x, 3.0, PENCERE.z - 1);
+    gunes.intensity = 0.85;
+    gunes.diffuse = new Color3(1.0, 0.96, 0.88);
+    // Gölge haritası bilerek kurulmadı: 8GB VRAM tavanı + 60 FPS hedefi.
+    // Gerekirse tek bir 1024 CascadedShadowGenerator eklenebilir; MVP'de yok.
+  } else {
+    yeniIsik(sahne);
+  }
+
   // ── [11] Statik dondurma ────────────────────────────────────────────────
   // Monitör ve tahta HARİÇ her şey dondurulur: onların malzemesi T3/T4
   // tarafından değişecek. Donmuş malzeme sonradan güncellenemez.
   const donmaz = new Set<Mesh>([monitorEkran, tahtaYuzey, semaYuzey, gunlukYuzey, adminEkran]);
-  for (const m of meshler) {
-    m.isPickable = true;
-    m.freezeWorldMatrix();
-    if (!donmaz.has(m) && m.material) m.material.freeze();
+  const dondur = (bas: number) => {
+    for (const m of meshler.slice(bas)) {
+      m.isPickable = true;
+      m.freezeWorldMatrix();
+      if (!donmaz.has(m) && m.material) m.material.freeze();
+    }
+  };
+
+  let hazir: Promise<OdaKipi>;
+  if (kip === "klasik") {
+    klasikDekor();
+    dondur(0);
+    hazir = Promise.resolve("klasik");
+  } else {
+    dondur(0);
+    hazir = esyalariYukle(sahne).then(
+      (esya) => {
+        meshler.push(...(esya.meshler as Mesh[]));
+        const parlama = new GlowLayer("oda_parlama", sahne, { blurKernelSize: 48 });
+        parlama.intensity = 0.45;
+        for (const m of esya.isikli) parlama.addIncludedOnlyMesh(m as Mesh);
+        seffaflar.push(...(esya.isinDisi as Mesh[]));
+        kurulum.kip = "yeni";
+        return "yeni" as const;
+      },
+      (hata: unknown) => {
+        // Oda hiçbir zaman boş açılmaz: model yoksa/bozuksa eski kutu oda kurulur.
+        console.error(`[ODA] Blender odası yüklenemedi, klasik oda kuruluyor: ${hata instanceof Error ? hata.message : String(hata)}`);
+        const bas = meshler.length;
+        klasikDekor();
+        dondur(bas);
+        kurulum.kip = "klasik";
+        return "klasik" as const;
+      },
+    );
   }
 
   const kurulum: OdaKurulumu = {
     meshler, monitorEkran, tahtaYuzey, semaYuzey, gunlukYuzey, adminEkran, zemin, seffaflar,
+    kip, hazir: Promise.resolve(kip),
   };
+  kurulum.hazir = hazir;
   _sonKurulum = kurulum;
   return kurulum;
+}
+
+/**
+ * Yeni kip ışığı (spec 11): karanlık iç mekân, pencereden pembe/mor, ışıklıktan mor,
+ * lambalardan sıcak-yeşil ve camgöbeği, iki duvar kenarından pembe ve mavi dolgu.
+ * Gölge yok. Sis yalnız derinlik hissi için (manzara sisten muaf).
+ */
+function yeniIsik(sahne: Scene): void {
+  sahne.clearColor = new Color4(0.012, 0.008, 0.025, 1);
+  sahne.fogMode = SahneSinifi.FOGMODE_EXP2;
+  sahne.fogDensity = 0.035;
+  sahne.fogColor = new Color3(0.05, 0.025, 0.09);
+
+  const ortam = new HemisphericLight("isik_ambient", new Vector3(0, 1, 0), sahne);
+  ortam.intensity = 0.45;
+  ortam.diffuse = new Color3(0.55, 0.45, 0.85);
+  ortam.groundColor = new Color3(0.10, 0.05, 0.14);
+
+  const pencere = new DirectionalLight("isik_pencere", new Vector3(0, -0.3, 1), sahne);
+  pencere.intensity = 1.25;
+  pencere.diffuse = new Color3(1.0, 0.35, 0.85);
+  pencere.specular = new Color3(0.6, 0.2, 0.5);
+
+  const isiklik = new DirectionalLight("isik_isiklik", new Vector3(0.05, -1, 0.1), sahne);
+  isiklik.intensity = 0.45;
+  isiklik.diffuse = new Color3(0.6, 0.4, 1.0);
+
+  const nokta = (ad: string, x: number, y: number, z: number, r: number, g: number, b: number, guc: number, menzil: number) => {
+    const n = new PointLight(ad, new Vector3(x, y, z), sahne);
+    n.diffuse = new Color3(r, g, b);
+    n.specular = new Color3(r * 0.5, g * 0.5, b * 0.5);
+    n.intensity = guc;
+    n.range = menzil;
+  };
+  nokta("isik_banker", LAMBA.banker.x, LAMBA.banker.y, LAMBA.banker.z, 0.7, 1.0, 0.6, 1.4, 2.6);
+  nokta("isik_ayakli", LAMBA.ayakli.x, LAMBA.ayakli.y, LAMBA.ayakli.z, 0.3, 0.8, 1.0, 1.6, 4.0);
+  nokta("isik_pembe", 4.2, 2.6, -1.0, 1.0, 0.25, 0.7, 1.2, 6.0);
+  nokta("isik_mavi", -4.2, 2.4, 0.5, 0.25, 0.6, 1.0, 1.0, 6.0);
 }

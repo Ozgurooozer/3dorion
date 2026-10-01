@@ -132,6 +132,41 @@ export const ADMIN = {
   aciY: -0.42,
 } as const;
 
+// ── DEKOR ENGELLERİ (spec 11, Blender odası) ──────────────────────────────
+//
+// Blender odasının büyük eşyaları da yürüme engelidir; konumları burada yaşar ve
+// Blender betiği (assets/kaynak/oda-esyalar.py) onları buradan okur. Pencere çapasının
+// durağını (1.9, -2.81) kapatmasınlar diye masanın SAĞ ucunun ötesindeler.
+
+/** Kırmızı deri berjer: köşede, odaya dönük. `don` Babylon Y dönüşü (radyan). */
+export const BERJER = {
+  x: 3.55, z: -2.75, don: (205 * Math.PI) / 180,
+  /** Dönük gövdenin XZ'deki eksen hizalı dış kutusu (0.80 × 0.74 gövde, 205°). */
+  g: 0.95, d: 0.95,
+} as const;
+
+/**
+ * Lambalar: Blender modeli şapkayı/abajuru BURAYA koyar, oda.ts nokta ışığı BURADAN
+ * yakar — ikisi ayrışırsa ışık lambanın yanında havada yanar.
+ * (Konum, ışığın çıktığı nokta: abajurun içi.)
+ */
+export const LAMBA = {
+  /** Masadaki yeşil banker lambası (masanın sol ucu, monitörün arkası). */
+  banker: { x: MASA.x - 0.95, y: MASA.ustYuzey + 0.4, z: MASA.z - 0.12 },
+  /** Sol köşedeki ayaklı lamba (camgöbeği abajur). */
+  ayakli: { x: -3.15, y: 1.58, z: -3.6 },
+} as const;
+
+/**
+ * Yerdeki kutular + kitap yığını (tek engel), masanın sol önünde. İlk yer berjerin
+ * önüydü (2.92, -1.5): `capalar.test` "durak yürünebilir" testi günlük panelinin
+ * durağını (3.59, -1.35) kapattığını yakaladı — buraya taşındı.
+ */
+export const YIGIN = {
+  x: -2.9, z: -1.9,
+  g: 1.05, d: 0.9,
+} as const;
+
 /**
  * Çarpışma engelleri. Oyuncu bunların içine giremez.
  * Duvarlar ayrı ele alınır (bkz. SINIR) — burada yalnızca oda içi mobilya var.
@@ -145,6 +180,10 @@ export const ENGELLER: readonly Kutu[] = [
   { x: SANDALYE.x, y: 0.4, z: SANDALYE.z, g: SANDALYE.genislik, yuk: 0.9, d: SANDALYE.derinlik },
   // Sol duvardaki raf (dekor + engel)
   { x: -ODA.genislik / 2 + 0.22, y: 0.9, z: 2.4, g: 0.44, yuk: 1.8, d: 1.8 },
+  // Berjer ve kutu yığını — klasik odada görünmezler ama engel her iki kipte aynı:
+  // davranış (Orion'un yürüdüğü yollar) görünüş anahtarına bağlı olmasın.
+  { x: BERJER.x, y: 0.55, z: BERJER.z, g: BERJER.g, yuk: 1.1, d: BERJER.d },
+  { x: YIGIN.x, y: 0.35, z: YIGIN.z, g: YIGIN.g, yuk: 0.7, d: YIGIN.d },
 ] as const;
 
 /** Oyuncu kapsül yarıçapı — çarpışma şişirmesi bunu kullanır. */
@@ -203,6 +242,8 @@ export const KATI_YUZEYLER: readonly KatiYuzey[] = [
   { capa: null, kutu: { x: 0, y: -0.01, z: 0, g: _G, yuk: 0.02, d: _D } },                        // zemin
   // Etkileşimsiz dekor — ama ışını DURDURUR
   { capa: null, kutu: { x: -_G / 2 + 0.22, y: 0.9, z: 2.4, g: 0.44, yuk: 1.8, d: 1.8 } },        // raf
+  { capa: null, kutu: { x: BERJER.x, y: 0.55, z: BERJER.z, g: BERJER.g, yuk: 1.1, d: BERJER.d } }, // berjer
+  { capa: null, kutu: { x: YIGIN.x, y: 0.35, z: YIGIN.z, g: YIGIN.g, yuk: 0.7, d: YIGIN.d } },      // kutu yığını
   // Etkileşimli yüzeyler
   { capa: "masa", kutu: { x: MASA.x, y: MASA.ustYuzey / 2, z: MASA.z, g: MASA.genislik, yuk: MASA.ustYuzey, d: MASA.derinlik } },
   { capa: "sandalye", kutu: { x: SANDALYE.x, y: 0.45, z: SANDALYE.z, g: SANDALYE.genislik, yuk: 0.9, d: SANDALYE.derinlik } },
