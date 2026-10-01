@@ -4467,6 +4467,13 @@ Atlas raporu `data/atlas-reports/2026-09-30-kart5-hareket-kor.md` (kod `32268fa`
 **Aday (Atlas ve benim önerim):** KL ve KLw doğrulamaya (20 + CROSS). KLNw bu hâliyle aday değil; önce dönüşten sonraki δ'yı
 özellik katkılarına bölen teşhis.
 
+## 2026-10-01 — Kart 6: KL ve KLw doğrulaması — koşmadan önce
+
+Ozyn: "devam önerilerine göre". Ön-kayıt `data/preregistration-009-dogrulama-kl.md` (C1–C6). `dogrula H3B97 KL KLw
+--egitim sabirli`: seed 1–10 × iki grup + her öğrenene CROSS (dopamin 3000 tik gecikmeli). Seed 1–5 taramanın birebir
+tekrarı (belirleyicilik), 6–10 örneklem dışı. H3B97 de doğrulanıyor ki seed 6–10'da kıyas adil olsun. Olumlu iddia ancak
+`curut`tan sonra.
+
 ## Açık sorular (güncel)
 
 - Çalışma hafızası: görüş alanından çıkan yemeği hatırlamak (Ozyn, 2026-09-25: "öğrendiği şey hafızaya işlenmeli"). Bugün beyin yalnız şu anki görüntüye bakıyor.
