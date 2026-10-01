@@ -81,9 +81,9 @@ A missed prediction is information, not embarrassment — never rewrite it.
 One command, parallel on worker threads (results equal a sequential run — tested):
 `npm run exp -- liste | tara KOD… | dogrula KOD… | curut KOD | teshis dosya…` (`--isci N`, `--egitim N`,
 `--degerlendirme N`). Conditions are defined once in `experiments/conditions.ts`; add new ones there.
-Every subject row lands in `data/results.jsonl` — query it with DuckDB
-(`duckdb -c "SELECT … FROM read_json_auto('brain-lab/data/results.jsonl')"`), filter out short test runs
-by `trainEpisodes`.
+Every subject row lands in `data/results.jsonl` — aggregate it with a short `node -e` script (`trainEpisodes` mixes
+numbers and strings, so DuckDB's `read_json_auto` fails on it since `auto`/`patient` training). Filter by `command`,
+`control`, `trainEpisodes` and `codeCommit` (older rows of the same code exist).
 
 - **Screen** (`tara`): seeds 1–5 × both innate groups, 40 training + 10 evaluation episodes.
 - Only what looks promising goes to **confirmation** (`dogrula`): 20 subjects **and** the CROSS control
@@ -205,7 +205,8 @@ world hash stops the measurement), `experiments/harness.ts`). When you add a gua
 ## 6. Delegating to Atlas
 
 For batches of runs, give the **atlas** agent a task card (question, conditions, stage, predictions,
-budget, stop rule — see `.claude/agents/atlas.md`). Its report lands in `brain-lab/data/atlas-reports/`
+budget, stop rule — see the user-level atlas skill: `~/.claude/skills/atlas/tasiyici.md` and
+`projeler/brain-lab.md`; `.claude/agents/atlas.md` points there). Its report lands in `brain-lab/data/atlas-reports/`
 with evidence paths; before relaying a number to Ozyn, check at least one against its source file.
 
 ## 7. Principles and authority
