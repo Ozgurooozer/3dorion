@@ -113,3 +113,48 @@ sürümle kalır.
 **Çürütme kuralı** "temizde < 7/8 → Faz 1b" diyor ve ornith 6/8 ile tetiklendi. Ama Faz 1b'nin hedefi
 (söyleyip yapmamak) artık 1/40. Kalan açıklar zincirleme ve geçmiş duyarlılığı. Hangi yoldan gidileceği Ozyn'in
 kararı.
+
+## Revize plan v2 (2026-10-02, Ozyn: "anlık benliği de fazlara ekleyelim … Orion bir robot, LLM olmadan da bir çok şeyi yapmaya programlayabiliriz")
+
+**İlke — Orion bir robot.** Bedenin yapabildiği her şey önce PROGRAMDIR: kesin bir söz ya da durum, LLM'e sorulmadan
+niyet dizisine döner. LLM yalnız programın bilmediğine uyanır: sohbet, yorum, hangi komutun önerileceği. Taban
+ölçüsü bunun gerekçesi: yerel 7–9B modeller iki adımı zincirleyemiyor, geçmişe duyarlı, bazen aracı düz metne
+yazıyor. Program bunların hiçbirini yapmaz ve 0 token, ~0 ms'dir.
+
+Spec 12 (anlık benlik, başka oturumun planı) bu plana fazlarıyla girer. **Ozyn (2026-10-02): "hepsini sen
+yapacaksın, düzgün sırala"** — spec 12'nin fazlarını da bu oturum taşır, aşağıdaki sırayla; başka oturum köprüye
+ve şemaya yazmaz. **Komut sözlüğü:** önce gölgede, gerçek sözlerde yanlış eşleşme 0 ölçülünce varsayılan açık.
+
+Sıranın gerekçesi (bağımlılık): 2 hiçbir şeye bağlı değil ve Ozyn'in en çok gördüğü açık; 3 bağımsız ve sonraki
+ölçümlere güçlü model verir; 4 (benlik) 5'in veri yolu ve 6'nın "bekliyorum" alanı için ön koşul; spec 12 Faz 3
+(modele tek satır) 3'e bağlı.
+
+| faz | ne | kapı |
+|---|---|---|
+| 0 ✓ | taban ölçüsü | d281d29 |
+| 1 ✓ | söylediğini yapsın: talimat, örnek, eylem sırası, iç ses, söz-eylem bekçisi | 13738b7; ön-kayıt kısmen |
+| **2** | **Robot çekirdeği.** (a) Bilgisayar programı: `odaklan monitor` = sandalyeye git → otur → monitör pty'si açılır, Ozyn'in kamerası kaçırılmaz → durum "Orion monitörde". (b) Komut sözlüğü: doğuştan programlar — otur, kalk, bana/yanıma gel, X'e git, X'e bak, dur, tahtaya "…" yaz, tahtayı temizle, bilgisayarı aç/kapat. Yeni içgüdü `refleks.komut`. Eşleşmeyen söz LLM'e; program başarısızsa söz notla LLM'e döner (spec 10 B13 deseni, aynı adım yürütücüsü). Onay jesti (baş sallama); söz istenirse LLM. | Birim: kalıp tablosu testli. Ölçü: `eylem-olc` program koluyla 8/8, **yanlış pozitif 0** (karar kaydındaki bütün gerçek Ozyn sözleri üzerinde: "neler yapabilirsin" eşleşmemeli). Canlı `eylemdene`. Anahtar Ozyn'in kararı. |
+| 3 | API anahtarı (M seçici, `safeStorage`, ana süreçten istek) | anahtar bekçi testi; NVIDIA modeliyle `eylem-olc` |
+| 4 | Anlık benlik çekirdeği (spec 12 Faz 1–2): `mind/benlik.ts`; yazma noktaları köprünün eylem sırasına (`_niyetiIsle`, `_siraBaslat`, `_siraSonucu`) ve onay kapısına; "meşgul" tek kaynak; ALGI merceği (`eden`) gölgede. Davranış değişmez. | spec 12'nin kapıları (eşdeğerlik bekçisi, `benlikdene`) |
+| 5 | **Zihin duvarı.** Şema: benlik veri yolu ve mercek rozetleri (spec 12 §4.5); DÜŞÜNCE düğümünde canlı saniye ve model. Günlük: uyanış satırları (UYANDI ← neden ve kural · HATIRLADI · SEÇTİ · REDDEDİLDİ · SÜRE), iç ses, söz-eylem; canlı "DÜŞÜNÜYOR" satırı (akan metin). **Hafıza görünümü**: şemada HAFIZA düğümüne girince "Artık benlik imgesi" biçimi (aşağıda). Düşünen modelin araçsız İngilizce iç metni sesli okunmaz, iç ses olur (ortak test 2). | görünümler önce sahnesiz deneme sayfasında; saf çekirdek testli; FPS ≥ 60 ve dönme yalnız Ozyn odaklıyken |
+| 6 | Komut sonucu Orion'a (spec 12 Faz 4–5, SÜZGEÇ merceği `beklenen_cevap`): gölge → ölçüm → yetki. Bilgisayar kullanımını tamamlar: Orion onaylanan kendi komutunun sonucunu öğrenir. | spec 12'nin kapıları (yanlış eşleşme 0; onay başına ≤ 1 uyanma) |
+| 7 | Canlı kanıt: `eylemdene`, `tahtadene`, `gorudene`; ortak test 3 | 4/4 |
+| sonra | spec 12 Faz 3 (modele tek satır — Haiku yerine API modeliyle ölçülür), Faz 6–7 | ayrı ön-kayıt |
+
+### Hafıza görünümü (Faz 5) — "Artık benlik imgesi" Orion için
+
+Kaynak: Ozyn'in gösterdiği sayfa (claude.ai artifact WP1bVpCgeg2NvBqjk8jh1X): üç kabuk halinde dönen kelime bulutu,
+ortada imleç, kırmızı dikkat iplikleri. Orion'da her kelime GERÇEK bir kayıttır:
+
+| kabuk | Orion'da | görsel |
+|---|---|---|
+| SABİT (çekirdek) | içgüdü adları (`mind/icgudu.ts`), kimlik cümleleri (`talimat.ts`), beden künyesi | eğik, büyük; panelden değişmez |
+| ANLIK | benlik alanları (Faz 4), çalışma belleği, konuşma penceresi (12 tur), süren eylem sırası | oturum bitince gider |
+| DERİN | hafıza anıları (`mind/hafiza.ts`, bugün 123+): önem → boyut, yaş → soluklık; kural ve beceri hafızası | kalıcı |
+
+- **İmleç** = bu tur. **Kırmızı iplikler** = bu turda getirilen anılar (`getir`), tur bitince söner.
+- **Üzerine gel / tıkla** → anının metni, türü, önemi, yaşı, son erişimi; içgüdüde açıklaması.
+- **Buda** (sayfadaki "Sıkıştır"ın karşılığı) → mevcut `hafiza.buda` pano eylemi, teyitli. Giden kelimeler dışarı savrulur.
+- **Gerçek** → kelimeler skorlarına çözülür (yakınlık · önem · ilgi, Generative Agents puanı).
+- Çizim saf çekirdek + canvas (`semaCizim.ts` deseni), şema detay görünümünün yerine geçer (spec 05: detay şemanın yerini alır).
+- Spec 05 "panel süs eklemiyor": her kelime bir kayıt, her iplik bir getirme, her boyut bir sayı.
