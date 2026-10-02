@@ -17,9 +17,7 @@ export async function kos(d: SenaryoBaglami): Promise<void> {
   const ANAHTAR = "apidene-sahte-anahtar";
   const MODEL = "api:ozel/sahte/orion-test";
   await bekle(2500);
-  const om = (globalThis as unknown as { orionModel?: {
-    tara(): Promise<void>; secenekVarMi(ad: string): boolean; iste(ad: string): void; aktif(): string;
-  } }).orionModel;
+  const om = window.orionModel;
   if (!om || typeof window.kopru?.apiKaydet !== "function") { console.log("[APIDENE] KALDI seçici ya da köprü yok"); return; }
 
   const k = await window.kopru.apiKaydet("ozel", "http://127.0.0.1:8799/v1", ANAHTAR);

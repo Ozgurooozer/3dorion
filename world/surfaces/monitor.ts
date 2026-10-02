@@ -19,6 +19,7 @@
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
+import { tuval2d } from "./yuzey.ts";
 import { Texture } from "@babylonjs/core/Materials/Textures/texture";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import type { Scene } from "@babylonjs/core/scene";
@@ -122,7 +123,7 @@ export function monitorKur(ayar: MonitorAyari): Monitor {
       Texture.TRILINEAR_SAMPLINGMODE);
     doku.anisotropicFilteringLevel = 16;
     doku.hasAlpha = false;
-    bag = doku.getContext() as unknown as CanvasRenderingContext2D;
+    bag = tuval2d(doku);
     mat.diffuseTexture = doku;
   }
   dokuKur();

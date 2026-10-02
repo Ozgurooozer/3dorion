@@ -239,7 +239,7 @@ export async function kos(d: SenaryoBaglami): Promise<void> {
       ` — yazma=${r?.oldu} model=${disSonra.model} aktif=${disSonra.aktif}`);
 
     // Yerel seçenekler artık Ollama taramasından gelir: önce bitsin.
-    await (globalThis as unknown as { orionModel?: { tara(): Promise<void> } }).orionModel?.tara();
+    await window.orionModel?.tara();
     const y = await gec("yerel:qwen2.5:7b");
     const yerelSonra = { model: deger("beyin.model"), aktif: deger("beyin.aktif") };
     console.log(`[ZIHINDENE] SECICI-GECIS ${yerelSonra.aktif === "qwen2.5:7b" ? "GECTI" : "KALDI"}` +

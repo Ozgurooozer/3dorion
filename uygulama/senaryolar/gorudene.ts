@@ -16,7 +16,7 @@ export async function kos(d: SenaryoBaglami): Promise<void> {
     sonuc.push(`${gecti ? "GECTI" : "KALDI"}  ${ad}${detay ? "  " + detay : ""}`);
 
   const gorulen: { blok: string; terfi: boolean }[] = [];
-  (window as unknown as { _goruKanca?: (b: string, t: boolean) => void })._goruKanca =
+  window._goruKanca =
     (blok, terfi) => { gorulen.push({ blok, terfi }); };
 
   await bekle(1200);

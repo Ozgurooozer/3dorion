@@ -13,7 +13,7 @@ export async function kos(d: SenaryoBaglami): Promise<void> {
   const bekle = (ms: number) => new Promise((r) => setTimeout(r, ms));
   const defter = new DavranisDefteri();
   const kayit = defter.kayit();
-  (window as unknown as { _davranisKayit?: unknown })._davranisKayit = kayit;
+  window._davranisKayit = kayit;
 
   const sonuclar: { sonuc: SenaryoSonucu; konusmaBekleniyor: boolean; beklenenKelimeler?: readonly string[] }[] = [];
   async function senaryo(ad: string, konusmaBekleniyor: boolean, hazirla: () => void, bekleMs: number,

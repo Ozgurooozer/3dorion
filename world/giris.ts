@@ -82,6 +82,7 @@ import { mesgulMu } from "../mind/benlik.ts";
 import { istenenSenaryolar, type SenaryoBaglami } from "../uygulama/senaryoBaglami.ts";
 import { niyetYurutucusuKur } from "../uygulama/niyetYurutucu.ts";
 import { zihinDuvariniBagla } from "../uygulama/zihinDuvari.ts";
+import type { OrionModelKancasi } from "../uygulama/pencereKancalari.ts";
 import { odadaSure, sessizlikSozu, gununVakti } from "../mind/zaman.ts";
 import { depoYukle } from "../mind/hafizaGocu.ts";
 import { GucButcesi, Inisiyatif } from "../mind/inisiyatif.ts";
@@ -542,7 +543,7 @@ const { niyetiYurut, bedenAdimi } = niyetYurutucusuKur({
 
 /** Davranis olcumu acikken kayit defterine erisim (yoksa null). */
 function davranisKayit(): ReturnType<DavranisDefteri["kayit"]> | null {
-  return (window as unknown as { _davranisKayit?: ReturnType<DavranisDefteri["kayit"]> })._davranisKayit ?? null;
+  return window._davranisKayit ?? null;
 }
 
 // T6b "Orion görsün": bugüne kadar Orion yalnızca Ozyn'in yazdığı metni
@@ -650,7 +651,7 @@ saat.dinle((t, dt) => {
       const algi: Algi = { tur: "terminal", kuyruk: blok, kesildi: kesildiMi(blok), kod, sureMs: sure };
       const gecti = refleks.karar(refleksGirdisi(algi, ozetle(algi)));
       console.log(`[ALGI] terminal blok (${blok.split("\n").length} satir) -> terfi=${gecti.terfi} (${gecti.gerekce})`);
-      const kanca = (window as unknown as { _goruKanca?: (b: string, t: boolean) => void })._goruKanca;
+      const kanca = window._goruKanca;
       if (kanca) kanca(blok, gecti.terfi);
       kopru.algi(algi);
     }
@@ -1093,7 +1094,7 @@ setInterval(() => {
 // ── Demo kancası (T7): sinematik çekim konsoldan tetiklenebilsin ───────────
 // `window.dunya.sinematik("tahta")` → kamera tahtayı çerçeveler.
 // Bu bir DEBUG yüzeyi; protokol değil, köprü değil.
-(window as unknown as { dunya: unknown }).dunya = {
+const dunyaKancasi = {
   sinematik(capa: string, sure = 4): boolean {
     const k = capaKonumu(capa);
     if (!k) { console.warn(`[dunya] bilinmeyen çapa: ${capa}. Geçerli: ${capaAdlari().join(", ")}`); return false; }
@@ -1129,6 +1130,7 @@ setInterval(() => {
     kuyruk: (n?: number) => monitor.kuyruk(n),
   },
 };
+window.dunya = dunyaKancasi;
 
 // ── Hızlı deneme tuşları (1-6) ────────────────────────────────────────────
 // Terminal odaktayken devre dışı: orada rakamlar kabuğa gitmeli.
@@ -1145,8 +1147,7 @@ addEventListener("keydown", (e) => {
   if (d.etkilesim === "monitor") return;  // terminal odakta
   const n = HIZLI_NIYETLER[e.key];
   if (!n || !orion) return;
-  const sonuc = (window as unknown as { dunya: { niyet(t: string, g?: Record<string, unknown>): string } })
-    .dunya.niyet(n[0], n[1]);
+  const sonuc = dunyaKancasi.niyet(n[0], n[1]);
   altyaziGoster(`Orion: ${n[0]} ${JSON.stringify(n[1]).slice(0, 40)}`, 1600);
   console.log(`[hizli] ${e.key} → ${n[0]} (${sonuc})`);
 });
@@ -1653,7 +1654,7 @@ function beyniBagla(a: Avatar): void {
     tusSerbest: () => oyuncu.oyuncuDurumu().etkilesim === null
       && sohbet.dataset.acik !== "1" && onayKapisi.durum !== "bekliyor",
   });
-  (globalThis as unknown as Record<string, unknown>).orionModel = {
+  const modelKancasi: OrionModelKancasi = {
     ac: () => modelSecici?.ac(),
     tara: hepsiniTara,
     katalog: () => ollamaKatalogu,
@@ -1664,6 +1665,7 @@ function beyniBagla(a: Avatar): void {
     iste: (ad: string) => secici.iste(ad),
     aktif: () => secici.aktif,
   };
+  window.orionModel = modelKancasi;
   console.log(`[PANO] ${panoKaydi.moduller().length} modül, ` +
     `${panoKaydi.goruntu().reduce((n, m) => n + m.dugmeler.length, 0)} tel bağlandı`);
 
@@ -1674,7 +1676,7 @@ function beyniBagla(a: Avatar): void {
   // uydurmak, kilidin tek işlevini — sürtünmeyi — ortadan kaldırırdı.
   // Bu yüzden açma yolu yönetim terminalinden geçer ve yazılı bir cümle
   // ister. Kapatmak damgayı KALDIRMAZ.
-  (globalThis as unknown as Record<string, unknown>).orionPano = {
+  window.orionPano = {
     kilitAc: (gerekce: string) => panoKaydi.kilitAc(gerekce),
     kilitKapat: () => panoKaydi.kilitKapat(),
     durum: () => ({
@@ -1809,7 +1811,7 @@ setTimeout(() => {
 // ikisini giris.ts bağlar. Avatar geldiğinde (T2) agizAcikligi() buradan
 // avatar.agizAyarla()'ya beslenecek.
 const orionSesi = new PiperCikisi();
-(window as unknown as { orionSes: PiperCikisi }).orionSes = orionSesi;
+window.orionSes = orionSesi;
 
 void (async () => {
   const kurulu = await orionSesi.kurulumKontrol();

@@ -12,7 +12,7 @@ export async function kos(d: SenaryoBaglami): Promise<void> {
   const { monitor, monitoreGec } = d;
   const bekle = (ms: number) => new Promise((r) => setTimeout(r, ms));
   const gorulen: { ozet: string; terfi: boolean }[] = [];
-  (window as unknown as { _goruKanca?: (b: string, t: boolean) => void })._goruKanca =
+  window._goruKanca =
     (b, t) => { gorulen.push({ ozet: b, terfi: t }); };
 
   await bekle(1200);

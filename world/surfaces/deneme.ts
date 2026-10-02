@@ -22,6 +22,7 @@ import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import { CreateBox } from "@babylonjs/core/Meshes/Builders/boxBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
+import { tuval2d } from "./yuzey.ts";
 import { Texture } from "@babylonjs/core/Materials/Textures/texture";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import { TerminalCekirdek, TEMA } from "./terminal-cekirdek.ts";
@@ -107,7 +108,7 @@ function adayAKur(): Aday {
     Texture.TRILINEAR_SAMPLINGMODE);
   doku.anisotropicFilteringLevel = 16;
   doku.hasAlpha = false;
-  const bag = doku.getContext() as unknown as CanvasRenderingContext2D;
+  const bag = tuval2d(doku);
 
   // Işıksız ekran reçetesi: doku DIFFUSE yuvasına girer, emissiveColor beyaz
   // olur ve aydınlatmayı o sürer. `emissiveTexture` yuvası kullanılırsa
@@ -183,7 +184,7 @@ function adayBKur(): Aday {
   const uykuOlcu = olcuUret(13, 28);
   const uykuDoku = new DynamicTexture("uykuB", { width: COLS * uykuOlcu.w, height: ROWS * uykuOlcu.h }, sahne, true,
     Texture.TRILINEAR_SAMPLINGMODE);
-  const uykuBag = uykuDoku.getContext() as unknown as CanvasRenderingContext2D;
+  const uykuBag = tuval2d(uykuDoku);
   const mat = new StandardMaterial("monitorMatB", sahne);
   mat.diffuseTexture = uykuDoku;
   mat.specularColor = Color3.Black();

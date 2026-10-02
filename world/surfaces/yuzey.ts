@@ -63,6 +63,15 @@ export interface Yuzey {
   yokEt(): void;
 }
 
+/**
+ * DynamicTexture'ın 2B bağlamı. Babylon kendi `ICanvasRenderingContext` alt kümesini döndürür
+ * (WebGPU/native ortak yüzü); tarayıcıda alttaki nesne gerçek `CanvasRenderingContext2D`. Bu sınır
+ * dönüşümü TEK yerde (spec 14 R5): eskiden dört yüzey dosyası kendi kopyasını yazıyordu.
+ */
+export function tuval2d(doku: DynamicTexture): CanvasRenderingContext2D {
+  return doku.getContext() as unknown as CanvasRenderingContext2D;
+}
+
 export function yuzeyKur(ayar: YuzeyAyari): Yuzey {
   const { sahne, mesh } = ayar;
 
@@ -74,7 +83,7 @@ export function yuzeyKur(ayar: YuzeyAyari): Yuzey {
     sahne, true, Texture.TRILINEAR_SAMPLINGMODE);
   doku.anisotropicFilteringLevel = 8;
   doku.hasAlpha = false;
-  const bag = doku.getContext() as unknown as CanvasRenderingContext2D;
+  const bag = tuval2d(doku);
 
   const mat = new StandardMaterial(`${ayar.ad}Mat`, sahne);
   mat.diffuseTexture = doku;
