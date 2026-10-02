@@ -38,7 +38,7 @@ function kur(beyin: Beyin, ek: Record<string, unknown> = {}, yaz?: (s: string) =
     simdi: () => 1_000,
   });
   const niyetler: { n: Niyet; id: string }[] = [];
-  const k = new Kopru({
+  const k = new Kopru({ komutYetkisi: false,
     beyin,
     niyetGonder: (n, id) => niyetler.push({ n, id }),
     dunyaDurumu: () => "Oda: masa, tahta. Ozyn 2m uzakta.",
@@ -372,7 +372,7 @@ test("yazılamayan kayıt satırları köprünün sayacında görünür", async 
 test("kayıt İÇGÜDÜDÜR: verilmezse köprü satırları [KARAR] önekiyle konsola yazar", (t) => {
   const yakalanan: string[] = [];
   t.mock.method(console, "log", (s: unknown) => { if (typeof s === "string") yakalanan.push(s); });
-  const k = new Kopru({ beyin: new SahteBeyin(), niyetGonder: () => {}, dunyaDurumu: () => "", toplamaMs: 20 });
+  const k = new Kopru({ komutYetkisi: false, beyin: new SahteBeyin(), niyetGonder: () => {}, dunyaDurumu: () => "", toplamaMs: 20 });
   k.algi({ tur: "yakin", nesneler: [] });
   const kararlar = yakalanan.filter((s) => s.startsWith(`${KARAR_ONEKI} `));
   assert.deepEqual(kararlar.map((s) => JSON.parse(s.slice(KARAR_ONEKI.length + 1)).tur), ["oturum", "algi"]);

@@ -37,7 +37,7 @@ function kur(beyin: Beyin) {
   const sozler: string[] = [];
   const icSesler: string[] = [];
   const ucurumlar: NiyetTur[][] = [];
-  const k = new Kopru({
+  const k = new Kopru({ komutYetkisi: false,
     beyin,
     niyetGonder: (n, id) => niyetler.push({ n, id }),
     dunyaDurumu: () => "Oda: masa, tahta. Ozyn 2m uzakta.",

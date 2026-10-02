@@ -310,6 +310,9 @@ export async function akisKos(tohum: number, akis: readonly Olay[][], ayar: Kosu
     let k: Kopru;
     const dunya = new SahteDunya(dunyaR, (s) => k.sonuc(s));
     k = new Kopru({
+      // Spec 13 Faz 2b: doğuştan komut programları KAPALI — bu araç kapının ve becerinin
+      // eski yolunu ölçer; sonuçları bu fazdan önceki koşularla birebir kalmalı.
+      komutYetkisi: false,
       beyin,
       niyetGonder: (n, id) => { niyetler.push(JSON.parse(JSON.stringify(n)) as Niyet); dunya.gonder(n, id); },
       dunyaDurumu: () => "Oda.",

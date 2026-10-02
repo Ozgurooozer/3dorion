@@ -24,7 +24,7 @@ function kur(ek: { ogretimler?: OgretimSatiri[] } = {}) {
   let saat = 1_000_000;
   const refleks = new KuralRefleksi();
   const beyin = new SahteBeyin();
-  const k = new Kopru({
+  const k = new Kopru({ komutYetkisi: false,
     beyin,
     niyetGonder: () => {},
     dunyaDurumu: () => "Oda.",
@@ -63,7 +63,7 @@ test("güvenlik içgüdüsünün kararı öğrenilemez: konuşma ve yerel kanal 
 test("ezilemez içgüdünün (dikkat.tekrar) düşürdüğü algı öğrenilemez — kanalı açık, kodu dolu olsa bile", () => {
   // Saat durur: aynı olay tekrar penceresinde ikinci kez gelir.
   const satirlar: KararSatiri[] = [];
-  const k = new Kopru({
+  const k = new Kopru({ komutYetkisi: false,
     beyin: new SahteBeyin(), niyetGonder: () => {}, dunyaDurumu: () => "Oda.", toplamaMs: 10,
     dikkat: { simdi: () => 5_000_000 },
     kararKaydi: new KararKaydi({ yaz: (s) => satirlar.push(JSON.parse(s.slice(KARAR_ONEKI.length + 1))) }),
@@ -166,7 +166,7 @@ test("LLM'in kendi niyetinin hatası, elle niyetinkinden öğrenilen kurala tak�
 
 test("bağlam köprüden durum koduna geçer", () => {
   const satirlar: KararSatiri[] = [];
-  const k = new Kopru({
+  const k = new Kopru({ komutYetkisi: false,
     beyin: new SahteBeyin(), niyetGonder: () => {}, dunyaDurumu: () => "Oda.", toplamaMs: 10,
     baglam: () => ({ mesafe: 0.9, bakiyor: true, yuzey: "monitor" }),
     kararKaydi: new KararKaydi({ yaz: (s) => satirlar.push(JSON.parse(s.slice(KARAR_ONEKI.length + 1))) }),
@@ -179,7 +179,7 @@ test("bağlam köprüden durum koduna geçer", () => {
 test("bağlam okunamazsa köprü bağlamsız kod yazar ve çalışmaya devam eder", (t) => {
   t.mock.method(console, "warn", () => {});
   const satirlar: KararSatiri[] = [];
-  const k = new Kopru({
+  const k = new Kopru({ komutYetkisi: false,
     beyin: new SahteBeyin(), niyetGonder: () => {}, dunyaDurumu: () => "Oda.", toplamaMs: 10,
     baglam: () => { throw new Error("oyuncu yok"); },
     kararKaydi: new KararKaydi({ yaz: (s) => satirlar.push(JSON.parse(s.slice(KARAR_ONEKI.length + 1))) }),

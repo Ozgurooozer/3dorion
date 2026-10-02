@@ -70,6 +70,9 @@ export function kapiVeKod(a: Algi): { kapi: KapiKarari; isaret: string[] } | nul
   const satirlar: AlgiSatiri[] = [];
   const refleks = new KuralRefleksi();
   const k = new Kopru({
+    // Spec 13 Faz 2b: doğuştan komut programları KAPALI — bu araç kapının ve becerinin
+    // eski yolunu ölçer; sonuçları bu fazdan önceki koşularla birebir kalmalı.
+    komutYetkisi: false,
     beyin: new SessizBeyin(), niyetGonder: () => {}, dunyaDurumu: () => "", toplamaMs: 60_000,
     dikkat: { simdi: () => 1_000_000_000 },
     suzgec: (x, ozet) => {

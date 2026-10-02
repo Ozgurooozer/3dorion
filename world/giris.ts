@@ -1615,6 +1615,13 @@ function beyniBagla(a: Avatar): void {
     // BECERİ YETKİSİ (Faz D): ANAHTAR, varsayılan KAPALI. Yalnız `?beceri=1` (ORION_BECERI=1)
     // ile açılır; açılması ön-kayıtlı barı geçmeye bağlı (spec 10).
     beceriYetkisi: new URLSearchParams(location.search).has("beceri"),
+    // DOĞUŞTAN KOMUT PROGRAMLARI (spec 13 Faz 2b): elle açılışta AÇIK (Ozyn: "ölçüm geçince
+    // açık"; gerçek sözlerde yanlış eşleşme 0). Senaryolarda (`sessiz=1`) KAPALI: `tahtadene`,
+    // `becerdene` LLM'in ve becerinin yolunu ölçer, program onları değiştirmesin. `?komut=0|1` zorlar.
+    komutYetkisi: (() => {
+      const q = new URLSearchParams(location.search);
+      return q.has("komut") ? q.get("komut") !== "0" : !q.has("sessiz");
+    })(),
     // BAĞLAM (K4): algı anında Ozyn nerede, Orion'a bakıyor mu, hangi yüzeyde.
     // Yapısal — dünya metni ayrıştırılmaz. Öğrenen kapının durum koduna girer.
     baglam: () => {

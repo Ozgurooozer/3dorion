@@ -248,7 +248,30 @@ export interface RefleksSatiri {
   sureMs: number;
 }
 
-export type KararSatiri = OturumSatiri | AlgiSatiri | UyanisSatiri | OgretimSatiri | RefleksSatiri;
+/**
+ * PROGRAM (spec 13 Faz 2b): kesin bir söz DOĞUŞTAN bir komut programıyla (mind/komutSozlugu.ts)
+ * LLM'e sorulmadan yürütüldü. Uyanışın karşılığıdır. Refleks satırından BİLEREK ayrı:
+ * beceri hafızası ve görev çıkarımı (mind/gorev.ts `GOREV_SATIRLARI`) refleks satırlarından
+ * öğrenir; doğuştan programlar öğrenilmiş beceri sayılmamalı (B9 ölçüsü kirlenmesin).
+ * Adımların akıbeti sonuç algılarından niyet kimliğiyle bağlanır. Eklemeli satır türü.
+ */
+export interface ProgramSatiri {
+  tur: "program";
+  o: string; id: string; t: number;
+  /** Tetikleyen söz algısının kimliği. */
+  algi: string;
+  /** Programın adı (`komut:otur`, `komut:git`, …). */
+  program: string;
+  /** Onay jesti: adım değildir, sonucu beklenmez. */
+  onay?: NiyetKaydi;
+  /** Programın adımları, sırayla, gövdeleriyle (eylem sırasına verildikleri haliyle). */
+  niyetler: NiyetKaydi[];
+}
+
+export type KararSatiri = OturumSatiri | AlgiSatiri | UyanisSatiri | OgretimSatiri | RefleksSatiri | ProgramSatiri;
+
+/** Program satırında köprünün doldurduğu alanlar. */
+export type ProgramBilgisi = Omit<ProgramSatiri, "tur" | "o" | "id" | "t">;
 
 /** Refleks satırında köprünün doldurduğu alanlar (kimlik ve zaman kayıttan gelir). */
 export type RefleksBilgisi = Omit<RefleksSatiri, "tur" | "o" | "id" | "t">;
@@ -292,6 +315,7 @@ export class KararKaydi {
   private _algiSira = 0;
   private _uyanisSira = 0;
   private _refleksSira = 0;
+  private _programSira = 0;
   private _yazilamayan = 0;
   private _dinleyiciler = new Set<(s: KararSatiri) => void>();
 
@@ -372,6 +396,13 @@ export class KararKaydi {
     if (metin) satir.metin = kisalt(metin, SINIR.metin).metin;
     if (icSes) satir.icSes = kisalt(icSes, SINIR.metin).metin;
     this._dus(satir);
+    return id;
+  }
+
+  /** Bir doğuştan program turunu (spec 13 Faz 2b) yazar. Program kimliğini döner. */
+  program(b: ProgramBilgisi): string {
+    const id = `p${++this._programSira}`;
+    this._dus({ tur: "program", o: this.oturum, id, t: this._simdi(), ...b });
     return id;
   }
 

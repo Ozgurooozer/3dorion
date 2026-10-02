@@ -28,6 +28,7 @@ import { Hafiza, kuralOnemi, type AniTuru } from "../mind/hafiza.ts";
 import { calismaBellegiKur, type CalismaBellegi } from "../mind/calismaBellegi.ts";
 import { oncesiSozu } from "../mind/zaman.ts";
 import { sozEylemUcurumu } from "../mind/sozEylem.ts";
+import { komutCoz, type KomutEslesmesi } from "../mind/komutSozlugu.ts";
 import { araclariUret, cagriyiNiyete } from "./araclar.ts";
 import type { Beyin, BeyinGirdisi } from "./beyin.ts";
 import { talimatUret } from "./talimat.ts";
@@ -89,6 +90,13 @@ export interface KopruAyari {
    * geçmeye bağlı (spec 10); canlıda `?beceri=1`.
    */
   beceriYetkisi?: boolean;
+  /**
+   * DOĞUŞTAN KOMUT PROGRAMLARI (spec 13 Faz 2b, mind/komutSozlugu.ts). Kesin söz bir programa
+   * TAMAMEN uyuyorsa LLM uyanmaz; adımlar eylem sırasıyla yürür. Varsayılan AÇIK (Ozyn,
+   * 2026-10-02: "ölçüm geçince açık" — karar kaydındaki 62 gerçek sözde yanlış eşleşme 0,
+   * tools/komut-tara.ts). `false` iken köprü bu fazdan önceki haliyle birebir aynıdır.
+   */
+  komutYetkisi?: boolean;
   /** Refleksin bir adımının sonucunu en çok ne kadar beklediği (ms). Varsayılan REFLEKS_ZAMAN_ASIMI_MS. */
   refleksZamanAsimiMs?: number;
   /**
@@ -177,6 +185,8 @@ export interface KopruSayaci {
   yutulanSusma: number;
   /** Beceriyle, LLM'e sormadan yürütülmeye başlanan söz (spec 10, Faz D). Yetki kapalıyken hep 0. */
   refleks: number;
+  /** Doğuştan komut programıyla, LLM'e sormadan yürütülen söz (spec 13 Faz 2b). */
+  komut: number;
 }
 
 /** Refleks niyetlerinin kimlik öneki (`kimlik(REFLEKS_ONEKI)`); sonuçları `niyetKaynagi` ile tanınır. */
@@ -326,7 +336,7 @@ export class Kopru {
   private _dusunuyor = false;
   /** Düşünme sürerken yeni girdi geldiyse, bitince bir tur daha dön. */
   private _tekrarGerek = false;
-  private _sayac: KopruSayaci = { dusunme: 0, niyet: 0, reddedilenCagri: 0, hata: 0, suzulen: 0, kurtarilanMetin: 0, kurtarilanCagri: 0, yutulanCop: 0, zincirKesilen: 0, yutulanSusma: 0, refleks: 0 };
+  private _sayac: KopruSayaci = { dusunme: 0, niyet: 0, reddedilenCagri: 0, hata: 0, suzulen: 0, kurtarilanMetin: 0, kurtarilanCagri: 0, yutulanCop: 0, zincirKesilen: 0, yutulanSusma: 0, refleks: 0, komut: 0 };
   /** Süren refleks turu (spec 10, Faz D); yoksa null. */
   private _refleks: SurenRefleks | null = null;
   /** Kalan takip turu hakkı — bkz. ZINCIR_AZAMI. */
@@ -542,6 +552,16 @@ export class Kopru {
 
     // Ozyn'in her sözü süren refleksi keser: yeni emir kazanır (dünyadaki kuralla aynı).
     if (a.tur === "duydum") this._refleksBitir("kesildi");
+
+    // DOĞUŞTAN PROGRAM (spec 13 Faz 2b, içgüdü `kopru.komut`): öğrenilmiş beceriden ÖNCE —
+    // doğuştan olan kesindir. Beceri gölgesi yine hesaplanır ve satıra yazılır (B9 ölçüsü).
+    if (a.tur === "duydum" && a.kesin && this._ayar.komutYetkisi !== false) {
+      const program = komutCoz(a.metin);
+      if (program) {
+        this._programYurut(a, ozet, golge, program);
+        return;
+      }
+    }
 
     // YETKİ (spec 10, Faz D): eşleşen kesin söz LLM'e gitmez; beceri refleksle yürür.
     // `golge` yalnız kesin sözde vardır. Tampon, tur ve konuşma geçmişi DEĞİŞMEZ.
@@ -781,6 +801,51 @@ export class Kopru {
     this._turDis = true;
     this._zincirKalan = ZINCIR_AZAMI;
     this._hemenDusun();
+  }
+
+  /**
+   * DOĞUŞTAN PROGRAMI yürütür (spec 13 Faz 2b). Söz kayda (`kopru.komut`) ve anıya yazılır;
+   * onay jesti gider; adımlar Faz 1'in eylem sırasıyla, her biri öncekinin `bitti`ini
+   * bekleyerek yürür. Hata sonucu her zamanki kapıdan beyne gider: Orion yapamadığını
+   * öğrenir ve anlatır. Söz ve yapılan adımlar KONUŞMA GEÇMİŞİNE girer (spec 13 Faz 1:
+   * geçmiş gerçekte olanı taşır) — model "otur → otur" çiftini görür, isteği tekrar yapmaz:
+   * cevabı geçmişte duruyor.
+   */
+  private _programYurut(a: Algi & { tur: "duydum" }, ozet: string, golge: BeceriGolgesi | null | undefined, p: KomutEslesmesi): void {
+    const algi = this._kaydet(a, ozet, { gecti: true, kural: "kopru.komut" }, golge);
+    const { tur: aniTur, icerik } = this._aniIcerigi(a, ozet);
+    this._hafiza.ekle(icerik, aniTur, kuralOnemi(aniTur, icerik));
+    this._hafizaYaz();
+    this._dikkat.sifirla();
+    this._sayac.komut++;
+    this._gecmis.push({ rol: "kullanici", metin: a.metin });
+    this._kirp();
+
+    const niyetler: NiyetKaydi[] = [];
+    const adimlar: { niyet: Niyet; id: string }[] = [];
+    for (const n of p.adimlar) {
+      const d = niyetDogrula(n);
+      // Program tablosu testli; geçersiz adım bir yazılım hatasıdır — sessiz kalmasın.
+      if (!d.ok) { console.error(`[KOMUT] ${p.program}: gecersiz adim "${n.tur}": ${d.hata}`); return; }
+      const id = kimlik("komut");
+      niyetler.push(niyetKaydi(id, d.deger));
+      adimlar.push({ niyet: d.deger, id });
+      const { tur: nt, ...girdi } = d.deger;
+      this._gecmis.push({ rol: "orion", metin: "", arac: true, cagri: { ad: `dunya_${nt}`, girdi } });
+      this._kirp();
+    }
+    const onay = niyetDogrula(REFLEKS_ONAYI);
+    let onayKaydi: NiyetKaydi | undefined;
+    if (onay.ok) {
+      const id = kimlik("komut");
+      onayKaydi = niyetKaydi(id, onay.deger);
+      this._ayar.niyetGonder(onay.deger, id);
+      this._sayac.niyet++;
+    }
+    this._kayit.program({ algi, program: p.program, ...(onayKaydi ? { onay: onayKaydi } : {}), niyetler });
+    console.log(`[KOMUT] "${a.metin}" → ${p.program} (${adimlar.map((x) => x.niyet.tur).join(" → ")}), LLM uyanmadi`);
+    this._sayac.niyet += adimlar.length;
+    this._siraBaslat(adimlar);
   }
 
   /** Algıdan hafızaya yazılacak SADE içeriği çıkarır (kalıp değil). */

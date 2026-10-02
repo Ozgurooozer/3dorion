@@ -158,3 +158,31 @@ ortada imleç, kırmızı dikkat iplikleri. Orion'da her kelime GERÇEK bir kay�
 - **Gerçek** → kelimeler skorlarına çözülür (yakınlık · önem · ilgi, Generative Agents puanı).
 - Çizim saf çekirdek + canvas (`semaCizim.ts` deseni), şema detay görünümünün yerine geçer (spec 05: detay şemanın yerini alır).
 - Spec 05 "panel süs eklemiyor": her kelime bir kayıt, her iplik bir getirme, her boyut bir sayı.
+
+## Faz 2 — robot çekirdeği: sonuç (2026-10-02)
+
+**2a bilgisayar programı** (af04bb5, `world/bilgisayar.ts`): `odaklan monitor` → oturmuyorsa `otur` (çapasız,
+sandalyeye yürür) → monitör pty'si açılır, Ozyn'in kamerası ve klavyesi değişmez → sonuç köprünün eylem sırasına
+döner. Başka yüzey → oraya yürür. Orion oturuyor ve terminal açıksa dünya satırı bunu söyler ("terminal is open
+(PowerShell)"). Komutlar yine Ozyn'in onayıyla. Yerel model zaman aşımı 20 → 60 sn; AbortError süreyle söylenir.
+[TEST] 8 yeni test, 3/3 bozma yakalandı. Canlı: Faz 7.
+
+**2b komut sözlüğü** (`mind/komutSozlugu.ts`, içgüdü `kopru.komut`): sözün TAMAMI bir kalıba uymalı: otur,
+kalk, bana/yanıma gel, dur, bana bak, `<yer>(y)a git`, `<yer>(y)e bak`, bilgisayarı aç/kullan. "Bilgisayar",
+"ekran", "terminal" monitördür. Program LLM'i uyandırmaz; onay jesti + adımlar Faz 1'in eylem sırasıyla; adımın
+hatası her zamanki kapıdan beyne gider. Kayıtta ayrı `program` satırı: refleks satırı DEĞİL, çünkü görev
+çıkarımı ve beceri hafızası refleks satırından öğrenir (B9 ölçüsü kirlenmesin).
+
+| ölçü | sonuç |
+|---|---|
+| karar kaydındaki gerçek sözler (5 gün, 62 farklı, 78 toplam) | 12 farklı söz eşleşti (22/78 söz LLM'siz); 12'sinin 12'si gerçekten beden komutu → **yanlış eşleşme 0** [ÖLÇÜLDÜ, `tools/komut-tara.ts`] |
+| `eylem-olc` komutları | 8'in 7'si programla (otur, bana gel, yanıma gel, masaya git ve otur, kalk, bilgisayarı aç, pencereye bak); "tahtaya merhaba yaz" bilerek LLM'de (ne yazılacağı içerik) [TEST] |
+
+Sınır: bu 62 söz kalıplar yazılırken görüldü; ayrı tutulmuş bir sınav değil. Canlı kullanımda her eşleşme
+`program` satırına yazılır, yanlış eşleşme `komut-tara` ile sonradan denetlenir.
+
+**Anahtar:** elle açılışta AÇIK (Ozyn'in kararı). Senaryolarda (`sessiz=1`) KAPALI: `tahtadene`, `becerdene`
+LLM'in ve becerinin yolunu ölçer. Kayıt oynatan ölçüm araçlarında (`beceri-curut`, `kapi-deney`, `ogretmen`)
+KAPALI: sonuçları bu fazdan önceki koşularla birebir kalır. `?komut=0|1` zorlar.
+[TEST] 27 yeni test (15 kalıp, 12 köprü); bozma 4/5 yakalandı, biri eşdeğer (`^` kaldırmak: açgözlü `(.+)`
+zaten baştan yakalıyor), yerine "son kelime" bozması denendi ve yakalandı.

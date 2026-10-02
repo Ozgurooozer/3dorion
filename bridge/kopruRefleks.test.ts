@@ -74,7 +74,7 @@ function kur(ayar: { beyin?: SahteBeyin; gecmis?: KararSatiri[]; yetki?: boolean
   const beyin = ayar.beyin ?? new SahteBeyin();
   const refleks = new KuralRefleksi();
   let k: Kopru;
-  k = new Kopru({
+  k = new Kopru({ komutYetkisi: false,
     beyin,
     niyetGonder: (n, id) => {
       niyetler.push({ n, id });

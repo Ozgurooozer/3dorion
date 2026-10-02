@@ -198,7 +198,7 @@ async function kopruOturumu(sozler: [string, string][], ayar: { oturum: string; 
   const beyin = { ad: "sahte", hazirMi: async () => true, dusun: async () => cevaplar.shift() ?? { metin: "", cagrilar: [] } };
   const refleks = new KuralRefleksi();
   let k: Kopru;
-  k = new Kopru({
+  k = new Kopru({ komutYetkisi: false,
     beyin,
     niyetGonder: (_n, id) => queueMicrotask(() => k.sonuc({ niyet_id: id, durum: "bitti" })),
     dunyaDurumu: () => "Oda.", toplamaMs: 10, simdi: () => saat,

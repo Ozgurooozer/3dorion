@@ -41,7 +41,7 @@ function kur(beyin: Beyin, ek: { gorevSatirlari?: readonly KararSatiri[]; oturum
   const niyetler: { n: Niyet; id: string }[] = [];
   const refleks = new KuralRefleksi();
   let k: Kopru;
-  k = new Kopru({
+  k = new Kopru({ komutYetkisi: false,
     beyin,
     niyetGonder: (n, id) => { niyetler.push({ n, id }); queueMicrotask(() => k.sonuc({ niyet_id: id, durum: "bitti" })); },
     dunyaDurumu: () => "Oda.",
@@ -123,7 +123,7 @@ test("bozuk geçmiş satırı köprüyü durdurmaz: geçmişsiz başlar, bu otur
 
 test("durdurulan köprü kayıttan öğrenmeyi bırakır: aynı kayda sonradan yazılan görev hafızaya girmez", () => {
   const kayit = new KararKaydi({ yaz: () => {}, oturum: "o_ortak" });
-  const k = new Kopru({ beyin: new SahteBeyin(), niyetGonder: () => {}, dunyaDurumu: () => "Oda.", kararKaydi: kayit });
+  const k = new Kopru({ komutYetkisi: false, beyin: new SahteBeyin(), niyetGonder: () => {}, dunyaDurumu: () => "Oda.", kararKaydi: kayit });
   k.durdur();
   const a = kayit.algi({ tur: "duydum", metin: "pencereye git", kesin: true }, "ozet", { gecti: true, kural: "kopru.konusma" });
   kayit.uyanis({ algilar: [a], geriBesleme: 0, beyin: "sahte", sureMs: 5, koken: "dis", takip: false, anilar: 0, dunya: "", cagrilar: [], niyetler: [niyetKaydi("n_1", git("pencere"))], reddedilen: 0, kurtarilan: 0, konusulanMetin: false, yutulanSoz: 0 });

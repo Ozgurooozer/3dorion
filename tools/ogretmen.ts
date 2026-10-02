@@ -56,6 +56,9 @@ export async function ogretmenSor(beyin: Beyin, algi: Algi, dunya: string, zaman
   const satirlar: KararSatiri[] = [];
   const kayit = new KararKaydi({ yaz: (s) => satirlar.push(JSON.parse(s.slice(KARAR_ONEKI.length + 1)) as KararSatiri) });
   const k = new Kopru({
+    // Spec 13 Faz 2b: doğuştan komut programları KAPALI — bu araç kapının ve becerinin
+    // eski yolunu ölçer; sonuçları bu fazdan önceki koşularla birebir kalmalı.
+    komutYetkisi: false,
     beyin,
     niyetGonder: () => {},
     dunyaDurumu: () => dunya,

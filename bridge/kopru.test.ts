@@ -29,7 +29,7 @@ const bekle = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function kur(beyin: Beyin, ek: Record<string, unknown> = {}) {
   const niyetler: { n: Niyet; id: string }[] = [];
-  const k = new Kopru({
+  const k = new Kopru({ komutYetkisi: false,
     beyin,
     niyetGonder: (n, id) => niyetler.push({ n, id }),
     dunyaDurumu: () => "Oda: masa, tahta. Ozyn 2m uzakta.",
@@ -225,7 +225,7 @@ test("ısrarla geçersiz çağrı üreten model sonsuz döngüye sokmaz", async 
 test("araç çağrılmadıysa düz metin konuşmaya çevrilir — kullanıcı sessizlik duymaz", async () => {
   const beyin = new SahteBeyin({ metin: "Terminalde komut bulunamadı hatası var.", cagrilar: [] });
   const soylenen: string[] = [];
-  const k = new Kopru({ beyin, niyetGonder: () => {}, dunyaDurumu: () => "oda", toplamaMs: 5 });
+  const k = new Kopru({ komutYetkisi: false, beyin, niyetGonder: () => {}, dunyaDurumu: () => "oda", toplamaMs: 5 });
   k.konusmaDinle((m) => soylenen.push(m));
   k.algi({ tur: "duydum", metin: "ne oldu?", kesin: true });
   await new Promise((r) => setTimeout(r, 60));
@@ -239,7 +239,7 @@ test("araç ÇAĞRILDIYSA düz metin seslendirilmez — iç düşünce gürült�
     cagrilar: [{ ad: "dunya_bak", girdi: { hedef_tip: "oyuncu" } }],
   });
   const soylenen: string[] = [];
-  const k = new Kopru({ beyin, niyetGonder: () => {}, dunyaDurumu: () => "oda", toplamaMs: 5 });
+  const k = new Kopru({ komutYetkisi: false, beyin, niyetGonder: () => {}, dunyaDurumu: () => "oda", toplamaMs: 5 });
   k.konusmaDinle((m) => soylenen.push(m));
   k.algi({ tur: "duydum", metin: "selam", kesin: true });
   await new Promise((r) => setTimeout(r, 60));

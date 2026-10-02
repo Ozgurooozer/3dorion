@@ -129,7 +129,7 @@ async function ajanTuru(m: McpBeyin, cagrilar: [string, unknown][]): Promise<str
 
 test("KÖPRÜ: tik ajana ASLA ulaşmaz — maliyet tavanı MCP yolunda da geçerli", async () => {
   const m = kur();
-  const k = new Kopru({ beyin: m, niyetGonder: () => {}, dunyaDurumu: () => "D", toplamaMs: 20 });
+  const k = new Kopru({ komutYetkisi: false, beyin: m, niyetGonder: () => {}, dunyaDurumu: () => "D", toplamaMs: 20 });
   const b = m.bekle(300);             // ajan dinliyor
   for (let i = 0; i < 40; i++) k.algi({ tur: "tik", t: i, dt: 0.05, orion: {} as never, oyuncu: {} as never });
   const s = await b;
@@ -139,7 +139,7 @@ test("KÖPRÜ: tik ajana ASLA ulaşmaz — maliyet tavanı MCP yolunda da geçer
 test("KÖPRÜ: dunya_komut ONAY yolundan geçer — ajan komut çalıştıramaz", async () => {
   const m = kur();
   const niyetler: Niyet[] = [];
-  const k = new Kopru({ beyin: m, niyetGonder: (n) => niyetler.push(n), dunyaDurumu: () => "D", toplamaMs: 20 });
+  const k = new Kopru({ komutYetkisi: false, beyin: m, niyetGonder: (n) => niyetler.push(n), dunyaDurumu: () => "D", toplamaMs: 20 });
   const tur = ajanTuru(m, [["dunya_komut", { metin: "git status", gerekce: "yazim hatasi" }]]);
   await bekle(10);
   k.algi({ tur: "duydum", metin: "ne yapayım", kesin: true });
@@ -151,7 +151,7 @@ test("KÖPRÜ: dunya_komut ONAY yolundan geçer — ajan komut çalıştıramaz"
 test("KÖPRÜ: geçersiz araç reddedilir ve gerekçesi ajana GERİ döner (R7)", async () => {
   const m = kur();
   const niyetler: Niyet[] = [];
-  const k = new Kopru({ beyin: m, niyetGonder: (n) => niyetler.push(n), dunyaDurumu: () => "D", toplamaMs: 20 });
+  const k = new Kopru({ komutYetkisi: false, beyin: m, niyetGonder: (n) => niyetler.push(n), dunyaDurumu: () => "D", toplamaMs: 20 });
   const tur1 = ajanTuru(m, [["dunya_poz", { poz: "zıplıyor" }]]);
   await bekle(10);
   k.algi({ tur: "duydum", metin: "zıpla", kesin: true });
