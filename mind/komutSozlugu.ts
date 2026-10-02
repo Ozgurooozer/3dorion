@@ -73,6 +73,7 @@ const BANA_BAK = /^(bana bak|bakar misin bana)$/;
 const BILGISAYAR = /^(onundeki |masandaki )?(bilgisayari|bilgisayarini|monitoru|terminali|ekrani) (ac|kullan)$/;
 /** "<yer>(y)a git / gel / geç" ve "<yer>(y)e bak". */
 const GIT = /^(.+) (git|gec|gidip dur|yuru)$/;
+const GIT_OTUR = /^(.+) (git|gec) (ve )?otur$/;
 const BAK = /^(.+) bak$/;
 
 /** Söz bir doğuştan programa TAMAMEN uyuyorsa onu döner; uymuyorsa null (söz LLM'e gider). */
@@ -85,6 +86,15 @@ export function komutCoz(soz: string): KomutEslesmesi | null {
   if (DUR.test(s)) return { program: "komut:dur", adimlar: [{ tur: "dur" }] };
   if (BANA_BAK.test(s)) return { program: "komut:bak", adimlar: [{ tur: "bak", hedef: { tip: "oyuncu" } }] };
   if (BILGISAYAR.test(s)) return { program: "komut:bilgisayar", adimlar: [{ tur: "odaklan", capa: "monitor" }] };
+
+  // "<masa/bilgisayar/sandalye>(y)a git (ve) otur" (ortak test 3: "bilgisayara git otur"):
+  // çapasız `otur` zaten masadaki sandalyeye yürür. Başka yerde oturulmaz → LLM'e kalır.
+  const gitOtur = GIT_OTUR.exec(s);
+  if (gitOtur) {
+    const capa = yonelmeCapasi(gitOtur[1]!);
+    if (capa === "masa" || capa === "monitor" || capa === "sandalye") return { program: "komut:otur", adimlar: [{ tur: "otur" }] };
+    return null;
+  }
 
   const git = GIT.exec(s);
   if (git) {

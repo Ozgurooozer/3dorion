@@ -546,16 +546,23 @@ function niyetiYurut(n: Niyet, id: string): void {
   if (n.tur === "yaz") {
     const yeri = orion?.durum().konum;
     if (!yeri || !yaklastiMi("tahta", yeri)) {
-      const not = "tahtaya uzaktan yazamazsın; önce `git` ile tahtanın önüne geç";
-      console.log(`[TAHTA] reddedildi: uzakta (${yeri ? `${yeri.x.toFixed(1)},${yeri.z.toFixed(1)}` : "konum yok"})`);
-      kopru?.sonuc({ niyet_id: id, durum: "hata", not });
-      altyaziGoster("Orion tahtaya uzaktan yazamaz", 2000);
+      // ROBOT İLKESİ (spec 13): uzaktan YAZILMAZ ama Orion reddedilip beklemez —
+      // önce tahtaya KENDİSİ yürür, varınca yazar (`otur`un sandalyeye yürümesi gibi).
+      // Ortak test 3 (2026-10-02): lfm25-tb uzaktan 15 kez `yaz` denedi, her seferinde
+      // "önce git" reddi aldı ve hiç yürümedi.
+      console.log(`[TAHTA] uzakta (${yeri ? `${yeri.x.toFixed(1)},${yeri.z.toFixed(1)}` : "konum yok"}): once tahtaya yuruyor`);
+      void bedenAdimi({ tur: "git", hedef: { tip: "capa", ad: "tahta" } }).then((s) => {
+        const varis = orion?.durum().konum;
+        if (s.durum !== "bitti" || !varis || !yaklastiMi("tahta", varis)) {
+          kopru?.sonuc({ niyet_id: id, durum: "hata", not: `tahtaya yürüyemedim: ${s.not ?? s.durum}` });
+          altyaziGoster("Orion tahtaya ulaşamadı", 2000);
+          return;
+        }
+        tahtayaYaz(n, id);
+      });
       return;
     }
-    const r = tahta.yaz(n.metin, n.temizle ?? false);
-    console.log(`[TAHTA] yazildi: +${r.eklenen} satir${r.dusen ? `, ${r.dusen} eski satir dustu` : ""}`);
-    kopru?.sonuc({ niyet_id: id, durum: "bitti",
-      not: `tahtaya ${r.eklenen} satır yazıldı${r.dusen ? `, ${r.dusen} eski satır kaydı` : ""}` });
+    tahtayaYaz(n, id);
     return;
   }
 
@@ -608,6 +615,14 @@ function niyetiYurut(n: Niyet, id: string): void {
   // Beden gerçekten harekete geçti: şemanın son durağı.
   sema.vur("beden", n.tur);
   orion?.niyet(n, id);
+}
+
+/** Tahtanın önündeyken yazar ve sonucu köprüye bildirir. */
+function tahtayaYaz(n: Extract<Niyet, { tur: "yaz" }>, id: string): void {
+  const r = tahta.yaz(n.metin, n.temizle ?? false);
+  console.log(`[TAHTA] yazildi: +${r.eklenen} satir${r.dusen ? `, ${r.dusen} eski satir dustu` : ""}`);
+  kopru?.sonuc({ niyet_id: id, durum: "bitti",
+    not: `tahtaya ${r.eklenen} satır yazıldı${r.dusen ? `, ${r.dusen} eski satır kaydı` : ""}` });
 }
 
 /**
@@ -2722,7 +2737,8 @@ if (new URLSearchParams(location.search).has("senaryodene")) {
 
 // ── TAHTA denemesi (?tahtadene=1) ─────────────────────────────────────────
 // Iki iddiayi kanitlar: (1) Orion tahtanin ONUNDEYKEN gercekten yaziyor,
-// (2) UZAKTAN yazmak reddediliyor ve gerekce beyne geri besleniyor.
+// (2) UZAKTAN yazmak istenince once KENDISI tahtaya yuruyor, varinca yaziyor
+// (spec 13 robot ilkesi; eskiden reddedilip gerekce beyne donuyordu).
 if (new URLSearchParams(location.search).has("tahtadene")) {
   void (async () => {
     const bekle = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -2734,21 +2750,27 @@ if (new URLSearchParams(location.search).has("tahtadene")) {
     const o = orion as Avatar | null;
     if (!o) { console.log("[TAHTADENE] KALDI avatar yok"); return; }
 
-    // 1) UZAKTAN yazma denemesi — reddedilmeli, tahta bos kalmali.
+    // 1) UZAKTAN yazma: hemen yazilMAMALI (uzaktan yazilmaz), Orion once yurumeli,
+    //    varinca yazmali (spec 13 robot ilkesi).
     const uzakta = o.durum().konum;
-    niyetiYurut({ tur: "yaz", metin: "uzaktan yazmaya calisiyorum" }, "dene_uzak");
+    niyetiYurut({ tur: "yaz", metin: "uzaktan istendi, yuruyup yazdim" }, "dene_uzak");
     await bekle(900);
-    kontrol("uzaktan yazmak REDDEDILDI", tahta.satirlar().length === 0,
+    kontrol("uzaktan HEMEN yazilmadi", tahta.satirlar().length === 0,
       `konum=${uzakta.x.toFixed(1)},${uzakta.z.toFixed(1)} satir=${tahta.satirlar().length}`);
+    await bekle(7000);
+    const vardi = o.durum().konum;
+    kontrol("once tahtaya YURUDU, sonra yazdi", yaklastiMi("tahta", vardi) && tahta.satirlar().length === 1,
+      `konum=${vardi.x.toFixed(1)},${vardi.z.toFixed(1)} satir=${tahta.satirlar().length}`);
 
-    // 2) Tahtanin onune git, sonra yaz.
+    // 2) Tahtanin onundeyken yaz.
     niyetiYurut({ tur: "git", hedef: { tip: "capa", ad: "tahta" } }, "dene_git_tahta");
-    await bekle(6000);
+    await bekle(1500);
     const yakinda = o.durum().konum;
     niyetiYurut({ tur: "yaz", metin: "Terminal suzgeci bitti. Cikis kodu ile calisiyor." }, "dene_yaz");
     await bekle(900);
     const satirlar = tahta.satirlar();
-    kontrol("yakindan yazmak CALISTI", satirlar.length > 0,
+    // ≥ 2: ilk (yürüyüp yazılan) satırın üstüne eklendi; uzun metin satıra sarılabilir.
+    kontrol("yakindan yazmak CALISTI", satirlar.length >= 2,
       `konum=${yakinda.x.toFixed(1)},${yakinda.z.toFixed(1)} satir=${satirlar.length}`);
     for (const s of satirlar) console.log(`[TAHTADENE]   tahtada: "${s}"`);
 

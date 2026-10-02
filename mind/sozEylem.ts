@@ -48,14 +48,33 @@ export function eylemIddialari(soz: string): NiyetTur[] {
 }
 
 /**
+ * Ozyn'in sözünde o eylemin İSTENDİĞİNİ gösteren kökler (katlanmış).
+ *
+ * Neden (ortak test 3, 2026-10-02): "neredesin" sorusuna "masamda oturuyorum" cevabı
+ * bir DURUM anlatımıydı, yalan değil — ama bekçi "otur yok" diye işaretledi. Bekçi
+ * artık yalnız Ozyn o eylemi bu turda istediyse bakar: "otur" → "Oturuyorum" + otur yok.
+ */
+const ISTEK: Readonly<Record<string, RegExp>> = {
+  otur: /otur/,
+  kalk: /kalk/,
+  git: /\b(gel|git|yuru|yaklas)/,
+  yaz: /yaz/,
+  odaklan: /\b(ac|kullan)\b|bilgisayar|monitor|terminal|ekran/,
+  bak: /bak/,
+};
+
+/**
  * Bir turun sözlerinde iddia edilip AYNI turda niyeti gitmeyen eylemler.
+ * `istekler` = bu turda Ozyn'in sözleri; yalnız onlarda istenen eylemler sayılır.
  * Boş dizi = uçurum yok.
  */
-export function sozEylemUcurumu(sozler: readonly string[], niyetler: readonly NiyetTur[]): NiyetTur[] {
+export function sozEylemUcurumu(sozler: readonly string[], niyetler: readonly NiyetTur[], istekler: readonly string[]): NiyetTur[] {
   const giden = new Set(niyetler);
+  const istek = katla(istekler.join(" "));
   const eksik = new Set<NiyetTur>();
   for (const s of sozler) {
     for (const i of IDDIALAR) {
+      if (!ISTEK[i.eylem]?.test(istek)) continue;
       if (i.bicim.test(katla(s)) && !i.karsilar.some((n) => giden.has(n))) eksik.add(i.eylem);
     }
   }

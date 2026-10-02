@@ -331,6 +331,8 @@ export class Kopru {
   private _turTurleri = new Set<string>();
   /** Bu turda hafızaya yazılan içerikler — sorgu ve dışlama için. */
   private _turIcerikleri: string[] = [];
+  /** Bu turda Ozyn'in sözleri — söz-eylem bekçisi yalnız istenen eylemlere bakar. */
+  private _turSozleri: string[] = [];
   private _gecmis: BeyinGirdisi["gecmis"] = [];
   private _zamanlayici: ReturnType<typeof setTimeout> | null = null;
   private _dusunuyor = false;
@@ -609,6 +611,7 @@ export class Kopru {
       this._dikkat.sifirla();
       this._gecmis.push({ rol: "kullanici", metin: a.metin });
       this._kirp();
+      this._turSozleri.push(a.metin);
       this._hemenDusun();
     } else {
       this._gecikmeliDusun();
@@ -798,6 +801,7 @@ export class Kopru {
     this._tamponIdleri.push(null);
     this._turTurleri.add("duydum");
     this._turIcerikleri.push(r.soz);
+    this._turSozleri.push(r.soz);
     this._turDis = true;
     this._zincirKalan = ZINCIR_AZAMI;
     this._hemenDusun();
@@ -933,6 +937,7 @@ export class Kopru {
       const simdiMs = this._ayar.simdi?.() ?? Date.now();
       // Sorgu da İÇERİK olmalı: kalıpla sorgulamak kalıpla eşleşmeye yol açar.
       const icerikler = this._turIcerikleri.splice(0);
+      const istekler = this._turSozleri.splice(0);
       const anilar = adet > 0 && icerikler.length
         // Bu turun içerikleri hafızaya az önce yazıldı; anı olarak geri
         // gelmeleri "hatırlamak" değil kendini tekrar etmektir.
@@ -1117,7 +1122,7 @@ export class Kopru {
       }
 
       // SÖYLEDİ AMA YAPMADI (mind/sozEylem.ts): yalnız gözlem, davranış değişmez.
-      const eksik = sozEylemUcurumu(tur.sozler, uyanis.niyetler.map((n) => n.tur));
+      const eksik = sozEylemUcurumu(tur.sozler, uyanis.niyetler.map((n) => n.tur), istekler);
       if (eksik.length) {
         uyanis.sozEylemUcurumu = eksik;
         const soz = tur.sozler.join(" ");

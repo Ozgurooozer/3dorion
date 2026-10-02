@@ -19,6 +19,16 @@ test("GERÇEK: 'masaya git ve otur' → çapasız otur (sandalyeye yürür ve ot
   assert.deepEqual(adimlar("masaya git ve otur"), [{ tur: "otur" }]);
 });
 
+test("GERÇEK (ortak test 3): 'bilgisayara git otur' → çapasız otur", () => {
+  for (const s of ["bilgisayara git otur", "masaya geç otur", "sandalyeye git ve otur"]) {
+    assert.deepEqual(adimlar(s), [{ tur: "otur" }], s);
+  }
+});
+
+test("oturulamayan yere 'git otur' programa girmez: 'tahtaya git otur'", () => {
+  assert.equal(program("tahtaya git otur"), null);
+});
+
 test("GERÇEK: 'kalk' → kalk", () => {
   assert.deepEqual(adimlar("kalk"), [{ tur: "kalk" }]);
 });

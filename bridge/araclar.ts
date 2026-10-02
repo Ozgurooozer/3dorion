@@ -98,7 +98,8 @@ export const ARAC_TABLOSU: Record<NiyetTur, Omit<AracTanimi, "ad">> = {
   },
 
   yaz: {
-    aciklama: "Write on the whiteboard. If you are not in front of the board you must walk there first.",
+    // Spec 13: uzaktaysa beden önce tahtaya kendisi yürür (world/giris.ts `yaz`).
+    aciklama: "Write on the whiteboard. If you are not in front of it, you walk there first, then write.",
     sema: {
       type: "object",
       properties: { metin: { type: "string" }, temizle: { type: "boolean", description: "If true, clears the board first." } },
