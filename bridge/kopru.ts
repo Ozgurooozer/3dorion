@@ -29,6 +29,8 @@ import { calismaBellegiKur, type CalismaBellegi } from "../mind/calismaBellegi.t
 import { oncesiSozu } from "../mind/zaman.ts";
 import { sozEylemUcurumu } from "../mind/sozEylem.ts";
 import { komutCoz, type KomutEslesmesi } from "../mind/komutSozlugu.ts";
+import { AnlikBenlik, eden, type BedenOkumasi, type Eden } from "../mind/benlik.ts";
+import { terminalAyristir } from "../mind/durumKodu.ts";
 import { araclariUret, cagriyiNiyete } from "./araclar.ts";
 import type { Beyin, BeyinGirdisi } from "./beyin.ts";
 import { talimatUret } from "./talimat.ts";
@@ -97,6 +99,11 @@ export interface KopruAyari {
    * tools/komut-tara.ts). `false` iken köprü bu fazdan önceki haliyle birebir aynıdır.
    */
   komutYetkisi?: boolean;
+  /**
+   * ANLIK BENLİK için gövdenin anlık okuması (spec 12 §4.2): karar anında ÇEKİLİR,
+   * 20 Hz yazılmaz. Verilmezse benliğin `beden` alanı boş kalır.
+   */
+  bedenDurumu?: () => BedenOkumasi | null;
   /** Refleksin bir adımının sonucunu en çok ne kadar beklediği (ms). Varsayılan REFLEKS_ZAMAN_ASIMI_MS. */
   refleksZamanAsimiMs?: number;
   /**
@@ -357,6 +364,10 @@ export class Kopru {
   private _zincirSessiz = false;
   /** Süren eylem sırası; yoksa null. */
   private _sira: EylemSirasi | null = null;
+  /** ANLIK BENLİK (spec 12, mind/benlik.ts): "şu an ne yapıyorum, neyi bekliyorum". Diske gitmez. */
+  private _benlik: AnlikBenlik;
+  /** İşlenmekte olan algının faili — benlik güncellenmeden ÖNCE hesaplanır, `_kaydet` yazar. */
+  private _algiEdeni: Eden | undefined;
   /** Üst üste kaç tur yalnızca ret geri beslemesiyle döndük. Döngü kalkanı. */
   private _ardisikRet = 0;
   private _konusmaDinleyiciler = new Set<(metin: string) => void>();
@@ -367,6 +378,7 @@ export class Kopru {
     this._dikkat = new Dikkat(ayar.dikkat);
     this._hafiza = new Hafiza({ simdi: ayar.simdi });
     this._calisma = calismaBellegiKur({ simdi: ayar.simdi });
+    this._benlik = new AnlikBenlik({ simdi: ayar.simdi, beden: ayar.bedenDurumu });
     // İÇGÜDÜ `kayit`: köprü kaydını DOĞUŞTAN kurar — kimse açmak zorunda değil.
     this._kayit = ayar.kararKaydi ?? new KararKaydi({ simdi: ayar.simdi });
     this._kayit.oturumBasi(ayar.beyin.ad);
@@ -473,7 +485,18 @@ export class Kopru {
     return false;
   }
 
+  /**
+   * Dünyaya giden TEK çıkış: önce benliğe yazılır ("yapıyorum" / "onay bekliyorum"),
+   * sonra niyet gider. Benlik yazımı gözlemdir; hatası gönderimi durdurmaz.
+   */
+  private _gonder(n: Niyet, id: string): void {
+    try { this._benlik.niyetGonderildi(id, n, "ben"); }
+    catch (err) { console.error("[BENLIK] niyet yazilamadi:", err); }
+    this._ayar.niyetGonder(n, id);
+  }
+
   private _konusmaYay(metin: string): void {
+    this._benlik.soyledi(metin);
     for (const d of this._konusmaDinleyiciler) {
       try { d(metin); } catch (err) { console.error("[kopru] konuşma dinleyicisi hatası:", err); }
     }
@@ -486,6 +509,19 @@ export class Kopru {
     const ozet = ozetle(a);
     // Boş özet = `tik`. Beyin kanalına asla girmez (protocol/SOZLESME.md).
     if (!ozet) return;
+
+    // ANLIK BENLİK (spec 12): fail, benlik güncellenmeden ÖNCE okunur (onaylanan komutun
+    // sonucu "ortak"tır — sonucu kapatmadan bakılmalı); sonra benlik güncellenir — SÜZÜLEN
+    // algıdan da (onay bildirimi beyni uyandırmaz ama Orion bir şey beklediğini bilir).
+    // Gözlemdir: hatası algı yolunu kesmez.
+    try {
+      this._algiEdeni = eden(a, this._benlik.oku());
+      if (a.tur === "sonuc") this._benlik.sonucGeldi(a.sonuc);
+      else if (a.tur === "terminal") this._benlik.terminalBitti(terminalAyristir(a.kuyruk).komut, a.kod);
+    } catch (err) {
+      this._algiEdeni = undefined;
+      console.error("[BENLIK] guncellenemedi:", err);
+    }
 
     // REFLEKSİN KENDİ ADIMLARININ SONUCU (spec 10, Faz D; içgüdü `kopru.refleks`):
     // refleks okur, beyne gitmez. Refleks bittikten sonra gelen geç sonuç (onay
@@ -644,6 +680,7 @@ export class Kopru {
     }
     // Beceri gölgesi `algi()`de bir kez hesaplanır (kesin söz): yazılan ile yürütülen aynı nesne.
     if (beceriGolge !== undefined) ek.beceriGolge = beceriGolge;
+    if (this._algiEdeni) ek.eden = this._algiEdeni;
     const id = this._kayit.algi(a, ozet, kapi, ek);
     if (ek.isaret) {
       this._ogrenilebilir.set(id, ek.isaret);
@@ -732,7 +769,7 @@ export class Kopru {
     if (onay.ok) {
       const id = kimlik(REFLEKS_ONEKI);
       r.onay = niyetKaydi(id, onay.deger);
-      this._ayar.niyetGonder(onay.deger, id);
+      this._gonder(onay.deger, id);
       this._sayac.niyet++;
     }
     this._refleksAdimi();
@@ -754,7 +791,7 @@ export class Kopru {
     r.bekleyen = id;
     r.gonderilen.push(niyetKaydi(id, d.deger));
     r.zamanlayici = setTimeout(() => this._refleksBitir("zaman_asimi"), this._ayar.refleksZamanAsimiMs ?? REFLEKS_ZAMAN_ASIMI_MS);
-    this._ayar.niyetGonder(d.deger, id);
+    this._gonder(d.deger, id);
     this._sayac.niyet++;
   }
 
@@ -843,7 +880,7 @@ export class Kopru {
     if (onay.ok) {
       const id = kimlik("komut");
       onayKaydi = niyetKaydi(id, onay.deger);
-      this._ayar.niyetGonder(onay.deger, id);
+      this._gonder(onay.deger, id);
       this._sayac.niyet++;
     }
     this._kayit.program({ algi, program: p.program, ...(onayKaydi ? { onay: onayKaydi } : {}), niyetler });
@@ -875,6 +912,9 @@ export class Kopru {
   get hafiza(): Hafiza { return this._hafiza; }
   /** Devre panosu okuyucusu — dikkat ayarları ve sayaçları panelde görünsün. */
   get dikkat(): Dikkat { return this._dikkat; }
+
+  /** Anlık benlik (spec 12): birimler ve duvar karar anında `oku()` ile çeker. */
+  get benlik(): AnlikBenlik { return this._benlik; }
 
   /** Ajanda (mind/ajanda.ts) için: beyin şu an düşünüyorsa araya girme. */
   get dusunuyorMu(): boolean { return this._dusunuyor; }
@@ -916,6 +956,7 @@ export class Kopru {
     if (this._tampon.length === 0) return;
 
     this._dusunuyor = true;
+    this._benlik.dusunceBasladi(this._ayar.beyin.ad, this._zincirKokeni);
     const ozetler = this._tampon.splice(0);
     const algiIdleri = this._tamponIdleri.splice(0);
     this._sayac.dusunme++;
@@ -964,6 +1005,7 @@ export class Kopru {
       else if (this._turInisiyatif) this._zincirKokeni = "inisiyatif";
       this._turDis = this._turInisiyatif = false;
       uyanis.koken = this._zincirKokeni;
+      this._benlik.dusunceBasladi(this._ayar.beyin.ad, this._zincirKokeni);
       // HAREKET ZİNCİRİ (içgüdü `kopru.hareket_sessiz`): kök tur yalnız Ozyn'in
       // hareketiyse zincir sessizdir; takip turu (bakış cevabı, sonuç) devralır.
       if (turler.has("duydum") || turler.has("terminal") || turler.has("olay")) {
@@ -1141,6 +1183,7 @@ export class Kopru {
     } finally {
       this._kayit.uyanis(uyanis);
       this._dusunuyor = false;
+      this._benlik.dusunceBitti();
       if (this._tekrarGerek) {
         this._tekrarGerek = false;
         this._gecikmeliDusun();
@@ -1184,7 +1227,7 @@ export class Kopru {
     // Gövdesiyle (spec 10, Faz A): beceri refleksi görevin nasıl yapıldığını buradan öğrenir.
     uyanis.niyetler.push(niyetKaydi(id, n));
     this._sayac.niyet++;
-    if (SOZ_NIYETLERI.has(n.tur)) { this._ayar.niyetGonder(n, id); return; }
+    if (SOZ_NIYETLERI.has(n.tur)) { this._gonder(n, id); return; }
     // Beden niyeti geçmişe ARAÇ olarak girer (spec 13): model "komut → eylem" görsün.
     const { tur: nt, ...girdi } = n;
     this._gecmis.push({ rol: "orion", metin: "", arac: true, cagri: { ad: `dunya_${nt}`, girdi } });
@@ -1197,7 +1240,7 @@ export class Kopru {
     const [ilk, ...kalan] = adimlar;
     if (!ilk) return;
     this._siraKes("yeni tur");
-    if (!kalan.length) { this._ayar.niyetGonder(ilk.niyet, ilk.id); return; }
+    if (!kalan.length) { this._gonder(ilk.niyet, ilk.id); return; }
     console.log(`[kopru] eylem sirasi: ${adimlar.map((a) => a.niyet.tur).join(" → ")}`);
     this._sira = { kalan, bekleyen: null, zamanlayici: null };
     this._siraGonder(ilk);
@@ -1209,7 +1252,7 @@ export class Kopru {
     if (!r) return;
     r.bekleyen = adim.id;
     r.zamanlayici = setTimeout(() => this._siraKes("zaman aşımı"), this._ayar.refleksZamanAsimiMs ?? REFLEKS_ZAMAN_ASIMI_MS);
-    this._ayar.niyetGonder(adim.niyet, adim.id);
+    this._gonder(adim.niyet, adim.id);
   }
 
   /** Bekleyen adımın sonucu: `bitti` sırayı ilerletir, `hata`/`iptal` keser. */

@@ -43,6 +43,7 @@ import type { Niyet, NiyetSonucu, NiyetTur } from "../protocol/niyet.ts";
 import { kimlik } from "../protocol/temel.ts";
 import type { IcguduKimligi } from "./icgudu.ts";
 import type { KapiYonu } from "./kuralHafizasi.ts";
+import type { Eden } from "./benlik.ts";
 
 /** Satır öneki. Host bu öneki arar — kopyası host/kararDosyasi.js'te, eşitliği testli. */
 export const KARAR_ONEKI = "[KARAR]";
@@ -81,6 +82,11 @@ export interface AlgiSatiri {
    * arayüz değildir, ayrıştırılmaz.
    */
   soz?: { metin: string; kesin: boolean };
+  /**
+   * KİM YAPTI (spec 12 Faz 2, ALGI merceği, mind/benlik.ts `eden`): ben · ozyn · ortak ·
+   * dunya. Kapı kararı değil, etiket. Algı geldiği ANDAKİ benlikten hesaplanır.
+   */
+  eden?: Eden;
   kapi: KapiKarari;
   /**
    * Öğrenen kapının gördüğü DURUM KODU (mind/durumKodu.ts). Yalnızca kararı
@@ -281,6 +287,7 @@ export interface AlgiEki {
   isaret?: string[];
   golge?: GolgeKarari | null;
   beceriGolge?: BeceriGolgesi | null;
+  eden?: Eden;
 }
 
 /** Uyanış satırında köprünün doldurduğu alanlar (kimlik ve zaman kayıttan gelir). */
@@ -355,6 +362,7 @@ export class KararKaydi {
     if (ek.isaret) satir.isaret = ek.isaret;
     if (ek.golge !== undefined) satir.golge = ek.golge;
     if (ek.beceriGolge !== undefined) satir.beceriGolge = ek.beceriGolge;
+    if (ek.eden) satir.eden = ek.eden;
     switch (a.tur) {
       case "terminal":
         if (a.kod !== undefined) satir.kod = a.kod;

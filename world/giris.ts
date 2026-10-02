@@ -80,6 +80,7 @@ import { MetinGirdi } from "../voice/metin-girdi.ts";
 import { ikiCumleyeKisalt } from "../voice/kisalt.ts";
 import { Ajanda } from "../mind/ajanda.ts";
 import { gozlemAnisiMi } from "../mind/hafiza.ts";
+import { mesgulMu, izdusum } from "../mind/benlik.ts";
 import { odadaSure, sessizlikSozu, gununVakti } from "../mind/zaman.ts";
 import { depoYukle } from "../mind/hafizaGocu.ts";
 import { GucButcesi, Inisiyatif } from "../mind/inisiyatif.ts";
@@ -795,10 +796,12 @@ saat.dinle((t, dt) => {
   if (orion) {
     const d = oyuncu.oyuncuDurumu();
     const a = orion.durum();
+    // MEŞGUL — TEK KAYNAK (spec 12 B5): Orion'un kendi durumu anlık benlikten
+    // (`mesgulMu`: düşünüyor ∨ yürüyor/koşuyor); "Ozyn monitörde" Ozyn'in durumu, ayrı
+    // eklenir. Eski ifadeyle her kombinasyonda eşdeğer (mind/benlik.test.ts).
     const mesgul =
       d.etkilesim === "monitor" ||
-      (kopru?.dusunuyorMu ?? false) ||
-      a.poz === "yürüyor" || a.poz === "koşuyor";
+      (kopru ? mesgulMu(kopru.benlik.oku()).mesgul : (a.poz === "yürüyor" || a.poz === "koşuyor"));
     // GÜÇ: gövdenin GERÇEK hızıyla (Faz 2'den beri komut edilen değil) ve
     // tamamlanan beyin turlarıyla harcanır, dinlenince dolar.
     gucButcesi.tikle(dt, a.hiz ?? 0);
@@ -1663,6 +1666,11 @@ function beyniBagla(a: Avatar): void {
     // DOĞUŞTAN KOMUT PROGRAMLARI (spec 13 Faz 2b): elle açılışta AÇIK (Ozyn: "ölçüm geçince
     // açık"; gerçek sözlerde yanlış eşleşme 0). Senaryolarda (`sessiz=1`) KAPALI: `tahtadene`,
     // `becerdene` LLM'in ve becerinin yolunu ölçer, program onları değiştirmesin. `?komut=0|1` zorlar.
+    // ANLIK BENLİK (spec 12): gövde karar anında ÇEKİLİR.
+    bedenDurumu: () => {
+      const d = orion?.durum();
+      return d ? { poz: d.poz, oturuyor: d.oturuyor_mu } : null;
+    },
     komutYetkisi: (() => {
       const q = new URLSearchParams(location.search);
       return q.has("komut") ? q.get("komut") !== "0" : !q.has("sessiz");
@@ -2780,6 +2788,50 @@ if (new URLSearchParams(location.search).has("senaryodene")) {
     console.log(`[SENARYODENE] rakipZorla=${rakipZorla} konum=${k.x.toFixed(1)},${k.z.toFixed(1)} `
       + `kesilen=${kesilenler.length ? kesilenler.join(",") : "yok"}`);
     console.log(`[SENARYODENE] ${tahtada ? "GECTI" : "KALDI"} senaryonun git'i tamamlandi`);
+  })();
+}
+
+// ── ANLIK BENLİK denemesi (?benlikdene=1, spec 12 Faz 1 / spec 13 Faz 4) ────
+// Önerinin yaşam döngüsü benlikte DOĞRU SIRAYLA görünüyor mu — gerçek onay kapısı,
+// gerçek pty, gerçek terminal algısı, gerçek `sonuc` yoluyla: önerildi → onay bekleniyor
+// → onaylandı (bildirim SÜZÜLÜR ama benlik güncellenir) → sonuç bekleniyor → terminal
+// bloğu → kapandı. Önerinin girişi köprünün `_gonder`inin yaptığı iki çağrıdır
+// (benliğe yaz + `niyetiYurut`): LLM'in hangi komutu önereceği bu denemenin konusu değil.
+if (new URLSearchParams(location.search).has("benlikdene")) {
+  void (async () => {
+    const bekle = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    const sonuc: string[] = [];
+    const kontrol = (ad: string, gecti: boolean, detay = "") =>
+      sonuc.push(`${gecti ? "GECTI" : "KALDI"}  ${ad}${detay ? "  " + detay : ""}`);
+    await bekle(1800);
+    const kp = kopru as Kopru | null;
+    if (!kp) { console.log("[BENLIKDENE] KALDI köprü yok"); return; }
+    await monitoreGec();
+    await bekle(1800);
+
+    const id = kimlik("n");
+    const komut: Niyet = { tur: "komut", metin: "echo BENLIK_DENEMESI", gerekce: "benlik denemesi" };
+    kp.benlik.niyetGonderildi(id, komut, "ben");
+    niyetiYurut(komut, id);
+    await bekle(600);
+    const b1 = kp.benlik.oku();
+    console.log(`[BENLIKDENE] izdüşüm: ${izdusum(b1)}`);
+    kontrol("1 önerildi → ONAY bekleniyor", b1.bekliyorum?.ne === "onay", JSON.stringify(b1.bekliyorum));
+
+    onayKarari(true);
+    await bekle(400);
+    const b2 = kp.benlik.oku();
+    kontrol("2 onaylandı → SONUÇ bekleniyor (bildirim süzülse de)", b2.bekliyorum?.ne === "komut_sonucu",
+      JSON.stringify(b2.bekliyorum));
+
+    await bekle(4000);
+    const b3 = kp.benlik.oku();
+    kontrol("3 terminal bloğu → kapandı, son niyet 'bitti'",
+      b3.bekliyorum === null && b3.son.bitenNiyet?.durum === "bitti" && (b3.son.bitenNiyet?.ozet ?? "").includes("BENLIK_DENEMESI"),
+      JSON.stringify(b3.son.bitenNiyet));
+
+    for (const r of sonuc) console.log("[BENLIKDENE] " + r);
+    console.log("[BENLIKDENE] ozet: " + sonuc.filter((r) => r.startsWith("GECTI")).length + "/" + sonuc.length);
   })();
 }
 
