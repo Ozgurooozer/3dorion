@@ -71,3 +71,16 @@ test("isit: modeli boş istemle yükler, fırlatmaz", async () => {
   try { assert.equal(await new OllamaBeyni().isit(), false); }
   finally { globalThis.fetch = eski; }
 });
+
+test("GERÇEK (2026-10-02): zaman aşımı ham 'signal is aborted' değil, süreyle söylenir", async () => {
+  const eski = globalThis.fetch;
+  // Sinyal düşünce fetch'in yaptığı gibi AbortError fırlatan sahte sunucu.
+  globalThis.fetch = ((_u: string | URL, o?: RequestInit) => new Promise((_coz, ret) => {
+    o?.signal?.addEventListener("abort", () => ret(Object.assign(new Error("signal is aborted without reason"), { name: "AbortError" })));
+  })) as typeof fetch;
+  try {
+    await assert.rejects(new OllamaBeyni({ model: "x:1b", zamanAsimiMs: 20 }).dusun(GIRDI), /yerel model 0 sn icinde cevap vermedi/);
+  } finally {
+    globalThis.fetch = eski;
+  }
+});

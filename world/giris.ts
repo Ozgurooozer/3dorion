@@ -56,7 +56,8 @@ import {
 import { DUGUMLER } from "./surfaces/semaCekirdek.ts";
 import { TAHTA, GUNLUK, SEMA, GOZ_YUKSEKLIK } from "./level/olculer.ts";
 import { niyetDogrula } from "../protocol/dogrula.ts";
-import type { Niyet } from "../protocol/niyet.ts";
+import type { Niyet, NiyetSonucu } from "../protocol/niyet.ts";
+import { bilgisayariAc } from "./bilgisayar.ts";
 import { ozetle, type Algi } from "../protocol/algi.ts";
 import { varlik } from "./varlik.ts";
 import { Kopru } from "../bridge/kopru.ts";
@@ -600,9 +601,62 @@ function niyetiYurut(n: Niyet, id: string): void {
     return;
   }
 
+  // `odaklan` (spec 13 Faz 2a): eskiden avatara gidiyor ve "avatarın işi değil" diye
+  // reddediliyordu (ortak test 2: Orion üç kez doğru aracı seçti, hiçbiri yürümedi).
+  if (n.tur === "odaklan") { odaklanYurut(n, id); return; }
+
   // Beden gerçekten harekete geçti: şemanın son durağı.
   sema.vur("beden", n.tur);
   orion?.niyet(n, id);
+}
+
+/**
+ * `odaklan`: monitör = "bilgisayarı aç" programı (world/bilgisayar.ts) — sandalyeye otur,
+ * terminali aç, Ozyn'in kamerasına dokunma. Başka bir yüzey = oraya yürü. Sonuç `id` ile
+ * köprüye döner: eylem sırası (bridge/kopru.ts) onu bekler.
+ */
+function odaklanYurut(n: Extract<Niyet, { tur: "odaklan" }>, id: string): void {
+  if (n.capa !== "monitor") {
+    sema.vur("beden", `odaklan → ${n.capa}`);
+    orion?.niyet({ tur: "git", hedef: { tip: "capa", ad: n.capa } }, id);
+    return;
+  }
+  sema.vur("beden", "bilgisayar");
+  void bilgisayariAc({
+    oturuyorMu: () => orion?.durum().oturuyor_mu ?? false,
+    otur: () => bedenAdimi({ tur: "otur" }),
+    monitorAcikMi: () => monitor.acikMi(),
+    monitorAc: () => monitor.ac(),
+  }).then((s) => {
+    console.log(`[BILGISAYAR] ${s.durum}: ${s.not}`);
+    gunluk.ekle(s.durum === "bitti" ? "iyi" : "uyari", "beden",
+      s.durum === "bitti" ? "Orion bilgisayarı açtı" : `bilgisayar açılamadı: ${s.not}`);
+    kopru?.sonuc({ niyet_id: id, durum: s.durum, not: s.not });
+  });
+}
+
+/**
+ * Bir programın ara adımı: niyeti avatara verir, sonucu (bitti/hata/iptal) gelince çözülür.
+ * Dinleyici GÖNDERMEDEN önce kurulur: avatar sonucu senkron da verebilir. Kimlik öneki
+ * `program`: köprü bu adımı kendi sırası sanmaz.
+ */
+function bedenAdimi(n: Niyet, sinirMs = 30_000): Promise<NiyetSonucu> {
+  const id = kimlik("program");
+  return new Promise((coz) => {
+    const o = orion;
+    if (!o) { coz({ niyet_id: id, durum: "hata", not: "beden henüz yüklenmedi" }); return; }
+    let bitti = false;
+    const bitir = (s: NiyetSonucu): void => {
+      if (bitti) return;
+      bitti = true;
+      clearTimeout(saat);
+      cik();
+      coz(s);
+    };
+    const cik = o.sonucDinle((s) => { if (s.niyet_id === id && s.durum !== "basladi") bitir(s); });
+    const saat = setTimeout(() => bitir({ niyet_id: id, durum: "hata", not: "zaman aşımı" }), sinirMs);
+    o.niyet(n, id);
+  });
 }
 
 /** Davranis olcumu acikken kayit defterine erisim (yoksa null). */
@@ -1269,6 +1323,9 @@ function dunyaDurumuMetni(): string {
       : "",
     `Ozyn is ${o.mesafe?.toFixed?.(1) ?? "?"}m away${o.bakiyor ? ", looking at you" : ""}.`,
     o.etkilesim === "monitor" ? "Ozyn is working on your monitor." : "",
+    // Spec 13 Faz 2a: Orion bilgisayarın başında ve terminal açıksa bunu BİLSİN — yoksa
+    // "bilgisayarı aç" sonrası komut önermek yerine yeniden açmaya çalışır.
+    a?.oturuyor_mu && monitor.acikMi() ? "You are seated at your desk and your terminal is open (PowerShell)." : "",
     // ZAMAN — bir varlığın olmazsa olmazı. Bunlar olmadan Orion her turu
     // zamansız bir "şimdi" içinde yaşıyor: ne gün ilerliyor, ne sessizlik
     // birikiyor, ne de "sabahtan beri buradayım" diyebiliyor.

@@ -54,7 +54,11 @@ export class OllamaBeyni implements Beyin {
   constructor(ayar: OllamaAyari = {}) {
     this.ad = ayar.model ?? "qwen2.5:7b";
     this._adres = (ayar.adres ?? OLLAMA_VARSAYILAN_ADRES).replace(/\/+$/, "");
-    this._zamanAsimi = ayar.zamanAsimiMs ?? 20_000;
+    // 60 sn (spec 13): ortak testte (2026-10-02) ilk cümle 20 sn'de "signal is aborted"
+    // ile düştü — soğuk ornith-32k (6,3 GB) diskten yüklenirken. Aynı oturumda ısınmış
+    // modelle 45 uyanışın en uzunu 8,5 sn'ydi [ÖLÇÜLDÜ, karar kaydı]; tavan yalnız soğuk
+    // yüklemeyi kapsamak için yükseltildi.
+    this._zamanAsimi = ayar.zamanAsimiMs ?? 60_000;
     this._sicaklik = ayar.sicaklik ?? 0.6;
     this._yetenekler = ayar.yetenekler ?? null;
     this._sicakTut = ayar.sicakTut ?? "30m";
@@ -175,6 +179,13 @@ ${girdi.sabit}` : (girdi.talimat ?? TEMEL_TALIMAT) },
           token: (d.eval_count ?? 0) + (d.prompt_eval_count ?? 0),
         },
       };
+    } catch (err) {
+      // Chromium'un ham mesajı "signal is aborted without reason" — odada hiçbir şey
+      // anlatmıyordu (ortak test 2026-10-02). Süreyi ve olası sebebi söyle.
+      if ((err as Error)?.name === "AbortError") {
+        throw new Error(`yerel model ${Math.round(this._zamanAsimi / 1000)} sn icinde cevap vermedi (model yukleniyor olabilir)`);
+      }
+      throw err;
     } finally {
       clearTimeout(saat);
     }
