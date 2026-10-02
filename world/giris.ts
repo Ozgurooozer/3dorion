@@ -1623,8 +1623,15 @@ function beyniBagla(a: Avatar): void {
   // CANLI SATIR: Orion'un şu anki hâli (anlık benlikten), 4 Hz; değişmediyse çizilmez.
   setInterval(() => {
     if (!kopru) return;
-    const d = durumSatiri(kopru.benlik.oku());
+    const b = kopru.benlik.oku();
+    const d = durumSatiri(b);
     gunluk.canli(gunlukBicim.elenen ? `${d.metin}  · elenen algı ${gunlukBicim.elenen}` : d.metin, d.ton);
+    // ŞEMA (spec 12 §4.5'in sade hâli): DÜŞÜNCE hapında canlı saniye, alt şeritte BENLİK
+    // satırı. Devre kesikken alt şerit kesiğin mesajında kalır (o daha önemli).
+    if (b.dusunce.uyanik) {
+      sema.not("beyin", `${kisaAd(b.dusunce.beyin)} · düşünüyor ${((b.an - b.dusunce.basladi) / 1000).toFixed(1).replace(".", ",")} sn`);
+    }
+    if (kesikSn() === 0) sema.durumYaz(`benlik · ${d.metin}`);
   }, 250);
   kopru = new Kopru({
     kararKaydi,
