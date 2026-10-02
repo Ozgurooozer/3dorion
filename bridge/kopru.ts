@@ -28,6 +28,7 @@ import { Hafiza, kuralOnemi, type AniTuru } from "../mind/hafiza.ts";
 import { calismaBellegiKur, type CalismaBellegi } from "../mind/calismaBellegi.ts";
 import { oncesiSozu } from "../mind/zaman.ts";
 import { sozEylemUcurumu } from "../mind/sozEylem.ts";
+import { ingilizceMi } from "../mind/dilSecimi.ts";
 import { komutCoz, type KomutEslesmesi } from "../mind/komutSozlugu.ts";
 import { AnlikBenlik, eden, type BedenOkumasi, type Eden } from "../mind/benlik.ts";
 import { terminalAyristir } from "../mind/durumKodu.ts";
@@ -1084,6 +1085,10 @@ export class Kopru {
       }
 
       const tur: TurCiktisi = { sessiz, sozler: [], icSes: [], beden: [] };
+      // Düşünen API modelinin ayrı gelen akıl yürütmesi (`reasoning_content`, bridge/apiBeyni.ts)
+      // İÇ SESTİR: sesli okunmaz, geçmişe girmez, duvarda görünür (spec 13 Faz 5).
+      const akil = cikti.bilgi?.["dusunce"];
+      if (typeof akil === "string" && akil.trim()) tur.icSes.push(akil.trim());
       // Araç ÇAĞIRDIYSA düz metin eyleme eşlik eden iç düşüncedir.
       if (cikti.metin && cikti.cagrilar.length > 0) tur.icSes.push(cikti.metin);
 
@@ -1133,8 +1138,10 @@ export class Kopru {
           this._niyetiIsle(d.deger, uyanis, tur);
         }
 
-        if (konusulabilir && sessiz && this._sozuGecir(konusulabilir)) {
-          // Hareket zinciri: kurtarılan cümle de iç seste kalır.
+        if (konusulabilir && (sessiz || ingilizceMi(konusulabilir)) && this._sozuGecir(konusulabilir)) {
+          // Hareket zinciri: kurtarılan cümle de iç seste kalır. İngilizce düz metin de
+          // (Ozyn'in testi, 2026-10-02: lfm25-tb'nin "I see the user is asking…" iç
+          // monoloğu sesli okundu): Orion'un sesi Türkçedir, İngilizce çerçevenin dilidir.
           tur.icSes.push(konusulabilir);
         } else if (konusulabilir && this._konusmaDinleyiciler.size && this._sozuGecir(konusulabilir)) {
           const metin = konusulabilir.slice(0, 400);

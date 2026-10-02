@@ -61,7 +61,8 @@ import { bilgisayariAc } from "./bilgisayar.ts";
 import { ozetle, type Algi } from "../protocol/algi.ts";
 import { varlik } from "./varlik.ts";
 import { Kopru } from "../bridge/kopru.ts";
-import type { KararSatiri, OgretimSatiri } from "../mind/kararKaydi.ts";
+import { KararKaydi, type KararSatiri, type OgretimSatiri } from "../mind/kararKaydi.ts";
+import { gunlukBicimleyiciKur } from "../mind/gunlukSatirlari.ts";
 import { GOREV_SATIRLARI } from "../mind/gorev.ts";
 import { OpenCodeBeyni } from "../bridge/opencode.ts";
 import { DisBeyin } from "../bridge/disBeyin.ts";
@@ -80,7 +81,7 @@ import { MetinGirdi } from "../voice/metin-girdi.ts";
 import { ikiCumleyeKisalt } from "../voice/kisalt.ts";
 import { Ajanda } from "../mind/ajanda.ts";
 import { gozlemAnisiMi } from "../mind/hafiza.ts";
-import { mesgulMu, izdusum } from "../mind/benlik.ts";
+import { mesgulMu, izdusum, durumSatiri } from "../mind/benlik.ts";
 import { odadaSure, sessizlikSozu, gununVakti } from "../mind/zaman.ts";
 import { depoYukle } from "../mind/hafizaGocu.ts";
 import { GucButcesi, Inisiyatif } from "../mind/inisiyatif.ts";
@@ -1605,7 +1606,26 @@ function beyniBagla(a: Avatar): void {
       sema.durumYaz(`düşünce kapalı — ${kalan} sn sonra yeniden denenecek`);
     }
   }, 1000);
+  // ZİHİN AKIŞI GÜNLÜĞE (spec 13 Faz 5): karar kaydı burada kurulup köprüye verilir
+  // (köprünün kendi kurduğunun aynısı: konsola `[KARAR]`, host dosyaya yazar) ve canlı
+  // akışı günlüğe Türkçe satır olarak düşer — neyin uyandırdığı, hangi kural, kim, ne
+  // kadar, ne seçildi. Yalnız gözlem: kayıt ve köprü davranışı değişmez.
+  const kararKaydi = new KararKaydi();
+  const gunlukBicim = gunlukBicimleyiciKur();
+  kararKaydi.dinle((s) => {
+    try {
+      const g = gunlukBicim.satir(s);
+      if (g) gunluk.ekle(g.seviye, g.kaynak, g.metin);
+    } catch (err) { console.error("[GUNLUK] kayit satiri bicimlenemedi:", err); }
+  });
+  // CANLI SATIR: Orion'un şu anki hâli (anlık benlikten), 4 Hz; değişmediyse çizilmez.
+  setInterval(() => {
+    if (!kopru) return;
+    const d = durumSatiri(kopru.benlik.oku());
+    gunluk.canli(gunlukBicim.elenen ? `${d.metin}  · elenen algı ${gunlukBicim.elenen}` : d.metin, d.ton);
+  }, 250);
   kopru = new Kopru({
+    kararKaydi,
     // Dikkat'in yazılabilir ayarları TELDEN gelir: karar yolu ile devre
     // panosu artık aynı nesneyi okur.
     dikkat: {

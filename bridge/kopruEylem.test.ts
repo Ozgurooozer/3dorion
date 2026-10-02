@@ -153,6 +153,28 @@ test("GERÇEK: hareket turunda araçsız düz metin de konuşulmaz", async () =>
   assert.deepEqual({ sozler, icSesler }, { sozler: [], icSesler: ["Ozyn yaklaştı. Bekliyorum."] });
 });
 
+test("GERÇEK (Ozyn'in testi): konuşma turunda araçsız İNGİLİZCE iç monolog sesli okunmaz, iç seste kalır", async () => {
+  const metin = "I see the user is asking me to respond. The previous context shows I was just looking at the monitor.";
+  const { k, sozler, icSesler } = kur(new SahteBeyin({ metin, cagrilar: [] }));
+  soyle(k, "hello");
+  await bekle(60);
+  assert.deepEqual({ sozler, icSesler }, { sozler: [], icSesler: [metin] });
+});
+
+test("düşünen API modelinin akıl yürütmesi (bilgi.dusunce) iç seste görünür, sesli okunmaz", async () => {
+  const { k, sozler, icSesler } = kur(new SahteBeyin({ metin: "", cagrilar: [cagri("dunya_otur")], bilgi: { dusunce: "Ozyn oturmamı istiyor." } }));
+  soyle(k, "otur");
+  await bekle(60);
+  assert.deepEqual({ sozler, icSesler }, { sozler: [], icSesler: ["Ozyn oturmamı istiyor."] });
+});
+
+test("konuşma turunda araçsız TÜRKÇE cevap yine sesli okunur (kurtarma bozulmadı)", async () => {
+  const { k, sozler } = kur(new SahteBeyin({ metin: "Buradayım Ozyn.", cagrilar: [] }));
+  soyle(k, "orada mısın");
+  await bekle(60);
+  assert.deepEqual(sozler, ["Buradayım Ozyn."]);
+});
+
 test("hareket turunda beden niyeti yine gider (bakmak, el sallamak)", async () => {
   const { k, turler } = kur(new SahteBeyin(cevap(cagri("dunya_jest", { jest: "el_salliyor" }), cagri("dunya_soyle", { metin: "Merhaba." }))));
   k.algi({ tur: "olay", ad: "ozyn_yaklasti" });

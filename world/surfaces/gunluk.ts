@@ -26,6 +26,12 @@ export interface GunlukAyari {
 export interface GunlukEkrani {
   /** Yeni olay yaz. En yeni altta görünür. */
   ekle(seviye: Seviye, kaynak: string, metin: string): void;
+  /**
+   * CANLI SATIR (spec 13 Faz 5): başlığın altında Orion'un ŞU ANKİ hâli — düşünüyorsa
+   * saniye sayacı ve model, değilse ne yaptığı ve ne beklediği. Tarih değil durum: her
+   * çağrı öncekinin üzerine yazar. Boş metin satırı gizler.
+   */
+  canli(metin: string, ton?: Seviye): void;
   /** Ekrandaki satırlar — ölçüm ve deneme için. */
   satirlar(): string[];
   temizle(): void;
@@ -52,6 +58,8 @@ export function gunlukKur(ayar: GunlukAyari): GunlukEkrani {
   let yuzey: Yuzey;
   let sutun = 40;          // ilk çizimde gerçek ölçüden yeniden hesaplanır
   let sonSatirlar: string[] = [];
+  let canliMetin = "";
+  let canliTon: Seviye = "bilgi";
 
   function ciz(bag: CanvasRenderingContext2D, o: YuzeyOlcusu): void {
     zeminDoldur(bag, o, RENK.ekranZemin);
@@ -82,8 +90,29 @@ export function gunlukKur(ayar: GunlukAyari): GunlukEkrani {
     bag.beginPath();
     bag.moveTo(0, basYuk); bag.lineTo(o.genislik, basYuk); bag.stroke();
 
+    // ── Canlı satır: şu anki hâl (tarih değil) ──────────────────────────
+    const canliYuk = canliMetin ? Math.round(o.yukseklik * 0.085) : 0;
+    if (canliMetin) {
+      bag.fillStyle = "#0a1018";
+      bag.fillRect(0, basYuk, o.genislik, canliYuk);
+      bag.fillStyle = SEVIYE_RENK[canliTon];
+      bag.font = `600 ${Math.round(canliYuk * 0.5)}px ${YAZI.tek}`;
+      bag.textAlign = "left";
+      bag.textBaseline = "middle";
+      const sigdir = (m: string): string => {
+        const sinir = o.genislik - kenar * 2;
+        if (bag.measureText(m).width <= sinir) return m;
+        let k = m;
+        while (k.length > 4 && bag.measureText(k + "…").width > sinir) k = k.slice(0, -1);
+        return k + "…";
+      };
+      bag.fillText(sigdir(canliMetin), kenar, basYuk + canliYuk / 2);
+      bag.strokeStyle = RENK.cerceve;
+      bag.beginPath(); bag.moveTo(0, basYuk + canliYuk); bag.lineTo(o.genislik, basYuk + canliYuk); bag.stroke();
+    }
+
     // ── Satırlar ─────────────────────────────────────────────────────────
-    const alan = o.yukseklik - basYuk - kenar;
+    const alan = o.yukseklik - basYuk - canliYuk - kenar;
     const satirYuk = alan / SATIR;
     const punto = Math.max(9, Math.round(satirYuk * 0.66));
     bag.font = `${punto}px ${YAZI.tek}`;
@@ -118,7 +147,7 @@ export function gunlukKur(ayar: GunlukAyari): GunlukEkrani {
     if (gorunum.length === 0) {
       bag.fillStyle = RENK.soluk;
       bag.font = `${punto}px ${YAZI.duz}`;
-      bag.fillText("— henüz olay yok —", kenar, basYuk + alan / 2);
+      bag.fillText("— henüz olay yok —", kenar, basYuk + canliYuk + alan / 2);
     }
   }
 
@@ -140,7 +169,14 @@ export function gunlukKur(ayar: GunlukAyari): GunlukEkrani {
       cekirdek.ekle({ ts: Date.now(), seviye, kaynak, metin: temiz });
       yuzey.kirlet();
     },
-    satirlar: () => [...sonSatirlar],
+    canli(metin, ton = "bilgi") {
+      const m = metin.replace(/\s+/g, " ").trim();
+      if (m === canliMetin && ton === canliTon) return;   // değişmediyse yeniden çizme
+      canliMetin = m;
+      canliTon = ton;
+      yuzey.kirlet();
+    },
+    satirlar: () => [...(canliMetin ? [`[şimdi] ${canliMetin}`] : []), ...sonSatirlar],
     temizle() { cekirdek.temizle(); yuzey.kirlet(); },
     yokEt() { yuzey.yokEt(); },
   };

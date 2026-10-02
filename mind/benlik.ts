@@ -39,7 +39,8 @@ export interface BenlikGoruntusu {
   beden: BedenOkumasi | null;
   yapiyorum: readonly SurenNiyet[];
   bekliyorum: Bekleme | null;
-  dusunce: { uyanik: boolean; beyin: string; koken: "dis" | "inisiyatif" };
+  /** `basladi`: bu düşünme turunun başlangıcı (uyanık değilse son turunki). */
+  dusunce: { uyanik: boolean; beyin: string; koken: "dis" | "inisiyatif"; basladi: number };
   son: { soz?: { metin: string; an: number }; bitenNiyet?: BitenNiyet };
 }
 
@@ -69,7 +70,7 @@ export class AnlikBenlik {
   private _beden: () => BedenOkumasi | null;
   private _yapiyorum = new Map<string, SurenNiyet>();
   private _bekliyorum: Bekleme | null = null;
-  private _dusunce: BenlikGoruntusu["dusunce"] = { uyanik: false, beyin: "", koken: "dis" };
+  private _dusunce: BenlikGoruntusu["dusunce"] = { uyanik: false, beyin: "", koken: "dis", basladi: 0 };
   private _son: BenlikGoruntusu["son"] = {};
 
   constructor(a: { simdi?: () => number; beden?: () => BedenOkumasi | null } = {}) {
@@ -122,7 +123,11 @@ export class AnlikBenlik {
       ...(kod !== undefined ? { not: `çıkış kodu ${kod}` } : {}) };
   }
 
-  dusunceBasladi(beyin: string, koken: "dis" | "inisiyatif"): void { this._dusunce = { uyanik: true, beyin, koken }; }
+  /** Aynı tur içinde ikinci çağrı (köken belli olunca) başlangıç anını DEĞİŞTİRMEZ. */
+  dusunceBasladi(beyin: string, koken: "dis" | "inisiyatif"): void {
+    const basladi = this._dusunce.uyanik ? this._dusunce.basladi : this._simdi();
+    this._dusunce = { uyanik: true, beyin, koken, basladi };
+  }
   dusunceBitti(): void { this._dusunce = { ...this._dusunce, uyanik: false }; }
   soyledi(metin: string): void { this._son.soz = { metin, an: this._simdi() }; }
 
@@ -220,4 +225,32 @@ export function eden(a: Algi, b: BenlikGoruntusu): Eden {
     }
     default: return "dunya";
   }
+}
+
+/** Saniye, Türkçe ondalıkla: 3,2 sn. */
+function sn(ms: number): string {
+  return `${(Math.max(0, ms) / 1000).toFixed(1).replace(".", ",")} sn`;
+}
+
+/**
+ * Zihin duvarı günlüğünün CANLI SATIRI (spec 13 Faz 5): Orion'un ŞU ANKİ hâli, Türkçe.
+ * Düşünüyorsa saniye sayacı ve model; değilse yaptığı ve beklediği; hiçbiri yoksa boşta
+ * ve son biten iş. Ton: düşünüyor = uyari (amber), iş yapıyor/bekliyor = iyi, boşta = bilgi.
+ */
+export function durumSatiri(b: BenlikGoruntusu): { metin: string; ton: "bilgi" | "iyi" | "uyari" } {
+  const parca: string[] = [];
+  for (const y of b.yapiyorum) parca.push(`▶ ${y.ozet} (${sn(b.an - y.basladi)})`);
+  if (b.bekliyorum) {
+    const ne = b.bekliyorum.ozet.replace(/^komut /, "");
+    parca.push(b.bekliyorum.ne === "onay" ? `⏳ onayını bekliyor: ${ne} (${sn(b.an - b.bekliyorum.basladi)})`
+      : `⏳ sonucunu bekliyor: ${ne} (${sn(b.an - b.bekliyorum.basladi)})`);
+  }
+  if (b.dusunce.uyanik) {
+    const kim = b.dusunce.beyin.replace(/^(yerel|opencode|api):/, "");
+    return { metin: [`● düşünüyor ${sn(b.an - b.dusunce.basladi)} · ${kim}${b.dusunce.koken === "inisiyatif" ? " · kendiliğinden" : ""}`, ...parca].join("  "), ton: "uyari" };
+  }
+  if (parca.length) return { metin: parca.join("  "), ton: "iyi" };
+  const son = b.son.bitenNiyet;
+  const durum = son ? { bitti: "✓", hata: "✗", iptal: "⊘", bosa_cikti: "…" }[son.durum] : "";
+  return { metin: son ? `○ boşta · son: ${son.ozet} ${durum} (${sn(b.an - son.an)} önce)` : "○ boşta", ton: "bilgi" };
 }

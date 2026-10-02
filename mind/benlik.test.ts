@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { AnlikBenlik, mesgulMu, izdusum, eden, niyetOzeti, AZAMI_YAS, type BedenOkumasi } from "./benlik.ts";
+import { AnlikBenlik, mesgulMu, izdusum, eden, niyetOzeti, durumSatiri, AZAMI_YAS, type BedenOkumasi } from "./benlik.ts";
 
 function kur(beden: BedenOkumasi | null = { poz: "duruyor", oturuyor: false }) {
   let saat = 1_000_000;
@@ -188,4 +188,30 @@ test("niyet özetleri okunur", () => {
     niyetOzeti({ tur: "yaz", metin: "merhaba" }),
     niyetOzeti({ tur: "odaklan", capa: "monitor" }),
   ], ["git → Ozyn", 'yaz "merhaba"', "odaklan → monitor"]);
+});
+
+// ── Canlı satır (spec 13 Faz 5) ─────────────────────────────────────────────
+
+test("canlı satır: düşünürken saniye sayacı ve kısa model adı, amber", () => {
+  const { b, ilerle } = kur();
+  b.dusunceBasladi("yerel:ornith-32k:latest", "dis");
+  ilerle(3200);
+  b.dusunceBasladi("yerel:ornith-32k:latest", "dis");   // aynı tur: başlangıç değişmez
+  assert.deepEqual(durumSatiri(b.oku()), { metin: "● düşünüyor 3,2 sn · ornith-32k:latest", ton: "uyari" });
+});
+
+test("canlı satır: iş yaparken ve onay beklerken", () => {
+  const { b, ilerle } = kur();
+  b.niyetGonderildi("n_1", { tur: "git", hedef: { tip: "capa", ad: "tahta" } });
+  b.niyetGonderildi("n_k", { tur: "komut", metin: "git status", gerekce: "-" });
+  ilerle(2000);
+  assert.deepEqual(durumSatiri(b.oku()), { metin: "▶ git → tahta (2,0 sn)  ⏳ onayını bekliyor: `git status` (2,0 sn)", ton: "iyi" });
+});
+
+test("canlı satır: boşta, son biten işiyle", () => {
+  const { b, ilerle } = kur();
+  b.niyetGonderildi("n_1", { tur: "otur" });
+  b.sonucGeldi({ niyet_id: "n_1", durum: "bitti" });
+  ilerle(5000);
+  assert.deepEqual(durumSatiri(b.oku()), { metin: "○ boşta · son: otur ✓ (5,0 sn önce)", ton: "bilgi" });
 });
