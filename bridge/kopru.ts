@@ -24,7 +24,7 @@ import { ICGUDULER, dikkatKurali, type IcguduKimligi } from "../mind/icgudu.ts";
 import { durumKodu, niyetKaynagi, type KapiBaglami } from "../mind/durumKodu.ts";
 import type { KuralHafizasi, KapiYonu } from "../mind/kuralHafizasi.ts";
 import { deneyimKimligi, kuralHafizasiKur, ogretimAnahtari } from "../mind/ogretim.ts";
-import { Hafiza, kuralOnemi, type AniTuru } from "../mind/hafiza.ts";
+import { Hafiza, kuralOnemi, type AniTuru, type Ani, type GetirSonucu } from "../mind/hafiza.ts";
 import { calismaBellegiKur, type CalismaBellegi } from "../mind/calismaBellegi.ts";
 import { oncesiSozu } from "../mind/zaman.ts";
 import { sozEylemUcurumu } from "../mind/sozEylem.ts";
@@ -367,6 +367,8 @@ export class Kopru {
   private _sira: EylemSirasi | null = null;
   /** ANLIK BENLİK (spec 12, mind/benlik.ts): "şu an ne yapıyorum, neyi bekliyorum". Diske gitmez. */
   private _benlik: AnlikBenlik;
+  /** Son düşünme turunda hafızadan getirilenler (hafıza görünümü okur). */
+  private _sonGetirilen: readonly GetirSonucu[] = [];
   /** İşlenmekte olan algının faili — benlik güncellenmeden ÖNCE hesaplanır, `_kaydet` yazar. */
   private _algiEdeni: Eden | undefined;
   /** Üst üste kaç tur yalnızca ret geri beslemesiyle döndük. Döngü kalkanı. */
@@ -914,6 +916,19 @@ export class Kopru {
   /** Devre panosu okuyucusu — dikkat ayarları ve sayaçları panelde görünsün. */
   get dikkat(): Dikkat { return this._dikkat; }
 
+  /**
+   * HAFIZA GÖRÜNÜMÜ için okuma (spec 13 Faz 5): derin (anılar), anlık (çalışma belleği,
+   * konuşma penceresi) ve son turda getirilenler. Kopya döner; yalnız gözlem.
+   */
+  hafizaGorunumu(): { derin: Ani[]; calisma: string[]; gecmis: BeyinGirdisi["gecmis"]; getirilen: GetirSonucu[] } {
+    return {
+      derin: this._hafiza.dok(),
+      calisma: this._calisma.satirlar(),
+      gecmis: this._gecmis.map((g) => ({ ...g })),
+      getirilen: this._sonGetirilen.map((g) => ({ ...g, ani: { ...g.ani } })),
+    };
+  }
+
   /** Anlık benlik (spec 12): birimler ve duvar karar anında `oku()` ile çeker. */
   get benlik(): AnlikBenlik { return this._benlik; }
 
@@ -980,15 +995,17 @@ export class Kopru {
       // Sorgu da İÇERİK olmalı: kalıpla sorgulamak kalıpla eşleşmeye yol açar.
       const icerikler = this._turIcerikleri.splice(0);
       const istekler = this._turSozleri.splice(0);
-      const anilar = adet > 0 && icerikler.length
+      const getirilen = adet > 0 && icerikler.length
         // Bu turun içerikleri hafızaya az önce yazıldı; anı olarak geri
         // gelmeleri "hatırlamak" değil kendini tekrar etmektir.
-        // ZAMAN ETİKETİ (spec 06 K3): anı, şimdiki bilgiden ayırt edilebilsin.
-        // Zamansızken canlı kayıtta günler öncesinin "Ozyn komutu reddetti"
-        // anısı, model için az önce olmuş gibi duruyordu.
         ? this._hafiza.getir(icerikler.join(" "), adet, icerikler)
-            .map((x) => `[${oncesiSozu(simdiMs - x.ani.olusma)}] ${x.ani.metin}`)
         : [];
+      // Zihin duvarının hafıza görünümü bu turda neyin hatırlandığını gösterir (spec 13 Faz 5).
+      this._sonGetirilen = getirilen;
+      // ZAMAN ETİKETİ (spec 06 K3): anı, şimdiki bilgiden ayırt edilebilsin.
+      // Zamansızken canlı kayıtta günler öncesinin "Ozyn komutu reddetti"
+      // anısı, model için az önce olmuş gibi duruyordu.
+      const anilar = getirilen.map((x) => `[${oncesiSozu(simdiMs - x.ani.olusma)}] ${x.ani.metin}`);
 
       if (anilar.length) console.log(`[HAFIZA] getirilen ${anilar.length}: ${anilar.map((a) => a.slice(0, 60)).join(" | ")}`);
 

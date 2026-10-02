@@ -63,6 +63,8 @@ import { varlik } from "./varlik.ts";
 import { Kopru } from "../bridge/kopru.ts";
 import { KararKaydi, type KararSatiri, type OgretimSatiri } from "../mind/kararKaydi.ts";
 import { gunlukBicimleyiciKur } from "../mind/gunlukSatirlari.ts";
+import { hafizaKelimeleri } from "../mind/hafizaGorunumu.ts";
+import { ICGUDULER } from "../mind/icgudu.ts";
 import { GOREV_SATIRLARI } from "../mind/gorev.ts";
 import { OpenCodeBeyni } from "../bridge/opencode.ts";
 import { DisBeyin } from "../bridge/disBeyin.ts";
@@ -1791,6 +1793,17 @@ function beyniBagla(a: Avatar): void {
     }),
   ]);
   sema.panoBagla(panoKaydi);
+  // HAFIZA GÖRÜNÜMÜ (spec 13 Faz 5): şemada HAFIZA'ya girince üç kabuklu bulut — her
+  // kelime gerçek bir kayıt (mind/hafizaGorunumu.ts). Yalnız okuma.
+  const icguduListesi = Object.entries(ICGUDULER).map(([id, v]) => ({ id, aciklama: v.aciklama, ezilebilir: v.ezilebilir }));
+  sema.hafizaBagla(() => {
+    if (!kopru) return [];
+    const h = kopru.hafizaGorunumu();
+    return hafizaKelimeleri({
+      icguduler: icguduListesi, benlik: kopru.benlik.oku(), calisma: h.calisma, gecmis: h.gecmis,
+      derin: h.derin, getirilen: h.getirilen, simdi: Date.now(),
+    });
+  });
   panoKaydiGlobal = panoKaydi;
 
   // ── MODEL SEÇİCİ (M) ─────────────────────────────────────────────────

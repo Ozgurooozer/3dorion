@@ -41,7 +41,8 @@ const LOB_YAZI: Record<Dugum["lob"], string> = { yerel: "yerel", bulut: "bulut",
 /** Şeritlerin zemini — ekran zemininden bir ton açık. */
 const SERIT = "#0d1220";
 
-export type BolgeIslem = "artir" | "azalt" | "eylem" | "teyitOnay" | "teyitIptal" | "sec";
+/** `gorunum`, `gercek`, `kelime`: hafıza bulutunun düğmeleri ve kelimeleri (hafizaBulutu.ts). */
+export type BolgeIslem = "artir" | "azalt" | "eylem" | "teyitOnay" | "teyitIptal" | "sec" | "gorunum" | "gercek" | "kelime";
 
 /** Çizimin bıraktığı tıklama bölgesi. `deger` yalnızca `sec` için. */
 export interface Bolge {

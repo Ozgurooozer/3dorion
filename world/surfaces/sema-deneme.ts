@@ -10,6 +10,7 @@
 "use strict";
 import { semaDurumuKur } from "./semaCekirdek.ts";
 import { cizSema, cizDetay, cizTeyit } from "./semaCizim.ts";
+import { cizHafizaBulutu, type BulutKelimesi } from "./hafizaBulutu.ts";
 import type { Pano, ModulGoruntu, Teyit } from "../../protocol/pano.ts";
 
 const G = 910, Y = 512;
@@ -82,6 +83,22 @@ function tuval(baslik: string): CanvasRenderingContext2D {
 const semaBag = tuval("şema");
 const detayBag = tuval("detay · DÜŞÜNCE");
 const teyitBag = tuval("teyit");
+const hafizaBag = tuval("detay · HAFIZA (üç kabuk, spec 13 Faz 5)");
+
+// Gerçekçi bir hafıza: içgüdüler, benlik, konuşma penceresi, anılar (birkaçı bu turda hatırlandı).
+const w = (kabuk: 0 | 1 | 2, metin: string, boyut = 0.5, soluk = 0, kirmizi = false, sayi = "ö5"): BulutKelimesi =>
+  ({ kabuk, metin, not: kabuk === 2 ? `anı · konusma · önem ${Math.round(boyut * 10)} · 3 gün önce · "${metin}"` : "içgüdü", boyut, soluk, sayi, ...(kirmizi ? { kirmizi } : {}) });
+const KELIMELER: BulutKelimesi[] = [
+  ...["kayit", "kopru.konusma", "kopru.zincir", "kopru.komut", "kopru.hareket_sessiz", "dikkat.tik_yasak", "dikkat.butce",
+    "refleks.konusma", "refleks.terminal.kod_hata", "refleks.olay.dunya", "onay.insan"].map((m) => w(0, m)),
+  w(1, "git → tahta", 0.7), w(1, "bekliyor: `git status`", 0.7), w(1, "tahtaya git"), w(1, "→ otur"), w(1, "Ozyn: bana gel"),
+  w(1, "monitor: terminal açık"),
+  w(2, "tahtaya git", 0.6, 0.1, true, "0.81"), w(2, "bana gel", 0.5, 0.05, true, "0.74"), w(2, "masaya git ve otur", 0.7, 0.2),
+  w(2, "ner görüyorsun", 0.4, 0.5), w(2, "hata: zaten oturuyorsun", 0.3, 0.6), w(2, "neler yapabilirsin", 0.6, 0.4),
+  w(2, "tahtaya adını yaz", 0.8, 0.3, true, "0.66"), w(2, "ozyn_yaklasti", 0.2, 0.7), w(2, "şehri görmek istermisin?", 0.5, 0.2),
+  w(2, "python --version", 0.4, 0.3), w(2, "Ozyn komutu reddetti", 0.7, 0.8), w(2, "bilgisayara git", 0.5, 0.4),
+  w(2, "serbet düşüncelerini yaz", 0.6, 0.5), w(2, "quantum formülü", 0.5, 0.5), w(2, "kalk", 0.3, 0.2),
+];
 
 const olcu = { genislik: G, yukseklik: Y };
 function ciz(): void {
@@ -89,6 +106,7 @@ function ciz(): void {
   cizSema(semaBag, olcu, { durum, altDurum: "beyin bağlı · Ozyn: \"testler neden kırmızı?\"", simdi });
   cizDetay(detayBag, olcu, "beyin", { durum, pano, simdi, sonYazma: "", sonYazmaAn: 0 });
   cizTeyit(teyitBag, olcu, TEYIT, new Set());
+  cizHafizaBulutu(hafizaBag, olcu, { kelimeler: KELIMELER, secili: 22, gercek: false, simdi });
 }
 
 // Sahte canlı akış: algıdan bedene bir tur, her 1,6 sn'de.

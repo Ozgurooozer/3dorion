@@ -22,6 +22,7 @@ import type { Pano, DugmeGoruntu } from "../../protocol/pano.ts";
 import { semaDurumuKur, semaAlani, dugumBulUv, dugumTanim, uvdenPiksel } from "./semaCekirdek.ts";
 import type { Dugum, DugumDurumu, SemaDurumu } from "./semaCekirdek.ts";
 import { cizSema, cizDetay, cizTeyit, type Bolge } from "./semaCizim.ts";
+import { cizHafizaBulutu, type BulutKelimesi } from "./hafizaBulutu.ts";
 
 export interface SemaAyari {
   sahne: Scene;
@@ -58,6 +59,11 @@ export interface SemaPaneli {
    * (pano takılı değilken detay yalnızca sayaçları gösterir).
    */
   panoBagla(pano: Pano | null): void;
+  /**
+   * HAFIZA görünümünün kelimeleri (spec 13 Faz 5). Takılıysa HAFIZA düğümüne girince
+   * üç kabuklu bulut açılır; takılı değilse eski ayar ekranı. Kompozisyon kökü kurar.
+   */
+  hafizaBagla(kaynak: (() => readonly BulutKelimesi[]) | null): void;
   /** Detay görünümünde olan düğüm, yoksa `null`. */
   secili(): string | null;
   /** Düğüm seç (`null` = şemaya dön). Bilinmeyen ad SEÇİLMEZ. */
@@ -111,6 +117,16 @@ export function semaKur(ayar: SemaAyari): SemaPaneli {
   /** Teyit ekranında işaretlenen bağlı eylemler. */
   const secilenEylemler = new Set<string>();
 
+  // ── HAFIZA görünümü (spec 13 Faz 5) ──────────────────────────────────
+  let hafizaKaynagi: (() => readonly BulutKelimesi[]) | null = null;
+  /** HAFIZA düğümünde: bulut mu, eski ayar ekranı mı. Düğüme her girişte bulut. */
+  let hafizaKipi: "bulut" | "ayar" = "bulut";
+  let gercekKip = false;
+  let seciliKelime: number | null = null;
+  /** Kelimeler yarım saniyede bir tazelenir: her kare 160 anıyı kopyalamak gereksiz. */
+  let kelimeler: readonly BulutKelimesi[] = [];
+  let kelimeAn = 0;
+
   /** Bölge anahtarı: ad \0 işlem [\0 değer]. Ayraç ad/değerde geçemez. */
   const anahtar = (b: Bolge) => [b.ad, b.islem, ...(b.deger !== undefined ? [b.deger] : [])].join("\u0000");
 
@@ -154,6 +170,8 @@ export function semaKur(ayar: SemaAyari): SemaPaneli {
     }
     if (secim === ad) return;
     secim = ad;
+    hafizaKipi = "bulut";
+    seciliKelime = null;
     yuzey.kirlet();
   }
 
@@ -167,6 +185,13 @@ export function semaKur(ayar: SemaAyari): SemaPaneli {
     const simdi = Date.now();
     const t = pano?.bekleyenTeyit() ?? null;
     if (t) bolgeler = cizTeyit(bag, o, t, secilenEylemler);
+    else if (secim === "hafiza" && hafizaKaynagi && hafizaKipi === "bulut") {
+      if (simdi - kelimeAn > 500) {
+        try { kelimeler = hafizaKaynagi(); } catch (err) { console.error("[SEMA] hafiza kelimeleri okunamadi:", err); kelimeler = []; }
+        kelimeAn = simdi;
+      }
+      bolgeler = cizHafizaBulutu(bag, o, { kelimeler, secili: seciliKelime, gercek: gercekKip, simdi });
+    }
     else if (secim !== null) bolgeler = cizDetay(bag, o, secim, { durum, pano, simdi, sonYazma, sonYazmaAn });
     else bolgeler = cizSema(bag, o, { durum, altDurum, simdi });
   }
@@ -204,6 +229,7 @@ export function semaKur(ayar: SemaAyari): SemaPaneli {
     oku(ad) { return durum.oku(ad); },
     secili() { return secim; },
     panoBagla(p) { pano = p; yuzey.kirlet(); },
+    hafizaBagla(k) { hafizaKaynagi = k; kelimeAn = 0; },
     sec: secimiKur,
     hedef: cozumle,
     tikla(u, v) {
@@ -213,6 +239,14 @@ export function semaKur(ayar: SemaAyari): SemaPaneli {
 
       const [dugmeAdi, islem, secilen] = h.split("\u0000");
       if (islem === undefined) { secimiKur(dugmeAdi!); return true; }
+      // HAFIZA bulutu: görünüm değişimi, "Gerçek" kipi, kelime seçimi (pano gerekmez).
+      if (islem === "gorunum") { hafizaKipi = secilen === "ayar" ? "ayar" : "bulut"; seciliKelime = null; return true; }
+      if (islem === "gercek") { gercekKip = !gercekKip; return true; }
+      if (islem === "kelime") {
+        const i = Number(secilen);
+        seciliKelime = seciliKelime === i ? null : i;
+        return true;
+      }
       if (!pano) return false;
 
       if (islem === "eylem") {
