@@ -2838,13 +2838,19 @@ if (new URLSearchParams(location.search).has("benlikdene")) {
     console.log(`[BENLIKDENE] izdüşüm: ${izdusum(b1)}`);
     kontrol("1 önerildi → ONAY bekleniyor", b1.bekliyorum?.ne === "onay", JSON.stringify(b1.bekliyorum));
 
+    // Geçişler 50 ms'de bir örneklenir: `echo` 400 ms dolmadan biter, ara hâl tek bir
+    // anlık bakışla kaçar (ilk koşu: 2/3, sonuç zaten kapanmıştı).
+    const gecisler: string[] = [kp.benlik.oku().bekliyorum?.ne ?? "-"];
+    const ornekle = setInterval(() => {
+      const ne = kp.benlik.oku().bekliyorum?.ne ?? "-";
+      if (gecisler.at(-1) !== ne) gecisler.push(ne);
+    }, 50);
     onayKarari(true);
-    await bekle(400);
-    const b2 = kp.benlik.oku();
-    kontrol("2 onaylandı → SONUÇ bekleniyor (bildirim süzülse de)", b2.bekliyorum?.ne === "komut_sonucu",
-      JSON.stringify(b2.bekliyorum));
-
     await bekle(4000);
+    clearInterval(ornekle);
+    kontrol("2 sıra: onay → SONUÇ bekleniyor (bildirim süzülse de) → kapandı",
+      JSON.stringify(gecisler) === JSON.stringify(["onay", "komut_sonucu", "-"]), JSON.stringify(gecisler));
+
     const b3 = kp.benlik.oku();
     kontrol("3 terminal bloğu → kapandı, son niyet 'bitti'",
       b3.bekliyorum === null && b3.son.bitenNiyet?.durum === "bitti" && (b3.son.bitenNiyet?.ozet ?? "").includes("BENLIK_DENEMESI"),
