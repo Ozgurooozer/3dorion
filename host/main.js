@@ -135,6 +135,7 @@ function pencereAc() {
   if (process.env.ORION_TAHTADENE === "1") parcalar.push("tahtadene=1", "sessiz=1");
   if (process.env.ORION_APIDENE === "1") parcalar.push("apidene=1", "sessiz=1");
   if (process.env.ORION_BENLIKDENE === "1") parcalar.push("benlikdene=1", "sessiz=1");
+  if (process.env.ORION_EYLEMDENE === "1") parcalar.push("eylemdene=1", "sessiz=1", "komut=1");
   // Spec 12 Faz 5: süzgeç merceğinin yetkisi (varsayılan kapalı).
   if (process.env.ORION_BENLIK_SUZGEC === "1") parcalar.push("benliksuzgec=1");
   if (process.env.ORION_TAHTABEYIN === "1") parcalar.push("tahtabeyin=1", "sessiz=1");

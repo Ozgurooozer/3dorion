@@ -1,6 +1,6 @@
 # 13 — Söylediğini yapsın, düşüncesi görünsün, API ile güçlensin (2026-10-02)
 
-**Durum:** Ozyn onayladı (2026-10-02, sohbet; plan "Orion MVP"). Faz 0 ve Faz 1 bitti (13738b7). Ön-kayıt kısmen tuttu (aşağıda); sıradaki adım Ozyn'in kararı.
+**Durum:** Ozyn onayladı (2026-10-02, sohbet; plan "Orion MVP", revize v2). **Faz 0–7 bitti** (2026-10-02). Açık: Ozyn'in kendi API anahtarıyla ölçüm, süzgeç merceği yetkisinin gölge ölçüsü, şemanın çizili veri yolu, 3. ortak test.
 
 Numara: başka bir oturumun planı aynı gün `12-anlik-benlik.md` olarak geldi; bu belge 12'den 13'e taşındı.
 
@@ -263,3 +263,15 @@ izdüşüm sonra). Ozyn itiraz ederse değişir.
   ornith yüklenmeden kapandı).
 - **Yetkinin gerçek kullanımda açılması** spec 12 Faz 4'ün kapısına bağlı: ≥ 3 gerçek oturumda gölge kararları,
   `beklenen_cevap` yanlış eşleşme 0 ve `yan_urun`un süzdüklerinde hata/konuşma 0. Karar Ozyn'in.
+
+## Faz 7 — canlı kanıt (2026-10-02, son kod, ornith-32k, ayrı karar dosyaları)
+
+| senaryo | sonuç [ÖLÇÜLDÜ] |
+|---|---|
+| `eylemdene` (yeni) | **6/6**: otur → oturdu; bana gel → 1,57 m; bilgisayarı aç → oturdu + terminal açık, Ozyn'in kamerası kaçırılmadı; tahtaya git → tahtada; günlükte 6 program satırı. LLM hiç uyanmadı (düşünme 0). |
+| `tahtadene` | 4/4 (uzaktan istenince önce yürüdü, sonra yazdı) |
+| `benlikdene` | gölge 4/4, yetki 4/4 |
+| `apidene` | 5/5; log'da anahtar 0 |
+| `gorudene` (gerileme) | 3/3 |
+
+Kalan: Ozyn ile 3. ortak test (canlı odada zihin duvarına bakmak, API anahtarını girmek).
