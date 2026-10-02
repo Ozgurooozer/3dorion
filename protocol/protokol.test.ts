@@ -98,15 +98,21 @@ test("doğrulayıcı çapa adını iç ada çevirir: git/bak/jest hedefi, otur v
   ]);
 });
 
-test("bilinmeyen çapa adı ve nesne adı doğrulayıcıdan olduğu gibi geçer (dünya karar verir)", () => {
+test("bilinmeyen çapa adı ve bilinmeyen nesne adı doğrulayıcıdan olduğu gibi geçer (dünya karar verir)", () => {
   const sonuc = [
     niyetDogrula({ tur: "git", hedef: { tip: "capa", ad: "mutfak" } }),
-    niyetDogrula({ tur: "git", hedef: { tip: "nesne", ad: "beyaz tahta" } }),
+    niyetDogrula({ tur: "git", hedef: { tip: "nesne", ad: "kahve fincanı" } }),
   ].map((r) => (r.ok ? JSON.parse(JSON.stringify(r.deger)) : r.hata));
   assert.deepEqual(sonuc, [
     { tur: "git", hedef: { tip: "capa", ad: "mutfak" } },
-    { tur: "git", hedef: { tip: "nesne", ad: "beyaz tahta" } },
+    { tur: "git", hedef: { tip: "nesne", ad: "kahve fincanı" } },
   ]);
+});
+
+test("GERÇEK (2026-10-02): çapa etiketi `nesne` diye gelirse çapaya çözülür", () => {
+  // Taban ölçüsünde ornith: git {ad:"çalışma masası", tip:"nesne"} → avatar "bilinmeyen çapa/nesne".
+  const r = niyetDogrula({ tur: "git", hedef: { tip: "nesne", ad: "çalışma masası" } });
+  assert.deepEqual(r.ok && r.deger.tur === "git" ? r.deger.hedef : r, { tip: "capa", ad: "masa" });
 });
 
 test("soyle: boş metin reddedilir, sınır aşımı reddedilir", () => {

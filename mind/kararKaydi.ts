@@ -172,6 +172,16 @@ export interface UyanisSatiri {
   konusulanMetin: boolean;
   /** Söz geçidinin yuttuğu `soyle` sayısı (ör. inisiyatifte susma ilanı). */
   yutulanSoz: number;
+  /**
+   * Sesli okunmayan söz ve düz metin: Orion'un İÇ SESİ (spec 12, kesilmiş). Hareket
+   * zincirinde (`kopru.hareket_sessiz`) söz buraya düşer; araçla birlikte gelen düz
+   * metin de buradadır.
+   */
+  icSes?: string;
+  /** Sözü iç seste bırakan içgüdü (ör. `kopru.hareket_sessiz`). */
+  susturan?: IcguduKimligi;
+  /** Sözde iddia edilip aynı turda niyeti gitmeyen eylemler (mind/sozEylem.ts). Yalnız gözlem. */
+  sozEylemUcurumu?: NiyetTur[];
   /** Beyin hatası (varsa). */
   hata?: string;
 }
@@ -353,13 +363,14 @@ export class KararKaydi {
   /** Bir beyin turunu (uyanışı) ve LLM'in ne yaptığını yazar. Uyanış kimliğini döner. */
   uyanis(b: UyanisBilgisi): string {
     const id = `u${++this._uyanisSira}`;
-    const { metin, dunya, ...geri } = b;
+    const { metin, dunya, icSes, ...geri } = b;
     const satir: UyanisSatiri = {
       tur: "uyanis", o: this.oturum, id, t: this._simdi(),
       ...geri,
       dunya: kisalt(dunya, SINIR.dunya).metin,
     };
     if (metin) satir.metin = kisalt(metin, SINIR.metin).metin;
+    if (icSes) satir.icSes = kisalt(icSes, SINIR.metin).metin;
     this._dus(satir);
     return id;
   }

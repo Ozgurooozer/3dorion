@@ -43,8 +43,14 @@ export interface BeyinGirdisi {
    * göstermek modele "asistan düz metin yazar" örüntüsünü öğretiyor ve
    * bozuk çıktıya yol açıyor (`orlda_komut {...}` gibi). Doğru temsil
    * edilince çıktı geçerli kalıyor.
+   *
+   * `cagri` = Orion'un bir BEDEN niyeti (git, otur, yaz…), araç adı ve
+   * argümanıyla (spec 12). Geçmiş yalnız gerçekte olanı taşır: Ozyn'in sözü,
+   * Orion'un sözü ve yaptığı. Ölçüm (2026-10-02): yalnız sözlerden ve düz
+   * metinden oluşan geçmişle qwen2.5:7b 40 komutun 0'ında araç çağırdı —
+   * geçmişteki kendi düz metnini taklit etti.
    */
-  gecmis: { rol: "kullanici" | "orion"; metin: string; arac?: boolean }[];
+  gecmis: { rol: "kullanici" | "orion"; metin: string; arac?: boolean; cagri?: { ad: string; girdi: unknown } }[];
   /**
    * Bu tur için kurulmuş sistem talimatı (bridge/talimat.ts).
    *

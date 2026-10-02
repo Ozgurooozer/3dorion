@@ -111,9 +111,12 @@ ${girdi.sabit}` : (girdi.talimat ?? TEMEL_TALIMAT) },
       ...girdi.gecmis.flatMap((g) => {
         if (g.rol === "kullanici") return [{ role: "user", content: g.metin }];
         if (!g.arac) return [{ role: "assistant", content: g.metin }];
+        // Beden niyeti kendi araç adıyla oynatılır (spec 12): model "komut → eylem"
+        // çiftlerini görsün, yalnız "komut → söz" değil.
+        const cagri = g.cagri ?? { ad: "dunya_soyle", girdi: { metin: g.metin } };
         return [
           { role: "assistant", content: "",
-            tool_calls: [{ function: { name: "dunya_soyle", arguments: { metin: g.metin } } }] },
+            tool_calls: [{ function: { name: cagri.ad, arguments: cagri.girdi } }] },
           { role: "tool", content: "bitti" },
         ];
       }),

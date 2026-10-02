@@ -185,6 +185,8 @@ test("uyanış satırındaki gövde dünyaya gönderilen niyetin aynısıdır (s
   const { k, niyetler, uyanislar } = kur(b);
   k.algi({ tur: "duydum", metin: "masaya git otur", kesin: true });
   await bekle(60);
+  // Eylem sırası (spec 12): `otur`, `git`in `bitti` sonucundan sonra gider.
+  k.sonuc({ niyet_id: niyetler[0]!.id, durum: "bitti" });
   // Kayıt JSON'dur: doğrulayıcının koyduğu `undefined` alanlar (ör. `mesafe`) yazılmaz.
   // Karşılaştırma gönderilen niyetin JSON haliyle.
   assert.deepEqual(uyanislar()[0]?.niyetler.map((n) => n.govde), niyetler.map((x) => JSON.parse(JSON.stringify(x.n))));

@@ -39,3 +39,24 @@ test("örnek mesajları geçerli biçimde: arac cagrisini tool sonucu izler", ()
   assert.ok(i >= 0);
   assert.equal(o[i + 1]?.role, "tool", "arac cagrisini tool mesaji izlemeli");
 });
+
+test("konuşma turunda iş isteği örneği de var: beden araçları sözün yanında çağrılır", () => {
+  const o = ornekUret({ terminal: false, konusma: true });
+  const adlar = o.flatMap((m) => m.tool_calls ?? []).map((c) => c.function.name);
+  assert.deepEqual(adlar, ["dunya_soyle", "dunya_kalk", "dunya_git", "dunya_soyle"]);
+});
+
+test("çok çağrılı örnekte her çağrıyı kendi tool sonucu izler", () => {
+  const o = ornekUret({ terminal: false, konusma: true });
+  for (let i = 0; i < o.length; i++) {
+    const n = o[i]!.tool_calls?.length ?? 0;
+    for (let k = 1; k <= n; k++) assert.equal(o[i + k]?.role, "tool", `mesaj ${i}: ${k}. çağrının sonucu yok`);
+  }
+});
+
+test("eylem örneği ölçümdeki komutların kopyası değil — ölçüm kendini doğrulamasın", () => {
+  const metin = JSON.stringify(ornekUret({ terminal: false, konusma: true })).toLocaleLowerCase("tr-TR");
+  for (const komut of ["otur", "bana gel", "yanıma gel", "bilgisayar", "tahta", "pencere"]) {
+    assert.ok(!metin.includes(komut), `örnekte ölçüm komutu geçiyor: ${komut}`);
+  }
+});

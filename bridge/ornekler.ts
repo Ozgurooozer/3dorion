@@ -33,9 +33,14 @@ export interface OrnekBaglami {
 
 /** Araç çağrısı yapan bir asistan turu + onun sonucu. */
 function aracTuru(ad: string, argumanlar: Record<string, unknown>): OrnekMesaj[] {
+  return cokluAracTuru([[ad, argumanlar]]);
+}
+
+/** Tek asistan turunda birden çok araç çağrısı; her birini kendi sonucu izler. */
+function cokluAracTuru(cagrilar: [string, Record<string, unknown>][]): OrnekMesaj[] {
   return [
-    { role: "assistant", content: "", tool_calls: [{ function: { name: ad, arguments: argumanlar } }] },
-    { role: "tool", content: "bitti" },
+    { role: "assistant", content: "", tool_calls: cagrilar.map(([name, args]) => ({ function: { name, arguments: args } })) },
+    ...cagrilar.map((): OrnekMesaj => ({ role: "tool", content: "bitti" })),
   ];
 }
 
@@ -68,14 +73,35 @@ const KONUSMA_ORNEGI: OrnekMesaj[] = [
 ];
 
 /**
+ * Ozyn bir iş isteyince beden araçlarını ÇAĞIRMAK — söylemek değil (spec 12).
+ *
+ * Ölçümden (taban, 2026-10-02): yalnız `orada mısın → dunya_soyle` örneğini gören
+ * model "otur" / "bilgisayarı aç" isteğine de yalnız `soyle` ile cevap verdi.
+ * Örnek iki şeyi birden gösterir: söz eylemin YANINDA gider, yerine değil; çok
+ * adımlı istek tek turda, sırayla çağrılır (köprü sırayla yürütür).
+ *
+ * Bilerek ölçümdeki komutlardan biri DEĞİL (`tools/eylem-olc.ts`: otur, bana gel,
+ * kalk, …) ve kapıya yürümek ölçümde yok: ölçüm kendi örneğini doğrulamasın.
+ */
+const EYLEM_ORNEGI: OrnekMesaj[] = [
+  { role: "user", content: 'Ozyn said: "kalk da kapının önüne geç"' },
+  ...cokluAracTuru([
+    ["dunya_kalk", {}],
+    ["dunya_git", { hedef: { tip: "capa", ad: "kapi" } }],
+    ["dunya_soyle", { metin: "Tamam, kapıya gidiyorum." }],
+  ]),
+];
+
+/**
  * Bağlama uygun örnekleri döner.
  *
- * En fazla bir örnek gönderilir: iki örnek bağlamı iki katına çıkarır ve
- * ölçümde tek örnek zaten 4/4 veriyor. Terminal önceliklidir çünkü ölçümde
- * zayıf olan durum oydu.
+ * Terminal turunda tek örnek: iki örnek bağlamı iki katına çıkarır ve ölçümde
+ * tek örnek zaten 4/4 veriyor. Terminal önceliklidir çünkü ölçümde zayıf olan
+ * durum oydu. Konuşma turunda iki örnek: cevap vermek (susmamak) ve istenen
+ * işi yapmak — tek örnekle model ikincisini öğrenmedi (spec 12 Faz 0).
  */
 export function ornekUret(b: OrnekBaglami): OrnekMesaj[] {
   if (b.terminal) return TERMINAL_ORNEGI;
-  if (b.konusma) return KONUSMA_ORNEGI;
+  if (b.konusma) return [...KONUSMA_ORNEGI, ...EYLEM_ORNEGI];
   return [];
 }

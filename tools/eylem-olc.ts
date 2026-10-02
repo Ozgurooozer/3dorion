@@ -5,9 +5,12 @@
 // değiştiren bir düzeltme, bu ölçüye kendiliğinden yansır. Elle kopyalanmış
 // talimat metni yok — kopyası canlıdan ayrışırdı.
 //
-// İki koşul:
+// Koşullar:
 //   temiz  — geçmiş boş
-//   canli  — 2026-10-02 testindeki GERÇEK geçmiş (soyle ve düz metin dolu)
+//   canli  — 2026-10-02 testindeki GERÇEK geçmiş, eski köprünün yazdığı haliyle
+//            (soyle ve düz metin dolu, hiç beden eylemi yok)
+//   faz1   — aynı turlar, Faz 1 köprüsünün yazacağı haliyle (spec 12): düz metin
+//            yok, beden niyetleri araç olarak var
 //
 // Kullanım:
 //   node --experimental-strip-types tools/eylem-olc.ts --model=qwen2.5:7b [--n=5] [--kosul=temiz,canli]
@@ -28,6 +31,7 @@ interface Komut { soz: string; durum: string; bekle: EylemBeklentisi }
 interface Fixture {
   durumlar: Record<string, string>;
   canliGecmis: BeyinGirdisi["gecmis"];
+  canliFaz1Gecmis: BeyinGirdisi["gecmis"];
   komutlar: Komut[];
 }
 
@@ -36,7 +40,7 @@ const arg = (ad: string, v?: string) =>
 
 const model = arg("model", "qwen2.5:7b")!;
 const n = Number(arg("n", "5"));
-const kosullar = arg("kosul", "temiz,canli")!.split(",");
+const kosullar = arg("kosul", "temiz,faz1,canli")!.split(",");
 const f = JSON.parse(fs.readFileSync(arg("fixture", "fixtures/eylem/komutlar.json")!, "utf8")) as Fixture;
 
 // Yetenekler canlıdaki gibi katalogdan: düşünen modele `think:false` gitsin.
@@ -64,7 +68,7 @@ for (const kosul of kosullar) {
         ozetler: [`Ozyn said: "${k.soz}"`],
         dunya: f.durumlar[k.durum] ?? "",
         sabit,
-        gecmis: kosul === "canli" ? f.canliGecmis : [],
+        gecmis: kosul === "canli" ? f.canliGecmis : kosul === "faz1" ? f.canliFaz1Gecmis : [],
         araclar: araclariUret(),
       };
       const t0 = Date.now();

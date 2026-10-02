@@ -13,7 +13,7 @@
 "use strict";
 import type { Algi } from "../protocol/algi.ts";
 import { ozetle } from "../protocol/algi.ts";
-import type { Niyet, NiyetSonucu } from "../protocol/niyet.ts";
+import type { Niyet, NiyetSonucu, NiyetTur } from "../protocol/niyet.ts";
 import { kimlik } from "../protocol/temel.ts";
 import { Dikkat, kanalAcikMi, type DikkatAyari } from "../mind/dikkat.ts";
 import { KararKaydi, niyetKaydi, type AlgiEki, type BeceriGolgesi, type KapiKarari, type KararSatiri, type NiyetKaydi, type OgretimSatiri, type RefleksBitisi, type UyanisBilgisi } from "../mind/kararKaydi.ts";
@@ -27,8 +27,9 @@ import { deneyimKimligi, kuralHafizasiKur, ogretimAnahtari } from "../mind/ogret
 import { Hafiza, kuralOnemi, type AniTuru } from "../mind/hafiza.ts";
 import { calismaBellegiKur, type CalismaBellegi } from "../mind/calismaBellegi.ts";
 import { oncesiSozu } from "../mind/zaman.ts";
+import { sozEylemUcurumu } from "../mind/sozEylem.ts";
 import { araclariUret, cagriyiNiyete } from "./araclar.ts";
-import type { Beyin } from "./beyin.ts";
+import type { Beyin, BeyinGirdisi } from "./beyin.ts";
 import { talimatUret } from "./talimat.ts";
 import { ornekUret } from "./ornekler.ts";
 import { metinKurtar } from "./metinKurtarma.ts";
@@ -134,6 +135,16 @@ export interface KopruAyari {
    */
   hafizaDeposu?: { oku(): unknown[]; yaz(aniler: unknown[]): void };
   simdi?: () => number;
+  /**
+   * İÇ SES (spec 12): sesli okunmayan söz ve düz metin — hareket zincirinde susturulan
+   * söz, araçla birlikte gelen düz metin. Yalnız gözlem (zihin duvarı); hatası yutulur.
+   */
+  icSesDinle?: (metin: string) => void;
+  /**
+   * "Söyledi ama yapmadı" (mind/sozEylem.ts): sözde iddia edilip aynı turda niyeti
+   * gitmeyen eylemler. Yalnız gözlem; davranışı değiştirmez, hatası yutulur.
+   */
+  sozEylemDinle?: (eksik: NiyetTur[], soz: string) => void;
 }
 
 /** İçerik süzgecinin kararı ve onu veren içgüdü (mind/icgudu.ts). */
@@ -197,6 +208,50 @@ interface SurenRefleks {
   gonderilen: NiyetKaydi[];
   baslangic: number;
   zamanlayici: ReturnType<typeof setTimeout> | null;
+}
+
+/**
+ * Ozyn'in HAREKET olayları (world/olayUretici.ts). Yalnız bunlarla uyanan zincirde söz
+ * sesli okunmaz (içgüdü `kopru.hareket_sessiz`, Ozyn 2026-10-02: "uyansın, sesli
+ * konuşmasın"). Ortak testte bu olaylar 10+ kez "Ozyn yaklaştı. Bekliyorum.",
+ * 4 kez "Uzaklaştın Ozyn.", 3 kez "gece yarısı mı bu?" konuşturdu. Kapı DEĞİŞMEZ:
+ * olay yine beyni uyandırır (ölçüm haftası verisi bozulmasın), Orion bakabilir,
+ * el sallayabilir, yürüyebilir — yalnız sesi iç seste kalır.
+ */
+const HAREKET_OLAYLARI: ReadonlySet<string> = new Set([
+  "ozyn_yaklasti", "ozyn_uzaklasti", "ozyn_sana_bakti", "ozyn_yuzeye_gecti", "ozyn_yuzeyden_cikti",
+]);
+
+/** Bedeni hareket ettirmeyen niyetler: eylem sırasına girmez, hemen gider. */
+const SOZ_NIYETLERI: ReadonlySet<NiyetTur> = new Set(["soyle", "sor"]);
+
+/**
+ * EYLEM SIRASI (spec 12): bir turdaki birden çok beden niyeti sırayla yürür.
+ *
+ * Taban ölçüsü (2026-10-02): "masaya git ve otur", "tahtaya yaz" hep yalnız `git` ile
+ * bitti. Varış sonucu rutin olduğu için beyni uyandırmaz (`refleks.sonuc.rutin`) ve
+ * ikinci adım hiç gelmez; aynı turda `git + yaz` gönderilse `yaz` varıştan önce
+ * yürüyüp "uzaktan yazamazsın" ile reddedilirdi. Beceri refleksinin adım yürütücüsüyle
+ * aynı desen: sıradaki adım öncekinin `bitti` sonucunu bekler; `hata`/`iptal` sırayı
+ * keser (hata yine beyne gider), zaman aşımı kalanı düşürür. Tek beden niyeti bugünkü
+ * gibi hemen gider.
+ */
+interface EylemSirasi {
+  kalan: { niyet: Niyet; id: string }[];
+  bekleyen: string | null;
+  zamanlayici: ReturnType<typeof setTimeout> | null;
+}
+
+/** Bir beyin turunun çıktısı işlenirken biriken parçalar. */
+interface TurCiktisi {
+  /** Hareket zinciri: söz iç seste kalır. */
+  sessiz: boolean;
+  /** Gerçekten konuşulan sözler (söz-eylem bekçisi için). */
+  sozler: string[];
+  /** Sesli okunmayan söz ve düz metin. */
+  icSes: string[];
+  /** Tur sonunda sıraya girecek beden niyetleri. */
+  beden: { niyet: Niyet; id: string }[];
 }
 
 /**
@@ -266,7 +321,7 @@ export class Kopru {
   private _turTurleri = new Set<string>();
   /** Bu turda hafızaya yazılan içerikler — sorgu ve dışlama için. */
   private _turIcerikleri: string[] = [];
-  private _gecmis: { rol: "kullanici" | "orion"; metin: string; arac?: boolean }[] = [];
+  private _gecmis: BeyinGirdisi["gecmis"] = [];
   private _zamanlayici: ReturnType<typeof setTimeout> | null = null;
   private _dusunuyor = false;
   /** Düşünme sürerken yeni girdi geldiyse, bitince bir tur daha dön. */
@@ -284,6 +339,12 @@ export class Kopru {
   /** Bekleyen turda inisiyatif / dış tetik var mı — tur başında kökeni belirler. */
   private _turInisiyatif = false;
   private _turDis = false;
+  /** Bekleyen turda hareket dışı bir olay var mı (bkz. HAREKET_OLAYLARI). */
+  private _turHareketDisi = false;
+  /** Şu anki zincir yalnız Ozyn'in hareketiyle mi başladı — söz iç seste kalır. Takip turu devralır. */
+  private _zincirSessiz = false;
+  /** Süren eylem sırası; yoksa null. */
+  private _sira: EylemSirasi | null = null;
   /** Üst üste kaç tur yalnızca ret geri beslemesiyle döndük. Döngü kalkanı. */
   private _ardisikRet = 0;
   private _konusmaDinleyiciler = new Set<(metin: string) => void>();
@@ -423,6 +484,10 @@ export class Kopru {
       return;
     }
 
+    // EYLEM SIRASI (spec 12): bekleyen adımın sonucu sırayı ilerletir. Algı yoluna
+    // DEVAM eder — kapı, kayıt ve hata geri beslemesi bugünkü gibi çalışır.
+    if (a.tur === "sonuc") this._siraSonucu(a.sonuc);
+
     // BECERİ GÖLGESİ (spec 10, Faz C): kesin sözde hafızanın kararı. Söz satırına
     // yazılır; yetki açıksa (Faz D) aynı karar yürütülür — yazılanla yapılan aynıdır.
     const golge = a.tur === "duydum" && a.kesin ? this._beceriGolgesi(a.metin) : undefined;
@@ -491,6 +556,7 @@ export class Kopru {
       this._zincirKalan = ZINCIR_AZAMI;
       if (inisiyatifOlayiMi(a)) this._turInisiyatif = true;
       else this._turDis = true;
+      if (a.tur === "olay" && !HAREKET_OLAYLARI.has(a.ad) && !inisiyatifOlayiMi(a)) this._turHareketDisi = true;
     }
 
     this._tampon.push(ozet);
@@ -749,6 +815,7 @@ export class Kopru {
     this._durduruldu = true;
     // Süren refleks kesilir ve satırı yazılır (defter dinlerken: canlı = kayıt kalsın).
     this._refleksBitir("kesildi");
+    this._siraKes("kapanış");
     this._beceriDinlemesi();
     if (this._zamanlayici) { clearTimeout(this._zamanlayici); this._zamanlayici = null; }
     // Bekleyen hafıza yazması VARSA hemen tamamla: kapanışta 3 sn'lik
@@ -827,6 +894,14 @@ export class Kopru {
       else if (this._turInisiyatif) this._zincirKokeni = "inisiyatif";
       this._turDis = this._turInisiyatif = false;
       uyanis.koken = this._zincirKokeni;
+      // HAREKET ZİNCİRİ (içgüdü `kopru.hareket_sessiz`): kök tur yalnız Ozyn'in
+      // hareketiyse zincir sessizdir; takip turu (bakış cevabı, sonuç) devralır.
+      if (turler.has("duydum") || turler.has("terminal") || turler.has("olay")) {
+        this._zincirSessiz = this._zincirKokeni === "dis" && turler.has("olay")
+          && !turler.has("duydum") && !turler.has("terminal") && !this._turHareketDisi;
+      }
+      this._turHareketDisi = false;
+      const sessiz = this._zincirSessiz;
       uyanis.anilar = anilar.length;
       const talimat = talimatUret({
         konusma: turler.has("duydum"),
@@ -882,16 +957,23 @@ export class Kopru {
       if (cikti.metin) uyanis.metin = cikti.metin;
 
       // Düz metin DUYULMAZ — protokolde konuşmak bir eylemdir (dunya_soyle).
-      // Yine de geçmişe yazılır: modelin kendi düşüncesi bağlamda kalsın.
+      //
+      // GEÇMİŞE DE YAZILMAZ (spec 12). Eskiden "modelin kendi düşüncesi bağlamda
+      // kalsın" diye `assistant` metni olarak yazılıyordu. Ölçüm (2026-10-02, taban):
+      // ortak testin gerçek geçmişiyle qwen2.5:7b 40 komutun 0'ında araç çağırdı ve
+      // geçmişteki kendi düz metnini taklit etti ("ortalığı kontrol ediyorum…").
+      // Düz metin artık İÇ SES: kayda ve zihin duvarına gider, geçmişe gitmez.
       if (cikti.metin) {
         // Düz metin DUYULMAZ. Model araç çağırmak yerine sohbet ediyorsa bu
         // SESSİZ bir davranış hatasıdır — kullanıcı Orion'u susmuş sanır.
         // Görünür olsun ki ölçülebilsin.
         console.log(`[BEYIN:metin] ${cikti.metin.slice(0, 160)}${cikti.cagrilar.length === 0 ? "  ← ARAÇ YOK, bu duyulmayacak" : ""}`);
         this._ayar.metinDinle?.(cikti.metin, cikti.cagrilar.length > 0);
-        this._gecmis.push({ rol: "orion", metin: cikti.metin });
-        this._kirp();
       }
+
+      const tur: TurCiktisi = { sessiz, sozler: [], icSes: [], beden: [] };
+      // Araç ÇAĞIRDIYSA düz metin eyleme eşlik eden iç düşüncedir.
+      if (cikti.metin && cikti.cagrilar.length > 0) tur.icSes.push(cikti.metin);
 
       for (const c of cikti.cagrilar) {
         const d = cagriyiNiyete(c.ad, c.girdi);
@@ -905,18 +987,7 @@ export class Kopru {
           continue;
         }
         this._ardisikRet = 0;  // geçerli çağrı geldi, düzeltme döngüsü kırıldı
-        const id = kimlik("n");
-        // Düşen söz dünyaya da GİTMEZ: `niyetGonder` de atlanır.
-        if (d.deger.tur === "soyle" && !this._sozuGecir(d.deger.metin)) { uyanis.yutulanSoz++; continue; }
-        if (d.deger.tur === "soyle" && this._konusmaDinleyiciler.size) {
-          this._konusmaYay(d.deger.metin);
-          this._gecmis.push({ rol: "orion", metin: d.deger.metin, arac: true });
-          this._kirp();
-        }
-        this._ayar.niyetGonder(d.deger, id);
-        this._sayac.niyet++;
-        // Gövdesiyle (spec 10, Faz A): beceri refleksi görevin nasıl yapıldığını buradan öğrenir.
-        uyanis.niyetler.push(niyetKaydi(id, d.deger));
+        this._niyetiIsle(d.deger, uyanis, tur);
       }
 
       // ── Düz metin kurtarma ──────────────────────────────────────────────
@@ -947,24 +1018,47 @@ export class Kopru {
           this._sayac.kurtarilanCagri++;
           uyanis.kurtarilan++;
           console.warn(`[kopru] METINDEN kurtarildi: ${c.ad}`);
-          const id = kimlik("n");
-          if (d.deger.tur === "soyle" && !this._sozuGecir(d.deger.metin)) { uyanis.yutulanSoz++; continue; }
-          if (d.deger.tur === "soyle") { this._konusmaYay(d.deger.metin); this._gecmis.push({ rol: "orion", metin: d.deger.metin, arac: true }); this._kirp(); }
-          this._ayar.niyetGonder(d.deger, id);
-          this._sayac.niyet++;
-          uyanis.niyetler.push(niyetKaydi(id, d.deger));
+          this._niyetiIsle(d.deger, uyanis, tur);
         }
 
-        if (konusulabilir && this._konusmaDinleyiciler.size && this._sozuGecir(konusulabilir)) {
+        if (konusulabilir && sessiz && this._sozuGecir(konusulabilir)) {
+          // Hareket zinciri: kurtarılan cümle de iç seste kalır.
+          tur.icSes.push(konusulabilir);
+        } else if (konusulabilir && this._konusmaDinleyiciler.size && this._sozuGecir(konusulabilir)) {
           const metin = konusulabilir.slice(0, 400);
           this._sayac.kurtarilanMetin++;
           uyanis.konusulanMetin = true;
           console.warn(`[kopru] arac cagrilmadi, temiz metin konusmaya cevrildi: "${metin.slice(0, 80)}"`);
           this._konusmaYay(metin);
+          // Söylendi: geçmişe SÖZ olarak girer (düz metin olarak değil — bkz. yukarı).
+          this._gecmis.push({ rol: "orion", metin, arac: true });
+          this._kirp();
+          tur.sozler.push(metin);
         } else if (!konusulabilir && kurtarilan.length === 0) {
           this._sayac.yutulanCop++;
           console.warn(`[kopru] arac copu KONUSULMADI: "${cikti.metin.slice(0, 80)}"`);
         }
+      }
+
+      // Beden niyetleri: tek niyet hemen, birden çoğu sırayla (bkz. EylemSirasi).
+      this._siraBaslat(tur.beden);
+
+      if (tur.icSes.length) {
+        uyanis.icSes = tur.icSes.join(" / ");
+        if (sessiz) uyanis.susturan = "kopru.hareket_sessiz";
+        console.log(`[kopru] iç ses${sessiz ? " (hareket zinciri, kopru.hareket_sessiz)" : ""}: "${uyanis.icSes.slice(0, 120)}"`);
+        try { this._ayar.icSesDinle?.(uyanis.icSes); }
+        catch (err) { console.error("[kopru] iç ses dinleyicisi hatası:", err); }
+      }
+
+      // SÖYLEDİ AMA YAPMADI (mind/sozEylem.ts): yalnız gözlem, davranış değişmez.
+      const eksik = sozEylemUcurumu(tur.sozler, uyanis.niyetler.map((n) => n.tur));
+      if (eksik.length) {
+        uyanis.sozEylemUcurumu = eksik;
+        const soz = tur.sozler.join(" ");
+        console.warn(`[kopru] SOZ-EYLEM: "${soz.slice(0, 80)}" dedi ama ${eksik.join(", ")} niyeti yok`);
+        try { this._ayar.sozEylemDinle?.(eksik, soz); }
+        catch (err) { console.error("[kopru] söz-eylem dinleyicisi hatası:", err); }
       }
     } catch (err) {
       this._sayac.hata++;
@@ -997,6 +1091,76 @@ export class Kopru {
         }
       }
     }
+  }
+
+  /**
+   * Doğrulanmış bir niyeti turun çıktısına işler (model çağrısı ve metinden kurtarılan
+   * çağrı aynı yoldan geçer). Söz hemen konuşulur (ya da hareket zincirinde iç seste
+   * kalır); `sor` hemen gider; beden niyetleri toplanır, tur sonunda sıraya girer.
+   */
+  private _niyetiIsle(n: Niyet, uyanis: UyanisBilgisi, tur: TurCiktisi): void {
+    const id = kimlik("n");
+    if (n.tur === "soyle") {
+      // Düşen söz dünyaya da GİTMEZ: `niyetGonder` de atlanır.
+      if (!this._sozuGecir(n.metin)) { uyanis.yutulanSoz++; return; }
+      if (tur.sessiz) { tur.icSes.push(n.metin); return; }
+      if (this._konusmaDinleyiciler.size) {
+        this._konusmaYay(n.metin);
+        this._gecmis.push({ rol: "orion", metin: n.metin, arac: true });
+        this._kirp();
+      }
+      tur.sozler.push(n.metin);
+    }
+    // Gövdesiyle (spec 10, Faz A): beceri refleksi görevin nasıl yapıldığını buradan öğrenir.
+    uyanis.niyetler.push(niyetKaydi(id, n));
+    this._sayac.niyet++;
+    if (SOZ_NIYETLERI.has(n.tur)) { this._ayar.niyetGonder(n, id); return; }
+    // Beden niyeti geçmişe ARAÇ olarak girer (spec 12): model "komut → eylem" görsün.
+    const { tur: nt, ...girdi } = n;
+    this._gecmis.push({ rol: "orion", metin: "", arac: true, cagri: { ad: `dunya_${nt}`, girdi } });
+    this._kirp();
+    tur.beden.push({ niyet: n, id });
+  }
+
+  /** Yeni turun beden niyetleri: süren sırayı keser; tek niyet hemen, fazlası sırayla. */
+  private _siraBaslat(adimlar: { niyet: Niyet; id: string }[]): void {
+    const [ilk, ...kalan] = adimlar;
+    if (!ilk) return;
+    this._siraKes("yeni tur");
+    if (!kalan.length) { this._ayar.niyetGonder(ilk.niyet, ilk.id); return; }
+    console.log(`[kopru] eylem sirasi: ${adimlar.map((a) => a.niyet.tur).join(" → ")}`);
+    this._sira = { kalan, bekleyen: null, zamanlayici: null };
+    this._siraGonder(ilk);
+  }
+
+  /** Beklenen kimlik ve zaman aşımı GÖNDERMEDEN ÖNCE kurulur: sonuç senkron gelse de yakalansın. */
+  private _siraGonder(adim: { niyet: Niyet; id: string }): void {
+    const r = this._sira;
+    if (!r) return;
+    r.bekleyen = adim.id;
+    r.zamanlayici = setTimeout(() => this._siraKes("zaman aşımı"), this._ayar.refleksZamanAsimiMs ?? REFLEKS_ZAMAN_ASIMI_MS);
+    this._ayar.niyetGonder(adim.niyet, adim.id);
+  }
+
+  /** Bekleyen adımın sonucu: `bitti` sırayı ilerletir, `hata`/`iptal` keser. */
+  private _siraSonucu(s: NiyetSonucu): void {
+    const r = this._sira;
+    if (!r || s.niyet_id !== r.bekleyen || s.durum === "basladi") return;
+    if (r.zamanlayici) { clearTimeout(r.zamanlayici); r.zamanlayici = null; }
+    r.bekleyen = null;
+    if (s.durum !== "bitti") { this._siraKes(s.durum); return; }
+    const sonraki = r.kalan.shift();
+    if (!sonraki) { this._sira = null; return; }
+    this._siraGonder(sonraki);
+  }
+
+  /** Süren sırayı bırakır; gönderilmeyen adımlar görünür biçimde söylenir. */
+  private _siraKes(neden: string): void {
+    const r = this._sira;
+    if (!r) return;
+    this._sira = null;
+    if (r.zamanlayici) clearTimeout(r.zamanlayici);
+    if (r.kalan.length) console.warn(`[kopru] eylem sirasi kesildi (${neden}): ${r.kalan.map((a) => a.niyet.tur).join(", ")} gonderilmedi`);
   }
 
   private _kirp(): void {
