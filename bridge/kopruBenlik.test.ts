@@ -110,3 +110,71 @@ test("davranış değişmez: benlik varken de aynı niyetler aynı sırayla gide
   await bekle(60);
   assert.deepEqual(niyetler.map((x) => x.n.tur), ["soyle", "otur"]);
 });
+
+// ── Süzgeç merceği (spec 12 Faz 4–5): gölge ve yetki ─────────────────────────
+
+/** Gerçek refleks gibi: başarılı terminal ve sonuç rutin (ezilebilir) → süzülür. */
+function rutinSuzgec() {
+  return (a: { tur: string }) => a.tur === "terminal"
+    ? { gecsin: false, kural: "refleks.terminal.kod_rutin" as const }
+    : a.tur === "olay" ? { gecsin: true, kural: "refleks.olay.dunya" as const }
+    : { gecsin: false, kural: "refleks.sonuc.rutin" as const };
+}
+
+async function onayliKomutKur(yetki: boolean) {
+  const algilar: AlgiSatiri[] = [];
+  const kayit = new KararKaydi({ yaz: (s) => { const x = JSON.parse(s.slice(KARAR_ONEKI.length + 1)); if (x.tur === "algi") algilar.push(x); } });
+  const niyetler: { n: Niyet; id: string }[] = [];
+  const beyin = new SahteBeyin({ metin: "", cagrilar: [cagri("dunya_komut", { metin: "ls", gerekce: "liste" })] });
+  const gordugu: string[][] = [];
+  const asil = beyin.dusun.bind(beyin);
+  beyin.dusun = async (g) => { gordugu.push(g.ozetler); return asil(g); };
+  const k = new Kopru({
+    komutYetkisi: false, beyin, niyetGonder: (n, id) => niyetler.push({ n, id }), dunyaDurumu: () => "Oda.",
+    toplamaMs: 20, kararKaydi: kayit, hafizaGetirme: 0, suzgec: rutinSuzgec() as never, benlikSuzgecYetkisi: yetki,
+  });
+  k.algi({ tur: "duydum", metin: "dosyaları listele", kesin: true });
+  await bekle(60);
+  k.sonuc({ niyet_id: niyetler[0]!.id, durum: "bitti", not: "Ozyn onayladi" });
+  k.algi({ tur: "terminal", kuyruk: "PS C:\Users\ozigo> ls\nd----- .crush", kesildi: false, kod: 0 });
+  await bekle(80);
+  return { algilar, gordugu };
+}
+
+test("GÖLGE (yetki kapalı): onaylanan komutun sonucu yine süzülür ama kayıtta mercek 'geçir' der", async () => {
+  const { algilar, gordugu } = await onayliKomutKur(false);
+  const t = algilar.find((a) => a.algi === "terminal")!;
+  assert.deepEqual({ uyanis: gordugu.length, kural: t.kapi.kural, mercek: t.mercek },
+    { uyanis: 1, kural: "refleks.terminal.kod_rutin", mercek: { oneri: "gecir", kural: "benlik.beklenen_cevap" } });
+});
+
+test("YETKİ: onaylanan komutun sonucu beyne gider ve Orion'a KENDİ önerisinin sonucu olduğu söylenir", async () => {
+  const { algilar, gordugu } = await onayliKomutKur(true);
+  const t = algilar.find((a) => a.algi === "terminal")!;
+  assert.deepEqual({ uyanis: gordugu.length, kural: t.kapi.kural, gecti: t.kapi.gecti, not: /YOU suggested/.test(gordugu[1]?.join(" ") ?? "") },
+    { uyanis: 2, kural: "benlik.beklenen_cevap", gecti: true, not: true });
+});
+
+test("YETKİ: Orion yürürken 'Ozyn yaklaştı' süzülür (kendi yürüyüşünün yan ürünü)", async () => {
+  const algilar: AlgiSatiri[] = [];
+  const kayit = new KararKaydi({ yaz: (s) => { const x = JSON.parse(s.slice(KARAR_ONEKI.length + 1)); if (x.tur === "algi") algilar.push(x); } });
+  const b = new SahteBeyin();
+  let uyanis = 0;
+  b.dusun = async () => { uyanis++; return { metin: "", cagrilar: [] }; };
+  const k = new Kopru({ komutYetkisi: false, beyin: b, niyetGonder: () => {}, dunyaDurumu: () => "", toplamaMs: 20, kararKaydi: kayit,
+    suzgec: rutinSuzgec() as never, benlikSuzgecYetkisi: true, bedenDurumu: () => ({ poz: "yürüyor", oturuyor: false }) });
+  k.algi({ tur: "olay", ad: "ozyn_yaklasti", ayrinti: { mesafe: 1.7 } });
+  await bekle(60);
+  assert.deepEqual({ uyanis, kural: algilar[0]?.kapi.kural }, { uyanis: 0, kural: "benlik.yan_urun" });
+});
+
+test("YETKİ bile konuşmayı süzemez: Orion yürürken Ozyn'in sözü beyni uyandırır", async () => {
+  const b = new SahteBeyin();
+  let uyanis = 0;
+  b.dusun = async () => { uyanis++; return { metin: "", cagrilar: [] }; };
+  const k = new Kopru({ komutYetkisi: false, beyin: b, niyetGonder: () => {}, dunyaDurumu: () => "", toplamaMs: 20,
+    suzgec: rutinSuzgec() as never, benlikSuzgecYetkisi: true, bedenDurumu: () => ({ poz: "yürüyor", oturuyor: false }) });
+  k.algi({ tur: "duydum", metin: "dur", kesin: true });
+  await bekle(60);
+  assert.equal(uyanis, 1);
+});

@@ -31,7 +31,7 @@
 
 export interface Icgudu {
   /** Kuralı uygulayan katman. */
-  katman: "kayit" | "kopru" | "dikkat" | "refleks" | "onay";
+  katman: "kayit" | "kopru" | "dikkat" | "refleks" | "onay" | "mercek";
   /**
    * Öğrenilmiş bir kural bu içgüdünün kararını ezebilir mi?
    *
@@ -119,6 +119,14 @@ export const ICGUDULER = {
     aciklama: "İstenmeden gelen dünya/yakın anlık görüntüsü: süzülür." },
   "refleks.taninmayan": { katman: "refleks", ezilebilir: true,
     aciklama: "Tanınmayan biçim: güvenli tarafa, terfi eder." },
+
+  // ── Mercekler (anlık benlik, spec 12; mind/mercekSuzgec.ts) ──────────────
+  // Gölgede doğar: kayda `mercek` alanı yazılır. Bu kimlikler kapı kararı OLARAK yalnız
+  // yetki anahtarı açıkken görünür; yalnız ezilebilir bir içerik kuralını değiştirirler.
+  "benlik.beklenen_cevap": { katman: "mercek", ezilebilir: true,
+    aciklama: "Onaylanmış kendi komutunun sonucu bekleniyorken gelen terminal bloğu geçer: Orion önerisinin ne olduğunu öğrenir (B1)." },
+  "benlik.yan_urun": { katman: "mercek", ezilebilir: true,
+    aciklama: "Orion yürürken gelen 'Ozyn yaklaştı/uzaklaştı' kendi yürüyüşünün yan ürünüdür: süzülür (B8)." },
 
   // ── Onay kapısı (mind/onayKapisi.ts) ─────────────────────────────────────
   "onay.insan": { katman: "onay", ezilebilir: false,

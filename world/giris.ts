@@ -1695,6 +1695,9 @@ function beyniBagla(a: Avatar): void {
     // DOĞUŞTAN KOMUT PROGRAMLARI (spec 13 Faz 2b): elle açılışta AÇIK (Ozyn: "ölçüm geçince
     // açık"; gerçek sözlerde yanlış eşleşme 0). Senaryolarda (`sessiz=1`) KAPALI: `tahtadene`,
     // `becerdene` LLM'in ve becerinin yolunu ölçer, program onları değiştirmesin. `?komut=0|1` zorlar.
+    // SÜZGEÇ MERCEĞİNİN YETKİSİ (spec 12 Faz 5): ANAHTAR, varsayılan KAPALI (gölgede yazar).
+    // `?benliksuzgec=1` açar; gerçek kullanımda açılması gölge ölçüsüne bağlı (Ozyn).
+    benlikSuzgecYetkisi: new URLSearchParams(location.search).has("benliksuzgec"),
     // ANLIK BENLİK (spec 12): gövde karar anında ÇEKİLİR.
     bedenDurumu: () => {
       const d = orion?.durum();
@@ -2860,6 +2863,7 @@ if (new URLSearchParams(location.search).has("benlikdene")) {
 
     // Geçişler 50 ms'de bir örneklenir: `echo` 400 ms dolmadan biter, ara hâl tek bir
     // anlık bakışla kaçar (ilk koşu: 2/3, sonuç zaten kapanmıştı).
+    const dusunmeOnce = kp.sayac().dusunme;
     const gecisler: string[] = [kp.benlik.oku().bekliyorum?.ne ?? "-"];
     const ornekle = setInterval(() => {
       const ne = kp.benlik.oku().bekliyorum?.ne ?? "-";
@@ -2875,6 +2879,13 @@ if (new URLSearchParams(location.search).has("benlikdene")) {
     kontrol("3 terminal bloğu → kapandı, son niyet 'bitti'",
       b3.bekliyorum === null && b3.son.bitenNiyet?.durum === "bitti" && (b3.son.bitenNiyet?.ozet ?? "").includes("BENLIK_DENEMESI"),
       JSON.stringify(b3.son.bitenNiyet));
+
+    // 4) SÜZGEÇ MERCEĞİ (spec 12 Faz 4–5): gölgede sonuç beyni UYANDIRMAZ (bugünkü gibi);
+    //    yetkide (`?benliksuzgec=1`) onaylanan kendi komutunun sonucu beyne gider.
+    const yetki = new URLSearchParams(location.search).has("benliksuzgec");
+    const uyandi = kp.sayac().dusunme > dusunmeOnce;
+    kontrol(yetki ? "4 YETKİ: komutun sonucu beyni uyandırdı" : "4 GÖLGE: komutun sonucu beyni uyandırmadı (bugünkü gibi)",
+      yetki ? uyandi : !uyandi, `dusunme ${dusunmeOnce} → ${kp.sayac().dusunme}`);
 
     for (const r of sonuc) console.log("[BENLIKDENE] " + r);
     console.log("[BENLIKDENE] ozet: " + sonuc.filter((r) => r.startsWith("GECTI")).length + "/" + sonuc.length);

@@ -87,6 +87,11 @@ export interface AlgiSatiri {
    * dunya. Kapı kararı değil, etiket. Algı geldiği ANDAKİ benlikten hesaplanır.
    */
   eden?: Eden;
+  /**
+   * SÜZGEÇ MERCEĞİ (spec 12 Faz 4, mind/mercekSuzgec.ts): benlik bu algıya ne derdi —
+   * GÖLGE. Yetki kapalıyken uygulanmaz; açıkken `kapi.kural` mercek kimliği olur.
+   */
+  mercek?: { oneri: "gecir" | "suz"; kural: string };
   kapi: KapiKarari;
   /**
    * Öğrenen kapının gördüğü DURUM KODU (mind/durumKodu.ts). Yalnızca kararı
@@ -288,6 +293,7 @@ export interface AlgiEki {
   golge?: GolgeKarari | null;
   beceriGolge?: BeceriGolgesi | null;
   eden?: Eden;
+  mercek?: { oneri: "gecir" | "suz"; kural: string };
 }
 
 /** Uyanış satırında köprünün doldurduğu alanlar (kimlik ve zaman kayıttan gelir). */
@@ -363,6 +369,7 @@ export class KararKaydi {
     if (ek.golge !== undefined) satir.golge = ek.golge;
     if (ek.beceriGolge !== undefined) satir.beceriGolge = ek.beceriGolge;
     if (ek.eden) satir.eden = ek.eden;
+    if (ek.mercek) satir.mercek = ek.mercek;
     switch (a.tur) {
       case "terminal":
         if (a.kod !== undefined) satir.kod = a.kod;

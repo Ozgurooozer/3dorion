@@ -32,6 +32,7 @@ import { ingilizceMi } from "../mind/dilSecimi.ts";
 import { komutCoz, type KomutEslesmesi } from "../mind/komutSozlugu.ts";
 import { AnlikBenlik, eden, type BedenOkumasi, type Eden } from "../mind/benlik.ts";
 import { terminalAyristir } from "../mind/durumKodu.ts";
+import { suzgecMercegi, type MercekOnerisi } from "../mind/mercekSuzgec.ts";
 import { araclariUret, cagriyiNiyete } from "./araclar.ts";
 import type { Beyin, BeyinGirdisi } from "./beyin.ts";
 import { talimatUret } from "./talimat.ts";
@@ -105,6 +106,14 @@ export interface KopruAyari {
    * 20 Hz yazılmaz. Verilmezse benliğin `beden` alanı boş kalır.
    */
   bedenDurumu?: () => BedenOkumasi | null;
+  /**
+   * SÜZGEÇ MERCEĞİNİN YETKİSİ (spec 12 Faz 5) — ANAHTAR, varsayılan KAPALI. Kapalıyken mercek
+   * yalnız kayda yazar (gölge). Açıkken: onaylanmış kendi komutunun sonucu geçer
+   * (`benlik.beklenen_cevap`), kendi yürüyüşünün "Ozyn yaklaştı"sı süzülür (`benlik.yan_urun`).
+   * Yalnız ezilebilir bir içerik kuralını değiştirir; dikkat her zaman sonra gelir. Açılması
+   * spec 12 Faz 4'ün gölge ölçüsüne bağlı (≥ 3 gerçek oturum, yanlış eşleşme 0) — Ozyn'in kararı.
+   */
+  benlikSuzgecYetkisi?: boolean;
   /** Refleksin bir adımının sonucunu en çok ne kadar beklediği (ms). Varsayılan REFLEKS_ZAMAN_ASIMI_MS. */
   refleksZamanAsimiMs?: number;
   /**
@@ -369,6 +378,8 @@ export class Kopru {
   private _benlik: AnlikBenlik;
   /** Son düşünme turunda hafızadan getirilenler (hafıza görünümü okur). */
   private _sonGetirilen: readonly GetirSonucu[] = [];
+  /** İşlenmekte olan algıya süzgeç merceğinin önerisi — benlik güncellenmeden ÖNCE (gölge). */
+  private _algiMercegi: MercekOnerisi | null = null;
   /** İşlenmekte olan algının faili — benlik güncellenmeden ÖNCE hesaplanır, `_kaydet` yazar. */
   private _algiEdeni: Eden | undefined;
   /** Üst üste kaç tur yalnızca ret geri beslemesiyle döndük. Döngü kalkanı. */
@@ -509,7 +520,7 @@ export class Kopru {
   algi(a: Algi): void {
     if (this._durduruldu) return;
 
-    const ozet = ozetle(a);
+    let ozet = ozetle(a);
     // Boş özet = `tik`. Beyin kanalına asla girmez (protocol/SOZLESME.md).
     if (!ozet) return;
 
@@ -518,11 +529,14 @@ export class Kopru {
     // algıdan da (onay bildirimi beyni uyandırmaz ama Orion bir şey beklediğini bilir).
     // Gözlemdir: hatası algı yolunu kesmez.
     try {
-      this._algiEdeni = eden(a, this._benlik.oku());
+      const once = this._benlik.oku();
+      this._algiEdeni = eden(a, once);
+      this._algiMercegi = suzgecMercegi(a, once);
       if (a.tur === "sonuc") this._benlik.sonucGeldi(a.sonuc);
       else if (a.tur === "terminal") this._benlik.terminalBitti(terminalAyristir(a.kuyruk).komut, a.kod);
     } catch (err) {
       this._algiEdeni = undefined;
+      this._algiMercegi = null;
       console.error("[BENLIK] guncellenemedi:", err);
     }
 
@@ -580,8 +594,20 @@ export class Kopru {
         console.warn("[kopru] süzgeç hatası, güvenli tarafa geçiriliyor:", err);
         kapi = { gecti: true, kural: "kopru.guvenli_taraf" };
       }
-      if (!kapi.gecti) { this._sayac.suzulen++; this._kaydet(a, ozet, kapi); return; }
     }
+    // SÜZGEÇ MERCEĞİ, YETKİDE (spec 12 Faz 5): yalnız EZİLEBİLİR bir içerik kararını değiştirir
+    // (konuşma, güvenli taraf, refleks.konusma gibi ezilemezlere dokunmaz). Dikkat SONRA gelir.
+    const mercek = this._algiMercegi;
+    if (mercek && this._ayar.benlikSuzgecYetkisi && ICGUDULER[kapi.kural].ezilebilir) {
+      if (mercek.oneri === "gecir" && !kapi.gecti) {
+        kapi = { gecti: true, kural: mercek.kural, gerekce: mercek.gerekce };
+        // Talimat "terminaldeki komutları Ozyn yazar" der: bu blok ORTAK — söyle ki model bilsin.
+        ozet = `${ozet}\n(This is the result of the command YOU suggested and Ozyn approved: ${mercek.gerekce.replace(/^önerdiğim komut /, "").replace(/ sonucu$/, "")}.)`;
+      } else if (mercek.oneri === "suz" && kapi.gecti) {
+        kapi = { gecti: false, kural: mercek.kural, gerekce: mercek.gerekce };
+      }
+    }
+    if (!kapi.gecti && a.tur !== "duydum") { this._sayac.suzulen++; this._kaydet(a, ozet, kapi); return; }
 
     const k = this._dikkat.karar(a);
     if (!k.gecsin) {
@@ -684,6 +710,7 @@ export class Kopru {
     // Beceri gölgesi `algi()`de bir kez hesaplanır (kesin söz): yazılan ile yürütülen aynı nesne.
     if (beceriGolge !== undefined) ek.beceriGolge = beceriGolge;
     if (this._algiEdeni) ek.eden = this._algiEdeni;
+    if (this._algiMercegi) ek.mercek = { oneri: this._algiMercegi.oneri, kural: this._algiMercegi.kural };
     const id = this._kayit.algi(a, ozet, kapi, ek);
     if (ek.isaret) {
       this._ogrenilebilir.set(id, ek.isaret);

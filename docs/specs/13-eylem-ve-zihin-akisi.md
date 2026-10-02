@@ -218,3 +218,48 @@ bilgisayarı kendisi açtı, komut önerdi, Ozyn onayladı, terminalde çalışt
   dosyada düz anahtar yok; gerçek anahtar dosyası oluşmadı.
 - Kalan: Ozyn kendi NVIDIA anahtarını girer (anahtar bende hiç olmaz), bir model seçilir, `eylem-olc` API
   modeliyle koşulur.
+
+## Faz 4 — anlık benlik çekirdeği: sonuç (6a825f1, 8b261cf)
+
+Spec 12 §8'deki sorular Ozyn'e soruldu; cevap gelene kadar spec'in kendi önerileri uygulandı (adlar aynen;
+"Ozyn monitörde" ayrı alan, davranış aynı; konuşma penceresi ANLIK'ta; olay numaraları Faz 6'ya; MCP ajanına
+izdüşüm sonra). Ozyn itiraz ederse değişir.
+- `mind/benlik.ts`: yapıyorum, bekliyorum (onay → komut sonucu), düşünce, son söz/niyet; alan başına azami yaş
+  ("boşa çıktı"); diske gitmez; `tik` dokunmaz. Köprü her niyeti tek `_gonder`den yazar; sonuç ve terminal
+  benliği SÜZÜLSE DE günceller.
+- **Meşgul tek kaynak**: eski ifadeyle her kombinasyonda eşdeğer [TEST, ızgara].
+- **Kim yaptı** (`eden`, ALGI merceği): karar kaydının her algı satırında. Durum koduna (öğrenen kapı) henüz
+  girmedi — eski öğretimler kaymasın diye bilerek.
+- [ÖLÇÜLDÜ] `benlikdene` 3/3: önerildi → onay bekleniyor → sonuç bekleniyor → kapandı ("bitti, çıkış kodu 0").
+  Kayıtta onaylanan komutun terminal sonucu `eden: ortak`. İlk koşu 2/3 idi: `echo` 400 ms dolmadan bitti,
+  ara hâl tek bakışla kaçtı → geçişler 50 ms'de örneklenir.
+
+## Faz 5 — zihin duvarı: sonuç (b1d1a7c, 57c8ee5, c6f25a1)
+
+- **Günlük**: karar kaydının canlı akışı Türkçe satırlar — `uyandı ← Ozyn: "otur" [kopru.konusma · ozyn] · 2,3 sn
+  ornith → otur + soyle`; LLM'siz programlar; elenen algılar sayılır. Başlığın altında CANLI SATIR: düşünüyorsa
+  saniye ve model, değilse yaptığı/beklediği, boştaysa son biten iş.
+- **İç ses**: düşünen modelin araçsız İNGİLİZCE iç monoloğu (Ozyn'in testinde lfm25-tb'ninki sesli okunmuştu) ve
+  API modelinin `reasoning_content`'i sesli okunmaz, iç sestedir.
+- **Hafıza görünümü**: HAFIZA düğümüne girince üç kabuklu dönen bulut — SABİT (içgüdüler), ANLIK (benlik,
+  çalışma belleği, konuşma penceresi), DERİN (en fazla 60 anı: önem → boyut, yaş → soluklık); bu turda
+  hatırlananlar kırmızı, imleçten iplikle. Kelimeye tıkla → ne olduğu; "Gerçek" → sayılar; "Ayarlar · Buda" →
+  eski düğme ekranı. Deneme sayfasında görüldü (`sema-deneme.html`); ilk taslakta iç kabuk sıkışıktı → elips.
+- **Şema**: DÜŞÜNCE hapında canlı saniye; alt şeritte benlik satırı. Spec 12'nin çizili veri yolu, kılcal
+  bağlantılar ve mercek rozetleri YAPILMADI (yalnız metin hâli) — açık iş.
+- Canlı odada görüntü: Faz 7'de.
+
+## Faz 6 — komut sonucu Orion'a (süzgeç merceği): sonuç
+
+- `mind/mercekSuzgec.ts` (spec 12 Faz 4–5): **beklenen cevap** — onaylanmış kendi komutunun sonucu beklenirken
+  gelen terminal bloğu (komut satırı okunuyorsa eşleşmeli) → geçir; **yan ürün** — Orion yürürken gelen
+  yaklaştı/uzaklaştı (`eden: ben`) → süz. Konuşmaya ve sonuca dokunmaz.
+- **Gölge (varsayılan)**: kayıtta `mercek` alanı; davranış değişmez. **Yetki** `benlikSuzgecYetkisi`
+  (`?benliksuzgec=1`, `ORION_BENLIK_SUZGEC=1`), varsayılan KAPALI: yalnız ezilebilir bir içerik kararını değiştirir;
+  geçirilen blok "bu SENİN önerdiğin ve Ozyn'in onayladığı komutun sonucu" notuyla gider; yeni içgüdüler
+  `benlik.beklenen_cevap`, `benlik.yan_urun`.
+- [TEST] 11 yeni test, 3/3 bozma. [ÖLÇÜLDÜ] `benlikdene` (ornith): gölgede 4/4 (sonuç beyni uyandırmadı, bugünkü
+  gibi), yetkide 4/4 (sonuç beyni uyandırdı, düşünme 0 → 1). Modelin cevabı bu koşuda görülmedi (duman penceresi
+  ornith yüklenmeden kapandı).
+- **Yetkinin gerçek kullanımda açılması** spec 12 Faz 4'ün kapısına bağlı: ≥ 3 gerçek oturumda gölge kararları,
+  `beklenen_cevap` yanlış eşleşme 0 ve `yan_urun`un süzdüklerinde hata/konuşma 0. Karar Ozyn'in.
