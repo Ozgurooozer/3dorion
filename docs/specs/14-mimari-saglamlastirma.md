@@ -52,7 +52,9 @@ Her faz ayrı commit; davranış değişmez (yalnız yer değiştirir).
 |---|---|---|---|
 | R1 | e8e922d | `tools/mimari.test.ts` bütün depoyu zorlar; tek gerçek ihlal (`mind/akis-olcum.ts`) `tools/`a taşındı | bekçi yeşil + kalibrasyon testleri [TEST] |
 | R2 | eedd006 | `bridge/kopruTurleri.ts`, `bridge/eylemSirasi.ts` (+ test); `_dusun` ve `algi` adlı adımlara bölündü. `kopru.ts` 1334 → 1077 satır | köprü testleri değişmeden yeşil [TEST]; canlı `eylemdene` 6/6 [ÖLÇÜLDÜ] |
-| R3 | (bu commit) | 23 senaryo `uygulama/senaryolar/<ad>.ts`, bağlam `uygulama/senaryoBaglami.ts` (sonradan atananlar getter). Yalnız URL'de istenen senaryo `import()` edilir; Vite her birini ayrı küçük parça yapar. `giris.ts` ~3060 → 2064 satır | `npm test` 2242/2242 + senaryo listesi bekçisi [TEST]; canlı `eylemdene` 6/6, `tahtadene` 4/4, `benlikdene` 4/4, `apidene` 5/5, `gorudene` 3/3 — hepsi R3 öncesiyle aynı [ÖLÇÜLDÜ] |
+| R3 | cf58580 | 23 senaryo `uygulama/senaryolar/<ad>.ts`, bağlam `uygulama/senaryoBaglami.ts` (sonradan atananlar getter). Yalnız URL'de istenen senaryo `import()` edilir; Vite her birini ayrı küçük parça yapar. `giris.ts` ~3060 → 2064 satır | `npm test` 2242/2242 + senaryo listesi bekçisi [TEST]; canlı `eylemdene` 6/6, `tahtadene` 4/4, `benlikdene` 4/4, `apidene` 5/5, `gorudene` 3/3 — hepsi R3 öncesiyle aynı [ÖLÇÜLDÜ] |
+
+| R4 | (bu commit) | Niyet yürütücü (`niyetiYurut`, `tahtayaYaz`, `odaklanYurut`, `bedenAdimi`) → `uygulama/niyetYurutucu.ts`; zihin duvarı bağlantısı (karar kaydı → günlük, canlı satır, kesik sayacı, hafıza bulutu, aşama/iç ses/söz-eylem dinleyicileri) → `uygulama/zihinDuvari.ts`. İkisi de bağımlılığını bağlamla alır. `giris.ts` 2064 → 1867 satır | yürütücü için 16 yeni test, sahte dünya ile (önceden yalnız canlıda sınanabiliyordu); 3 bozma denemesinin 3'ü yakalandı (yedekli). Duvar için 6 test. `npm test` 2269/2269 [TEST]; canlı `eylemdene` 6/6, `tahtadene` 4/4, `benlikdene` 4/4, `apidene` 5/5, `gorudene` 3/3 — R4 öncesiyle aynı [ÖLÇÜLDÜ] |
 
 R3 notları:
 - Taşıma bir betikle yapıldı. Gövde aynı; yalnız giris'in değişkenleri `d.` ile okunuyor. Betiğin ilk sürümü
@@ -66,3 +68,13 @@ R3 notları:
   sıra değişmiyor; yine de not edildi.
 - Ortak `bekle`/`kontrol` yardımcısı YAPILMADI: 22 kopya `bekle` tek satır, her senaryonun `kontrol`ü farklı
   rapor biçiminde. Birleştirme davranış değişikliği olurdu; bu faz yalnız yer değiştirir.
+
+R4 notları:
+- `niyetiYurut` eskiden hoisted bir `function` idi. Artık `niyetYurutucusuKur(...)`'dan dönen bir `const`.
+  Modül değerlendirilirken onu çağıran kod yok (çağıranların hepsi olay/geri çağrı içinde). Bu yüzden
+  TDZ riski yok; tsc de kullanım-öncesi-tanım hatası vermedi.
+- `hafizaBagla` artık köprüden önce çağrılıyor (eskiden pano kurulduktan sonra). Yalnız kaynak
+  fonksiyonu atadığı ve köprü yokken `[]` döndüğü için sıra fark etmez (test: "köprü yokken hafıza
+  bulutu boş").
+- `beyniBagla` hâlâ ~450 satır: beyin seçimi + üç katalog taraması + model seçici kaynağı. Bunlar
+  R4'ün kapsamında değildi. Sonraki aday: `uygulama/beyinSecimi.ts`.
