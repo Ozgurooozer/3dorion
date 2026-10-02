@@ -44,7 +44,40 @@ export interface TaramaOzeti {
   an: number;
 }
 
+/** Hazır bir API sağlayıcısı (seçicideki listede). Tip bridge'den YAPISAL olarak kopyalandı (K4). */
+export interface ApiSaglayiciSecenegi { ad: string; baslik: string; adres: string }
+
+/**
+ * API anahtarı yönetimi (spec 13 Faz 3). Anahtar yalnız `kaydet` ile GİDER; `kayitli`
+ * anahtarın kendisini değil yalnız hangi sağlayıcıda olduğunu söyler.
+ */
+export interface ApiYonetimi {
+  saglayicilar: readonly ApiSaglayiciSecenegi[];
+  /** Anahtarı kayıtlı sağlayıcılar; `kalici: false` = şifreleme yok, yalnız bu oturum. */
+  kayitli(): readonly { ad: string; adres: string; kalici: boolean }[];
+  /** `""` = kaydedildi; aksi hâlde sebep. */
+  kaydet(ad: string, adres: string, anahtar: string): Promise<string>;
+  sil(ad: string): Promise<string>;
+}
+
+/**
+ * Formu göndermeden önce: boş alan ve adres biçimi. Anahtarın kendisi DÖNEN METNE
+ * GİRMEZ (ekranda ve günlükte görünmesin).
+ */
+export function apiFormHatasi(ad: string, adres: string, anahtar: string): string {
+  if (!ad) return "sağlayıcı seç";
+  if (!adres.trim()) return "adres boş";
+  if (!/^https:\/\//i.test(adres.trim()) && !/^http:\/\/(127\.0\.0\.1|localhost)(:|\/|$)/i.test(adres.trim())) {
+    return "adres https olmalı";
+  }
+  if (!anahtar.trim()) return "anahtar boş";
+  if (/\s/.test(anahtar.trim())) return "anahtarda boşluk olmamalı";
+  return "";
+}
+
 export interface ModelSeciciKaynagi {
+  /** API anahtarı bölümü; yoksa (ör. Electron dışı geliştirme sayfası) bölüm görünmez. */
+  api?: ApiYonetimi;
   kartlar(): readonly ModelKarti[];
   durum(): SeciciDurumu;
   /** Geçiş iste; `""` = kabul (sağlık kontrolü başladı), aksi hâlde red sebebi. */

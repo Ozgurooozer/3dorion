@@ -69,3 +69,21 @@ test("tarama satırı: taranıyor / yok / taze", () => {
     "Ollama 0.12.3 · 4 model · az önce tarandı");
   assert.match(taramaSatiri({ ulasildi: true, surum: null, modelSayisi: 1, an: 0 }, 125_000), /^Ollama · 1 model · 2 dk önce/);
 });
+
+test("API formu (spec 13 Faz 3): boş alan, adres biçimi, boşluklu anahtar; hata metni anahtarı içermez", async () => {
+  const { apiFormHatasi } = await import("./modelSeciciCekirdek.ts");
+  const izgara: [string, string, string, string][] = [
+    ["nvidia", "https://integrate.api.nvidia.com/v1", "nvapi-gizli123", ""],
+    ["ozel", "http://127.0.0.1:8799/v1", "nvapi-gizli123", ""],
+    ["", "https://x/v1", "nvapi-gizli123", "sağlayıcı seç"],
+    ["nvidia", "", "nvapi-gizli123", "adres boş"],
+    ["nvidia", "http://ornek.com/v1", "nvapi-gizli123", "adres https olmalı"],
+    ["nvidia", "https://x/v1", "  ", "anahtar boş"],
+    ["nvidia", "https://x/v1", "nvapi gizli123", "anahtarda boşluk olmamalı"],
+  ];
+  for (const [ad, adres, anahtar, beklenen] of izgara) {
+    const h = apiFormHatasi(ad, adres, anahtar);
+    assert.equal(h, beklenen, `${ad} ${adres}`);
+    assert.ok(!h.includes("gizli"), h);
+  }
+});

@@ -70,6 +70,8 @@ import { OllamaBeyni } from "../bridge/ollama.ts";
 import { ollamaTara, type OllamaKatalogu } from "../bridge/ollamaKatalog.ts";
 import { opencodeTara, type OpenCodeKatalogu } from "../bridge/opencodeKatalog.ts";
 import { yerelSecenekler, yerelAd, yereldenModel, bulutSecenekler, kartlariKur } from "../bridge/beyinKatalogu.ts";
+import { API_SAGLAYICILARI, apiTara, apiSecenekler, type ApiKatalogu } from "../bridge/apiKatalog.ts";
+import type { ApiIstemcisi, ApiSonucu } from "../bridge/apiBeyni.ts";
 import { modelSeciciKur } from "./arayuz/modelSecici.ts";
 import type { ModelSeciciKaynagi } from "./arayuz/modelSeciciCekirdek.ts";
 import { SecilebilirBeyin, type BeyinSecenegi } from "../bridge/secilebilirBeyin.ts";
@@ -1511,6 +1513,34 @@ function beyniBagla(a: Avatar): void {
   };
   const opencodeHazir = opencodeyiTara();
 
+  // ── API TARAMASI (spec 13 Faz 3): anahtarı M seçicide girilmiş sağlayıcılar ──
+  //
+  // Anahtar ana süreçte, şifreli (host/anahtarDeposu.js); burası yalnız "hangi
+  // sağlayıcıda anahtar var" ve model listesini görür. Electron dışında (vite dev)
+  // köprü yok: bölüm görünmez, tarama boş döner.
+  const apiIstemci: (ApiIstemcisi & { modeller(s: string): Promise<ApiSonucu> }) | null =
+    typeof window.kopru?.apiDurum === "function" ? {
+      durum: () => window.kopru.apiDurum(),
+      modeller: (s) => window.kopru.apiModeller(s),
+      sohbet: (s, govde) => window.kopru.apiSohbet(s, govde),
+    } : null;
+  let apiKatalogu: ApiKatalogu | null = null;
+  let apiKayitli: { ad: string; adres: string; kalici: boolean }[] = [];
+  const apiyiTara = async (): Promise<void> => {
+    if (!apiIstemci) return;
+    try { apiKayitli = (await window.kopru.apiDurum()).map(({ ad, adres, kalici }) => ({ ad, adres, kalici })); }
+    catch { apiKayitli = []; }
+    const k = await apiTara(apiIstemci);
+    apiKatalogu = k;
+    const eklenen = secici.secenekEkle(apiSecenekler(k, apiIstemci));
+    if (apiKayitli.length) {
+      console.log(`[API] ${apiKayitli.map((x) => x.ad).join(", ")} · ${k.modeller.length} model (${eklenen} yeni seçenek)` +
+        (k.hatalar.length ? ` · hata: ${k.hatalar.map((h) => `${h.saglayici}: ${h.hata}`).join("; ")}` : ""));
+    }
+    modelSecici?.tazele();
+  };
+  const apiHazir = apiyiTara();
+
   // SON SEÇİM HATIRLANIR — ama yalnızca elle açılışta. Senaryolar (`*dene`,
   // hepsi `sessiz=1` taşır) ve `?beyin=` açılış beynini KESİN bilmeli; bir
   // önceki oturumda kalmış tercih ölçüm koşusunun beynini sessizce
@@ -1528,7 +1558,7 @@ function beyniBagla(a: Avatar): void {
       // Tarama bitince: yerel/bulut model ancak o zaman seçenek olur. Geçiş
       // yine sağlık kontrolünden geçer; model silindiyse varsayılan kalır ve
       // sebep günlükte okunur.
-      void Promise.all([ollamaHazir, opencodeHazir]).then(() => {
+      void Promise.all([ollamaHazir, opencodeHazir, apiHazir]).then(() => {
         if (!secici.secenekVarMi(onceki!)) {
           console.warn(`[BEYIN] hatırlanan beyin '${onceki}' artık yok, ${secici.aktif} kalıyor`);
           return;
@@ -1539,7 +1569,7 @@ function beyniBagla(a: Avatar): void {
     }
   }
   /** Panel notu için kısa ad: `opencode:saglayici/model` → `model`. */
-  const kisaAd = (ad: string) => ad.replace(/^opencode:/, "").split("/").pop() ?? ad;
+  const kisaAd = (ad: string) => ad.replace(/^(opencode|api):/, "").split("/").pop() ?? ad;
 
   // KAYIT: `?kayit=1` ile her tur `[BEYIN:KAYIT] {json}` olarak günlüğe düşer.
   // Sonra `tools/beyin-ayikla.mjs` fixture üretir, `tools/beyin-tekrar.ts`
@@ -1741,9 +1771,22 @@ function beyniBagla(a: Avatar): void {
   // teyit yolundan geçer (`beyin.model` tehlikeli sınıfta). Pencere teyidi
   // kendisi soruyor (iki adımlı Enter), burada onaylanıyor. Böylece günlük,
   // liste dışı değer kontrolü ve "bekleyen ezilemez" kuralı tek kaynakta kalır.
-  const hepsiniTara = async (): Promise<void> => { await Promise.all([ollamayiTara(), opencodeyiTara()]); };
+  const hepsiniTara = async (): Promise<void> => { await Promise.all([ollamayiTara(), opencodeyiTara(), apiyiTara()]); };
   const seciciKaynagi: ModelSeciciKaynagi = {
-    kartlar: () => kartlariKur(secici.secenekAdlari(), ollamaKatalogu, opencodeKatalogu),
+    // API anahtarı bölümü (spec 13 Faz 3): anahtar yalnız `kaydet` ile ana sürece gider.
+    ...(apiIstemci ? { api: {
+      saglayicilar: API_SAGLAYICILARI,
+      kayitli: () => apiKayitli,
+      kaydet: async (ad: string, adres: string, anahtar: string) => {
+        const r = await window.kopru.apiKaydet(ad, adres, anahtar);
+        return r.ok ? "" : r.hata;
+      },
+      sil: async (ad: string) => {
+        const r = await window.kopru.apiSil(ad);
+        return r.ok ? "" : r.hata;
+      },
+    } } : {}),
+    kartlar: () => kartlariKur(secici.secenekAdlari(), ollamaKatalogu, opencodeKatalogu, apiKatalogu),
     durum: () => {
       const g = secici.gecis;
       return {
@@ -1784,6 +1827,11 @@ function beyniBagla(a: Avatar): void {
     tara: hepsiniTara,
     katalog: () => ollamaKatalogu,
     bulutKatalog: () => opencodeKatalogu,
+    // spec 13 Faz 3: API kataloğu ve `apidene` senaryosunun seçiciye erişimi.
+    apiKatalog: () => apiKatalogu,
+    secenekVarMi: (ad: string) => secici.secenekVarMi(ad),
+    iste: (ad: string) => secici.iste(ad),
+    aktif: () => secici.aktif,
   };
   console.log(`[PANO] ${panoKaydi.moduller().length} modül, ` +
     `${panoKaydi.goruntu().reduce((n, m) => n + m.dugmeler.length, 0)} tel bağlandı`);
@@ -2732,6 +2780,49 @@ if (new URLSearchParams(location.search).has("senaryodene")) {
     console.log(`[SENARYODENE] rakipZorla=${rakipZorla} konum=${k.x.toFixed(1)},${k.z.toFixed(1)} `
       + `kesilen=${kesilenler.length ? kesilenler.join(",") : "yok"}`);
     console.log(`[SENARYODENE] ${tahtada ? "GECTI" : "KALDI"} senaryonun git'i tamamlandi`);
+  })();
+}
+
+// ── API denemesi (?apidene=1, spec 13 Faz 3) ──────────────────────────────
+// Zincir uçtan uca, sahte yerel sunucuyla (tools/sahte-api.mjs): anahtar ana sürece
+// kaydedilir (şifreli depo, ayrı dosya) → renderer durumda anahtarı GÖRMEZ → modeller
+// taranır → model seçilir → Ozyn konuşur → istek ana süreçten başlıkla gider → Orion
+// API'nin sözünü söyler.
+if (new URLSearchParams(location.search).has("apidene")) {
+  void (async () => {
+    const bekle = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    const sonuc: string[] = [];
+    const kontrol = (ad: string, gecti: boolean, detay = "") =>
+      sonuc.push(`${gecti ? "GECTI" : "KALDI"}  ${ad}${detay ? "  " + detay : ""}`);
+    const ANAHTAR = "apidene-sahte-anahtar";
+    const MODEL = "api:ozel/sahte/orion-test";
+    await bekle(2500);
+    const om = (globalThis as unknown as { orionModel?: {
+      tara(): Promise<void>; secenekVarMi(ad: string): boolean; iste(ad: string): void; aktif(): string;
+    } }).orionModel;
+    if (!om || typeof window.kopru?.apiKaydet !== "function") { console.log("[APIDENE] KALDI seçici ya da köprü yok"); return; }
+
+    const k = await window.kopru.apiKaydet("ozel", "http://127.0.0.1:8799/v1", ANAHTAR);
+    kontrol("anahtar kaydedildi", k.ok, JSON.stringify(k));
+    const durum = JSON.stringify(await window.kopru.apiDurum());
+    kontrol("renderer durumda anahtarı GÖRMEZ", !durum.includes(ANAHTAR), durum);
+
+    await om.tara();
+    kontrol("model seçenek oldu", om.secenekVarMi(MODEL));
+    om.iste(MODEL);
+    await bekle(3000);
+    kontrol("API modeli düşünüyor", om.aktif() === MODEL, om.aktif());
+
+    const duyulan: string[] = [];
+    const kp = kopru as Kopru | null;   // kurulum beyniBagla'da: TS buradaki daralmayı bilmez
+    const cik = kp?.konusmaDinle((m) => duyulan.push(m));
+    kp?.algi({ tur: "duydum", metin: "merhaba", kesin: true });
+    await bekle(5000);
+    cik?.();
+    kontrol("Orion API'nin sözünü söyledi", duyulan.includes("API beyni duyuyor."), JSON.stringify(duyulan));
+
+    for (const r of sonuc) console.log("[APIDENE] " + r);
+    console.log("[APIDENE] ozet: " + sonuc.filter((r) => r.startsWith("GECTI")).length + "/" + sonuc.length);
   })();
 }
 

@@ -98,3 +98,29 @@
 .ms-mesaj[data-ton="uyari"] { color: #ffc857; }
 .ms-ipucu { font-size: 11px; color: #5d688f; }
 .ms-ipucu kbd { margin: 0 1px; }
+
+/* API anahtarı bölümü (spec 13 Faz 3) */
+.ms-api { padding: 8px 16px; border-top: 1px solid #1d2436; }
+.ms-api-ac {
+  border: 1px solid #2a3246; background: #121726; color: #c5cee8; border-radius: 7px;
+  padding: 6px 10px; font: inherit; cursor: pointer;
+}
+.ms-api-ac:hover { border-color: #58c1ff; color: #fff; }
+.ms-api-form { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.ms-api-satir { display: flex; gap: 6px; }
+.ms-api-form select, .ms-api-form input {
+  padding: 7px 10px; border-radius: 7px; border: 1px solid #2a3246;
+  background: #070910; color: #e6e9f5; font: inherit; outline: none; min-width: 0;
+}
+.ms-api-form input:focus, .ms-api-form select:focus { border-color: #4d5fa8; }
+.ms-api-adres, .ms-api-anahtar { flex: 1; }
+.ms-api-form button {
+  border: 1px solid #2a3246; background: #121726; color: #c5cee8; border-radius: 7px;
+  padding: 6px 12px; font: inherit; cursor: pointer;
+}
+.ms-api-form button:hover:not(:disabled) { border-color: #58c1ff; color: #fff; }
+.ms-api-form button:disabled { opacity: .45; cursor: default; }
+.ms-api-kayitli { font-size: 12px; color: #8f9ab8; }
+.ms-api-mesaj { min-height: 1.45em; font-size: 12px; color: #8f9ab8; }
+.ms-api-mesaj[data-ton="iyi"] { color: #6fd39b; }
+.ms-api-mesaj[data-ton="kotu"] { color: #ff7a70; }

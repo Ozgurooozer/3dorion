@@ -20,8 +20,8 @@
 // Bağımlılık sınırı (K4): yalnızca DOM + kardeş çekirdek. `bridge/` görmez.
 "use strict";
 import {
-  suzVeGrupla, duzListe, sonrakiIndeks, baslangicIndeksi, kartHali, taramaSatiri,
-  type ModelKarti, type ModelSeciciKaynagi, type KartHali,
+  suzVeGrupla, duzListe, sonrakiIndeks, baslangicIndeksi, kartHali, taramaSatiri, apiFormHatasi,
+  type ModelKarti, type ModelSeciciKaynagi, type KartHali, type ApiYonetimi,
 } from "./modelSeciciCekirdek.ts";
 
 export interface ModelSeciciAyari {
@@ -101,7 +101,8 @@ export function modelSeciciKur(ayar: ModelSeciciAyari): ModelSecici {
   altIpucu.innerHTML = "<kbd>↑</kbd><kbd>↓</kbd> gez · <kbd>Enter</kbd> seç, tekrar <kbd>Enter</kbd> geç · <kbd>Esc</kbd> kapat";
   const altMesaj = el("div", "ms-mesaj");
   alt.append(altMesaj, altIpucu);
-  kutu.append(bas, arama, govde, alt);
+  const apiBolum = kaynak.api ? apiBolumuKur(kaynak.api, async () => { await yenile(); }) : null;
+  kutu.append(bas, arama, govde, ...(apiBolum ? [apiBolum.dugum] : []), alt);
   kok.append(kutu);
 
   /** Kart adı → DOM düğümü; durum güncellemesi listeyi yeniden kurmaz. */
@@ -255,6 +256,7 @@ export function modelSeciciKur(ayar: ModelSeciciAyari): ModelSecici {
     if (!acik) return;
     acik = false;
     kok.dataset.acik = "0";
+    apiBolum?.kapat();   // yarım yazılmış anahtar alanda kalmasın
     arama.blur();
     clearInterval(saat);
   }
@@ -278,6 +280,12 @@ export function modelSeciciKur(ayar: ModelSeciciAyari): ModelSecici {
   // evresinde; burada durdurmak yeter.
   kok.addEventListener("keydown", (e) => {
     e.stopPropagation();
+    // API formunun içindeyken ok/Enter listeyi değil formu ilgilendirir.
+    if (apiBolum && apiBolum.dugum.contains(e.target as Node)) {
+      if (e.key === "Escape") { e.preventDefault(); apiBolum.kapat(); arama.focus(); }
+      else if (e.key === "Enter") { e.preventDefault(); void apiBolum.kaydet(); }
+      return;
+    }
     if (e.key === "Escape") { e.preventDefault(); if (kurulu) { kurulu = null; durumlariGuncelle(); } else kapat(); return; }
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
@@ -328,6 +336,92 @@ export function modelSeciciKur(ayar: ModelSeciciAyari): ModelSecici {
   }
 
   return { ac, kapat, acikMi: () => acik, tazele: () => { if (acik) listeyiKur(); } };
+}
+
+/**
+ * "API anahtarı" bölümü (spec 13 Faz 3, Ozyn: "M ile model seçiyoruz, oraya API keyi de
+ * girebilelim"). Kapalı başlar; açılınca sağlayıcı, adres ve anahtar alanı.
+ *
+ * ANAHTARIN İZİ KALMAZ: alan `password` türünde, otomatik doldurma kapalı; Kaydet'e basıldığı
+ * an alan BOŞALTILIR (sonuç beklenmeden) ve anahtar yalnız `api.kaydet`e gider. Mesaj satırı
+ * anahtarı asla yazmaz.
+ */
+function apiBolumuKur(api: ApiYonetimi, yenile: () => Promise<void>): { dugum: HTMLElement; kapat(): void; kaydet(): Promise<void> } {
+  const dugum = el("section", "ms-api");
+  const ac = el("button", "ms-api-ac", "🔑 API anahtarı") as HTMLButtonElement;
+  ac.type = "button";
+  const form = el("div", "ms-api-form");
+  form.hidden = true;
+  const secim = el("select", "ms-api-saglayici") as HTMLSelectElement;
+  for (const s of api.saglayicilar) {
+    const o = document.createElement("option");
+    o.value = s.ad;
+    o.textContent = s.baslik;
+    secim.append(o);
+  }
+  const adres = el("input", "ms-api-adres") as HTMLInputElement;
+  adres.type = "text";
+  adres.placeholder = "https://…/v1";
+  adres.spellcheck = false;
+  const anahtar = el("input", "ms-api-anahtar") as HTMLInputElement;
+  anahtar.type = "password";
+  anahtar.placeholder = "anahtar (ekranda görünmez, şifreli saklanır)";
+  anahtar.autocomplete = "off";
+  anahtar.spellcheck = false;
+  const kaydetDugme = el("button", "ms-api-kaydet", "Kaydet") as HTMLButtonElement;
+  kaydetDugme.type = "button";
+  const silDugme = el("button", "ms-api-sil", "Sil") as HTMLButtonElement;
+  silDugme.type = "button";
+  const mesaj = el("div", "ms-api-mesaj");
+  const kayitli = el("div", "ms-api-kayitli");
+  const satir = el("div", "ms-api-satir");
+  satir.append(secim, adres);
+  const satir2 = el("div", "ms-api-satir");
+  satir2.append(anahtar, kaydetDugme, silDugme);
+  form.append(satir, satir2, kayitli, mesaj);
+  dugum.append(ac, form);
+
+  const yaz = (metin: string, ton: "iyi" | "kotu" | "notr") => { mesaj.textContent = metin; mesaj.dataset.ton = ton; };
+  const kayitliYaz = () => {
+    const k = api.kayitli();
+    kayitli.textContent = k.length
+      ? "kayıtlı: " + k.map((x) => `${api.saglayicilar.find((s) => s.ad === x.ad)?.baslik ?? x.ad} ${x.kalici ? "✓ şifreli" : "⚠ yalnız bu oturum"}`).join(" · ")
+      : "kayıtlı anahtar yok";
+  };
+  const adresDoldur = () => {
+    const k = api.kayitli().find((x) => x.ad === secim.value);
+    adres.value = k?.adres ?? api.saglayicilar.find((s) => s.ad === secim.value)?.adres ?? "";
+    silDugme.disabled = !k;
+  };
+  secim.addEventListener("change", adresDoldur);
+  ac.addEventListener("click", () => {
+    form.hidden = !form.hidden;
+    if (!form.hidden) { adresDoldur(); kayitliYaz(); yaz("", "notr"); anahtar.focus(); }
+  });
+
+  async function kaydet(): Promise<void> {
+    const ad = secim.value, adr = adres.value.trim(), a = anahtar.value;
+    anahtar.value = "";   // önce boşalt: sonuç ne olursa olsun alan anahtarı tutmaz
+    const hata = apiFormHatasi(ad, adr, a);
+    if (hata) { yaz(hata, "kotu"); return; }
+    yaz("kaydediliyor…", "notr");
+    const sonuc = await api.kaydet(ad, adr, a);
+    if (sonuc) { yaz(`kaydedilmedi: ${sonuc}`, "kotu"); return; }
+    kayitliYaz();
+    adresDoldur();
+    yaz("kaydedildi — modeller taranıyor…", "iyi");
+    await yenile();
+    yaz("kaydedildi — modeller \"Bulut\" grubunda (API rozeti)", "iyi");
+  }
+  kaydetDugme.addEventListener("click", () => void kaydet());
+  silDugme.addEventListener("click", async () => {
+    const sonuc = await api.sil(secim.value);
+    yaz(sonuc ? `silinemedi: ${sonuc}` : "anahtar silindi", sonuc ? "kotu" : "iyi");
+    kayitliYaz();
+    adresDoldur();
+    if (!sonuc) await yenile();
+  });
+  return { dugum, kapat: () => { form.hidden = true; anahtar.value = ""; }, kaydet };
 }
 
 function el(etiket: string, sinif: string, metin?: string): HTMLElement {

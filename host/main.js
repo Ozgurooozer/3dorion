@@ -133,6 +133,7 @@ function pencereAc() {
   if (process.env.ORION_YUZDENE === "1") parcalar.push("yuzdene=1", "sessiz=1");
   if (process.env.ORION_HAFIZADENE === "1") parcalar.push("hafizadene=1", "sessiz=1");
   if (process.env.ORION_TAHTADENE === "1") parcalar.push("tahtadene=1", "sessiz=1");
+  if (process.env.ORION_APIDENE === "1") parcalar.push("apidene=1", "sessiz=1");
   if (process.env.ORION_TAHTABEYIN === "1") parcalar.push("tahtabeyin=1", "sessiz=1");
   if (process.env.ORION_BECERDENE === "1") parcalar.push("becerdene=1", "sessiz=1");
   if (process.env.ORION_BECERDENE_SOZLER) parcalar.push(`becerdenesoz=${encodeURIComponent(process.env.ORION_BECERDENE_SOZLER)}`);
@@ -285,8 +286,9 @@ app.on("will-quit", () => fs.unwatchFile(OGRETIM_YOLU));
 // Depo ilk IPC çağrısında kurulur: safeStorage `ready`den önce kullanılamaz.
 // Bu bölüm anahtarı hiçbir yere BASMAZ; hata metinleri apiIstek.js'te maskelenir.
 let anahtarDeposu = null;
+// `ORION_ANAHTAR_DOSYASI`: deneme (apidene) gerçek anahtar dosyasına dokunmasın.
 const anahtarlar = () => anahtarDeposu ??= anahtarDeposuKur({
-  yol: path.join(app.getPath("userData"), "anahtarlar.json"),
+  yol: process.env.ORION_ANAHTAR_DOSYASI || path.join(app.getPath("userData"), "anahtarlar.json"),
   sifreleyici: {
     kullanilabilir: () => safeStorage.isEncryptionAvailable(),
     sifrele: (m) => safeStorage.encryptString(m),

@@ -21,6 +21,7 @@
 // Bağımlılık: ollama.ts, ollamaKatalog.ts, opencode.ts, opencodeKatalog.ts,
 // secilebilirBeyin.ts (yalnızca tip).
 "use strict";
+import { API_SAGLAYICILARI, apiAd, type ApiKatalogu, type ApiModeli } from "./apiKatalog.ts";
 import { OllamaBeyni } from "./ollama.ts";
 import {
   aracDestekler, boyutYaz, sohbetEdebilir, type OllamaKatalogu, type OllamaModeli,
@@ -158,6 +159,21 @@ const SABIT: Record<string, Omit<ModelKarti, "ad" | "uygun">> = {
   },
 };
 
+/**
+ * Tek bir API (anahtarlı) modelinin kartı (spec 13 Faz 3). Araç desteği listede
+ * yazmıyor: "araç ?" rozeti dürüstçe bilinmediğini söyler; seçince sağlık kontrolü
+ * yalnız anahtara bakar, ilk tur gerçek sınavdır.
+ */
+export function apiKart(m: ApiModeli): ModelKarti {
+  const saglayici = API_SAGLAYICILARI.find((x) => x.ad === m.saglayici)?.baslik ?? m.saglayici;
+  return {
+    ad: apiAd(m.saglayici, m.model), baslik: m.model, grup: "bulut",
+    aciklama: [m.sahip, `${saglayici} · API anahtarıyla, ağ gerekir, ücretli olabilir`].filter(Boolean).join(" · "),
+    rozetler: [{ metin: saglayici, ton: "notr" }, { metin: "API", ton: "iyi" }, { metin: "araç ?", ton: "uyari" }],
+    uygun: true,
+  };
+}
+
 /** Tek bir Ollama modelinin kartı. */
 export function yerelKart(m: OllamaModeli): ModelKarti {
   const rozetler: { metin: string; ton: RozetTonu }[] = [];
@@ -194,6 +210,7 @@ export function yerelKart(m: OllamaModeli): ModelKarti {
 export function kartlariKur(
   secenekAdlari: readonly string[], katalog: OllamaKatalogu | null,
   bulut: OpenCodeKatalogu | null = null,
+  api: ApiKatalogu | null = null,
 ): ModelKarti[] {
   const kartlar: ModelKarti[] = [];
   const katalogAdlari = new Set<string>();
@@ -204,6 +221,10 @@ export function kartlariKur(
   for (const m of bulut?.modeller ?? []) {
     kartlar.push(bulutKart(m));
     katalogAdlari.add(bulutAd(m.providerID, m.modelID));
+  }
+  for (const m of api?.modeller ?? []) {
+    kartlar.push(apiKart(m));
+    katalogAdlari.add(apiAd(m.saglayici, m.model));
   }
   for (const ad of secenekAdlari) {
     if (katalogAdlari.has(ad)) continue;

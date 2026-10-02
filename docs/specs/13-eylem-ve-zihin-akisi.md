@@ -186,3 +186,35 @@ LLM'in ve becerinin yolunu ölçer. Kayıt oynatan ölçüm araçlarında (`bece
 KAPALI: sonuçları bu fazdan önceki koşularla birebir kalır. `?komut=0|1` zorlar.
 [TEST] 27 yeni test (15 kalıp, 12 köprü); bozma 4/5 yakalandı, biri eşdeğer (`^` kaldırmak: açgözlü `(.+)`
 zaten baştan yakalıyor), yerine "son kelime" bozması denendi ve yakalandı.
+
+## Ozyn'in kendi testi (2026-10-02, 08:38–08:46) ve düzeltmeler (7643004)
+
+Karar kaydından: komut programları canlıda çalıştı (kalk, tahtaya git, bana gel — LLM uyanmadı); Orion
+bilgisayarı kendisi açtı, komut önerdi, Ozyn onayladı, terminalde çalıştı. Bulunanlar:
+- lfm25-tb uzaktan 15 kez `yaz` denedi, hep "önce git" reddi; hiç yürümedi → **uzaktan `yaz` artık önce
+  tahtaya yürür** (robot ilkesi). `tahtadene` canlı 4/4 [ÖLÇÜLDÜ].
+- "neredesin" → "masamda oturuyorum" söz-eylem bekçisine takıldı (durum anlatımı) → bekçi yalnız Ozyn'in o
+  turda istediği eylemlere bakar.
+- "bilgisayara git otur" kalıba eklendi. Tarama: 74 söz, 13 eşleşme, hepsi gerçek komut; o sabahki 12 yeni söz
+  kalıplar yazılırken görülmemişti ve hiçbiri yanlış eşleşmedi [ÖLÇÜLDÜ].
+- Açık (Faz 6): Orion'un önerip Ozyn'in onayladığı `ls` başarılı bitti ama sonucu rutin sayılıp elendi —
+  Orion kendi komutunun sonucunu görmedi. Talimattaki terminal örneği (`pyhton`) bağlamsız `python --version`
+  önerisine sızdı; terminal talimatı hâlâ "komutları Ozyn yazar" diyor.
+
+## Faz 3 — API anahtarı: sonuç (d169aa8 + bu commit)
+
+- Ana süreç: `host/anahtarDeposu.js` (safeStorage/DPAPI ile şifreli `anahtarlar.json`; şifreleme yoksa yalnız
+  bellekte ve bu söylenir), `host/apiIstek.js` (Bearer başlığı ana süreçte; hata metni anahtarı maskeler).
+- Renderer: `bridge/apiBeyni.ts` (bağlam `ollamaMesajlari`'ndan, tek kaynak; OpenAI biçimine çeviri: çağrı
+  kimlikleri, JSON metni argümanlar, `tool_call_id`; `reasoning_content` iç ses için ayrı), `bridge/apiKatalog.ts`
+  (NVIDIA NIM, OpenRouter, özel adres; gömme/güvenlik modelleri seçenek olmaz).
+- M seçici: "🔑 API anahtarı" bölümü — sağlayıcı, adres, şifre alanı; Kaydet'e basınca alan hemen boşalır;
+  kayıtlı sağlayıcılar "✓ şifreli" ya da "⚠ yalnız bu oturum"; Sil. Modeller "Bulut" grubunda, "API" ve
+  "araç ?" rozetiyle.
+- [TEST] 30 yeni test (depo 11, istek 7, beyin+katalog 12). Ollama mesaj kurucusunun çıkarılması bayt bayt
+  aynı istek gövdesini üretti (8861 bayt).
+- [ÖLÇÜLDÜ] `3dorion.bat apidene` (sahte yerel sunucu, ayrı anahtar dosyası) **5/5**: kaydedildi, renderer
+  anahtarı görmedi, model seçenek oldu, API modeli düşündü, Orion API'nin sözünü söyledi. Log'da anahtar 0 kez;
+  dosyada düz anahtar yok; gerçek anahtar dosyası oluşmadı.
+- Kalan: Ozyn kendi NVIDIA anahtarını girer (anahtar bende hiç olmaz), bir model seçilir, `eylem-olc` API
+  modeliyle koşulur.

@@ -18,6 +18,7 @@ rem    3dorion.bat sessizdene sessiz basarili komut Orion'a ulasiyor mu
 rem    3dorion.bat yuzdene   agiz senkronu ve goz kirpma MESH uzerinde oynuyor mu
 rem    3dorion.bat hafizadene eski bilgi 13 tur sonra hatirlaniyor mu
 rem    3dorion.bat tahtadene  Orion tahtaya yaziyor mu (yakinlik kurali dahil)
+rem    3dorion.bat apidene    API anahtarli beyin uctan uca (sahte yerel sunucuyla)
 rem    3dorion.bat zihindene  zihin duvari panelleri (sema + gunluk) gozle dogrulanir
 rem    3dorion.bat admindene  yonetim terminali gercek kabuk mu, Orion'a siziyor mu
 rem    3dorion.bat gordene    Orion odayi goruyor mu (cevap konuma bagli mi)
@@ -74,6 +75,7 @@ if /i "%MOD%"=="gordene" goto :gordene
 if /i "%MOD%"=="admindene" goto :admindene
 if /i "%MOD%"=="zihindene" goto :zihindene
 if /i "%MOD%"=="tahtadene" goto :tahtadene
+if /i "%MOD%"=="apidene" goto :apidene
 if /i "%MOD%"=="tahtabeyin" goto :tahtabeyin
 if /i "%MOD%"=="becerdene" goto :becerdene
 if /i "%MOD%"=="gelistir" goto :gelistir
@@ -162,8 +164,21 @@ set "ORION_SMOKE_MS=30000"
 call npx electron .
 goto :son
 
+:apidene
+echo [apidene] API anahtarli beyin: kaydet - tara - sec - konus (sahte yerel sunucu, gercek anahtar dosyasina dokunmaz)
+call npx vite build
+if errorlevel 1 goto :hata
+start "sahte-api" /b node "%~dp0tools\sahte-api.mjs"
+set "ORION_ANAHTAR_DOSYASI=%TEMP%\orion-apidene-anahtar.json"
+if exist "%ORION_ANAHTAR_DOSYASI%" del "%ORION_ANAHTAR_DOSYASI%"
+set "ORION_APIDENE=1"
+set "ORION_SMOKE=1"
+set "ORION_SMOKE_MS=30000"
+call npx electron .
+goto :son
+
 :tahtadene
-echo [tahtadene] Orion tahtaya yaziyor mu? (uzaktan yazmak reddedilmeli)
+echo [tahtadene] Orion tahtaya yaziyor mu? (uzaktan istenince once kendisi yurumeli)
 call npx vite build
 if errorlevel 1 goto :hata
 set "ORION_TAHTADENE=1"
