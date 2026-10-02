@@ -102,30 +102,7 @@ export class OllamaBeyni implements Beyin {
   }
 
   async dusun(girdi: BeyinGirdisi): Promise<BeyinCikti> {
-    const mesajlar = [
-      { role: "system", content: girdi.sabit ? `${girdi.talimat ?? TEMEL_TALIMAT}
-${girdi.sabit}` : (girdi.talimat ?? TEMEL_TALIMAT) },
-      // Gecmis DOGRU temsil edilir: Orion'un sozleri gercekte `dunya_soyle`
-      // arac cagrisiydi. Duz `assistant` metni olarak gostermek modele
-      // "asistan duz metin yazar" oruntusunu ogretiyor ve cikti bozuluyordu
-      // (olcum: `orlda_komut {...}` gibi bozuk adlar duz metin olarak).
-      // Ornekler: dogru davranisi GOSTEREN kisa gosterimler. Sistemden sonra,
-      // gecmisten once. Olcum: sogukta 1-3/4 -> ornekle 4/4.
-      ...(girdi.ornekler ?? []),
-      ...girdi.gecmis.flatMap((g) => {
-        if (g.rol === "kullanici") return [{ role: "user", content: g.metin }];
-        if (!g.arac) return [{ role: "assistant", content: g.metin }];
-        // Beden niyeti kendi araç adıyla oynatılır (spec 13): model "komut → eylem"
-        // çiftlerini görsün, yalnız "komut → söz" değil.
-        const cagri = g.cagri ?? { ad: "dunya_soyle", girdi: { metin: g.metin } };
-        return [
-          { role: "assistant", content: "",
-            tool_calls: [{ function: { name: cagri.ad, arguments: cagri.girdi } }] },
-          { role: "tool", content: "bitti" },
-        ];
-      }),
-      { role: "user", content: this._durumMetni(girdi) },
-    ];
+    const mesajlar = ollamaMesajlari(girdi);
 
     const govde = {
       model: this.ad,
@@ -191,21 +168,6 @@ ${girdi.sabit}` : (girdi.talimat ?? TEMEL_TALIMAT) },
     }
   }
 
-  /** Algı özetleri + dünya durumu → modele verilecek tek blok. */
-  private _durumMetni(g: BeyinGirdisi): string {
-    // ANILAR UNUTULMUŞTU — yerel beyinle Orion'un uzun vadeli hafızası hiç
-    // yoktu. `opencode.ts` (bkz. baglam.ts) gönderiyordu, burası göndermiyordu;
-    // yani "hangi beyin" seçimi sessizce "hafıza var mı" seçimine dönüşüyordu.
-    // Ölçümde yakalandı: hafıza denemesinin iki kolu bu beyinde BİREBİR aynı
-    // girdiye dönüşüyor, aradaki fark gürültüden ibaret kalıyordu.
-    // Biçim `baglam.ts` ile aynı (spec 06 K8: bağlam beyinden bağımsızdır).
-    const satirlar = [
-      g.dunya,
-      ...(g.anilar?.length ? [`You remember: ${g.anilar.join(" | ")}`] : []),
-      ...g.ozetler,
-    ].filter(Boolean);
-    return satirlar.join("\n");
-  }
 
   /**
    * Araç çağrılarını normalize eder. Modeller argümanı bazen nesne, bazen
@@ -227,4 +189,59 @@ ${girdi.sabit}` : (girdi.talimat ?? TEMEL_TALIMAT) },
     }
     return cikti;
   }
+}
+
+/** Ollama `messages` biçiminde tek mesaj (OpenAI biçimine `bridge/apiBeyni.ts` çevirir). */
+export interface OllamaMesaji {
+  role: string;
+  content: string;
+  tool_calls?: { function: { name: string; arguments: unknown } }[];
+}
+
+/**
+ * Bir turun mesaj dizisi: sistem (talimat + sabit), örnekler, geçmiş, durum.
+ * TEK KAYNAK: hem `OllamaBeyni` hem `ApiBeyni` (spec 13 Faz 3) buradan kurar — iki
+ * beyin aynı bağlamı görsün (spec 06 K8: bağlam beyinden bağımsızdır).
+ */
+export function ollamaMesajlari(girdi: BeyinGirdisi): OllamaMesaji[] {
+  return [
+    { role: "system", content: girdi.sabit ? `${girdi.talimat ?? TEMEL_TALIMAT}
+${girdi.sabit}` : (girdi.talimat ?? TEMEL_TALIMAT) },
+    // Gecmis DOGRU temsil edilir: Orion'un sozleri gercekte `dunya_soyle`
+    // arac cagrisiydi. Duz `assistant` metni olarak gostermek modele
+    // "asistan duz metin yazar" oruntusunu ogretiyor ve cikti bozuluyordu
+    // (olcum: `orlda_komut {...}` gibi bozuk adlar duz metin olarak).
+    // Ornekler: dogru davranisi GOSTEREN kisa gosterimler. Sistemden sonra,
+    // gecmisten once. Olcum: sogukta 1-3/4 -> ornekle 4/4.
+    ...(girdi.ornekler ?? []),
+    ...girdi.gecmis.flatMap((g) => {
+      if (g.rol === "kullanici") return [{ role: "user", content: g.metin }];
+      if (!g.arac) return [{ role: "assistant", content: g.metin }];
+      // Beden niyeti kendi araç adıyla oynatılır (spec 13): model "komut → eylem"
+      // çiftlerini görsün, yalnız "komut → söz" değil.
+      const cagri = g.cagri ?? { ad: "dunya_soyle", girdi: { metin: g.metin } };
+      return [
+        { role: "assistant", content: "",
+          tool_calls: [{ function: { name: cagri.ad, arguments: cagri.girdi } }] },
+        { role: "tool", content: "bitti" },
+      ];
+    }),
+    { role: "user", content: durumMetni(girdi) },
+  ];
+}
+
+/** Algı özetleri + dünya durumu → modele verilecek tek blok. */
+export function durumMetni(g: BeyinGirdisi): string {
+  // ANILAR UNUTULMUŞTU — yerel beyinle Orion'un uzun vadeli hafızası hiç
+  // yoktu. `opencode.ts` (bkz. baglam.ts) gönderiyordu, burası göndermiyordu;
+  // yani "hangi beyin" seçimi sessizce "hafıza var mı" seçimine dönüşüyordu.
+  // Ölçümde yakalandı: hafıza denemesinin iki kolu bu beyinde BİREBİR aynı
+  // girdiye dönüşüyor, aradaki fark gürültüden ibaret kalıyordu.
+  // Biçim `baglam.ts` ile aynı (spec 06 K8: bağlam beyinden bağımsızdır).
+  const satirlar = [
+    g.dunya,
+    ...(g.anilar?.length ? [`You remember: ${g.anilar.join(" | ")}`] : []),
+    ...g.ozetler,
+  ].filter(Boolean);
+  return satirlar.join("\n");
 }

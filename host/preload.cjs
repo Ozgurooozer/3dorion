@@ -34,4 +34,10 @@ contextBridge.exposeInMainWorld("kopru", {
   ogretimDinle:     (cb) => dinle(OLAY.ogretim, cb),
   // Beceri refleksi (spec 10): geçmiş oturumların görev satırları, açılışta SENKRON.
   kayitSatirlariOku: (secim) => ipcRenderer.sendSync(CAGRI.kayitSatirlariOku, secim),
+  // API anahtarlı beyin (spec 13 Faz 3): anahtar yalnız `apiKaydet` ile GİDER, geri gelmez.
+  apiDurum:         () => ipcRenderer.invoke(CAGRI.apiDurum),
+  apiKaydet:        (ad, adres, anahtar) => ipcRenderer.invoke(CAGRI.apiKaydet, ad, adres, anahtar),
+  apiSil:           (ad) => ipcRenderer.invoke(CAGRI.apiSil, ad),
+  apiModeller:      (ad) => ipcRenderer.invoke(CAGRI.apiModeller, ad),
+  apiSohbet:        (ad, govde) => ipcRenderer.invoke(CAGRI.apiSohbet, ad, govde),
 });

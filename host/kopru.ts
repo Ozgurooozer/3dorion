@@ -65,6 +65,15 @@ export interface Kopru {
    * kurar. Doğrulanmamış veridir; defter bozuk geçmişte geçmişsiz başlar.
    */
   kayitSatirlariOku(secim: { turler: readonly string[]; algilar: readonly string[] }): unknown[];
+  /**
+   * API anahtarlı beyin (spec 13 Faz 3, host/anahtarDeposu.js). `apiDurum` anahtarın
+   * KENDİSİNİ döndürmez; anahtar yalnız `apiKaydet` ile gider. İstekleri main atar.
+   */
+  apiDurum(): Promise<{ ad: string; adres: string; anahtarVar: true; kalici: boolean }[]>;
+  apiKaydet(ad: string, adres: string, anahtar: string): Promise<{ ok: true; kalici: boolean } | { ok: false; hata: string }>;
+  apiSil(ad: string): Promise<{ ok: true } | { ok: false; hata: string }>;
+  apiModeller(ad: string): Promise<{ ok: true; veri: unknown } | { ok: false; hata: string }>;
+  apiSohbet(ad: string, govde: unknown): Promise<{ ok: true; veri: unknown } | { ok: false; hata: string }>;
 }
 
 declare global {

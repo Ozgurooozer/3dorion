@@ -37,6 +37,15 @@ const CAGRI = {
    * satırları. SENKRON — köprü beceri defterini kurucuda kurar.
    */
   kayitSatirlariOku: "kayit:satirlar",
+  /**
+   * API anahtarlı beyin (spec 13 Faz 3). Anahtar YALNIZ `apiKaydet` ile main'e gider ve
+   * bir daha renderer'a dönmez; istekler main'den atılır (host/apiIstek.js).
+   */
+  apiDurum:          "api:durum",
+  apiKaydet:         "api:kaydet",
+  apiSil:            "api:sil",
+  apiModeller:       "api:modeller",
+  apiSohbet:         "api:sohbet",
 };
 
 /** Main → renderer (tek yönlü olay). */

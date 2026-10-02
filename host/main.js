@@ -1,6 +1,6 @@
 // host/main.js — Electron ana süreç. Pencere + pty + varlık çözümü.
 // ESM (package.json "type":"module"). Electron 44 ESM main destekler.
-import { app, BrowserWindow, ipcMain, shell } from "electron";
+import { app, BrowserWindow, ipcMain, safeStorage, shell } from "electron";
 import { spawn as ptySpawn } from "node-pty";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -11,6 +11,8 @@ import { hafizaDosyasiOku, hafizaDosyasiYaz } from "./hafizaDosyasi.js";
 import { kararYaziciKur, ogretimYolu, ogretimleriOku, satirlariOku, yeniSatirlar } from "./kararDosyasi.js";
 import { mcpSunucuKur } from "./mcpSunucu.js";
 import { ollamaHazirla, ollamaAdresi } from "./ollamaSunucu.js";
+import { anahtarDeposuKur } from "./anahtarDeposu.js";
+import { apiIstek } from "./apiIstek.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const KOK = path.resolve(__dirname, "..");
@@ -277,6 +279,25 @@ fs.watchFile(OGRETIM_YOLU, { interval: 1000 }, () => {
   }
 });
 app.on("will-quit", () => fs.unwatchFile(OGRETIM_YOLU));
+
+// ---- API anahtarlı beyin (spec 13 Faz 3) --------------------------------------
+// Anahtar safeStorage (Windows: DPAPI) ile şifreli dosyada; renderer onu hiç görmez.
+// Depo ilk IPC çağrısında kurulur: safeStorage `ready`den önce kullanılamaz.
+// Bu bölüm anahtarı hiçbir yere BASMAZ; hata metinleri apiIstek.js'te maskelenir.
+let anahtarDeposu = null;
+const anahtarlar = () => anahtarDeposu ??= anahtarDeposuKur({
+  yol: path.join(app.getPath("userData"), "anahtarlar.json"),
+  sifreleyici: {
+    kullanilabilir: () => safeStorage.isEncryptionAvailable(),
+    sifrele: (m) => safeStorage.encryptString(m),
+    coz: (b) => safeStorage.decryptString(b),
+  },
+});
+ipcMain.handle(CAGRI.apiDurum, () => anahtarlar().durum());
+ipcMain.handle(CAGRI.apiKaydet, (_e, ad, adres, anahtar) => anahtarlar().kaydet(ad, adres, anahtar));
+ipcMain.handle(CAGRI.apiSil, (_e, ad) => anahtarlar().sil(ad));
+ipcMain.handle(CAGRI.apiModeller, (_e, ad) => apiIstek({ depo: anahtarlar(), saglayici: ad, yol: "/models", zamanAsimiMs: 20_000 }));
+ipcMain.handle(CAGRI.apiSohbet, (_e, ad, govde) => apiIstek({ depo: anahtarlar(), saglayici: ad, yol: "/chat/completions", govde }));
 
 // ---- hafıza dosyası (spec 07 K4) -------------------------------------------
 // Orion'un hafızası renderer'ın localStorage'ından buraya taşındı: tarayıcı
