@@ -1,7 +1,39 @@
 # 11 — Odanın görünüşü: Blender'da eşya, kodda işlev (2026-10-01)
 
-**Durum:** Ozyn onayladı (2026-10-01, sohbet). Faz 0, 1 ve 2 bitti. Faz 1'in Blender önizlemesini Ozyn onayladı.
-Faz 3 (yağmurlu yeni manzara ve camdaki yağmur izleri) ve Faz 4'ün canlı senaryoları bekliyor.
+**Durum:** Ozyn onayladı (2026-10-01, sohbet). Faz 0–4 bitti (2026-10-02). Faz 1'in Blender önizlemesini Ozyn onayladı.
+Açık kalanlar: VRAM farkı ölçülmedi; bazı ölçüler için glb bekçisi yok (aşağıda).
+
+## Faz 3 — yağmur (2026-10-02)
+
+Mevcut şehir görseli (`window-city.png`) zaten referansa yakındı, değiştirilmedi. Önüne `world/level/yagmur.ts` eklendi:
+- İki düzlem, camın arkasında ve manzaranın önünde (0,6 m ve 0,4 m geride). Uzak katman ince ve soluk, yakın katman
+  seyrek ve hızlı.
+- Her katmanın dokusu kodla bir kez çizilir; çizgiler `yagmurCizgileri.ts`'den sabit tohumla gelir ve testlidir. Her
+  karede yalnız dokunun dikey ofseti kayar.
+- Maliyet [ÖLÇÜLDÜ]: +2 çizim çağrısı (referans açısı 45 → 47), FPS değişmedi (~100).
+
+## Faz 4 — canlı doğrulama (2026-10-02, yeni derlemeyle)
+
+Senaryolar `ORION_KARAR_DOSYASI` ile ayrı bir dosyaya yazdı; ölçüm haftasının gerçek karar kaydına satır gitmedi. Koşu
+sonrasında arkada süreç kalmadı. [ÖLÇÜLDÜ]
+
+| senaryo | sonuç |
+|---|---|
+| `tahtadene` | **3/3**: uzaktan yazma reddedildi; yakından yazdı; `temizle` çalıştı |
+| `gorudene` | **3/3**: açılışta gereksiz terfi yok; rutin komut beyni uyandırmadı; kabuk hatası Orion'a ulaştı |
+
+Uygulama içi HUD: FPS 100, mesh 38, çapa 10; yeni oda yüklendi.
+
+## Düzeltme: belirleyicilik (2026-10-02)
+
+Faz 2'deki "iki üretim bayt bayt aynı" iddiası **yanlıştı, şanstı.** Ölçüm 14 üretimde tekrarlandı:
+- **UV küresi gerçekten rastlantısaldı.** Aynı betikle art arda iki üretim, `oda_pirinc` düğümünün üçgen sırasında
+  farklı çıktı. Geometri aynıydı. Küre ikosferle değiştirildi.
+- **Sonrasında çıktı betik sürümüne göre sabit.** Aynı betikle 3/3 ve 11/11 üretim bayt bayt aynı çıktı.
+- **Betik değişince sıra kayabilir.** Yalnız bir yorum satırı değişse bile üçgen sırası değişebiliyor; muhtemel neden
+  bellek yerleşimi. Konumlar ve parça kutuları aynı kalıyor.
+- **Ölçü taşımaları bu yüzden geometriyle doğrulanır.** `CAM_DUVARI` ve `ISIKLIK`'ın `olculer.ts`'ye taşınması, parça
+  başına kutu karşılaştırmasıyla doğrulandı: 22 parçanın 21'i aynı. Farklı olan pirinç, 3,5 mm (küre şekli).
 
 ## İstek
 
@@ -63,7 +95,8 @@ Sayfanın FPS'i ekran tazeleme hızıyla sınırlı (~100), yani bu sayı bir ta
 - Yığın eski yerine kondu.
 - Blender'da x ekseni aynalandı. Bunu yalnız berjer konum testi yakaladı, çünkü masa x = 0'da simetrik.
 
-**Belirleyicilik:** aynı ölçülerden iki üretim bayt bayt aynı glb'yi verdi.
+**Belirleyicilik:** iki üretim bayt bayt aynı glb'yi verdi; bu şanstı. Doğrusu yukarıda, "Düzeltme: belirleyicilik"
+bölümünde.
 
 ## Yeniden üretme
 

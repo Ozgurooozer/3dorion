@@ -146,6 +146,24 @@ export const BERJER = {
 } as const;
 
 /**
+ * Eğik cam duvar (yalnız GÖRÜNÜŞ, spec 11): arka duvarın neredeyse tamamı. Orion'un
+ * pencere çapası `PENCERE` DEĞİŞMEZ — o, cam duvarın içinde bakılacak bir bölge.
+ * Blender çerçeveyi, oda.ts manzarayı ve yağmuru buradan kurar.
+ */
+export const CAM_DUVARI = {
+  xMin: -ODA.genislik / 2 + 0.7, xMax: ODA.genislik / 2 - 0.7,
+  /** Camın alt ve üst kenarı (y). */
+  alt: 0.45, ust: ODA.yukseklik - 0.25,
+  /** Üst kenarın dışa yatma açısı (radyan): üst kenar ~0.3 m dışarıda. */
+  egim: 0.12,
+  /** Dikey bölme sayısı. */
+  bolme: 8,
+} as const;
+
+/** Tavan ışıklığı (yalnız görünüş): merkez, genişlik (X), derinlik (Z), kuyu derinliği. */
+export const ISIKLIK = { x: 0, z: -1.7, g: 3.2, d: 2.0, derinlik: 0.45 } as const;
+
+/**
  * Lambalar: Blender modeli şapkayı/abajuru BURAYA koyar, oda.ts nokta ışığı BURADAN
  * yakar — ikisi ayrışırsa ışık lambanın yanında havada yanar.
  * (Konum, ışığın çıktığı nokta: abajurun içi.)

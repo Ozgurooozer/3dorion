@@ -6,9 +6,9 @@
 //
 // Kullanım: node --experimental-strip-types tools/oda-olcu-json.ts > <dosya>.json
 "use strict";
-import { ODA, MASA, MONITOR, SANDALYE, TAHTA, PENCERE, KAPI, SEMA, GUNLUK, ADMIN, BERJER, YIGIN, LAMBA } from "../world/level/olculer.ts";
+import { ODA, MASA, MONITOR, SANDALYE, TAHTA, PENCERE, KAPI, SEMA, GUNLUK, ADMIN, BERJER, YIGIN, LAMBA, CAM_DUVARI, ISIKLIK } from "../world/level/olculer.ts";
 
-export const OLCULER = { ODA, MASA, MONITOR, SANDALYE, TAHTA, PENCERE, KAPI, SEMA, GUNLUK, ADMIN, BERJER, YIGIN, LAMBA } as const;
+export const OLCULER = { ODA, MASA, MONITOR, SANDALYE, TAHTA, PENCERE, KAPI, SEMA, GUNLUK, ADMIN, BERJER, YIGIN, LAMBA, CAM_DUVARI, ISIKLIK } as const;
 
 if (import.meta.main) {
   process.stdout.write(JSON.stringify(OLCULER, null, 2) + "\n");

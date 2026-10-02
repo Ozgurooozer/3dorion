@@ -57,8 +57,9 @@ SEMA, GUNLUK, MONITOR = O["SEMA"], O["GUNLUK"], O["MONITOR"]
 G, D, Y, K = ODA["genislik"], ODA["derinlik"], ODA["yukseklik"], ODA["duvarKalinlik"]
 
 # Cam duvar ve ışıklık: yalnız görünüş. Orion'un pencere çapası (PENCERE) DEĞİŞMEZ.
-CAM = {"xMin": -G / 2 + 0.7, "xMax": G / 2 - 0.7, "alt": 0.45, "ust": Y - 0.25, "egim": 0.12, "bolme": 8}
-ISIKLIK = {"x": 0.0, "z": -1.7, "g": 3.2, "d": 2.0, "derinlik": 0.45}
+CAM = O["CAM_DUVARI"]
+# float(): JSON 0 tamsayı gelir; -0 (tamsayı) ile -0.0 farklı bayt üretir (glb bayt eşitliği bunu yakaladı).
+ISIKLIK = {k: float(v) for k, v in O["ISIKLIK"].items()}
 
 rng = random.Random(11)
 
@@ -200,6 +201,10 @@ malzeme("gok", (0, 0, 0), isik=(1, 1, 1), isik_guc=1.4, doku=goruntu("d_gok", go
 
 # ── Şekil yardımcıları (hepsi Babylon ölçüsüyle çağrılır) ─────────────────────
 def nesne(ad, bm, mat, koleksiyon=None):
+    # Üçgenleme burada, sabit yöntemle (dışa aktarıcının seçimine bırakılmaz). Not: üretimden
+    # üretime değişen üçgen sırasının asıl nedeni bu değil, UV küresiydi (bkz. kure());
+    # belirleyicilik bu satır + ikosferle 3/3 üretimde bayt bayt ölçüldü (2026-10-02).
+    bmesh.ops.triangulate(bm, faces=bm.faces[:], quad_method="FIXED", ngon_method="EAR_CLIP")
     me = bpy.data.meshes.new(ad)
     bm.to_mesh(me)
     bm.free()
@@ -239,7 +244,9 @@ def silindir(ad, mat, x, y, z, cap, yuk, seg=16, cap2=None, eksen="Y", don=0.0):
 
 def kure(ad, mat, x, y, z, cap, seg=10, olcek=(1, 1, 1)):
     bm = bmesh.new()
-    bmesh.ops.create_uvsphere(bm, u_segments=seg, v_segments=max(4, seg // 2), radius=cap / 2)
+    # İkosfer: UV küresinin kutbunda üst üste binen eş köşeler dışa aktarımda üçgen sırasını
+    # üretimden üretime değiştiriyordu (yalnız küre kullanan oda_pirinc; 2026-10-02 ölçüldü).
+    bmesh.ops.create_icosphere(bm, subdivisions=1 if seg <= 10 else 2, radius=cap / 2)
     bmesh.ops.scale(bm, vec=Vector((olcek[0], olcek[2], olcek[1])), verts=bm.verts)
     bmesh.ops.translate(bm, vec=B(x, y, z), verts=bm.verts)
     return nesne(ad, bm, mat)

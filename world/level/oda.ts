@@ -38,6 +38,7 @@ import { ODA, MASA, MONITOR, SANDALYE, TAHTA, PENCERE, KAPI, SEMA, GUNLUK, ADMIN
 import { varlik } from "../varlik.ts";
 import { odaKipi, type OdaKipi } from "./odaKipi.ts";
 import { esyalariYukle, ODA_ISIK_SAYISI } from "./odaEsyalari.ts";
+import { yagmurKur } from "./yagmur.ts";
 
 /** Odanın kurulumundan dönen tutamaçlar. T3 monitör ekranını, T2 zemini ister. */
 export interface OdaKurulumu {
@@ -456,6 +457,8 @@ export function odaKur(
         parlama.intensity = 0.45;
         for (const m of esya.isikli) parlama.addIncludedOnlyMesh(m as Mesh);
         seffaflar.push(...(esya.isinDisi as Mesh[]));
+        // Yağmur: dondurulmaz (doku ofseti her karede değişir), ışın dışı.
+        seffaflar.push(...yagmurKur(sahne));
         kurulum.kip = "yeni";
         return "yeni" as const;
       },
