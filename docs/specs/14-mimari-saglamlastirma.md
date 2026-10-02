@@ -45,3 +45,24 @@ Bekçi: `mimari.test.ts` bu tabloyu bütün depo için zorlar (bugün yalnız `w
 | R5 | `as unknown as` gözden geçirilir; gereksiz olanlar tipli hâle | tsc |
 
 Her faz ayrı commit; davranış değişmez (yalnız yer değiştirir).
+
+## Sonuçlar
+
+| faz | commit | ne oldu | kanıt |
+|---|---|---|---|
+| R1 | e8e922d | `tools/mimari.test.ts` bütün depoyu zorlar; tek gerçek ihlal (`mind/akis-olcum.ts`) `tools/`a taşındı | bekçi yeşil + kalibrasyon testleri [TEST] |
+| R2 | eedd006 | `bridge/kopruTurleri.ts`, `bridge/eylemSirasi.ts` (+ test); `_dusun` ve `algi` adlı adımlara bölündü. `kopru.ts` 1334 → 1077 satır | köprü testleri değişmeden yeşil [TEST]; canlı `eylemdene` 6/6 [ÖLÇÜLDÜ] |
+| R3 | (bu commit) | 23 senaryo `uygulama/senaryolar/<ad>.ts`, bağlam `uygulama/senaryoBaglami.ts` (sonradan atananlar getter). Yalnız URL'de istenen senaryo `import()` edilir; Vite her birini ayrı küçük parça yapar. `giris.ts` ~3060 → 2064 satır | `npm test` 2242/2242 + senaryo listesi bekçisi [TEST]; canlı `eylemdene` 6/6, `tahtadene` 4/4, `benlikdene` 4/4, `apidene` 5/5, `gorudene` 3/3 — hepsi R3 öncesiyle aynı [ÖLÇÜLDÜ] |
+
+R3 notları:
+- Taşıma bir betikle yapıldı. Gövde aynı; yalnız giris'in değişkenleri `d.` ile okunuyor. Betiğin ilk sürümü
+  `orion`/`kopru` adlarını dize ve yorumların içinde de değiştirmişti (`"api:ozel/sahte/d.orion-test"`).
+  tsc bunu yakalamaz, çünkü dize geçerli kalır. Bu yüzden yeniden adlandırma yalnız kod parçalarına
+  uygulanıp yeniden koşuldu.
+- Bağlam dosyası önce `senaryolar/` içindeydi. Vite'ın değişkenli `import()` kalıbı onu ve testini
+  (`node:fs`) de pakete almaya çalıştı. Bu yüzden klasörde yalnız senaryolar durur.
+- Senaryonun `void (async …)` öncesindeki senkron satırları (ör. `tezdene`'nin `beyinDokum` ayarı) artık
+  dinamik import çözülünce koşuyor, yani giris'in sonunda. Beyin avatar yüklendikten sonra kurulduğu için
+  sıra değişmiyor; yine de not edildi.
+- Ortak `bekle`/`kontrol` yardımcısı YAPILMADI: 22 kopya `bekle` tek satır, her senaryonun `kontrol`ü farklı
+  rapor biçiminde. Birleştirme davranış değişikliği olurdu; bu faz yalnız yer değiştirir.
