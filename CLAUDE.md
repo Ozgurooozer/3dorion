@@ -61,6 +61,8 @@ host/       Electron main process: pty, IPC, window, injects a PowerShell `promp
 
 **Dependency direction is one-way:** `world -> protocol`, `bridge -> protocol`, `mind -> protocol`. `world/` must never import `bridge/`, `mind/`, or any brain code — a violation is an architecture bug, not a style nit (spec accept-criterion K4). A guard test enforces it (`world/bagimlilik.test.ts`, type-only imports included); the one documented exception is the composition root `world/giris.ts`, which wires the brain to the body. If you're touching `world/`, ask whether what you're adding belongs there or in `mind/`/`bridge/` instead.
 
+**Front/back categories (spec 14):** ORTAK `protocol/` · ÖN `world/`, `voice/` · ARKA `mind/`, `bridge/` · KABUK `host/` · UYGULAMA (composition) `world/giris.ts` + `uygulama/`. The repo-wide guard `tools/mimari.test.ts` enforces the allowed imports per layer (front imports only protocol, plus host types; back never imports front; host only itself plus mind types).
+
 ### `protocol/` — the contract
 
 - `temel.ts` defines the envelope (`Zarf<G>`), `Kanal` (`"yerel" | "beyin"`), and named world anchors (`CapaAdi`).
@@ -76,10 +78,16 @@ host/       Electron main process: pty, IPC, window, injects a PowerShell `promp
 
 `mind/` implements a two-tier cost model (spec 02): a fast local/rule-based "reflex" tier handles anything with a sub-second latency requirement (look-at-player, idle micro-behavior, noise filtering, short acknowledgments), while a slower "thought" tier (cloud LLM) handles chat, terminal-output interpretation, command suggestions, and memory reflection. All output from either tier funnels through the single `niyetiYurut()` dispatcher — there is intentionally only one path from "decision" to "action" in the world, so proximity rules, the approval gate (`mind/onayKapisi.ts`), and text-shortening (`voice/kisalt.ts`) apply uniformly regardless of which tier decided.
 
+## `brain-lab/` — a separate research subproject
+
+A science lab for a *learning* decision mechanism (brain map: regions, pathways, dopamine, three-factor plasticity). It is **not wired into Orion** — nothing in `bridge/`, `mind/`, `world/` imports it, and the dependency direction inside it is enforced by import-guard tests. It has its own `brain-lab/CLAUDE.md` (**read it before touching anything there**; it overrides this file inside `brain-lab/`) and its own conventions that differ from the rest of the repo: **code, comments and commits in English** (conversation/vault pages Turkish), all randomness through `world/rng.ts` (same seed → bit-identical world hash), pre-registered predictions before any run, every brain change through the subject's `Ledger`, behavior never hand-coded. The method lives in the `themis` skill (`.claude/skills/themis`) and the `atlas` agent (`.claude/agents/atlas.md`) carries experiment batches end to end; use them for experiment work rather than ad-hoc scripts. Notebook: `brain-lab/LAB-DEFTERI.md`. `brain-lab/data/` is git-ignored; `brain-lab/archive/` is frozen. `ORION-BRAIN-CONTEXT.md` (repo root) and `brain-lab/brain-ir/` (Brain IR v0.2/v0.3 Alice/Bob) are the older substrate the lab builds on.
+
+Other repo-local Claude config: `.claude/skills/orion-beden` (connect to the room's body as Orion) and `orion-sahne` (persona). `graphify-out/` is a git-ignored knowledge-graph cache, not source.
+
 ## Working conventions specific to this repo
 
 - **Claims require live evidence, not just passing unit tests.** The spec docs use `[TEST]` (unit-tested), `[ÖLÇÜLDÜ]` (measured live), and `[YAZILDI-KOŞULMADI]` (written but never run) as status tags — a green test suite alone does not mean a feature "works" here; several real bugs in this codebase's history were only caught by an actual live run (`3dorion.bat <mod>dene`) after unit tests already passed. When adding a behavior that affects what Orion perceives or how it reacts, prefer adding/using a `*dene` scenario in `3dorion.bat` over trusting unit tests alone.
-- **Don't tune behavior on vibes.** Model/parameter choices in this repo (which local LLM, temperature, memory window size, output-thinning thresholds) were each settled by a measurement script under `tools/` and are documented with the actual numbers in `docs/specs/01-sanal-alan.md`. If you're about to change one, check whether a measurement tool already exists (`tools/model-olcum.mjs`, `mind/refleks-olcum.ts`, `mind/akis-olcum.ts`, `world/davranisDenemesi.ts`) before changing it on intuition.
+- **Don't tune behavior on vibes.** Model/parameter choices in this repo (which local LLM, temperature, memory window size, output-thinning thresholds) were each settled by a measurement script under `tools/` and are documented with the actual numbers in `docs/specs/01-sanal-alan.md`. If you're about to change one, check whether a measurement tool already exists (`tools/model-olcum.mjs`, `mind/refleks-olcum.ts`, `tools/akis-olcum.ts`, `world/davranisDenemesi.ts`) before changing it on intuition.
 - Exit codes, not text-pattern matching on command output, decide whether a shell command was "long-running" or "an error" — this is why the shell was switched from cmd.exe to PowerShell (PowerShell's `prompt` function can read `$LASTEXITCODE`; cmd's `PROMPT` sequence can't). Don't reintroduce keyword-based error detection on terminal output.
 
 ## Kopya kod — kural değil, bekçi

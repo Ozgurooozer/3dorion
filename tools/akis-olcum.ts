@@ -1,4 +1,4 @@
-// mind/akis-olcum.ts — GERÇEK terminal çıktısıyla uçtan uca süzgeç ölçümü.
+// tools/akis-olcum.ts — GERÇEK terminal çıktısıyla uçtan uca süzgeç ölçümü.
 //
 // refleks-olcum.ts'in kusuru şuydu: sınavı da cevap anahtarını da ben yazdım,
 // üstelik henüz BAĞLI OLMAYAN bir akış için. Bu dosya o kusuru kapatır:
@@ -10,13 +10,14 @@
 // saniyelerce süren bir araç turu demek. Ozyn'e cevap veremeyen bir Orion,
 // npm loglarını düşünüyor olabilir.
 //
-// Koşum:  node --experimental-strip-types mind/akis-olcum.ts <yakalama-dizini>
+// (spec 14 R1: mind/'den taşındı — ölçüm betiği, ön ve arkayı birlikte kullanır.)
+// Koşum:  node --experimental-strip-types tools/akis-olcum.ts <yakalama-dizini>
 "use strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { ciktiFarki } from "../world/surfaces/ciktiFarki.ts";
 import { CiktiToplayici } from "../world/surfaces/ciktiToplayici.ts";
-import { KuralRefleksi } from "./refleks.ts";
+import { KuralRefleksi } from "../mind/refleks.ts";
 
 /** Monitörün satır sayısı (world/surfaces/monitor.ts ROWS ile aynı). */
 const ROWS = 24;

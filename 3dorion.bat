@@ -294,7 +294,7 @@ if "%~2"=="" (
   echo   kullanim: 3dorion.bat olcum "<yakalama-dizini>"
   goto :son
 )
-call npx node --experimental-strip-types mind\akis-olcum.ts "%~2"
+call npx node --experimental-strip-types tools\akis-olcum.ts "%~2"
 goto :son
 
 :ogret
