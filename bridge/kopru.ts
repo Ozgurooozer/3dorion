@@ -136,7 +136,7 @@ export interface KopruAyari {
   hafizaDeposu?: { oku(): unknown[]; yaz(aniler: unknown[]): void };
   simdi?: () => number;
   /**
-   * İÇ SES (spec 12): sesli okunmayan söz ve düz metin — hareket zincirinde susturulan
+   * İÇ SES (spec 13): sesli okunmayan söz ve düz metin — hareket zincirinde susturulan
    * söz, araçla birlikte gelen düz metin. Yalnız gözlem (zihin duvarı); hatası yutulur.
    */
   icSesDinle?: (metin: string) => void;
@@ -226,7 +226,7 @@ const HAREKET_OLAYLARI: ReadonlySet<string> = new Set([
 const SOZ_NIYETLERI: ReadonlySet<NiyetTur> = new Set(["soyle", "sor"]);
 
 /**
- * EYLEM SIRASI (spec 12): bir turdaki birden çok beden niyeti sırayla yürür.
+ * EYLEM SIRASI (spec 13): bir turdaki birden çok beden niyeti sırayla yürür.
  *
  * Taban ölçüsü (2026-10-02): "masaya git ve otur", "tahtaya yaz" hep yalnız `git` ile
  * bitti. Varış sonucu rutin olduğu için beyni uyandırmaz (`refleks.sonuc.rutin`) ve
@@ -484,7 +484,7 @@ export class Kopru {
       return;
     }
 
-    // EYLEM SIRASI (spec 12): bekleyen adımın sonucu sırayı ilerletir. Algı yoluna
+    // EYLEM SIRASI (spec 13): bekleyen adımın sonucu sırayı ilerletir. Algı yoluna
     // DEVAM eder — kapı, kayıt ve hata geri beslemesi bugünkü gibi çalışır.
     if (a.tur === "sonuc") this._siraSonucu(a.sonuc);
 
@@ -958,7 +958,7 @@ export class Kopru {
 
       // Düz metin DUYULMAZ — protokolde konuşmak bir eylemdir (dunya_soyle).
       //
-      // GEÇMİŞE DE YAZILMAZ (spec 12). Eskiden "modelin kendi düşüncesi bağlamda
+      // GEÇMİŞE DE YAZILMAZ (spec 13). Eskiden "modelin kendi düşüncesi bağlamda
       // kalsın" diye `assistant` metni olarak yazılıyordu. Ölçüm (2026-10-02, taban):
       // ortak testin gerçek geçmişiyle qwen2.5:7b 40 komutun 0'ında araç çağırdı ve
       // geçmişteki kendi düz metnini taklit etti ("ortalığı kontrol ediyorum…").
@@ -1115,7 +1115,7 @@ export class Kopru {
     uyanis.niyetler.push(niyetKaydi(id, n));
     this._sayac.niyet++;
     if (SOZ_NIYETLERI.has(n.tur)) { this._ayar.niyetGonder(n, id); return; }
-    // Beden niyeti geçmişe ARAÇ olarak girer (spec 12): model "komut → eylem" görsün.
+    // Beden niyeti geçmişe ARAÇ olarak girer (spec 13): model "komut → eylem" görsün.
     const { tur: nt, ...girdi } = n;
     this._gecmis.push({ rol: "orion", metin: "", arac: true, cagri: { ad: `dunya_${nt}`, girdi } });
     this._kirp();

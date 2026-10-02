@@ -173,7 +173,7 @@ export interface UyanisSatiri {
   /** Söz geçidinin yuttuğu `soyle` sayısı (ör. inisiyatifte susma ilanı). */
   yutulanSoz: number;
   /**
-   * Sesli okunmayan söz ve düz metin: Orion'un İÇ SESİ (spec 12, kesilmiş). Hareket
+   * Sesli okunmayan söz ve düz metin: Orion'un İÇ SESİ (spec 13, kesilmiş). Hareket
    * zincirinde (`kopru.hareket_sessiz`) söz buraya düşer; araçla birlikte gelen düz
    * metin de buradadır.
    */

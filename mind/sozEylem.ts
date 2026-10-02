@@ -1,4 +1,4 @@
-// mind/sozEylem.ts — "Söyledi ama yapmadı" bekçisi (spec 12 Faz 1).
+// mind/sozEylem.ts — "Söyledi ama yapmadı" bekçisi (spec 13 Faz 1).
 //
 // NEDEN VAR (ortak canlı test, 2026-10-02): Ozyn "otur", "bana gel",
 // "önündeki bilgisayarı aç" dedi; Orion üçünde de yalnız konuştu —

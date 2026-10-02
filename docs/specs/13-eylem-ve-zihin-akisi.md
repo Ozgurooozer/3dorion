@@ -1,6 +1,8 @@
-# 12 — Söylediğini yapsın, düşüncesi görünsün, API ile güçlensin (2026-10-02)
+# 13 — Söylediğini yapsın, düşüncesi görünsün, API ile güçlensin (2026-10-02)
 
-**Durum:** Ozyn onayladı (2026-10-02, sohbet; plan "Orion MVP"). Faz 0 bitti. Faz 1 sürüyor.
+**Durum:** Ozyn onayladı (2026-10-02, sohbet; plan "Orion MVP"). Faz 0 ve Faz 1 bitti (13738b7). Ön-kayıt kısmen tuttu (aşağıda); sıradaki adım Ozyn'in kararı.
+
+Numara: başka bir oturumun planı aynı gün `12-anlik-benlik.md` olarak geldi; bu belge 12'den 13'e taşındı.
 
 Kaynak: ortak canlı test, `docs/canli-test-2026-10-02.md`.
 
@@ -73,3 +75,41 @@ Değişiklikler:
 **Çürütme:** temiz koşulda bir modelde < 7/8 komut geçerse kök neden düzeltmesi yetmemiştir → Faz 1b (bekçi
 tetiklenince tek düzeltme turu, yeni içgüdü `kopru.sozEylemDuzelt`). Canlı koşulda qwen < 4/8 kalırsa geçmiş
 temsili hâlâ zehirlidir → geçmiş penceresi ayrıca ölçülür.
+
+## Faz 1 — sonuç [ÖLÇÜLDÜ] (2026-10-02, 13738b7)
+
+Aynı alet, aynı 8 komut, n=5. Ham çıktı: scratchpad `eylem-faz1-*.txt`.
+
+| koşul | ornith önce → sonra | qwen önce → sonra |
+|---|---|---|
+| temiz, toplam doğru | 19/40 → **31/40** | 18/40 → **39/40** |
+| temiz, ≥ 4/5 olan komut | 3/8 → **6/8** | 3/8 → **8/8** |
+| temiz, yalnız söz | 8/40 → **1/40** | 0/40 → 0/40 |
+| eski köprünün geçmişi (`canli`), toplam | 17/40 → 21/40 | 0/40 → 3/40 |
+
+**Ön-kayıt karnesi:**
+
+| öngörü | sonuç |
+|---|---|
+| temiz: iki modelde ≥ 7/8 | **qwen 8/8 tuttu; ornith 6/8 TUTMADI** |
+| faz1 geçmişi: iki modelde ≥ 6/8 | **TUTMADI**: ornith 4/8, qwen 5/8 |
+| yalnız söz ≤ 3/40 her koşulda | **tuttu** (en yüksek 3/40) |
+| "bilgisayarı aç" → `odaklan monitor` ≥ 4/5 | temizde tuttu (ornith 4/5, qwen 5/5); faz1 geçmişinde ornith 0/5 |
+
+**Fixture hatası (benim):** ön-kayıtlı `faz1` geçmişinde son "masaya git" turunun cevabı (log satır 351,
+`git masa`) eksikti. Cevapsız komut her ölçümü masaya çekti: ornith "otur"da 3/5 kez masaya yürüdü. Düzeltilmiş
+geçmişle **keşif** ölçüsü (ön-kayıt sayılmaz): ornith 29/40, 5/8; qwen 19/40, 3/8. Ön-kayıtlı sonuç eski
+sürümle kalır.
+
+**Kalan hata biçimleri (ham çıktıdan):**
+1. **ornith iki adımı zincirlemiyor.** "tahtaya merhaba yaz" temizde 0/5: hep yalnız `git`. Talimattaki "tüm
+   araçları sırayla çağır" satırı ve eylem örneği yetmedi. qwen aynı komutta 5/5 `git + yaz`.
+2. **qwen geçmişe hâlâ duyarlı.** Faz 1 geçmişinde bile araç çağrısını düz metin olarak yazıyor
+   (`dunya_kalk(), dunya_git(...)`), bazen Çince karakter. Geçmişte kalan iki çöp söz ("ortalığı kontrol
+   ediyorum…" — o gece sesli okunmuştu) yeterli. Canlıda `metinKurtar` JSON biçimlerini kurtarır; bu ölçü
+   kurtarmayı saymaz.
+3. **"Söyleyip yapmamak" büyük ölçüde kapandı:** 8/40 → 1/40 (ornith, temiz).
+
+**Çürütme kuralı** "temizde < 7/8 → Faz 1b" diyor ve ornith 6/8 ile tetiklendi. Ama Faz 1b'nin hedefi
+(söyleyip yapmamak) artık 1/40. Kalan açıklar zincirleme ve geçmiş duyarlılığı. Hangi yoldan gidileceği Ozyn'in
+kararı.

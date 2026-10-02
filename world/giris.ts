@@ -1603,7 +1603,7 @@ function beyniBagla(a: Avatar): void {
       return { gecsin: k.terfi, kural: k.kural, gerekce: k.gerekce };
     },
     metinDinle: (metin, aracVarMi) => { if (!aracVarMi) davranisKayit()?.duyulmayan(metin); },
-    // İÇ SES (spec 12): sesli okunmayan söz ve düz metin günlükte görünür — Orion'un
+    // İÇ SES (spec 13): sesli okunmayan söz ve düz metin günlükte görünür — Orion'un
     // ne düşündüğü, hareket zincirinde ne demeyi seçtiği.
     icSesDinle: (metin) => gunluk.ekle("bilgi", "iç ses", metin.slice(0, 200)),
     // "Söyledi ama yapmadı" (mind/sozEylem.ts): Ozyn'in gördüğü yerde, yalnız gözlem.

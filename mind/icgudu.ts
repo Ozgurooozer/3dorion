@@ -60,7 +60,7 @@ export const ICGUDULER = {
   "kopru.suzgec": { katman: "kopru", ezilebilir: true,
     aciklama: "Kimlik vermeyen bir içerik süzgecinin kararı (eski imza: yalnızca evet/hayır)." },
   "kopru.hareket_sessiz": { katman: "kopru", ezilebilir: true,
-    aciklama: "Yalnız Ozyn'in hareketiyle (yaklaştı, uzaklaştı, baktı, yüzeye geçti) uyanan zincirde söz sesli okunmaz, iç seste kalır; beden niyetleri yürür (spec 12, Ozyn 2026-10-02)." },
+    aciklama: "Yalnız Ozyn'in hareketiyle (yaklaştı, uzaklaştı, baktı, yüzeye geçti) uyanan zincirde söz sesli okunmaz, iç seste kalır; beden niyetleri yürür (spec 13, Ozyn 2026-10-02)." },
   "kopru.refleks": { katman: "kopru", ezilebilir: false,
     aciklama: "Beceri refleksinin kendi adımının sonucunu refleks okur, beyne gitmez; refleks başarısız olursa söz notla birlikte beyne döner (spec 10)." },
 

@@ -73,7 +73,7 @@ const KONUSMA_ORNEGI: OrnekMesaj[] = [
 ];
 
 /**
- * Ozyn bir iş isteyince beden araçlarını ÇAĞIRMAK — söylemek değil (spec 12).
+ * Ozyn bir iş isteyince beden araçlarını ÇAĞIRMAK — söylemek değil (spec 13).
  *
  * Ölçümden (taban, 2026-10-02): yalnız `orada mısın → dunya_soyle` örneğini gören
  * model "otur" / "bilgisayarı aç" isteğine de yalnız `soyle` ile cevap verdi.
@@ -98,7 +98,7 @@ const EYLEM_ORNEGI: OrnekMesaj[] = [
  * Terminal turunda tek örnek: iki örnek bağlamı iki katına çıkarır ve ölçümde
  * tek örnek zaten 4/4 veriyor. Terminal önceliklidir çünkü ölçümde zayıf olan
  * durum oydu. Konuşma turunda iki örnek: cevap vermek (susmamak) ve istenen
- * işi yapmak — tek örnekle model ikincisini öğrenmedi (spec 12 Faz 0).
+ * işi yapmak — tek örnekle model ikincisini öğrenmedi (spec 13 Faz 0).
  */
 export function ornekUret(b: OrnekBaglami): OrnekMesaj[] {
   if (b.terminal) return TERMINAL_ORNEGI;

@@ -42,4 +42,4 @@ Beyin: açılışta hatırlanan seçim `yerel:qwen2.5:7b`. Ozyn M ile önce `orn
 - **Çağırınca gelsin:** "otur" dendiğinde otursun; "bana gel" dendiğinde odada Ozyn'i bulup yanına gelsin.
 - **Bilgisayar:** önündeki bilgisayarı açıp terminali kullanabilsin, Ozyn söyleyince.
 
-Plan ve kararlar: `docs/specs/12-eylem-ve-zihin-akisi.md`.
+Plan ve kararlar: `docs/specs/13-eylem-ve-zihin-akisi.md`.

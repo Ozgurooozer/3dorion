@@ -1,4 +1,4 @@
-// tools/eylem.ts — "Söylediğini YAPTI mı?" puanı (eylem ölçüsü, spec 12 Faz 0).
+// tools/eylem.ts — "Söylediğini YAPTI mı?" puanı (eylem ölçüsü, spec 13 Faz 0).
 //
 // 2026-10-02 ortak canlı testte Ozyn "otur", "bana gel", "bilgisayarı aç"
 // dedi; Orion üçünde de yalnız `dunya_soyle` çağırdı ("Oturuyorum Ozyn.") ve

@@ -45,7 +45,7 @@ export interface BeyinGirdisi {
    * edilince çıktı geçerli kalıyor.
    *
    * `cagri` = Orion'un bir BEDEN niyeti (git, otur, yaz…), araç adı ve
-   * argümanıyla (spec 12). Geçmiş yalnız gerçekte olanı taşır: Ozyn'in sözü,
+   * argümanıyla (spec 13). Geçmiş yalnız gerçekte olanı taşır: Ozyn'in sözü,
    * Orion'un sözü ve yaptığı. Ölçüm (2026-10-02): yalnız sözlerden ve düz
    * metinden oluşan geçmişle qwen2.5:7b 40 komutun 0'ında araç çağırdı —
    * geçmişteki kendi düz metnini taklit etti.

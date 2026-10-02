@@ -1,5 +1,5 @@
 {
-  "aciklama": "Eylem ölçüsü (spec 12 Faz 0). Ozyn'in 2026-10-02 ortak testte verdiği sözlü komutlar ve beklenen beden aracı. 'canliGecmis', aynı testte 'otur' turunun GERÇEK geçmişi (log, dokum satırları 359-373): soyle ve düz metinle dolu, hiç beden eylemi yok. 'canliFaz1Gecmis': aynı turlar Faz 1 köprüsünün yazacağı biçimde (spec 12): düz metin ve hareket zincirinin sözü geçmişe girmez; beden niyetleri araç adıyla girer (log 137-206); konuşulan kurtarılmış metin söz olarak kalır; son 12 kayıt (gecmisSiniri).",
+  "aciklama": "Eylem ölçüsü (spec 13 Faz 0). Ozyn'in 2026-10-02 ortak testte verdiği sözlü komutlar ve beklenen beden aracı. 'canliGecmis', aynı testte 'otur' turunun GERÇEK geçmişi (log, dokum satırları 359-373): soyle ve düz metinle dolu, hiç beden eylemi yok. 'canliFaz1Gecmis': aynı turlar Faz 1 köprüsünün yazacağı biçimde (spec 13): düz metin ve hareket zincirinin sözü geçmişe girmez; beden niyetleri araç adıyla girer (log 137-206); konuşulan kurtarılmış metin söz olarak kalır; son 12 kayıt (gecmisSiniri). DÜZELTME (2026-10-02, ön-kayıtlı koşudan sonra): ilk sürümde son 'masaya git' turunun cevabı (log 351: git masa) eksikti; cevapsız komut her ölçümü masaya çekiyordu. Ön-kayıtlı sonuç eski sürümle; düzeltilmiş sürüm keşif ölçüsüdür.",
   "durumlar": {
     "ayakta": "You: duruyor, position -3.4,-0.5. Ozyn is 3.6m away, looking at you. It is evening, 20:15. You have been in this room for 5 minutes. Ozyn spoke just now.",
     "masada": "You: duruyor, position -0.2,-1.5. Ozyn is 3.8m away. It is evening, 20:15. You have been in this room for 5 minutes. Ozyn spoke just now.",
@@ -124,21 +124,6 @@
       "metin": "",
       "arac": true,
       "cagri": {
-        "ad": "dunya_git",
-        "girdi": {
-          "hedef": {
-            "tip": "capa",
-            "ad": "tahta"
-          },
-          "mesafe": 1.5
-        }
-      }
-    },
-    {
-      "rol": "orion",
-      "metin": "",
-      "arac": true,
-      "cagri": {
         "ad": "dunya_yaz",
         "girdi": {
           "metin": "Orion",
@@ -217,6 +202,20 @@
     {
       "rol": "kullanici",
       "metin": "masaya git"
+    },
+    {
+      "rol": "orion",
+      "metin": "",
+      "arac": true,
+      "cagri": {
+        "ad": "dunya_git",
+        "girdi": {
+          "hedef": {
+            "tip": "capa",
+            "ad": "masa"
+          }
+        }
+      }
     }
   ]
 }

@@ -9,7 +9,7 @@
 //   temiz  — geçmiş boş
 //   canli  — 2026-10-02 testindeki GERÇEK geçmiş, eski köprünün yazdığı haliyle
 //            (soyle ve düz metin dolu, hiç beden eylemi yok)
-//   faz1   — aynı turlar, Faz 1 köprüsünün yazacağı haliyle (spec 12): düz metin
+//   faz1   — aynı turlar, Faz 1 köprüsünün yazacağı haliyle (spec 13): düz metin
 //            yok, beden niyetleri araç olarak var
 //
 // Kullanım:

@@ -68,7 +68,7 @@ const DURUS = [
 
 const KONUSMA = [
   "Ozyn spoke to you: you MUST answer with dunya_soyle. Staying silent is not acceptable.",
-  // Ortak canlı testten (2026-10-02) ve taban ölçüsünden (spec 12 Faz 0): "otur",
+  // Ortak canlı testten (2026-10-02) ve taban ölçüsünden (spec 13 Faz 0): "otur",
   // "bana gel", "bilgisayarı aç" denince model yalnız "Oturuyorum" / "Geliyorum" /
   // "Açıyorum" dedi ve hiçbir beden aracı çağırmadı (ornith, "bilgisayarı aç" 8/10).
   "If he asks you to DO something (come, sit, stand up, go, look, write, use the computer), "
@@ -77,7 +77,7 @@ const KONUSMA = [
   "'Come to me' means dunya_git with hedef {tip:'oyuncu'} and mesafe 1.2. "
   + "To use the computer: dunya_odaklan with capa 'monitor'.",
   // Taban ölçüsü: "masaya git ve otur", "tahtaya yaz" hep yalnız `git` ile bitti.
-  // Köprü aynı turdaki beden araçlarını SIRAYLA yürütür (eylem sırası, spec 12).
+  // Köprü aynı turdaki beden araçlarını SIRAYLA yürütür (eylem sırası, spec 13).
   "If it takes several steps, call ALL the tools in this one turn, in order; "
   + "they run one after another (e.g. dunya_git to the board, then dunya_yaz).",
   "If something in the room is asked about, LOOK first with dunya_sor: "

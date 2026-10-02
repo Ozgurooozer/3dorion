@@ -36,7 +36,7 @@ function hedefDogrula(h: unknown, alan: string): Sonuc<Hedef> {
       return { ok: true, deger: { tip: "oyuncu" } };
     case "nesne": {
       if (!yazi(o.ad)) return { ok: false, hata: `${alan}.ad: boş olmayan metin olmalı` };
-      // Odadaki şeyin adı bir çapaysa çapadır (spec 12): `sor` "çalışma masası" der, model
+      // Odadaki şeyin adı bir çapaysa çapadır (spec 13): `sor` "çalışma masası" der, model
       // onu `nesne` diye geri verir ve avatar "bilinmeyen çapa/nesne" ile reddediyordu
       // (ortak test 2026-10-02; taban ölçüsünde 5 kez). Bilinmeyen nesne adı olduğu gibi geçer.
       const capa = capaCoz(o.ad as string);

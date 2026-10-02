@@ -62,7 +62,7 @@ function gecmisSatirlari(gecmis: BeyinGirdisi["gecmis"]): string[] {
   let onceki = "";
   for (const g of gecmis) {
     const s = g.rol === "kullanici" ? `Ozyn: ${g.metin}`
-      // Beden niyeti (spec 12): metin modeli de ne YAPTIĞINI görsün, yalnız ne dediğini değil.
+      // Beden niyeti (spec 13): metin modeli de ne YAPTIĞINI görsün, yalnız ne dediğini değil.
       : g.cagri ? `You did: ${g.cagri.ad} ${JSON.stringify(g.cagri.girdi)}`
       : `You: ${g.metin}`;
     if (s !== onceki) satirlar.push(s);

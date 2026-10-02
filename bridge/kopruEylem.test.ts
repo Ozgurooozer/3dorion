@@ -1,4 +1,4 @@
-// bridge/kopruEylem.test.ts — Söylediğini yapsın (spec 12 Faz 1): eylem sırası, hareket
+// bridge/kopruEylem.test.ts — Söylediğini yapsın (spec 13 Faz 1): eylem sırası, hareket
 // zincirinde iç ses, yalnız gerçekte olanı taşıyan geçmiş, "dedi ama yapmadı" bekçisi.
 //
 // Vakalar 2026-10-02 ortak canlı testinden (docs/canli-test-2026-10-02.md).
