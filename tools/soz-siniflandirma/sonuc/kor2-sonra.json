@@ -1,0 +1,84 @@
+{
+ "hepsi": {
+  "n": 120,
+  "poz": 48,
+  "kapsanan": 27,
+  "kacan": [
+   "hadi şu koltuğa otur",
+   "bana gel abi",
+   "tahta tarafına bak",
+   "kapinin onunde dur",
+   "yanima gel kardesim",
+   "cama git",
+   "pc yi kullan biraz",
+   "zahmet olmazsa masaya dön",
+   "pencerenin yanına yaklaş",
+   "bilgisyarı aç hadi",
+   "koltuğa çök",
+   "orion biraz bekle",
+   "ekrana bi göz at",
+   "stop right there",
+   "go ahead and open the computer",
+   "face the window",
+   "glance at the monitor",
+   "approach the desk",
+   "hold on",
+   "use the computer for a bit",
+   "rise from the armchair"
+  ],
+  "neg": 58,
+  "yanlis": [],
+  "soru": 8,
+  "soru_eslesen": [
+   "oturur musun?"
+  ],
+  "notr_eslesen": 1
+ },
+ "tr": {
+  "n": 72,
+  "poz": 28,
+  "kapsanan": 15,
+  "kacan": [
+   "hadi şu koltuğa otur",
+   "bana gel abi",
+   "tahta tarafına bak",
+   "kapinin onunde dur",
+   "yanima gel kardesim",
+   "cama git",
+   "pc yi kullan biraz",
+   "zahmet olmazsa masaya dön",
+   "pencerenin yanına yaklaş",
+   "bilgisyarı aç hadi",
+   "koltuğa çök",
+   "orion biraz bekle",
+   "ekrana bi göz at"
+  ],
+  "neg": 36,
+  "yanlis": [],
+  "soru": 4,
+  "soru_eslesen": [
+   "oturur musun?"
+  ],
+  "notr_eslesen": 0
+ },
+ "en": {
+  "n": 48,
+  "poz": 20,
+  "kapsanan": 12,
+  "kacan": [
+   "stop right there",
+   "go ahead and open the computer",
+   "face the window",
+   "glance at the monitor",
+   "approach the desk",
+   "hold on",
+   "use the computer for a bit",
+   "rise from the armchair"
+  ],
+  "neg": 22,
+  "yanlis": [],
+  "soru": 4,
+  "soru_eslesen": [],
+  "notr_eslesen": 1
+ }
+}

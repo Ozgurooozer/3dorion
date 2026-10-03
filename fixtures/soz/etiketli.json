@@ -1,0 +1,3483 @@
+{
+ "surum": 1,
+ "aciklama": "Söz -> yol etiketi (plan: docs/olcum-soz-siniflandirma.md). Test seti YALNIZ kaynak=gercek ve onay=true örneklerden; uretilmis örnekler eğitim/bellek içindir. Grup = bölünmez birim.",
+ "siniflar": [
+  "hareket",
+  "yaz",
+  "sorgu",
+  "sohbet",
+  "emin_degil"
+ ],
+ "ornekler": [
+  {
+   "id": "s001",
+   "soz": "adını yaz tahtaya",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "gercek",
+   "grup": "g001",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s002",
+   "soz": "adini yaz tahtaya",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g001",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s003",
+   "soz": "adını yaz tathaya",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g001",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s004",
+   "soz": "az önce neredeydin şimdi neredesin",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g002",
+   "onay": false,
+   "not": "geçmişe bağlı"
+  },
+  {
+   "id": "s005",
+   "soz": "az once neredeydin simdi neredesin",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g002",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s006",
+   "soz": "az önce neredeydin şidmi neredesin",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g002",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s007",
+   "soz": "bana gel",
+   "etiket": "hareket",
+   "hedef": "oyuncu",
+   "kaynak": "gercek",
+   "grup": "g003",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s008",
+   "soz": "bna gel",
+   "etiket": "hareket",
+   "hedef": "oyuncu",
+   "kaynak": "uretilmis",
+   "grup": "g003",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s009",
+   "soz": "bareber yapıcaz onu",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g004",
+   "onay": false,
+   "not": "'beraber yapıcaz onu'"
+  },
+  {
+   "id": "s010",
+   "soz": "bareber yapicaz onu",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g004",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s011",
+   "soz": "breber yapıcaz onu",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g004",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s012",
+   "soz": "başka bir yere git",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g005",
+   "onay": false,
+   "not": "hedef belirsiz (hangi yer?)"
+  },
+  {
+   "id": "s013",
+   "soz": "baska bir yere git",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g005",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s014",
+   "soz": "başka bir yree git",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g005",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s015",
+   "soz": "ben neredeyim",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g006",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s016",
+   "soz": "ben nreedeyim",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g006",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s017",
+   "soz": "beyaz tahtaya adını yaz",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "gercek",
+   "grup": "g007",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s018",
+   "soz": "beyaz tahtaya adini yaz",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g007",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s019",
+   "soz": "beyaz tahatya adını yaz",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g007",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s020",
+   "soz": "beyaz tahtaya yaz",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "gercek",
+   "grup": "g008",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s021",
+   "soz": "byeaz tahtaya yaz",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g008",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s022",
+   "soz": "bide quantum formülü yaz sen yaz",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "gercek",
+   "grup": "g009",
+   "onay": false,
+   "not": "hedef örtük (tahta)"
+  },
+  {
+   "id": "s023",
+   "soz": "bide quantum formulu yaz sen yaz",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g009",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s024",
+   "soz": "bide quantum formlü yaz sen yaz",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g009",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s025",
+   "soz": "bilgisayara git",
+   "etiket": "hareket",
+   "hedef": "monitor",
+   "kaynak": "gercek",
+   "grup": "g010",
+   "onay": false,
+   "not": "hedef monitör varsayıldı (spec 13: bilgisayar = odaklan monitor)"
+  },
+  {
+   "id": "s026",
+   "soz": "bilgisaara git",
+   "etiket": "hareket",
+   "hedef": "monitor",
+   "kaynak": "uretilmis",
+   "grup": "g010",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s027",
+   "soz": "bilgisayari kullan",
+   "etiket": "hareket",
+   "hedef": "monitor",
+   "kaynak": "gercek",
+   "grup": "g011",
+   "onay": false,
+   "not": "kullan = odaklan varsayıldı, TARTIŞMALI"
+  },
+  {
+   "id": "s028",
+   "soz": "bilgisaayri kullan",
+   "etiket": "hareket",
+   "hedef": "monitor",
+   "kaynak": "uretilmis",
+   "grup": "g011",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s029",
+   "soz": "birseyler yaz",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "gercek",
+   "grup": "g012",
+   "onay": false,
+   "not": "hedef örtük"
+  },
+  {
+   "id": "s030",
+   "soz": "bisreyler yaz",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g012",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s031",
+   "soz": "can you able to use this",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g013",
+   "onay": false,
+   "not": "yetenek sorusu"
+  },
+  {
+   "id": "s032",
+   "soz": "can you ale to use this",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g013",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s033",
+   "soz": "can you go tahta",
+   "etiket": "hareket",
+   "hedef": "tahta",
+   "kaynak": "gercek",
+   "grup": "g014",
+   "onay": false,
+   "not": "karışık dil"
+  },
+  {
+   "id": "s034",
+   "soz": "can you go tatha",
+   "etiket": "hareket",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g014",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s035",
+   "soz": "can you use computer",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g015",
+   "onay": false,
+   "not": "yetenek sorusu"
+  },
+  {
+   "id": "s036",
+   "soz": "can you use compuetr",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g015",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s037",
+   "soz": "ee",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g016",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s038",
+   "soz": "hareket edebilirsimin",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g017",
+   "onay": false,
+   "not": "yetenek sorusu, komut değil"
+  },
+  {
+   "id": "s039",
+   "soz": "harkeet edebilirsimin",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g017",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s040",
+   "soz": "hareket edemiyorsun gibi",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g018",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s041",
+   "soz": "hareket edemiyorsun gbi",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g018",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s042",
+   "soz": "hello",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g019",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s043",
+   "soz": "hlelo",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g019",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s044",
+   "soz": "how are you",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g020",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s045",
+   "soz": "kalk",
+   "etiket": "hareket",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g021",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s046",
+   "soz": "klak",
+   "etiket": "hareket",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g021",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s047",
+   "soz": "karşında ne var?",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g022",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s048",
+   "soz": "karsinda ne var?",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g022",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s049",
+   "soz": "karında ne var?",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g022",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s050",
+   "soz": "konuş bakalim sırpça",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g023",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s051",
+   "soz": "konus bakalim sirpca",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g023",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s052",
+   "soz": "konuş bakalim sıprça",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g023",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s053",
+   "soz": "masa nerede",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g024",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s054",
+   "soz": "masa nerde",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g024",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s055",
+   "soz": "masaya git",
+   "etiket": "hareket",
+   "hedef": "masa",
+   "kaynak": "gercek",
+   "grup": "g025",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s056",
+   "soz": "msaaya git",
+   "etiket": "hareket",
+   "hedef": "masa",
+   "kaynak": "uretilmis",
+   "grup": "g025",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s057",
+   "soz": "masaya git ve otur",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g026",
+   "onay": false,
+   "not": "bileşik (plan: şimdilik LLM'e düşer; spec 13 zincir ister)"
+  },
+  {
+   "id": "s058",
+   "soz": "masaya git ve our",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g026",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s059",
+   "soz": "merhaba",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g027",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s060",
+   "soz": "mrehaba",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g027",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s061",
+   "soz": "merhaba goca de",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g028",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s062",
+   "soz": "meraba goca de",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g028",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s063",
+   "soz": "naber",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g029",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s064",
+   "soz": "nbaer",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g029",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s065",
+   "soz": "nasilsin",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g030",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s066",
+   "soz": "naslsin",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g030",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s067",
+   "soz": "nasilsin orion",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g031",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s068",
+   "soz": "nasilsin oion",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g031",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s069",
+   "soz": "ne görüyorsun",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g032",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s070",
+   "soz": "ne goruyorsun",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g032",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s071",
+   "soz": "ne görüyosrun",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g032",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s072",
+   "soz": "ne oldu?",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g033",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s073",
+   "soz": "ne odu?",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g033",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s074",
+   "soz": "ne yapıyorsun",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g034",
+   "onay": false,
+   "not": "durum sorusu, algı değil"
+  },
+  {
+   "id": "s075",
+   "soz": "ne yapiyorsun",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g034",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s076",
+   "soz": "ne yapıorsun",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g034",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s077",
+   "soz": "neler yapabilirsin",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g035",
+   "onay": false,
+   "not": "yetenek sorusu"
+  },
+  {
+   "id": "s078",
+   "soz": "neler yaapbilirsin",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g035",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s079",
+   "soz": "ner görüyorsun",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g036",
+   "onay": false,
+   "not": "yazım hatası"
+  },
+  {
+   "id": "s080",
+   "soz": "ner goruyorsun",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g036",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s081",
+   "soz": "ner göüyorsun",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g036",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s082",
+   "soz": "neredesin konumun ne",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g037",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s083",
+   "soz": "neredesin kounmun ne",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g037",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s084",
+   "soz": "odada başka neler var",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g038",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s085",
+   "soz": "odada baska neler var",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g038",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s086",
+   "soz": "odada baka neler var",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g038",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s087",
+   "soz": "open the monitor",
+   "etiket": "hareket",
+   "hedef": "monitor",
+   "kaynak": "gercek",
+   "grup": "g039",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s088",
+   "soz": "open the mointor",
+   "etiket": "hareket",
+   "hedef": "monitor",
+   "kaynak": "uretilmis",
+   "grup": "g039",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s089",
+   "soz": "otur",
+   "etiket": "hareket",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g040",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s090",
+   "soz": "outr",
+   "etiket": "hareket",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g040",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s091",
+   "soz": "pencereye bak",
+   "etiket": "hareket",
+   "hedef": "pencere",
+   "kaynak": "gercek",
+   "grup": "g041",
+   "onay": false,
+   "not": "bak de hareket sayıldı: beden niyeti"
+  },
+  {
+   "id": "s092",
+   "soz": "pencreye bak",
+   "etiket": "hareket",
+   "hedef": "pencere",
+   "kaynak": "uretilmis",
+   "grup": "g041",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s093",
+   "soz": "pencereye git",
+   "etiket": "hareket",
+   "hedef": "pencere",
+   "kaynak": "gercek",
+   "grup": "g042",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s094",
+   "soz": "penecreye git",
+   "etiket": "hareket",
+   "hedef": "pencere",
+   "kaynak": "uretilmis",
+   "grup": "g042",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s095",
+   "soz": "reflexlerine bak",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g043",
+   "onay": false,
+   "not": "meta: kendi refleksleri, beden eylemi değil"
+  },
+  {
+   "id": "s096",
+   "soz": "relfexlerine bak",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g043",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s097",
+   "soz": "sen seç",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g044",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s098",
+   "soz": "sen sec",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g044",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s099",
+   "soz": "serbet düşüncelerini yaz şimdi",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "gercek",
+   "grup": "g045",
+   "onay": false,
+   "not": "hedef örtük, 'serbest' yazım hatası"
+  },
+  {
+   "id": "s100",
+   "soz": "serbet dusuncelerini yaz simdi",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g045",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s101",
+   "soz": "srebet düşüncelerini yaz şimdi",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g045",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s102",
+   "soz": "sirpça biliyormusun?=",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g046",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s103",
+   "soz": "sirpca biliyormusun?=",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g046",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s104",
+   "soz": "sirçpa biliyormusun?=",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g046",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s105",
+   "soz": "sırayla odada gezin",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g047",
+   "onay": false,
+   "not": "çok hedefli, belirsiz"
+  },
+  {
+   "id": "s106",
+   "soz": "sirayla odada gezin",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g047",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s107",
+   "soz": "sırayla odada gzein",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g047",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s108",
+   "soz": "tahtaya adını yaz",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "gercek",
+   "grup": "g048",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s109",
+   "soz": "tahtaya adini yaz",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g048",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s110",
+   "soz": "tahtaya adnıı yaz",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g048",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s111",
+   "soz": "tahtaya basit bir matematik formülü yaz",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "gercek",
+   "grup": "g049",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s112",
+   "soz": "tahtaya basit bir matematik formulu yaz",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g049",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s113",
+   "soz": "tahtaya basit bir matematik forümlü yaz",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g049",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s114",
+   "soz": "tahtaya git",
+   "etiket": "hareket",
+   "hedef": "tahta",
+   "kaynak": "gercek",
+   "grup": "g050",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s115",
+   "soz": "thtaya git",
+   "etiket": "hareket",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g050",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s116",
+   "soz": "tahtaya merhaba yaz",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "gercek",
+   "grup": "g051",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s117",
+   "soz": "tahtaya merhbaa yaz",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g051",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s118",
+   "soz": "tahtaya yaz",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "gercek",
+   "grup": "g052",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s119",
+   "soz": "tathaya yaz",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g052",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s120",
+   "soz": "tahtaya yazı yaz",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "gercek",
+   "grup": "g053",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s121",
+   "soz": "tahtaya yazi yaz",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g053",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s122",
+   "soz": "thtaya yazı yaz",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g053",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s123",
+   "soz": "tahtayi kullan",
+   "etiket": "emin_degil",
+   "hedef": "tahta",
+   "kaynak": "gercek",
+   "grup": "g054",
+   "onay": false,
+   "not": "kullan = git mi yaz mı? TARTIŞMALI"
+  },
+  {
+   "id": "s124",
+   "soz": "tahatyi kullan",
+   "etiket": "emin_degil",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g054",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s125",
+   "soz": "tahtyi kullan",
+   "etiket": "emin_degil",
+   "hedef": "tahta",
+   "kaynak": "gercek",
+   "grup": "g055",
+   "onay": false,
+   "not": "aynı, yazım hatalı"
+  },
+  {
+   "id": "s126",
+   "soz": "tahyi kullan",
+   "etiket": "emin_degil",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g055",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s127",
+   "soz": "use that",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g056",
+   "onay": false,
+   "not": "'that' bağlama bağlı"
+  },
+  {
+   "id": "s128",
+   "soz": "use tat",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g056",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s129",
+   "soz": "uyan",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g057",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s130",
+   "soz": "uan",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g057",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s131",
+   "soz": "wanna see the city one day?",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g058",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s132",
+   "soz": "wanna see the city one dy?",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g058",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s133",
+   "soz": "what u seeing",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g059",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s134",
+   "soz": "what u seieng",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g059",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s135",
+   "soz": "what u want to do",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g060",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s136",
+   "soz": "what u wnt to do",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g060",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s137",
+   "soz": "what u want to do now?",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g061",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s138",
+   "soz": "what u wnt to do now?",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g061",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s139",
+   "soz": "whats on the screen",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g062",
+   "onay": false,
+   "not": "ekran = monitör olabilir, TARTIŞMALI"
+  },
+  {
+   "id": "s140",
+   "soz": "whts on the screen",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g062",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s141",
+   "soz": "write",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g063",
+   "onay": false,
+   "not": "tek sözcük, bağlamsız"
+  },
+  {
+   "id": "s142",
+   "soz": "wrte",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g063",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s143",
+   "soz": "write sometings",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "gercek",
+   "grup": "g064",
+   "onay": false,
+   "not": "hedef örtük, yazım hatası"
+  },
+  {
+   "id": "s144",
+   "soz": "write soetings",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g064",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s145",
+   "soz": "write your name",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "gercek",
+   "grup": "g065",
+   "onay": false,
+   "not": "hedef örtük"
+  },
+  {
+   "id": "s146",
+   "soz": "write your nme",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g065",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s147",
+   "soz": "yanıma gel",
+   "etiket": "hareket",
+   "hedef": "oyuncu",
+   "kaynak": "gercek",
+   "grup": "g066",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s148",
+   "soz": "yanima gel",
+   "etiket": "hareket",
+   "hedef": "oyuncu",
+   "kaynak": "uretilmis",
+   "grup": "g066",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s149",
+   "soz": "yaıma gel",
+   "etiket": "hareket",
+   "hedef": "oyuncu",
+   "kaynak": "uretilmis",
+   "grup": "g066",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s150",
+   "soz": "yeniden sorgula",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g067",
+   "onay": false,
+   "not": "ne sorgulanacak? bağlama bağlı"
+  },
+  {
+   "id": "s151",
+   "soz": "yeniedn sorgula",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g067",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s152",
+   "soz": "you aldread there good. can you use now terminal",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g068",
+   "onay": false,
+   "not": "karışık: yorum + yetenek/komut"
+  },
+  {
+   "id": "s153",
+   "soz": "you aldread there good. can you use now teminal",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g068",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s154",
+   "soz": "önündeki bilgisayari aç",
+   "etiket": "hareket",
+   "hedef": "monitor",
+   "kaynak": "gercek",
+   "grup": "g069",
+   "onay": false,
+   "not": "ASCII karışık yazım"
+  },
+  {
+   "id": "s155",
+   "soz": "onundeki bilgisayari ac",
+   "etiket": "hareket",
+   "hedef": "monitor",
+   "kaynak": "uretilmis",
+   "grup": "g069",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s156",
+   "soz": "önüdneki bilgisayari aç",
+   "etiket": "hareket",
+   "hedef": "monitor",
+   "kaynak": "uretilmis",
+   "grup": "g069",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s157",
+   "soz": "önündeki bilgisayarı aç",
+   "etiket": "hareket",
+   "hedef": "monitor",
+   "kaynak": "gercek",
+   "grup": "g070",
+   "onay": false,
+   "not": "spec 13: odaklan monitor"
+  },
+  {
+   "id": "s158",
+   "soz": "onundeki bilgisayari ac",
+   "etiket": "hareket",
+   "hedef": "monitor",
+   "kaynak": "uretilmis",
+   "grup": "g070",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s159",
+   "soz": "önündkei bilgisayarı aç",
+   "etiket": "hareket",
+   "hedef": "monitor",
+   "kaynak": "uretilmis",
+   "grup": "g070",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s160",
+   "soz": "şehri görmek istermisin?",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "gercek",
+   "grup": "g071",
+   "onay": false,
+   "not": ""
+  },
+  {
+   "id": "s161",
+   "soz": "sehri gormek istermisin?",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g071",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s162",
+   "soz": "şehri grömek istermisin?",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g071",
+   "onay": true,
+   "not": "gerçek sözün türevi"
+  },
+  {
+   "id": "s163",
+   "soz": "dur",
+   "etiket": "hareket",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g072",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s164",
+   "soz": "dur orada",
+   "etiket": "hareket",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g073",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s165",
+   "soz": "dur orda",
+   "etiket": "hareket",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g073",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s166",
+   "soz": "otur lütfen",
+   "etiket": "hareket",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g074",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s167",
+   "soz": "otur lutfen",
+   "etiket": "hareket",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g074",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s168",
+   "soz": "outr lütfen",
+   "etiket": "hareket",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g074",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s169",
+   "soz": "kalk ayağa",
+   "etiket": "hareket",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g075",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s170",
+   "soz": "kalk ayaga",
+   "etiket": "hareket",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g075",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s171",
+   "soz": "klk ayağa",
+   "etiket": "hareket",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g075",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s172",
+   "soz": "sandalyeye otur",
+   "etiket": "hareket",
+   "hedef": "sandalye",
+   "kaynak": "uretilmis",
+   "grup": "g076",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s173",
+   "soz": "sanalyeye otur",
+   "etiket": "hareket",
+   "hedef": "sandalye",
+   "kaynak": "uretilmis",
+   "grup": "g076",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s174",
+   "soz": "masaya yürü",
+   "etiket": "hareket",
+   "hedef": "masa",
+   "kaynak": "uretilmis",
+   "grup": "g077",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s175",
+   "soz": "masaya yuru",
+   "etiket": "hareket",
+   "hedef": "masa",
+   "kaynak": "uretilmis",
+   "grup": "g077",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s176",
+   "soz": "masaya yrüü",
+   "etiket": "hareket",
+   "hedef": "masa",
+   "kaynak": "uretilmis",
+   "grup": "g077",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s177",
+   "soz": "pencerenin yanına git",
+   "etiket": "hareket",
+   "hedef": "pencere",
+   "kaynak": "uretilmis",
+   "grup": "g078",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s178",
+   "soz": "pencerenin yanina git",
+   "etiket": "hareket",
+   "hedef": "pencere",
+   "kaynak": "uretilmis",
+   "grup": "g078",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s179",
+   "soz": "penceernin yanına git",
+   "etiket": "hareket",
+   "hedef": "pencere",
+   "kaynak": "uretilmis",
+   "grup": "g078",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s180",
+   "soz": "tahtanın yanına git",
+   "etiket": "hareket",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g079",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s181",
+   "soz": "tahtanin yanina git",
+   "etiket": "hareket",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g079",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s182",
+   "soz": "thatanın yanına git",
+   "etiket": "hareket",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g079",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s183",
+   "soz": "yanıma doğru gel",
+   "etiket": "hareket",
+   "hedef": "oyuncu",
+   "kaynak": "uretilmis",
+   "grup": "g080",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s184",
+   "soz": "yanima dogru gel",
+   "etiket": "hareket",
+   "hedef": "oyuncu",
+   "kaynak": "uretilmis",
+   "grup": "g080",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s185",
+   "soz": "ynıma doğru gel",
+   "etiket": "hareket",
+   "hedef": "oyuncu",
+   "kaynak": "uretilmis",
+   "grup": "g080",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s186",
+   "soz": "sandalyeye git",
+   "etiket": "hareket",
+   "hedef": "sandalye",
+   "kaynak": "uretilmis",
+   "grup": "g081",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s187",
+   "soz": "sandlyeye git",
+   "etiket": "hareket",
+   "hedef": "sandalye",
+   "kaynak": "uretilmis",
+   "grup": "g081",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s188",
+   "soz": "monitöre bak",
+   "etiket": "hareket",
+   "hedef": "monitor",
+   "kaynak": "uretilmis",
+   "grup": "g082",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s189",
+   "soz": "monitore bak",
+   "etiket": "hareket",
+   "hedef": "monitor",
+   "kaynak": "uretilmis",
+   "grup": "g082",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s190",
+   "soz": "monitröe bak",
+   "etiket": "hareket",
+   "hedef": "monitor",
+   "kaynak": "uretilmis",
+   "grup": "g082",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s191",
+   "soz": "bilgisayarı aç",
+   "etiket": "hareket",
+   "hedef": "monitor",
+   "kaynak": "uretilmis",
+   "grup": "g083",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s192",
+   "soz": "bilgisayari ac",
+   "etiket": "hareket",
+   "hedef": "monitor",
+   "kaynak": "uretilmis",
+   "grup": "g083",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s193",
+   "soz": "bilisayarı aç",
+   "etiket": "hareket",
+   "hedef": "monitor",
+   "kaynak": "uretilmis",
+   "grup": "g083",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s194",
+   "soz": "go to the table",
+   "etiket": "hareket",
+   "hedef": "masa",
+   "kaynak": "uretilmis",
+   "grup": "g084",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s195",
+   "soz": "go to the tale",
+   "etiket": "hareket",
+   "hedef": "masa",
+   "kaynak": "uretilmis",
+   "grup": "g084",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s196",
+   "soz": "go to the board",
+   "etiket": "hareket",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g085",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s197",
+   "soz": "go to the borad",
+   "etiket": "hareket",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g085",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s198",
+   "soz": "sit down",
+   "etiket": "hareket",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g086",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s199",
+   "soz": "sit dwn",
+   "etiket": "hareket",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g086",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s200",
+   "soz": "stand up",
+   "etiket": "hareket",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g087",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s201",
+   "soz": "stnad up",
+   "etiket": "hareket",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g087",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s202",
+   "soz": "come here",
+   "etiket": "hareket",
+   "hedef": "oyuncu",
+   "kaynak": "uretilmis",
+   "grup": "g088",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s203",
+   "soz": "cme here",
+   "etiket": "hareket",
+   "hedef": "oyuncu",
+   "kaynak": "uretilmis",
+   "grup": "g088",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s204",
+   "soz": "come to me",
+   "etiket": "hareket",
+   "hedef": "oyuncu",
+   "kaynak": "uretilmis",
+   "grup": "g089",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s205",
+   "soz": "cme to me",
+   "etiket": "hareket",
+   "hedef": "oyuncu",
+   "kaynak": "uretilmis",
+   "grup": "g089",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s206",
+   "soz": "look at the window",
+   "etiket": "hareket",
+   "hedef": "pencere",
+   "kaynak": "uretilmis",
+   "grup": "g090",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s207",
+   "soz": "lok at the window",
+   "etiket": "hareket",
+   "hedef": "pencere",
+   "kaynak": "uretilmis",
+   "grup": "g090",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s208",
+   "soz": "walk to the window",
+   "etiket": "hareket",
+   "hedef": "pencere",
+   "kaynak": "uretilmis",
+   "grup": "g091",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s209",
+   "soz": "wlk to the window",
+   "etiket": "hareket",
+   "hedef": "pencere",
+   "kaynak": "uretilmis",
+   "grup": "g091",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s210",
+   "soz": "open the computer",
+   "etiket": "hareket",
+   "hedef": "monitor",
+   "kaynak": "uretilmis",
+   "grup": "g092",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s211",
+   "soz": "open the copmuter",
+   "etiket": "hareket",
+   "hedef": "monitor",
+   "kaynak": "uretilmis",
+   "grup": "g092",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s212",
+   "soz": "stop",
+   "etiket": "hareket",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g093",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s213",
+   "soz": "sop",
+   "etiket": "hareket",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g093",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s214",
+   "soz": "tahtaya selam yaz",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g094",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s215",
+   "soz": "tahatya selam yaz",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g094",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s216",
+   "soz": "tahtaya adını yaz",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g095",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s217",
+   "soz": "tahtaya adini yaz",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g095",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s218",
+   "soz": "tathaya adını yaz",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g095",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s219",
+   "soz": "tahtayı temizle",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g096",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s220",
+   "soz": "tahtayi temizle",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g096",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s221",
+   "soz": "tahtyaı temizle",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g096",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s222",
+   "soz": "tahtaya bugünün tarihini yaz",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g097",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s223",
+   "soz": "tahtaya bugunun tarihini yaz",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g097",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s224",
+   "soz": "tahtaya bugüünn tarihini yaz",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g097",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s225",
+   "soz": "write hello on the board",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g098",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s226",
+   "soz": "write helo on the board",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g098",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s227",
+   "soz": "write your name on the board",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g099",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s228",
+   "soz": "wirte your name on the board",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g099",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s229",
+   "soz": "clear the board",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g100",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s230",
+   "soz": "clear the bard",
+   "etiket": "yaz",
+   "hedef": "tahta",
+   "kaynak": "uretilmis",
+   "grup": "g100",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s231",
+   "soz": "terminale npm test yaz",
+   "etiket": "yaz",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g101",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s232",
+   "soz": "terminale npm tst yaz",
+   "etiket": "yaz",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g101",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s233",
+   "soz": "npm test çalıştır",
+   "etiket": "yaz",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g102",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s234",
+   "soz": "npm test calistir",
+   "etiket": "yaz",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g102",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s235",
+   "soz": "npm tset çalıştır",
+   "etiket": "yaz",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g102",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s236",
+   "soz": "run npm test",
+   "etiket": "yaz",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g103",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s237",
+   "soz": "run npm tst",
+   "etiket": "yaz",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g103",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s238",
+   "soz": "git status çalıştır",
+   "etiket": "yaz",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g104",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s239",
+   "soz": "git status calistir",
+   "etiket": "yaz",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g104",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s240",
+   "soz": "git satus çalıştır",
+   "etiket": "yaz",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g104",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s241",
+   "soz": "terminalde ls yaz",
+   "etiket": "yaz",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g105",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s242",
+   "soz": "terminadle ls yaz",
+   "etiket": "yaz",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g105",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s243",
+   "soz": "etrafta ne var",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g106",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s244",
+   "soz": "etarfta ne var",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g106",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s245",
+   "soz": "yakında ne var",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g107",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s246",
+   "soz": "yakinda ne var",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g107",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s247",
+   "soz": "yaknıda ne var",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g107",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s248",
+   "soz": "önünde ne var",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g108",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s249",
+   "soz": "onunde ne var",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g108",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s250",
+   "soz": "öünnde ne var",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g108",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s251",
+   "soz": "neredesin",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g109",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s252",
+   "soz": "nerdeesin",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g109",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s253",
+   "soz": "ben nerede duruyorum",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g110",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s254",
+   "soz": "ben nreede duruyorum",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g110",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s255",
+   "soz": "neyi görüyorsun",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g111",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s256",
+   "soz": "neyi goruyorsun",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g111",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s257",
+   "soz": "nyi görüyorsun",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g111",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s258",
+   "soz": "what do you see",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g112",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s259",
+   "soz": "waht do you see",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g112",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s260",
+   "soz": "what is in front of you",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g113",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s261",
+   "soz": "what is in frnt of you",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g113",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s262",
+   "soz": "what's around",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g114",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s263",
+   "soz": "what's aronud",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g114",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s264",
+   "soz": "where am i",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g115",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s265",
+   "soz": "whre am i",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g115",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s266",
+   "soz": "where is the table",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g116",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s267",
+   "soz": "where is the tbale",
+   "etiket": "sorgu",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g116",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s268",
+   "soz": "günaydın",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g117",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s269",
+   "soz": "gunaydin",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g117",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s270",
+   "soz": "günadyın",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g117",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s271",
+   "soz": "iyi geceler",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g118",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s272",
+   "soz": "iyi geecler",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g118",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s273",
+   "soz": "teşekkürler",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g119",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s274",
+   "soz": "tesekkurler",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g119",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s275",
+   "soz": "teşekküler",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g119",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s276",
+   "soz": "sen kimsin",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g120",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s277",
+   "soz": "sen kimisn",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g120",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s278",
+   "soz": "adın ne",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g121",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s279",
+   "soz": "adin ne",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g121",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s280",
+   "soz": "aıdn ne",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g121",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s281",
+   "soz": "bugün nasılsın",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g122",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s282",
+   "soz": "bugun nasilsin",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g122",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s283",
+   "soz": "bugün nasıslın",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g122",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s284",
+   "soz": "bana bir fıkra anlat",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g123",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s285",
+   "soz": "bana bir fikra anlat",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g123",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s286",
+   "soz": "bana bir fıkra analt",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g123",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s287",
+   "soz": "hava nasıl",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g124",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s288",
+   "soz": "hava nasil",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g124",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s289",
+   "soz": "hava nsıl",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g124",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s290",
+   "soz": "good morning",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g125",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s291",
+   "soz": "thanks",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g126",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s292",
+   "soz": "thaks",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g126",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s293",
+   "soz": "who are you",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g127",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s294",
+   "soz": "what is your name",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g128",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s295",
+   "soz": "wat is your name",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g128",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s296",
+   "soz": "tell me a joke",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g129",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s297",
+   "soz": "tll me a joke",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g129",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s298",
+   "soz": "how is the weather",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g130",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s299",
+   "soz": "how is the weatehr",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g130",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s300",
+   "soz": "seni seviyorum",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g131",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s301",
+   "soz": "snei seviyorum",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g131",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s302",
+   "soz": "oturabilir misin?",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g132",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s303",
+   "soz": "otuarbilir misin?",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g132",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s304",
+   "soz": "tahtaya yazabilir misin?",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g133",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s305",
+   "soz": "tahtaya yazaiblir misin?",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g133",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s306",
+   "soz": "can you sit?",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g134",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s307",
+   "soz": "can you sti?",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g134",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s308",
+   "soz": "can you write on the board?",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g135",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s309",
+   "soz": "can you write on the borad?",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g135",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s310",
+   "soz": "neden oturmuyorsun",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g136",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s311",
+   "soz": "neden oturuyorsun",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g136",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s312",
+   "soz": "masaya neden gitmedin",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g137",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s313",
+   "soz": "masaya neden gtmedin",
+   "etiket": "sohbet",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g137",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s314",
+   "soz": "oturma",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g138",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s315",
+   "soz": "outrma",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g138",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s316",
+   "soz": "kalkma",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g139",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s317",
+   "soz": "klakma",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g139",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s318",
+   "soz": "gitme",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g140",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s319",
+   "soz": "gimte",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g140",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s320",
+   "soz": "don't sit",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g141",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s321",
+   "soz": "dn't sit",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g141",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s322",
+   "soz": "do not go there",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g142",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s323",
+   "soz": "do not go tere",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g142",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s324",
+   "soz": "oraya git",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g143",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s325",
+   "soz": "orya git",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g143",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s326",
+   "soz": "şuna bak",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g144",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s327",
+   "soz": "suna bak",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g144",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s328",
+   "soz": "şna bak",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g144",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s329",
+   "soz": "bunu yap",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g145",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s330",
+   "soz": "bnuu yap",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g145",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s331",
+   "soz": "go there",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g146",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s332",
+   "soz": "go tere",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g146",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s333",
+   "soz": "do that",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g147",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s334",
+   "soz": "do tat",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g147",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s335",
+   "soz": "otur ve tahtaya yaz",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g148",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s336",
+   "soz": "otur ve tahtya yaz",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g148",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s337",
+   "soz": "pencereye git ve bak",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g149",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s338",
+   "soz": "pecnereye git ve bak",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g149",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s339",
+   "soz": "kalk ve masaya git",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g150",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s340",
+   "soz": "klk ve masaya git",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g150",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s341",
+   "soz": "go to the table and sit",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g151",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s342",
+   "soz": "go to the talbe and sit",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g151",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s343",
+   "soz": "şunu aç",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g152",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s344",
+   "soz": "sunu ac",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g152",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s345",
+   "soz": "şnuu aç",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g152",
+   "onay": true,
+   "not": "türev"
+  },
+  {
+   "id": "s346",
+   "soz": "devam",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g153",
+   "onay": true,
+   "not": ""
+  },
+  {
+   "id": "s347",
+   "soz": "dveam",
+   "etiket": "emin_degil",
+   "hedef": null,
+   "kaynak": "uretilmis",
+   "grup": "g153",
+   "onay": true,
+   "not": "türev"
+  }
+ ]
+}

@@ -1,0 +1,6 @@
+{"t": 1790924663130, "sozler": [], "siniflandirma": [], "ozet_sayisi": 1}
+{"t": 1790924663153, "sozler": ["ekranda ne oldu, duzeltmek icin bir komut onerir misin"], "siniflandirma": [{"soz": "ekranda ne oldu, duzeltmek icin bir komut onerir misin", "sinif": "emin_degil", "guven": 0.0, "kaynak": "yok", "yol": "llm", "hedef": "monitor", "ms": 0.057}], "ozet_sayisi": 1}
+{"t": 1790924663168, "sozler": [], "siniflandirma": [], "ozet_sayisi": 1}
+{"t": 1790924663290, "sozler": [], "siniflandirma": [], "ozet_sayisi": 1}
+{"t": 1790924663294, "sozler": ["ekranda ne oldu, duzeltmek icin bir komut onerir misin"], "siniflandirma": [{"soz": "ekranda ne oldu, duzeltmek icin bir komut onerir misin", "sinif": "emin_degil", "guven": 0.0, "kaynak": "yok", "yol": "llm", "hedef": "monitor", "ms": 0.041}], "ozet_sayisi": 1}
+{"t": 1790924663298, "sozler": [], "siniflandirma": [], "ozet_sayisi": 1}

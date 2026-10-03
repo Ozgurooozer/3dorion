@@ -1,0 +1,8 @@
+# Ölçüm çıktısı: karneler (.md/.json) ve küçük kanıt günlükleri depoda kalır; büyük/üretilebilir olanlar kalmaz.
+__pycache__/
+sonuc/*.npy
+sonuc/*.npz
+sonuc/*.log
+sonuc/canli*-hafiza.json
+sonuc/*.tmp.ts
+sonuc/*_girdi.json

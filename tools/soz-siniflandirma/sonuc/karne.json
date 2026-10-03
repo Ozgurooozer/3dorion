@@ -1,0 +1,147 @@
+{
+ "b0": {
+  "tau": 0.5,
+  "kapi": {
+   "gidenler": 17,
+   "dogru": 17,
+   "precision": 1.0,
+   "coverage": 0.7391304347826086,
+   "yanlis": [],
+   "yol_sozu_sayisi": 23
+  },
+  "kapi_tartismasiz": {
+   "gidenler": 17,
+   "dogru": 17,
+   "precision": 1.0,
+   "coverage": 0.8095238095238095,
+   "yanlis": [],
+   "yol_sozu_sayisi": 21
+  },
+  "makro_f1": 0.6358809358809359,
+  "dogruluk": 0.5774647887323944,
+  "gecikme_p50": 0.006950144100849052,
+  "gecikme_p95": 0.006950144100849052,
+  "parametre": 0,
+  "yanlis_yola_giden": [],
+  "turev_ascii": 0.4782608695652174,
+  "turev_yazim": 0.20588235294117646
+ },
+ "laya": {
+  "tau": null,
+  "kapi": {
+   "gidenler": 0,
+   "dogru": 0,
+   "precision": null,
+   "coverage": 0.0,
+   "yanlis": [],
+   "yol_sozu_sayisi": 23
+  },
+  "kapi_tartismasiz": {
+   "gidenler": 0,
+   "dogru": 0,
+   "precision": null,
+   "coverage": 0.0,
+   "yanlis": [],
+   "yol_sozu_sayisi": 21
+  },
+  "makro_f1": 0.18410256410256412,
+  "dogruluk": 0.2535211267605634,
+  "gecikme_p50": 194.33030000072904,
+  "gecikme_p95": 221.68195999784072,
+  "parametre": null,
+  "yanlis_yola_giden": [],
+  "turev_ascii": 0.30434782608695654,
+  "turev_yazim": 0.23529411764705882
+ },
+ "c1": {
+  "tau": 0.81,
+  "kapi": {
+   "gidenler": 3,
+   "dogru": 2,
+   "precision": 0.6666666666666666,
+   "coverage": 0.08695652173913043,
+   "yanlis": [
+    15
+   ],
+   "yol_sozu_sayisi": 23
+  },
+  "kapi_tartismasiz": {
+   "gidenler": 3,
+   "dogru": 2,
+   "precision": 0.6666666666666666,
+   "coverage": 0.09523809523809523,
+   "yanlis": [
+    14
+   ],
+   "yol_sozu_sayisi": 21
+  },
+  "makro_f1": 0.6047162097162098,
+  "dogruluk": 0.6338028169014085,
+  "gecikme_p50": 43.382100000599166,
+  "gecikme_p95": 49.69474999961676,
+  "parametre": 148737792,
+  "yanlis_yola_giden": [
+   [
+    "ee",
+    "hareket",
+    "sohbet"
+   ]
+  ],
+  "turev_ascii": 0.6521739130434783,
+  "turev_yazim": 0.5735294117647058
+ },
+ "c2": {
+  "tau": null,
+  "kapi": {
+   "gidenler": 0,
+   "dogru": 0,
+   "precision": null,
+   "coverage": 0.0,
+   "yanlis": [],
+   "yol_sozu_sayisi": 23
+  },
+  "kapi_tartismasiz": {
+   "gidenler": 0,
+   "dogru": 0,
+   "precision": null,
+   "coverage": 0.0,
+   "yanlis": [],
+   "yol_sozu_sayisi": 21
+  },
+  "makro_f1": 0.6189545160585956,
+  "dogruluk": 0.6338028169014085,
+  "gecikme_p50": 45.72389999884763,
+  "gecikme_p95": 53.228549999403185,
+  "parametre": 135497472,
+  "yanlis_yola_giden": [],
+  "turev_ascii": 0.6956521739130435,
+  "turev_yazim": 0.5
+ },
+ "c3": {
+  "tau": null,
+  "kapi": {
+   "gidenler": 0,
+   "dogru": 0,
+   "precision": null,
+   "coverage": 0.0,
+   "yanlis": [],
+   "yol_sozu_sayisi": 23
+  },
+  "kapi_tartismasiz": {
+   "gidenler": 0,
+   "dogru": 0,
+   "precision": null,
+   "coverage": 0.0,
+   "yanlis": [],
+   "yol_sozu_sayisi": 21
+  },
+  "makro_f1": 0.7156832298136646,
+  "dogruluk": 0.7464788732394366,
+  "gecikme_p50": 36.65510000064387,
+  "gecikme_p95": 43.68419999991602,
+  "parametre": 278043648,
+  "yanlis_yola_giden": [],
+  "turev_ascii": 0.782608695652174,
+  "turev_yazim": 0.7205882352941176
+ }
+}
