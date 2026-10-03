@@ -244,6 +244,77 @@ test("iyelikCapasi: tamlayan eki ('masanin', 'tahtanin', 'bilgisayarin', 'pencer
   assert.equal(iyelikCapasi("mutfagin"), null);
 });
 
+// ── Tur 7: kaçan aileler (kör set 2'nin kaçırdığı AİLELER; cümleleri değil) ──
+
+test("Tur 7 hitap ve zaman dolgusu: abi, kardeşim, hocam, go ahead and, for a bit", () => {
+  const izgara: [string, string][] = [
+    ["bana gel abi", "komut:gel"], ["yanıma gel kardeşim", "komut:gel"], ["hocam otur", "komut:otur"], ["usta kalk", "komut:kalk"],
+    ["go ahead and open the computer", "komut:bilgisayar"], ["use the computer for a bit", "komut:bilgisayar"],
+    ["go ahead and sit down", "komut:otur"], ["stand up for a moment", "komut:kalk"],
+  ];
+  for (const [soz, p] of izgara) assert.equal(program(soz), p, soz);
+});
+
+test("Tur 7 takma adlar: cam = pencere; pc = bilgisayar; 'bilgisayarı başlat'", () => {
+  assert.deepEqual(adimlar("cama git"), [{ tur: "git", hedef: { tip: "capa", ad: "pencere" } }]);
+  assert.deepEqual(adimlar("cama bak"), [{ tur: "bak", hedef: { tip: "capa", ad: "pencere" } }]);
+  for (const s of ["pc yi kullan biraz", "pc'yi aç", "pcyi ac", "bilgisayarı başlat", "pc aç"]) {
+    assert.deepEqual(adimlar(s), [{ tur: "odaklan", capa: "monitor" }], s);
+  }
+});
+
+test("Tur 7 'çök' = otur, yalnız oturulabilen yerle; çıplak 'çok' ve oturulamayan yer LLM'e", () => {
+  for (const s of ["koltuğa çök", "sandalyeye çök", "masaya çök"]) assert.deepEqual(adimlar(s), [{ tur: "otur" }], s);
+  for (const s of ["tahtaya çök", "çök", "çok otur", "mutfağa çök"]) assert.equal(program(s), null, s);
+});
+
+test("Tur 7 gösterme sıfatı + AÇIK yer: 'şu koltuğa otur', 'bu masaya git'; 'şuraya/oraya' belirsiz KALIR", () => {
+  assert.deepEqual(adimlar("hadi şu koltuğa otur"), [{ tur: "otur" }]);
+  assert.deepEqual(adimlar("bu masaya git"), [{ tur: "git", hedef: { tip: "capa", ad: "masa" } }]);
+  assert.deepEqual(adimlar("şu pencereye bak"), [{ tur: "bak", hedef: { tip: "capa", ad: "pencere" } }]);
+  for (const s of ["şuraya otur", "oraya git", "buraya git", "şuna bak", "şu şeye bak"]) assert.equal(program(s), null, s);
+});
+
+test("Tur 7 'göz at' = bak; '<yer> tarafına bak/git'; ora tarafa belirsiz", () => {
+  assert.deepEqual(adimlar("ekrana bi göz at"), [{ tur: "bak", hedef: { tip: "capa", ad: "monitor" } }]);
+  assert.deepEqual(adimlar("tahta tarafına bak"), [{ tur: "bak", hedef: { tip: "capa", ad: "tahta" } }]);
+  assert.deepEqual(adimlar("pencere tarafına git"), [{ tur: "git", hedef: { tip: "capa", ad: "pencere" } }]);
+  for (const s of ["ora tarafa yürü", "bu tarafa bak", "göz at"]) assert.equal(program(s), null, s);
+});
+
+test("Tur 7 '<yer>(n)in yanına yaklaş', '<yer>(n)in önünde dur'", () => {
+  assert.deepEqual(adimlar("pencerenin yanına yaklaş"), [{ tur: "git", hedef: { tip: "capa", ad: "pencere" } }]);
+  assert.deepEqual(adimlar("kapının önünde dur"), [{ tur: "git", hedef: { tip: "capa", ad: "kapi" } }]);
+  assert.deepEqual(adimlar("masanın yanında dur"), [{ tur: "git", hedef: { tip: "capa", ad: "masa" } }]);
+  for (const s of ["oranın önünde dur", "mutfağın önünde dur"]) assert.equal(program(s), null, s);
+});
+
+test("Tur 7 BİLEREK eklenmeyenler: 'dön' (git mi bak mı?), 'bekle/hold on' (konuşma duraklatması), bulanık yazım", () => {
+  for (const s of ["masaya dön", "pencereye dön", "bekle", "orion biraz bekle", "hold on", "bilgisyarı aç", "pencreye git"]) {
+    assert.equal(program(s), null, s);
+  }
+});
+
+test("Tur 7 İngilizce: glance/peek/take a look, face, approach, rise from, stop right there", () => {
+  const bak: [string, string][] = [
+    ["glance at the monitor", "monitor"], ["peek at the window", "pencere"], ["take a look at the board", "tahta"],
+    ["face the window", "pencere"], ["have a look at the screen", "monitor"],
+  ];
+  for (const [soz, capa] of bak) assert.deepEqual(adimlar(soz), [{ tur: "bak", hedef: { tip: "capa", ad: capa } }], soz);
+  assert.deepEqual(adimlar("approach the desk"), [{ tur: "git", hedef: { tip: "capa", ad: "masa" } }]);
+  assert.deepEqual(adimlar("rise from the armchair"), [{ tur: "kalk" }]);
+  assert.deepEqual(adimlar("get up from the chair"), [{ tur: "kalk" }]);
+  for (const s of ["stop right there", "stop there", "stop here", "freeze right there"]) assert.deepEqual(adimlar(s), [{ tur: "dur" }], s);
+});
+
+test("Tur 7 İngilizce olumsuzlar: bilinmeyen yer, zamir, soru ve oturulamayan 'rise from' LLM'e", () => {
+  for (const s of ["get closer to it", "approach it", "face that", "glance at that", "rise from the floor", "get up from the floor",
+    "can you glance at the monitor", "could you approach the desk", "will you face the window", "take a look at it", "approach me",
+    "rise from the window", "get up from the door"]) {
+    assert.equal(program(s), null, s);
+  }
+});
+
 // ── Yardımcılar ─────────────────────────────────────────────────────────────
 
 test("sozuNormalle: Türkçe katlama, noktalama ve çift boşluk", () => {

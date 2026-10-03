@@ -42,9 +42,13 @@ export const GEL_MESAFESI = 1.2;
  * değiştirmez ve kalıplar yine TÜM sözü kapsar. Olumsuzluk ve soru ekleri (-ma, -ebilir misin)
  * dolgu DEĞİL: onlar atılmaz, o yüzden "oturma" ve "oturabilir misin" hâlâ LLM'e gider.
  */
-const DOLGU_OBEKLERI = ["zahmet olmazsa", "rica ederim", "bi zahmet", "right now", "for me", "su an"];
+const DOLGU_OBEKLERI = [
+  "zahmet olmazsa", "rica ederim", "bi zahmet", "right now", "for me", "su an",
+  "go ahead and", "for a bit", "for a while", "for a moment",
+];
 const DOLGU: ReadonlySet<string> = new Set([
   "orion", "lutfen", "hadi", "haydi", "hemen", "simdi", "bi", "biraz", "bakalim", "dostum",
+  "abi", "kardesim", "hocam", "usta", "dayi", "canim", // hitap (Tur 7)
   "hey", "hi", "ok", "okay", "please", "pls", "now", "immediately",
 ]);
 
@@ -57,6 +61,7 @@ export function sozuNormalle(soz: string): string {
 /** Çapa etiketleri dışında kullanılan adlar: "bilgisayar" monitördür, "koltuk" sandalyedir. */
 const ES_ANLAMLI: Readonly<Record<string, CapaAdi>> = {
   bilgisayar: "monitor", ekran: "monitor", terminal: "monitor", masa: "masa", koltuk: "sandalye",
+  cam: "pencere", // "cama git": cam = pencere (Tur 7)
 };
 
 /**
@@ -65,7 +70,9 @@ const ES_ANLAMLI: Readonly<Record<string, CapaAdi>> = {
  */
 function kokCapasi(kok: string): CapaAdi | null {
   const dene = (k: string): CapaAdi | null => capaCoz(k) ?? ES_ANLAMLI[k] ?? null;
-  return dene(kok) ?? (kok.endsWith("g") ? dene(`${kok.slice(0, -1)}k`) : null);
+  const yumusat = (k: string): CapaAdi | null => dene(k) ?? (k.endsWith("g") ? dene(`${k.slice(0, -1)}k`) : null);
+  // Gösterme sıfatı + AÇIK yer adı ("şu koltuğa", "bu masaya") yeri belirtir; "şuraya/oraya" tek başına belirsiz KALIR.
+  return yumusat(kok) ?? yumusat(kok.replace(/^(su|bu|o) /, ""));
 }
 
 /**
@@ -101,19 +108,24 @@ const GEL = /^(gel|gelsene|gel buraya|buraya gel|bana gel|bana gelsene|yanima ge
 const DUR = /^(dur|durdur|dur orada|orada dur|kipirdama|hareket etme)$/;
 const BANA_BAK = /^(bana bak|bakar misin bana)$/;
 /** "önündeki bilgisayarı aç", "bilgisayarı kullan", "terminali aç" → bilgisayar programı. */
-const BILGISAYAR = /^(onundeki |masandaki )?(bilgisayari|bilgisayarini|monitoru|terminali|ekrani) (ac|kullan)$/;
+const BILGISAYAR = /^(onundeki |masandaki )?(bilgisayari|bilgisayarini|monitoru|terminali|ekrani|pc yi|pcyi|pc) (ac|kullan|baslat)$/;
 /** "<yer>(y)a git / gel / geç / yürü / yaklaş" ve "<yer>(y)e bak". */
 const GIT = /^(.+) (git|gec|gel|gidip dur|yuru)$/;
 const GIT_OTUR = /^(.+) (git|gec) (ve )?otur$/;
 /** "<yer>(n)in yanina/onune/basina/karsisina git·geç·gel·yürü": çapanın YANINA/ÖNÜNE gitmek, çapaya gitmektir. */
-const GIT_YAKIN = /^(.+) (yanina|onune|basina|karsisina|yakinina|arkasina) (git|gec|gel|yuru)$/;
+const GIT_YAKIN = /^(.+) (yanina|onune|basina|karsisina|yakinina|arkasina) (git|gec|gel|yuru|yaklas)$/;
+/** "<yer>(n)in önünde/yanında/karşısında dur": oraya gidip durmak, çapaya gitmektir (Tur 7). */
+const GIT_YAKIN_DUR = /^(.+) (onunde|yaninda|basinda|karsisinda) dur$/;
+/** "<yer> tarafına bak/git/yürü": yalın yer adı + taraf (Tur 7). "ora tarafa" belirsiz, eşleşmez. */
+const TARAF = /^(.+) tarafina (bak|git|gec|yuru)$/;
 /** "<yer>(y)e doğru git·yürü". */
 const GIT_DOGRU = /^(.+) dogru (git|gec|gel|yuru)$/;
 const YAKLAS = /^(.+) yaklas$/;
-const OTUR_YER = /^(.+) otur$/;
+/** "çök" katlanınca "cok": yalnız oturulabilen yerle ("koltuğa çök"); çıplak "cok" ya da başka yerle eşleşmez. */
+const OTUR_YER = /^(.+) (?:otur|cok)$/;
 /** "<bilgisayar/ekran/monitör>(e) odaklan". Başka yüzeye odaklanma ("tahtaya odaklan") belirsiz: LLM'e. */
 const ODAKLAN = /^(.+) odaklan$/;
-const BAK = /^(.+) bak$/;
+const BAK = /^(.+) (?:bak|goz at)$/;
 const PENCEREDEN_BAK = /^pencereden disari bak$/;
 /** Oturulabilecek yerler: "tahtaya otur" anlamsız, programa girmez. */
 const OTURULAN: ReadonlySet<CapaAdi> = new Set<CapaAdi>(["sandalye", "masa", "monitor"]);
@@ -152,7 +164,9 @@ function enYer(ifade: string): CapaAdi | null {
 const EN_OTUR = /^(sit|sit down|take a seat|have a seat)$/;
 const EN_OTUR_YER = /^sit(?: down)? (?:on|in|at) (.+)$/;
 const EN_KALK = /^(stand up|get up|stand|rise|get on your feet)$/;
-const EN_DUR = /^(stop|freeze|halt|stop moving|stay still|hold still|don t move|do not move)$/;
+/** "rise from the armchair", "get up from the chair": yalnız sandalyeden kalkmak (Tur 7). */
+const EN_KALK_YER = /^(?:rise|get up|stand up|get out|get off)(?: up)? (?:from|off|out of|of) (.+)$/;
+const EN_DUR = /^(stop|freeze|halt|stop moving|stay still|hold still|don t move|do not move|stop right there|stop there|stop here|freeze right there)$/;
 const EN_GEL = /^(come|come here|come over|come over here|come closer|come this way|come to me|come to my side|come toward me|come towards me|walk to me|walk toward me|walk towards me)$/;
 const EN_BANA_BAK = /^(look at me|look this way|face me)$/;
 const EN_BILGISAYAR = /^(?:open|turn on|switch on|start|boot up|power on|fire up|use) (.+)$/;
@@ -160,7 +174,11 @@ const EN_ODAKLAN = /^focus(?: on)? (.+)$/;
 const EN_GIT_OTUR = /^go (?:to )?(.+?)(?: and)? sit(?: down)?$/;
 const EN_GIT = /^(?:go|walk|head|move|run)(?: over)? (?:to|toward|towards|next to|near|by|up to|in front of|over to) (.+)$/;
 const EN_DUR_YANINDA = /^(?:go )?stand (?:in|at|by|near|next to) (.+)$/;
-const EN_BAK = /^(?:look|gaze|turn) (?:at|toward|towards) (.+)$/;
+const EN_BAK = /^(?:look|gaze|turn|glance|peek|take a look|have a look)(?: over)? (?:at|toward|towards) (.+)$/;
+/** "face the window": o yöne dönüp bakmak (Tur 7). "face me" EN_BANA_BAK'ta. */
+const EN_FACE = /^face (.+)$/;
+/** "approach the desk": çapaya yaklaşmak = gitmek (Tur 7). */
+const EN_YAKLAS = /^(?:approach|go near|get near) (.+)$/;
 const EN_PENCERE_BAK = /^look (?:out of|out|through) (.+)$/;
 
 function komutCozIng(s: string): KomutEslesmesi | null {
@@ -172,6 +190,8 @@ function komutCozIng(s: string): KomutEslesmesi | null {
     return null;
   }
   if (EN_KALK.test(s)) return kalk();
+  const kalkYer = EN_KALK_YER.exec(s);
+  if (kalkYer && enYer(kalkYer[1]!) === "sandalye") return kalk();
   if (EN_DUR.test(s)) return dur();
   if (EN_GEL.test(s)) return gel();
   if (EN_BANA_BAK.test(s)) return banaBak();
@@ -184,12 +204,12 @@ function komutCozIng(s: string): KomutEslesmesi | null {
     const c = enYer(gitOtur[1]!);
     return c && OTURULAN.has(c) ? otur() : null;
   }
-  const git = EN_GIT.exec(s) ?? EN_DUR_YANINDA.exec(s);
+  const git = EN_GIT.exec(s) ?? EN_DUR_YANINDA.exec(s) ?? EN_YAKLAS.exec(s);
   if (git) {
     const c = enYer(git[1]!);
     if (c) return gitCapa(c);
   }
-  const bak = EN_BAK.exec(s);
+  const bak = EN_BAK.exec(s) ?? EN_FACE.exec(s);
   if (bak) {
     const c = enYer(bak[1]!);
     if (c) return bakCapa(c);
@@ -232,6 +252,16 @@ export function komutCoz(soz: string): KomutEslesmesi | null {
   if (yakin) {
     const capa = iyelikCapasi(yakin[1]!);
     if (capa) return gitCapa(capa);
+  }
+  const yakinDur = GIT_YAKIN_DUR.exec(s);
+  if (yakinDur) {
+    const capa = iyelikCapasi(yakinDur[1]!);
+    if (capa) return gitCapa(capa);
+  }
+  const taraf = TARAF.exec(s);
+  if (taraf) {
+    const capa = kokCapasi(taraf[1]!);
+    if (capa) return taraf[2] === "bak" ? bakCapa(capa) : gitCapa(capa);
   }
   const dogru = GIT_DOGRU.exec(s) ?? YAKLAS.exec(s);
   if (dogru) {
