@@ -43,6 +43,8 @@ Bekçi: `mimari.test.ts` bu tabloyu bütün depo için zorlar (bugün yalnız `w
 | R3 | Senaryolar `giris.ts`'ten `uygulama/senaryolar/`e: her biri ayrı dosya, ortak `bekle`/`kontrol`, yalnız URL'de istenince dinamik import (paket boyutu) | tsc + test; canlı `tahtadene`, `eylemdene`, `benlikdene`, `apidene`, `gorudene` aynı skor |
 | R4 | `giris.ts`'ten niyet yürütücü ve zihin duvarı bağlantısı `uygulama/`ya | aynı canlı senaryolar |
 | R5 | `as unknown as` gözden geçirilir; gereksiz olanlar tipli hâle | tsc |
+| R6 | `beyniBagla`'nın beyin seçimi (seçenekler, başlangıç, Ollama/OpenCode/API taramaları, hatırlanan seçim, kayıt sarmalı, devre kesici) ve M seçicinin kaynağı → `uygulama/beyinSecimi.ts`. `location`, `localStorage`, `window.kopru` ve taramalar bağlamla verilir; sahteyle test edilir | tsc + test (hatırlanan seçim YALNIZ taramalardan sonra ve yalnız elle açılışta); canlı `apidene` 5/5, `eylemdene` 6/6, `gorudene` 3/3 |
+| R7 | Doğuştan komut programları `bridge/kopru.ts`'ten ayrılır. **Sözlük genişletmesi (diğer oturum) commit'lenmeden başlamaz:** aynı bağlantı noktasına dokunur | köprü testleri değişmeden yeşil; `eylemdene` 6/6 |
 
 Her faz ayrı commit; davranış değişmez (yalnız yer değiştirir).
 
@@ -55,7 +57,8 @@ Her faz ayrı commit; davranış değişmez (yalnız yer değiştirir).
 | R3 | cf58580 | 23 senaryo `uygulama/senaryolar/<ad>.ts`, bağlam `uygulama/senaryoBaglami.ts` (sonradan atananlar getter). Yalnız URL'de istenen senaryo `import()` edilir; Vite her birini ayrı küçük parça yapar. `giris.ts` ~3060 → 2064 satır | `npm test` 2242/2242 + senaryo listesi bekçisi [TEST]; canlı `eylemdene` 6/6, `tahtadene` 4/4, `benlikdene` 4/4, `apidene` 5/5, `gorudene` 3/3 — hepsi R3 öncesiyle aynı [ÖLÇÜLDÜ] |
 
 | R4 | 2d87a8a | Niyet yürütücü (`niyetiYurut`, `tahtayaYaz`, `odaklanYurut`, `bedenAdimi`) → `uygulama/niyetYurutucu.ts`; zihin duvarı bağlantısı (karar kaydı → günlük, canlı satır, kesik sayacı, hafıza bulutu, aşama/iç ses/söz-eylem dinleyicileri) → `uygulama/zihinDuvari.ts`. İkisi de bağımlılığını bağlamla alır. `giris.ts` 2064 → 1867 satır | yürütücü için 16 yeni test, sahte dünya ile (önceden yalnız canlıda sınanabiliyordu); 3 bozma denemesinin 3'ü yakalandı (yedekli). Duvar için 6 test. `npm test` 2269/2269 [TEST]; canlı `eylemdene` 6/6, `tahtadene` 4/4, `benlikdene` 4/4, `apidene` 5/5, `gorudene` 3/3 — R4 öncesiyle aynı [ÖLÇÜLDÜ] |
-| R5 | (bu commit) | `window` kancaları (`dunya`, `orionModel`, `orionPano`, `orionSes`, `_davranisKayit`, `_goruKanca`) tek tip tanımında: `uygulama/pencereKancalari.ts` (`host/kopru.ts`'in `window.kopru` kalıbı). Dört yüzeyin `getContext` dönüşümü `tuval2d` (world/surfaces/yuzey.ts). Üretimde `as unknown as` 18 → 3; kalan üçü gerekçeli izin listesinde | bekçi `tools/tipKacisi.test.ts` (geçici kaçış dosyası eklendi → yakaladı); `npm test` 2271/2271 [TEST]; kancaları kullanan senaryolar canlı: `gorudene` 3/3, `sessizdene` 2/2 (anlık 0 terfi, uzun ≥1), `apidene` 5/5, `eylemdene` 6/6 [ÖLÇÜLDÜ] |
+| R5 | cf0e5bf | `window` kancaları (`dunya`, `orionModel`, `orionPano`, `orionSes`, `_davranisKayit`, `_goruKanca`) tek tip tanımında: `uygulama/pencereKancalari.ts` (`host/kopru.ts`'in `window.kopru` kalıbı). Dört yüzeyin `getContext` dönüşümü `tuval2d` (world/surfaces/yuzey.ts). Üretimde `as unknown as` 18 → 3; kalan üçü gerekçeli izin listesinde | bekçi `tools/tipKacisi.test.ts` (geçici kaçış dosyası eklendi → yakaladı); `npm test` 2271/2271 [TEST]; kancaları kullanan senaryolar canlı: `gorudene` 3/3, `sessizdene` 2/2 (anlık 0 terfi, uzun ≥1), `apidene` 5/5, `eylemdene` 6/6 [ÖLÇÜLDÜ] |
+| R6 | (bu commit) | Beyin seçimi (seçenekler, açılış beyni, üç tarama, hatırlanan seçim, kayıt sarmalı, devre kesici) ve M seçicinin kaynağı + `window.orionModel` → `uygulama/beyinSecimi.ts`; `location`/`localStorage`/`window.kopru`/taramalar bağlamla. `giris.ts` 1869 → 1580 satır, `beyniBagla` 620 → 287 satır | 15 yeni test (sahte tarama, depo, pano); 4 bozmanın 4'ü yakalandı — biri ilk denemede KAÇTI (aşağıda). `npm test` 2286/2286 [TEST]; canlı `apidene` 5/5, `eylemdene` 6/6, `gorudene` 3/3; `zihindene` (120 sn pencereyle) AYNA, S5, S6, SECICI-GECIS GECTI, SECICI-RED KALDI — R6 dışı, aşağıda [ÖLÇÜLDÜ] |
 
 R3 notları:
 - Taşıma bir betikle yapıldı. Gövde aynı; yalnız giris'in değişkenleri `d.` ile okunuyor. Betiğin ilk sürümü
@@ -78,4 +81,24 @@ R4 notları:
   fonksiyonu atadığı ve köprü yokken `[]` döndüğü için sıra fark etmez (test: "köprü yokken hafıza
   bulutu boş").
 - `beyniBagla` hâlâ ~450 satır: beyin seçimi + üç katalog taraması + model seçici kaynağı. Bunlar
-  R4'ün kapsamında değildi. Sonraki aday: `uygulama/beyinSecimi.ts`.
+  R4'ün kapsamında değildi. R6 ile ayrıldı.
+
+R6 notları:
+- **Kaçan bozma ve sebebi:** "hatırlanan seçim taramalardan SONRA istenir" kuralını bozan mutant
+  (`ilkTarama.then` → `Promise.resolve().then`) ilk test sürümünde yakalanmadı. Sahte taramalar hemen
+  çözülüyordu; mikro-görev sırası yüzünden "hemen" ile "taramadan sonra" aynı sonucu veriyordu.
+  Gerçek tarama ağdır ve zaman alır. Sahteye 5 ms gecikme verildi, mutant artık yakalanıyor. Ders:
+  zamanlama kuralı sınanıyorsa sahte, gerçeğin zamansal şeklini taşımalı.
+- `ilkTarama` (üç taramanın `Promise.all`'u) artık her açılışta kuruluyor; eskiden yalnız hatırlanan seçim
+  varken kuruluyordu. Yan etkisi yok: taramalar zaten koşuyordu, yalnız birleşimleri tutuluyor
+  (`hazir`, testler için; hata yutulur).
+- **`zihindene` iki R6-dışı bulgu (düzeltilmedi, Ozyn'e soruldu):**
+  1. `3dorion.bat zihindene` 30 sn'lik duman penceresinde S5'e varamadan kapanıyor. S5/S6 ekranı her 3 pikselde
+     `sahne.pick` ile eşzamanlı tarıyor. 120 sn'lik pencereyle (`ORION_SMOKE_MS=120000`, bat değiştirilmeden)
+     sonuna kadar koştu.
+  2. SECICI-RED KALDI: senaryo `dis` beyninin "dış beyin yok" diye reddedilmesini bekliyor. Ama `host/main.js`
+     Claude adaptörünü 4700'de başlatıyor (Haiku varsayılan, 2026-09-28) ve `dis`'in varsayılan adresi de
+     4700. Electron açıkken `dis` = Haiku adaptörü, sağlık kontrolü geçiyor. Beklenti adaptör taşındığından
+     beri bayat. Seçenek listesi R6'da aynen taşındı.
+- Gözlem (düzeltilmedi, kapsam dışı): `OllamaBeyni.hazirMi` hata yolunda 2,5 sn'lik iptal zamanlayıcısını
+  temizlemiyor (bridge/ollama.ts). Zararsız ama test süresine 2,5 sn ekliyor.

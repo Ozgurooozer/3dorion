@@ -61,18 +61,7 @@ import { varlik } from "./varlik.ts";
 import { Kopru } from "../bridge/kopru.ts";
 import type { KararSatiri, OgretimSatiri } from "../mind/kararKaydi.ts";
 import { GOREV_SATIRLARI } from "../mind/gorev.ts";
-import { OpenCodeBeyni } from "../bridge/opencode.ts";
-import { DisBeyin } from "../bridge/disBeyin.ts";
-import { KayitBeyni } from "../bridge/kayitBeyni.ts";
-import { OllamaBeyni } from "../bridge/ollama.ts";
-import { ollamaTara, type OllamaKatalogu } from "../bridge/ollamaKatalog.ts";
-import { opencodeTara, type OpenCodeKatalogu } from "../bridge/opencodeKatalog.ts";
-import { yerelSecenekler, yerelAd, yereldenModel, bulutSecenekler, kartlariKur } from "../bridge/beyinKatalogu.ts";
-import { API_SAGLAYICILARI, apiTara, apiSecenekler, type ApiKatalogu } from "../bridge/apiKatalog.ts";
-import type { ApiIstemcisi, ApiSonucu } from "../bridge/apiBeyni.ts";
 import { modelSeciciKur } from "./arayuz/modelSecici.ts";
-import type { ModelSeciciKaynagi } from "./arayuz/modelSeciciCekirdek.ts";
-import { SecilebilirBeyin, type BeyinSecenegi } from "../bridge/secilebilirBeyin.ts";
 import type { Beyin } from "../bridge/beyin.ts";
 import { MetinGirdi } from "../voice/metin-girdi.ts";
 import { ikiCumleyeKisalt } from "../voice/kisalt.ts";
@@ -82,7 +71,7 @@ import { mesgulMu } from "../mind/benlik.ts";
 import { istenenSenaryolar, type SenaryoBaglami } from "../uygulama/senaryoBaglami.ts";
 import { niyetYurutucusuKur } from "../uygulama/niyetYurutucu.ts";
 import { zihinDuvariniBagla } from "../uygulama/zihinDuvari.ts";
-import type { OrionModelKancasi } from "../uygulama/pencereKancalari.ts";
+import { beyinSeciminiKur, seciciKaynagiKur, modelKancasiKur, kisaAd } from "../uygulama/beyinSecimi.ts";
 import { odadaSure, sessizlikSozu, gununVakti } from "../mind/zaman.ts";
 import { depoYukle } from "../mind/hafizaGocu.ts";
 import { GucButcesi, Inisiyatif } from "../mind/inisiyatif.ts";
@@ -1198,242 +1187,22 @@ function dunyaDurumuMetni(): string {
 let modelSecici: ReturnType<typeof modelSeciciKur> | null = null;
 
 function beyniBagla(a: Avatar): void {
-  // ORION_MODEL secimi: olcum duzenegi ayni kalsin, yalnizca beyin degissin.
-  // Boylece model karsilastirmasi TEK degiskenli olur.
-  // ── SOL LOB: düşünce beyni (OpenCode) ───────────────────────────────────
-  //
-  // Yerel `qwen2.5:7b` ÖLÇÜMLE elendi: ham sınavda 1/4, hatırlama 0/6, terminal
-  // hatasında yanlış teşhis. Aynı üç senaryo Ling 3.0 Flash VL ile geçti.
-  // Bedel: 858 ms → ~3.5 sn. Bu yüzden yalnızca DÜŞÜNCE buraya taşındı;
-  // beden refleksleri yerel ve kuralcı kaldı (bkz. docs/specs/02-beyin-mimarisi.md).
-  //
-  // YEDEK MODEL YOK — bilinçli. OpenCode kapalıysa sessizce aptallaşmak yerine
-  // "düşüncem kapalı" deyip KURALLI VARLIK kipinde kalır: hareket eder, tepki
-  // verir, süzer. Dürüst bozulma sessiz bozulmadan iyidir.
-  // SAĞLAYICI DEĞİŞİMİ KOD DEĞİŞİKLİĞİ GEREKTİRMEZ.
-  //
-  // Önce yalnızca `model` ayarlanabiliyordu; `providerID` kodda sabitti.
-  // "Sağlayıcıyı değiştirmek tek satır" demek bu hâliyle DOĞRU DEĞİLDİ —
-  // OpenRouter kotası dolduğunda NVIDIA'ya geçmek dosya düzenlemek demekti.
-  // Artık üçü de dışarıdan verilir; ölçüm düzeneği aynı kalır, beyin değişir.
-  const q = new URLSearchParams(location.search);
-
-  // BEYİN SEÇİMİ — `Beyin` üç metotluk bir arayüz; kim uyguladığı önemsiz.
-  //
-  // `?beyin=dis` başka bir DİLDE yazılmış beyne bağlanır (bkz. disBeyin.ts,
-  // örnek: `tools/ornek-beyin.py`). Python/Go/Rust fark etmez — dünya, köprü
-  // ve protokol hiçbir şey bilmez. Ayrım baştan böyle kurulmuştu; burası
-  // yalnızca hangi uygulamanın kullanılacağını seçer.
-  //
-  // ÇALIŞIRKEN DEĞİŞTİRİLEBİLİR: seçici panodaki DÜŞÜNCE düğümünden sürülür.
-  // Açılış seçimi (`?beyin=`) yalnızca BAŞLANGIÇ beynini belirler. Beyinler
-  // tembel kurulur — seçilmeyen yerel model yüklenmez, bulut oturumu açılmaz.
-  //
-  // Yerel seçenekler düşünce için ÖLÇÜMLE elenmişti (yukarıda): listede
-  // durmaları "iyi düşünür" iddiası değil, bulut kapalıyken ya da kotası
-  // dolduğunda elle geçilebilecek bir yedek olmaları.
-  const secenekler: BeyinSecenegi[] = [
-    { ad: "opencode", kur: () => new OpenCodeBeyni({
-        providerID: q.get("saglayici") || "openrouter",
-        modelID: q.get("model") || "inclusionai/ling-3.0-flash-vl:free",
-        adres: q.get("opencode") || undefined,
-        sifre: q.get("sifre") || undefined,
-        zamanAsimiMs: 30_000,
-      }) },
-    // YEREL MODELLER ELLE YAZILMAZ: açılışta Ollama'dan taranır (aşağıda,
-    // `ollamaTara`). Eskiden burada `qwen2.5:7b` ve `qwen3:4b` sabitti; yeni
-    // indirilen model kod değiştirmeden seçilemiyordu, silinen model ise
-    // listede durup seçilince sessizce düşüyordu.
-    // Claude Haiku — ADI AÇIK OLSUN. Eskiden yalnızca `dis` vardı ve panelde
-    // o adla duruyordu: Ozyn için Haiku diye bir seçenek görünmüyordu, üstelik
-    // `tools/claude-beyin.ts`i ayrı bir terminalde elle başlatmak gerekiyordu
-    // (başlatmazsan `hazirMi()` düşer ve seçim sessizce reddedilir). Adaptörü
-    // artık Electron kendi başlatıyor (`host/main.js`).
-    //
-    // Zaman aşımı 30 sn: ölçümde Haiku 2,8–3,6 sn: dönüyor, ama `claude -p`
-    // soğuk açılışta daha uzun sürebiliyor ve 10 sn'lik tavan gereksiz yere
-    // "geçilemedi" veriyordu.
-    { ad: "claude:haiku", kur: () => new DisBeyin({
-        ad: "claude:haiku",
-        adres: q.get("claudeadres") || undefined,
-        zamanAsimiMs: 30_000,
-      }) },
-    // MCP ajanı (spec 05): odadaki `claude` dünyaya MCP ile bağlanır ve algıyı
-    // ÇEKER. Beyin arayüzünün arkasında: ajanın çağrıları köprüye döner ve
-    // diğer beyinlerinkiyle AYNI yoldan geçer (dogrula, onay kapısı, zincir
-    // bütçesi). Ajan bağlı değilse `hazirMi()` false → seçim reddedilir.
-    { ad: "mcp", kur: () => mcpBeyin },
-    // Genel dış beyin yuvası (spec 04): başka bir dilde yazılmış beyin.
-    // `?beyinadres=` ile başka bir uca bağlanır.
-    { ad: "dis", kur: () => new DisBeyin({
-        adres: q.get("beyinadres") || undefined,
-        zamanAsimiMs: 10_000,
-      }) },
-  ];
-  // VARSAYILAN BEYİN: Claude Haiku (Ozyn, 2026-09-28). OpenRouter'daki ücretsiz
-  // Ling modeli kalktı: karar kaydında dört uyanışın dördü 404 ile bitti
-  // (2026-09-27). Haiku zaten bağlı (adaptörünü Electron başlatıyor) ve
-  // ölçülmüştü (2,8–3,6 sn). OpenCode seçenek olarak duruyor; yedek model yine
-  // YOK: seçilen beyin düşerse Orion kurallı varlık kipinde kalır.
-  const VARSAYILAN_BEYIN = "claude:haiku";
-  // Başlangıç: `?beyin=` listede varsa o, yoksa varsayılan. Liste TEK kaynak;
-  // bilinen adları ayrıca yazmak, yeni seçenek eklenince sessizce ayrışırdı.
-  // Bilinmeyen değer çökertmez: varsayılana düşer.
-  const istek = q.get("beyin");
-  const ollamaAdres = q.get("ollama") || undefined;
-  // `?beyin=yerel:<model>` TARAMAYI BEKLEMEZ: açıkça istenen model hemen
-  // seçenek olur (ölçüm düzenekleri açılış beynini kesin bilmeli). Kurulu
-  // değilse sağlık kontrolü söyler; tarama sonra aynı adı ezmeden geçer.
-  const istenenYerel = istek ? yereldenModel(istek) : null;
-  if (istenenYerel) {
-    secenekler.push({ ad: yerelAd(istenenYerel), kur: () => new OllamaBeyni({ model: istenenYerel, adres: ollamaAdres }) });
-  }
-  const baslangic = secenekler.some((s) => s.ad === istek) ? istek! : VARSAYILAN_BEYIN;
-  if (istek && baslangic !== istek) {
-    console.warn(`[BEYIN] bilinmeyen beyin '${istek}', ${VARSAYILAN_BEYIN} ile başlanıyor`);
-  }
-  const secici = new SecilebilirBeyin(secenekler, baslangic, {
-    bildir: (o) => {
-      if (o.tur === "gecti") {
-        sema.ariza("beyin", false);
-        sema.not("beyin", kisaAd(beyin.ad));
-        sema.lob("beyin", yereldenModel(o.hedef) !== null ? "yerel" : "bulut");
-        // Yerel model seçildiyse ŞİMDİ belleğe yüklenir: soğuk yükleme 5–15 sn
-        // ve bunu Ozyn'in ilk cümlesi ödememeli.
-        const ic = secici.ic;
-        if (ic instanceof OllamaBeyni) void ic.isit();
-        seciminiHatirla(o.hedef);
-        gunluk.ekle("iyi", "beyin", `sol lob değişti: ${beyin.ad}`);
-        altyaziGoster(`düşünce artık ${beyin.ad}`, 2600);
-      } else {
-        gunluk.ekle("hata", "beyin", `${o.hedef} beynine geçilemedi: ${o.sebep}`);
-        altyaziGoster(`geçilemedi: ${o.sebep}`, 3200);
-      }
+  // BEYİN SEÇİMİ (uygulama/beyinSecimi.ts, spec 14 R6): seçenekler, açılış beyni, Ollama/OpenCode/API
+  // taramaları, hatırlanan seçim (yalnız elle açılışta), kayıt sarmalı, devre kesici. Buradan yalnız
+  // dünya verilir: sorgu, kabuk köprüsü, depo.
+  const kabukApi = typeof window.kopru?.apiDurum === "function" ? window.kopru : null;
+  const secim = beyinSeciminiKur({
+    sorgu: location.search, mcpBeyin, sema, gunluk,
+    altyazi: (metin, ms) => altyaziGoster(metin, ms),
+    tazele: () => modelSecici?.tazele(),
+    kabuk: kabukApi,
+    depo: {
+      oku: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
+      yaz: (k, d) => { try { localStorage.setItem(k, d); } catch { /* depolama kapalı: önemsiz */ } },
     },
   });
+  const { secici, kesikSn } = secim;
   const beyin: Beyin = secici;
-  console.log(`[BEYIN] seçenekler: ${secici.secenekAdlari().join(", ")} · başlangıç: ${secici.aktif}`);
-  sema.lob("beyin", istenenYerel && baslangic === istek ? "yerel" : "bulut");
-
-  // ── OLLAMA TARAMASI: kurulu modeller açılışta seçenek olur ───────────
-  //
-  // Beklenmez: Ollama kapalıysa oda 2,5 sn donmamalı. Sonuç gelince
-  // seçenekler EKLENİR (var olan ad ezilmez) ve seçici penceresi tazelenir.
-  // Kapalıysa bu da görünür: pencerede "Ollama yok — ollama serve".
-  let ollamaKatalogu: OllamaKatalogu | null = null;
-  const ollamayiTara = async (): Promise<void> => {
-    const k = await ollamaTara({ adres: ollamaAdres });
-    ollamaKatalogu = k;
-    const eklenen = secici.secenekEkle(yerelSecenekler(k));
-    if (k.ulasildi) {
-      console.log(`[OLLAMA] ${k.surum ?? "?"} · ${k.modeller.length} model (${eklenen} yeni seçenek): ` +
-        k.modeller.map((m) => `${m.ad}${m.yuklu ? "*" : ""}`).join(", "));
-    } else {
-      console.warn(`[OLLAMA] taranamadı: ${k.hata}`);
-    }
-    modelSecici?.tazele();
-  };
-  const ollamaHazir = ollamayiTara();
-
-  // ── OPENCODE TARAMASI: bağlı sağlayıcıların araçlı+ücretsiz modelleri ─
-  //
-  // Aynı kalıp: beklenmez, sonuç gelince seçenekler EKLENİR. Yeni sağlayıcı
-  // (NVIDIA gibi) eklemek burayı DEĞİŞTİRMEZ — OpenCode'a kimlik bilgisi
-  // girilince tarama onu otomatik bulur (bkz. `opencodeKatalog.ts`).
-  const opencodeAdres = q.get("opencode") || undefined;
-  let opencodeKatalogu: OpenCodeKatalogu | null = null;
-  const opencodeyiTara = async (): Promise<void> => {
-    const k = await opencodeTara({ adres: opencodeAdres });
-    opencodeKatalogu = k;
-    const eklenen = secici.secenekEkle(bulutSecenekler(k, { sifre: q.get("sifre") || undefined }));
-    if (k.ulasildi) {
-      console.log(`[OPENCODE] ${k.saglayicilar.join(", ") || "sağlayıcı yok"} · ${k.modeller.length} model (${eklenen} yeni seçenek)`);
-    } else {
-      console.warn(`[OPENCODE] taranamadı: ${k.hata}`);
-    }
-    modelSecici?.tazele();
-  };
-  const opencodeHazir = opencodeyiTara();
-
-  // ── API TARAMASI (spec 13 Faz 3): anahtarı M seçicide girilmiş sağlayıcılar ──
-  //
-  // Anahtar ana süreçte, şifreli (host/anahtarDeposu.js); burası yalnız "hangi
-  // sağlayıcıda anahtar var" ve model listesini görür. Electron dışında (vite dev)
-  // köprü yok: bölüm görünmez, tarama boş döner.
-  const apiIstemci: (ApiIstemcisi & { modeller(s: string): Promise<ApiSonucu> }) | null =
-    typeof window.kopru?.apiDurum === "function" ? {
-      durum: () => window.kopru.apiDurum(),
-      modeller: (s) => window.kopru.apiModeller(s),
-      sohbet: (s, govde) => window.kopru.apiSohbet(s, govde),
-    } : null;
-  let apiKatalogu: ApiKatalogu | null = null;
-  let apiKayitli: { ad: string; adres: string; kalici: boolean }[] = [];
-  const apiyiTara = async (): Promise<void> => {
-    if (!apiIstemci) return;
-    try { apiKayitli = (await window.kopru.apiDurum()).map(({ ad, adres, kalici }) => ({ ad, adres, kalici })); }
-    catch { apiKayitli = []; }
-    const k = await apiTara(apiIstemci);
-    apiKatalogu = k;
-    const eklenen = secici.secenekEkle(apiSecenekler(k, apiIstemci));
-    if (apiKayitli.length) {
-      console.log(`[API] ${apiKayitli.map((x) => x.ad).join(", ")} · ${k.modeller.length} model (${eklenen} yeni seçenek)` +
-        (k.hatalar.length ? ` · hata: ${k.hatalar.map((h) => `${h.saglayici}: ${h.hata}`).join("; ")}` : ""));
-    }
-    modelSecici?.tazele();
-  };
-  const apiHazir = apiyiTara();
-
-  // SON SEÇİM HATIRLANIR — ama yalnızca elle açılışta. Senaryolar (`*dene`,
-  // hepsi `sessiz=1` taşır) ve `?beyin=` açılış beynini KESİN bilmeli; bir
-  // önceki oturumda kalmış tercih ölçüm koşusunun beynini sessizce
-  // değiştirirse iki koşu artık aynı düzenek değildir.
-  const HATIRA_ANAHTARI = "orionBeyin";
-  const hatirlasin = !q.has("beyin") && !q.has("sessiz");
-  function seciminiHatirla(ad: string): void {
-    if (!hatirlasin) return;
-    try { localStorage.setItem(HATIRA_ANAHTARI, ad); } catch { /* depolama kapalı: önemsiz */ }
-  }
-  if (hatirlasin) {
-    let onceki: string | null = null;
-    try { onceki = localStorage.getItem(HATIRA_ANAHTARI); } catch { /* yok say */ }
-    if (onceki && onceki !== secici.aktif) {
-      // Tarama bitince: yerel/bulut model ancak o zaman seçenek olur. Geçiş
-      // yine sağlık kontrolünden geçer; model silindiyse varsayılan kalır ve
-      // sebep günlükte okunur.
-      void Promise.all([ollamaHazir, opencodeHazir, apiHazir]).then(() => {
-        if (!secici.secenekVarMi(onceki!)) {
-          console.warn(`[BEYIN] hatırlanan beyin '${onceki}' artık yok, ${secici.aktif} kalıyor`);
-          return;
-        }
-        console.log(`[BEYIN] son seçim hatırlandı: ${onceki}`);
-        secici.iste(onceki!);
-      });
-    }
-  }
-  /** Panel notu için kısa ad: `opencode:saglayici/model` → `model`. */
-  const kisaAd = (ad: string) => ad.replace(/^(opencode|api):/, "").split("/").pop() ?? ad;
-
-  // KAYIT: `?kayit=1` ile her tur `[BEYIN:KAYIT] {json}` olarak günlüğe düşer.
-  // Sonra `tools/beyin-ayikla.mjs` fixture üretir, `tools/beyin-tekrar.ts`
-  // onları sahne olmadan istediğin beyne oynatır — Python'da beyin yazarken
-  // asıl geliştirme döngün bu olmalı.
-  const beyinKayitli: Beyin = q.has("kayit") ? new KayitBeyni(beyin) : beyin;
-  if (q.has("kayit")) console.log("[KAYIT] beyin turlari gunluge yaziliyor");
-
-  /**
-   * Devre kesici iki beyinde var: OpenCode (sağlayıcı kotası) ve MCP (ajanla
-   * TEMAS kopması — spec 05 R1: ajan ölünce Orion susmasın, sağ lob devralsın).
-   * Arayüze eklemek uygulama ayrıntısını sözleşmeye sızdırmak olurdu; onun
-   * yerine burada tip koruması ile sorulur.
-   */
-  const kesikSn = (): number => {
-    const ic = secici.ic;
-    return ic instanceof OpenCodeBeyni || ic instanceof McpBeyin ? ic.kesikSaniye : 0;
-  };
-  console.log(`[BEYIN] ${beyin.ad}`);
-  sema.not("beyin", kisaAd(beyin.ad));
-  gunluk.ekle("bilgi", "beyin", `sol lob bağlandı: ${beyin.ad}`);
-  sema.durumYaz("beyin bağlı, algı bekleniyor");
 
   // ZİHİN DUVARI (uygulama/zihinDuvari.ts, spec 14 R4): karar kaydı → günlük, anlık benlik →
   // canlı satır, devre kesici → arıza, hafıza → bulut. Yalnız gözlem; kancalar köprüye gider.
@@ -1447,7 +1216,7 @@ function beyniBagla(a: Avatar): void {
       terminalKisMs: PANO_TELLERI.dikkat.terminalKis,
       dakikaBasinaAzami: PANO_TELLERI.dikkat.azami,
     },
-    beyin: beyinKayitli,
+    beyin: secim.kopruBeyni,
     niyetGonder: (n, id) => {
       // Davranış ölçümü için: hangi niyet üretildi, yalnızca kimliği değil.
       // Kimlik tek başına "Orion ne yaptı" sorusuna cevap vermiyordu.
@@ -1598,74 +1367,16 @@ function beyniBagla(a: Avatar): void {
   panoKaydiGlobal = panoKaydi;
 
   // ── MODEL SEÇİCİ (M) ─────────────────────────────────────────────────
-  //
-  // Yazma yolu İKİNCİ BİR YOL DEĞİL: pencerenin seçimi devre panosunun
-  // teyit yolundan geçer (`beyin.model` tehlikeli sınıfta). Pencere teyidi
-  // kendisi soruyor (iki adımlı Enter), burada onaylanıyor. Böylece günlük,
-  // liste dışı değer kontrolü ve "bekleyen ezilemez" kuralı tek kaynakta kalır.
-  const hepsiniTara = async (): Promise<void> => { await Promise.all([ollamayiTara(), opencodeyiTara(), apiyiTara()]); };
-  const seciciKaynagi: ModelSeciciKaynagi = {
-    // API anahtarı bölümü (spec 13 Faz 3): anahtar yalnız `kaydet` ile ana sürece gider.
-    ...(apiIstemci ? { api: {
-      saglayicilar: API_SAGLAYICILARI,
-      kayitli: () => apiKayitli,
-      kaydet: async (ad: string, adres: string, anahtar: string) => {
-        const r = await window.kopru.apiKaydet(ad, adres, anahtar);
-        return r.ok ? "" : r.hata;
-      },
-      sil: async (ad: string) => {
-        const r = await window.kopru.apiSil(ad);
-        return r.ok ? "" : r.hata;
-      },
-    } } : {}),
-    kartlar: () => kartlariKur(secici.secenekAdlari(), ollamaKatalogu, opencodeKatalogu, apiKatalogu),
-    durum: () => {
-      const g = secici.gecis;
-      return {
-        aktif: secici.aktif, istenen: secici.istenen, gecis: g.tur,
-        ...(g.tur !== "sakin" ? { hedef: g.hedef } : {}),
-        ...(g.tur === "reddedildi" ? { sebep: g.sebep } : {}),
-      };
-    },
-    sec: (ad) => {
-      const bekleyen = panoKaydi.bekleyenTeyit();
-      // Duvarda AÇIK bir beyin teyidi varsa bu seçim onun yerine geçer (aynı
-      // soru, yeni cevap). Başka bir düğmenin teyidi EZİLMEZ: sebebi söylenir.
-      if (bekleyen?.dugmeAdi === "beyin.model") panoKaydi.teyitIptal();
-      const t = panoKaydi.teyitIste("beyin.model", ad);
-      if (t.sebep !== "teyit bekleniyor") return t.sebep || "teyit açılamadı";
-      const acilan = panoKaydi.bekleyenTeyit();
-      if (!acilan || acilan.dugmeAdi !== "beyin.model" || acilan.yeni !== ad) return "teyit kayboldu";
-      const s = panoKaydi.teyitliYaz(acilan.jeton);
-      return s.oldu ? "" : s.sebep;
-    },
-    yenile: hepsiniTara,
-    tarama: () => ollamaKatalogu && {
-      ulasildi: ollamaKatalogu.ulasildi, surum: ollamaKatalogu.surum,
-      modelSayisi: ollamaKatalogu.modeller.length, an: ollamaKatalogu.an,
-      ...(ollamaKatalogu.hata ? { hata: ollamaKatalogu.hata } : {}),
-    },
-  };
+  // Kaynağı uygulama/beyinSecimi.ts'te: seçim devre panosunun teyit yolundan geçer (tek yol).
   modelSecici = modelSeciciKur({
-    kaynak: seciciKaynagi,
+    kaynak: seciciKaynagiKur(secim, panoKaydi, kabukApi),
     kok: document.getElementById("modelSecici") as HTMLElement,
     rozet: document.getElementById("beyinRozet") as HTMLElement,
     // M bir harftir: terminal/panel odaktayken, sohbet ya da onay açıkken değil.
     tusSerbest: () => oyuncu.oyuncuDurumu().etkilesim === null
       && sohbet.dataset.acik !== "1" && onayKapisi.durum !== "bekliyor",
   });
-  const modelKancasi: OrionModelKancasi = {
-    ac: () => modelSecici?.ac(),
-    tara: hepsiniTara,
-    katalog: () => ollamaKatalogu,
-    bulutKatalog: () => opencodeKatalogu,
-    // spec 13 Faz 3: API kataloğu ve `apidene` senaryosunun seçiciye erişimi.
-    apiKatalog: () => apiKatalogu,
-    secenekVarMi: (ad: string) => secici.secenekVarMi(ad),
-    iste: (ad: string) => secici.iste(ad),
-    aktif: () => secici.aktif,
-  };
-  window.orionModel = modelKancasi;
+  window.orionModel = modelKancasiKur(secim, () => modelSecici?.ac());
   console.log(`[PANO] ${panoKaydi.moduller().length} modül, ` +
     `${panoKaydi.goruntu().reduce((n, m) => n + m.dugmeler.length, 0)} tel bağlandı`);
 
