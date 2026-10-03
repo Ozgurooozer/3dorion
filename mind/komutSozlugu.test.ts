@@ -4,7 +4,7 @@
 "use strict";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { komutCoz, sozuNormalle, yonelmeCapasi, GEL_MESAFESI } from "./komutSozlugu.ts";
+import { komutCoz, sozuNormalle, yonelmeCapasi, iyelikCapasi, GEL_MESAFESI } from "./komutSozlugu.ts";
 
 const program = (soz: string) => komutCoz(soz)?.program ?? null;
 const adimlar = (soz: string) => JSON.parse(JSON.stringify(komutCoz(soz)?.adimlar ?? null));
@@ -83,7 +83,9 @@ test("GERÇEK: sorular ve sohbet programa girmez", () => {
 });
 
 test("GERÇEK: belirsiz kullanım istekleri programa girmez", () => {
-  for (const s of ["tahtayi kullan", "tahtyi kullan", "sırayla odada gezin", "can you go tahta", "use that", "open the monitor"]) {
+  // "open the monitor" BU LİSTEDEN ÇIKTI (Tur 6, Ozyn'a bildirildi): İngilizce paket yokken LLM'e gidiyordu; İngilizce
+  // paketle artık bilgisayar programı (aşağıda "İngilizce paketi"). Diğerleri bilerek LLM'de kalır.
+  for (const s of ["tahtayi kullan", "tahtyi kullan", "sırayla odada gezin", "can you go tahta", "use that"]) {
     assert.equal(program(s), null, s);
   }
 });
@@ -96,6 +98,150 @@ test("sözün bir PARÇASI kalıba uyuyorsa eşleşmez: 'otur ve bana anlat'", (
 
 test("bilinmeyen yer programa girmez: 'mutfağa git'", () => {
   assert.equal(program("mutfağa git"), null);
+});
+
+// ── Tur 6: dolgu, Türkçe aileler, İngilizce paketi ──────────────────────────
+// Kalıplar kör setteki cümlelere göre DEĞİL, sözcük/dil bilgisi ailelerine göre yazıldı (docs/olcum-soz-siniflandirma.md Tur 6).
+
+test("dolgu sözcükleri HER YERDEN atılır: hemen/şimdi/bi/biraz/zahmet olmazsa/please/hey", () => {
+  const izgara: [string, string][] = [
+    ["hemen otur", "komut:otur"], ["otur bi", "komut:otur"], ["şimdi masaya bak", "komut:bak"],
+    ["tahtaya bi bak orion", "komut:bak"], ["zahmet olmazsa pencereye yürü", "komut:git"],
+    ["kapıya git hemen", "komut:git"], ["bilgisayarı kullan biraz", "komut:bilgisayar"],
+    ["sandalyeye otur hadi", "komut:otur"], ["hey sit down", "komut:otur"], ["stand up please", "komut:kalk"],
+  ];
+  for (const [soz, p] of izgara) assert.equal(program(soz), p, soz);
+  assert.equal(sozuNormalle("Hey Orion, zahmet olmazsa bi otur şimdi!"), "otur");
+});
+
+test("dolgu içerik taşımaz ama olumsuzluk ve soru eki dolgu DEĞİL: 'hemen oturma' ve 'oturabilir misin' LLM'e", () => {
+  for (const s of ["hemen oturma", "bi oturabilir misin", "şimdi gitme", "lütfen kalkma"]) {
+    assert.equal(program(s), null, s);
+  }
+});
+
+test("<yer>(n)in yanına/önüne/başına git·geç → o çapaya yürü", () => {
+  const izgara: [string, string][] = [
+    ["masanın yanına git", "masa"], ["sandalyenin yanına git", "sandalye"], ["pencerenin önüne geç", "pencere"],
+    ["bilgisayarın başına geç", "monitor"], ["tahtanın karşısına geç", "tahta"], ["beyaz tahtanın yanına git", "tahta"],
+    ["koltuğun yanına git", "sandalye"],
+  ];
+  for (const [soz, capa] of izgara) {
+    assert.deepEqual(adimlar(soz), [{ tur: "git", hedef: { tip: "capa", ad: capa } }], soz);
+  }
+});
+
+test("<yer>(y)e doğru git·yürü, yaklaş, <yer> gel → çapaya yürü; bana doğru/yaklaş → Ozyn'e", () => {
+  const izgara: [string, string][] = [
+    ["tahtaya doğru yürü", "tahta"], ["pencereye doğru git", "pencere"], ["masaya yaklaş", "masa"],
+    ["odanın ortasına gel", "oda_ortasi"], ["kapıya yürü", "kapi"],
+  ];
+  for (const [soz, capa] of izgara) {
+    assert.deepEqual(adimlar(soz), [{ tur: "git", hedef: { tip: "capa", ad: capa } }], soz);
+  }
+  for (const s of ["bana doğru gel", "bana doğru yürü", "bana yaklaş", "yanıma doğru gel", "gel bana", "benim yanıma gel"]) {
+    assert.deepEqual(adimlar(s), [{ tur: "git", hedef: { tip: "oyuncu" }, mesafe: GEL_MESAFESI }], s);
+  }
+});
+
+test("koltuk = sandalye (ünsüz yumuşaması): 'koltuğa otur' → otur; oturulamayan yere otur → LLM'e", () => {
+  assert.equal(yonelmeCapasi("koltuga"), "sandalye");
+  assert.equal(iyelikCapasi("koltugun"), "sandalye");
+  assert.equal(program("koltuğa otur"), "komut:otur");
+  assert.equal(program("sandalyeye otur"), "komut:otur");
+  for (const s of ["tahtaya otur", "pencereye otur", "mutfağa otur"]) assert.equal(program(s), null, s);
+});
+
+test("odaklan: yalnız bilgisayar/ekran/monitör → bilgisayar programı; 'tahtaya odaklan' belirsiz → LLM'e", () => {
+  for (const s of ["monitöre odaklan", "ekrana odaklan", "bilgisayara odaklan"]) {
+    assert.deepEqual(adimlar(s), [{ tur: "odaklan", capa: "monitor" }], s);
+  }
+  assert.equal(program("tahtaya odaklan"), null);
+});
+
+test("'kıpırdama' ve 'hareket etme' dur demektir; ZIT anlamlı 'durma' programa girmez", () => {
+  for (const s of ["kıpırdama", "hareket etme"]) assert.deepEqual(adimlar(s), [{ tur: "dur" }], s);
+  assert.equal(program("durma"), null);
+});
+
+test("'kalk ayağa' ve 'pencereden dışarı bak'", () => {
+  assert.deepEqual(adimlar("kalk ayağa"), [{ tur: "kalk" }]);
+  assert.deepEqual(adimlar("pencereden dışarı bak"), [{ tur: "bak", hedef: { tip: "capa", ad: "pencere" } }]);
+});
+
+test("İngilizce paketi: otur/kalk/dur/gel/bak/git/bilgisayar kalıpları", () => {
+  const otur = ["sit down", "sit", "take a seat", "sit on the chair", "sit at the desk", "sit in the armchair"];
+  const kalk = ["stand up", "get up", "stand", "rise"];
+  const dur = ["stop", "freeze", "stop moving", "hold still", "don't move"];
+  const gel = ["come here", "come over here", "come to me", "come closer", "walk toward me"];
+  for (const s of otur) assert.deepEqual(adimlar(s), [{ tur: "otur" }], s);
+  for (const s of kalk) assert.deepEqual(adimlar(s), [{ tur: "kalk" }], s);
+  for (const s of dur) assert.deepEqual(adimlar(s), [{ tur: "dur" }], s);
+  for (const s of gel) assert.deepEqual(adimlar(s), [{ tur: "git", hedef: { tip: "oyuncu" }, mesafe: GEL_MESAFESI }], s);
+  assert.deepEqual(adimlar("look at me"), [{ tur: "bak", hedef: { tip: "oyuncu" } }]);
+  const git: [string, string][] = [
+    ["go to the window", "pencere"], ["head to the door", "kapi"], ["walk to the desk", "masa"], ["go next to the table", "masa"],
+    ["please walk over to the whiteboard", "tahta"], ["go stand in the middle of the room", "oda_ortasi"],
+    ["go to the computer", "monitor"], ["walk toward the window", "pencere"], ["go in front of the board", "tahta"],
+    ["go over next to the table", "masa"],
+  ];
+  for (const [soz, capa] of git) assert.deepEqual(adimlar(soz), [{ tur: "git", hedef: { tip: "capa", ad: capa } }], soz);
+  const bak: [string, string][] = [
+    ["look at the board", "tahta"], ["look at the screen", "monitor"], ["look out the window", "pencere"], ["look at the window", "pencere"],
+  ];
+  for (const [soz, capa] of bak) assert.deepEqual(adimlar(soz), [{ tur: "bak", hedef: { tip: "capa", ad: capa } }], soz);
+  for (const s of ["turn on the computer", "open the monitor", "use the terminal", "focus on the monitor", "start the computer"]) {
+    assert.deepEqual(adimlar(s), [{ tur: "odaklan", capa: "monitor" }], s);
+  }
+  assert.deepEqual(adimlar("go to the table and sit down"), [{ tur: "otur" }]);
+});
+
+test("İngilizce: soru, olumsuz, bileşik, belirsiz, geçmiş/anlatı, meta ve bilinmeyen yer LLM'e gider (yanlış eşleşme 0)", () => {
+  for (const s of [
+    "can you sit down", "could you come here", "will you stand up", "can you come here",
+    "don't sit down", "do not go to the door", "please don't go to the door",
+    "stand up and come here", "sit down and look at the screen", "come here and sit",
+    "go over there", "look at that", "do that thing again", "sit there",
+    "what does the sit command do", "he stood up earlier", "if you sit down I'll be happy", "I walked to the window yesterday",
+    "go to the kitchen", "look at the weather", "write hello on the board", "what do you see", "where is the desk",
+    "sit on the floor", "sit on the window", "open the door", "go", "look", "come", "how are you",
+  ]) {
+    // "come" tek başına bir KOMUTTUR (aşağıda ayrıca), burada olmamalı
+    if (s === "come") continue;
+    assert.equal(program(s), null, s);
+  }
+  assert.equal(program("come"), "komut:gel");
+});
+
+test("SORU BİÇİMİ: yeni soru eşleşmesi YOK (can/could/will you, -ebilir misin, -ar mısın)", () => {
+  for (const s of ["oturabilir misin", "gelebilir misin", "pencereye gidebilir misin", "kalkabilir misin orion",
+    "tahtaya bakar mısın", "gidebilir misin", "yürüyebilir misin"]) {
+    assert.equal(program(s), null, s);
+  }
+});
+
+test("SORU BİÇİMİ (MEVCUT karar, Ozyn onayına AÇIK): 'oturur musun', 'kalkar misin', 'bakar misin bana' komuttur", () => {
+  // Bu üçü Faz 2b'de komut olarak yazıldı; tutarsızlık: 'oturabilir misin' eşleşmez. Karar Ozyn'ın; burada yalnız MEVCUT davranış sabitlenir.
+  assert.equal(program("oturur musun"), "komut:otur");
+  assert.equal(program("kalkar misin"), "komut:kalk");
+  assert.equal(program("bakar misin bana"), "komut:bak");
+});
+
+test("olumsuz, belirsiz, geçmiş/koşul/meta Türkçe sözler LLM'e gider", () => {
+  for (const s of ["oturma", "gitme", "kalkma", "oraya gitme", "pencereye bakma", "tahtaya yaklaşma", "oraya git", "şuna bak",
+    "suraya otur", "bunu yap", "git", "bak", "dün tahtaya gittin", "o az önce oturdu", "oturursan sevinirim", "git komutu ne işe yarar",
+    "masaya git sonra otur", "kalk ve pencereye git", "ayağa kalkıp kapıya yürü", "tahtaya git ve merhaba yaz"]) {
+    assert.equal(program(s), null, s);
+  }
+});
+
+test("iyelikCapasi: tamlayan eki ('masanin', 'tahtanin', 'bilgisayarin', 'pencerenin'); yalın ad çapa sayılmaz", () => {
+  assert.equal(iyelikCapasi("masanin"), "masa");
+  assert.equal(iyelikCapasi("tahtanin"), "tahta");
+  assert.equal(iyelikCapasi("bilgisayarin"), "monitor");
+  assert.equal(iyelikCapasi("pencerenin"), "pencere");
+  assert.equal(iyelikCapasi("masa"), null);
+  assert.equal(iyelikCapasi("mutfagin"), null);
 });
 
 // ── Yardımcılar ─────────────────────────────────────────────────────────────
