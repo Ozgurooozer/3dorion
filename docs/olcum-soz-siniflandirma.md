@@ -676,3 +676,88 @@ Aynı betik (`olc_kor.py`, `fixtures/soz/kor2.json`'a yönlendirilir), aynı rol
 4. İki set arasındaki fark, tek bir kör setle ölçüm yapmanın sınırını gösteriyor: üçüncü ve dördüncü bağımsız set hedef kapsamaya yakınsama eğrisi verir.
 
 **En çok şu yanlışlar bu karneyi bozar:** iki yazar da aynı model ailesinden; negatifler hep model aklından geldi. **Şu gözlem yakalar:** kod canlıya girip birkaç gün gerçek Ozyn sözleri alırsa `program` satırlarının `komut-tara` ile denetimi (yanlış eşleşme 0 sürmeli).
+
+---
+
+# Tur 7 — kaçan ailelerin eklenmesi, ÜÇÜNCÜ bağımsız kör set (ön kayıt)
+
+> 2026-10-03 · ÖN KAYIT — sözlüğe dokunmadan önce donduruldu. Başlangıç: commit `d7079c5` (repo başı `88b53ac`) (`mind/komutSozlugu.ts` `e2977d10a44960f7`, testi `e8d91b866d28e723`); ölçüm betiği `olc_kor.py` (`--kor` parametreli, `cc95ec0b1469dd15`), `kor.json` `7e2215c719f79118`, `kor2.json` `b735dca44887e5aa`.
+> Ozyn: "olur devam". Token kuralı: Haiku/bulut beyin YOK; bu tur yalnız sözlük + bir alt ajan (sonnet, set yazımı) kullanır.
+
+## Soru
+
+Tur 6b'nin temiz setinin (kor2) kaçırdığı aileler eklenirse, hiç görülmemiş üçüncü bir sette kapsama artar mı (kör set 2'de %56 idi) ve yanlış eşleşme 0 kalır mı?
+
+## Eklenecek aileler (donmuş; dil bilgisi ve kor2'nin kaçırdığı AİLELER, cümleleri değil)
+
+- Dolgu: TR "abi, kardeşim, hocam, usta, dayı, canım"; EN "go ahead and", "for a bit/while/moment".
+- Takma ad: cam = pencere, pc = bilgisayar (`pc yi`, `pc'yi`), "bilgisayarı başlat".
+- Fiil eşanlamları: `<yer>(y)a çök` = otur (yalnız oturulabilen yer), `göz at` = bak, EN `glance/peek/take a look at`, `face <yer>`, `approach <yer>`, `rise/get up from <sandalye>`.
+- Yapı: `<yer> tarafına bak/git/yürü`, `<yer>(n)in yanına yaklaş`, `<yer>(n)in önünde/yanında/karşısında dur`, gösterme sıfatı + yer ("şu koltuğa otur", "bu masaya git"; "şuraya/oraya" tek başına belirsiz KALIR), EN "stop right there / stop there / stop here".
+- BİLEREK EKLENMEYENLER: "dön" (git mi, bak mı?), "bekle/hold on" (konuşma duraklatması olabilir), yazım hatası düzeltme/bulanık eşleşme (güvenlik), soru biçimi, olumsuz.
+
+## Öngörüler ve çürütücüler (donmuş)
+
+| # | öngörü | çürüten |
+|---|---|---|
+| Z1 | **Yanlış eşleşme 0** — yeni set, kör set 1 ve 2, ve önceki bütün kümeler | tek yanlış eşleşme |
+| Z2 | üçüncü sette hareket kapsaması **≥ %60** (kor2'de %56'ydı) [~%55 olasılık] | < %60 |
+| Z3 | kor2'yi yeniden ölçünce (artık temaslı) kapsama **≥ 38/48 (%80)**; kor1 **≥ 46/48** (gerilemez) | altında |
+| Z4 | üçüncü sette soru kovasında YENİ eşleşme yok (yalnız `oturur musun`, `kalkar misin`, `bakar misin bana` kümesinden) | küme dışı |
+| Z5 | kalite kapıları: test dosyası yeşil, `tsc` 0, `tools/mimari.test.ts` yeşil, tam `npm test` yeşil, `komut-tara` gerçek günlükte yanlış 0, satır sonu korunur, bozma geçişi ≥ %80 | herhangi biri |
+| Z6 | iki set arası "temaslı → temiz" farkı **küçülür**: (kor2 temaslı) − (kor3 temiz) < 40 puan (kor1→kor2 farkı 40 puandı) | ≥ 40 puan |
+
+## Kapı (donmuş)
+
+**Kabul ⇔ Z1 ve Z4 ve Z5.** Z2, Z3, Z6 raporlanır (kapsama hedefi: kabul için değil, sonraki turun aile listesini ve yakınsamayı ölçmek için). Üçüncü yazar sözlüğü, ilk iki seti ve bu ön kaydı görmeden yazar; yazdıktan sonra sözlük bu sete bakılarak DEĞİŞTİRİLMEZ.
+
+## Karne
+
+> Koşular: 2026-10-03. Üçüncü yazar `fixtures/soz/kor3.json` (`79bd935016f5e4be`, 120 cümle). Genişletilmiş `mind/komutSozlugu.ts` `d628a3425717a8eb` (içeriği görülmeden donmuştu),
+> testi `c310dfd279c74473`. Çıktı: `sonuc/karne-tur7.md`, `sonuc/kor3-sonra.json`. "Önce" = Tur 6 sürümü (`d7079c5`). Yerel commit atıldı (push yok).
+
+| temiz set (`kor3.json`, 120) | önce (Tur 6 sözlüğü) | sonra (Tur 7) |
+|---|---|---|
+| hareket kapsaması (48) | 24/48 (%50) | **31/48 (%65)** |
+| Türkçe (26) | 12/26 (%46) | 15/26 (%58) |
+| İngilizce (22) | 12/22 (%55) | 16/22 (%73) |
+| yanlış eşleşme (58 negatif) | 0 | **0** |
+| soru kovasında eşleşen | `oturur musun` | `oturur musun` (aynı) |
+| bileşik kovası eşleşen | — | 2 (`masaya git ve otur`, `go to the desk and sit down`: bilerek `git+otur` programı) |
+
+Önceki sürümün kaçırdığı 24 sözden **7'si** artık yakalanıyor: `sandalyeye otur abi`, `cama bi göz at`, `pc yi başlat`, `glance at the window`, `stop there`, `approach the table`, `face the whiteboard`.
+
+### Öngörü karnesi: 6/6 ✓
+
+| # | sonuç | ölçülen |
+|---|---|---|
+| Z1 | ✓ | yanlış eşleşme 0: kor3 (58 negatif), kor1, kor2 ve önceki 9 küme |
+| Z2 | ✓ | kor3 hareket kapsaması %65 ≥ %60 |
+| Z3 | ✓ | kor2 (temaslı) 44/48 (%92 ≥ %80); kor1 46/48 (%96, gerilemedi) |
+| Z4 | ✓ | soru kovasında yeni eşleşme yok |
+| Z5 | ✓ | test dosyası 40/40; `tsc` 0 hata; `tools/mimari.test.ts` 5/5; **tam `npm test` 2331/2331**; `komut-tara` gerçek günlükte aynı 14 eşleşme (14 gerçek komut, 0 yanlış); satır sonu (LF) korundu; bozma geçişi **19/19** (ilk koşuda 18/19; kaçan N13 için "rise from the window" testi eklendi) |
+| Z6 | ✓ | temaslı → temiz fark: kor2 %92 − kor3 %65 = **27 puan** (< 40; kor1→kor2 farkı 40 idi) |
+
+### Yakınsama: temiz kapsama (aynı kod sürümüyle)
+
+| set (temiz anında ölçülen) | sözlük sürümü | hareket kapsaması |
+|---|---|---|
+| kor2 | Tur 6 (`d7079c5`) | %56 |
+| kor3 | Tur 6 (`d7079c5`) | %50 |
+| kor3 | **Tur 7** | **%65** |
+
+Tur 6 sürümü iki temiz sette %50–56; Tur 7 ekleri kor3'te **+15 puan** getirdi. Temiz kapsama hâlâ düşük-orta; eğri kaba yakınsıyor ama her yeni yazar yeni aileler getiriyor.
+
+### Kaçanlar: sonraki tur için aileler (sözlük bu sete bakılarak DEĞİŞTİRİLMEDİ)
+
+- **Sözcük sırası ters (dağınık Türkçe):** `git masaya`, `bak tahtaya`, `otur koltuğa`. Tek başına 3 söz: "fiil + yer(ye)" biçimi. Bilinçli tasarım sorusu: ters sırayı kabul etmek kalıbı gevşetir, ama yer adı çapaya çözüldüğü sürece güvenlidir.
+- **Dolgu:** `kanka`, `şöyle`, `be`, `tamam mı`, `müsait olduğunda`, `çabuk ol`; EN `yo dude`, `kindly`, `c'mon go on and`, `please` sonda ("look board please").
+- **Eşanlam:** `doğrul` = kalk; `dur kıpırdama` (iki pekiştirme: dur + kıpırdama).
+- **Bozuk İngilizce (edatsız):** `sit chair`, `look board please`, `you come here`. Bunlar güvenlik/kesinlik tartışması gerektirir ("you come here" → `you` dolgu mu?).
+- **Yazım:** `masana yaklaş tamam mı` ("tamam mı" kuyruğu), `kanka pencereye yaklas`.
+
+**En çok şu yanlışlar bu karneyi bozar:** üç yazar da aynı model ailesinden; negatifler hep model aklından geldi; etiketler yazarın. **Şu gözlem yakalar:** kod canlıda birkaç gün gerçek Ozyn sözleriyle çalışırsa `program` satırlarının `komut-tara` ile denetimi (yanlış eşleşme 0 sürmeli) ve gerçek sözlerdeki LLM'e düşme oranı.
+
+> **Dondurma notu (Tur 7, üçüncü yazar çalışmadan önce):** `mind/komutSozlugu.ts` `d628a3425717a8eb`, `mind/komutSozlugu.test.ts` `c310dfd279c74473`
+> (40 test yeşil; bozma geçişi 19/19; tsc 0; `tools/mimari.test.ts` 5/5; `komut-tara` gerçek günlükte 14 eşleşme). Sözlük bundan sonra BU SETE bakılarak değiştirilmez.
+> Temaslı yeniden ölçüm (Z3): kor1 46/48 (%96, gerilemedi), kor2 44/48 (%92 ≥ %80); yanlış eşleşme tüm kümelerde 0.

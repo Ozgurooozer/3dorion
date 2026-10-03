@@ -1,0 +1,45 @@
+{
+ "hepsi": {
+  "n": 120,
+  "poz": 48,
+  "kapsanan": 46,
+  "kacan": [
+   "bi dur şuracıkta",
+   "pencreye git"
+  ],
+  "neg": 58,
+  "yanlis": [],
+  "soru": 8,
+  "soru_eslesen": [
+   "oturur musun"
+  ],
+  "notr_eslesen": 0
+ },
+ "tr": {
+  "n": 76,
+  "poz": 30,
+  "kapsanan": 28,
+  "kacan": [
+   "bi dur şuracıkta",
+   "pencreye git"
+  ],
+  "neg": 37,
+  "yanlis": [],
+  "soru": 5,
+  "soru_eslesen": [
+   "oturur musun"
+  ],
+  "notr_eslesen": 0
+ },
+ "en": {
+  "n": 44,
+  "poz": 18,
+  "kapsanan": 18,
+  "kacan": [],
+  "neg": 21,
+  "yanlis": [],
+  "soru": 3,
+  "soru_eslesen": [],
+  "notr_eslesen": 0
+ }
+}

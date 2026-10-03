@@ -1,0 +1,76 @@
+{
+ "hepsi": {
+  "n": 120,
+  "poz": 48,
+  "kapsanan": 31,
+  "kacan": [
+   "git masaya",
+   "bak tahtaya",
+   "otur koltuğa",
+   "kanka pencereye yaklas",
+   "dur kıpırdama",
+   "müsait olduğunda beyaz tahtaya bak lütfen",
+   "şöyle bi yanıma gel",
+   "çabuk ol otur",
+   "doğrul biraz",
+   "buraya gel hadi be",
+   "masana yaklaş tamam mı",
+   "sit chair",
+   "look board please",
+   "you come here",
+   "yo dude walk over to the desk",
+   "c'mon go on and open the computer",
+   "kindly sit down"
+  ],
+  "neg": 58,
+  "yanlis": [],
+  "soru": 8,
+  "soru_eslesen": [
+   "oturur musun"
+  ],
+  "notr_eslesen": 2
+ },
+ "tr": {
+  "n": 68,
+  "poz": 26,
+  "kapsanan": 15,
+  "kacan": [
+   "git masaya",
+   "bak tahtaya",
+   "otur koltuğa",
+   "kanka pencereye yaklas",
+   "dur kıpırdama",
+   "müsait olduğunda beyaz tahtaya bak lütfen",
+   "şöyle bi yanıma gel",
+   "çabuk ol otur",
+   "doğrul biraz",
+   "buraya gel hadi be",
+   "masana yaklaş tamam mı"
+  ],
+  "neg": 34,
+  "yanlis": [],
+  "soru": 4,
+  "soru_eslesen": [
+   "oturur musun"
+  ],
+  "notr_eslesen": 1
+ },
+ "en": {
+  "n": 52,
+  "poz": 22,
+  "kapsanan": 16,
+  "kacan": [
+   "sit chair",
+   "look board please",
+   "you come here",
+   "yo dude walk over to the desk",
+   "c'mon go on and open the computer",
+   "kindly sit down"
+  ],
+  "neg": 24,
+  "yanlis": [],
+  "soru": 4,
+  "soru_eslesen": [],
+  "notr_eslesen": 1
+ }
+}

@@ -1,0 +1,50 @@
+{
+ "hepsi": {
+  "n": 120,
+  "poz": 48,
+  "kapsanan": 44,
+  "kacan": [
+   "zahmet olmazsa masaya dön",
+   "bilgisyarı aç hadi",
+   "orion biraz bekle",
+   "hold on"
+  ],
+  "neg": 58,
+  "yanlis": [],
+  "soru": 8,
+  "soru_eslesen": [
+   "oturur musun?"
+  ],
+  "notr_eslesen": 1
+ },
+ "tr": {
+  "n": 72,
+  "poz": 28,
+  "kapsanan": 25,
+  "kacan": [
+   "zahmet olmazsa masaya dön",
+   "bilgisyarı aç hadi",
+   "orion biraz bekle"
+  ],
+  "neg": 36,
+  "yanlis": [],
+  "soru": 4,
+  "soru_eslesen": [
+   "oturur musun?"
+  ],
+  "notr_eslesen": 0
+ },
+ "en": {
+  "n": 48,
+  "poz": 20,
+  "kapsanan": 19,
+  "kacan": [
+   "hold on"
+  ],
+  "neg": 22,
+  "yanlis": [],
+  "soru": 4,
+  "soru_eslesen": [],
+  "notr_eslesen": 1
+ }
+}
