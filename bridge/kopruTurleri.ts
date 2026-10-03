@@ -5,7 +5,7 @@
 import type { Algi } from "../protocol/algi.ts";
 import type { Niyet, NiyetTur } from "../protocol/niyet.ts";
 import type { DikkatAyari } from "../mind/dikkat.ts";
-import type { KararKaydi, KararSatiri, NiyetKaydi, OgretimSatiri } from "../mind/kararKaydi.ts";
+import type { KararKaydi, KararSatiri, OgretimSatiri } from "../mind/kararKaydi.ts";
 import type { IcguduKimligi } from "../mind/icgudu.ts";
 import type { KapiBaglami } from "../mind/durumKodu.ts";
 import type { BedenOkumasi } from "../mind/benlik.ts";
@@ -189,25 +189,6 @@ export const REFLEKS_ONAYI: Niyet = { tur: "jest", jest: "başını_sallıyor" }
 
 /** Bir adımın sonucu en çok bu kadar beklenir (ms): odanın bir ucundan öbürüne yürümek ~10 sn. */
 export const REFLEKS_ZAMAN_ASIMI_MS = 30_000;
-
-/** Süren bir refleks turu (spec 10, Faz D). */
-export interface SurenRefleks {
-  /** Tetikleyen söz: kayıttaki kimliği, metni ve özeti (başarısızlıkta LLM'e bunlar döner). */
-  algi: string;
-  soz: string;
-  ozet: string;
-  beceri: string;
-  adimlar: Niyet[];
-  /** Sıradaki adımın indeksi. */
-  sira: number;
-  /** Sonucu beklenen adımın niyet kimliği. */
-  bekleyen: string | null;
-  onay?: NiyetKaydi;
-  /** Gönderilen adımlar (doğrulanmış halleriyle), sırayla. */
-  gonderilen: NiyetKaydi[];
-  baslangic: number;
-  zamanlayici: ReturnType<typeof setTimeout> | null;
-}
 
 /**
  * Ozyn'in HAREKET olayları (world/olayUretici.ts). Yalnız bunlarla uyanan zincirde söz

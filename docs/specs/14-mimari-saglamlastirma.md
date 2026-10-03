@@ -44,7 +44,7 @@ Bekçi: `mimari.test.ts` bu tabloyu bütün depo için zorlar (bugün yalnız `w
 | R4 | `giris.ts`'ten niyet yürütücü ve zihin duvarı bağlantısı `uygulama/`ya | aynı canlı senaryolar |
 | R5 | `as unknown as` gözden geçirilir; gereksiz olanlar tipli hâle | tsc |
 | R6 | `beyniBagla`'nın beyin seçimi (seçenekler, başlangıç, Ollama/OpenCode/API taramaları, hatırlanan seçim, kayıt sarmalı, devre kesici) ve M seçicinin kaynağı → `uygulama/beyinSecimi.ts`. `location`, `localStorage`, `window.kopru` ve taramalar bağlamla verilir; sahteyle test edilir | tsc + test (hatırlanan seçim YALNIZ taramalardan sonra ve yalnız elle açılışta); canlı `apidene` 5/5, `eylemdene` 6/6, `gorudene` 3/3 |
-| R7 | Doğuştan komut programları `bridge/kopru.ts`'ten ayrılır. **Sözlük genişletmesi (diğer oturum) commit'lenmeden başlamaz:** aynı bağlantı noktasına dokunur | köprü testleri değişmeden yeşil; `eylemdene` 6/6 |
+| R7 | Komut programları ve beceri refleksi `bridge/kopru.ts`'ten ayrılır. **Sözlük genişletmesi (diğer oturum) commit'lenmeden başlamaz:** aynı bağlantı noktasına dokunur (d7079c5 + ce9cc44 ile commit'lendi, R7 sonra başladı) | köprü testleri değişmeden yeşil; `eylemdene` 6/6 |
 
 Her faz ayrı commit; davranış değişmez (yalnız yer değiştirir).
 
@@ -58,7 +58,8 @@ Her faz ayrı commit; davranış değişmez (yalnız yer değiştirir).
 
 | R4 | 2d87a8a | Niyet yürütücü (`niyetiYurut`, `tahtayaYaz`, `odaklanYurut`, `bedenAdimi`) → `uygulama/niyetYurutucu.ts`; zihin duvarı bağlantısı (karar kaydı → günlük, canlı satır, kesik sayacı, hafıza bulutu, aşama/iç ses/söz-eylem dinleyicileri) → `uygulama/zihinDuvari.ts`. İkisi de bağımlılığını bağlamla alır. `giris.ts` 2064 → 1867 satır | yürütücü için 16 yeni test, sahte dünya ile (önceden yalnız canlıda sınanabiliyordu); 3 bozma denemesinin 3'ü yakalandı (yedekli). Duvar için 6 test. `npm test` 2269/2269 [TEST]; canlı `eylemdene` 6/6, `tahtadene` 4/4, `benlikdene` 4/4, `apidene` 5/5, `gorudene` 3/3 — R4 öncesiyle aynı [ÖLÇÜLDÜ] |
 | R5 | cf0e5bf | `window` kancaları (`dunya`, `orionModel`, `orionPano`, `orionSes`, `_davranisKayit`, `_goruKanca`) tek tip tanımında: `uygulama/pencereKancalari.ts` (`host/kopru.ts`'in `window.kopru` kalıbı). Dört yüzeyin `getContext` dönüşümü `tuval2d` (world/surfaces/yuzey.ts). Üretimde `as unknown as` 18 → 3; kalan üçü gerekçeli izin listesinde | bekçi `tools/tipKacisi.test.ts` (geçici kaçış dosyası eklendi → yakaladı); `npm test` 2271/2271 [TEST]; kancaları kullanan senaryolar canlı: `gorudene` 3/3, `sessizdene` 2/2 (anlık 0 terfi, uzun ≥1), `apidene` 5/5, `eylemdene` 6/6 [ÖLÇÜLDÜ] |
-| R6 | (bu commit) | Beyin seçimi (seçenekler, açılış beyni, üç tarama, hatırlanan seçim, kayıt sarmalı, devre kesici) ve M seçicinin kaynağı + `window.orionModel` → `uygulama/beyinSecimi.ts`; `location`/`localStorage`/`window.kopru`/taramalar bağlamla. `giris.ts` 1869 → 1580 satır, `beyniBagla` 620 → 287 satır | 15 yeni test (sahte tarama, depo, pano); 4 bozmanın 4'ü yakalandı — biri ilk denemede KAÇTI (aşağıda). `npm test` 2286/2286 [TEST]; canlı `apidene` 5/5, `eylemdene` 6/6, `gorudene` 3/3; `zihindene` (120 sn pencereyle) AYNA, S5, S6, SECICI-GECIS GECTI, SECICI-RED KALDI — R6 dışı, aşağıda [ÖLÇÜLDÜ] |
+| R6 | 3f572e7 | Beyin seçimi (seçenekler, açılış beyni, üç tarama, hatırlanan seçim, kayıt sarmalı, devre kesici) ve M seçicinin kaynağı + `window.orionModel` → `uygulama/beyinSecimi.ts`; `location`/`localStorage`/`window.kopru`/taramalar bağlamla. `giris.ts` 1869 → 1580 satır, `beyniBagla` 620 → 287 satır | 15 yeni test (sahte tarama, depo, pano); 4 bozmanın 4'ü yakalandı — biri ilk denemede KAÇTI (aşağıda). `npm test` 2286/2286 [TEST]; canlı `apidene` 5/5, `eylemdene` 6/6, `gorudene` 3/3; `zihindene` (120 sn pencereyle) AYNA, S5, S6, SECICI-GECIS GECTI, SECICI-RED KALDI — R6 dışı, aşağıda [ÖLÇÜLDÜ] |
+| R7 | (bu commit) | Beceri refleksinin durum makinesi (başlat → adım → sonuç → bitir, zaman aşımı) → `bridge/beceriRefleksi.ts` (`EylemSirasi` deseni; köprüye bağı gönderim, kayıt satırı, LLM'e geri verme). Doğuştan programın saf planı (doğrula, kimlik ver, kayıt niyetleri, geçmiş çağrıları) → `bridge/komutProgrami.ts`. Sözün kayda/anıya yazılması, onay jesti, eylem sırası köprüde kaldı. `kopru.ts` 1077 → 1021 | köprü testleri DEĞİŞMEDEN 172/172; yeni 22 test; 5 bozmanın 5'i yakalandı (yedekli). `npm test` 2322/2322 [TEST]; canlı `eylemdene` 6/6 (6 söz, 6 program satırı, LLM uyanmadı), `benlikdene` 4/4; `becerdene` YETKİ AÇIK (`ORION_BECERI=1`): 1. söz LLM, 2.–3. refleks (uyanış +0, `basari`, 2,0/2,4 sn — spec 10 B14 ile aynı), karar kaydında 2 refleks satırı [ÖLÇÜLDÜ] |
 
 R3 notları:
 - Taşıma bir betikle yapıldı. Gövde aynı; yalnız giris'in değişkenleri `d.` ile okunuyor. Betiğin ilk sürümü
@@ -100,5 +101,19 @@ R6 notları:
      Claude adaptörünü 4700'de başlatıyor (Haiku varsayılan, 2026-09-28) ve `dis`'in varsayılan adresi de
      4700. Electron açıkken `dis` = Haiku adaptörü, sağlık kontrolü geçiyor. Beklenti adaptör taşındığından
      beri bayat. Seçenek listesi R6'da aynen taşındı.
-- Gözlem (düzeltilmedi, kapsam dışı): `OllamaBeyni.hazirMi` hata yolunda 2,5 sn'lik iptal zamanlayıcısını
+- (R6 bitti.) Gözlem (düzeltilmedi, kapsam dışı): `OllamaBeyni.hazirMi` hata yolunda 2,5 sn'lik iptal zamanlayıcısını
   temizlemiyor (bridge/ollama.ts). Zararsız ama test süresine 2,5 sn ekliyor.
+
+R7 notları:
+- **Neden `_programYurut` tümüyle taşınmadı:** gövdesinin çoğu köprünün iç durumuna yazar: kayıt, anı,
+  dikkat sıfırlama, sayaç, konuşma geçmişi, onay jesti, eylem sırası. Tümünü taşımak 9 alanlık bir bağlam
+  arayüzü isterdi ve test edilebilir yeni bir şey kazandırmazdı. Saf kısım (plan) ayrıldı ve testli.
+- **Birebir davranış inceliği:** eski döngü geçersiz bir adıma gelmeden ÖNCEKİ geçerli adımları konuşma
+  geçmişine yazıyordu, sonra duruyordu. Plan bu öneki `cagrilar`da taşır, köprü onları yine yazar
+  (test: "geçersiz adımda yalnız ÖNCEKİ geçerli adımların çağrısı kalır").
+- **Kapanış:** eski `_refleksBitir` `_durduruldu` ise LLM'e geri vermiyordu. Bu kontrol köprüde,
+  `_refleksiGeriAl`'ın başında; sınıf köprünün durumunu bilmez.
+- **Gölge kipteki `becerdene`:** 2. söz ("sandalyeye git") LLM'e gitti ve ornith-32k Orion'u yürütmedi
+  (konum değişmedi). Yetki kapalıyken refleks yolu koşmaz; bu modelin seçimidir, R7'nin kodu değil.
+  Aynı söz yetki açıkken refleksle doğru yürüdü.
+- `SurenRefleks` tipi `kopruTurleri.ts`'ten sınıfın içine taşındı; dışarıdan kullanan yoktu.

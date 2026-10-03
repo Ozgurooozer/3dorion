@@ -16,7 +16,7 @@ import { ozetle } from "../protocol/algi.ts";
 import type { Niyet, NiyetSonucu } from "../protocol/niyet.ts";
 import { kimlik } from "../protocol/temel.ts";
 import { Dikkat, kanalAcikMi } from "../mind/dikkat.ts";
-import { KararKaydi, niyetKaydi, type AlgiEki, type BeceriGolgesi, type KapiKarari, type NiyetKaydi, type OgretimSatiri, type RefleksBitisi, type UyanisBilgisi } from "../mind/kararKaydi.ts";
+import { KararKaydi, niyetKaydi, type AlgiEki, type BeceriGolgesi, type KapiKarari, type NiyetKaydi, type OgretimSatiri, type UyanisBilgisi } from "../mind/kararKaydi.ts";
 import { niyetDogrula } from "../protocol/dogrula.ts";
 import { BeceriDefteri } from "../mind/beceriDefteri.ts";
 import type { BeceriHafizasi } from "../mind/beceriHafizasi.ts";
@@ -39,8 +39,10 @@ import { talimatUret } from "./talimat.ts";
 import { ornekUret } from "./ornekler.ts";
 import { metinKurtar } from "./metinKurtarma.ts";
 import { EylemSirasi } from "./eylemSirasi.ts";
+import { BeceriRefleksi, type RefleksGeriVerme } from "./beceriRefleksi.ts";
+import { programPlani } from "./komutProgrami.ts";
 import { REFLEKS_ONEKI, REFLEKS_ONAYI, REFLEKS_ZAMAN_ASIMI_MS, HAREKET_OLAYLARI, SOZ_NIYETLERI, SUSMA_ILANI, inisiyatifOlayiMi, ZINCIR_AZAMI } from "./kopruTurleri.ts";
-import type { KopruAyari, KopruSayaci, SurenRefleks, TurCiktisi } from "./kopruTurleri.ts";
+import type { KopruAyari, KopruSayaci, TurCiktisi } from "./kopruTurleri.ts";
 export { REFLEKS_ONEKI, REFLEKS_ONAYI, REFLEKS_ZAMAN_ASIMI_MS, ZINCIR_AZAMI } from "./kopruTurleri.ts";
 export type { KopruAyari, SuzgecKarari, KopruSayaci } from "./kopruTurleri.ts";
 
@@ -86,7 +88,14 @@ export class Kopru {
   private _tekrarGerek = false;
   private _sayac: KopruSayaci = { dusunme: 0, niyet: 0, reddedilenCagri: 0, hata: 0, suzulen: 0, kurtarilanMetin: 0, kurtarilanCagri: 0, yutulanCop: 0, zincirKesilen: 0, yutulanSusma: 0, refleks: 0, komut: 0 };
   /** Süren refleks turu (spec 10, Faz D); yoksa null. */
-  private _refleks: SurenRefleks | null = null;
+  // YETKİLİ BECERİ REFLEKSİ (spec 10, Faz D; spec 14 R7: bridge/beceriRefleksi.ts). Her gönderim
+  // niyet sayacına girer; hata/zaman aşımında söz LLM'e döner (`_refleksiGeriAl`).
+  private _refleks = new BeceriRefleksi({
+    gonder: (n, id) => { this._gonder(n, id); this._sayac.niyet++; },
+    zamanAsimiMs: () => this._ayar.refleksZamanAsimiMs ?? REFLEKS_ZAMAN_ASIMI_MS,
+    satirYaz: (b) => { this._kayit.refleks(b); },
+    geriVer: (g) => this._refleksiGeriAl(g),
+  });
   /** Kalan takip turu hakkı — bkz. ZINCIR_AZAMI. */
   private _zincirKalan = ZINCIR_AZAMI;
   /**
@@ -263,7 +272,7 @@ export class Kopru {
     // jesti, kesilen adımın iptali) da beyne gitmez; yalnız kayıtta kalır.
     if (a.tur === "sonuc" && niyetKaynagi(a.sonuc.niyet_id) === REFLEKS_ONEKI) {
       this._kaydet(a, ozet, { gecti: false, kural: "kopru.refleks" });
-      this._refleksSonucu(a.sonuc);
+      this._refleks.sonuc(a.sonuc);
       return;
     }
 
@@ -298,7 +307,7 @@ export class Kopru {
     }
 
     // Ozyn'in her sözü süren refleksi keser: yeni emir kazanır (dünyadaki kuralla aynı).
-    if (a.tur === "duydum") this._refleksBitir("kesildi");
+    if (a.tur === "duydum") this._refleks.bitir("kesildi");
 
     // DOĞUŞTAN PROGRAM (spec 13 Faz 2b, içgüdü `kopru.komut`): öğrenilmiş beceriden ÖNCE —
     // doğuştan olan kesindir. Beceri gölgesi yine hesaplanır ve satıra yazılır (B9 ölçüsü).
@@ -539,7 +548,7 @@ export class Kopru {
    *
    * Söz kayda yazılır (gölgesiyle) ve anı olur; ama KONUŞMA GEÇMİŞİNE girmez: LLM
    * sonraki turunda cevapsız bir istek görüp onu yeniden yapmasın. Başarısızlıkta söz
-   * geçmişe ve tampona döner (bkz. `_refleksBitir`). Önce onay jesti — adım değildir,
+   * geçmişe ve tampona döner (bkz. `_refleksiGeriAl`). Önce onay jesti — adım değildir,
    * sonucu beklenmez — sonra adımlar sırayla.
    */
   private _refleksBaslat(a: Algi & { tur: "duydum" }, ozet: string, kapi: KapiKarari, golge: BeceriGolgesi): void {
@@ -550,85 +559,25 @@ export class Kopru {
     this._dikkat.sifirla();
     this._sayac.refleks++;
     console.log(`[BECERI] refleks: "${a.metin}" → ${golge.beceri} (${golge.adimlar.length} adim, pay ${golge.pay})`);
-    const r: SurenRefleks = {
-      algi, soz: a.metin, ozet, beceri: golge.beceri, adimlar: golge.adimlar,
-      sira: 0, bekleyen: null, gonderilen: [], baslangic: Date.now(), zamanlayici: null,
-    };
-    this._refleks = r;
-    const onay = niyetDogrula(REFLEKS_ONAYI);
-    if (onay.ok) {
-      const id = kimlik(REFLEKS_ONEKI);
-      r.onay = niyetKaydi(id, onay.deger);
-      this._gonder(onay.deger, id);
-      this._sayac.niyet++;
-    }
-    this._refleksAdimi();
+    this._refleks.baslat({ algi, soz: a.metin, ozet, beceri: golge.beceri, adimlar: golge.adimlar });
   }
 
   /**
-   * Sıradaki adımı DOĞRULAYIP gönderir (tek yol: `niyetGonder`; doğrulayıcı atlanmaz —
-   * adım kayıttan geliyor). Adım kalmadıysa refleks başarıyla biter. Beklenen kimlik ve
-   * zaman aşımı GÖNDERMEDEN ÖNCE kurulur: dünya sonucu senkron verirse de yakalansın.
+   * Başarısız refleksin sözü LLM'e döner (B13): konuşma geçmişine girer, özeti tampona,
+   * sebebi geri besleme olarak yanına; LLM hemen uyanır ve görevi kendisi yapar. Kapanışta
+   * (durdurulmuş köprü) hiçbir şey yapmaz.
    */
-  private _refleksAdimi(): void {
-    const r = this._refleks;
-    if (!r) return;
-    const n = r.adimlar[r.sira];
-    if (!n) { this._refleksBitir("basari"); return; }
-    const d = niyetDogrula(n);
-    if (!d.ok) { this._refleksBitir("hata", `step "${n.tur}" is not valid: ${d.hata}`); return; }
-    const id = kimlik(REFLEKS_ONEKI);
-    r.bekleyen = id;
-    r.gonderilen.push(niyetKaydi(id, d.deger));
-    r.zamanlayici = setTimeout(() => this._refleksBitir("zaman_asimi"), this._ayar.refleksZamanAsimiMs ?? REFLEKS_ZAMAN_ASIMI_MS);
-    this._gonder(d.deger, id);
-    this._sayac.niyet++;
-  }
-
-  /**
-   * Refleks niyetinin sonucu: beklenen adımınsa refleksi ilerletir. Onay jestinin ya da
-   * kesilmiş bir adımın geç gelen sonucu yalnız kayıtta kalır.
-   */
-  private _refleksSonucu(s: NiyetSonucu): void {
-    const r = this._refleks;
-    if (!r || s.niyet_id !== r.bekleyen || s.durum === "basladi") return;
-    if (r.zamanlayici) { clearTimeout(r.zamanlayici); r.zamanlayici = null; }
-    r.bekleyen = null;
-    if (s.durum === "bitti") { r.sira++; this._refleksAdimi(); }
-    else if (s.durum === "hata") this._refleksBitir("hata", s.not);
-    else this._refleksBitir("kesildi");   // iptal: yeni bir emir adımı geçti
-  }
-
-  /**
-   * Refleksi bitirir ve satırını yazar; süren refleks yoksa bir şey yapmaz.
-   *
-   * Başarı ve kesilme sessizdir. Hata ve zaman aşımında söz LLM'e döner (B13): konuşma
-   * geçmişine girer, özeti tampona, sebebi geri besleme olarak yanına; LLM hemen uyanır
-   * ve görevi kendisi yapar. Kalan adımlar gönderilmez.
-   */
-  private _refleksBitir(bitis: RefleksBitisi, sebep?: string): void {
-    const r = this._refleks;
-    if (!r) return;
-    this._refleks = null;
-    if (r.zamanlayici) clearTimeout(r.zamanlayici);
-    this._kayit.refleks({
-      algi: r.algi, beceri: r.beceri, ...(r.onay ? { onay: r.onay } : {}),
-      niyetler: r.gonderilen, bitis, sureMs: Date.now() - r.baslangic,
-    });
-    console.log(`[BECERI] refleks bitti: ${bitis}${sebep ? ` (${sebep})` : ""}`);
-    if (bitis === "basari" || bitis === "kesildi" || this._durduruldu) return;
-
-    const adim = r.gonderilen.at(-1)?.tur ?? "?";
-    const neden = bitis === "zaman_asimi" ? "no result in time" : (sebep ?? "failed");
-    this._gecmis.push({ rol: "kullanici", metin: r.soz });
+  private _refleksiGeriAl(g: RefleksGeriVerme): void {
+    if (this._durduruldu) return;
+    this._gecmis.push({ rol: "kullanici", metin: g.soz });
     this._kirp();
-    this._tampon.push(r.ozet);
-    this._tamponIdleri.push(r.algi);
-    this._tampon.push(`Your automatic attempt at this request stopped at step "${adim}": ${neden}. Do it yourself.`);
+    this._tampon.push(g.ozet);
+    this._tamponIdleri.push(g.algi);
+    this._tampon.push(`Your automatic attempt at this request stopped at step "${g.adim}": ${g.neden}. Do it yourself.`);
     this._tamponIdleri.push(null);
     this._turTurleri.add("duydum");
-    this._turIcerikleri.push(r.soz);
-    this._turSozleri.push(r.soz);
+    this._turIcerikleri.push(g.soz);
+    this._turSozleri.push(g.soz);
     this._turDis = true;
     this._zincirKalan = ZINCIR_AZAMI;
     this._hemenDusun();
@@ -652,19 +601,14 @@ export class Kopru {
     this._gecmis.push({ rol: "kullanici", metin: a.metin });
     this._kirp();
 
-    const niyetler: NiyetKaydi[] = [];
-    const adimlar: { niyet: Niyet; id: string }[] = [];
-    for (const n of p.adimlar) {
-      const d = niyetDogrula(n);
-      // Program tablosu testli; geçersiz adım bir yazılım hatasıdır — sessiz kalmasın.
-      if (!d.ok) { console.error(`[KOMUT] ${p.program}: gecersiz adim "${n.tur}": ${d.hata}`); return; }
-      const id = kimlik("komut");
-      niyetler.push(niyetKaydi(id, d.deger));
-      adimlar.push({ niyet: d.deger, id });
-      const { tur: nt, ...girdi } = d.deger;
-      this._gecmis.push({ rol: "orion", metin: "", arac: true, cagri: { ad: `dunya_${nt}`, girdi } });
+    // Plan saf (bridge/komutProgrami.ts): doğrulanmış adımlar, kayıt niyetleri, geçmiş çağrıları.
+    const { adimlar, niyetler, cagrilar, hata } = programPlani(p);
+    for (const cagri of cagrilar) {
+      this._gecmis.push({ rol: "orion", metin: "", arac: true, cagri });
       this._kirp();
     }
+    // Program tablosu testli; geçersiz adım bir yazılım hatasıdır — sessiz kalmasın.
+    if (hata) { console.error(`[KOMUT] ${p.program}: ${hata}`); return; }
     const onay = niyetDogrula(REFLEKS_ONAYI);
     let onayKaydi: NiyetKaydi | undefined;
     if (onay.ok) {
@@ -726,7 +670,7 @@ export class Kopru {
   durdur(): void {
     this._durduruldu = true;
     // Süren refleks kesilir ve satırı yazılır (defter dinlerken: canlı = kayıt kalsın).
-    this._refleksBitir("kesildi");
+    this._refleks.bitir("kesildi");
     this._sira.kes("kapanış");
     this._beceriDinlemesi();
     if (this._zamanlayici) { clearTimeout(this._zamanlayici); this._zamanlayici = null; }
