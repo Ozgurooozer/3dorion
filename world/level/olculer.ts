@@ -186,6 +186,12 @@ export const YIGIN = {
 } as const;
 
 /**
+ * Sol duvardaki raf (dekor + engel + ışın kutusu). Üç yerde satır içi kopyaydı
+ * (ENGELLER, KATI_YUZEYLER, nesne kaydı); tek kaynak burası (spec 15 §6).
+ */
+export const RAF: Kutu = { x: -ODA.genislik / 2 + 0.22, y: 0.9, z: 2.4, g: 0.44, yuk: 1.8, d: 1.8 };
+
+/**
  * Çarpışma engelleri. Oyuncu bunların içine giremez.
  * Duvarlar ayrı ele alınır (bkz. SINIR) — burada yalnızca oda içi mobilya var.
  * Yükseklik bilerek yok sayılır: oyuncu kapsülü zeminde yürür, masanın
@@ -197,7 +203,7 @@ export const ENGELLER: readonly Kutu[] = [
   // Sandalye
   { x: SANDALYE.x, y: 0.4, z: SANDALYE.z, g: SANDALYE.genislik, yuk: 0.9, d: SANDALYE.derinlik },
   // Sol duvardaki raf (dekor + engel)
-  { x: -ODA.genislik / 2 + 0.22, y: 0.9, z: 2.4, g: 0.44, yuk: 1.8, d: 1.8 },
+  RAF,
   // Berjer ve kutu yığını — klasik odada görünmezler ama engel her iki kipte aynı:
   // davranış (Orion'un yürüdüğü yollar) görünüş anahtarına bağlı olmasın.
   { x: BERJER.x, y: 0.55, z: BERJER.z, g: BERJER.g, yuk: 1.1, d: BERJER.d },
@@ -259,7 +265,7 @@ export const KATI_YUZEYLER: readonly KatiYuzey[] = [
   { capa: null, kutu: { x: 0, y: _Y + _K / 2, z: 0, g: _G + _K * 2, yuk: _K, d: _D + _K * 2 } },  // tavan
   { capa: null, kutu: { x: 0, y: -0.01, z: 0, g: _G, yuk: 0.02, d: _D } },                        // zemin
   // Etkileşimsiz dekor — ama ışını DURDURUR
-  { capa: null, kutu: { x: -_G / 2 + 0.22, y: 0.9, z: 2.4, g: 0.44, yuk: 1.8, d: 1.8 } },        // raf
+  { capa: null, kutu: RAF },                                                                       // raf
   { capa: null, kutu: { x: BERJER.x, y: 0.55, z: BERJER.z, g: BERJER.g, yuk: 1.1, d: BERJER.d } }, // berjer
   { capa: null, kutu: { x: YIGIN.x, y: 0.35, z: YIGIN.z, g: YIGIN.g, yuk: 0.7, d: YIGIN.d } },      // kutu yığını
   // Etkileşimli yüzeyler
