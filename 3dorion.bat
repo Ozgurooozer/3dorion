@@ -39,7 +39,8 @@ rem    ORION_ACIDENE=1      terminal kamera acisi (ORION_FPS=1 ile 1. sahis)
 rem    ORION_SS=<yol>       duman kosusunda pencereyi PNG olarak kaydet
 rem    ORION_SAGLAYICI / ORION_MODEL   beyin saglayici/model degistir
 rem    ORION_BEYIN=dis      beyni HTTP uzerinden baska bir dile ver
-rem    ORION_BEYIN_ADRES=   dis beynin adresi (varsayilan 127.0.0.1:4700)
+rem    ORION_BEYIN_ADRES=   dis beynin adresi, http:// SART (varsayilan http://127.0.0.1:4700;
+rem                         semasiz adres verilirse hazir=false olur, Orion kurali kipe duser)
 rem    ORION_KAYIT=1        beyne giden GERCEK girdileri gunluge yaz
 rem
 rem  Beyni SAHNESIZ denemek (Python/Go/Rust ile beyin yazarken):
@@ -163,8 +164,13 @@ echo [zihindene] zihin duvari panelleri (sema + gunluk) gozle dogrulanir
 call npx vite build
 if errorlevel 1 goto :hata
 set "ORION_ZIHINDENE=1"
+rem Secici kapisi "dis beyin YOK" bekler (reddedilmeli). Electron Haiku adaptorunu 4700'de baslatir ve
+rem dis'in varsayilani da 4700: adres bos birakilirsa dis = Haiku, kapi bayat sebeple KALIR (spec 14 R6).
+rem Kapali bir porta isaret ederek "dis yok" kosulunu belirlenimli yap.
+set "ORION_BEYIN_ADRES=http://127.0.0.1:9"
 set "ORION_SMOKE=1"
-set "ORION_SMOKE_MS=30000"
+rem 120 sn: S5/S6 ekrani her 3 pikselde tarar, 30 sn senaryoyu yarida kesiyordu.
+set "ORION_SMOKE_MS=120000"
 call npx electron .
 goto :son
 

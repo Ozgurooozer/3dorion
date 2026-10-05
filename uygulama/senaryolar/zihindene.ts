@@ -208,7 +208,9 @@ export async function kos(d: SenaryoBaglami): Promise<void> {
   //
   // Birim testleri yönlendirmeyi kanıtlıyor; burada kanıtlanan GERÇEK
   // sağlık kontrolleri. Ollama ayakta ve qwen2.5:7b kurulu → geçmeli.
-  // Python dış beyni koşmuyor → reddedilmeli ve mevcut beyin kalmalı.
+  // `dis` reddedilmeli ve mevcut beyin kalmalı. `dis` varsayılan adresi 4700 = Electron'un Haiku
+  // adaptörü; bu yüzden `3dorion.bat zihindene` ORION_BEYIN_ADRES'i kapalı bir porta çevirir
+  // (spec 14 R6: adres boşken `dis` Haiku'ya bağlanıp geçiyordu, kapı bayat sebeple KALIYORDU).
   {
     const pn = panoyuAl();
     const deger = (ad: string) => pn?.goruntu("beyin")

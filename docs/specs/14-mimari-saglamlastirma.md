@@ -94,7 +94,9 @@ R6 notları:
 - `ilkTarama` (üç taramanın `Promise.all`'u) artık her açılışta kuruluyor; eskiden yalnız hatırlanan seçim
   varken kuruluyordu. Yan etkisi yok: taramalar zaten koşuyordu, yalnız birleşimleri tutuluyor
   (`hazir`, testler için; hata yutulur).
-- **`zihindene` iki R6-dışı bulgu (düzeltilmedi, Ozyn'e soruldu):**
+- **`zihindene` iki R6-dışı bulgu — 2026-10-05'te DÜZELTİLDİ** (`3dorion.bat zihindene`: 120 sn pencere ve
+  `ORION_BEYIN_ADRES=http://127.0.0.1:9`, böylece `dis` belirlenimli olarak kapalı; canlı koşuda AYNA, S5, S6,
+  SECICI-RED, SECICI-GECIS hepsi GECTI [ÖLÇÜLDÜ]; `3dorion.bat` başlığına `http://` şartı yazıldı):
   1. `3dorion.bat zihindene` 30 sn'lik duman penceresinde S5'e varamadan kapanıyor. S5/S6 ekranı her 3 pikselde
      `sahne.pick` ile eşzamanlı tarıyor. 120 sn'lik pencereyle (`ORION_SMOKE_MS=120000`, bat değiştirilmeden)
      sonuna kadar koştu.
