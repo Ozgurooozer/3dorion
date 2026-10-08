@@ -35,6 +35,7 @@ import { AnlikBenlik, eden, niyetOzeti, type Eden } from "../mind/benlik.ts";
 import { DurumDefteri, type DurumKaydi } from "../mind/durumDefteri.ts";
 import { yonlendir, type CekmeceIstegi } from "../mind/hafizaYonlendirici.ts";
 import { sohbetEylemi, sonrakiKip, SOHBET_ONAYI, type SohbetEylemi, type SohbetKipi } from "../mind/sohbetKipi.ts";
+import { takipEylemi, TAKIP_ONAYI, type TakipEylemi } from "../mind/takipSozu.ts";
 import { terminalAyristir } from "../mind/durumKodu.ts";
 import { suzgecMercegi, type MercekOnerisi } from "../mind/mercekSuzgec.ts";
 import { araclariUret, cagriyiNiyete } from "./araclar.ts";
@@ -94,6 +95,8 @@ export class Kopru {
   /** Sohbet kipi (spec 16 F5b). Temizde bağlama hafıza girmez, söz hafızaya yazılmaz. */
   private _sohbetKipi: SohbetKipi = "standart";
   private _sohbetDinleyicileri = new Set<(kip: SohbetKipi, eylem: SohbetEylemi) => void>();
+  /** "Beni takip et" sürüyor mu (içgüdü `kopru.takip`). */
+  private _takipte = false;
   private _gecmis: BeyinGirdisi["gecmis"] = [];
   private _zamanlayici: ReturnType<typeof setTimeout> | null = null;
   private _dusunuyor = false;
@@ -269,6 +272,8 @@ export class Kopru {
     try { this._benlik.niyetGonderildi(id, n, "ben"); }
     catch (err) { console.error("[BENLIK] niyet yazilamadi:", err); }
     if (IS_NIYETLERI.has(n.tur)) {
+      // Orion kendisi başka bir İŞE girişti (LLM ya da program): takip biter — yeni iş kazanır.
+      if (this._takipte) this._takibiBitir("yeni iş");
       const ozet = niyetOzeti(n);
       this._isler.set(id, ozet);
       this._durum.isBasladi(ozet);
@@ -341,6 +346,13 @@ export class Kopru {
     if (a.tur === "duydum" && a.kesin) {
       const e = sohbetEylemi(a.metin);
       if (e) { this._sohbetEylemiYap(a, ozet, e, golge); return; }
+    }
+
+    // TAKİP (içgüdü `kopru.takip`): "beni takip et" / "takibi bırak", tam eşleşme, LLM uyanmaz.
+    // Komut programlarından ÖNCE: "peşimden gel" komut sözlüğünün `<yer> gel` kalıbına düşmesin.
+    if (a.tur === "duydum" && a.kesin) {
+      const e = takipEylemi(a.metin);
+      if (e) { this._takipYap(a, ozet, e, golge); return; }
     }
 
     // DOĞUŞTAN PROGRAM (spec 13 Faz 2b, içgüdü `kopru.komut`): öğrenilmiş beceriden ÖNCE —
@@ -635,6 +647,8 @@ export class Kopru {
     this._aniyaYaz(a, ozet);
     this._dikkat.sifirla();
     this._sayac.komut++;
+    // Yeni emir takibi bitirir — `dur` gibi İŞ niyeti olmayan programlar da (yeni emir kazanır).
+    this._takibiBitir(`yeni emir: ${p.program}`);
     this._gecmiseEkle({ rol: "kullanici", metin: a.metin });
     this._kirp();
 
@@ -722,6 +736,40 @@ export class Kopru {
       try { d(this._sohbetKipi, e); } catch (err) { console.error("[kopru] sohbet dinleyicisi hatası:", err); }
     }
     if (this._konusmaDinleyiciler.size) this._konusmaYay(SOHBET_ONAYI[e], false);
+  }
+
+  /** "Beni takip et" sürüyor mu. */
+  get takipte(): boolean { return this._takipte; }
+
+  /**
+   * Takip sözü: kayda (`kopru.takip`) ve anıya yazılır; söz ve onay konuşma geçmişine girer (LLM sonraki
+   * turunda takip ettiğini bilsin). Takibi dünyaya `takipDinle` bildirir; Orion sabit cümleyle onaylar.
+   */
+  private _takipYap(a: Algi & { tur: "duydum" }, ozet: string, e: TakipEylemi, golge: BeceriGolgesi | null | undefined): void {
+    this._kaydet(a, ozet, { gecti: true, kural: "kopru.takip" }, golge);
+    this._aniyaYaz(a, ozet);
+    this._dikkat.sifirla();
+    this._gecmiseEkle({ rol: "kullanici", metin: a.metin });
+    this._gecmiseEkle({ rol: "orion", metin: TAKIP_ONAYI[e], arac: true });
+    this._kirp();
+    if (e === "basla") {
+      this._takipte = true;
+      this._durum.isBasladi("takip → Ozyn");
+      console.log("[TAKIP] basladi (LLM uyanmadi)");
+      try { this._ayar.takipDinle?.(true); } catch (err) { console.error("[kopru] takip dinleyicisi hatası:", err); }
+    } else {
+      this._takibiBitir("söz");
+    }
+    if (this._konusmaDinleyiciler.size) this._konusmaYay(TAKIP_ONAYI[e]);
+  }
+
+  /** Takibi bitirir (söz ya da yeni emir); takip etmiyorsa bir şey yapmaz. */
+  private _takibiBitir(neden: string): void {
+    if (!this._takipte) return;
+    this._takipte = false;
+    this._durum.isBitti("takip → Ozyn", `bitti (${neden})`);
+    console.log(`[TAKIP] bitti: ${neden}`);
+    try { this._ayar.takipDinle?.(false); } catch (err) { console.error("[kopru] takip dinleyicisi hatası:", err); }
   }
 
   /** Durum defteri (spec 16 F2): dünya konumu ve monitörü buraya yazar. */

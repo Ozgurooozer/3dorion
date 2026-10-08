@@ -135,6 +135,7 @@ function pencereAc() {
   if (process.env.ORION_YUZDENE === "1") parcalar.push("yuzdene=1", "sessiz=1");
   if (process.env.ORION_HAFIZADENE === "1") parcalar.push("hafizadene=1", "sessiz=1");
   if (process.env.ORION_BAGLAMDENE === "1") parcalar.push("baglamdene=1", "sessiz=1", "komut=1");
+  if (process.env.ORION_TAKIPDENE === "1") parcalar.push("takipdene=1", "sessiz=1", "komut=1");
   if (process.env.ORION_TAHTADENE === "1") parcalar.push("tahtadene=1", "sessiz=1");
   if (process.env.ORION_APIDENE === "1") parcalar.push("apidene=1", "sessiz=1");
   if (process.env.ORION_BENLIKDENE === "1") parcalar.push("benlikdene=1", "sessiz=1");

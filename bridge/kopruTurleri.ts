@@ -134,6 +134,11 @@ export interface KopruAyari {
    * değişmez, doğuştan programlar etkilenmez. Verilmezse bütün araçlar.
    */
   cikarilanAraclar?: readonly string[];
+  /**
+   * "Beni takip et" (içgüdü `kopru.takip`): takip açılınca/kapanınca çağrılır. Davranışın kendisi dünya
+   * tarafında (uygulama/takip.ts). Verilmezse söz yine tanınır ve kayda yazılır, ama kimse yürümez.
+   */
+  takipDinle?: (aktif: boolean) => void;
   /** Odadaki yer adları (çapa etiketleri): sözde geçerse yönlendirici konumu ister. */
   yerAdlari?: () => readonly string[];
   /**

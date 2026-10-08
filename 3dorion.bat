@@ -22,6 +22,7 @@ rem    3dorion.bat apidene    API anahtarli beyin uctan uca (sahte yerel sunucuy
 rem    3dorion.bat benlikdene anlik benlik: onerinin yasam dongusu (spec 12)
 rem    3dorion.bat eylemdene  otur / bana gel / bilgisayari ac / tahtaya git (spec 13)
 rem    3dorion.bat baglamdene temiz baglam (spec 16): neredesin / neredeydin / ne konusmustuk
+rem    3dorion.bat takipdene  "beni takip et": Ozyn uzaklasinca Orion yanina geliyor mu
 rem    3dorion.bat mikrofon   Orion'u MIKROFONLA dene: V tusunu basili tut, Ingilizce konus (Nemotron Speech)
 rem    3dorion.bat zihindene  zihin duvari panelleri (sema + gunluk) gozle dogrulanir
 rem    3dorion.bat admindene  yonetim terminali gercek kabuk mu, Orion'a siziyor mu
@@ -85,6 +86,7 @@ if /i "%MOD%"=="benlikdene" goto :benlikdene
 if /i "%MOD%"=="eylemdene" goto :eylemdene
 if /i "%MOD%"=="mikrofon" goto :mikrofon
 if /i "%MOD%"=="baglamdene" goto :baglamdene
+if /i "%MOD%"=="takipdene" goto :takipdene
 if /i "%MOD%"=="tahtabeyin" goto :tahtabeyin
 if /i "%MOD%"=="becerdene" goto :becerdene
 if /i "%MOD%"=="gelistir" goto :gelistir
@@ -102,7 +104,7 @@ echo.
 echo   WASD yuru  ^|  Shift kos  ^|  F kamera  ^|  E etkilesim  ^|  Esc cik
 echo   T ile Orion'a yaz (yerel model dusunur, sesle cevap verir)
 echo   K mikrofonu ac/kapat (hatirlanir)  ^|  V basili tut = Ingilizce konus
-echo   Sohbet: "yeni sohbet" (pencere sifirlanir)  ^|  "temiz sohbet" (hafiza kapali)  ^|  "normal sohbet"
+echo   "beni takip et" / "takibi birak"  ^|  Sohbet: "yeni sohbet" (pencere sifirlanir)  ^|  "temiz sohbet" (hafiza kapali)  ^|  "normal sohbet"
 echo   1 tahtaya git  2 pencereye git  3 otur  4 kalk  5 sana bak  6 el salla
 echo   Monitore E ile gec, sonra: claude
 echo.
@@ -187,6 +189,16 @@ if errorlevel 1 goto :hata
 set "ORION_BAGLAMDENE=1"
 set "ORION_SMOKE=1"
 set "ORION_SMOKE_MS=240000"
+call npx electron .
+goto :son
+
+:takipdene
+echo [takipdene] Beni takip et: Ozyn uzaklasinca Orion yanina geliyor mu, birakinca duruyor mu
+call npx vite build
+if errorlevel 1 goto :hata
+set "ORION_TAKIPDENE=1"
+set "ORION_SMOKE=1"
+set "ORION_SMOKE_MS=70000"
 call npx electron .
 goto :son
 

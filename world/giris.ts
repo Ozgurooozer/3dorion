@@ -66,6 +66,7 @@ import type { Beyin } from "../bridge/beyin.ts";
 import { MetinGirdi } from "../voice/metin-girdi.ts";
 import { NemotronGirdi } from "../voice/nemotron.ts";
 import { komutuTerminaleYaz } from "../uygulama/terminalYazici.ts";
+import { Takipci } from "../uygulama/takip.ts";
 import { ikiCumleyeKisalt } from "../voice/kisalt.ts";
 import { Ajanda } from "../mind/ajanda.ts";
 import { gozlemAnisiMi } from "../mind/hafiza.ts";
@@ -1238,6 +1239,12 @@ const HAFIZA_KIPI: "otomatik" | "yonlendirici" =
 let modelSecici: ReturnType<typeof modelSeciciKur> | null = null;
 
 function beyniBagla(a: Avatar): void {
+  // Takip: Ozyn uzaklaştıkça Orion yanına yürür (uygulama/takip.ts). Mevcut beden yolu (`bedenAdimi`).
+  const takipci = new Takipci({
+    orionKonumu: () => a.durum().konum,
+    ozynKonumu: () => oyuncu.oyuncuDurumu().konum,
+    bedenAdimi: (n) => bedenAdimi(n),
+  });
   // BEYİN SEÇİMİ (uygulama/beyinSecimi.ts, spec 14 R6): seçenekler, açılış beyni, Ollama/OpenCode/API
   // taramaları, hatırlanan seçim (yalnız elle açılışta), kayıt sarmalı, devre kesici. Buradan yalnız
   // dünya verilir: sorgu, kabuk köprüsü, depo.
@@ -1315,6 +1322,11 @@ function beyniBagla(a: Avatar): void {
     hafizaKipi: HAFIZA_KIPI,
     ...(HAFIZA_KIPI === "yonlendirici" ? { yakinPencere: { kayit: 4, yasMs: 10 * 60_000 } } : {}),
     yerAdlari: () => tumCapalar().map((c) => c.etiket),
+    // "BENİ TAKİP ET" (içgüdü `kopru.takip`): köprü sözü tanır, dünya (Takipci) yürütür.
+    takipDinle: (aktif) => {
+      if (aktif) takipci.baslat(); else takipci.birak();
+      gunluk.ekle("bilgi", "takip", aktif ? "Ozyn'i takip ediyor" : "takip bitti");
+    },
     durumDeposu: durumDeposuKur(),
     // ÖĞRENEN KAPI (K3, K5): gölgede — kapının kararını değiştirmez, kayda yazar.
     ogretimler: ogretimleriYukle(),
@@ -1460,6 +1472,7 @@ function beyniBagla(a: Avatar): void {
   // Model uyanmaz; bilgi bağlama yalnız sorulunca girer (yönlendirici).
   const durumKopru = kopru;
   setInterval(() => {
+    takipci.tik();
     try {
       durumKopru.durum.konumGozlem(bulunduguCapa(a.durum().konum, durumKopru.durum.oku("konum")?.deger)?.etiket ?? "odanın ortası");
       durumKopru.durum.monitor(monitor.acikMi());
