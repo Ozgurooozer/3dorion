@@ -1461,6 +1461,19 @@ function beyniBagla(a: Avatar): void {
     } catch (err) { console.warn("[DURUM] gozlem hatasi:", err); }
   }, 500);
 
+  // SOHBET KİPİ (spec 16 F5b): "yeni sohbet" / "temiz sohbet" / "normal sohbet" sözle değişir (köprü,
+  // LLM uyanmaz). Temizdeyken ekranın üstünde HEP görünür: hafızanın kapalı olduğu unutulmasın.
+  const sohbetIsareti = document.createElement("div");
+  sohbetIsareti.style.cssText = "position:fixed;top:10px;left:50%;transform:translateX(-50%);padding:4px 12px;"
+    + "border-radius:6px;background:#14202e;color:#ffd38a;font:600 13px system-ui,sans-serif;z-index:50;display:none;pointer-events:none";
+  sohbetIsareti.textContent = "TEMİZ SOHBET · hafıza kapalı · çıkmak için: normal sohbet";
+  document.body.appendChild(sohbetIsareti);
+  kopru.sohbetKipiDinle((kip, e) => {
+    sohbetIsareti.style.display = kip === "temiz" ? "block" : "none";
+    gunluk.ekle("bilgi", "sohbet", e === "yeni" ? "yeni sohbet: konuşma penceresi sıfırlandı (hafıza duruyor)"
+      : e === "temiz" ? "temiz sohbet: hafıza ve durum bağlama girmiyor, hiçbir şey yazılmıyor" : "normal sohbete dönüldü");
+  });
+
   // Senaryo kipinde beyin susar: elle gönderilen niyetler kesilmesin.
   // (Köprü kurulduktan SONRA — `durdur()` örneğin üstünde çalışır.)
   if (SENARYO_KIPI) {

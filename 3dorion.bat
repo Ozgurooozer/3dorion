@@ -102,6 +102,7 @@ echo.
 echo   WASD yuru  ^|  Shift kos  ^|  F kamera  ^|  E etkilesim  ^|  Esc cik
 echo   T ile Orion'a yaz (yerel model dusunur, sesle cevap verir)
 echo   K mikrofonu ac/kapat (hatirlanir)  ^|  V basili tut = Ingilizce konus
+echo   Sohbet: "yeni sohbet" (pencere sifirlanir)  ^|  "temiz sohbet" (hafiza kapali)  ^|  "normal sohbet"
 echo   1 tahtaya git  2 pencereye git  3 otur  4 kalk  5 sana bak  6 el salla
 echo   Monitore E ile gec, sonra: claude
 echo.

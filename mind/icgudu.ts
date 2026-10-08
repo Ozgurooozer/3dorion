@@ -63,6 +63,8 @@ export const ICGUDULER = {
     aciklama: "Yalnız Ozyn'in hareketiyle (yaklaştı, uzaklaştı, baktı, yüzeye geçti) uyanan zincirde söz sesli okunmaz, iç seste kalır; beden niyetleri yürür (spec 13, Ozyn 2026-10-02)." },
   "kopru.komut": { katman: "kopru", ezilebilir: false,
     aciklama: "Kesin söz doğuştan bir komut programına TAMAMEN uyuyorsa (otur, bana gel, pencereye bak, bilgisayarı aç) LLM uyanmaz; adımlar eylem sırasıyla yürür, hata beyne gider (spec 13 Faz 2b)." },
+  "kopru.sohbet": { katman: "kopru", ezilebilir: false,
+    aciklama: "Kesin söz TAM olarak bir sohbet eylemiyse (yeni sohbet, temiz sohbet, normal sohbet) LLM uyanmaz: konuşma penceresi sıfırlanır, kip değişir, Orion sabit bir cümleyle onaylar (spec 16 F5b)." },
   "kopru.refleks": { katman: "kopru", ezilebilir: false,
     aciklama: "Beceri refleksinin kendi adımının sonucunu refleks okur, beyne gitmez; refleks başarısız olursa söz notla birlikte beyne döner (spec 10)." },
 

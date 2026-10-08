@@ -26,6 +26,9 @@ ve ikisi de **yalnız sorulunca** bağlama girer — kararı LLM'den önce bir k
   — "evet", "onu da yap" anlaşılsın diye tamamen kalkmaz; sayı ölçümle kesinleşir.
 - **K4** Gereksiz şey hafızaya hiç girmez (yazma süzgeci); eski gürültü yedekli göçle ayıklanır.
 - **K5** Araç şeması kırpma ayrı faz (F6), kendi ön-kaydıyla.
+- **K6** (Ozyn, 2026-10-08) Sohbet kipleri: **standart** · **yeni sohbet** (pencere sıfırlanır, hafıza kalır) ·
+  **temiz sohbet** (hafıza/durum bağlama girmez, hiçbir şey yazılmaz). Geçiş sözle, tam eşleşmeyle, LLM uyanmadan.
+  Başlangıç selamı eklenmedi: "sorulmayan girmez" kuralıyla çelişir.
 
 ## 3. Fazlar
 F0 ölçüm + yalıtım → F1 yazma süzgeci → F2 durum defteri → F3 çekmeceler → F4 yönlendirici →
@@ -102,6 +105,16 @@ Dürüstlük: eşik tutmazsa olduğu gibi yazılır; eşik koşudan sonra deği�
 - Yeni senaryo `3dorion.bat baglamdene`: otur → neredesin → tahtaya git → neredeydin → bilgi + 5 alakasız
   söz → ne konuşmuştuk. Canlı koşu **bekliyor**.
 - Bozma (yönlendirici + montaj + çekmece): 8/8.
+
+### F5b — sohbet kipleri `[TEST]`
+- `mind/sohbetKipi.ts`: `SOHBET_IFADELERI` (TR+EN, tek kaynak), `sohbetEylemi` yalnız TAM eşleşme
+  ("yeni sohbet nasıl açılır" bir sorudur, kip değiştirmez). İçgüdü `kopru.sohbet`.
+- Köprü: her eylemde konuşma penceresi ve bekleyen tur sıfırlanır; Orion sabit cümleyle onaylar
+  (`SOHBET_ONAYI`, durum defterine yazılmaz). Temizde: anı ve durum bağlama girmez (hafıza kipi ne olursa),
+  söz hafızaya ve defterin söz satırlarına yazılmaz; pencere yalnız temiz sohbetin kendi sözleri; karar
+  kaydında `uyanis.sohbetKipi: "temiz"`. Temizden çıkınca o sohbet pencereye sızmaz.
+- Ekran: temizdeyken üstte kalıcı işaret; geçişler günlükte.
+- Bozma: 5/5.
 
 ## 6. Sapma kaydı
 - 2026-10-08: canlı taban F0'da alınamadı (Ozyn o sırada Orion'u kullanıyordu); F5 öncesi alınacak.

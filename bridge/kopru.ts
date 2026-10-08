@@ -34,6 +34,7 @@ import { komutCoz, type KomutEslesmesi } from "../mind/komutSozlugu.ts";
 import { AnlikBenlik, eden, niyetOzeti, type Eden } from "../mind/benlik.ts";
 import { DurumDefteri, type DurumKaydi } from "../mind/durumDefteri.ts";
 import { yonlendir, type CekmeceIstegi } from "../mind/hafizaYonlendirici.ts";
+import { sohbetEylemi, sonrakiKip, SOHBET_ONAYI, type SohbetEylemi, type SohbetKipi } from "../mind/sohbetKipi.ts";
 import { terminalAyristir } from "../mind/durumKodu.ts";
 import { suzgecMercegi, type MercekOnerisi } from "../mind/mercekSuzgec.ts";
 import { araclariUret, cagriyiNiyete } from "./araclar.ts";
@@ -90,6 +91,9 @@ export class Kopru {
   private _turNiyetHatasi = false;
   /** Geçmiş kaydının eklenme anı (yakın pencerenin yaş sınırı için; kaydın biçimi değişmez). */
   private _gecmisZamani = new WeakMap<object, number>();
+  /** Sohbet kipi (spec 16 F5b). Temizde bağlama hafıza girmez, söz hafızaya yazılmaz. */
+  private _sohbetKipi: SohbetKipi = "standart";
+  private _sohbetDinleyicileri = new Set<(kip: SohbetKipi, eylem: SohbetEylemi) => void>();
   private _gecmis: BeyinGirdisi["gecmis"] = [];
   private _zamanlayici: ReturnType<typeof setTimeout> | null = null;
   private _dusunuyor = false;
@@ -272,9 +276,9 @@ export class Kopru {
     this._ayar.niyetGonder(n, id);
   }
 
-  private _konusmaYay(metin: string): void {
+  private _konusmaYay(metin: string, durumaYaz = true): void {
     this._benlik.soyledi(metin);
-    this._durum.orionDedi(metin);
+    if (durumaYaz && this._sohbetKipi !== "temiz") this._durum.orionDedi(metin);
     for (const d of this._konusmaDinleyiciler) {
       try { d(metin); } catch (err) { console.error("[kopru] konuşma dinleyicisi hatası:", err); }
     }
@@ -332,6 +336,13 @@ export class Kopru {
     // Ozyn'in her sözü süren refleksi keser: yeni emir kazanır (dünyadaki kuralla aynı).
     if (a.tur === "duydum") this._refleks.bitir("kesildi");
 
+    // SOHBET EYLEMİ (spec 16 F5b, içgüdü `kopru.sohbet`): tam eşleşen söz kip değiştirir, LLM uyanmaz.
+    // Komut yetkisinden bağımsız: kip, Ozyn'in bağlam üzerindeki kontrolüdür, bedenin işi değil.
+    if (a.tur === "duydum" && a.kesin) {
+      const e = sohbetEylemi(a.metin);
+      if (e) { this._sohbetEylemiYap(a, ozet, e, golge); return; }
+    }
+
     // DOĞUŞTAN PROGRAM (spec 13 Faz 2b, içgüdü `kopru.komut`): öğrenilmiş beceriden ÖNCE —
     // doğuştan olan kesindir. Beceri gölgesi yine hesaplanır ve satıra yazılır (B9 ölçüsü).
     if (a.tur === "duydum" && a.kesin && this._ayar.komutYetkisi !== false) {
@@ -373,7 +384,7 @@ export class Kopru {
         this._durum.isBitti(ozet, a.sonuc.durum === "bitti" ? "done" : `${a.sonuc.durum}${a.sonuc.not ? `: ${a.sonuc.not}` : ""}`);
       }
     }
-    if (a.tur === "duydum" && a.kesin) this._durum.ozynDedi(a.metin);
+    if (a.tur === "duydum" && a.kesin && this._sohbetKipi !== "temiz" && !sohbetEylemi(a.metin)) this._durum.ozynDedi(a.metin);
     else if (a.tur === "terminal") this._benlik.terminalBitti(terminalAyristir(a.kuyruk).komut, a.kod);
   } catch (err) {
     this._algiEdeni = undefined;
@@ -656,6 +667,8 @@ export class Kopru {
    */
   private _aniyaYaz(a: Algi, ozet: string): string {
     const { tur, icerik } = this._aniIcerigi(a, ozet);
+    // Temiz sohbet hafızaya YAZILMAZ (spec 16 F5b). İçerik yine bu turun sorgusu/bağlamıdır.
+    if (this._sohbetKipi === "temiz") return icerik;
     const k = aniKaydi(a, tur, icerik);
     if (k) { this._hafiza.ekle(k.icerik, tur, k.onem); this._hafizaYaz(); }
     return icerik;
@@ -682,6 +695,35 @@ export class Kopru {
 
   /** Tanılama/ölçüm: hafızaya doğrudan erişim. */
   get hafiza(): Hafiza { return this._hafiza; }
+  /** Şu anki sohbet kipi (spec 16 F5b). */
+  get sohbetKipi(): SohbetKipi { return this._sohbetKipi; }
+
+  /** Kip değişimini dinle (ekrandaki işaret, günlük). Abonelikten çıkma fonksiyonu döner. */
+  sohbetKipiDinle(cb: (kip: SohbetKipi, eylem: SohbetEylemi) => void): () => void {
+    this._sohbetDinleyicileri.add(cb);
+    return () => { this._sohbetDinleyicileri.delete(cb); };
+  }
+
+  /**
+   * Sohbet eylemi: söz kayda (`kopru.sohbet`) yazılır ama hafızaya ve geçmişe GİRMEZ; konuşma penceresi
+   * HER eylemde sıfırlanır (yeni sohbet: eski laf gitsin; temize girerken: önceki konuşma sızmasın;
+   * temizden çıkarken: temiz sohbet standarda sızmasın). Bekleyen tur da düşer. Orion sabit cümleyle
+   * onaylar (`SOHBET_ONAYI`) — model uyanmaz, onay durum defterine yazılmaz.
+   */
+  private _sohbetEylemiYap(a: Algi & { tur: "duydum" }, ozet: string, e: SohbetEylemi, golge: BeceriGolgesi | null | undefined): void {
+    this._kaydet(a, ozet, { gecti: true, kural: "kopru.sohbet" }, golge);
+    this._dikkat.sifirla();
+    this._gecmis.length = 0;
+    this._tampon.length = 0; this._tamponIdleri.length = 0;
+    this._turIcerikleri.length = 0; this._turSozleri.length = 0; this._turTurleri.clear();
+    this._sohbetKipi = sonrakiKip(e);
+    console.log(`[SOHBET] ${e} → kip=${this._sohbetKipi} (pencere sifirlandi, LLM uyanmadi)`);
+    for (const d of this._sohbetDinleyicileri) {
+      try { d(this._sohbetKipi, e); } catch (err) { console.error("[kopru] sohbet dinleyicisi hatası:", err); }
+    }
+    if (this._konusmaDinleyiciler.size) this._konusmaYay(SOHBET_ONAYI[e], false);
+  }
+
   /** Durum defteri (spec 16 F2): dünya konumu ve monitörü buraya yazar. */
   get durum(): DurumDefteri { return this._durum; }
 
@@ -847,7 +889,11 @@ export class Kopru {
     this._turTerminal = undefined; this._turNiyetHatasi = false;
     let getirilen: GetirSonucu[];
     let durumSatirlari: string[] = [];
-    if (this._ayar.hafizaKipi === "yonlendirici") {
+    if (this._sohbetKipi === "temiz") {
+      // TEMİZ SOHBET (spec 16 F5b): hafıza ve durum defteri bağlama girmez — hangi hafıza kipi olursa.
+      getirilen = [];
+      uyanis.sohbetKipi = "temiz";
+    } else if (this._ayar.hafizaKipi === "yonlendirici") {
       // SPEC 16: bağlama yalnız İSTENEN girer. Yönlendirici sözden karar verir; varsayılan boş.
       const istek = yonlendir({
         sozler: istekler,
