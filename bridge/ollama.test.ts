@@ -31,6 +31,14 @@ test("yetenek BİLİNMİYORSA eski davranış: araçlar gider, think gitmez", as
   } finally { s.geri(); }
 });
 
+test("girdi token sayısı prompt_eval_count'tan bilgi.girdiToken olarak döner (spec 16 F0)", async () => {
+  const s = sunucu({ message: { content: "selam" }, prompt_eval_count: 1900, eval_count: 12 });
+  try {
+    const c = await new OllamaBeyni({ model: "x:1b" }).dusun(GIRDI);
+    assert.equal(c.bilgi?.["girdiToken"], 1900);
+  } finally { s.geri(); }
+});
+
 test("araçsız model: tools BOŞ — Ollama 400 vermesin, satır sözleşmesi devralır", async () => {
   const s = sunucu();
   try {

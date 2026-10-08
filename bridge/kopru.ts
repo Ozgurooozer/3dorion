@@ -24,7 +24,8 @@ import { ICGUDULER, dikkatKurali } from "../mind/icgudu.ts";
 import { durumKodu, niyetKaynagi, type KapiBaglami } from "../mind/durumKodu.ts";
 import type { KuralHafizasi, KapiYonu } from "../mind/kuralHafizasi.ts";
 import { deneyimKimligi, kuralHafizasiKur, ogretimAnahtari } from "../mind/ogretim.ts";
-import { Hafiza, kuralOnemi, type AniTuru, type Ani, type GetirSonucu } from "../mind/hafiza.ts";
+import { Hafiza, type AniTuru, type Ani, type GetirSonucu } from "../mind/hafiza.ts";
+import { aniKaydi } from "../mind/aniSuzgeci.ts";
 import { calismaBellegiKur, type CalismaBellegi } from "../mind/calismaBellegi.ts";
 import { oncesiSozu } from "../mind/zaman.ts";
 import { sozEylemUcurumu } from "../mind/sozEylem.ts";
@@ -36,6 +37,7 @@ import { suzgecMercegi, type MercekOnerisi } from "../mind/mercekSuzgec.ts";
 import { araclariUret, cagriyiNiyete } from "./araclar.ts";
 import type { Beyin, BeyinCikti, BeyinGirdisi } from "./beyin.ts";
 import { talimatUret } from "./talimat.ts";
+import { baglamOlcusu } from "./baglamOlcusu.ts";
 import { ornekUret } from "./ornekler.ts";
 import { metinKurtar } from "./metinKurtarma.ts";
 import { EylemSirasi } from "./eylemSirasi.ts";
@@ -131,7 +133,7 @@ export class Kopru {
   constructor(ayar: KopruAyari) {
     this._ayar = ayar;
     this._dikkat = new Dikkat(ayar.dikkat);
-    this._hafiza = new Hafiza({ simdi: ayar.simdi });
+    this._hafiza = new Hafiza({ simdi: ayar.simdi, ...(ayar.hafizaKapasite !== undefined ? { kapasite: ayar.hafizaKapasite } : {}) });
     this._calisma = calismaBellegiKur({ simdi: ayar.simdi });
     this._benlik = new AnlikBenlik({ simdi: ayar.simdi, beden: ayar.bedenDurumu });
     // İÇGÜDÜ `kayit`: köprü kaydını DOĞUŞTAN kurar — kimse açmak zorunda değil.
@@ -418,7 +420,7 @@ export class Kopru {
   this._tampon.push(ozet);
   this._tamponIdleri.push(this._kaydet(a, ozet, kapi, golge));
 
-  // Beyne giden her algı hafızaya da yazılır. Önem KURALLA belirlenir —
+  // Beyne giden algı hafızaya da yazılır — süzgeçten geçerse (`_aniyaYaz`). Önem KURALLA belirlenir —
   // her anı için bir LLM turu ödemek ölçülmüş bir fayda olmadan kabul
   // edilemez (bkz. mind/hafiza.ts kuralOnemi).
   // Hafızaya BİÇİM değil İÇERİK yazılır.
@@ -427,16 +429,13 @@ export class Kopru {
   // öneki taşıdığı için kelime örtüşmesi İÇERİKTEN değil KALIPTAN geliyordu:
   // canlı ölçümde sorgu ne olursa olsun hep aynı üç alakasız anı dönüyordu.
   // Kim söyledi bilgisi zaten `tur` alanında duruyor.
-  const { tur: aniTur, icerik } = this._aniIcerigi(a, ozet);
   // DURUM ≠ ANI (spec 06 K2). `gordum` o ANA ait bir gözlem: Orion iki adım
   // atınca yanlışa döner. Kalıcı hafızaya yazıldığında dünkü gözlem bugün
   // "hatırlanan bilgi" diye geri geliyordu ve Orion onu anlatıyordu.
   // [ÖLÇÜLDÜ] aynı girdi, tek fark eski gözlem anıları: sadakat %50 → %100.
-  if (a.tur === "gordum") this._calisma.yaz(a.ne, a.metin);
-  else {
-    this._hafiza.ekle(icerik, aniTur, kuralOnemi(aniTur, icerik, a.tur === "terminal" ? a.kod : undefined));
-    this._hafizaYaz();
-  }
+  let icerik: string;
+  if (a.tur === "gordum") { this._calisma.yaz(a.ne, a.metin); icerik = this._aniIcerigi(a, ozet).icerik; }
+  else icerik = this._aniyaYaz(a, ozet);
   this._turIcerikleri.push(icerik);
   this._turTurleri.add(a.tur);
 
@@ -553,9 +552,7 @@ export class Kopru {
    */
   private _refleksBaslat(a: Algi & { tur: "duydum" }, ozet: string, kapi: KapiKarari, golge: BeceriGolgesi): void {
     const algi = this._kaydet(a, ozet, kapi, golge);
-    const { tur: aniTur, icerik } = this._aniIcerigi(a, ozet);
-    this._hafiza.ekle(icerik, aniTur, kuralOnemi(aniTur, icerik));
-    this._hafizaYaz();
+    this._aniyaYaz(a, ozet);
     this._dikkat.sifirla();
     this._sayac.refleks++;
     console.log(`[BECERI] refleks: "${a.metin}" → ${golge.beceri} (${golge.adimlar.length} adim, pay ${golge.pay})`);
@@ -593,9 +590,7 @@ export class Kopru {
    */
   private _programYurut(a: Algi & { tur: "duydum" }, ozet: string, golge: BeceriGolgesi | null | undefined, p: KomutEslesmesi): void {
     const algi = this._kaydet(a, ozet, { gecti: true, kural: "kopru.komut" }, golge);
-    const { tur: aniTur, icerik } = this._aniIcerigi(a, ozet);
-    this._hafiza.ekle(icerik, aniTur, kuralOnemi(aniTur, icerik));
-    this._hafizaYaz();
+    this._aniyaYaz(a, ozet);
     this._dikkat.sifirla();
     this._sayac.komut++;
     this._gecmis.push({ rol: "kullanici", metin: a.metin });
@@ -621,6 +616,18 @@ export class Kopru {
     console.log(`[KOMUT] "${a.metin}" → ${p.program} (${adimlar.map((x) => x.niyet.tur).join(" → ")}), LLM uyanmadi`);
     this._sayac.niyet += adimlar.length;
     this._sira.baslat(adimlar);
+  }
+
+  /**
+   * Algıyı kalıcı hafızaya yazar — süzgeçten geçerse (spec 16 F1, mind/aniSuzgeci.ts: olay yazılmaz,
+   * terminal kırpılır, mikrofon sözü düşük önemli). Sade içeriği döner: bu turun sorgusu onunla kurulur,
+   * süzgeç sorguyu değiştirmez. Üç yazma yolu (tampon, refleks, program) TEK buradan geçer.
+   */
+  private _aniyaYaz(a: Algi, ozet: string): string {
+    const { tur, icerik } = this._aniIcerigi(a, ozet);
+    const k = aniKaydi(a, tur, icerik);
+    if (k) { this._hafiza.ekle(k.icerik, tur, k.onem); this._hafizaYaz(); }
+    return icerik;
   }
 
   /** Algıdan hafızaya yazılacak SADE içeriği çıkarır (kalıp değil). */
@@ -721,6 +728,8 @@ export class Kopru {
 
     try {
       const { girdi, sessiz, istekler } = this._turGirdisi(ozetler, uyanis);
+      // Bağlam ölçüsü (spec 16 F0): davranışı değiştirmez, karar kaydına yazılır.
+      uyanis.baglam = baglamOlcusu(girdi);
       const anisayisi = girdi.anilar?.length ?? 0;
       if (anisayisi) this._asama("hafiza", `${anisayisi} anı`);
       this._asama("beyin", "düşünüyor");
@@ -729,6 +738,10 @@ export class Kopru {
       this._asama("beyin:bitti", `${((Date.now() - beyinT0) / 1000).toFixed(1)} sn`);
       uyanis.sureMs = Date.now() - beyinT0;
       uyanis.cagrilar = cikti.cagrilar.map((c) => c.ad);
+      const girdiToken = cikti.bilgi?.["girdiToken"];
+      if (typeof girdiToken === "number") uyanis.baglam.token = girdiToken;
+      const b = uyanis.baglam;
+      console.log(`[BAGLAM] toplam=${b.toplam}ch${b.token !== undefined ? ` token=${b.token}` : ""} talimat=${b.talimat} araclar=${b.araclar} ornekler=${b.ornekler} gecmis=${b.gecmis}(${b.gecmisKayit}) dunya=${b.dunya} anilar=${b.anilar} ozetler=${b.ozetler}`);
       if (cikti.metin) uyanis.metin = cikti.metin;
 
       this._ciktiyiIsle(cikti, uyanis, sessiz, istekler);

@@ -154,6 +154,8 @@ export class OllamaBeyni implements Beyin {
           model: this.ad,
           sureMs: Date.now() - t0,
           token: (d.eval_count ?? 0) + (d.prompt_eval_count ?? 0),
+          // Girdinin (bağlamın) token sayısı ayrı: spec 16 F0 ölçüsü bunu karar kaydına yazar.
+          ...(typeof d.prompt_eval_count === "number" ? { girdiToken: d.prompt_eval_count } : {}),
         },
       };
     } catch (err) {

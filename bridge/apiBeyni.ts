@@ -66,11 +66,11 @@ export function apiMesajlari(mesajlar: readonly OllamaMesaji[]): ApiMesaji[] {
 interface ApiCevabi {
   choices?: { message?: { content?: string | null; reasoning_content?: string | null;
     tool_calls?: { function?: { name?: string; arguments?: unknown } }[] } }[];
-  usage?: { total_tokens?: number };
+  usage?: { total_tokens?: number; prompt_tokens?: number };
 }
 
 /** Cevabı `BeyinCikti`ya çevirir. Argümanı bozuk çağrı atlanır (sessizce değil: uyarı). */
-export function apiCevabiniCoz(veri: unknown): { metin: string; cagrilar: AracCagrisi[]; dusunce?: string; token: number } {
+export function apiCevabiniCoz(veri: unknown): { metin: string; cagrilar: AracCagrisi[]; dusunce?: string; token: number; girdiToken?: number } {
   const d = (veri ?? {}) as ApiCevabi;
   const m = d.choices?.[0]?.message ?? {};
   const cagrilar: AracCagrisi[] = [];
@@ -85,7 +85,9 @@ export function apiCevabiniCoz(veri: unknown): { metin: string; cagrilar: AracCa
     cagrilar.push({ ad, girdi });
   }
   const dusunce = typeof m.reasoning_content === "string" && m.reasoning_content.trim() ? m.reasoning_content.trim() : undefined;
-  return { metin: (m.content ?? "").trim(), cagrilar, ...(dusunce ? { dusunce } : {}), token: d.usage?.total_tokens ?? 0 };
+  const girdiToken = d.usage?.prompt_tokens;
+  return { metin: (m.content ?? "").trim(), cagrilar, ...(dusunce ? { dusunce } : {}), token: d.usage?.total_tokens ?? 0,
+    ...(typeof girdiToken === "number" ? { girdiToken } : {}) };
 }
 
 export class ApiBeyni implements Beyin {
@@ -118,7 +120,7 @@ export class ApiBeyni implements Beyin {
     return {
       metin: c.metin,
       cagrilar: c.cagrilar,
-      bilgi: { model: this.ad, sureMs: Date.now() - t0, token: c.token, ...(c.dusunce ? { dusunce: c.dusunce } : {}) },
+      bilgi: { model: this.ad, sureMs: Date.now() - t0, token: c.token, ...(c.girdiToken !== undefined ? { girdiToken: c.girdiToken } : {}), ...(c.dusunce ? { dusunce: c.dusunce } : {}) },
     };
   }
 }

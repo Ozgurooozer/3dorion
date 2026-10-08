@@ -59,8 +59,11 @@ export type Algi =
   /** Tam dünya anlık görüntüsü — `sor` niyetine yanıt, ya da oturum başı. */
   | { tur: "dunya";    orion: OrionDurumu; oyuncu: OyuncuDurumu; nesneler: YakinNesne[]; capalar: string[] }
   | { tur: "yakin";    nesneler: YakinNesne[] }
-  /** Mikrofondan gelen konuşma. `kesin` false ise ara tanıma sonucu. */
-  | { tur: "duydum";   metin: string; kesin: boolean; guven?: number }
+  /**
+   * Ozyn'in sözü. `kesin` false ise ara tanıma sonucu. `kaynak`: klavye mi mikrofon mu — mikrofon
+   * tanıması yanlış olabilir, hafıza onu daha düşük önemle yazar (mind/aniSuzgeci.ts). Verilmezse klavye.
+   */
+  | { tur: "duydum";   metin: string; kesin: boolean; guven?: number; kaynak?: "klavye" | "mikrofon" }
   /** Oyuncunun dünyadaki eylemi: odaya girdi, masaya oturdu, monitörü açtı. */
   | { tur: "olay";     ad: string; ayrinti?: Record<string, unknown> }
   /** Monitördeki terminalin son çıktısı — Orion kendi çalıştırdığı işi görür. */

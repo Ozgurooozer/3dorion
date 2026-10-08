@@ -13,11 +13,27 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { hafizaDosyasiOku, hafizaDosyasiYaz } from "./hafizaDosyasi.js";
+import { hafizaDosyasiOku, hafizaDosyasiYaz, hafizaYolu } from "./hafizaDosyasi.js";
 
 function geciciDizin(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), "orion-hafiza-"));
 }
+
+// ── yol seçimi (spec 16 F0: senaryo yalıtımı) ──
+const KULLANICI = path.join("K", "kullanici");
+const GECICI = path.join("G", "gecici");
+
+test("normal açılışta gerçek hafıza dosyası kullanılır", () => {
+  assert.equal(hafizaYolu({}, KULLANICI, GECICI, 7), path.join(KULLANICI, "orion-hafiza.json"));
+});
+
+test("senaryo koşusu gerçek dosyaya dokunmaz: geçici, süreç kimlikli dosya", () => {
+  assert.equal(hafizaYolu({ ORION_SMOKE: "1" }, KULLANICI, GECICI, 7), path.join(GECICI, "orion-hafiza-senaryo-7.json"));
+});
+
+test("açıkça verilen ORION_HAFIZA_DOSYASI senaryoda da kazanır", () => {
+  assert.equal(hafizaYolu({ ORION_SMOKE: "1", ORION_HAFIZA_DOSYASI: "x.json" }, KULLANICI, GECICI, 7), "x.json");
+});
 
 test("dosya YOKSA durum 'yok' — boş dizi değil", () => {
   const d = geciciDizin();

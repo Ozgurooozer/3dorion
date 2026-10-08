@@ -223,6 +223,28 @@ test("uyanış satırı dünya zeminini taşır", async () => {
   assert.match(uyanislar()[0]!.dunya, /^Oda: masa, tahta\. Ozyn 2m uzakta\./);
 });
 
+test("uyanış satırı bağlam ölçüsünü taşır: dünya bölümü beynin gördüğü dünya metninin boyudur (spec 16 F0)", async () => {
+  const b = new SahteBeyin();
+  const { k, uyanislar } = kur(b);
+  k.algi({ tur: "duydum", metin: "merhaba", kesin: true });
+  await bekle(40);
+  assert.equal(uyanislar()[0]?.baglam?.dunya, b.gordugu[0]?.dunya.length);
+});
+
+test("beyin girdi token sayısını bildirirse bağlam ölçüsüne yazılır", async () => {
+  const { k, uyanislar } = kur(new SahteBeyin({ metin: "", cagrilar: [], bilgi: { girdiToken: 1234 } }));
+  k.algi({ tur: "duydum", metin: "merhaba", kesin: true });
+  await bekle(40);
+  assert.equal(uyanislar()[0]?.baglam?.token, 1234);
+});
+
+test("beyin token bildirmezse bağlam ölçüsünde token alanı yoktur", async () => {
+  const { k, uyanislar } = kur(new SahteBeyin());
+  k.algi({ tur: "duydum", metin: "merhaba", kesin: true });
+  await bekle(40);
+  assert.equal(uyanislar()[0]?.baglam?.token, undefined);
+});
+
 test("reddedilen çağrı sayılır; geri beslemesi sonraki uyanışta algı olmayan girdi olarak görünür", async (t) => {
   t.mock.method(console, "warn", () => {});
   const b = new SahteBeyin({ metin: "", cagrilar: [cagri("dunya_git", { hedef: 42 })] }, { metin: "", cagrilar: [] });

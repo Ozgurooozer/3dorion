@@ -121,6 +121,12 @@ export interface KopruAyari {
    */
   hafizaGetirme?: number;
   /**
+   * Uzun vadeli hafızanın kapasitesi (anı). Fonksiyon verilirse her budamada okunur — devre
+   * panosunun teli (`PANO_TELLERI.hafiza.kapasite`) buraya bağlanır. Verilmezse 300. Eskiden
+   * panodaki tel yalnız paneli besliyordu, köprü hep 300'le budardı (spec 16 F1'de bağlandı).
+   */
+  hafizaKapasite?: number | (() => number);
+  /**
    * Anıların OTURUMLAR ARASI saklanacağı depo.
    *
    * Verilmezse hafıza yalnızca bellekte kalır ve her açılışta sıfırlanır —

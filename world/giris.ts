@@ -68,6 +68,7 @@ import { NemotronGirdi } from "../voice/nemotron.ts";
 import { ikiCumleyeKisalt } from "../voice/kisalt.ts";
 import { Ajanda } from "../mind/ajanda.ts";
 import { gozlemAnisiMi } from "../mind/hafiza.ts";
+import { eskiHafizayiTemizle } from "../mind/aniSuzgeci.ts";
 import { mesgulMu } from "../mind/benlik.ts";
 import { istenenSenaryolar, type SenaryoBaglami } from "../uygulama/senaryoBaglami.ts";
 import { niyetYurutucusuKur } from "../uygulama/niyetYurutucu.ts";
@@ -258,6 +259,26 @@ function gozlemleriAyikla(aniler: unknown[]): unknown[] {
   return temiz;
 }
 
+const HAFIZA_GURULTU_YEDEK = "orion.hafiza.v1.yedek-gurultu-temizligi";
+
+/**
+ * Yazma süzgecinden (spec 16 F1, mind/aniSuzgeci.ts) ÖNCE yazılmış gürültüyü ayıklar: olay anıları
+ * atılır, terminal anıları kırpılır. Desen `gozlemleriAyikla` ile aynı: önce yedek (bir kez),
+ * yedeklenemezse DOKUNMA. İkinci açılışta değişecek bir şey kalmaz.
+ */
+function gurultuyuAyikla(aniler: unknown[]): unknown[] {
+  const r = eskiHafizayiTemizle(aniler);
+  if (!r.atilan && !r.kirpilan && !r.indirilen) return aniler;
+  try {
+    if (!localStorage.getItem(HAFIZA_GURULTU_YEDEK)) localStorage.setItem(HAFIZA_GURULTU_YEDEK, JSON.stringify(aniler));
+  } catch (err) {
+    console.warn("[hafiza] yedek yazilamadi, gurultu temizligi ATLANDI:", err);
+    return aniler;
+  }
+  console.warn(`[hafiza] gurultu temizligi: ${r.atilan} olay atildi, ${r.kirpilan} terminal kirpildi, ${r.indirilen} terminal onemi indirildi (yedek: ${HAFIZA_GURULTU_YEDEK})`);
+  return r.aniler;
+}
+
 /** `localStorage`'daki eski hafıza — göç kaynağı ve geri dönüş yolu (K5). */
 function eskiHafizayiOku(): unknown[] {
   const ham = localStorage.getItem(HAFIZA_ANAHTARI);
@@ -308,7 +329,7 @@ function hafizaDeposuKur(): { oku(): unknown[]; yaz(aniler: unknown[]): void } {
 
   return {
     oku() {
-      if (!dosya) return gozlemleriAyikla(eskiHafizayiOku());
+      if (!dosya) return gurultuyuAyikla(gozlemleriAyikla(eskiHafizayiOku()));
       const s = depoYukle({
         dosyaOku: () => dosya.hafizaOku!(),
         dosyaYazSenkron: (x) => dosya.hafizaYazSenkron!(x),
@@ -317,7 +338,7 @@ function hafizaDeposuKur(): { oku(): unknown[]; yaz(aniler: unknown[]): void } {
       dosyayaYaz = s.kaynak !== "eski-yedek";
       const satir = `[hafiza] ${s.kayitlar.length} kayit · kaynak=${s.kaynak}${s.not ? ` · ${s.not}` : ""}`;
       if (s.kaynak === "eski-yedek") console.warn(satir); else console.log(satir);
-      return gozlemleriAyikla(s.kayitlar);
+      return gurultuyuAyikla(gozlemleriAyikla(s.kayitlar));
     },
     yaz(aniler) {
       if (dosya && dosyayaYaz) dosya.hafizaYaz!(aniler);
@@ -1259,6 +1280,7 @@ function beyniBagla(a: Avatar): void {
     // arayüz dar olduğu için değişiklik bu blokla sınırlı (K7). Karar
     // `mind/hafizaGocu.ts` → `depoYukle`de; burada yalnızca G/Ç bağlanır.
     hafizaDeposu: hafizaDeposuKur(),
+    hafizaKapasite: PANO_TELLERI.hafiza.kapasite,
     // ÖĞRENEN KAPI (K3, K5): gölgede — kapının kararını değiştirmez, kayda yazar.
     ogretimler: ogretimleriYukle(),
     // BECERİ REFLEKSİ (spec 10, Faz C): gölgede — kesin sözde hafızanın ne yapacağını
@@ -1452,13 +1474,13 @@ function beyniBagla(a: Avatar): void {
 
   // Yazılan metin "duyuldu" algısı olur — mikrofon geldiğinde aynı yol kullanılır.
   void girdi.baslat();
-  const sozAlindi = (t: { metin: string; kesin: boolean }) => {
+  const sozAlindi = (t: { metin: string; kesin: boolean }, kaynak: "klavye" | "mikrofon" = "klavye") => {
     if (!t.kesin) return;
     altyaziGoster(`sen: ${t.metin}`, 2000);
     sonKonusma = Date.now();      // "en son ne zaman konuştuk" bundan
-    kopru?.algi({ tur: "duydum", metin: t.metin, kesin: true });
+    kopru?.algi({ tur: "duydum", metin: t.metin, kesin: true, kaynak });
   };
-  girdi.dinle(sozAlindi);
+  girdi.dinle((t) => sozAlindi(t));
 
   // Mikrofon: bas-konuş V, Nemotron Speech İngilizce çözer. Çözülen metin klavyeden yazılmış gibi
   // AYNI yoldan geçer (sozAlindi): kapı, hafıza, komut sözlüğü değişmez.
@@ -1471,7 +1493,7 @@ function beyniBagla(a: Avatar): void {
       try { if (v) localStorage.setItem("orion.mikrofon", v); return localStorage.getItem("orion.mikrofon"); } catch { return null; }
     };
     const kulak = new NemotronGirdi(window.kopru);
-    kulak.dinle(sozAlindi);
+    kulak.dinle((t) => sozAlindi(t, "mikrofon"));
     kulak.hataDinle((h) => { gunluk.ekle("hata", "kulak", h); altyaziGoster(`kulak: ${h}`, 4000); });
     kulak.durumDinle((d) => {
       if (d.d === "yukleniyor") altyaziGoster("kulak yükleniyor (~15 sn)…", 4000);

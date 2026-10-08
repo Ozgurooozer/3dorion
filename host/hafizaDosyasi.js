@@ -21,6 +21,28 @@ import fs from "node:fs";
 import path from "node:path";
 
 /**
+ * Hafıza dosyasının yolu. Öncelik: `ORION_HAFIZA_DOSYASI` > senaryo koşusu (`ORION_SMOKE=1`) >
+ * gerçek dosya.
+ *
+ * SENARYO YALITIMI (spec 16 F0): senaryolar eskiden GERÇEK hafızaya yazıyordu — `hafizadene`nin
+ * deneme cümlesi bir koşudan sonra hafızada kalıyor, önemi her koşuda artıyor, sonraki hatırlama
+ * ölçüsünü kirletiyordu; mikrofon denemesindeki yanlış duymalar da Ozyn'in hafızasına karıştı.
+ * Senaryo koşusu artık her açılışta BOŞ, geçici bir dosyayla başlar (süreç kimliğiyle ayrık).
+ * Aynı hafızayla koşmak gerekirse `ORION_HAFIZA_DOSYASI` açıkça verilir.
+ *
+ * @param {Record<string, string | undefined>} env
+ * @param {string} kullaniciDizini  app.getPath("userData")
+ * @param {string} geciciDizin      os.tmpdir()
+ * @param {number} [pid]
+ * @returns {string}
+ */
+export function hafizaYolu(env, kullaniciDizini, geciciDizin, pid = process.pid) {
+  if (env.ORION_HAFIZA_DOSYASI) return env.ORION_HAFIZA_DOSYASI;
+  if (env.ORION_SMOKE === "1") return path.join(geciciDizin, `orion-hafiza-senaryo-${pid}.json`);
+  return path.join(kullaniciDizini, "orion-hafiza.json");
+}
+
+/**
  * @typedef {{durum: "yok"} | {durum: "var", kayitlar: unknown[]} | {durum: "bozuk", tasindi: string}} DosyaDurumu
  */
 

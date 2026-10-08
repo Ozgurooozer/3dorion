@@ -6,9 +6,10 @@ import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import fs from "node:fs";
+import os from "node:os";
 import { PiperSesi, piperBul } from "./ses.js";
 import { Dinleyici } from "./dinleme.js";
-import { hafizaDosyasiOku, hafizaDosyasiYaz } from "./hafizaDosyasi.js";
+import { hafizaDosyasiOku, hafizaDosyasiYaz, hafizaYolu } from "./hafizaDosyasi.js";
 import { kararYaziciKur, ogretimYolu, ogretimleriOku, satirlariOku, yeniSatirlar } from "./kararDosyasi.js";
 import { mcpSunucuKur } from "./mcpSunucu.js";
 import { ollamaHazirla, ollamaAdresi } from "./ollamaSunucu.js";
@@ -311,9 +312,15 @@ ipcMain.handle(CAGRI.apiSohbet, (_e, ad, govde) => apiIstek({ depo: anahtarlar()
 // ---- hafıza dosyası (spec 07 K4) -------------------------------------------
 // Orion'un hafızası renderer'ın localStorage'ından buraya taşındı: tarayıcı
 // profiline ve köke bağlı kalmasın, ölçüm araçları okuyabilsin, yedeklenebilsin.
-// `ORION_HAFIZA_DOSYASI` ile yol değiştirilebilir (deneme/ölçüm için ayrı hafıza).
-const HAFIZA_YOLU = process.env.ORION_HAFIZA_DOSYASI
-  || path.join(app.getPath("userData"), "orion-hafiza.json");
+// `ORION_HAFIZA_DOSYASI` ile yol değiştirilebilir (deneme/ölçüm için ayrı hafıza). Senaryo koşusu
+// (ORION_SMOKE=1) gerçek hafızaya DOKUNMAZ, geçici dosyayla başlar (spec 16 F0, `hafizaYolu`).
+const HAFIZA_YOLU = hafizaYolu(process.env, app.getPath("userData"), os.tmpdir());
+if (HAFIZA_YOLU !== path.join(app.getPath("userData"), "orion-hafiza.json")) console.log(`[hafiza] dosya: ${HAFIZA_YOLU}`);
+// Senaryonun geçici dosyası BOŞ hafıza olarak var edilir: yoksa renderer "dosya yok" görüp
+// localStorage'daki ESKİ hafızayı ona göç ettirirdi (mind/hafizaGocu.ts) — yalıtım delinirdi.
+if (process.env.ORION_SMOKE === "1" && !process.env.ORION_HAFIZA_DOSYASI) {
+  try { hafizaDosyasiYaz(HAFIZA_YOLU, []); } catch (hata) { console.error(`[hafiza] senaryo dosyasi kurulamadi: ${hata?.message ?? hata}`); }
+}
 
 // Okuma senkron (`sendSync`): köprü depoyu kurucuda senkron okuyor (K7).
 ipcMain.on(CAGRI.hafizaOku, (e) => {

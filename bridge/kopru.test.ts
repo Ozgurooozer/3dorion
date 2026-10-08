@@ -322,6 +322,31 @@ test("bir dinleyicinin hatası diğerlerini kesmez", async () => {
   assert.deepEqual(saglam, ["y"]);
 });
 
+// ── Yazma süzgeci (spec 16 F1): köprünün üç yazma yolu tek süzgeçten geçer ──
+
+test("dünya olayı uzun vadeli hafızaya yazılmaz (durumdur)", async () => {
+  const { k } = kur(new SahteBeyin(), { toplamaMs: 5 });
+  k.algi({ tur: "olay", ad: "ozyn_yaklasti" });
+  await bekle(30);
+  assert.equal(k.hafiza.sayi, 0);
+});
+
+test("mikrofondan söz klavyedekinden düşük önemle yazılır", async () => {
+  const { k } = kur(new SahteBeyin(), { toplamaMs: 5 });
+  k.algi({ tur: "duydum", metin: "sit down please", kesin: true, kaynak: "mikrofon" });
+  k.algi({ tur: "duydum", metin: "otur lutfen", kesin: true });
+  await bekle(30);
+  const onem = (m: string) => k.hafiza.sonAniler().find((a) => a.metin === m)?.onem ?? 0;
+  assert.ok(onem("sit down please") < onem("otur lutfen"));
+});
+
+test("hafıza kapasitesi ayardan (panonun telinden) okunur", async () => {
+  let kapasite = 300;
+  const { k } = kur(new SahteBeyin(), { toplamaMs: 5, hafizaKapasite: () => kapasite });
+  kapasite = 25;
+  assert.equal(k.hafiza.kapasite, 25);
+});
+
 test("hafızaya BİÇİM değil İÇERİK yazılır — kalıp ilgiyi zehirlemesin", async () => {
   // Canlı ölçümde tüm anılar 'Ozyn dedi: "..."' olarak saklandığı için
   // ortak önek yüzünden sorgu ne olursa olsun hep aynı üç anı dönüyordu.

@@ -62,6 +62,14 @@ test("cevap: metin JSON argümanlı araç çağrısıyla okunur", () => {
     { ad: "dunya_otur", girdi: {} }, { ad: "dunya_git", girdi: { hedef: { tip: "oyuncu" }, mesafe: 1.2 } }] });
 });
 
+test("girdi token sayısı usage.prompt_tokens'tan okunur (spec 16 F0)", () => {
+  assert.equal(apiCevabiniCoz({ choices: [{ message: { content: "x" } }], usage: { prompt_tokens: 812, total_tokens: 840 } }).girdiToken, 812);
+});
+
+test("usage yoksa girdi token alanı yoktur", () => {
+  assert.equal("girdiToken" in apiCevabiniCoz({ choices: [{ message: { content: "x" } }] }), false);
+});
+
 test("bozuk argümanlı çağrı atlanır, diğeri kalır", () => {
   const c = apiCevabiniCoz({ choices: [{ message: { tool_calls: [
     { function: { name: "dunya_bak", arguments: "{bozuk" } }, { function: { name: "dunya_kalk", arguments: "" } }] } }] });

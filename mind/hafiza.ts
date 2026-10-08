@@ -230,8 +230,13 @@ export class Hafiza {
     if (mevcut) {
       // Tekrar eden olay yeni anı değildir; var olanı tazeler ve önemini
       // yükseltir — üç kez olan bir şey bir kez olandan daha kayda değer.
+      //
+      // YALNIZ söz ve sonuç için (spec 16 F1). Tekrarlanan söz ve tekrarlanan hata gerçekten daha
+      // kayda değer; tekrarlanan terminal çıktısı ve olay adı ise GÜRÜLTÜ: canlı hafızada aynı
+      // "(komut çıktı üretmedi)" ve `ozyn_yaklasti` önem 10'a tırmanmış, budamada Ozyn'in
+      // sözlerini (8) yeniyordu. Onlar yalnız tazelenir.
       mevcut.sonErisim = t;
-      mevcut.onem = Math.min(10, mevcut.onem + 1);
+      if (mevcut.tur === "konusma" || mevcut.tur === "sonuc") mevcut.onem = Math.min(10, mevcut.onem + 1);
       return;
     }
     const o = Math.max(1, Math.min(10, Math.round(onem)));

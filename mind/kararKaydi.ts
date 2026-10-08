@@ -152,6 +152,35 @@ export interface OgretimSatiri {
   isaret: string[];
 }
 
+/**
+ * Bir uyanışta modele giden bağlamın boyu, bölüm başına KARAKTER (spec 16 F0). Bağlamı küçültme
+ * işinin ölçüsü bu: hangi bölüm ne kadar yer kaplıyor, küçültme gerçekten küçültüyor mu.
+ * Karakter, beyinden bağımsız ve her zaman ölçülebilir; token yalnız beyin bildirirse (Ollama
+ * `prompt_eval_count`, API `usage.prompt_tokens`) ve ön-ısınmış önbellekte eksik sayabilir.
+ */
+export interface BaglamOlcusu {
+  talimat: number;
+  /** Değişmeyen dünya bilgisi (çapa adları), sistem mesajında. */
+  sabit: number;
+  /** Araç şemaları, JSON olarak. */
+  araclar: number;
+  /** Few-shot örnekler, JSON olarak. */
+  ornekler: number;
+  /** Konuşma penceresi (sözler + beden çağrıları). */
+  gecmis: number;
+  /** Geçmiş penceresindeki kayıt sayısı. */
+  gecmisKayit: number;
+  /** Dünya durumu + çalışma belleği. */
+  dunya: number;
+  /** Getirilen anılar. */
+  anilar: number;
+  /** Bu turun algı özetleri. */
+  ozetler: number;
+  toplam: number;
+  /** Beynin bildirdiği girdi token sayısı (yoksa alan yok). */
+  token?: number;
+}
+
 export interface UyanisSatiri {
   tur: "uyanis";
   o: string; id: string; t: number;
@@ -169,6 +198,8 @@ export interface UyanisSatiri {
   anilar: number;
   /** Beynin zemini: dünya durumu + çalışma belleği (kesilmiş). */
   dunya: string;
+  /** Bağlamın ölçüsü (spec 16 F0): bölüm başına karakter; beyin verirse girdi token sayısı. */
+  baglam?: BaglamOlcusu;
   /** LLM'in düz metni (varsa, kesilmiş). */
   metin?: string;
   /** LLM'in çağırdığı araçların adları (geçersizler dahil). */

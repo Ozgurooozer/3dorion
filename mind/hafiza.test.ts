@@ -27,6 +27,19 @@ test("aynı metin ikinci kez EKLENMEZ, tazelenir ve önemi artar", () => {
   assert.equal(h.sonAniler()[0]?.onem, 6, "tekrar eden olay daha kayda değer");
 });
 
+test("tekrar eden terminal çıktısı önem kazanmaz, yalnız tazelenir (spec 16 F1)", () => {
+  const h = new Hafiza({ simdi: saatli().simdi });
+  for (let i = 0; i < 5; i++) h.ekle("(komut çıktı üretmedi)", "terminal", 2);
+  assert.equal(h.sonAniler()[0]?.onem, 2);
+});
+
+test("tekrar eden hata sonucu önem kazanır", () => {
+  const h = new Hafiza({ simdi: saatli().simdi });
+  h.ekle("hata: tahtaya oturulmaz", "sonuc", 6);
+  h.ekle("hata: tahtaya oturulmaz", "sonuc", 6);
+  assert.equal(h.sonAniler()[0]?.onem, 7);
+});
+
 test("İLGİ: sorguyla örtüşen anı, örtüşmeyenden önce gelir", () => {
   const s = saatli();
   const h = new Hafiza({ simdi: s.simdi });
