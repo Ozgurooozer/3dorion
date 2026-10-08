@@ -65,6 +65,7 @@ import { modelSeciciKur } from "./arayuz/modelSecici.ts";
 import type { Beyin } from "../bridge/beyin.ts";
 import { MetinGirdi } from "../voice/metin-girdi.ts";
 import { NemotronGirdi } from "../voice/nemotron.ts";
+import { komutuTerminaleYaz } from "../uygulama/terminalYazici.ts";
 import { ikiCumleyeKisalt } from "../voice/kisalt.ts";
 import { Ajanda } from "../mind/ajanda.ts";
 import { gozlemAnisiMi } from "../mind/hafiza.ts";
@@ -503,14 +504,17 @@ function onayKarari(onaylandi: boolean): void {
   console.log(`[ONAY] ONAYLANDI (${o.risk.seviye}): ${o.komut}`);
   gunluk.ekle("iyi", "onay", `onaylandı (${o.risk.seviye}): ${o.komut}`);
   sema.vur("onay", "onaylandı");
-  if (!monitor.acikMi()) {
-    void monitoreGec().then(() => monitor.yaz(o.komut + String.fromCharCode(13)));
-  } else {
-    monitor.yaz(o.komut + String.fromCharCode(13));
-  }
-  kopru?.sonuc({ niyet_id: o.id, durum: "bitti",
-    not: "Ozyn onayladi, komut terminalde calisti; sonucu ekrandan gorecegin." });
-  altyaziGoster("komut calistiriliyor", 1800);
+  // UZAKTAN TERMİNAL (Ozyn, 2026-10-08): Orion nerede olursa olsun. Kapalı terminal ARKA PLANDA
+  // açılır; Ozyn'in kamerası ve klavye odağı kaçırılmaz (eskiden `monitoreGec()` ikisini de alıyordu).
+  void komutuTerminaleYaz(monitor, o.komut).then(() => {
+    kopru?.sonuc({ niyet_id: o.id, durum: "bitti",
+      not: "Ozyn onayladi, komut terminalde calisti; sonucu ekrandan gorecegin." });
+    altyaziGoster("komut calistiriliyor", 1800);
+  }, (e: unknown) => {
+    console.error("[monitor] açılamadı:", e);
+    kopru?.sonuc({ niyet_id: o.id, durum: "hata", not: "terminal acilamadi; komut calismadi" });
+    altyaziGoster("terminal açılamadı — komut çalışmadı", 2600);
+  });
 }
 
 // Onay tuslari. Panel acikken Y/N/Esc; kapaliyken hicbir sey yapmaz.
@@ -1210,9 +1214,10 @@ function dunyaDurumuMetni(): string {
       : "",
     `Ozyn is ${o.mesafe?.toFixed?.(1) ?? "?"}m away${o.bakiyor ? ", looking at you" : ""}.`,
     o.etkilesim === "monitor" ? "Ozyn is working on your monitor." : "",
-    // Spec 13 Faz 2a: Orion bilgisayarın başında ve terminal açıksa bunu BİLSİN — yoksa
-    // "bilgisayarı aç" sonrası komut önermek yerine yeniden açmaya çalışır.
-    a?.oturuyor_mu && monitor.acikMi() ? "You are seated at your desk and your terminal is open (PowerShell)." : "",
+    // Spec 13 Faz 2a: terminal açıksa Orion bunu BİLSİN — yoksa "bilgisayarı aç" sonrası komut
+    // önermek yerine yeniden açmaya çalışır. UZAKTAN TERMİNAL (2026-10-08): oturmak şart değil —
+    // eskiden yalnız masada otururken söyleniyordu ve model önce masaya gitmesi gerektiğini sanıyordu.
+    monitor.acikMi() ? "Your desk terminal is open (PowerShell); you can use it from anywhere." : "",
     // ZAMAN — bir varlığın olmazsa olmazı. Bunlar olmadan Orion her turu
     // zamansız bir "şimdi" içinde yaşıyor: ne gün ilerliyor, ne sessizlik
     // birikiyor, ne de "sabahtan beri buradayım" diyebiliyor.

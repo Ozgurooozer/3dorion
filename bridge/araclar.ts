@@ -85,6 +85,7 @@ export const ARAC_TABLOSU: Record<NiyetTur, Omit<AracTanimi, "ad">> = {
     aciklama:
       "SUGGEST a command to the terminal. The command DOES NOT RUN — it is shown " +
       "to Ozyn on screen and runs only if he approves. Must be a single line. " +
+      "Works from anywhere in the room: you do not need to walk to the desk. " +
       "`gerekce` is required: why this command? Suggestions without one are " +
       "rejected. Do not insist if rejected.",
     sema: {
