@@ -1,0 +1,41 @@
+{
+  "surum": 1,
+  "ad": "ova",
+  "palet": {
+    "gokZenit": "#2c63c9",
+    "gokOrta": "#5d93e0",
+    "gokUfuk": "#b7d3ee",
+    "gunes": "#fff3cf",
+    "bulut": "#ffffff",
+    "bulutGolge": "#b9c7dd",
+    "cimKoyu": "#4e6e2a",
+    "cimOrta": "#7d9a34",
+    "cimAcik": "#a9b544",
+    "cimUc": "#d2c46a",
+    "toprak": "#8b7a52",
+    "kaya": "#9c9a96",
+    "kayaKoyu": "#6d6c70"
+  },
+  "isik": {
+    "gunes": {
+      "yon": [-0.55, 0.42, -0.72],
+      "renk": "gunes",
+      "siddet": 1.6,
+      "golge": { "acik": true, "boyut": 2048, "kademe": 3, "uzaklik": 120, "yumusaklik": 0.5, "koyuluk": 0.35 }
+    },
+    "dolgu": { "ust": "gokOrta", "alt": "cimKoyu", "siddet": 0.35 }
+  },
+  "ortam": {
+    "arkaPlan": "gokUfuk",
+    "sis": { "acik": true, "renk": "gokUfuk", "yogunluk": 0.0042 },
+    "tonlama": { "acik": true, "pozlama": 1.0, "kontrast": 1.1 },
+    "kamera": { "uzak": 1000 }
+  },
+  "katmanlar": [
+    { "tur": "gok", "ad": "gok", "acik": true, "ayar": {} },
+    { "tur": "gunesDiski", "ad": "gunes", "acik": true, "ayar": {} },
+    { "tur": "bulut", "ad": "bulutlar", "acik": true, "ayar": {} },
+    { "tur": "zemin", "ad": "zemin", "acik": true, "ayar": {} },
+    { "tur": "kaya", "ad": "kayalar", "acik": true, "ayar": {} }
+  ]
+}
