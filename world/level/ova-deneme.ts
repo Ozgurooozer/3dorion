@@ -23,7 +23,7 @@ import { MODULLER } from "./moduller/index.ts";
 import { levelPaneliKur } from "./editor/levelPaneli.ts";
 import { inspektorAcKapa } from "./editor/inspektor.ts";
 import { Logger } from "@babylonjs/core/Misc/logger";
-import { ONAYAR_ADLARI, onayarUygula, onayarAdi, PALET_DUZENI_ADLARI, paletDuzeniUygula, paletDuzeniAdi } from "./stil/stilTanimi.ts";
+import { ONAYARLAR, ONAYAR_ADLARI, onayarUygula, onayarAdi, PALET_DUZENI_ADLARI, paletDuzeniUygula, paletDuzeniAdi } from "./stil/stilTanimi.ts";
 
 const LEVEL_DOSYASI = "/world/level/ova/ova.level.json";
 const GOZ = 1.7;
@@ -80,19 +80,41 @@ try {
     ? levelPaneliKur({ level, moduller: MODULLER, ad: "ova", dosyadanOku, inspektor: () => inspektorAcKapa(sahne) })
     : null;
 
-  // Stil etiketi + G/P geçişi.
-  const stilEtiketi = document.getElementById("stil") as HTMLDivElement;
-  const etiketYaz = () => { stilEtiketi.textContent = `stil: ${onayarAdi(level.tanim())} · renk: ${paletDuzeniAdi(level.tanim())}  (G / P)`; };
+  // Stil düğme çubuğu (sağ üst) + G/P tuşları: tek tıkla önayar ve renk düzeni (Ozyn'in denemesi için).
+  const stilCubugu = document.getElementById("stil") as HTMLDivElement;
+  const dugmeler = new Map<string, HTMLButtonElement>();
+  const sec = (tur: "stil" | "renk", ad: string) => {
+    level.ayarla(tur === "stil" ? onayarUygula(level.tanim(), ad) : paletDuzeniUygula(level.tanim(), ad));
+    cubuguYaz();
+    panel?.yenile();
+  };
+  const grup = (baslik: string, tur: "stil" | "renk", adlar: readonly string[]) => {
+    const g = document.createElement("div"); g.className = "grup";
+    const b = document.createElement("span"); b.textContent = baslik; g.append(b);
+    for (const ad of adlar) {
+      const d = document.createElement("button"); d.textContent = ad;
+      d.title = tur === "stil" ? (ONAYARLAR[ad]?.aciklama ?? ad) : `renk düzeni: ${ad}`;
+      d.onclick = (e) => { e.stopPropagation(); sec(tur, ad); d.blur(); };
+      dugmeler.set(`${tur}:${ad}`, d);
+      g.append(d);
+    }
+    stilCubugu.append(g);
+  };
+  grup("stil (G)", "stil", ONAYAR_ADLARI);
+  grup("renk (P)", "renk", PALET_DUZENI_ADLARI);
+  const aciklama = document.createElement("div"); aciklama.className = "aciklama"; stilCubugu.append(aciklama);
+  function cubuguYaz() {
+    const s = onayarAdi(level.tanim()), r = paletDuzeniAdi(level.tanim());
+    for (const [k, d] of dugmeler) d.classList.toggle("secili", k === `stil:${s}` || k === `renk:${r}`);
+    aciklama.textContent = ONAYARLAR[s]?.aciklama ?? "Stil elle değiştirildi (panelden).";
+  }
   const sonraki = (liste: readonly string[], simdiki: string) => liste[(liste.indexOf(simdiki) + 1) % liste.length]!;
   addEventListener("keydown", (e) => {
     if ((e.target as HTMLElement | null)?.matches?.("input, select")) return;
-    if (e.code === "KeyG") level.ayarla(onayarUygula(level.tanim(), sonraki(ONAYAR_ADLARI, onayarAdi(level.tanim()))));
-    else if (e.code === "KeyP") level.ayarla(paletDuzeniUygula(level.tanim(), sonraki(PALET_DUZENI_ADLARI, paletDuzeniAdi(level.tanim()))));
-    else return;
-    etiketYaz();
-    panel?.yenile();
+    if (e.code === "KeyG") sec("stil", sonraki(ONAYAR_ADLARI, onayarAdi(level.tanim())));
+    else if (e.code === "KeyP") sec("renk", sonraki(PALET_DUZENI_ADLARI, paletDuzeniAdi(level.tanim())));
   });
-  etiketYaz();
+  cubuguYaz();
 
   const olcer = new SceneInstrumentation(sahne);
   olcer.captureFrameTime = true;
