@@ -1,7 +1,7 @@
 # Orion'un Beyni v2 — Durum, Anı ve Doğruluk (Spec v1)
 
 > Karar tarihi: 2026-09-17 · Sahip: Ozyn · Yönetici: Orion (Claude Code)
-> Durum: **karar alındı** — Faz 0 (bu belge). Faz 1–5 ayrı onayla.
+> Durum: **bitti** — Faz 0–5b uygulandı ve ölçüldü (§6.5–6.8); 5c (IDF) gerekçeli atlandı. İnisiyatif v1 §6.9.
 > Toplantı kaydı: `C:\vault\meetings\meeting-2026-09-17-orion-beyin-mimarisi\index.html`
 > Önceki: `02-beyin-mimarisi.md` (iki katman: refleks / düşünce). Bu spec o
 > düzeni **korur**, altına bellek katmanlarını ekler.

@@ -1,7 +1,7 @@
 # Spec 12 — Anlık Benlik: düşünce öncesi birimlerin ortak öz-durumu, iki katmanlı hafıza
 
 > Tarih: 2026-10-02 · Sahip: Ozyn · Yazan: Orion (Claude Code)
-> Durum: **PLAN — Ozyn onayı bekliyor. Kod yok.** Her faz ayrı onayla başlar.
+> Durum: **çekirdek uygulandı** (spec 13 Faz 4: `mind/benlik.ts`, zihin duvarı Faz 5). Açık: bağlama tek satırlık izdüşüm (spec 16 durum defteri kısmen karşılıyor) ve süzgeç merceği yetkisi (≥ 3 gölge oturumu).
 > Çıkış noktası: "Artık benlik imgesi" sayfası (claude.ai artifact, 2026-09-30) —
 > Claude'un kendini üç kabuk (çekirdek · hafıza · bağlam) ve ortada bir imleç
 > olarak çizdiği sayfa. Ozyn: *"bu aslında Orion'un zihin akışında kullanılabilir —

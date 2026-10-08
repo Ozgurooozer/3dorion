@@ -2,7 +2,7 @@
 
 > Üst belgeler: `06-beyin-v2.md` (durum ≠ anı, K2/K3), `08-karar-kaydi.md`, `10-beceri-refleksi.md`,
 > `12-anlik-benlik.md`, `14-mimari-saglamlastirma.md` (katman bekçisi), `docs/FIKIR-HAVUZU.md` (VLM ertelendi).
-> Durum: **S0 — ön kayıt, Ozyn onayı bekliyor.** Henüz kod yok. Kanıt etiketleri: `[KOD]` okundu, `[ÖNGÖRÜ]` ölçülmedi.
+> Durum: **S1 bitti** (nesne kaydı + görünürlük, `world/level/nesneKaydi.ts`, ölçüler `docs/olcum-goz-ve-mekan-bellegi.md`). **S2–S5 Ozyn onayı bekliyor.** Kanıt etiketleri: `[KOD]` okundu, `[ÖNGÖRÜ]` ölçülmedi.
 
 ## 0. Tek cümle
 

@@ -1,7 +1,7 @@
 # Orion'un Beyni — İki Katmanlı Mimari (Spec v1)
 
 > Karar tarihi: 2026-09-13 · Sahip: Ozyn · Yönetici: Orion (Claude Code)
-> Durum: **plan** — ölçümlerle gerekçelendirildi, uygulanmadı.
+> Durum: **uygulandı** — refleks lobu kural tabanlı süzgeç (`mind/refleks.ts`), düşünce lobu LLM (`bridge/`). Tooling modeli refleks için ölçülüp elendi (spec 01).
 >
 > **Devamı:** `06-beyin-v2.md` (2026-09-17) bu iki katmanlı düzeni korur ve
 > altına bellek katmanlarını ekler: çalışma belleği / epizodik hafıza ayrımı,

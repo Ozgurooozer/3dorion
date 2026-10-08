@@ -2,7 +2,7 @@
 
 > Üst belgeler: `06-beyin-v2.md` (durum ≠ anı K2, zaman etiketi K3, eşikli getirme K4/K5, bağlam düzeni K8),
 > `12-anlik-benlik.md` §4.1 (SABİT / ANLIK / DERİN), `15-goz-ve-mekan-bellegi.md` (nesnelerin yeri).
-> Durum: **F0–F5 kodlandı ve birim testli; canlı ölçüm (taban + `baglamdene`) bekliyor** (2026-10-08).
+> Durum: **F0–F5b bitti ve canlı ölçüldü** (2026-10-08, §5). P1 çürüdü (bağlamın ~%94'ü sabit iskele), P2 ve P6 tuttu, P3/P4 partileri yarım. F6 (araç kırpma) ön kayıtlı, ölçüm bekliyor. Açıklar `docs/ACIK-ISLER.md`.
 
 ## 0. Tek cümle
 Orion yerel 7B modelle yaşıyor: bağlama yalnız o an gereken girsin. Hafıza konuya göre çekmecelere
