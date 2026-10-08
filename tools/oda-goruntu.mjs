@@ -6,6 +6,8 @@
 //
 // Kullanım (önce `npx vite --port 5273` ayakta olmalı):
 //   node tools/oda-goruntu.mjs <çıktı-klasörü> [aci1 aci2 …]   (varsayılan: referans giris masa tahta)
+//   Ova (spec 17): ODA_ADRES=http://localhost:5273/world/level/ova-deneme.html node tools/oda-goruntu.mjs <klasör> ufuk alcak tepe gunes
+//   (adres kendi sorgusunu taşıyabilir: …/ova-deneme.html?piksel=3)
 // Her açı için <klasör>/<aci>.png yazar ve sayfanın ölçüm satırını (fps, çizim, mesh) basar.
 // Sayfa 30 sn içinde "hazir" demezse o açı HATA ile biter — sessizce boş görüntü yazılmaz.
 "use strict";
@@ -76,7 +78,8 @@ try {
   const c = cdp(await hedefAl());
   await c.acik;
   for (const aci of acilar) {
-    await c.gonder("Page.navigate", { url: `${ADRES}?aci=${encodeURIComponent(aci)}` });
+    // ADRES kendi sorgusunu taşıyabilir (ör. ova-deneme.html?piksel=3): ek "&" ile.
+    await c.gonder("Page.navigate", { url: `${ADRES}${ADRES.includes("?") ? "&" : "?"}aci=${encodeURIComponent(aci)}` });
     let baslik = "";
     for (let i = 0; i < 150 && !baslik.startsWith("hazir"); i++) {
       await bekle(200);
