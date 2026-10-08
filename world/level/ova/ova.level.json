@@ -18,24 +18,138 @@
   },
   "isik": {
     "gunes": {
-      "yon": [-0.55, 0.42, -0.72],
-      "renk": "gunes",
+      "yon": [
+        -0.48,
+        0.42,
+        -0.63
+      ],
+      "renk": "cimAcik",
       "siddet": 1.6,
-      "golge": { "acik": true, "boyut": 2048, "kademe": 3, "uzaklik": 120, "yumusaklik": 0.5, "koyuluk": 0.35 }
+      "golge": {
+        "acik": true,
+        "boyut": 512,
+        "kademe": 4,
+        "uzaklik": 400,
+        "yumusaklik": 0.5,
+        "koyuluk": 0.35
+      }
     },
-    "dolgu": { "ust": "gokOrta", "alt": "cimKoyu", "siddet": 0.35 }
+    "dolgu": {
+      "ust": "gokOrta",
+      "alt": "cimUc",
+      "siddet": 0.66
+    }
   },
   "ortam": {
-    "arkaPlan": "gokUfuk",
-    "sis": { "acik": true, "renk": "gokUfuk", "yogunluk": 0.0042 },
-    "tonlama": { "acik": true, "pozlama": 1.0, "kontrast": 1.1 },
-    "kamera": { "uzak": 1000 }
+    "arkaPlan": "gokZenit",
+    "sis": {
+      "acik": true,
+      "renk": "gokUfuk",
+      "yogunluk": 0.0042
+    },
+    "tonlama": {
+      "acik": true,
+      "pozlama": 1,
+      "kontrast": 1.1
+    },
+    "kamera": {
+      "uzak": 1000
+    }
   },
   "katmanlar": [
-    { "tur": "gok", "ad": "gok", "acik": true, "ayar": {} },
-    { "tur": "gunesDiski", "ad": "gunes", "acik": true, "ayar": {} },
-    { "tur": "bulut", "ad": "bulutlar", "acik": true, "ayar": {} },
-    { "tur": "zemin", "ad": "zemin", "acik": true, "ayar": {} },
-    { "tur": "kaya", "ad": "kayalar", "acik": true, "ayar": {} }
+    {
+      "tur": "gok",
+      "ad": "gok",
+      "acik": true,
+      "ayar": {
+        "yaricap": 480,
+        "dilim": 18,
+        "bant": 7,
+        "ufuk": "gokUfuk",
+        "orta": "gokOrta",
+        "zenit": "gokZenit",
+        "ortaKonum": 0.25
+      }
+    },
+    {
+      "tur": "gunesDiski",
+      "ad": "gunes",
+      "acik": true,
+      "ayar": {
+        "yaricap": 16,
+        "kenar": 10,
+        "renk": "gunes",
+        "uzaklik": 440
+      }
+    },
+    {
+      "tur": "bulut",
+      "ad": "bulutlar",
+      "acik": true,
+      "ayar": {
+        "sayi": 9,
+        "tohum": 1907,
+        "topakMin": 5,
+        "topakMax": 8,
+        "yukseklikMin": 55,
+        "yukseklikMax": 100,
+        "uzakMin": 170,
+        "uzakMax": 370,
+        "olcekMin": 14,
+        "olcekMax": 30,
+        "basiklik": 0.8,
+        "renk": "bulut",
+        "golge": "bulutGolge",
+        "donus": 0.004
+      }
+    },
+    {
+      "tur": "zemin",
+      "ad": "zemin",
+      "acik": true,
+      "ayar": {
+        "yaricap": 320,
+        "bolum": 110,
+        "tepeYukseklik": 2.2,
+        "tepeOlcek": 55,
+        "duzYaricap": 40,
+        "lekeOlcek": 9,
+        "renkler": [
+          "cimKoyu",
+          "cimOrta",
+          "cimAcik",
+          "cimUc"
+        ],
+        "esikler": [
+          0.3,
+          0.62,
+          0.86
+        ],
+        "tohum": 1907
+      }
+    },
+    {
+      "tur": "kaya",
+      "ad": "kayalar",
+      "acik": true,
+      "ayar": {
+        "sayi": 14,
+        "tohum": 77,
+        "icYaricap": 6,
+        "disYaricap": 60,
+        "boyMin": 0.4,
+        "boyMax": 2.2,
+        "bozma": 0.35,
+        "basiklik": 0.7,
+        "renk": "kaya",
+        "koyu": "kayaKoyu"
+      }
+    },
+    {
+      "tur": "uzakArazi",
+      "ad": "uzakArazi",
+      "acik": true,
+      "ayar": {}
+    }
   ]
 }

@@ -10,7 +10,8 @@ import { gunesDiskiModulu } from "./gunesDiski.ts";
 import { bulutModulu } from "./bulut.ts";
 import { zeminModulu } from "./zemin.ts";
 import { kayaModulu } from "./kaya.ts";
+import { uzakAraziModulu } from "./uzakArazi.ts";
 
-const liste: LevelModulu[] = [gokModulu, gunesDiskiModulu, bulutModulu, zeminModulu, kayaModulu];
+const liste: LevelModulu[] = [gokModulu, gunesDiskiModulu, bulutModulu, zeminModulu, kayaModulu, uzakAraziModulu];
 
 export const MODULLER: ModulKaydi = new Map(liste.map((m) => [m.tur, m]));
