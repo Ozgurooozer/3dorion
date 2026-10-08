@@ -8,6 +8,7 @@
 // sessizce hiçbir şey kaydetmez. Silindi; burada yalnızca tipler kalır.
 "use strict";
 import type { DosyaDurumu } from "../mind/hafizaGocu.ts";
+import type { DinlemeOlayi } from "./dinleme.js";
 
 export interface PtyAcIstek {
   /** Boş bırakılırsa ana kabuk (Windows: powershell.exe). */
@@ -74,6 +75,13 @@ export interface Kopru {
   apiSil(ad: string): Promise<{ ok: true } | { ok: false; hata: string }>;
   apiModeller(ad: string): Promise<{ ok: true; veri: unknown } | { ok: false; hata: string }>;
   apiSohbet(ad: string, govde: unknown): Promise<{ ok: true; veri: unknown } | { ok: false; hata: string }>;
+  /**
+   * Orion'un kulağı (host/dinleme.js, tools/nemotron-dinle.py): "baslat" süreci açar, "kayit"/"dur"
+   * bas-konuş, "kapat" süreci kapatır. Dönüş: komut iletildi mi. Ses renderer'a GİRMEZ; çözülmüş
+   * metin `dinleDinle` ile olay olarak gelir.
+   */
+  dinleKomut(komut: "baslat" | "kayit" | "dur" | "kapat"): Promise<boolean>;
+  dinleDinle(cb: (o: DinlemeOlayi) => void): () => void;
 }
 
 declare global {

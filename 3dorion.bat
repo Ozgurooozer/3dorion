@@ -21,6 +21,7 @@ rem    3dorion.bat tahtadene  Orion tahtaya yaziyor mu (yakinlik kurali dahil)
 rem    3dorion.bat apidene    API anahtarli beyin uctan uca (sahte yerel sunucuyla)
 rem    3dorion.bat benlikdene anlik benlik: onerinin yasam dongusu (spec 12)
 rem    3dorion.bat eylemdene  otur / bana gel / bilgisayari ac / tahtaya git (spec 13)
+rem    3dorion.bat mikrofon   Orion'u MIKROFONLA dene: V tusunu basili tut, Ingilizce konus (Nemotron Speech)
 rem    3dorion.bat zihindene  zihin duvari panelleri (sema + gunluk) gozle dogrulanir
 rem    3dorion.bat admindene  yonetim terminali gercek kabuk mu, Orion'a siziyor mu
 rem    3dorion.bat gordene    Orion odayi goruyor mu (cevap konuma bagli mi)
@@ -81,6 +82,7 @@ if /i "%MOD%"=="tahtadene" goto :tahtadene
 if /i "%MOD%"=="apidene" goto :apidene
 if /i "%MOD%"=="benlikdene" goto :benlikdene
 if /i "%MOD%"=="eylemdene" goto :eylemdene
+if /i "%MOD%"=="mikrofon" goto :mikrofon
 if /i "%MOD%"=="tahtabeyin" goto :tahtabeyin
 if /i "%MOD%"=="becerdene" goto :becerdene
 if /i "%MOD%"=="gelistir" goto :gelistir
@@ -97,6 +99,7 @@ echo [2/2] Orion'un odasi aciliyor...
 echo.
 echo   WASD yuru  ^|  Shift kos  ^|  F kamera  ^|  E etkilesim  ^|  Esc cik
 echo   T ile Orion'a yaz (yerel model dusunur, sesle cevap verir)
+echo   K mikrofonu ac/kapat (hatirlanir)  ^|  V basili tut = Ingilizce konus
 echo   1 tahtaya git  2 pencereye git  3 otur  4 kalk  5 sana bak  6 el salla
 echo   Monitore E ile gec, sonra: claude
 echo.
@@ -171,6 +174,16 @@ set "ORION_BEYIN_ADRES=http://127.0.0.1:9"
 set "ORION_SMOKE=1"
 rem 120 sn: S5/S6 ekrani her 3 pikselde tarar, 30 sn senaryoyu yarida kesiyordu.
 set "ORION_SMOKE_MS=120000"
+call npx electron .
+goto :son
+
+:mikrofon
+echo [mikrofon] Orion'u sesle dene: V tusunu BASILI TUT, Ingilizce konus, birak. Model ~15 sn yuklenir (altyazida 'kulak hazir' cikana kadar bekle).
+echo   Duydugun metin altyazida "sen: ..." olarak gorunur; Orion normal yoldan cevap verir.
+echo   Gerekli: python + transformers + librosa + sounddevice (tools/nemotron-dinle.py)
+call npx vite build
+if errorlevel 1 goto :hata
+set "ORION_MIKROFON=1"
 call npx electron .
 goto :son
 

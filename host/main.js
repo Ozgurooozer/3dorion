@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import fs from "node:fs";
 import { PiperSesi, piperBul } from "./ses.js";
+import { Dinleyici } from "./dinleme.js";
 import { hafizaDosyasiOku, hafizaDosyasiYaz } from "./hafizaDosyasi.js";
 import { kararYaziciKur, ogretimYolu, ogretimleriOku, satirlariOku, yeniSatirlar } from "./kararDosyasi.js";
 import { mcpSunucuKur } from "./mcpSunucu.js";
@@ -143,6 +144,8 @@ function pencereAc() {
   if (process.env.ORION_BECERDENE_SOZLER) parcalar.push(`becerdenesoz=${encodeURIComponent(process.env.ORION_BECERDENE_SOZLER)}`);
   // Beceri yetkisi (spec 10, Faz D): anahtar varsayılan kapalı; yalnız açıkça istenince.
   if (process.env.ORION_BECERI === "1") parcalar.push("beceri=1");
+  // Mikrofon (bas-konuş V): kulak süreci açılır, söz Orion'a "duydum" olarak gider. Varsayılan kapalı.
+  if (process.env.ORION_MIKROFON === "1") parcalar.push("mikrofon=1");
   if (process.env.ORION_ONAYDENE === "1") parcalar.push("onaydene=1", "sessiz=1");
   if (process.env.ORION_TEZDENE === "1") parcalar.push("tezdene=1", "sessiz=1");
   if (process.env.ORION_ZIHINDENE === "1") parcalar.push("zihindene=1", "sessiz=1");
@@ -398,6 +401,19 @@ function mcpUcuBaslat() {
 
 const ses = new PiperSesi();
 
+// ---- kulak (Nemotron Speech, mikrofon) ---------------------------------------
+// Tembel: ilk "baslat"a kadar süreç açılmaz. Renderer'a yalnız çözülmüş metin gider.
+const dinleyici = new Dinleyici((olay) => {
+  if (pencere && !pencere.isDestroyed()) pencere.webContents.send(OLAY.dinleme, olay);
+});
+ipcMain.handle(CAGRI.dinleKomut, (_e, komut) => {
+  if (komut === "baslat") { dinleyici.baslat(); return true; }
+  if (komut === "kayit") return dinleyici.kayit();
+  if (komut === "dur") return dinleyici.dur();
+  if (komut === "kapat") { dinleyici.kapat(); return true; }
+  return false;
+});
+
 ipcMain.handle(CAGRI.sesVarMi, () => ses.kullanilabilir());
 
 ipcMain.handle(CAGRI.sesUret, async (_e, metin) => {
@@ -477,6 +493,7 @@ app.on("activate", () => { if (BrowserWindow.getAllWindows().length === 0) pence
 app.on("window-all-closed", () => { if (process.platform !== "darwin") app.quit(); });
 app.on("before-quit", () => {
   ses.kapat();
+  dinleyici.kapat();
   for (const p of ptyler.values()) { try { p.kill(); } catch { /* kapanışta önemsiz */ } }
   ptyler.clear();
   // Adaptör bizim başlattığımız süreç: arkada kalıp portu tutmasın.

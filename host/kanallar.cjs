@@ -46,6 +46,8 @@ const CAGRI = {
   apiSil:            "api:sil",
   apiModeller:       "api:modeller",
   apiSohbet:         "api:sohbet",
+  /** Orion'un kulağı (host/dinleme.js): "baslat" | "kayit" | "dur" | "kapat". */
+  dinleKomut:        "dinle:komut",
 };
 
 /** Main → renderer (tek yönlü olay). */
@@ -56,6 +58,8 @@ const OLAY = {
   mcpIstek: "mcp:istek",
   /** Öğretim dosyasına yeni satır düştü (ör. tools/ogret.ts): canlı hafızaya. */
   ogretim:  "ogretim:yeni",
+  /** Kulak süreci: hazir / tanima / bos / hata / kapandi (host/dinleme.d.ts). */
+  dinleme:  "dinle:olay",
 };
 
 module.exports = { CAGRI, OLAY };

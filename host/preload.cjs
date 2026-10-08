@@ -40,4 +40,7 @@ contextBridge.exposeInMainWorld("kopru", {
   apiSil:           (ad) => ipcRenderer.invoke(CAGRI.apiSil, ad),
   apiModeller:      (ad) => ipcRenderer.invoke(CAGRI.apiModeller, ad),
   apiSohbet:        (ad, govde) => ipcRenderer.invoke(CAGRI.apiSohbet, ad, govde),
+  // Orion'un kulağı: bas-konuş komutu gider, çözülmüş METİN olay olarak gelir (ses renderer'a girmez).
+  dinleKomut:       (komut) => ipcRenderer.invoke(CAGRI.dinleKomut, komut),
+  dinleDinle:       (cb) => dinle(OLAY.dinleme, cb),
 });
