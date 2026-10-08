@@ -19,7 +19,7 @@
 - **İngilizce cevap kipi** (talimat + İngilizce Piper sesi) — mikrofon İngilizce duyuyor, Orion Türkçe cevaplıyor.
 
 ## Ova (spec 17) — sıradaki adımlar, her biri ayrı onay
-- **Toon/piksel gölgelendirici** (referans 3 ya da kendi stilimiz): `cekirdek/malzeme.ts` fabrikasının içi değişir.
+- **Kendi stilimiz** (spec 18): altı önayar galeride (`Pictures\shader-ornekleri\index.html`); Ozyn seçer.
 - **Gece** (referans 2), ağaç/çiçek katmanları; gök bantları kaba (Ozyn: şimdilik dursun).
 - **Orion'u ovaya taşımak** ve **odayı level çekirdeğine taşımak** (olculer/capalar → level verisi).
 - Ova kare hızı LLM ÜRETİRKEN ölçülmedi (yalnız model yüklüyken).

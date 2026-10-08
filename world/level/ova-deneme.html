@@ -8,12 +8,14 @@
   canvas { display: block; width: 100%; height: 100%; outline: none; }
   /* Level paneli solda (330 px): ölçüm satırı onun sağından başlar. */
   #olcum { position: fixed; left: 348px; bottom: 6px; color: #23324a; font: 12px system-ui, sans-serif; }
+  #stil { position: fixed; right: 8px; top: 8px; color: #fff; background: #0008; padding: 4px 8px; border-radius: 6px; font: 12px system-ui, sans-serif; }
   #ipucu { position: fixed; right: 8px; bottom: 6px; color: #23324a; font: 12px system-ui, sans-serif; opacity: .7; }
 </style>
 </head>
 <body>
   <canvas id="tuval" tabindex="0"></canvas>
   <div id="olcum"></div>
+  <div id="stil"></div>
   <div id="ipucu">tıkla · WASD yürü · fare bak · Shift koş</div>
   <script type="module" src="/world/level/ova-deneme.ts"></script>
 </body>

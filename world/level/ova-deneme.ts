@@ -8,6 +8,9 @@
 //   ?piksel=3   tanımdaki `ortam.piksel`i geçersiz kılar (piksel kipi; panelde "Ortam › piksel boyu" aynı ayar —
 //               bu açılışta Kaydet'e basılırsa değer dosyaya da yazılır)
 //   ?panel=0    paneli kapat (ekran görüntüsü için)
+//   ?stil=toon  stil önayarıyla aç (stil/stilTanimi.ts ONAYARLAR) · ?renk=pastel renk düzeniyle aç
+// Tuşlar: G stil önayarları arasında döner, P renk düzenleri arasında (spec 18). Shader derleme hatası ölçüm
+// satırına ve başlığa "hata=N" olarak düşer (sessiz boş görüntü yok).
 // Hazır olunca (3 sn ölçüm) başlık "hazir …" olur — tools/oda-goruntu.mjs bunu bekler.
 "use strict";
 import { Engine } from "@babylonjs/core/Engines/engine";
@@ -19,6 +22,8 @@ import { levelKur } from "./cekirdek/levelKur.ts";
 import { MODULLER } from "./moduller/index.ts";
 import { levelPaneliKur } from "./editor/levelPaneli.ts";
 import { inspektorAcKapa } from "./editor/inspektor.ts";
+import { Logger } from "@babylonjs/core/Misc/logger";
+import { ONAYAR_ADLARI, onayarUygula, onayarAdi, PALET_DUZENI_ADLARI, paletDuzeniUygula, paletDuzeniAdi } from "./stil/stilTanimi.ts";
 
 const LEVEL_DOSYASI = "/world/level/ova/ova.level.json";
 const GOZ = 1.7;
@@ -39,6 +44,10 @@ const tuval = document.getElementById("tuval") as HTMLCanvasElement;
 const olcumKutusu = document.getElementById("olcum") as HTMLDivElement;
 const motor = new Engine(tuval, true, { preserveDrawingBuffer: true, stencil: true }, true);
 const sahne = new Scene(motor);
+// Babylon derleme hatalarını konsola yazar; onları say ki ekran görüntüsü aracı da görsün.
+let shaderHatasi = 0;
+const eskiKayit = Logger.OnNewCacheEntry;
+Logger.OnNewCacheEntry = (girdi) => { if (/error/i.test(girdi)) shaderHatasi++; eskiKayit?.(girdi); };
 
 try {
   const level = levelKur(sahne, await dosyadanOku(), MODULLER);
@@ -47,6 +56,8 @@ try {
     t.ortam.piksel = Math.max(1, Math.min(8, Math.round(Number(q.get("piksel"))) || 1));
     level.ayarla(t);
   }
+  if (q.has("stil")) level.ayarla(onayarUygula(level.tanim(), q.get("stil")!));
+  if (q.has("renk")) level.ayarla(paletDuzeniUygula(level.tanim(), q.get("renk")!));
 
   const ad = q.get("aci") ?? "ufuk";
   const aci: Aci = (OVA_ACILARI as Record<string, Aci | undefined>)[ad] ?? OVA_ACILARI.ufuk;
@@ -63,10 +74,25 @@ try {
   addEventListener("keydown", (e) => { if (e.key === "Shift") kos = true; });
   addEventListener("keyup", (e) => { if (e.key === "Shift") kos = false; });
   tuval.addEventListener("click", () => { void tuval.requestPointerLock?.(); });
+  level.stil.kameraBagla(kamera);
 
-  if (q.get("panel") !== "0") {
-    levelPaneliKur({ level, moduller: MODULLER, ad: "ova", dosyadanOku, inspektor: () => inspektorAcKapa(sahne) });
-  }
+  const panel = q.get("panel") !== "0"
+    ? levelPaneliKur({ level, moduller: MODULLER, ad: "ova", dosyadanOku, inspektor: () => inspektorAcKapa(sahne) })
+    : null;
+
+  // Stil etiketi + G/P geçişi.
+  const stilEtiketi = document.getElementById("stil") as HTMLDivElement;
+  const etiketYaz = () => { stilEtiketi.textContent = `stil: ${onayarAdi(level.tanim())} · renk: ${paletDuzeniAdi(level.tanim())}  (G / P)`; };
+  const sonraki = (liste: readonly string[], simdiki: string) => liste[(liste.indexOf(simdiki) + 1) % liste.length]!;
+  addEventListener("keydown", (e) => {
+    if ((e.target as HTMLElement | null)?.matches?.("input, select")) return;
+    if (e.code === "KeyG") level.ayarla(onayarUygula(level.tanim(), sonraki(ONAYAR_ADLARI, onayarAdi(level.tanim()))));
+    else if (e.code === "KeyP") level.ayarla(paletDuzeniUygula(level.tanim(), sonraki(PALET_DUZENI_ADLARI, paletDuzeniAdi(level.tanim()))));
+    else return;
+    etiketYaz();
+    panel?.yenile();
+  });
+  etiketYaz();
 
   const olcer = new SceneInstrumentation(sahne);
   olcer.captureFrameTime = true;
@@ -91,7 +117,7 @@ try {
         return t + ((m?.getTotalIndices?.() ?? 0) / 3) * kopya;
       }, 0);
       const s = level.sayim();
-      const ozet = `aci=${ad} piksel=${level.tanim().ortam.piksel} fps=${(kare / sn).toFixed(1)} cizim=${(cizim / Math.max(kare, 1)).toFixed(0)} ucgen=${Math.round(ucgen)} katman=${s.katman} mesh=${s.mesh}`;
+      const ozet = `aci=${ad} stil=${onayarAdi(level.tanim())} hata=${shaderHatasi} piksel=${level.tanim().ortam.piksel} fps=${(kare / sn).toFixed(1)} cizim=${(cizim / Math.max(kare, 1)).toFixed(0)} ucgen=${Math.round(ucgen)} katman=${s.katman} mesh=${s.mesh}`;
       olcumKutusu.textContent = ozet;
       console.log(`[OVA-DENEME] ${ozet}`);
       document.title = `hazir ${ozet}`;

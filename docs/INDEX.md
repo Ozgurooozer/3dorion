@@ -23,6 +23,7 @@ Açık işler tek yerde: `ACIK-ISLER.md`. Fikirler: `FIKIR-HAVUZU.md`. Son günc
 | 15 | Göz ve mekânsal bellek | S1 (nesne kaydı, görünürlük) bitti · S2–S5 Ozyn onayı bekliyor | `world/level/nesneKaydi.ts` |
 | 16 | Temiz bağlam: yazma süzgeci, durum defteri, çekmeceler, kural yönlendirici, sohbet kipleri | F0–F5b bitti, canlı ölçüldü · P1 çürüdü (iskele baskın) · F6 araç kırpma ölçüm bekliyor | bağlama ne girdiğine dokunurken |
 | 17 | Ova: yeni level (lowpoly, çim, gök, Blender arazi) + level ALTYAPISI (veri tanımı, modüller, ışık sistemi, panel) | MVP L0–L4 bitti, bütçe B1–B4 geçti | `world/level/{cekirdek,moduller,editor,ova}/`, yeni katman/level eklerken |
+| 18 | Stil shader'ları: cel, toon, anime90, Moebius, piksel (t3ssel8r); G/panel geçiş | S0–S5 bitti, bütçe geçti · kendi stilimiz Ozyn'in seçimini bekliyor | `world/level/stil/`, malzeme/ışık görünüşüne dokunurken |
 
 ## Ölçüm ve kayıt belgeleri
 | dosya | ne |
@@ -31,7 +32,7 @@ Açık işler tek yerde: `ACIK-ISLER.md`. Fikirler: `FIKIR-HAVUZU.md`. Son günc
 | `olcum-goz-ve-mekan-bellegi.md` | spec 15 S1 ölçüleri |
 | `olcum-ponytail.md` | ponytail eklentisi denemesi — KALDIRILDI (kopya kod kuralı değil bekçi) |
 | `canli-test-2026-10-02.md` | ilk ortak canlı testin bulguları |
-| `arastirma/` | dış kaynak notları |
+| `arastirma/` | dış kaynak notları (`stil-shaderlari.md`: toon/cel/çizgi/piksel teknikleri) |
 
 ## Bu turun kalıcı davranışları (spec dışı, commit mesajlarında)
 - **Kulak:** `3dorion.bat mikrofon` / K aç-kapa, V bas-konuş; Nemotron Speech EN, CPU (`tools/nemotron-dinle.py`, `voice/nemotron.ts`).

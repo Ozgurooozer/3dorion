@@ -13,6 +13,7 @@ import type { Level, ModulKaydi } from "../cekirdek/levelKur.ts";
 import type { LevelTanimi } from "../cekirdek/levelTanimi.ts";
 import { alanlar, yolaYaz, yoldanOku, type Alan, type Yol } from "./alanlar.ts";
 import { aralikBul, etiket, type Aralik } from "./aralik.ts";
+import { ONAYARLAR, ONAYAR_ADLARI, onayarUygula, onayarAdi, PALET_DUZENI_ADLARI, paletDuzeniUygula, paletDuzeniAdi } from "../stil/stilTanimi.ts";
 
 export interface PanelAyari {
   level: Level;
@@ -87,12 +88,17 @@ const el = <K extends keyof HTMLElementTagNameMap>(etiketAdi: K, sinif = "", met
   return e;
 };
 
-/** Açık bölümler (hatırlanır). İlk açılışta yalnız "Işık" açık: en sık oynanan yer. */
+/**
+ * Açık bölümler (hatırlanır). İlk açılışta "Stil" ve "Işık" açık: en sık oynanan yerler. Stil bölümü sonradan
+ * geldi (spec 18): kayıtlı tercihi olana bir kez açık gelsin, sonra kullanıcının seçimi geçerli.
+ */
 function acikOku(): Set<string> {
   try {
     const ham = localStorage.getItem(ACIK_ANAHTARI);
-    return new Set(ham === null ? ["isik"] : JSON.parse(ham) as string[]);
-  } catch { return new Set(["isik"]); }
+    const s = new Set(ham === null ? ["stil", "isik"] : JSON.parse(ham) as string[]);
+    if (localStorage.getItem("orion.levelPaneli.stilGoruldu") === null) { s.add("stil"); localStorage.setItem("orion.levelPaneli.stilGoruldu", "1"); }
+    return s;
+  } catch { return new Set(["stil", "isik"]); }
 }
 function acikYaz(s: Set<string>): void {
   try { localStorage.setItem(ACIK_ANAHTARI, JSON.stringify([...s])); } catch { /* önemsiz */ }
@@ -136,6 +142,23 @@ export function levelPaneliKur(p: PanelAyari): { yenile(): void } {
     const ilk = bekleyen === null;
     bekleyen = { yol, deger };
     if (ilk) requestAnimationFrame(() => { const b = bekleyen; bekleyen = null; if (b) uygula(b.yol, b.deger, null); });
+  };
+  /** Bütün tanımı değiştiren işlem (stil önayarı, renk düzeni): geçmişe yazılır, panel yeniden çizilir. */
+  const tanimDegistir = (yeni: (t: LevelTanimi) => LevelTanimi, mesaj: string) => {
+    const once = p.level.tanim();
+    try {
+      p.level.ayarla(yeni(once));
+      geriAl.push(once); if (geriAl.length > GECMIS_SINIRI) geriAl.shift();
+      durumYaz(mesaj);
+    } catch (err) { durumYaz(err instanceof Error ? err.message : String(err), true); }
+    ciz();
+  };
+  const secici = (secenekler: readonly string[], simdiki: string, yaz: (v: string) => void) => {
+    const s = el("select");
+    for (const ad of secenekler) s.add(new Option(ad, ad, false, ad === simdiki));
+    if (!secenekler.includes(simdiki)) s.add(new Option(`${simdiki} (elle ayarlı)`, simdiki, false, true));
+    s.onchange = () => yaz(s.value);
+    return s;
   };
   const degistir = (yol: Yol, deger: unknown) => { uygula(yol, deger, p.level.tanim()); if (yol[0] === "palet") ciz(); };
 
@@ -288,6 +311,15 @@ export function levelPaneliKur(p: PanelAyari): { yenile(): void } {
       l.append(i, el("span", "", ad));
       paletKap.append(l);
     }
+    // Stil (spec 18): önayar ve renk düzeni seçicisi + bütün stil alanları (önayar seç → ince ayar → Kaydet).
+    const stilAdi = onayarAdi(t);
+    const stilSatirlari = [
+      satir("önayar", secici(ONAYAR_ADLARI, stilAdi, (ad) => tanimDegistir((x) => onayarUygula(x, ad), `stil: ${ad} — ${ONAYARLAR[ad]?.aciklama ?? ""}`)), ["stil"]),
+      satir("renk düzeni", secici(PALET_DUZENI_ADLARI, paletDuzeniAdi(t), (ad) => tanimDegistir((x) => paletDuzeniUygula(x, ad), `renk düzeni: ${ad}`)), ["palet"]),
+      el("div", "ipucu", ONAYARLAR[stilAdi]?.aciklama ?? "Önayardan değiştirildi. G / P tuşları da geçer."),
+      ...alanSatirlari(["stil"], t.stil, t),
+    ];
+    bolumler.push(bolum("stil", `Stil · ${stilAdi}`, stilSatirlari));
     bolumler.push(bolum("palet", "Palet", [paletKap]));
     bolumler.push(bolum("isik", "Işık", alanSatirlari(["isik"], t.isik, t)));
     bolumler.push(bolum("ortam", "Ortam", alanSatirlari(["ortam"], t.ortam, t)));

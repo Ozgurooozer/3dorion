@@ -8,6 +8,7 @@
 // Ortak çekirdek: ova bugün kullanıyor; Orion'un odası ileride aynı tanıma taşınacak (ayrı adım).
 "use strict";
 import { hex } from "./renk.ts";
+import { stilHatasi, type StilAyari } from "../stil/stilTanimi.ts";
 
 export const LEVEL_SURUMU = 1;
 
@@ -62,6 +63,8 @@ export interface LevelTanimi {
   palet: Record<string, string>;
   isik: IsikAyari;
   ortam: OrtamAyari;
+  /** Görsel stil (toon, cel, çizgi, piksel… — stil/stilTanimi.ts). Yoksa "standart" (levelKur doldurur). */
+  stil?: StilAyari;
   katmanlar: KatmanTanimi[];
 }
 
@@ -113,6 +116,7 @@ function hataBul(v: unknown): string | null {
   if (!nesneMi(kam) || !sayiMi(kam["uzak"]) || kam["uzak"] <= 0) return h("ortam.kamera.uzak", "> 0 sayı");
   const pk = ortam["piksel"];
   if (pk !== undefined && (!Number.isInteger(pk) || (pk as number) < 1 || (pk as number) > 8)) return h("ortam.piksel", "1–8 tamsayı");
+  if (v["stil"] !== undefined) { const s = stilHatasi(v["stil"], renkMi); if (s) return h("stil", s); }
   const katmanlar = v["katmanlar"];
   if (!Array.isArray(katmanlar)) return h("katmanlar", "dizi değil");
   const adlar = new Set<string>();

@@ -138,6 +138,8 @@ export const cimModulu: LevelModulu<CimAyari> = {
     }
     // Sınır kutusu tek tutamınki; örnekler 70 m'ye yayılıyor — kırpma yanlış gizlemesin.
     m.alwaysSelectAsActiveMesh = true;
+    // Çizgi efektine girmez: binlerce yaprak gürültü kenarı üretir, rüzgâr kayması gbuffer'da yok (stil/efektler.ts).
+    m.metadata = { cizgisiz: true };
     m.freezeWorldMatrix();
     b.golge(m, { alir: true });
     return { meshler: [m], yokEt() { m.dispose(); malzeme.dispose(); } };
