@@ -68,6 +68,12 @@ export const kayaModulu: LevelModulu<KayaAyari> = {
   tur: "kaya",
   aciklama: "Lowpoly kayalar (tohumlu, zemine oturur, gölge atar/alır). Zeminden sonra gelmeli.",
   varsayilan: KAYA_VARSAYILAN,
+  aralik: {
+    sayi: { min: 0, max: 200, adim: 1 }, tohum: { min: 0, max: 9999, adim: 1 },
+    icYaricap: { min: 0, max: 100, adim: 1 }, disYaricap: { min: 5, max: 300, adim: 1 },
+    boyMin: { min: 0.1, max: 5, adim: 0.05 }, boyMax: { min: 0.1, max: 10, adim: 0.05 },
+    bozma: { min: 0, max: 0.9, adim: 0.01 }, basiklik: { min: 0.2, max: 2, adim: 0.01 },
+  },
   kur(b, a) {
     const m = meshKur(b.sahne, "kaya", kayaGeometrisi(a, b.yukseklik, b.renk(a.renk), b.renk(a.koyu)));
     const malzeme = b.malzeme("kaya", "isikli");

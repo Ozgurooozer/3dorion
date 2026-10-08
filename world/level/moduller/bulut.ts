@@ -70,6 +70,14 @@ export const bulutModulu: LevelModulu<BulutAyari> = {
   tur: "bulut",
   aciklama: "Kümülüs bulutlar (ikosahedron kümeleri, pişmiş gölge, yavaş dönüş).",
   varsayilan: BULUT_VARSAYILAN,
+  aralik: {
+    sayi: { min: 0, max: 40, adim: 1 }, tohum: { min: 0, max: 9999, adim: 1 },
+    topakMin: { min: 1, max: 12, adim: 1 }, topakMax: { min: 1, max: 16, adim: 1 },
+    yukseklikMin: { min: 10, max: 200, adim: 1 }, yukseklikMax: { min: 10, max: 250, adim: 1 },
+    uzakMin: { min: 50, max: 450, adim: 5 }, uzakMax: { min: 50, max: 450, adim: 5 },
+    olcekMin: { min: 2, max: 60, adim: 1 }, olcekMax: { min: 2, max: 80, adim: 1 },
+    basiklik: { min: 0.3, max: 1.5, adim: 0.01 }, donus: { min: 0, max: 0.05, adim: 0.001 },
+  },
   kur(b, a) {
     const m = meshKur(b.sahne, "bulut", bulutGeometrisi(a, b.renk(a.renk), b.renk(a.golge)));
     const malzeme = b.malzeme("bulut", "pismis");

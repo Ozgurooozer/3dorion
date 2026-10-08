@@ -20,6 +20,17 @@ test("her modülün varsayılanı kendi şemasından geçer", () => {
   for (const m of MODULLER.values()) assert.doesNotThrow(() => ayarBirlestir(m.tur, m.varsayilan, m.varsayilan), m.tur);
 });
 
+test("modül aralıkları yalnız o modülün SAYI ayarlarını gösterir ve varsayılanı içerir", () => {
+  for (const m of MODULLER.values()) {
+    for (const [k, a] of Object.entries(m.aralik ?? {})) {
+      const v = m.varsayilan[k];
+      const sayilar = Array.isArray(v) ? v : [v];
+      assert.ok(sayilar.every((x) => typeof x === "number"), `${m.tur}.${k} sayı değil`);
+      assert.ok(a && sayilar.every((x) => (x as number) >= a.min && (x as number) <= a.max), `${m.tur}.${k} aralık dışı`);
+    }
+  }
+});
+
 test("kayıttaki ad modülün türüyle aynı", () => {
   for (const [ad, m] of MODULLER) assert.equal(ad, m.tur);
 });

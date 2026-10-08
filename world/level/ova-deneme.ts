@@ -61,7 +61,7 @@ try {
   tuval.addEventListener("click", () => { void tuval.requestPointerLock?.(); });
 
   if (q.get("panel") !== "0") {
-    levelPaneliKur({ level, ad: "ova", dosyadanOku, inspektor: () => inspektorAcKapa(sahne) });
+    levelPaneliKur({ level, moduller: MODULLER, ad: "ova", dosyadanOku, inspektor: () => inspektorAcKapa(sahne) });
   }
 
   const olcer = new SceneInstrumentation(sahne);

@@ -52,6 +52,10 @@ export const gokModulu: LevelModulu<GokAyari> = {
   tur: "gok",
   aciklama: "Bantlı gök kubbesi (ışıksız, kameraya yapışık).",
   varsayilan: GOK_VARSAYILAN,
+  aralik: {
+    yaricap: { min: 100, max: 900, adim: 10 }, dilim: { min: 6, max: 48, adim: 1 }, bant: { min: 2, max: 32, adim: 1 },
+    ortaKonum: { min: 0.05, max: 0.95, adim: 0.01 },
+  },
   kur(b, a) {
     const m = meshKur(b.sahne, "gok", gokGeometrisi(a, b.renk(a.ufuk), b.renk(a.orta), b.renk(a.zenit)));
     const malzeme = b.malzeme("gok", "pismis");

@@ -67,6 +67,12 @@ export const zeminModulu: LevelModulu<ZeminAyari> = {
   tur: "zemin",
   aciklama: "Lowpoly çayır zemini (dalgalı ızgara, lekeli renk, gölge alır).",
   varsayilan: ZEMIN_VARSAYILAN,
+  aralik: {
+    yaricap: { min: 50, max: 600, adim: 10 }, bolum: { min: 8, max: 200, adim: 1 },
+    tepeYukseklik: { min: 0, max: 20, adim: 0.1 }, tepeOlcek: { min: 5, max: 200, adim: 1 },
+    duzYaricap: { min: 1, max: 200, adim: 1 }, lekeOlcek: { min: 1, max: 60, adim: 0.5 },
+    esikler: { min: 0, max: 1, adim: 0.01 }, tohum: { min: 0, max: 9999, adim: 1 },
+  },
   kur(b, a) {
     if (a.renkler.length !== a.esikler.length + 1) throw new Error("zemin: renkler.length = esikler.length + 1 olmalı");
     const m = meshKur(b.sahne, "zemin", zeminGeometrisi(a, b.renk));

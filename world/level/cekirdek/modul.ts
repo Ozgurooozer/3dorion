@@ -45,10 +45,15 @@ export interface ModulOrnegi {
 export type AyarDegeri = number | string | boolean | readonly number[] | readonly string[];
 export type Ayar = Readonly<Record<string, AyarDegeri>>;
 
+/** Panelde sayı ayarının kaydırıcı aralığı (öneri; sayı kutusuyla dışına çıkılabilir). */
+export interface AyarAraligi { min: number; max: number; adim: number }
+
 export interface LevelModulu<A extends Ayar = Ayar> {
   tur: string;
   aciklama: string;
   varsayilan: A;
+  /** Sayı ayarlarının anlamlı aralıkları (panel kaydırıcısı). Verilmeyen ayar değerinden türetilir. */
+  aralik?: Readonly<Partial<Record<keyof A & string, AyarAraligi>>>;
   kur(b: ModulBaglami, ayar: A): ModulOrnegi;
 }
 
