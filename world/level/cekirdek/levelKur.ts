@@ -38,6 +38,7 @@ const kopya = <T>(v: T): T => structuredClone(v);
 function normallestir(t: LevelTanimi, kayit: ModulKaydi): LevelTanimi {
   return {
     ...t,
+    ortam: { ...t.ortam, piksel: t.ortam.piksel ?? 1 },
     katmanlar: t.katmanlar.map((k) => {
       const modul = kayit.get(k.tur);
       if (!modul) throw new Error(`katman "${k.ad}": bilinmeyen modül "${k.tur}" (bilinenler: ${[...kayit.keys()].join(", ")})`);
@@ -61,6 +62,10 @@ export function levelKur(sahne: Scene, tanimHam: unknown, kayit: ModulKaydi): Le
     golge: (mesh, ne) => isik.golgeyeKat(mesh, ne),
     gunesYonu: () => isik.gunesYonu(),
     yukseklik: (x, z) => yukseklik(x, z),
+    zeminRengi: (x, z) => {
+      for (const { ornek } of kurulu.values()) if (ornek.renk) return ornek.renk(x, z);
+      return null;
+    },
   };
 
   const yukseklik = (x: number, z: number): number => {

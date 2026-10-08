@@ -18,6 +18,12 @@
 - **`baglamdene` n=5 partileri yarım:** qwen 2/5, Haiku 1/5 koşuldu (histerezisli sürüm). `specs/16` §5
 - **İngilizce cevap kipi** (talimat + İngilizce Piper sesi) — mikrofon İngilizce duyuyor, Orion Türkçe cevaplıyor.
 
+## Ova (spec 17) — sıradaki adımlar, her biri ayrı onay
+- **Toon/piksel gölgelendirici** (referans 3 ya da kendi stilimiz): `cekirdek/malzeme.ts` fabrikasının içi değişir.
+- **Gece** (referans 2), ağaç/çiçek katmanları; gök bantları kaba (Ozyn: şimdilik dursun).
+- **Orion'u ovaya taşımak** ve **odayı level çekirdeğine taşımak** (olculer/capalar → level verisi).
+- Ova kare hızı LLM ÜRETİRKEN ölçülmedi (yalnız model yüklüyken).
+
 ## Spec açıkları
 - Spec 05 Aşama 7: ikinci MCP ajanı (OpenCode) + sayıyla karşılaştırma.
 - Spec 11: VRAM farkı ölçülmedi; bazı ölçüler için glb bekçisi yok.

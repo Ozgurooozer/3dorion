@@ -25,6 +25,8 @@ export interface ModulBaglami {
   gunesYonu(): Vec3;
   /** Kendinden ÖNCE kurulmuş zeminin yüksekliği (yoksa 0). Katman sırası = bağımlılık sırası. */
   yukseklik(x: number, z: number): number;
+  /** Kendinden ÖNCE kurulmuş zeminin (x, z)'deki rengi (yoksa null) — çim altındaki lekeyle eşleşsin. */
+  zeminRengi(x: number, z: number): Renk | null;
 }
 
 export interface ModulOrnegi {
@@ -33,6 +35,8 @@ export interface ModulOrnegi {
   guncelle?(dt: number): void;
   /** Zemin gibi modüller: (x, z) noktasındaki yüzey yüksekliği (kamera ve yerleştirme için). */
   yukseklik?(x: number, z: number): number;
+  /** Zemin gibi modüller: (x, z) noktasındaki yüzey rengi. */
+  renk?(x: number, z: number): Renk;
   /** Meshleri ve malzemeleri bırakır. */
   yokEt(): void;
 }

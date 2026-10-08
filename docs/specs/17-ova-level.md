@@ -1,7 +1,7 @@
 # Spec 17 — Ova: yeni level MVP (lowpoly düzlük, çim, gökyüzü)
 
-> Durum: **L0 + L1 bitti; level ALTYAPISI kuruldu** (2026-10-08, §5): level = veri, modüller, ışık sistemi,
-> canlı panel + Inspector. Sırada L2 (uzak arazi, Blender), L3 (çim), L4 (piksel kipi + sonuç).
+> Durum: **MVP BİTTİ** (2026-10-08): L0–L4 + level altyapısı (§5). Bütçe ön kaydının dördü de geçti (§6).
+> Sırada (ayrı onay): toon/piksel gölgelendirici · gece · ağaç/çiçek · Orion'u ovaya taşımak · odayı çekirdeğe taşımak.
 > Sanat kararları Ozyn'in; her faz ekran görüntüsüyle sunulur.
 
 ## 0. Tek cümle
@@ -69,4 +69,38 @@ world/level/
 - Not: `CascadedShadowGenerator` Node/NullEngine'de kurulamıyor (Babylon içi hata); gölge tarayıcıda doğrulandı.
 - Canlı [ÖLÇÜLDÜ] başsız 1280×720: FPS 100 (vsync), çizim 7–8, 25,9 bin üçgen, 5 katman. Gölge kayadan zemine düşüyor.
   Sanat notu: kayaların gölgeli yüzü neredeyse siyah (dolgu 0,35 + ton eşleme) — panelden ayarlanacak.
+
+## 6. L2–L4 sonuçları (2026-10-08)
+### L2 — uzak arazi (Blender) `[TEST]` `[ÖLÇÜLDÜ]`
+- `assets/kaynak/ova-arazi.py` → `assets/ova-arazi.glb` (**17 nesne, 2280 üçgen, 35 KB**) + düzenlenebilir
+  `assets/kaynak/ova-arazi.blend`. Tohumlu, kendi değer gürültüsü (Blender sürümünden bağımsız). Elle şekillendirilen
+  .blend'den yalnız dışa aktarım: `--disa-aktar` (komutlar betiğin başında).
+- glb **yalnız biçim** taşır; renk Babylon'da paletten (`moduller/uzakArazi.ts`: yükseklik bandı + eğim + kaya).
+  Nesne adı sözleşmesi: `tepeler` yerinde kalır, `masa*`/`kaya*` zemine oturtulur.
+- `cekirdek/glb.ts` saf glb okuyucu (yükleyici paketi yok): x aynası + sarım çevirme. Bozma denemesi: sarım ve
+  ayna bozulunca testler kırmızı (3 ve 2).
+- Görüntü kıyası: sahne sisi KAPALIYKEN dağlar soluklaşan zeminin üstüne yapıştırılmış gibi durdu; sis açık
+  (varsayılan) tutarlı. Ek hava perspektifi/pus ayarları panelde (varsayılan kapalı/hafif).
+### L3 — çim `[TEST]` `[ÖLÇÜLDÜ]`
+- `moduller/cim.ts`: 40 bin denemeli tutam, 3 yaprak × 3 üçgen, **ince örnek → 1 çizim çağrısı, ~330 bin üçgen**.
+  Renk altındaki zemin lekesinden (`baglam.zeminRengi`, yeni sözleşme), kökten uca üç basamak; normal yukarı
+  (zeminle aynı ışık); öbekler ve açıklıklar gürültüden; alan kenarında boy sıfıra iner.
+- Rüzgâr: `cekirdek/ruzgar.ts` malzeme eklentisi (`CUSTOM_VERTEX_UPDATE_WORLDPOS`; gölge ve sis kaymış konumu
+  kullanır), fabrikada `ruzgar` seçeneği. Canlı kanıt: aynı açıdan iki karede çim bölgesinde 18 889 piksel farklı,
+  gök/dağ bölgesinde 147.
+### L4 — piksel kipi `[TEST]` `[ÖLÇÜLDÜ]`
+- `ortam.piksel` (1–8) artık level TANIMINDA: panelde "Ortam › piksel boyu", ışık sistemi uygular (iç çözünürlük
+  ölçeği + `image-rendering: pixelated`). Eski dosyalarda yoksa 1. `?piksel=N` yalnız açılışta geçersiz kılar.
+
+### Bütçe sonucu (§2 ön kaydı) — başsız Chrome, RTX 4060, tam ova (7 katman, çim dahil)
+| # | ölçüt | eşik | ölçülen | |
+|---|---|---|---|---|
+| B1 | FPS 1920×1080 (vsync kapalı, `ODA_SINIRSIZ=1`) | ≥ 60 | 1560–1930 (3 açı); qwen2.5:7b yüklüyken 1864 | geçti |
+| B2 | çizim çağrısı | ≤ 150 | 13–14 | geçti |
+| B3 | VRAM artışı (`nvidia-smi` en yüksek − boşta) | ≤ 500 MB | +251–255 MiB (2 tekrar; boş Chrome +55); LLM yüklüyken +253 (5685 → 5938) | geçti |
+| B4 | Blender glb | ≤ 4 MB | 35 KB | geçti |
+- Yöntem notu: ilk B3 ölçümü +652 MiB çıktı — üç açı art arda yüklenince sayfalar üst üste bindi. Tek açılık
+  tekrarlar tutarlı (+251/+255). Çimsiz +217 → çimin payı ~35 MiB. Kare hızı LLM ÜRETİRKEN ölçülmedi (yalnız yüklü).
+- Testler: glb 6, uzakArazi 11 (gerçek varlık bekçisi: adlar, halka 150–470 m, yüzler dışa, bütçe), çim 9,
+  piksel 4.
 

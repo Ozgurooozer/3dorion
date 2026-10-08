@@ -65,3 +65,13 @@ test("flat geometri: yukarı normalli üçgenin yazılan köşe sırası Babylon
   const capraz = (b[0]! - a[0]!) * (c[1]! - a[1]!) - (b[1]! - a[1]!) * (c[0]! - a[0]!);
   assert.ok(capraz > 0);
 });
+
+// ── piksel kipi ──
+test("ortam.piksel yoksa tanım yine geçerli (eski dosyalar açılır)", () => {
+  assert.equal(levelTanimiDogrula(ornekTanim()).ok, true);
+});
+test("ortam.piksel 1–8 tamsayı değilse hata", () => {
+  const t = ornekTanim();
+  t.ortam.piksel = 2.5;
+  assert.match(String(!levelTanimiDogrula(t).ok && (levelTanimiDogrula(t) as { hata: string }).hata), /ortam.piksel/);
+});

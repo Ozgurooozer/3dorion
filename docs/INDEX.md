@@ -22,6 +22,7 @@ Açık işler tek yerde: `ACIK-ISLER.md`. Fikirler: `FIKIR-HAVUZU.md`. Son günc
 | 14 | Mimari: ön/arka katmanlar, dev dosyaların bölünmesi (R1–R7) | bitti | katman bekçisi `tools/mimari.test.ts` |
 | 15 | Göz ve mekânsal bellek | S1 (nesne kaydı, görünürlük) bitti · S2–S5 Ozyn onayı bekliyor | `world/level/nesneKaydi.ts` |
 | 16 | Temiz bağlam: yazma süzgeci, durum defteri, çekmeceler, kural yönlendirici, sohbet kipleri | F0–F5b bitti, canlı ölçüldü · P1 çürüdü (iskele baskın) · F6 araç kırpma ölçüm bekliyor | bağlama ne girdiğine dokunurken |
+| 17 | Ova: yeni level (lowpoly, çim, gök, Blender arazi) + level ALTYAPISI (veri tanımı, modüller, ışık sistemi, panel) | MVP L0–L4 bitti, bütçe B1–B4 geçti | `world/level/{cekirdek,moduller,editor,ova}/`, yeni katman/level eklerken |
 
 ## Ölçüm ve kayıt belgeleri
 | dosya | ne |

@@ -80,6 +80,9 @@ export const zeminModulu: LevelModulu<ZeminAyari> = {
     m.material = malzeme;
     m.freezeWorldMatrix();
     b.golge(m, { alir: true });
-    return { meshler: [m], yukseklik: zeminYuksekligi(a), yokEt() { m.dispose(); malzeme.dispose(); } };
+    return {
+      meshler: [m], yukseklik: zeminYuksekligi(a), renk: (x, z) => b.renk(zeminRenkAdi(a, x, z)),
+      yokEt() { m.dispose(); malzeme.dispose(); },
+    };
   },
 };

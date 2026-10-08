@@ -22,6 +22,7 @@ const SABIT: Readonly<Record<string, Aralik>> = {
   "tonlama.pozlama": { min: 0.2, max: 3, adim: 0.01 },
   "tonlama.kontrast": { min: 0.5, max: 2.5, adim: 0.01 },
   "kamera.uzak": { min: 100, max: 3000, adim: 50 },
+  "ortam.piksel": { min: 1, max: 8, adim: 1 },
 };
 
 /** Değerden türetilen yedek aralık. */
@@ -49,7 +50,7 @@ const ETIKET: Readonly<Record<string, string>> = {
   siddet: "şiddet", yon: "yön", renk: "renk", golge: "gölge", acik: "açık", boyut: "çözünürlük", kademe: "kademe",
   uzaklik: "uzaklık", yumusaklik: "yumuşaklık", koyuluk: "koyuluk", dolgu: "gök dolgusu", ust: "üst", alt: "alt",
   arkaPlan: "arka plan", sis: "sis", yogunluk: "yoğunluk", tonlama: "ton eşleme", pozlama: "pozlama",
-  kontrast: "kontrast", kamera: "kamera", gunes: "güneş", yaricap: "yarıçap", dilim: "dilim", bant: "bant",
+  kontrast: "kontrast", kamera: "kamera", piksel: "piksel boyu", gunes: "güneş", yaricap: "yarıçap", dilim: "dilim", bant: "bant",
   ufuk: "ufuk", orta: "orta", zenit: "zenit", ortaKonum: "orta konum", kenar: "kenar", sayi: "sayı", tohum: "tohum",
   topakMin: "topak (en az)", topakMax: "topak (en çok)", yukseklikMin: "yükseklik (en az)", yukseklikMax: "yükseklik (en çok)",
   uzakMin: "uzaklık (en az)", uzakMax: "uzaklık (en çok)", olcekMin: "ölçek (en az)", olcekMax: "ölçek (en çok)",

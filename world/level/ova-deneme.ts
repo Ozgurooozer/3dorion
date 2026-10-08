@@ -5,7 +5,8 @@
 // gizler. Elle gezinmek: tıkla, WASD + fare, Shift koş.
 //
 //   /world/level/ova-deneme.html?aci=ufuk | alcak | tepe | gunes
-//   ?piksel=3   düşük iç çözünürlük + en-yakın büyütme (piksel-sanat shader'ının ucuz önizlemesi)
+//   ?piksel=3   tanımdaki `ortam.piksel`i geçersiz kılar (piksel kipi; panelde "Ortam › piksel boyu" aynı ayar —
+//               bu açılışta Kaydet'e basılırsa değer dosyaya da yazılır)
 //   ?panel=0    paneli kapat (ekran görüntüsü için)
 // Hazır olunca (3 sn ölçüm) başlık "hazir …" olur — tools/oda-goruntu.mjs bunu bekler.
 "use strict";
@@ -37,12 +38,15 @@ const q = new URLSearchParams(location.search);
 const tuval = document.getElementById("tuval") as HTMLCanvasElement;
 const olcumKutusu = document.getElementById("olcum") as HTMLDivElement;
 const motor = new Engine(tuval, true, { preserveDrawingBuffer: true, stencil: true }, true);
-const piksel = Math.max(1, Math.min(8, Number(q.get("piksel") ?? 1) || 1));
-if (piksel > 1) { motor.setHardwareScalingLevel(piksel); tuval.classList.add("piksel"); }
 const sahne = new Scene(motor);
 
 try {
   const level = levelKur(sahne, await dosyadanOku(), MODULLER);
+  if (q.has("piksel")) {
+    const t = level.tanim();
+    t.ortam.piksel = Math.max(1, Math.min(8, Math.round(Number(q.get("piksel"))) || 1));
+    level.ayarla(t);
+  }
 
   const ad = q.get("aci") ?? "ufuk";
   const aci: Aci = (OVA_ACILARI as Record<string, Aci | undefined>)[ad] ?? OVA_ACILARI.ufuk;
@@ -81,9 +85,13 @@ try {
     sahne.onAfterRenderObservable.add(() => { kare++; cizim += olcer.drawCallsCounter.current; });
     setTimeout(() => {
       const sn = (performance.now() - bas) / 1000;
-      const ucgen = sahne.getActiveMeshes().data.reduce((t, m) => t + (m?.getTotalIndices?.() ?? 0) / 3, 0);
+      // İnce örnekli mesh (çim) tek tutamın üçgenini × örnek sayısı kadar çizer.
+      const ucgen = sahne.getActiveMeshes().data.reduce((t, m) => {
+        const kopya = m && "thinInstanceCount" in m ? Math.max(1, Number(m.thinInstanceCount) || 0) : 1;
+        return t + ((m?.getTotalIndices?.() ?? 0) / 3) * kopya;
+      }, 0);
       const s = level.sayim();
-      const ozet = `aci=${ad} piksel=${piksel} fps=${(kare / sn).toFixed(1)} cizim=${(cizim / Math.max(kare, 1)).toFixed(0)} ucgen=${Math.round(ucgen)} katman=${s.katman} mesh=${s.mesh}`;
+      const ozet = `aci=${ad} piksel=${level.tanim().ortam.piksel} fps=${(kare / sn).toFixed(1)} cizim=${(cizim / Math.max(kare, 1)).toFixed(0)} ucgen=${Math.round(ucgen)} katman=${s.katman} mesh=${s.mesh}`;
       olcumKutusu.textContent = ozet;
       console.log(`[OVA-DENEME] ${ozet}`);
       document.title = `hazir ${ozet}`;

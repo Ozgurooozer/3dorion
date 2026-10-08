@@ -39,6 +39,11 @@ export interface OrtamAyari {
   /** Görüntü işleme: ton eşleme (ACES), pozlama, kontrast. */
   tonlama: { acik: boolean; pozlama: number; kontrast: number };
   kamera: { uzak: number };
+  /**
+   * Piksel kipi: iç çözünürlük 1/piksel, en-yakın komşuyla büyütülür (1 = kapalı, 2–8). Piksel-sanat
+   * gölgelendiricisinin ucuz önizlemesi. Eski dosyalarda yoksa 1 sayılır (levelKur `normallestir` doldurur).
+   */
+  piksel?: number;
 }
 
 /** Bir katman = bir modül örneği. `tur` modül kaydındaki ad (world/level/moduller/). */
@@ -106,6 +111,8 @@ function hataBul(v: unknown): string | null {
   if (!nesneMi(sis) || typeof sis["acik"] !== "boolean" || !renkMi(sis["renk"]) || !sayiMi(sis["yogunluk"])) return h("ortam.sis", "acik/renk/yogunluk gerekli");
   if (!nesneMi(ton) || typeof ton["acik"] !== "boolean" || !sayiMi(ton["pozlama"]) || !sayiMi(ton["kontrast"])) return h("ortam.tonlama", "acik/pozlama/kontrast gerekli");
   if (!nesneMi(kam) || !sayiMi(kam["uzak"]) || kam["uzak"] <= 0) return h("ortam.kamera.uzak", "> 0 sayı");
+  const pk = ortam["piksel"];
+  if (pk !== undefined && (!Number.isInteger(pk) || (pk as number) < 1 || (pk as number) > 8)) return h("ortam.piksel", "1–8 tamsayı");
   const katmanlar = v["katmanlar"];
   if (!Array.isArray(katmanlar)) return h("katmanlar", "dizi değil");
   const adlar = new Set<string>();

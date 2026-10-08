@@ -105,6 +105,12 @@ export function isikSistemiKur(sahne: Scene): IsikSistemi {
       ip.toneMappingType = ImageProcessingConfiguration.TONEMAPPING_ACES;
       ip.exposure = ortam.tonlama.pozlama;
       ip.contrast = ortam.tonlama.kontrast;
+
+      // Piksel kipi: iç çözünürlüğü düşür, tuvali en-yakın komşuyla büyüt (bulanık değil keskin piksel).
+      const motor = sahne.getEngine(), piksel = ortam.piksel ?? 1;
+      if (motor.getHardwareScalingLevel() !== piksel) motor.setHardwareScalingLevel(piksel);
+      const tuval = motor.getRenderingCanvas();
+      if (tuval) tuval.style.imageRendering = piksel > 1 ? "pixelated" : "";
     },
     yokEt() {
       golge?.dispose();

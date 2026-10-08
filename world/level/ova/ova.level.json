@@ -54,7 +54,8 @@
     },
     "kamera": {
       "uzak": 1000
-    }
+    },
+    "piksel": 1
   },
   "katmanlar": [
     {
@@ -144,6 +145,12 @@
         "renk": "kaya",
         "koyu": "kayaKoyu"
       }
+    },
+    {
+      "tur": "cim",
+      "ad": "cim",
+      "acik": true,
+      "ayar": {}
     },
     {
       "tur": "uzakArazi",

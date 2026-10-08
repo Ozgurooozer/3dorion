@@ -9,6 +9,7 @@ import type { Scene } from "@babylonjs/core/scene";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import type { Renk } from "./renk.ts";
+import { RuzgarEklentisi, type RuzgarAyari } from "./ruzgar.ts";
 
 export type MalzemeTuru =
   /** Güneş ve dolguyla aydınlanır, gölge alabilir (zemin, kaya, çim). */
@@ -23,6 +24,8 @@ export interface MalzemeAyari {
   renk?: Renk;
   /** İki yüzlü çiz (ince çim yaprakları). */
   ciftYuz?: boolean;
+  /** Köşeleri rüzgârla salla (ruzgar.ts: kök y = 0, uç y ≈ 1). */
+  ruzgar?: RuzgarAyari;
 }
 
 export function malzemeKur(sahne: Scene, ad: string, tur: MalzemeTuru, ayar: MalzemeAyari = {}): StandardMaterial {
@@ -39,5 +42,6 @@ export function malzemeKur(sahne: Scene, ad: string, tur: MalzemeTuru, ayar: Mal
   } else {
     m.diffuseColor = renk;
   }
+  if (ayar.ruzgar) new RuzgarEklentisi(m, ayar.ruzgar);
   return m;
 }

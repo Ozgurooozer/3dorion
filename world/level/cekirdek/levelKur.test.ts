@@ -124,3 +124,19 @@ test("yokEt bütün katmanları yıkar", () => {
   level.yokEt();
   assert.deepEqual([sayac["a"]?.yik, sayac["zemin"]?.yik], [1, 1]);
 });
+
+// ── piksel kipi ──
+test("tanımda piksel yoksa 1 ile tamamlanır (panel alanı görsün)", () => {
+  const { level } = kur([katman("a")]);
+  assert.equal(level.tanim().ortam.piksel, 1);
+});
+test("piksel kipi motorun iç çözünürlük ölçeğine uygulanır", () => {
+  const { level, sahne } = kur([katman("a")]);
+  // NullEngine ölçeği okurken hep 1 döndürür: uygulanan değeri casusla yakala.
+  let uygulanan = 1;
+  sahne.getEngine().setHardwareScalingLevel = (n: number) => { uygulanan = n; };
+  const t = level.tanim();
+  t.ortam.piksel = 3;
+  level.ayarla(t);
+  assert.equal(uygulanan, 3);
+});

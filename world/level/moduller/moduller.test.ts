@@ -7,6 +7,7 @@ import { GOK_VARSAYILAN, gokGeometrisi } from "./gok.ts";
 import { ZEMIN_VARSAYILAN, zeminGeometrisi, zeminYuksekligi, zeminRenkAdi } from "./zemin.ts";
 import { BULUT_VARSAYILAN, bulutGeometrisi, bulutYerleri } from "./bulut.ts";
 import { KAYA_VARSAYILAN, kayaGeometrisi } from "./kaya.ts";
+import { CIM_VARSAYILAN, cimOrnekleri, tutamGeometrisi } from "./cim.ts";
 import { ayarBirlestir } from "../cekirdek/modul.ts";
 import { ucgenSayisi, type Geometri } from "../cekirdek/geometri.ts";
 import type { Renk } from "../cekirdek/renk.ts";
@@ -92,4 +93,55 @@ test("kayalar zemine oturur: en alt köşe zeminin biraz altında, havada değil
 });
 test("kaya sayısı 0 olunca geometri boş", () => {
   assert.equal(ucgenSayisi(kayaGeometrisi({ ...KAYA_VARSAYILAN, sayi: 0 }, () => 0, GRI, GRI)), 0);
+});
+
+// ── çim ──
+const CIM_AZ = { ...CIM_VARSAYILAN, sayi: 2000 };
+const yerY = (o: { matris: Float32Array }, i: number) => o.matris[i * 16 + 13]!;
+const yerXZ = (o: { matris: Float32Array }, i: number) => Math.hypot(o.matris[i * 16 + 12]!, o.matris[i * 16 + 14]!);
+const ADLI: Record<string, Renk> = { cimOrta: [0, 0.5, 0], cimUc: [1, 1, 0] };
+const adla = (ad: string): Renk => ADLI[ad]!;
+
+test("çim tutamı rüzgâr sözleşmesine uyar: kök y = 0, uç y = 1", () => {
+  const y = konumY(tutamGeometrisi(CIM_VARSAYILAN));
+  assert.deepEqual([Math.min(...y), Math.max(...y)], [0, 1]);
+});
+test("çim tutamı yaprak başına 3 üçgen", () => {
+  assert.equal(ucgenSayisi(tutamGeometrisi({ ...CIM_VARSAYILAN, yaprak: 4 })), 12);
+});
+test("çim normalleri yukarı (zeminle aynı ışık)", () => {
+  assert.ok(normalY(tutamGeometrisi(CIM_VARSAYILAN)).every((y) => y === 1));
+});
+test("çim kökü zemine oturur (örneğin y'si zemin yüksekliği)", () => {
+  const o = cimOrnekleri(CIM_AZ, (x, z) => 0.01 * x + 0.02 * z, () => null, adla);
+  for (let i = 0; i < o.adet; i++) {
+    const x = o.matris[i * 16 + 12]!, z = o.matris[i * 16 + 14]!;
+    assert.ok(Math.abs(yerY(o, i) - (0.01 * x + 0.02 * z)) < 1e-4);
+  }
+});
+test("çim alanın içinde", () => {
+  const o = cimOrnekleri(CIM_AZ, () => 0, () => null, adla);
+  for (let i = 0; i < o.adet; i++) assert.ok(yerXZ(o, i) <= CIM_AZ.yaricap + 1e-3);
+});
+test("çim açıklığı: bosluk büyüdükçe daha az tutam (açıklıklar açılır)", () => {
+  const hep = cimOrnekleri({ ...CIM_AZ, bosluk: 0 }, () => 0, () => null, adla).adet;
+  const az = cimOrnekleri({ ...CIM_AZ, bosluk: 0.5 }, () => 0, () => null, adla).adet;
+  assert.ok(az < hep * 0.75, `${hep} ${az}`);
+});
+test("çim merkeze yığılır: merkezYogunluk büyüdükçe iç yarıdaki pay artar", () => {
+  const ic = (k: number) => {
+    const o = cimOrnekleri({ ...CIM_AZ, bosluk: 0, merkezYogunluk: k }, () => 0, () => null, adla);
+    let n = 0;
+    for (let i = 0; i < o.adet; i++) if (yerXZ(o, i) < CIM_AZ.yaricap / 2) n++;
+    return n / o.adet;
+  };
+  assert.ok(ic(2.5) > ic(1) + 0.15, `${ic(1)} ${ic(2.5)}`);
+});
+test("çim rengi altındaki zeminden (uç karışımı 0 ve oynama 0 iken tam zemin rengi)", () => {
+  const o = cimOrnekleri({ ...CIM_AZ, ucKarisim: 0, renkOynama: 0 }, () => 0, () => [0.2, 0.4, 0.1], adla);
+  assert.deepEqual(Array.from(o.renk.slice(0, 3)).map((v) => +v.toFixed(4)), [0.2, 0.4, 0.1]);
+});
+test("çim tohumla belirleyici", () => {
+  const a = cimOrnekleri(CIM_AZ, () => 0, () => null, adla), b = cimOrnekleri(CIM_AZ, () => 0, () => null, adla);
+  assert.deepEqual(Array.from(a.matris.slice(0, 64)), Array.from(b.matris.slice(0, 64)));
 });
