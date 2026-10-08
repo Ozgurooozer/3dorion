@@ -153,6 +153,12 @@
       "ayar": {}
     },
     {
+      "tur": "dekor",
+      "ad": "dekor",
+      "acik": true,
+      "ayar": {}
+    },
+    {
       "tur": "uzakArazi",
       "ad": "uzakArazi",
       "acik": true,

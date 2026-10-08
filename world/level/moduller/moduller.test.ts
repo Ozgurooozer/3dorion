@@ -8,6 +8,7 @@ import { ZEMIN_VARSAYILAN, zeminGeometrisi, zeminYuksekligi, zeminRenkAdi } from
 import { BULUT_VARSAYILAN, bulutGeometrisi, bulutYerleri } from "./bulut.ts";
 import { KAYA_VARSAYILAN, kayaGeometrisi } from "./kaya.ts";
 import { CIM_VARSAYILAN, cimOrnekleri, tutamGeometrisi } from "./cim.ts";
+import { DEKOR_VARSAYILAN, dekorYerleri, dekorGeometrisi, silindir, kutu, kure } from "./dekor.ts";
 import { ayarBirlestir } from "../cekirdek/modul.ts";
 import { ucgenSayisi, type Geometri } from "../cekirdek/geometri.ts";
 import type { Renk } from "../cekirdek/renk.ts";
@@ -144,4 +145,44 @@ test("çim rengi altındaki zeminden (uç karışımı 0 ve oynama 0 iken tam ze
 test("çim tohumla belirleyici", () => {
   const a = cimOrnekleri(CIM_AZ, () => 0, () => null, adla), b = cimOrnekleri(CIM_AZ, () => 0, () => null, adla);
   assert.deepEqual(Array.from(a.matris.slice(0, 64)), Array.from(b.matris.slice(0, 64)));
+});
+
+// ── dekor (Nightfall City Props.js'ten) ──
+test("dekor yerleri halkanın içinde", () => {
+  for (const y of dekorYerleri(DEKOR_VARSAYILAN)) {
+    const r = Math.hypot(y.x, y.z);
+    assert.ok(r >= DEKOR_VARSAYILAN.icYaricap - 1e-9 && r <= DEKOR_VARSAYILAN.disYaricap + 1e-9, String(r));
+  }
+});
+test("dekor nesneleri birbirine en az `aralik` uzak", () => {
+  const y = dekorYerleri(DEKOR_VARSAYILAN);
+  let enAz = Infinity;
+  for (let i = 0; i < y.length; i++) for (let j = i + 1; j < y.length; j++) enAz = Math.min(enAz, Math.hypot(y[i]!.x - y[j]!.x, y[i]!.z - y[j]!.z));
+  assert.ok(enAz >= DEKOR_VARSAYILAN.aralik, String(enAz));
+});
+test("dekor tohumla belirleyici", () => {
+  assert.deepEqual(dekorYerleri(DEKOR_VARSAYILAN), dekorYerleri(DEKOR_VARSAYILAN));
+});
+test("dekor sayısı 0 olunca geometri boş", () => {
+  assert.equal(ucgenSayisi(dekorGeometrisi({ ...DEKOR_VARSAYILAN, agac: 0, bank: 0, lamba: 0 }, () => 0, renkAdla)), 0);
+});
+test("dekor zemine oturur: en alt köşe zemin yüksekliğinin hemen altında", () => {
+  const g = dekorGeometrisi({ ...DEKOR_VARSAYILAN, agac: 1, bank: 0, lamba: 0 }, () => 3, (ad) => (ad.startsWith("#") ? [0.5, 0.5, 0.5] : renkAdla(ad)));
+  const y = Math.min(...konumY(g));
+  assert.ok(y < 3 && y > 2.8, String(y));
+});
+test("silindir: kenar başına 4 üçgen (yan 2 + iki kapak)", () => {
+  assert.equal(silindir(1, 1, 0, 1, 6).length, 24);
+});
+test("kutu 12 üçgen", () => {
+  assert.equal(kutu(0, 0, 0, 1, 1, 1).length, 12);
+});
+test("küre: kutuplarda tek üçgen, arada iki (dilim·(2·bant−2))", () => {
+  assert.equal(kure(1, 8, 6, 0, 1, () => 0.5).length, 8 * (2 * 6 - 2));
+});
+test("dekor normalleri parça merkezinden dışa (ağaç tacının üst yüzleri yukarı bakar)", () => {
+  const g = dekorGeometrisi({ ...DEKOR_VARSAYILAN, agac: 1, bank: 0, lamba: 0, tacBozma: 0 }, () => 0, (ad) => (ad.startsWith("#") ? [0.5, 0.5, 0.5] : renkAdla(ad)));
+  const y = konumY(g), ny = normalY(g);
+  const tepe = y.indexOf(Math.max(...y));
+  assert.ok(ny[tepe]! > 0.5, String(ny[tepe]));
 });
