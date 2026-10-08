@@ -8,7 +8,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  bulunduguCapa, capaAdlari, capaBul, etkilesilebilirCapa, eylemVarMi, mesafeXZ,
+  bulunduguCapa, capaAdlari, capaBul, etkilesilebilirCapa, eylemVarMi, mesafeXZ, YER_HISTEREZISI,
   tumCapalar, yakinCapalar, yaklastiMi, BULUNMA_YARICAPI,
 } from "./capalar.ts";
 import { carpisiyorMu, SINIR } from "./olculer.ts";
@@ -152,6 +152,23 @@ test("her çapanın durağında durulunca o çapada bulunulur", () => {
 test("hiçbir durağın yakınında olmayan nokta hiçbir çapada değildir", () => {
   const uzak = { x: 1e3, z: 1e3 };
   assert.equal(bulunduguCapa(uzak), null);
+});
+
+test("histerezis: iki durağın ortasında mevcut yer korunur", () => {
+  const masa = capaBul("masa")!, admin = capaBul("admin")!;
+  const orta = { x: (masa.durak.x + admin.durak.x) / 2 + 0.05, z: masa.durak.z };   // admin'e biraz daha yakın
+  assert.equal(bulunduguCapa(orta, masa.etiket)?.ad, "masa");
+});
+
+test("histerezis: başka durak belirgin biçimde yakınsa yer değişir (terminalden sandalyeye)", () => {
+  const sandalye = capaBul("sandalye")!;
+  // Sandalyenin noktası: masa durağına 0,73 m, terminal durağına 1,16 m — fark eşikten büyük.
+  assert.notEqual(bulunduguCapa({ x: sandalye.konum.x, z: sandalye.konum.z }, capaBul("admin")!.etiket)?.ad, "admin");
+});
+
+test("yapışkanlık: mevcut yerin yarıçapından çıkınca en yakın yer kazanır", () => {
+  const tahta = capaBul("tahta")!;
+  assert.equal(bulunduguCapa(tahta.durak, capaBul("masa")!.etiket)?.ad, "tahta");
 });
 
 test("bulunma yarıçapı en az BULUNMA_YARICAPI'dır", () => {

@@ -50,12 +50,21 @@ test("'neredesin': konum satırı ŞİMDİ'de yaşıyla gelir", async () => {
   assert.match((await soyle("neredesin")).dunya, /\nYou are at: pencere \(arrived just now\)\./);
 });
 
-test("'ne konuşmuştuk': konuşma çekmecesinin en yenileri gelir, ortak kelime olmasa da", async () => {
-  const { soyle } = kur();
+test("'ne konuşmuştuk': pencerenin DIŞINDA kalan sözler çekmeceden gelir, ortak kelime olmasa da", async () => {
+  const { soyle } = kur({ yakinPencere: { kayit: 2, yasMs: 60_000 } });
   await soyle("kahve içtim");
   await soyle("terminal süzgeci üzerinde çalışıyorum");
+  await soyle("hava güzel");
   const g = await soyle("ne konuşmuştuk");
   assert.deepEqual(g.anilar?.map((a) => a.replace(/^\[[^\]]+\] /, "")), ["terminal süzgeci üzerinde çalışıyorum", "kahve içtim"]);
+});
+
+test("'ne konuşmuştuk': pencerede zaten görünen söz çekmeceden tekrar gelmez", async () => {
+  const { soyle } = kur({ yakinPencere: { kayit: 2, yasMs: 60_000 } });
+  await soyle("kahve içtim");
+  await soyle("hava güzel");
+  const g = await soyle("ne konuşmuştuk");
+  assert.equal(g.anilar?.some((a) => a.endsWith("hava güzel")), false);
 });
 
 test("başarısız niyet: ders çekmecesinden ilgili ders gelir", async () => {
@@ -93,4 +102,15 @@ test("karar kaydı: hiçbir şey istenmeyen uyanışta istek boş", async () => 
   const { soyle, uyanislar } = kur();
   await soyle("naber");
   assert.deepEqual(uyanislar().at(-1)?.hafizaIstegi, []);
+});
+
+test("çıkarılan araç modele sunulmaz (spec 16 F6)", async () => {
+  const { soyle } = kur({ cikarilanAraclar: ["dunya_al", "dunya_birak"] });
+  const g = await soyle("merhaba");
+  assert.equal(g.araclar.some((a) => a.ad === "dunya_al" || a.ad === "dunya_birak"), false);
+});
+
+test("çıkarılan araç verilmezse bütün araçlar sunulur", async () => {
+  const { soyle } = kur();
+  assert.ok((await soyle("merhaba")).araclar.some((a) => a.ad === "dunya_al"));
 });

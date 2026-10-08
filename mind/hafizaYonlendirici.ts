@@ -62,7 +62,8 @@ export const KURALLAR: readonly Kural[] = [
   { id: "is.once", kalip: /\b(ne yaptin|en son ne yaptin|neler yaptin|what did you do|what have you done|what did you just do)\b/,
     durum: ["son_is", "yapiyor"], ornekler: ["ne yaptın", "en son ne yaptın", "what did you do"] },
   { id: "konusma.gecmis", kalip: /\b(ne konus(tuk|mustuk)|neler konus(tuk|mustuk)|ne demistim|ne dedim|ne soylemistim|en son ne dedim|what did we talk|what were we talking|what did i (say|tell you)|what was i saying)\b/,
-    durum: ["son_ozyn", "son_orion"], cekmece: { cekmeceler: ["konusma"], mod: "son", adet: 4 },
+    // Durum satırı YOK: "son Ozyn sözü" bu sorunun kendisi olurdu (baglamdene 2. koşu); çekmece yeter.
+    cekmece: { cekmeceler: ["konusma"], mod: "son", adet: 6 },
     ornekler: ["ne konuşmuştuk", "daha önce ne konuştuk", "ne demiştim sana", "what did we talk about"] },
   { id: "hatirla", kalip: /\b(hatirliyor musun|hatirlar misin|hatirla|unuttun mu|daha once|gecen sefer|dun|remember|last time|yesterday|earlier today|did you forget)\b/,
     cekmece: { cekmeceler: ["konusma", "is", "ders"], mod: "ilgi", adet: 3 },

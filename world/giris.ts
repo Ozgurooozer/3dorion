@@ -1456,7 +1456,7 @@ function beyniBagla(a: Avatar): void {
   const durumKopru = kopru;
   setInterval(() => {
     try {
-      durumKopru.durum.konumGozlem(bulunduguCapa(a.durum().konum)?.etiket ?? "odanın ortası");
+      durumKopru.durum.konumGozlem(bulunduguCapa(a.durum().konum, durumKopru.durum.oku("konum")?.deger)?.etiket ?? "odanın ortası");
       durumKopru.durum.monitor(monitor.acikMi());
     } catch (err) { console.warn("[DURUM] gozlem hatasi:", err); }
   }, 500);

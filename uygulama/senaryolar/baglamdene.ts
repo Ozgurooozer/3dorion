@@ -48,12 +48,16 @@ export async function kos(d: SenaryoBaglami): Promise<void> {
 
   k.algi({ tur: "duydum", metin: "kalk", kesin: true });
   await bekle(2500);
+  // Kalkınca Orion masanın yanında durur; o an en yakın durak masa YA DA yönetim terminali olabilir
+  // (duraklar 0,9 m arayla). Önceki konum, tahtaya varmadan hemen önceki yerdir — 1. koşuda senaryo
+  // tahtaya varmayı beklemeden sordu (Orion hâlâ koşuyordu); artık varışı bekler.
+  const kalkinca = k.durum.oku("konum")?.deger;
   k.algi({ tur: "duydum", metin: "beyaz tahtaya git", kesin: true });
-  for (let t = 0; t < 15_000 && k.durum.oku("konum")?.deger === yer1; t += 250) await bekle(250);
+  for (let t = 0; t < 20_000 && k.durum.oku("konum")?.deger !== "beyaz tahta"; t += 250) await bekle(250);
   await bekle(1000);
   const yer2 = k.durum.oku("konum")?.deger;
   const once = k.durum.oku("onceki_konum")?.deger;
-  kontrol("defter: yer değişti, eskisi önceki konum", !!yer2 && yer2 !== yer1 && once === yer1, `yer=${yer2} önceki=${once}`);
+  kontrol("defter: tahtaya varınca konum tahta, önceki kalktığı yer", yer2 === "beyaz tahta" && once === kalkinca, `yer=${yer2} önceki=${once} kalkınca=${kalkinca}`);
   const c2 = await sor("neredeydin");
   kontrol("'neredeydin' → önceki yeri anıyor", aniyor(c2, once), `önceki=${once} cevap="${c2}"`);
 

@@ -48,6 +48,21 @@ Taban: F0 ölçüsüyle bugünkü kod (yalıtılmış hafıza, `yerel:qwen2.5:7b
 
 Dürüstlük: eşik tutmazsa olduğu gibi yazılır; eşik koşudan sonra değiştirilmez; sapma §6'ya tarihle.
 
+### F6 ön kaydı (F5 canlı sonuçları görüldükten SONRA, F6 koşusundan ÖNCE yazıldı — 2026-10-08)
+F5 ölçüsü gösterdi: konuşma uyanışında bağlamın ~%94'ü SABİT iskele (araçlar 4797 kr, talimat 1997,
+örnekler 653). Hafıza tarafı küçüldü ama toplamı taşımıyor. F6 iskeleye dokunur; davranış riski olduğu
+için önce çevrimdışı ölçü (`tools/eylem-olc.ts`, qwen2.5:7b, koşul temiz+faz1, n=5, 8 komut).
+- Kol T0: 14 araç (bugün). Kol T1: `dunya_al`, `dunya_birak`, `dunya_poz` çıkarılır — bütün karar
+  kaydı tarihinde (314 çağrı) al/birak 0 kez, poz 2 kez çağrıldı; poz doğrulayıcıda "oturuyor"a geçişi
+  zaten reddediyor (otur/kalk var). `dunya_dur` güvenlik için KALIR.
+
+| # | ölçüt | eşik | çürütme |
+|---|---|---|---|
+| P7 | T1 araç doğruluğu (doğru/toplam, iki koşul birlikte) | T0'dan en çok 2/80 düşük | > 2/80 düşük |
+| P8 | Araç şeması boyu | ≥ %10 küçülür | < %10 |
+
+P7 tutarsa T1 canlıya girer (`KopruAyari.cikarilanAraclar`); tutmazsa kalmaz, sonuç yazılır.
+
 ## 5. Sonuçlar
 ### F0 — ölçüm ve yalıtım `[TEST]`
 - Karar kaydının `uyanis` satırına `baglam` (bölüm başına karakter + `token`): `bridge/baglamOlcusu.ts`,
@@ -116,6 +131,20 @@ Dürüstlük: eşik tutmazsa olduğu gibi yazılır; eşik koşudan sonra deği�
 - Ekran: temizdeyken üstte kalıcı işaret; geçişler günlükte.
 - Bozma: 5/5.
 
+### Canlı ölçüm (2026-10-08, yalıtılmış hafıza; `tools/baglam-ozet.ts`) `[ÖLÇÜLDÜ]`
+| # | sonuç | karar |
+|---|---|---|
+| P1 | `hafizadene` qwen2.5:7b, konuşma uyanışı medyanı: otomatik 8255 kr / 2766 tok → yönlendirici 7892 kr / 2429 tok (**−%4 kr, −%12 tok**). Hafıza tarafı (geçmiş+dünya+anı) 640 → 268 kr (−%58) | **ÇÜRÜDÜ** (eşik %40). Hipotez yanlıştı: bağlamın ~%94'ü sabit iskele (araç 4797, talimat 1997, örnek 653). F6 bunun için |
+| P2 | `eylemdene` yönlendirici kipinde 6/6 | tuttu |
+| P3/P4 | `baglamdene` qwen: koşu 1 3/4, koşu 2 1/4 (tasarım hatası: "ne konuşmuştuk" pencereyi tekrar getiriyordu → düzeltildi), koşu 3–7: ne konuşmuştuk **5/5**, defter 5/5, neredesin 0/5, neredeydin 0/5 (konum etiketi yanlıştı: terminalin yanında doğan Orion sandalyede de "yönetim terminali"ydi → histerezis 0,3 m), koşu 8–9 (histerezisli) neredesin 1/2. Haiku koşu 1: neredesin ✓, neredeydin ✓, ne konuşmuştuk ✗ (aşağıda) | n=5 ön-kayıtlı partiler yarım kaldı (Ozyn durdurdu); **karar verilmedi** |
+| P6 | Bütün koşularda sorulmadan bağlama giren anı/durum satırı: **0** | tuttu |
+- qwen'de bilgi bağlamda doğruyken bile yok sayıldı (kayıt: `You are at: çalışma masası` → "sana oturuyorum"); Haiku aynı bağlamla doğru cevapladı ve düz metne hiç kaçmadı (`kurtarilanMetin` 0, qwen 6–8). Başarısızlıkların büyük kısmı modelin.
+- **Bulgu (düzeltilmedi):** Haiku adaptörü `claude -p`'yi proje klasöründe koşuyor; Claude Code'un CLAUDE.md'si ve hafızası Haiku'nun bağlamına giriyor — "ne konuşmuştuk"a "beyin haritası üzerinde çalışıyorduk" dedi (o konuşmada hiç geçmedi). Adaptör proje dışı boş bir klasörde koşmalı.
+- **Açık:** konumu geometri yerine yapılan işten almak (vardı/oturdu); F6 çevrimdışı ölçüsü (P7/P8).
+
 ## 6. Sapma kaydı
+- 2026-10-08 (koşudan sonra): "ne konuşmuştuk" pencerede zaten görüneni haric tutar, adet 4 → 6; durum
+  satırı (son söz) bu kuraldan çıktı (sorunun kendisini tekrarlıyordu). Konum: önce yapışkanlık, sonra 0,3 m
+  histerezis (`YER_HISTEREZISI`). Her değişiklik yeni bir parti başlattı; eski partiler tabloda ayrı.
 - 2026-10-08: canlı taban F0'da alınamadı (Ozyn o sırada Orion'u kullanıyordu); F5 öncesi alınacak.
   Taban koşusu süzgeçli kodla olacak: P1 tabanı "süzgeç sonrası, yönlendirici öncesi" sayılır.

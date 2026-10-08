@@ -38,7 +38,7 @@ test("'neredeydin' önceki konumu ve önceki oturumu da ister", () => {
 });
 
 test("'ne konuşmuştuk' konuşma çekmecesinin en yenilerini ister (kelime ilgisi değil)", () => {
-  assert.deepEqual(yonlendir({ sozler: ["ne konuşmuştuk"] }).cekmece, [{ cekmeceler: ["konusma"], mod: "son", adet: 4 }]);
+  assert.deepEqual(yonlendir({ sozler: ["ne konuşmuştuk"] }).cekmece, [{ cekmeceler: ["konusma"], mod: "son", adet: 6 }]);
 });
 
 test("sözde odadaki bir yerin adı geçerse konum istenir", () => {

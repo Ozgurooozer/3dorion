@@ -202,18 +202,31 @@ export function yaklastiMi(ad: string, nokta: { x: number; z: number }): boolean
 
 /** `bulunduguCapa`nın asgari yarıçapı (m): küçük yaklaşma yarıçaplı çapada da "orada" sayılabilsin. */
 export const BULUNMA_YARICAPI = 1.2;
+/** Mevcut yerin bırakılması için başka bir durağın ondan ne kadar daha yakın olması gerektiği (m). */
+export const YER_HISTEREZISI = 0.3;
 
 /**
  * Noktanın BULUNDUĞU çapa: durağı en yakın olan, `max(BULUNMA_YARICAPI, yaklasmaYaricapi)` içindeyse.
  * Hiçbirinin yanında değilse `null` (odanın ortası). Durum defterinin "konum"u bundan türer
  * (spec 16 F2) — ham koordinat modele bir şey anlatmıyordu.
  */
-export function bulunduguCapa(nokta: { x: number; z: number }): Capa | null {
+export function bulunduguCapa(nokta: { x: number; z: number }, mevcutEtiket?: string): Capa | null {
   let en: Capa | null = null;
   let enMesafe = Infinity;
   for (const c of KAYIT) {
     const m = mesafeXZ(nokta, c.durak);
     if (m < enMesafe) { enMesafe = m; en = c; }
+  }
+  // HİSTEREZİS: masa, monitör, sandalye ve yönetim terminalinin durakları 0,9 m içinde; kalkınca en
+  // yakın durak bir masa bir terminal oluyordu (baglamdene 2. koşu). Mevcut yer, başka bir durak
+  // ondan en az `YER_HISTEREZISI` daha yakın olana kadar korunur. Salt "yarıçaptaysa koru" kuralı
+  // (3.–7. koşu) yanlıştı: Orion terminalin yanında doğup sandalyeye oturunca da "terminalde" kalıyordu.
+  if (mevcutEtiket && en) {
+    const m = KAYIT.find((c) => c.etiket === mevcutEtiket);
+    if (m && m !== en) {
+      const d = mesafeXZ(nokta, m.durak);
+      if (d <= Math.max(BULUNMA_YARICAPI, m.yaklasmaYaricapi) && d - enMesafe < YER_HISTEREZISI) return m;
+    }
   }
   return en && enMesafe <= Math.max(BULUNMA_YARICAPI, en.yaklasmaYaricapi) ? en : null;
 }

@@ -129,6 +129,11 @@ export interface KopruAyari {
   hafizaKipi?: "otomatik" | "yonlendirici";
   /** Modele giden geçmiş penceresi (spec 16 K3). Verilmezse bütün `gecmisSiniri`. */
   yakinPencere?: { kayit: number; yasMs: number };
+  /**
+   * Modele HİÇ sunulmayan araçlar (spec 16 F6, ör. `dunya_al`). Yalnız sunum: protokol ve doğrulayıcı
+   * değişmez, doğuştan programlar etkilenmez. Verilmezse bütün araçlar.
+   */
+  cikarilanAraclar?: readonly string[];
   /** Odadaki yer adları (çapa etiketleri): sözde geçerse yönlendirici konumu ister. */
   yerAdlari?: () => readonly string[];
   /**

@@ -902,7 +902,10 @@ export class Kopru {
         yerAdlari: this._ayar.yerAdlari?.() ?? [],
       });
       uyanis.hafizaIstegi = istek.kurallar;
-      getirilen = this._istenenAnilar(istek.cekmece, icerikler);
+      // Yakın pencerede ZATEN görünen sözler çekmeceden tekrar gelmez: "ne konuşmuştuk" pencerenin
+      // ÖNCESİNİ getirmeli (baglamdene 1. koşu: pencerenin kendisini tekrar getirdi, eski bilgi dışarıda kaldı).
+      const penceredeki = this._yakinPencere(simdiMs).map((g) => g.metin).filter(Boolean);
+      getirilen = this._istenenAnilar(istek.cekmece, [...icerikler, ...penceredeki], icerikler);
       durumSatirlari = this._durum.satirlar(istek.durum);
       if (istek.kurallar.length) console.log(`[HAFIZA] istek: ${istek.kurallar.join(", ")} · durum ${durumSatirlari.length} satır · anı ${getirilen.length}`);
     } else {
@@ -990,7 +993,7 @@ export class Kopru {
         dunya,
         sabit: this._ayar.sabitBilgi?.(),
         gecmis,
-        araclar: araclariUret(),
+        araclar: this._araclar(),
       },
       sessiz,
       istekler,
@@ -1157,16 +1160,23 @@ export class Kopru {
   }
 
   /** Yönlendiricinin istediği çekmecelerden anılar; aynı anı iki istekten gelirse bir kez. */
-  private _istenenAnilar(istekler: readonly CekmeceIstegi[], icerikler: string[]): GetirSonucu[] {
+  private _istenenAnilar(istekler: readonly CekmeceIstegi[], haric: string[], icerikler: string[]): GetirSonucu[] {
     const sonuc: GetirSonucu[] = [];
     const gorulen = new Set<string>();
     for (const i of istekler) {
       const r = i.mod === "son"
-        ? this._hafiza.sonlar(i.cekmeceler, i.adet, icerikler)
-        : (icerikler.length ? this._hafiza.getir(icerikler.join(" "), i.adet, icerikler, i.cekmeceler) : []);
+        ? this._hafiza.sonlar(i.cekmeceler, i.adet, haric)
+        : (icerikler.length ? this._hafiza.getir(icerikler.join(" "), i.adet, haric, i.cekmeceler) : []);
       for (const x of r) if (!gorulen.has(x.ani.metin)) { gorulen.add(x.ani.metin); sonuc.push(x); }
     }
     return sonuc;
+  }
+
+  /** Modele sunulan araçlar (spec 16 F6): `cikarilanAraclar` dışındakiler. */
+  private _araclar(): ReturnType<typeof araclariUret> {
+    const c = this._ayar.cikarilanAraclar;
+    const hepsi = araclariUret();
+    return c?.length ? hepsi.filter((a) => !c.includes(a.ad)) : hepsi;
   }
 
   private _gecmiseEkle(k: BeyinGirdisi["gecmis"][number]): void {

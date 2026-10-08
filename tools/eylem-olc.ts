@@ -14,6 +14,7 @@
 //
 // Kullanım:
 //   node --experimental-strip-types tools/eylem-olc.ts --model=qwen2.5:7b [--n=5] [--kosul=temiz,canli]
+//        [--cikar=dunya_al,dunya_birak]   (spec 16 F6: araç alt kümesi kolu — bu araçlar modele gitmez)
 //
 // Ham çıktı HER ZAMAN basılır: özet sayı aletin yanlış saydığını gizler.
 "use strict";
@@ -41,6 +42,9 @@ const arg = (ad: string, v?: string) =>
 const model = arg("model", "qwen2.5:7b")!;
 const n = Number(arg("n", "5"));
 const kosullar = arg("kosul", "temiz,faz1,canli")!.split(",");
+const cikar = new Set((arg("cikar", "") ?? "").split(",").filter(Boolean));
+const araclar = araclariUret().filter((a) => !cikar.has(a.ad));
+if (cikar.size) console.log(`araç kolu: ${araclar.length} araç (çıkarılan: ${[...cikar].join(", ")}) · ${JSON.stringify(araclar).length} kr`);
 const f = JSON.parse(fs.readFileSync(arg("fixture", "fixtures/eylem/komutlar.json")!, "utf8")) as Fixture;
 
 // Yetenekler canlıdaki gibi katalogdan: düşünen modele `think:false` gitsin.
@@ -69,7 +73,7 @@ for (const kosul of kosullar) {
         dunya: f.durumlar[k.durum] ?? "",
         sabit,
         gecmis: kosul === "canli" ? f.canliGecmis : kosul === "faz1" ? f.canliFaz1Gecmis : [],
-        araclar: araclariUret(),
+        araclar,
       };
       const t0 = Date.now();
       try {
