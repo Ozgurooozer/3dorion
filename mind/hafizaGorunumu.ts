@@ -12,6 +12,7 @@
 import type { Ani, GetirSonucu } from "./hafiza.ts";
 import type { BenlikGoruntusu } from "./benlik.ts";
 import { oncesiSozu } from "./zaman.ts";
+import type { DurumKaydi } from "./durumDefteri.ts";
 
 export interface HafizaKelimesi {
   kabuk: 0 | 1 | 2; metin: string; not: string; boyut: number; soluk: number; kirmizi?: boolean; sayi: string;
@@ -26,6 +27,8 @@ export interface HafizaGirdisi {
   getirilen: readonly GetirSonucu[];
   simdi: number;
   enFazlaDerin?: number;
+  /** Durum defteri (spec 16 F2): ANLIK kabukta, KALICI diye işaretli; bağlama yalnız sorulunca girer. */
+  durum?: readonly DurumKaydi[];
 }
 
 const kisa = (m: string, n = 26) => (m.length > n ? m.slice(0, n - 1) + "…" : m);
@@ -43,6 +46,10 @@ export function hafizaKelimeleri(g: HafizaGirdisi): HafizaKelimesi[] {
   for (const y of b.yapiyorum) k.push({ kabuk: 1, metin: y.ozet, not: `benlik · yapıyorum (${y.eden})`, boyut: 0.7, soluk: 0, sayi: `${Math.round((b.an - y.basladi) / 1000)} sn` });
   if (b.bekliyorum) k.push({ kabuk: 1, metin: `bekliyor: ${kisa(b.bekliyorum.ozet, 22)}`, not: `benlik · ${b.bekliyorum.ne === "onay" ? "onayını bekliyor" : "sonucunu bekliyor"}: ${b.bekliyorum.ozet}`, boyut: 0.7, soluk: 0, sayi: `${Math.round((b.an - b.bekliyorum.basladi) / 1000)} sn` });
   if (b.dusunce.uyanik) k.push({ kabuk: 1, metin: "düşünüyor", not: `benlik · ${b.dusunce.beyin}`, boyut: 0.7, soluk: 0, sayi: `${Math.round((b.an - b.dusunce.basladi) / 1000)} sn` });
+  for (const d of g.durum ?? []) {
+    k.push({ kabuk: 1, metin: kisa(`${d.anahtar}: ${d.deger}`), not: `durum defteri (kalıcı; bağlama yalnız sorulunca) · ${d.anahtar}: ${d.deger} · ${oncesiSozu(g.simdi - d.t)}`,
+      boyut: 0.6, soluk: 0, sayi: oncesiSozu(g.simdi - d.t).replace(/ ago$/, "") });
+  }
   for (const c of g.calisma) k.push({ kabuk: 1, metin: kisa(c), not: `çalışma belleği · ${c}`, boyut: 0.5, soluk: 0.2, sayi: "30 sn" });
   for (const m of g.gecmis.slice(-8)) {
     const metin = m.cagri ? m.cagri.ad.replace(/^dunya_/, "→ ") : m.metin;

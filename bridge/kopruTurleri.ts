@@ -121,6 +121,17 @@ export interface KopruAyari {
    */
   hafizaGetirme?: number;
   /**
+   * Bağlama hafıza NASIL girer (spec 16). "otomatik" (varsayılan, eski davranış): her uyanışta
+   * sözle ortak kelimesi olan `hafizaGetirme` anı. "yonlendirici": yalnız kural yönlendiricinin
+   * istediği (mind/hafizaYonlendirici.ts) — durum satırları ve çekmeceler; sorulmayan girmez.
+   * İkisi de kalır: aynı yapıda kıyas ölçüsü alınabilsin (spec 16 P1).
+   */
+  hafizaKipi?: "otomatik" | "yonlendirici";
+  /** Modele giden geçmiş penceresi (spec 16 K3). Verilmezse bütün `gecmisSiniri`. */
+  yakinPencere?: { kayit: number; yasMs: number };
+  /** Odadaki yer adları (çapa etiketleri): sözde geçerse yönlendirici konumu ister. */
+  yerAdlari?: () => readonly string[];
+  /**
    * Uzun vadeli hafızanın kapasitesi (anı). Fonksiyon verilirse her budamada okunur — devre
    * panosunun teli (`PANO_TELLERI.hafiza.kapasite`) buraya bağlanır. Verilmezse 300. Eskiden
    * panodaki tel yalnız paneli besliyordu, köprü hep 300'le budardı (spec 16 F1'de bağlandı).
@@ -137,6 +148,11 @@ export interface KopruAyari {
    * Hatası yutulur — depo bozuksa Orion hafızasız çalışır ama ÇALIŞIR.
    */
   hafizaDeposu?: { oku(): unknown[]; yaz(aniler: unknown[]): void };
+  /**
+   * Durum defterinin (spec 16 F2, mind/durumDefteri.ts) OTURUMLAR ARASI deposu: konum, son iş,
+   * son konuşma… Verilmezse defter yalnız bellekte yaşar. Hatası yutulur.
+   */
+  durumDeposu?: { oku(): unknown[]; yaz(kayitlar: unknown[]): void };
   simdi?: () => number;
   /**
    * İÇ SES (spec 13): sesli okunmayan söz ve düz metin — hareket zincirinde susturulan
@@ -210,6 +226,12 @@ export const HAREKET_OLAYLARI: ReadonlySet<string> = new Set([
 
 /** Bedeni hareket ettirmeyen niyetler: eylem sırasına girmez, hemen gider. */
 export const SOZ_NIYETLERI: ReadonlySet<NiyetTur> = new Set(["soyle", "sor"]);
+
+/**
+ * İŞ niyetleri (spec 16 F2): durum defterinin "yapıyor / son iş" satırına girenler. Bakış, jest,
+ * poz ve söz İŞ değildir — "son yaptığın şey: başını salladın" bir soruya cevap olmaz.
+ */
+export const IS_NIYETLERI: ReadonlySet<NiyetTur> = new Set(["git", "otur", "kalk", "yaz", "komut", "odaklan"]);
 
 /** Bir beyin turunun çıktısı işlenirken biriken parçalar. */
 export interface TurCiktisi {

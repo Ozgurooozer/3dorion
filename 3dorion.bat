@@ -21,6 +21,7 @@ rem    3dorion.bat tahtadene  Orion tahtaya yaziyor mu (yakinlik kurali dahil)
 rem    3dorion.bat apidene    API anahtarli beyin uctan uca (sahte yerel sunucuyla)
 rem    3dorion.bat benlikdene anlik benlik: onerinin yasam dongusu (spec 12)
 rem    3dorion.bat eylemdene  otur / bana gel / bilgisayari ac / tahtaya git (spec 13)
+rem    3dorion.bat baglamdene temiz baglam (spec 16): neredesin / neredeydin / ne konusmustuk
 rem    3dorion.bat mikrofon   Orion'u MIKROFONLA dene: V tusunu basili tut, Ingilizce konus (Nemotron Speech)
 rem    3dorion.bat zihindene  zihin duvari panelleri (sema + gunluk) gozle dogrulanir
 rem    3dorion.bat admindene  yonetim terminali gercek kabuk mu, Orion'a siziyor mu
@@ -83,6 +84,7 @@ if /i "%MOD%"=="apidene" goto :apidene
 if /i "%MOD%"=="benlikdene" goto :benlikdene
 if /i "%MOD%"=="eylemdene" goto :eylemdene
 if /i "%MOD%"=="mikrofon" goto :mikrofon
+if /i "%MOD%"=="baglamdene" goto :baglamdene
 if /i "%MOD%"=="tahtabeyin" goto :tahtabeyin
 if /i "%MOD%"=="becerdene" goto :becerdene
 if /i "%MOD%"=="gelistir" goto :gelistir
@@ -174,6 +176,16 @@ set "ORION_BEYIN_ADRES=http://127.0.0.1:9"
 set "ORION_SMOKE=1"
 rem 120 sn: S5/S6 ekrani her 3 pikselde tarar, 30 sn senaryoyu yarida kesiyordu.
 set "ORION_SMOKE_MS=120000"
+call npx electron .
+goto :son
+
+:baglamdene
+echo [baglamdene] Sorulani biliyor mu: neredesin - neredeydin - ne konusmustuk (spec 16)
+call npx vite build
+if errorlevel 1 goto :hata
+set "ORION_BAGLAMDENE=1"
+set "ORION_SMOKE=1"
+set "ORION_SMOKE_MS=240000"
 call npx electron .
 goto :son
 

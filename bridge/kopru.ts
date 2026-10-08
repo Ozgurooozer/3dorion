@@ -31,7 +31,9 @@ import { oncesiSozu } from "../mind/zaman.ts";
 import { sozEylemUcurumu } from "../mind/sozEylem.ts";
 import { ingilizceMi } from "../mind/dilSecimi.ts";
 import { komutCoz, type KomutEslesmesi } from "../mind/komutSozlugu.ts";
-import { AnlikBenlik, eden, type Eden } from "../mind/benlik.ts";
+import { AnlikBenlik, eden, niyetOzeti, type Eden } from "../mind/benlik.ts";
+import { DurumDefteri, type DurumKaydi } from "../mind/durumDefteri.ts";
+import { yonlendir, type CekmeceIstegi } from "../mind/hafizaYonlendirici.ts";
 import { terminalAyristir } from "../mind/durumKodu.ts";
 import { suzgecMercegi, type MercekOnerisi } from "../mind/mercekSuzgec.ts";
 import { araclariUret, cagriyiNiyete } from "./araclar.ts";
@@ -43,7 +45,7 @@ import { metinKurtar } from "./metinKurtarma.ts";
 import { EylemSirasi } from "./eylemSirasi.ts";
 import { BeceriRefleksi, type RefleksGeriVerme } from "./beceriRefleksi.ts";
 import { programPlani } from "./komutProgrami.ts";
-import { REFLEKS_ONEKI, REFLEKS_ONAYI, REFLEKS_ZAMAN_ASIMI_MS, HAREKET_OLAYLARI, SOZ_NIYETLERI, SUSMA_ILANI, inisiyatifOlayiMi, ZINCIR_AZAMI } from "./kopruTurleri.ts";
+import { REFLEKS_ONEKI, REFLEKS_ONAYI, REFLEKS_ZAMAN_ASIMI_MS, HAREKET_OLAYLARI, SOZ_NIYETLERI, IS_NIYETLERI, SUSMA_ILANI, inisiyatifOlayiMi, ZINCIR_AZAMI } from "./kopruTurleri.ts";
 import type { KopruAyari, KopruSayaci, TurCiktisi } from "./kopruTurleri.ts";
 export { REFLEKS_ONEKI, REFLEKS_ONAYI, REFLEKS_ZAMAN_ASIMI_MS, ZINCIR_AZAMI } from "./kopruTurleri.ts";
 export type { KopruAyari, SuzgecKarari, KopruSayaci } from "./kopruTurleri.ts";
@@ -83,6 +85,11 @@ export class Kopru {
   private _turIcerikleri: string[] = [];
   /** Bu turda Ozyn'in sözleri — söz-eylem bekçisi yalnız istenen eylemlere bakar. */
   private _turSozleri: string[] = [];
+  /** Bu turdaki terminal çıktısının hâli ve niyet hatası (spec 16 F4: yönlendiricinin girdisi). */
+  private _turTerminal: "basarili" | "hatali" | undefined;
+  private _turNiyetHatasi = false;
+  /** Geçmiş kaydının eklenme anı (yakın pencerenin yaş sınırı için; kaydın biçimi değişmez). */
+  private _gecmisZamani = new WeakMap<object, number>();
   private _gecmis: BeyinGirdisi["gecmis"] = [];
   private _zamanlayici: ReturnType<typeof setTimeout> | null = null;
   private _dusunuyor = false;
@@ -119,6 +126,10 @@ export class Kopru {
   });
   /** ANLIK BENLİK (spec 12, mind/benlik.ts): "şu an ne yapıyorum, neyi bekliyorum". Diske gitmez. */
   private _benlik: AnlikBenlik;
+  /** Kalıcı "şu an" bilgisi (spec 16 F2). Bağlama yalnız yönlendirici isterse girer. */
+  private _durum: DurumDefteri;
+  /** Gönderilen İŞ niyetlerinin özeti, kimliğiyle: sonuç gelince "son iş" yazılır. */
+  private _isler = new Map<string, string>();
   /** Son düşünme turunda hafızadan getirilenler (hafıza görünümü okur). */
   private _sonGetirilen: readonly GetirSonucu[] = [];
   /** İşlenmekte olan algıya süzgeç merceğinin önerisi — benlik güncellenmeden ÖNCE (gölge). */
@@ -136,6 +147,10 @@ export class Kopru {
     this._hafiza = new Hafiza({ simdi: ayar.simdi, ...(ayar.hafizaKapasite !== undefined ? { kapasite: ayar.hafizaKapasite } : {}) });
     this._calisma = calismaBellegiKur({ simdi: ayar.simdi });
     this._benlik = new AnlikBenlik({ simdi: ayar.simdi, beden: ayar.bedenDurumu });
+    let durumKayitlari: unknown[] = [];
+    try { durumKayitlari = ayar.durumDeposu?.oku() ?? []; }
+    catch (err) { console.warn("[DURUM] defter okunamadi, bos baslaniyor:", err); }
+    this._durum = new DurumDefteri({ ...(ayar.simdi ? { simdi: ayar.simdi } : {}), kayitlar: durumKayitlari, degisti: () => this._durumYaz() });
     // İÇGÜDÜ `kayit`: köprü kaydını DOĞUŞTAN kurar — kimse açmak zorunda değil.
     this._kayit = ayar.kararKaydi ?? new KararKaydi({ simdi: ayar.simdi });
     this._kayit.oturumBasi(ayar.beyin.ad);
@@ -249,11 +264,17 @@ export class Kopru {
   private _gonder(n: Niyet, id: string): void {
     try { this._benlik.niyetGonderildi(id, n, "ben"); }
     catch (err) { console.error("[BENLIK] niyet yazilamadi:", err); }
+    if (IS_NIYETLERI.has(n.tur)) {
+      const ozet = niyetOzeti(n);
+      this._isler.set(id, ozet);
+      this._durum.isBasladi(ozet);
+    }
     this._ayar.niyetGonder(n, id);
   }
 
   private _konusmaYay(metin: string): void {
     this._benlik.soyledi(metin);
+    this._durum.orionDedi(metin);
     for (const d of this._konusmaDinleyiciler) {
       try { d(metin); } catch (err) { console.error("[kopru] konuşma dinleyicisi hatası:", err); }
     }
@@ -345,6 +366,14 @@ export class Kopru {
     this._algiEdeni = eden(a, once);
     this._algiMercegi = suzgecMercegi(a, once);
     if (a.tur === "sonuc") this._benlik.sonucGeldi(a.sonuc);
+    if (a.tur === "sonuc" && a.sonuc.durum !== "basladi") {
+      const ozet = this._isler.get(a.sonuc.niyet_id);
+      if (ozet !== undefined) {
+        this._isler.delete(a.sonuc.niyet_id);
+        this._durum.isBitti(ozet, a.sonuc.durum === "bitti" ? "done" : `${a.sonuc.durum}${a.sonuc.not ? `: ${a.sonuc.not}` : ""}`);
+      }
+    }
+    if (a.tur === "duydum" && a.kesin) this._durum.ozynDedi(a.metin);
     else if (a.tur === "terminal") this._benlik.terminalBitti(terminalAyristir(a.kuyruk).komut, a.kod);
   } catch (err) {
     this._algiEdeni = undefined;
@@ -438,11 +467,13 @@ export class Kopru {
   else icerik = this._aniyaYaz(a, ozet);
   this._turIcerikleri.push(icerik);
   this._turTurleri.add(a.tur);
+  if (a.tur === "terminal") this._turTerminal = (a.kod ?? 0) !== 0 ? "hatali" : (this._turTerminal ?? "basarili");
+  if (a.tur === "sonuc" && a.sonuc.durum === "hata") this._turNiyetHatasi = true;
 
   if (a.tur === "duydum") {
     // Kullanıcı konuştu: bekletme, hemen düşün.
     this._dikkat.sifirla();
-    this._gecmis.push({ rol: "kullanici", metin: a.metin });
+    this._gecmiseEkle({ rol: "kullanici", metin: a.metin });
     this._kirp();
     this._turSozleri.push(a.metin);
     this._hemenDusun();
@@ -566,7 +597,7 @@ export class Kopru {
    */
   private _refleksiGeriAl(g: RefleksGeriVerme): void {
     if (this._durduruldu) return;
-    this._gecmis.push({ rol: "kullanici", metin: g.soz });
+    this._gecmiseEkle({ rol: "kullanici", metin: g.soz });
     this._kirp();
     this._tampon.push(g.ozet);
     this._tamponIdleri.push(g.algi);
@@ -593,13 +624,13 @@ export class Kopru {
     this._aniyaYaz(a, ozet);
     this._dikkat.sifirla();
     this._sayac.komut++;
-    this._gecmis.push({ rol: "kullanici", metin: a.metin });
+    this._gecmiseEkle({ rol: "kullanici", metin: a.metin });
     this._kirp();
 
     // Plan saf (bridge/komutProgrami.ts): doğrulanmış adımlar, kayıt niyetleri, geçmiş çağrıları.
     const { adimlar, niyetler, cagrilar, hata } = programPlani(p);
     for (const cagri of cagrilar) {
-      this._gecmis.push({ rol: "orion", metin: "", arac: true, cagri });
+      this._gecmiseEkle({ rol: "orion", metin: "", arac: true, cagri });
       this._kirp();
     }
     // Program tablosu testli; geçersiz adım bir yazılım hatasıdır — sessiz kalmasın.
@@ -651,6 +682,20 @@ export class Kopru {
 
   /** Tanılama/ölçüm: hafızaya doğrudan erişim. */
   get hafiza(): Hafiza { return this._hafiza; }
+  /** Durum defteri (spec 16 F2): dünya konumu ve monitörü buraya yazar. */
+  get durum(): DurumDefteri { return this._durum; }
+
+  /** Durum defterini depoya yaz — hafızayla aynı kısma penceresi (3 sn). */
+  private _durumSaat: ReturnType<typeof setTimeout> | null = null;
+  private _durumYaz(): void {
+    const depo = this._ayar.durumDeposu;
+    if (!depo || this._durumSaat) return;
+    this._durumSaat = setTimeout(() => {
+      this._durumSaat = null;
+      try { depo.yaz(this._durum.kayitlar()); }
+      catch (err) { console.warn("[DURUM] defter yazilamadi:", err); }
+    }, 3000);
+  }
   /** Devre panosu okuyucusu — dikkat ayarları ve sayaçları panelde görünsün. */
   get dikkat(): Dikkat { return this._dikkat; }
 
@@ -658,8 +703,9 @@ export class Kopru {
    * HAFIZA GÖRÜNÜMÜ için okuma (spec 13 Faz 5): derin (anılar), anlık (çalışma belleği,
    * konuşma penceresi) ve son turda getirilenler. Kopya döner; yalnız gözlem.
    */
-  hafizaGorunumu(): { derin: Ani[]; calisma: string[]; gecmis: BeyinGirdisi["gecmis"]; getirilen: GetirSonucu[] } {
+  hafizaGorunumu(): { derin: Ani[]; calisma: string[]; gecmis: BeyinGirdisi["gecmis"]; getirilen: GetirSonucu[]; durum: DurumKaydi[] } {
     return {
+      durum: this._durum.kayitlar(),
       derin: this._hafiza.dok(),
       calisma: this._calisma.satirlar(),
       gecmis: this._gecmis.map((g) => ({ ...g })),
@@ -688,6 +734,12 @@ export class Kopru {
       this._hafizaSaat = null;
       try { this._ayar.hafizaDeposu?.yaz(this._hafiza.dok()); }
       catch (err) { console.warn("[hafiza] kapanista yazilamadi:", err); }
+    }
+    if (this._durumSaat) {
+      clearTimeout(this._durumSaat);
+      this._durumSaat = null;
+      try { this._ayar.durumDeposu?.yaz(this._durum.kayitlar()); }
+      catch (err) { console.warn("[DURUM] kapanista yazilamadi:", err); }
     }
   }
 
@@ -791,11 +843,29 @@ export class Kopru {
     // Sorgu da İÇERİK olmalı: kalıpla sorgulamak kalıpla eşleşmeye yol açar.
     const icerikler = this._turIcerikleri.splice(0);
     const istekler = this._turSozleri.splice(0);
-    const getirilen = adet > 0 && icerikler.length
-      // Bu turun içerikleri hafızaya az önce yazıldı; anı olarak geri
-      // gelmeleri "hatırlamak" değil kendini tekrar etmektir.
-      ? this._hafiza.getir(icerikler.join(" "), adet, icerikler)
-      : [];
+    const turTerminal = this._turTerminal, turNiyetHatasi = this._turNiyetHatasi;
+    this._turTerminal = undefined; this._turNiyetHatasi = false;
+    let getirilen: GetirSonucu[];
+    let durumSatirlari: string[] = [];
+    if (this._ayar.hafizaKipi === "yonlendirici") {
+      // SPEC 16: bağlama yalnız İSTENEN girer. Yönlendirici sözden karar verir; varsayılan boş.
+      const istek = yonlendir({
+        sozler: istekler,
+        ...(turTerminal ? { terminal: turTerminal } : {}),
+        niyetHatasi: turNiyetHatasi,
+        yerAdlari: this._ayar.yerAdlari?.() ?? [],
+      });
+      uyanis.hafizaIstegi = istek.kurallar;
+      getirilen = this._istenenAnilar(istek.cekmece, icerikler);
+      durumSatirlari = this._durum.satirlar(istek.durum);
+      if (istek.kurallar.length) console.log(`[HAFIZA] istek: ${istek.kurallar.join(", ")} · durum ${durumSatirlari.length} satır · anı ${getirilen.length}`);
+    } else {
+      getirilen = adet > 0 && icerikler.length
+        // Bu turun içerikleri hafızaya az önce yazıldı; anı olarak geri
+        // gelmeleri "hatırlamak" değil kendini tekrar etmektir.
+        ? this._hafiza.getir(icerikler.join(" "), adet, icerikler)
+        : [];
+    }
     // Zihin duvarının hafıza görünümü bu turda neyin hatırlandığını gösterir (spec 13 Faz 5).
     this._sonGetirilen = getirilen;
     // ZAMAN ETİKETİ (spec 06 K3): anı, şimdiki bilgiden ayırt edilebilsin.
@@ -839,7 +909,8 @@ export class Kopru {
     // ŞİMDİ (spec 06 K2/K3): anlık gözlemler dünya durumunun yanında,
     // yaşlarıyla. Anılarla aynı listede değil — karışması bu spec'in
     // çözdüğü hatanın ta kendisiydi.
-    const dunya = [this._ayar.dunyaDurumu(), ...this._calisma.satirlar()].join("\n");
+    // Durum defterinin istenen satırları da ŞİMDİ'dedir (durum, anı değil; yaşıyla — spec 16 F2).
+    const dunya = [this._ayar.dunyaDurumu(), ...durumSatirlari, ...this._calisma.satirlar()].join("\n");
     uyanis.dunya = dunya;
     // `dunya` da basılır: beynin ZEMİNİ o metin. Görünmezse "model neden
     // böyle cevap verdi" sorusu yanıtsız kalıyor — özetler bağlamın
@@ -857,7 +928,7 @@ export class Kopru {
     // Sorun gecmisin VARLIGI degil, NASIL TEMSIL EDILDIGIYDI: duz metin
     // asistan turu "asistan duz metin yazar" ornegi veriyordu. Arac cagrisi
     // olarak temsil edilince ayni gecmis FAYDALI hale geldi (bkz. ollama.ts).
-    const gecmis = this._gecmis.slice();
+    const gecmis = this._yakinPencere(simdiMs);
 
     const ornekler = ornekUret({
       terminal: turler.has("terminal"),
@@ -967,7 +1038,7 @@ export class Kopru {
         console.warn(`[kopru] arac cagrilmadi, temiz metin konusmaya cevrildi: "${metin.slice(0, 80)}"`);
         this._konusmaYay(metin);
         // Söylendi: geçmişe SÖZ olarak girer (düz metin olarak değil — bkz. yukarı).
-        this._gecmis.push({ rol: "orion", metin, arac: true });
+        this._gecmiseEkle({ rol: "orion", metin, arac: true });
         this._kirp();
         tur.sozler.push(metin);
       } else if (!konusulabilir && kurtarilan.length === 0) {
@@ -1011,7 +1082,7 @@ export class Kopru {
       if (tur.sessiz) { tur.icSes.push(n.metin); return; }
       if (this._konusmaDinleyiciler.size) {
         this._konusmaYay(n.metin);
-        this._gecmis.push({ rol: "orion", metin: n.metin, arac: true });
+        this._gecmiseEkle({ rol: "orion", metin: n.metin, arac: true });
         this._kirp();
       }
       tur.sozler.push(n.metin);
@@ -1022,9 +1093,39 @@ export class Kopru {
     if (SOZ_NIYETLERI.has(n.tur)) { this._gonder(n, id); return; }
     // Beden niyeti geçmişe ARAÇ olarak girer (spec 13): model "komut → eylem" görsün.
     const { tur: nt, ...girdi } = n;
-    this._gecmis.push({ rol: "orion", metin: "", arac: true, cagri: { ad: `dunya_${nt}`, girdi } });
+    this._gecmiseEkle({ rol: "orion", metin: "", arac: true, cagri: { ad: `dunya_${nt}`, girdi } });
     this._kirp();
     tur.beden.push({ niyet: n, id });
+  }
+
+  /**
+   * Modele giden geçmiş. `yakinPencere` verilmezse bütün pencere (gecmisSiniri). Verilirse yalnız son
+   * `kayit` kayıt ve `yasMs`ten yeni olanlar (spec 16 K3): "evet", "onu da yap" anlaşılsın diye az
+   * önceki alışveriş kalır; daha eskisi yalnız sorulunca konuşma çekmecesinden gelir. Zihin
+   * duvarının penceresi bundan etkilenmez (orada bütün pencere görünür).
+   */
+  private _yakinPencere(simdi: number): BeyinGirdisi["gecmis"] {
+    const p = this._ayar.yakinPencere;
+    if (!p) return this._gecmis.slice();
+    return this._gecmis.slice(-p.kayit).filter((k) => simdi - (this._gecmisZamani.get(k) ?? simdi) <= p.yasMs);
+  }
+
+  /** Yönlendiricinin istediği çekmecelerden anılar; aynı anı iki istekten gelirse bir kez. */
+  private _istenenAnilar(istekler: readonly CekmeceIstegi[], icerikler: string[]): GetirSonucu[] {
+    const sonuc: GetirSonucu[] = [];
+    const gorulen = new Set<string>();
+    for (const i of istekler) {
+      const r = i.mod === "son"
+        ? this._hafiza.sonlar(i.cekmeceler, i.adet, icerikler)
+        : (icerikler.length ? this._hafiza.getir(icerikler.join(" "), i.adet, icerikler, i.cekmeceler) : []);
+      for (const x of r) if (!gorulen.has(x.ani.metin)) { gorulen.add(x.ani.metin); sonuc.push(x); }
+    }
+    return sonuc;
+  }
+
+  private _gecmiseEkle(k: BeyinGirdisi["gecmis"][number]): void {
+    this._gecmis.push(k);
+    this._gecmisZamani.set(k, this._ayar.simdi?.() ?? Date.now());
   }
 
   private _kirp(): void {

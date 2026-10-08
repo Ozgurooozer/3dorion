@@ -80,9 +80,9 @@ export function zihinDuvariniBagla(b: ZihinDuvariBaglami): ZihinDuvariKancalari 
     const h = kopru.hafizaGorunumu();
     return hafizaKelimeleri({
       icguduler: icguduListesi, benlik: kopru.benlik.oku(), calisma: h.calisma, gecmis: h.gecmis,
-      derin: h.derin, getirilen: h.getirilen, simdi: Date.now(),
+      derin: h.derin, getirilen: h.getirilen, simdi: Date.now(), durum: h.durum,
     });
-  });
+  }, () => b.kopru()?.hafiza.sayi ?? 0);
 
   return {
     kararKaydi,

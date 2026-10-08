@@ -8,8 +8,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  capaAdlari, capaBul, etkilesilebilirCapa, eylemVarMi, mesafeXZ,
-  tumCapalar, yakinCapalar, yaklastiMi,
+  bulunduguCapa, capaAdlari, capaBul, etkilesilebilirCapa, eylemVarMi, mesafeXZ,
+  tumCapalar, yakinCapalar, yaklastiMi, BULUNMA_YARICAPI,
 } from "./capalar.ts";
 import { carpisiyorMu, SINIR } from "./olculer.ts";
 import { CAPALAR, CAPA_ETIKETLERI } from "../../protocol/temel.ts";
@@ -140,4 +140,23 @@ test("çapa defteri çağıran tarafından bozulamaz (aynı nesne dönmüyor kop
   // `tumCapalar()` readonly bir dizi döner; içerik mutasyonu TS'te derlenmez.
   // Burada garanti edilen: iki çağrı aynı içeriği verir (gizli durum yok).
   assert.deepEqual(capaAdlari(), capaAdlari());
+});
+
+// ── bulunduğu çapa (spec 16 F2: durum defterinin konumu) ──
+test("her çapanın durağında durulunca o çapada bulunulur", () => {
+  // Durakları çakışan çapalar (masa/sandalye gibi) olabilir: o zaman en yakını kazanır, ama
+  // durakta duran HİÇBİR ZAMAN "odanın ortası"nda sayılmaz.
+  for (const c of tumCapalar()) assert.notEqual(bulunduguCapa(c.durak), null, c.ad);
+});
+
+test("hiçbir durağın yakınında olmayan nokta hiçbir çapada değildir", () => {
+  const uzak = { x: 1e3, z: 1e3 };
+  assert.equal(bulunduguCapa(uzak), null);
+});
+
+test("bulunma yarıçapı en az BULUNMA_YARICAPI'dır", () => {
+  const c = tumCapalar()[0]!;
+  const r = Math.max(BULUNMA_YARICAPI, c.yaklasmaYaricapi) * 0.99;
+  const yakini = bulunduguCapa({ x: c.durak.x + r, z: c.durak.z });
+  assert.notEqual(yakini, null);
 });

@@ -35,6 +35,32 @@ export interface Ani {
   sonErisim: number;
 }
 
+/**
+ * ÇEKMECE (spec 16 F3): uzun vadeli hafızanın KONUYA göre bölümü. Bağlama bütün torba değil, yalnız
+ * istenen çekmece girer (yönlendirici, mind/hafizaYonlendirici.ts). Kayıtta ayrı alan YOK: türden ve
+ * metinden türer — eski dosyalar göçsüz çalışır, kural tek yerde kalır.
+ *   konusma  Ozyn'in sözleri
+ *   is       terminal çıktıları, başarılı işlerin sonuçları
+ *   ders     başarısızlıklar ("hata: tahtaya oturulmaz") — tekrarlanmasın diye hatırlanan
+ *   olay     geri kalan (süzgeçten sonra pratikte boş; eski kayıtlar için)
+ */
+export type Cekmece = "konusma" | "is" | "ders" | "olay";
+export const CEKMECELER: readonly Cekmece[] = ["konusma", "is", "ders", "olay"];
+
+export function cekmecesi(a: Pick<Ani, "tur" | "metin">): Cekmece {
+  if (a.tur === "konusma") return "konusma";
+  if (a.tur === "terminal") return "is";
+  if (a.tur === "sonuc") return /^hata\b/.test(a.metin) ? "ders" : "is";
+  return "olay";
+}
+
+/**
+ * Çekmece başına kapasite payı (toplam kapasitenin oranı). Eskiden tek torbada budama önem
+ * tablosuyla yapılıyordu: gürültü bir kez şişince gerçek sözleri atabiliyordu. Pay, bir çekmecenin
+ * öbürünün yerini YEMESİNİ yapısal olarak engeller. Toplam = 1.
+ */
+export const CEKMECE_PAYI: Readonly<Record<Cekmece, number>> = { konusma: 0.5, is: 0.2, ders: 0.2, olay: 0.1 };
+
 export interface HafizaAyari {
   /** Bu sayıyı aşınca en düşük skorlular atılır. Tel de olabilir. */
   kapasite?: number | (() => number);
@@ -249,8 +275,9 @@ export class Hafiza {
    * Sorguyla en ilgili N anıyı getirir ve onları TAZELER (son erişim güncellenir).
    * Tazeleme makalenin recency tanımı gereği: "recently accessed".
    */
-  getir(sorgu: string, adet = 5, haric: readonly string[] = []): GetirSonucu[] {
+  getir(sorgu: string, adet = 5, haric: readonly string[] = [], cekmeceler?: readonly Cekmece[]): GetirSonucu[] {
     if (this._aniler.length === 0) return [];
+    const kume = cekmeceler ? new Set(cekmeceler) : null;
     const t = this._simdi();
 
     // ŞU ANKİ girdi hatırlanamaz — o zaten önümüzde. `haric` bu turda
@@ -265,9 +292,7 @@ export class Hafiza {
     // meşru olarak andığı bir anıyı da eliyor ve onu asla tazelemiyordu.
     // Çıkarım yerine açık dışlama: çağıran bu turda ne eklediğini bilir.
     const haricKume = new Set(haric.map((h) => h.trim()));
-    const adaylar = haricKume.size
-      ? this._aniler.filter((a) => !haricKume.has(a.metin))
-      : this._aniler;
+    const adaylar = this._aniler.filter((a) => !haricKume.has(a.metin) && (!kume || kume.has(cekmecesi(a))));
     if (adaylar.length === 0) return [];
 
     const tumu = adaylar.map((a) => ({
@@ -319,16 +344,55 @@ export class Hafiza {
     return this._aniler.slice(-adet).reverse();
   }
 
-  /** Kapasite aşılınca EN DÜŞÜK skorlular atılır — kör FIFO değil. */
+  /**
+   * Çekmecenin EN YENİ anıları, kelime ilgisinden bağımsız (spec 16 F3). "Ne konuşmuştuk?"
+   * sorusunun eski sözlerle ortak kelimesi yoktur; eşikli `getir` orada hiçbir şey döndürmez.
+   * Dönenler erişilmiş sayılır (`getir` gibi tazelenir). Skor = 1 (sıralama yeniden eskiye).
+   */
+  sonlar(cekmeceler: readonly Cekmece[], adet: number, haric: readonly string[] = []): GetirSonucu[] {
+    const kume = new Set(cekmeceler);
+    const haricKume = new Set(haric.map((h) => h.trim()));
+    const t = this._simdi();
+    const secilen = this._aniler.filter((a) => kume.has(cekmecesi(a)) && !haricKume.has(a.metin))
+      .slice(-Math.max(0, adet)).reverse();
+    for (const a of secilen) a.sonErisim = t;
+    return secilen.map((ani) => ({ ani, skor: 1, parca: { tazelik: 1, onem: 0, ilgi: 0 } }));
+  }
+
+  /** Çekmece başına anı sayısı (panel ve ölçüm için). */
+  cekmeceSayilari(): Record<Cekmece, number> {
+    const s: Record<Cekmece, number> = { konusma: 0, is: 0, ders: 0, olay: 0 };
+    for (const a of this._aniler) s[cekmecesi(a)]++;
+    return s;
+  }
+
+  /**
+   * Kapasite aşılınca EN DÜŞÜK skorlular atılır — kör FIFO değil. Spec 16 F3: budama ÇEKMECE
+   * BAŞINA, payıyla (`CEKMECE_PAYI`); boş kalan payı başka çekmece kullanabilir, ama dolu bir
+   * çekmece başkasının payına giremez. Toplam yine kapasiteyi aşmaz.
+   */
   private _budama(): void {
-    if (this._aniler.length <= this._kapasite()) return;
+    const kapasite = this._kapasite();
+    if (this._aniler.length <= kapasite) return;
     const t = this._simdi();
     const puan = (a: Ani) =>
       Math.pow(BOZULMA, (t - a.sonErisim) / 3_600_000) + a.onem / 10;
-    this._aniler.sort((x, y) => puan(y) - puan(x));
-    this._aniler.length = this._kapasite();
-    // Sıra bozuldu; oluşma sırasına geri döndür (sonAniler anlamlı kalsın).
-    this._aniler.sort((x, y) => x.olusma - y.olusma);
+    const gruplar = new Map<Cekmece, Ani[]>(CEKMECELER.map((c) => [c, []]));
+    for (const a of this._aniler) gruplar.get(cekmecesi(a))!.push(a);
+    // Önce her çekmece kendi payı kadar tutar; artan yer (payını doldurmayanlardan) en yüksek
+    // skorlu taşanlara gider.
+    const kalan: Ani[] = [];
+    const tutulan: Ani[] = [];
+    for (const c of CEKMECELER) {
+      const g = gruplar.get(c)!.sort((x, y) => puan(y) - puan(x));
+      const pay = Math.floor(kapasite * CEKMECE_PAYI[c]);
+      tutulan.push(...g.slice(0, pay));
+      kalan.push(...g.slice(pay));
+    }
+    kalan.sort((x, y) => puan(y) - puan(x));
+    tutulan.push(...kalan.slice(0, Math.max(0, kapasite - tutulan.length)));
+    // Oluşma sırasına geri döndür (sonAniler anlamlı kalsın).
+    this._aniler = tutulan.sort((x, y) => x.olusma - y.olusma);
   }
 }
 

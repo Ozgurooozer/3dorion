@@ -46,6 +46,12 @@ const CAGRI = {
   apiSil:            "api:sil",
   apiModeller:       "api:modeller",
   apiSohbet:         "api:sohbet",
+  /**
+   * Durum defteri (spec 16 F2): konum, son iş, son konuşma. Okuma SENKRON (köprü kurucuda okur),
+   * yazma tek yönlü ve atomik — hafıza dosyasıyla aynı desen, ayrı dosya (`orion-durum.json`).
+   */
+  durumOku:          "durum:oku",
+  durumYaz:          "durum:yaz",
   /** Orion'un kulağı (host/dinleme.js): "baslat" | "kayit" | "dur" | "kapat". */
   dinleKomut:        "dinle:komut",
 };

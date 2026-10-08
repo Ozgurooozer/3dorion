@@ -198,6 +198,8 @@ export interface UyanisSatiri {
   anilar: number;
   /** Beynin zemini: dünya durumu + çalışma belleği (kesilmiş). */
   dunya: string;
+  /** Yönlendiricinin tetiklenen kuralları (spec 16 F4; yalnız yönlendirici kipinde; boş = hiçbir şey istenmedi). */
+  hafizaIstegi?: string[];
   /** Bağlamın ölçüsü (spec 16 F0): bölüm başına karakter; beyin verirse girdi token sayısı. */
   baglam?: BaglamOlcusu;
   /** LLM'in düz metni (varsa, kesilmiş). */

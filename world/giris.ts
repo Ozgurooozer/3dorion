@@ -31,7 +31,7 @@ import "@babylonjs/core/Culling/ray";
 import { Saat, TIK_HZ } from "./engine/tik.ts";
 import { KameraRig } from "./engine/kamera.ts";
 import { odaKur } from "./level/oda.ts";
-import { capaAdlari, capaBul, tumCapalar } from "./level/capalar.ts";
+import { bulunduguCapa, capaAdlari, capaBul, tumCapalar } from "./level/capalar.ts";
 import { isinTara } from "./player/isinTarama.ts";
 import { sorguYanitla, type Cevap, type Soru } from "../mind/algiHizmeti.ts";
 import { yerelTepki } from "../mind/yerelTepki.ts";
@@ -320,6 +320,21 @@ function gorevSatirlariniYukle(): KararSatiri[] {
   const k = (globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru;
   try { return (k?.kayitSatirlariOku?.(GOREV_SATIRLARI) ?? []) as KararSatiri[]; }
   catch (err) { console.warn("[BECERI] gorev satirlari okunamadi, gecmissiz basliyor:", err); return []; }
+}
+
+/**
+ * Durum defterinin deposu (spec 16 F2): host varsa `orion-durum.json`, yoksa (`npm run dev`)
+ * localStorage. Hafızadaki göç ve yedek inceliği burada yok: defter küçük ve her an yeniden
+ * kurulabilir bilgi tutar; kaybı yalnız "nerede olduğunu bir süre bilmemek"tir.
+ */
+function durumDeposuKur(): { oku(): unknown[]; yaz(k: unknown[]): void } {
+  const k = (globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru;
+  if (k?.durumOku && k.durumYaz) return { oku: () => k.durumOku!(), yaz: (x) => k.durumYaz!(x) };
+  const ANAHTAR = "orion.durum.v1";
+  return {
+    oku: () => { try { const j = JSON.parse(localStorage.getItem(ANAHTAR) ?? "[]"); return Array.isArray(j) ? j : []; } catch { return []; } },
+    yaz: (x) => { try { localStorage.setItem(ANAHTAR, JSON.stringify(x)); } catch { /* geliştirme kipi: önemsiz */ } },
+  };
 }
 
 function hafizaDeposuKur(): { oku(): unknown[]; yaz(aniler: unknown[]): void } {
@@ -1180,7 +1195,9 @@ function dunyaDurumuMetni(): string {
   const simdi = Date.now();
   const d = new Date(simdi);
   return [
-    a ? `You: ${a.poz}, position ${a.konum.x.toFixed(1)},${a.konum.z.toFixed(1)}${a.oturuyor_mu ? ", seated" : ""}.` : "",
+    // Ham koordinat modele bir şey anlatmıyordu ("position 0.9,-1.2"); yönlendirici kipinde yer adı
+    // durum defterinden ve YALNIZ sorulunca gelir (spec 16 F5).
+    a ? `You: ${a.poz}${HAFIZA_KIPI === "otomatik" ? `, position ${a.konum.x.toFixed(1)},${a.konum.z.toFixed(1)}` : ""}${a.oturuyor_mu ? ", seated" : ""}.` : "",
     // PROPRİYOSEPSİYON. Yalnızca HAREKET HÂLİNDEYKEN yazılır — duruyorken
     // "hızın 0" demek her tura bir satır ekleyip hiçbir şey söylemez, bağlam
     // ise sadakatin en pahalı kaynağı (spec 06: bağlama giren her satır
@@ -1204,6 +1221,13 @@ function dunyaDurumuMetni(): string {
     sonKonusma ? sessizlikSozu(simdi - sonKonusma) : "",
   ].filter(Boolean).join(" ");
 }
+
+/**
+ * Hafıza kipi (spec 16): "yonlendirici" (varsayılan) ya da `?hafiza=otomatik` (eski, kıyas için).
+ * Yönlendirici kipinde dünya satırı ham koordinat taşımaz: yer adı durum defterinden, sorulunca gelir.
+ */
+const HAFIZA_KIPI: "otomatik" | "yonlendirici" =
+  new URLSearchParams(location.search).get("hafiza") === "otomatik" ? "otomatik" : "yonlendirici";
 
 /** Model seçici penceresi — beyin bağlanınca kurulur (seçiciye ihtiyaç duyar). */
 let modelSecici: ReturnType<typeof modelSeciciKur> | null = null;
@@ -1281,6 +1305,12 @@ function beyniBagla(a: Avatar): void {
     // `mind/hafizaGocu.ts` → `depoYukle`de; burada yalnızca G/Ç bağlanır.
     hafizaDeposu: hafizaDeposuKur(),
     hafizaKapasite: PANO_TELLERI.hafiza.kapasite,
+    // SPEC 16: bağlama yalnız SORULAN girer (konum, son iş, eski konuşma…), yakın pencere küçük.
+    // `?hafiza=otomatik` eski davranışı geri getirir — kıyas ölçüsü için (spec 16 P1).
+    hafizaKipi: HAFIZA_KIPI,
+    ...(HAFIZA_KIPI === "yonlendirici" ? { yakinPencere: { kayit: 4, yasMs: 10 * 60_000 } } : {}),
+    yerAdlari: () => tumCapalar().map((c) => c.etiket),
+    durumDeposu: durumDeposuKur(),
     // ÖĞRENEN KAPI (K3, K5): gölgede — kapının kararını değiştirmez, kayda yazar.
     ogretimler: ogretimleriYukle(),
     // BECERİ REFLEKSİ (spec 10, Faz C): gölgede — kesin sözde hafızanın ne yapacağını
@@ -1419,6 +1449,17 @@ function beyniBagla(a: Avatar): void {
       gerekce: panoKaydi.kilitGerekcesi(),
     }),
   };
+
+  // DURUM DEFTERİ (spec 16 F2): Orion'un bulunduğu yer (çapa adı, ham koordinat değil) ve monitör
+  // yarım saniyede bir gözlenir. Defter yalnız DEĞİŞİMİ yazar ve yanından geçmeyi konum saymaz.
+  // Model uyanmaz; bilgi bağlama yalnız sorulunca girer (yönlendirici).
+  const durumKopru = kopru;
+  setInterval(() => {
+    try {
+      durumKopru.durum.konumGozlem(bulunduguCapa(a.durum().konum)?.etiket ?? "odanın ortası");
+      durumKopru.durum.monitor(monitor.acikMi());
+    } catch (err) { console.warn("[DURUM] gozlem hatasi:", err); }
+  }, 500);
 
   // Senaryo kipinde beyin susar: elle gönderilen niyetler kesilmesin.
   // (Köprü kurulduktan SONRA — `durdur()` örneğin üstünde çalışır.)

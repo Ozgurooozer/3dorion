@@ -69,6 +69,16 @@ export interface BulutGirdisi {
   gercek: boolean;
   /** Dönme açısı için (ms). */
   simdi: number;
+  /** Kalıcı hafızadaki gerçek anı sayısı; verilirse DERİN "gösterilen / toplam" yazılır. */
+  derinToplam?: number;
+}
+
+/** Başlıktaki kabuk sayıları: "SABİT 36 · ANLIK 8 · DERİN 60 / 174". Saf, testli. */
+export function kabukSayilari(kelimeler: readonly BulutKelimesi[], derinToplam?: number): string {
+  return [0, 1, 2].map((k) => {
+    const n = kelimeler.filter((w) => w.kabuk === k).length;
+    return `${KABUK_ADI[k]} ${n}${k === 2 && derinToplam !== undefined ? ` / ${derinToplam}` : ""}`;
+  }).join(" · ");
 }
 
 const KABUK_ADI = ["SABİT", "ANLIK", "DERİN"] as const;
@@ -92,7 +102,7 @@ export function cizHafizaBulutu(bag: CanvasRenderingContext2D, o: YuzeyOlcusu, g
   bag.fillStyle = RENK.vurgu;
   bag.font = `600 ${Math.round(basYuk * 0.44)}px ${YAZI.duz}`;
   bag.fillText("‹ HAFIZA · üç kabuk", kenar, basYuk / 2);
-  const say = [0, 1, 2].map((k) => `${KABUK_ADI[k]} ${g.kelimeler.filter((w) => w.kabuk === k).length}`).join(" · ");
+  const say = kabukSayilari(g.kelimeler, g.derinToplam);
   bag.textAlign = "right";
   bag.fillStyle = RENK.soluk;
   bag.font = `${Math.round(basYuk * 0.34)}px ${YAZI.tek}`;

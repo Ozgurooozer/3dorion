@@ -67,7 +67,7 @@ export interface SenaryoBaglami {
 export const SENARYOLAR = [
   "terminaldene", "otodene", "gorudene", "sessizdene", "davranis", "tezdene", "gordene", "admindene",
   "zoomdene", "zihindene", "onaydene", "tahtabeyin", "becerdene", "bakdene", "acidene", "saglobdene",
-  "senaryodene", "eylemdene", "benlikdene", "apidene", "tahtadene", "hafizadene", "yuzdene",
+  "senaryodene", "eylemdene", "benlikdene", "apidene", "tahtadene", "hafizadene", "yuzdene", "baglamdene",
 ] as const;
 export type SenaryoAdi = (typeof SENARYOLAR)[number];
 

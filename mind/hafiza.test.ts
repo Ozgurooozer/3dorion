@@ -2,7 +2,7 @@
 "use strict";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { Hafiza, kelimeIlgisi, kuralOnemi, BOZULMA, gozlemAnisiMi } from "./hafiza.ts";
+import { Hafiza, kelimeIlgisi, kuralOnemi, BOZULMA, gozlemAnisiMi, cekmecesi } from "./hafiza.ts";
 
 function saatli(baslangic = 1_000_000) {
   let t = baslangic;
@@ -300,4 +300,45 @@ test("5b: eşiği geçmeyen anı TAZELENMEZ — kendini besleyen döngü kırıl
   s.saatIlerlet(5);
   h.getir("terminal hatası nedir", 3);          // eşiği geçmez → dönmez
   assert.equal(h.dok()[0]!.sonErisim, once, "getirilmeyen anı tazelendi");
+});
+
+// ── Çekmeceler (spec 16 F3) ──
+test("çekmece türden ve metinden türer: söz, iş, ders", () => {
+  assert.deepEqual([
+    cekmecesi({ tur: "konusma", metin: "otur" }), cekmecesi({ tur: "terminal", metin: "ls" }),
+    cekmecesi({ tur: "sonuc", metin: "hata: tahtaya oturulmaz" }), cekmecesi({ tur: "sonuc", metin: "bitti: n1" }),
+  ], ["konusma", "is", "ders", "is"]);
+});
+
+test("getir yalnız istenen çekmecede arar", () => {
+  const h = new Hafiza({ simdi: saatli().simdi });
+  h.ekle("tahta temizlendi mi", "konusma", 8);
+  h.ekle("hata: tahta dolu", "sonuc", 6);
+  assert.deepEqual(h.getir("tahta", 5, [], ["ders"]).map((r) => r.ani.metin), ["hata: tahta dolu"]);
+});
+
+test("sonlar: ilgisiz soruda bile çekmecenin en yenileri gelir, yeniden eskiye", () => {
+  const s = saatli(); const h = new Hafiza({ simdi: s.simdi });
+  for (const m of ["birinci söz", "ikinci söz", "üçüncü söz"]) { h.ekle(m, "konusma", 8); s.saatIlerlet(0.1); }
+  h.ekle("hata: x", "sonuc", 6);
+  assert.deepEqual(h.sonlar(["konusma"], 2).map((r) => r.ani.metin), ["üçüncü söz", "ikinci söz"]);
+});
+
+test("sonlar bu turun sözünü dışarıda bırakır", () => {
+  const h = new Hafiza({ simdi: saatli().simdi });
+  h.ekle("eski söz", "konusma", 8); h.ekle("ne konuşmuştuk", "konusma", 8);
+  assert.deepEqual(h.sonlar(["konusma"], 5, ["ne konuşmuştuk"]).map((r) => r.ani.metin), ["eski söz"]);
+});
+
+test("budama çekmece başına: önemli gürültü sözlerin payına giremez", () => {
+  const s = saatli(); const h = new Hafiza({ kapasite: 10, simdi: s.simdi });
+  for (let i = 0; i < 5; i++) { h.ekle(`söz ${i}`, "konusma", 3); s.saatIlerlet(0.1); }
+  for (let i = 0; i < 20; i++) { h.ekle(`terminal ${i}`, "terminal", 10); s.saatIlerlet(0.1); }
+  assert.equal(h.cekmeceSayilari().konusma, 5);
+});
+
+test("budama toplam kapasiteyi aşmaz", () => {
+  const h = new Hafiza({ kapasite: 10, simdi: saatli().simdi });
+  for (let i = 0; i < 30; i++) h.ekle(`terminal ${i}`, "terminal", 5);
+  assert.equal(h.sayi, 10);
 });

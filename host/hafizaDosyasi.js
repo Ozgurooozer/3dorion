@@ -37,9 +37,18 @@ import path from "node:path";
  * @returns {string}
  */
 export function hafizaYolu(env, kullaniciDizini, geciciDizin, pid = process.pid) {
-  if (env.ORION_HAFIZA_DOSYASI) return env.ORION_HAFIZA_DOSYASI;
-  if (env.ORION_SMOKE === "1") return path.join(geciciDizin, `orion-hafiza-senaryo-${pid}.json`);
-  return path.join(kullaniciDizini, "orion-hafiza.json");
+  return veriYolu("orion-hafiza", env.ORION_HAFIZA_DOSYASI, env, kullaniciDizini, geciciDizin, pid);
+}
+
+/** Durum defterinin (spec 16 F2) yolu — hafızayla aynı kural: ORION_DURUM_DOSYASI > senaryo > gerçek. */
+export function durumYolu(env, kullaniciDizini, geciciDizin, pid = process.pid) {
+  return veriYolu("orion-durum", env.ORION_DURUM_DOSYASI, env, kullaniciDizini, geciciDizin, pid);
+}
+
+function veriYolu(ad, acik, env, kullaniciDizini, geciciDizin, pid) {
+  if (acik) return acik;
+  if (env.ORION_SMOKE === "1") return path.join(geciciDizin, `${ad}-senaryo-${pid}.json`);
+  return path.join(kullaniciDizini, `${ad}.json`);
 }
 
 /**

@@ -75,6 +75,9 @@ export interface Kopru {
   apiSil(ad: string): Promise<{ ok: true } | { ok: false; hata: string }>;
   apiModeller(ad: string): Promise<{ ok: true; veri: unknown } | { ok: false; hata: string }>;
   apiSohbet(ad: string, govde: unknown): Promise<{ ok: true; veri: unknown } | { ok: false; hata: string }>;
+  /** Durum defteri (spec 16 F2): SENKRON okuma; dosya yoksa ya da bozuksa boş dizi. */
+  durumOku(): unknown[];
+  durumYaz(kayitlar: unknown[]): void;
   /**
    * Orion'un kulağı (host/dinleme.js, tools/nemotron-dinle.py): "baslat" süreci açar, "kayit"/"dur"
    * bas-konuş, "kapat" süreci kapatır. Dönüş: komut iletildi mi. Ses renderer'a GİRMEZ; çözülmüş

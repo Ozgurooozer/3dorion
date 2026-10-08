@@ -200,6 +200,24 @@ export function yaklastiMi(ad: string, nokta: { x: number; z: number }): boolean
   return mesafeXZ(nokta, c.durak) <= c.yaklasmaYaricapi;
 }
 
+/** `bulunduguCapa`nın asgari yarıçapı (m): küçük yaklaşma yarıçaplı çapada da "orada" sayılabilsin. */
+export const BULUNMA_YARICAPI = 1.2;
+
+/**
+ * Noktanın BULUNDUĞU çapa: durağı en yakın olan, `max(BULUNMA_YARICAPI, yaklasmaYaricapi)` içindeyse.
+ * Hiçbirinin yanında değilse `null` (odanın ortası). Durum defterinin "konum"u bundan türer
+ * (spec 16 F2) — ham koordinat modele bir şey anlatmıyordu.
+ */
+export function bulunduguCapa(nokta: { x: number; z: number }): Capa | null {
+  let en: Capa | null = null;
+  let enMesafe = Infinity;
+  for (const c of KAYIT) {
+    const m = mesafeXZ(nokta, c.durak);
+    if (m < enMesafe) { enMesafe = m; en = c; }
+  }
+  return en && enMesafe <= Math.max(BULUNMA_YARICAPI, en.yaklasmaYaricapi) ? en : null;
+}
+
 export interface YakinCapa { capa: Capa; mesafe: number }
 
 /**

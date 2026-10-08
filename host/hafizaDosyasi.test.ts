@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { hafizaDosyasiOku, hafizaDosyasiYaz, hafizaYolu } from "./hafizaDosyasi.js";
+import { durumYolu, hafizaDosyasiOku, hafizaDosyasiYaz, hafizaYolu } from "./hafizaDosyasi.js";
 
 function geciciDizin(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), "orion-hafiza-"));
@@ -29,6 +29,11 @@ test("normal açılışta gerçek hafıza dosyası kullanılır", () => {
 
 test("senaryo koşusu gerçek dosyaya dokunmaz: geçici, süreç kimlikli dosya", () => {
   assert.equal(hafizaYolu({ ORION_SMOKE: "1" }, KULLANICI, GECICI, 7), path.join(GECICI, "orion-hafiza-senaryo-7.json"));
+});
+
+test("durum defteri hafızayla aynı kuralla ayrı dosyaya gider", () => {
+  assert.deepEqual([durumYolu({}, KULLANICI, GECICI, 7), durumYolu({ ORION_SMOKE: "1" }, KULLANICI, GECICI, 7), durumYolu({ ORION_DURUM_DOSYASI: "d.json" }, KULLANICI, GECICI, 7)],
+    [path.join(KULLANICI, "orion-durum.json"), path.join(GECICI, "orion-durum-senaryo-7.json"), "d.json"]);
 });
 
 test("açıkça verilen ORION_HAFIZA_DOSYASI senaryoda da kazanır", () => {

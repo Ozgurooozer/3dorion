@@ -9,7 +9,7 @@ import fs from "node:fs";
 import os from "node:os";
 import { PiperSesi, piperBul } from "./ses.js";
 import { Dinleyici } from "./dinleme.js";
-import { hafizaDosyasiOku, hafizaDosyasiYaz, hafizaYolu } from "./hafizaDosyasi.js";
+import { durumYolu, hafizaDosyasiOku, hafizaDosyasiYaz, hafizaYolu } from "./hafizaDosyasi.js";
 import { kararYaziciKur, ogretimYolu, ogretimleriOku, satirlariOku, yeniSatirlar } from "./kararDosyasi.js";
 import { mcpSunucuKur } from "./mcpSunucu.js";
 import { ollamaHazirla, ollamaAdresi } from "./ollamaSunucu.js";
@@ -134,6 +134,7 @@ function pencereAc() {
   if (process.env.ORION_SESSIZDENE === "1") parcalar.push("sessizdene=1", "sessiz=1");
   if (process.env.ORION_YUZDENE === "1") parcalar.push("yuzdene=1", "sessiz=1");
   if (process.env.ORION_HAFIZADENE === "1") parcalar.push("hafizadene=1", "sessiz=1");
+  if (process.env.ORION_BAGLAMDENE === "1") parcalar.push("baglamdene=1", "sessiz=1", "komut=1");
   if (process.env.ORION_TAHTADENE === "1") parcalar.push("tahtadene=1", "sessiz=1");
   if (process.env.ORION_APIDENE === "1") parcalar.push("apidene=1", "sessiz=1");
   if (process.env.ORION_BENLIKDENE === "1") parcalar.push("benlikdene=1", "sessiz=1");
@@ -161,6 +162,8 @@ function pencereAc() {
   if (process.env.ORION_FPS === "1") parcalar.push("fps=1");
   if (process.env.ORION_RAKIP === "1") parcalar.push("rakip=1");
   if (process.env.ORION_GECMIS) parcalar.push(`gecmis=${process.env.ORION_GECMIS}`);
+  // Spec 16 kıyası: ORION_HAFIZA_KIPI=otomatik eski bağlam davranışını geri getirir.
+  if (process.env.ORION_HAFIZA_KIPI) parcalar.push(`hafiza=${encodeURIComponent(process.env.ORION_HAFIZA_KIPI)}`);
   // Senaryosuz canlı denemede TTS'i kapatmak için (Ozyn'in hoparlöründen ses çıkmasın).
   if (process.env.ORION_SESSIZ === "1") parcalar.push("sessiz=1");
   // MCP ajanı bağlanana kadar senaryoyu beklet (spec 05 canlı kapısı).
@@ -347,6 +350,20 @@ ipcMain.on(CAGRI.hafizaYazSenkron, (e, kayitlar) => {
     console.error(`[hafiza] goc yazimi basarisiz: ${hata?.message ?? hata}`);
     e.returnValue = false;
   }
+});
+
+// ---- durum defteri (spec 16 F2) ---------------------------------------------
+// Konum, son iş, son konuşma: oturumlar arası kalıcı, hafızadan AYRI dosya (durum ≠ anı, spec 06 K2).
+// Göç yok (yeni dosya); bozuksa hafızadaki gibi kenara taşınır ve defter boş başlar.
+const DURUM_YOLU = durumYolu(process.env, app.getPath("userData"), os.tmpdir());
+ipcMain.on(CAGRI.durumOku, (e) => {
+  try { const d = hafizaDosyasiOku(DURUM_YOLU); e.returnValue = d.durum === "var" ? d.kayitlar : []; }
+  catch (hata) { console.error(`[durum] okunamadi: ${hata?.message ?? hata}`); e.returnValue = []; }
+});
+ipcMain.on(CAGRI.durumYaz, (_e, kayitlar) => {
+  if (!Array.isArray(kayitlar)) return console.error("[durum] dizi olmayan yazim reddedildi");
+  try { hafizaDosyasiYaz(DURUM_YOLU, kayitlar); }
+  catch (hata) { console.error(`[durum] yazilamadi: ${hata?.message ?? hata}`); }
 });
 
 // ---- MCP ucu (spec 05 Aşama 1) --------------------------------------------

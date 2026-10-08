@@ -2,7 +2,7 @@
 "use strict";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { bulutYerlesimi, KABUK_YARICAPI, type BulutKelimesi } from "./hafizaBulutu.ts";
+import { bulutYerlesimi, kabukSayilari, KABUK_YARICAPI, type BulutKelimesi } from "./hafizaBulutu.ts";
 
 const k = (kabuk: 0 | 1 | 2, metin: string): BulutKelimesi => ({ kabuk, metin, not: "", boyut: 0.5, soluk: 0, sayi: "1" });
 const KELIMELER = [k(0, "kayit"), k(0, "onay.insan"), k(1, "git → tahta"), k(2, "tahtaya git"), k(2, "otur"), k(2, "bana gel")];
@@ -31,4 +31,15 @@ test("kabuklar iç içe: döndürmeden önce merkezden uzaklık kabuk yarıçap�
 
 test("boş liste boş yerleşim", () => {
   assert.deepEqual(bulutYerlesimi([], 0, 0, 0, 0, 10), []);
+});
+
+// ── başlık sayıları (spec 16 F3) ──
+const kel = (kabuk: 0 | 1 | 2): BulutKelimesi => ({ kabuk, metin: "x", not: "", boyut: 0.5, soluk: 0, sayi: "" });
+
+test("başlık: DERİN'de gösterilen ve gerçek toplam birlikte yazılır", () => {
+  assert.equal(kabukSayilari([kel(0), kel(1), kel(2), kel(2)], 174), "SABİT 1 · ANLIK 1 · DERİN 2 / 174");
+});
+
+test("başlık: toplam verilmezse yalnız gösterilen sayı", () => {
+  assert.equal(kabukSayilari([kel(2)]), "SABİT 0 · ANLIK 0 · DERİN 1");
 });

@@ -63,7 +63,11 @@ export interface SemaPaneli {
    * HAFIZA görünümünün kelimeleri (spec 13 Faz 5). Takılıysa HAFIZA düğümüne girince
    * üç kabuklu bulut açılır; takılı değilse eski ayar ekranı. Kompozisyon kökü kurar.
    */
-  hafizaBagla(kaynak: (() => readonly BulutKelimesi[]) | null): void;
+  /**
+   * `toplam`: kalıcı hafızadaki GERÇEK anı sayısı (spec 16 F3). Bulut DERİN'de en fazla 60 anı
+   * gösterir; başlık "DERİN 60" deyince hafıza 60 kayıt sanılıyordu — "60 / 174" yazılır.
+   */
+  hafizaBagla(kaynak: (() => readonly BulutKelimesi[]) | null, toplam?: () => number): void;
   /** Detay görünümünde olan düğüm, yoksa `null`. */
   secili(): string | null;
   /** Düğüm seç (`null` = şemaya dön). Bilinmeyen ad SEÇİLMEZ. */
@@ -119,6 +123,8 @@ export function semaKur(ayar: SemaAyari): SemaPaneli {
 
   // ── HAFIZA görünümü (spec 13 Faz 5) ──────────────────────────────────
   let hafizaKaynagi: (() => readonly BulutKelimesi[]) | null = null;
+  let hafizaToplami: (() => number) | null = null;
+  let derinToplam: number | undefined;
   /** HAFIZA düğümünde: bulut mu, eski ayar ekranı mı. Düğüme her girişte bulut. */
   let hafizaKipi: "bulut" | "ayar" = "bulut";
   let gercekKip = false;
@@ -187,10 +193,10 @@ export function semaKur(ayar: SemaAyari): SemaPaneli {
     if (t) bolgeler = cizTeyit(bag, o, t, secilenEylemler);
     else if (secim === "hafiza" && hafizaKaynagi && hafizaKipi === "bulut") {
       if (simdi - kelimeAn > 500) {
-        try { kelimeler = hafizaKaynagi(); } catch (err) { console.error("[SEMA] hafiza kelimeleri okunamadi:", err); kelimeler = []; }
+        try { kelimeler = hafizaKaynagi(); derinToplam = hafizaToplami?.(); } catch (err) { console.error("[SEMA] hafiza kelimeleri okunamadi:", err); kelimeler = []; }
         kelimeAn = simdi;
       }
-      bolgeler = cizHafizaBulutu(bag, o, { kelimeler, secili: seciliKelime, gercek: gercekKip, simdi });
+      bolgeler = cizHafizaBulutu(bag, o, { kelimeler, secili: seciliKelime, gercek: gercekKip, simdi, ...(derinToplam !== undefined ? { derinToplam } : {}) });
     }
     else if (secim !== null) bolgeler = cizDetay(bag, o, secim, { durum, pano, simdi, sonYazma, sonYazmaAn });
     else bolgeler = cizSema(bag, o, { durum, altDurum, simdi });
@@ -229,7 +235,7 @@ export function semaKur(ayar: SemaAyari): SemaPaneli {
     oku(ad) { return durum.oku(ad); },
     secili() { return secim; },
     panoBagla(p) { pano = p; yuzey.kirlet(); },
-    hafizaBagla(k) { hafizaKaynagi = k; kelimeAn = 0; },
+    hafizaBagla(k, toplam) { hafizaKaynagi = k; hafizaToplami = toplam ?? null; kelimeAn = 0; },
     sec: secimiKur,
     hedef: cozumle,
     tikla(u, v) {

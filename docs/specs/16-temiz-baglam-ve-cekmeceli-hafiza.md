@@ -2,7 +2,7 @@
 
 > Üst belgeler: `06-beyin-v2.md` (durum ≠ anı K2, zaman etiketi K3, eşikli getirme K4/K5, bağlam düzeni K8),
 > `12-anlik-benlik.md` §4.1 (SABİT / ANLIK / DERİN), `15-goz-ve-mekan-bellegi.md` (nesnelerin yeri).
-> Durum: **F0 ve F1 kodlandı, canlı ölçüm bekliyor** (2026-10-08).
+> Durum: **F0–F5 kodlandı ve birim testli; canlı ölçüm (taban + `baglamdene`) bekliyor** (2026-10-08).
 
 ## 0. Tek cümle
 Orion yerel 7B modelle yaşıyor: bağlama yalnız o an gereken girsin. Hafıza konuya göre çekmecelere
@@ -65,6 +65,43 @@ Dürüstlük: eşik tutmazsa olduğu gibi yazılır; eşik koşudan sonra deği�
   kopyasında [ÖLÇÜLDÜ, kuru koşu]: 239 → 174 anı, 65 olay atıldı, 11 terminal kırpıldı, 3 terminal önemi
   indirildi; 42 183 → 26 937 bayt (−%36). Söz (138) ve sonuç (17) aynen.
 - Bozma denemesi (yedekli, taban yeşil): 6/6 mutant yakalandı.
+
+### F2 — durum defteri `[TEST]`
+- `mind/durumDefteri.ts`: anahtar başına tek satır, üzerine yazılır, zamanıyla: `konum`, `onceki_konum`,
+  `yapiyor`, `son_is`, `son_ozyn`, `son_orion`, `monitor`; + yüklemeden türeyen `onceki_oturum`.
+  Yanından geçmek konum değildir (`KONUM_OTURMA_MS` 2 sn); süren iş oturumdan oturuma taşınmaz.
+- Konum adı çapadan: `world/level/capalar.ts` `bulunduguCapa` (durağa en yakın, ≥ 1,2 m içinde; yoksa
+  "odanın ortası"). `world/giris.ts` 500 ms'de bir gözler; defter yalnız değişimi yazar.
+- Köprü besler: iş niyeti (`IS_NIYETLERI`: git/otur/kalk/yaz/komut/odaklan) → yapıyor; sonucu → son iş;
+  Ozyn'in kesin sözü, Orion'un sözü. Kalıcılık ayrı dosya `orion-durum.json` (IPC `durum:oku/yaz`,
+  hafızayla aynı senaryo yalıtımı, `ORION_DURUM_DOSYASI`).
+- Zihin duvarı: ANLIK kabukta "durum defteri (kalıcı; bağlama yalnız sorulunca)".
+- Bozma: 5/5.
+
+### F3 — çekmeceler `[TEST]`
+- `mind/hafiza.ts` `cekmecesi`: konusma (söz) · is (terminal, başarılı sonuç) · ders (`hata…` sonucu) ·
+  olay. Kayıtta ayrı alan yok, türden türer — eski dosya göçsüz çalışır.
+- Budama çekmece başına payla (`CEKMECE_PAYI` 0,5/0,2/0,2/0,1): önemli gürültü sözlerin payına giremez.
+- `getir(…, cekmeceler)` yalnız istenen çekmecede; `sonlar(cekmeceler, adet)` ilgiden bağımsız en yeniler
+  ("ne konuşmuştuk" sorusunun eski sözlerle ortak kelimesi yok — eşikli getirme orada boş dönerdi).
+- Panel başlığı: `DERİN 60 / 174` (`kabukSayilari`).
+
+### F4 — kural yönlendirici `[TEST]`
+- `mind/hafizaYonlendirici.ts` `KURALLAR` (tek kaynak, test ızgarası örneklerden türer): konum.simdi,
+  konum.once, is.simdi, is.once, konusma.gecmis (konuşma çekmecesi `son` 4), hatirla (konuşma+iş+ders
+  `ilgi` 3); sözden bağımsız: terminal.hata (ders+iş), niyet.hata (ders), soz.yer (odadaki yer adı → konum).
+  Türkçe harfler sadeleşir. **Varsayılan boş**: 8 sorulmayan söz için boş istek test edildi (P6).
+- Bilerek yok: "her söz turunda ilgili ders" — Ozyn'in kuralı "sorulmayan girmez"; ders yalnız başarısızlıkta.
+
+### F5 — bağlam montajı `[TEST]`, canlı kanıt bekliyor
+- `KopruAyari.hafizaKipi`: "otomatik" (varsayılan, eski davranış — kıyas kolu) | "yonlendirici" (canlı,
+  `world/giris.ts`; `?hafiza=otomatik` / `ORION_HAFIZA_KIPI=otomatik` eskiye döner).
+- Yönlendirici kipinde: anılar yalnız istenen çekmecelerden; istenen durum satırları ŞİMDİ'de (dünya
+  metninde, yaşıyla); yakın pencere son 4 kayıt / 10 dk (`yakinPencere`); dünya satırında ham koordinat yok.
+  Karar kaydı `uyanis.hafizaIstegi` (tetiklenen kurallar).
+- Yeni senaryo `3dorion.bat baglamdene`: otur → neredesin → tahtaya git → neredeydin → bilgi + 5 alakasız
+  söz → ne konuşmuştuk. Canlı koşu **bekliyor**.
+- Bozma (yönlendirici + montaj + çekmece): 8/8.
 
 ## 6. Sapma kaydı
 - 2026-10-08: canlı taban F0'da alınamadı (Ozyn o sırada Orion'u kullanıyordu); F5 öncesi alınacak.

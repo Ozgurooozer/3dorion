@@ -30,6 +30,11 @@ test("ANLIK: benliğin yaptığı ve konuşma penceresi", () => {
   assert.deepEqual(k.map((x) => x.metin), ["git → tahta", "tahtaya git"]);
 });
 
+test("ANLIK: durum defteri satırları kalıcı diye işaretli görünür (spec 16 F2)", () => {
+  const k = hafizaKelimeleri(girdi({ durum: [{ anahtar: "konum", deger: "beyaz tahta", t: SIMDI - 4 * 60_000 }] })).filter((x) => x.kabuk === 1);
+  assert.deepEqual([k[0]?.metin, k[0]?.not.startsWith("durum defteri (kalıcı"), k[0]?.sayi], ["konum: beyaz tahta", true, "4 minutes"]);
+});
+
 test("DERİN: bu turda getirilen anı kırmızı ve sınırdan bağımsız hep görünür", () => {
   const derin = [ani("çok önemli", 10, 0), ani("az önemli eski", 1, 9), ani("getirilen", 2, 8)];
   const getirilen = [{ ani: derin[2]!, skor: 0.81, parca: { tazelik: 0.1, onem: 0.2, ilgi: 0.9 } }];
