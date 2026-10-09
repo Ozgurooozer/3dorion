@@ -107,9 +107,9 @@ export const FARE_HAREKETLERI: readonly { hareket: string; aciklama: string }[] 
   { hareket: "Orta tık sürükle", aciklama: "Kaydır (pan)" },
   { hareket: "Tekerlek", aciklama: "İmlecin altındaki noktaya yaklaş / uzaklaş" },
   { hareket: "Alt + sol sürükle", aciklama: "Seçimin (yoksa imlecin altındaki noktanın) çevresinde dön" },
-  { hareket: "Sol tık", aciklama: "Seç (Shift: ekle, Ctrl: çıkar/ekle); boşlukta sürükle: kutu seçimi" },
+  { hareket: "Sol tık", aciklama: "Seç (Shift: ekle, Ctrl: çıkar/ekle); boşlukta sürükle: kutu seçimi (Shift: ekleyerek)" },
   { hareket: "Seçiliyi sol tıkla sürükle", aciklama: "Yüzeyde kaydır (zemin + nesnelerin üstü); tutarken tekerlek döndürür" },
-  { hareket: "Alt + seçiliyi sürükle", aciklama: "Çoğaltıp kaydır" },
+  { hareket: "Shift + seçiliyi sürükle", aciklama: "Çoğaltıp kaydır (gizmo okunda da); kopya yerinde kalır, tuttuğun gider" },
   { hareket: "Çift tık", aciklama: "Nesneye odaklan" },
   { hareket: "Varlık kartını sahneye sürükle", aciklama: "Bırakılan yere yerleştir (ya da karta tıkla, sahnede tıkla)" },
 ];

@@ -30,7 +30,10 @@ export const AYAR_VARSAYILAN: EditorAyarlari = { uzay: "dunya", yaslama: YASLAMA
 /** Geri al ile saklanan hâl. */
 export interface Hal { tanim: LevelTanimi; secim: string[] }
 
-export type OlayAdi = "tanim" | "secim" | "arac" | "ayarlar" | "kirli" | "mesaj" | "gecmis";
+export type OlayAdi = "tanim" | "secim" | "arac" | "ayarlar" | "kirli" | "mesaj" | "gecmis" | "kip";
+
+/** Editör: fare serbest, araçlar, arayüz açık. Uçuş: fare kilitli serbest uçuş, arayüz gizli (Tab). */
+export type Kip = "editor" | "ucus";
 
 export interface Uygulayici {
   /** Kurulu tanım (normalleştirilmiş: kimlikler dolu). */
@@ -63,6 +66,8 @@ export interface EditorDurumu {
   secimAyarla(idler: readonly string[]): void;
   arac(): AracAdi;
   aracSec(a: AracAdi): void;
+  kip(): Kip;
+  kipAyarla(k: Kip): void;
   ayarlar(): EditorAyarlari;
   ayarDegistir(f: (a: EditorAyarlari) => EditorAyarlari): void;
   kirli(): boolean;
@@ -82,6 +87,7 @@ export function editorDurumuKur(u: Uygulayici, ayar: EditorAyarlari = AYAR_VARSA
   let tanim = u.oku();
   let secim: string[] = [];
   let arac: AracAdi = "sec";
+  let kip: Kip = "editor";
   let ayarlar = ayar;
   let kayitli = imza(tanim);
   let kirliMi = false;
@@ -161,6 +167,8 @@ export function editorDurumuKur(u: Uygulayici, ayar: EditorAyarlari = AYAR_VARSA
     secimAyarla(idler) { if (secimDegistir(idler)) yay("secim"); },
     arac: () => arac,
     aracSec(a) { if (a !== arac) { arac = a; yay("arac"); } },
+    kip: () => kip,
+    kipAyarla(k) { if (k !== kip) { kip = k; yay("kip"); } },
     ayarlar: () => ayarlar,
     ayarDegistir(f) { ayarlar = f(ayarlar); yay("ayarlar"); },
     kirli: () => kirliMi,

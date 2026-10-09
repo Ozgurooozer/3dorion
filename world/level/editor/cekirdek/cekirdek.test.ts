@@ -213,6 +213,8 @@ test("kutu ters çekilse de aynı nesneleri seçer", () => {
 
 // ── yaslama ──
 test("0,3 m'yi 0,1 adıma yaslamak kayan nokta artığı bırakmaz", () => { assert.equal(yasla(0.30000000000000004, 0.1), 0.3); });
+test("4 m adımda 5,9 → 4", () => { assert.equal(yasla(5.9, 4), 4); });
+test("adım 0 iken serbest", () => { assert.equal(yasla(5.9, 0), 5.9); });
 test("Ctrl basılıyken açık yaslama kapanır", () => { assert.equal(etkin(true, true), false); });
 test("Y ekseni kendi adımıyla yaslanır", () => { assert.deepEqual(konumYasla([1.2, 1.2, 1.2], YASLAMA_VARSAYILAN, true), [1, 1, 1]); });
 test("düz zeminde normal hizası yalnız yaw", () => { assert.deepEqual(normaleHizaliDonus([0, 1, 0], 30), [0, 30, 0]); });

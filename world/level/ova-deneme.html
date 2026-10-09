@@ -6,29 +6,13 @@
 <style>
   html, body { margin: 0; height: 100%; background: #b7d3ee; overflow: hidden; }
   canvas { display: block; width: 100%; height: 100%; outline: none; }
-  /* Level paneli solda (330 px): ölçüm satırı onun sağından başlar. */
-  #olcum { position: fixed; left: 348px; bottom: 6px; color: #23324a; font: 12px system-ui, sans-serif; }
-  /* Stil düğme çubuğu (spec 18): sağ üst; panel solda, Inspector açılırsa sağda — çubuk üstte kalır. */
-  #stil { position: fixed; right: 8px; top: 8px; max-width: min(560px, calc(100vw - 360px)); color: #dde5f2;
-    background: #11141bdd; padding: 8px 10px; border-radius: 10px; font: 12px system-ui, sans-serif; z-index: 5; }
-  #stil .grup { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-bottom: 4px; }
-  #stil .grup span { width: 62px; color: #8a97ad; }
-  #stil button { background: #232a38; color: #dde5f2; border: 1px solid #2f3848; border-radius: 6px; padding: 4px 9px;
-    font: inherit; cursor: pointer; }
-  #stil button:hover { border-color: #8fb4ff; }
-  #stil button.secili { background: #3b6fd8; border-color: #8fb4ff; color: #fff; }
-  #stil .aciklama { color: #8a97ad; margin-top: 2px; }
-  #stil input[type=range] { width: 160px; }
-  #stil select { background: #232a38; color: #dde5f2; border: 1px solid #2f3848; border-radius: 6px; padding: 3px 6px; font: inherit; }
-  #stil b { min-width: 42px; display: inline-block; color: #ffe2a8; }
-  #ipucu { position: fixed; right: 8px; bottom: 6px; color: #23324a; font: 12px system-ui, sans-serif; opacity: .7; }
+  /* Ölçüm satırı (editör arayüzü yokken, ?panel=0): sol altta. */
+  #olcum { position: fixed; left: 8px; bottom: 6px; color: #23324a; font: 12px system-ui, sans-serif; }
 </style>
 </head>
 <body>
   <canvas id="tuval" tabindex="0"></canvas>
   <div id="olcum"></div>
-  <div id="stil"></div>
-  <div id="ipucu">tıkla · WASD yürü · fare bak · Shift koş</div>
   <script type="module" src="/world/level/ova-deneme.ts"></script>
 </body>
 </html>

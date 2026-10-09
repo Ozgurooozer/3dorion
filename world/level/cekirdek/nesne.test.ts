@@ -6,7 +6,7 @@ import { NullEngine } from "@babylonjs/core/Engines/nullEngine";
 import { Scene } from "@babylonjs/core/scene";
 import { levelTanimiDogrula } from "./levelTanimi.ts";
 import { ornekTanim } from "./ornekTanim.ts";
-import { katalogOku, yasla, kisaAd } from "./katalog.ts";
+import { katalogOku, kisaAd } from "./katalog.ts";
 import { levelKur } from "./levelKur.ts";
 import { renkDizisi, parcaRengi } from "./nesneSistemi.ts";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
@@ -43,12 +43,6 @@ test("katalogda boyutu bozuk varlık hata", () => {
   assert.throws(() => katalogOku({ ...KATALOG, varliklar: [{ ...KATALOG.varliklar[0], boyut: [1] }] }), /bozuk/);
 });
 
-test("ızgaraya yaslama: 4 m adımda 5,9 → 4", () => {
-  assert.equal(yasla(5.9, 4), 4);
-});
-test("ızgara 0 iken serbest", () => {
-  assert.equal(yasla(5.9, 0), 5.9);
-});
 test("kısa ad: kategori öneki atılır", () => {
   assert.equal(kisaAd("PROP_TrafficCone_SM"), "TrafficCone SM");
 });

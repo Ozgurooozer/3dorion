@@ -26,8 +26,6 @@ export const KATEGORI_ADLARI: Readonly<Record<string, string>> = {
 /** Okunur kısa ad: "PROP_TrafficCone_SM" → "TrafficCone SM". */
 export const kisaAd = (ad: string) => ad.replace(/^[A-Z]+_(BLD_|MOD_|PROP_)?/, "").replace(/_/g, " ");
 
-/** Izgaraya yasla (0 = serbest). */
-export const yasla = (v: number, adim: number) => (adim > 0 ? Math.round(v / adim) * adim : v);
 
 const nesneMi = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 

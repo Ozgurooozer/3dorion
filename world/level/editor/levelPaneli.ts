@@ -1,40 +1,33 @@
-// world/level/editor/levelPaneli.ts — Level paneli (solda): tanımı canlı düzenle, geri al, dosyaya kaydet.
+// world/level/editor/levelPaneli.ts — Dünya paneli (editörün sol yuvasında "Dünya" sekmesi): stil, palet, ışık,
+// ortam, zaman, özel shader'lar, katmanlar — tanımı canlı düzenler.
 //
 // Panel tanımdan OTOMATİK kurulur (editor/alanlar.ts): her yaprak türüne bir denetim — sayı: kaydırıcı + kutu
 // (aralık modülden ya da editor/aralik.ts'ten), renk/palet adı: renk kartlı seçici, mantıksal: anahtar,
-// dizi: alt alta. Kaydırıcı sürüklenirken değişiklik kareye BİR KEZ uygulanır (ağır katman takılmasın);
-// bırakınca geri alma geçmişine girer. Kaydet → geliştirme sunucusu doğrulayıp
-// world/level/<ad>/<ad>.level.json'a yazar (vite.config.ts `levelKaydet`).
-//
-// Kısayollar: Ctrl+S kaydet · Ctrl+Z geri al · H paneli gizle/göster · F8 Babylon Inspector (sağda açılır;
-// bu panel solda — çakışmasınlar diye).
+// dizi: alt alta. Kaydırıcı sürüklenirken değişiklik kareye BİR KEZ, geçmişsiz uygulanır (`durum.onizle`; ağır
+// katman takılmasın); bırakınca TEK geri al adımı olur (sürükleme başındaki hâl). Geri/ileri al, kaydet ve
+// kısayollar editörün (spec 22: editor/cekirdek/durum.ts) — panel yalnız `durum.degistir` çağırır.
+// Nesneler burada değil: sahne ağacı ve özellikler panelinde.
 "use strict";
-import type { Level, ModulKaydi } from "../cekirdek/levelKur.ts";
+import type { ModulKaydi } from "../cekirdek/levelKur.ts";
 import type { LevelTanimi } from "../cekirdek/levelTanimi.ts";
+import type { EditorDurumu, Hal } from "./cekirdek/durum.ts";
 import type { ShaderKaydi } from "../shader/shaderSistemi.ts";
 import { alanlar, yolaYaz, yoldanOku, type Alan, type Yol } from "./alanlar.ts";
 import { aralikBul, etiket, type Aralik } from "./aralik.ts";
 import { ONAYARLAR, ONAYAR_ADLARI, onayarUygula, onayarAdi, PALET_DUZENI_ADLARI, paletDuzeniUygula, paletDuzeniAdi } from "../stil/stilTanimi.ts";
 
 export interface PanelAyari {
-  level: Level;
+  durum: EditorDurumu;
   moduller: ModulKaydi;
-  /** Kaydetme ve yeniden yükleme adresi için level adı (ova → world/level/ova/ova.level.json). */
-  ad: string;
   dosyadanOku(): Promise<unknown>;
-  inspektor(): Promise<boolean>;
   /** Özel shader kaydı (spec 20): "Shader'lar" bölümü bundan şema/aralık/açıklama alır. */
   shaderlar?: ShaderKaydi;
 }
 
 const ACIK_ANAHTARI = "orion.levelPaneli.acik";
-const GECMIS_SINIRI = 60;
 
 const STIL = `
-#lp { position: fixed; top: 8px; left: 8px; bottom: 8px; width: 330px; display: flex; flex-direction: column;
-  background: rgba(14,19,30,.93); color: #dde5f2; font: 12px/1.35 system-ui, sans-serif; border-radius: 8px;
-  z-index: 10; box-shadow: 0 4px 24px rgba(0,0,0,.35); }
-#lp.gizli { display: none; }
+#lp { display: flex; flex-direction: column; flex: 1; min-height: 0; color: #dde5f2; font: 12px/1.35 system-ui, sans-serif; }
 #lp .bas { padding: 8px 10px 6px; border-bottom: 1px solid #222c41; }
 #lp .baslik { display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 13px; }
 #lp .nokta { width: 8px; height: 8px; border-radius: 50%; background: #3a4a66; }
@@ -79,8 +72,6 @@ const STIL = `
 #lp .dizi > div.etiketsiz { grid-template-columns: 1fr; }
 #lp .dizi .etk { color: #7f93b7; font-size: 11px; }
 #lp details.kapali-katman > summary .ad { color: #66779a; text-decoration: line-through; }
-#lp .durum { padding: 6px 10px; border-top: 1px solid #222c41; color: #8fd18f; min-height: 16px; }
-#lp .durum.hata { color: #ff9a8a; }
 #lp .ipucu { color: #6f84a8; font-size: 11px; margin-top: 4px; }
 `;
 
@@ -108,60 +99,38 @@ function acikYaz(s: Set<string>): void {
 }
 
 export interface LevelPaneli {
+  kok: HTMLElement;
   yenile(): void;
-  /** Bütün tanımı değiştiren işlem: geri alma geçmişine yazılır, panel yeniden çizilir (asset tarayıcısı kullanır). */
-  tanimDegistir(yeni: (t: LevelTanimi) => LevelTanimi, mesaj: string): void;
+  /** Bölümü açıp görünür yap (sahne ağacında katmana tıklayınca: "katman:<ad>"). */
+  bolumAc(anahtar: string): void;
 }
+
+/** Panelin gösterdiği kısım (nesneler hariç): yalnız bu değişince yeniden çizilir (gizmo sürüklemesi paneli bozmasın). */
+const dunyaImzasi = (t: LevelTanimi) => JSON.stringify({ ...t, nesneler: undefined, gruplar: undefined, kameraYerleri: undefined });
 
 export function levelPaneliKur(p: PanelAyari): LevelPaneli {
   if (!document.getElementById("lpStil")) { const s = el("style"); s.id = "lpStil"; s.textContent = STIL; document.head.append(s); }
-  const kok = el("div"); kok.id = "lp"; document.body.append(kok);
+  const { durum } = p;
+  const kok = el("div"); kok.id = "lp";
 
   const acik = acikOku();
-  const geriAl: LevelTanimi[] = [];
-  let kayitli = JSON.stringify(p.level.tanim());
-  let surukleOnce: LevelTanimi | null = null;
+  let surukleOnce: Hal | null = null;
   let bekleyen: { yol: Yol; deger: unknown } | null = null;
   let arama = "";
+  let sonImza = dunyaImzasi(durum.tanim());
 
-  const durumYaz = (m: string, hata = false) => { durumEl.textContent = m; durumEl.className = hata ? "durum hata" : "durum"; };
-  const kirliGuncelle = () => {
-    const kirli = JSON.stringify(p.level.tanim()) !== kayitli;
-    nokta.classList.toggle("kirli", kirli);
-    kaydetDugme.classList.toggle("kirli", kirli);
-    kaydetDugme.textContent = kirli ? "Kaydet •" : "Kaydet";
-    geriDugme.disabled = geriAl.length === 0;
-  };
-
-  /** Tek değişikliği uygular; `gecmise` verilirse geri alma geçmişine yazar. Hata panelde, level eski hâlinde. */
-  const uygula = (yol: Yol, deger: unknown, gecmise: LevelTanimi | null): boolean => {
-    try {
-      p.level.ayarla(yolaYaz(p.level.tanim(), yol, deger));
-      if (gecmise) { geriAl.push(gecmise); if (geriAl.length > GECMIS_SINIRI) geriAl.shift(); }
-      durumYaz(`${yol.map(etiket).join(" › ")} = ${Array.isArray(deger) ? `[${deger.join(", ")}]` : String(deger)}`);
-      kirliGuncelle();
-      return true;
-    } catch (err) {
-      durumYaz(err instanceof Error ? err.message : String(err), true);
-      return false;
-    }
-  };
-  /** Kaydırıcı sürüklenirken: kareye bir kez uygula (son değer kazanır). */
+  const metin = (yol: Yol, deger: unknown) => `${yol.map(etiket).join(" › ")} = ${Array.isArray(deger) ? `[${deger.join(", ")}]` : String(deger)}`;
+  /** Kaydırıcı sürüklenirken: kareye bir kez, geçmişsiz uygula (son değer kazanır). */
   const kareyeUygula = (yol: Yol, deger: unknown) => {
     const ilk = bekleyen === null;
     bekleyen = { yol, deger };
-    if (ilk) requestAnimationFrame(() => { const b = bekleyen; bekleyen = null; if (b) uygula(b.yol, b.deger, null); });
+    if (ilk) requestAnimationFrame(() => {
+      const x = bekleyen; bekleyen = null;
+      if (x && surukleOnce) durum.onizle(yolaYaz(durum.tanim(), x.yol, x.deger));
+    });
   };
-  /** Bütün tanımı değiştiren işlem (stil önayarı, renk düzeni): geçmişe yazılır, panel yeniden çizilir. */
-  const tanimDegistir = (yeni: (t: LevelTanimi) => LevelTanimi, mesaj: string) => {
-    const once = p.level.tanim();
-    try {
-      p.level.ayarla(yeni(once));
-      geriAl.push(once); if (geriAl.length > GECMIS_SINIRI) geriAl.shift();
-      durumYaz(mesaj);
-    } catch (err) { durumYaz(err instanceof Error ? err.message : String(err), true); }
-    ciz();
-  };
+  /** Bütün tanımı değiştiren işlem (stil önayarı, renk düzeni). */
+  const tanimDegistir = (yeni: (t: LevelTanimi) => LevelTanimi, mesaj: string) => { durum.degistir(yeni, mesaj); };
   const secici = (secenekler: readonly string[], simdiki: string, yaz: (v: string) => void) => {
     const s = el("select");
     for (const ad of secenekler) s.add(new Option(ad, ad, false, ad === simdiki));
@@ -169,27 +138,28 @@ export function levelPaneliKur(p: PanelAyari): LevelPaneli {
     s.onchange = () => yaz(s.value);
     return s;
   };
-  const degistir = (yol: Yol, deger: unknown) => { uygula(yol, deger, p.level.tanim()); if (yol[0] === "palet") ciz(); };
+  const degistir = (yol: Yol, deger: unknown) => { durum.degistir((t) => yolaYaz(t, yol, deger), metin(yol, deger)); };
 
   // ── denetimler ──
   const surgu = (yol: Yol, deger: number, a: Aralik, yaz: (v: number) => void, birak: (v: number) => void) => {
     const kap = el("div", "surgu");
     const r = el("input"); r.type = "range"; r.min = String(a.min); r.max = String(a.max); r.step = String(a.adim); r.value = String(deger);
     const n = el("input"); n.type = "number"; n.step = String(a.adim); n.value = String(deger);
-    r.onpointerdown = () => { surukleOnce = p.level.tanim(); };
+    r.onpointerdown = () => { surukleOnce = durum.hal(); };
     r.oninput = () => { n.value = r.value; yaz(Number(r.value)); };
     r.onchange = () => birak(Number(r.value));
-    n.onchange = () => { const v = Number(n.value); if (Number.isFinite(v)) { r.value = String(v); surukleOnce = p.level.tanim(); birak(v); } };
+    n.onchange = () => { const v = Number(n.value); if (Number.isFinite(v)) { r.value = String(v); surukleOnce = null; birak(v); } };
+    n.onkeydown = (e) => { e.stopPropagation(); if (e.key === "Enter") n.blur(); };
     kap.title = yol.join(".");
     kap.append(r, n);
     return kap;
   };
   /** Sürükleme bitince: son değeri geçmişe yazarak uygula (sürükleme başındaki tanım geri alma noktası). */
   const birakici = (yol: Yol) => (v: unknown) => {
-    const once = surukleOnce ?? p.level.tanim();
+    const once = surukleOnce;
     surukleOnce = null;
     bekleyen = null;
-    uygula(yol, v, once);
+    durum.degistir((t) => yolaYaz(once ? once.tanim : t, yol, v), metin(yol, v), once ? { onceki: once } : {});
   };
 
   const renkSecici = (deger: string, palet: Record<string, string>, yaz: (v: string) => void) => {
@@ -225,6 +195,7 @@ export function levelPaneliKur(p: PanelAyari): LevelPaneli {
       case "metin": {
         const i = el("input"); i.type = "text"; i.value = a.deger as string;
         i.onchange = () => degistir(a.yol, i.value);
+        i.onkeydown = (e) => { e.stopPropagation(); if (e.key === "Enter") i.blur(); };
         return i;
       }
       case "sayiDizisi": case "metinDizisi": {
@@ -233,7 +204,7 @@ export function levelPaneliKur(p: PanelAyari): LevelPaneli {
         (a.deger as unknown[]).forEach((v, k) => {
           const elemanYolu = [...a.yol, k];
           const dizideYaz = (x: unknown) => {
-            const d = (yoldanOku(p.level.tanim(), a.yol) as unknown[]).slice(); d[k] = x; return d;
+            const d = (yoldanOku(durum.tanim(), a.yol) as unknown[]).slice(); d[k] = x; return d;
           };
           const satir = el("div", xyz ? "" : "etiketsiz");
           if (xyz) satir.append(el("span", "etk", xyz[k] ?? String(k)));
@@ -285,26 +256,20 @@ export function levelPaneliKur(p: PanelAyari): LevelPaneli {
 
   // ── iskelet ──
   const bas = el("div", "bas");
-  const baslik = el("div", "baslik");
-  const nokta = el("span", "nokta");
-  baslik.append(nokta, el("span", "", `Level · ${p.ad}`));
   const dugmeler = el("div", "dugmeler");
-  const dugme = (yazi: string, is: () => void, sinif = "") => { const b = el("button", sinif, yazi); b.onclick = is; dugmeler.append(b); return b; };
-  const kaydetDugme = dugme("Kaydet", () => { void kaydet(); }, "ana");
-  const geriDugme = dugme("↶ Geri al", () => geriAlYap());
-  dugme("Dosyadan yükle", () => { void yukle(); });
-  dugme("JSON", () => { void navigator.clipboard.writeText(JSON.stringify(p.level.tanim(), null, 2)).then(() => durumYaz("tanım panoya kopyalandı")); });
-  dugme("Inspector", () => { void p.inspektor(); });
+  const dugme = (yazi: string, baslikMetni: string, is: () => void) => { const x = el("button", "", yazi); x.title = baslikMetni; x.onclick = () => { is(); x.blur(); }; dugmeler.append(x); return x; };
+  dugme("Dosyadan yükle", "Diskteki level dosyasını yeniden oku (geri alınabilir)", () => { void yukle(); });
+  dugme("JSON", "Tanımı panoya kopyala", () => { void navigator.clipboard.writeText(JSON.stringify(durum.tanim(), null, 2)).then(() => durum.bildir("tanım panoya kopyalandı")); });
   const ara = el("input", "ara"); ara.type = "text"; ara.placeholder = "Ara… (ör. gölge, sayı, renk)";
   ara.oninput = () => { arama = ara.value.trim().toLocaleLowerCase("tr"); ciz(); ara.focus(); };
-  const ipucu = el("div", "ipucu", "Ctrl+S kaydet · Ctrl+Z geri al · H gizle · F8 Inspector");
-  bas.append(baslik, dugmeler, ara, ipucu);
+  ara.onkeydown = (e) => { e.stopPropagation(); if (e.key === "Escape") { ara.value = ""; arama = ""; ara.blur(); ciz(); } };
+  bas.append(dugmeler, ara);
   const govde = el("div", "govde");
-  const durumEl = el("div", "durum");
-  kok.append(bas, govde, durumEl);
+  kok.append(bas, govde);
 
   const ciz = () => {
-    const t = p.level.tanim();
+    const t = durum.tanim();
+    sonImza = dunyaImzasi(t);
     const kaydir = govde.scrollTop;
     const bolumler: HTMLElement[] = [];
 
@@ -315,8 +280,8 @@ export function levelPaneliKur(p: PanelAyari): LevelPaneli {
       l.dataset["ara"] = `palet ${ad}`.toLocaleLowerCase("tr");
       const i = el("input"); i.type = "color"; i.value = r;
       i.oninput = () => kareyeUygula(["palet", ad], i.value);
-      i.onchange = () => { birakici(["palet", ad])(i.value); ciz(); };
-      i.onpointerdown = () => { surukleOnce = p.level.tanim(); };
+      i.onchange = () => { birakici(["palet", ad])(i.value); };
+      i.onpointerdown = () => { surukleOnce = durum.hal(); };
       l.append(i, el("span", "", ad));
       paletKap.append(l);
     }
@@ -325,26 +290,13 @@ export function levelPaneliKur(p: PanelAyari): LevelPaneli {
     const stilSatirlari = [
       satir("önayar", secici(ONAYAR_ADLARI, stilAdi, (ad) => tanimDegistir((x) => onayarUygula(x, ad), `stil: ${ad} — ${ONAYARLAR[ad]?.aciklama ?? ""}`)), ["stil"]),
       satir("renk düzeni", secici(PALET_DUZENI_ADLARI, paletDuzeniAdi(t), (ad) => tanimDegistir((x) => paletDuzeniUygula(x, ad), `renk düzeni: ${ad}`)), ["palet"]),
-      el("div", "ipucu", ONAYARLAR[stilAdi]?.aciklama ?? "Önayardan değiştirildi. G / P tuşları da geçer."),
+      el("div", "ipucu", ONAYARLAR[stilAdi]?.aciklama ?? "Önayardan değiştirildi. P / Shift+P tuşları da geçer."),
       ...alanSatirlari(["stil"], t.stil, t),
     ];
     bolumler.push(bolum("stil", `Stil · ${stilAdi}`, stilSatirlari));
     bolumler.push(bolum("palet", "Palet", [paletKap]));
     bolumler.push(bolum("isik", "Işık", alanSatirlari(["isik"], t.isik, t)));
     bolumler.push(bolum("ortam", "Ortam", alanSatirlari(["ortam"], t.ortam, t)));
-
-    // Yerleştirilen nesneler (asset tarayıcısı, V): liste + sil.
-    const nesneler = t.nesneler ?? [];
-    const nesneSatirlari: HTMLElement[] = [el("div", "ipucu", "V: asset tarayıcısı — karta tıkla, zemine yerleştir; sahnede tıkla seç, Q/E döndür, Del sil.")];
-    nesneler.forEach((n, i) => {
-      const sil = el("button", "", "×"); sil.title = "sil";
-      sil.onclick = () => tanimDegistir((x) => ({ ...x, nesneler: (x.nesneler ?? []).filter((_, j) => j !== i) }), `silindi: ${n.varlik}`);
-      const s2 = el("div", "satir");
-      s2.dataset["ara"] = `nesne ${n.varlik}`.toLocaleLowerCase("tr");
-      s2.append(el("span", "", `${i + 1}. ${n.varlik}`), el("span", "", `${n.konum.map((v) => v.toFixed(1)).join(", ")} · ${n.donus}°`), sil);
-      nesneSatirlari.push(s2);
-    });
-    bolumler.push(bolum("nesneler", `Nesneler (${nesneler.length})`, nesneSatirlari));
 
     // Zaman (gün/gece) ve özel shader'lar (spec 20): katman deseni — aç/kapa, ↺ varsayılan, kaydırıcılar.
     if (t.zaman) {
@@ -356,9 +308,9 @@ export function levelPaneliKur(p: PanelAyari): LevelPaneli {
       const ozet = el("span", "bosluk");
       ozet.append(el("span", "ad", s.tur), el("span", "tur", " shader"));
       const sifirla = el("button", "", "↺"); sifirla.title = "varsayılana dön";
-      sifirla.onclick = (e) => { e.preventDefault(); e.stopPropagation(); if (modul) degistir(["shaderlar", i, "ayar"], { ...modul.varsayilan }); ciz(); };
+      sifirla.onclick = (e) => { e.preventDefault(); e.stopPropagation(); if (modul) degistir(["shaderlar", i, "ayar"], { ...modul.varsayilan }); };
       const bas3 = el("span"); bas3.style.display = "contents";
-      bas3.append(anahtar(s.acik, (v) => { degistir(["shaderlar", i, "acik"], v); ciz(); }), ozet, sifirla);
+      bas3.append(anahtar(s.acik, (v) => { degistir(["shaderlar", i, "acik"], v); }), ozet, sifirla);
       const satirlar = alanSatirlari(["shaderlar", i, "ayar"], s.ayar, t, modul?.aralik as Readonly<Record<string, Aralik>> | undefined);
       if (modul) satirlar.unshift(el("div", "ipucu", modul.aciklama));
       bolumler.push(bolum(`shader:${s.tur}`, bas3, satirlar, s.acik ? "" : "kapali-katman"));
@@ -371,12 +323,14 @@ export function levelPaneliKur(p: PanelAyari): LevelPaneli {
       const tur = el("span", "tur", ` ${k.tur}`);
       ozet.append(ad, tur);
       const sifirla = el("button", "", "↺"); sifirla.title = "varsayılana dön";
-      sifirla.onclick = (e) => { e.preventDefault(); e.stopPropagation(); if (modul) degistir(["katmanlar", i, "ayar"], { ...modul.varsayilan }); ciz(); };
+      sifirla.onclick = (e) => { e.preventDefault(); e.stopPropagation(); if (modul) degistir(["katmanlar", i, "ayar"], { ...modul.varsayilan }); };
       const bas2 = el("span"); bas2.style.display = "contents";
-      bas2.append(anahtar(k.acik, (v) => { degistir(["katmanlar", i, "acik"], v); ciz(); }), ozet, sifirla);
+      bas2.append(anahtar(k.acik, (v) => { degistir(["katmanlar", i, "acik"], v); }), ozet, sifirla);
       const satirlar = alanSatirlari(["katmanlar", i, "ayar"], k.ayar, t, modul?.aralik as Readonly<Record<string, Aralik>> | undefined);
       if (modul) satirlar.unshift(el("div", "ipucu", modul.aciklama));
-      bolumler.push(bolum(`katman:${k.ad}`, bas2, satirlar, k.acik ? "" : "kapali-katman"));
+      const b = bolum(`katman:${k.ad}`, bas2, satirlar, k.acik ? "" : "kapali-katman");
+      b.dataset["bolum"] = `katman:${k.ad}`;
+      bolumler.push(b);
     });
 
     govde.replaceChildren(...bolumler);
@@ -388,49 +342,37 @@ export function levelPaneliKur(p: PanelAyari): LevelPaneli {
       }
     }
     govde.scrollTop = kaydir;
-    kirliGuncelle();
   };
 
-  const geriAlYap = () => {
-    const once = geriAl.pop();
-    if (!once) return;
-    try { p.level.ayarla(once); durumYaz("geri alındı"); } catch (err) { durumYaz(err instanceof Error ? err.message : String(err), true); }
-    ciz();
-  };
-  const kaydet = async () => {
-    try {
-      const t = p.level.tanim();
-      const r = await fetch(`/__level/kaydet?ad=${encodeURIComponent(p.ad)}`, {
-        method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(t),
-      });
-      const m = await r.text();
-      if (r.ok) kayitli = JSON.stringify(t);
-      durumYaz(r.ok ? `kaydedildi → ${m}` : `kaydedilemedi: ${m}`, !r.ok);
-      kirliGuncelle();
-    } catch (err) { durumYaz(`kaydedilemedi: ${err instanceof Error ? err.message : err}`, true); }
-  };
   const yukle = async () => {
     try {
-      const once = p.level.tanim();
-      p.level.ayarla(await p.dosyadanOku());
-      geriAl.push(once);
-      kayitli = JSON.stringify(p.level.tanim());
-      durumYaz("dosyadan yüklendi");
-      ciz();
-    } catch (err) { durumYaz(err instanceof Error ? err.message : String(err), true); }
+      const yeni = await p.dosyadanOku();
+      if (durum.degistir(() => yeni as LevelTanimi, "dosyadan yüklendi")) durum.kaydedildi();
+    } catch (err) { durum.bildir(err instanceof Error ? err.message : String(err), true); }
   };
 
-  addEventListener("keydown", (e) => {
-    const yaziyor = (e.target as HTMLElement | null)?.matches?.("input[type=text], input[type=number]") ?? false;
-    if ((e.ctrlKey || e.metaKey) && e.code === "KeyS") { e.preventDefault(); void kaydet(); return; }
-    if ((e.ctrlKey || e.metaKey) && e.code === "KeyZ" && !yaziyor) { e.preventDefault(); geriAlYap(); return; }
-    if (yaziyor) return;
-    if (e.code === "KeyH" && !e.ctrlKey) kok.classList.toggle("gizli");
-    if (e.code === "F8") { e.preventDefault(); void p.inspektor(); }
+  // Dışarıdan değişince (geri al, araç çubuğu, sahne ağacındaki katman gözü) yeniden çiz: panelin gösterdiği kısım
+  // değiştiyse ve kaydırıcı sürüklenmiyorsa; bir kutuya yazılıyorsa odak kaybolmasın diye bırakınca.
+  let bekliyor = false;
+  durum.abone("tanim", () => {
+    if (surukleOnce || bekliyor || dunyaImzasi(durum.tanim()) === sonImza) return;
+    const odak = document.activeElement as HTMLElement | null;
+    if (odak && kok.contains(odak) && odak.matches("input[type=text], input[type=number]")) {
+      bekliyor = true;
+      odak.addEventListener("blur", () => { bekliyor = false; ciz(); }, { once: true });
+      return;
+    }
+    ciz();
   });
-  addEventListener("beforeunload", (e) => { if (JSON.stringify(p.level.tanim()) !== kayitli) e.preventDefault(); });
 
   ciz();
-  durumYaz("hazır — bir değeri değiştir, sahne anında güncellenir");
-  return { yenile: ciz, tanimDegistir };
+  return {
+    kok,
+    yenile: ciz,
+    bolumAc(anahtarAdi) {
+      acik.add(anahtarAdi); acikYaz(acik);
+      ciz();
+      govde.querySelector<HTMLElement>(`[data-bolum="${anahtarAdi.replace(/"/g, "")}"]`)?.scrollIntoView({ block: "start" });
+    },
+  };
 }
