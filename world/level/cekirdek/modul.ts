@@ -13,6 +13,7 @@ import type { StandardMaterial } from "@babylonjs/core/Materials/standardMateria
 import type { Renk } from "./renk.ts";
 import type { MalzemeTuru, MalzemeAyari } from "./malzeme.ts";
 import type { Vec3 } from "./levelTanimi.ts";
+import type { DunyaDurumu } from "../shader/dunyaDurumu.ts";
 
 export interface ModulBaglami {
   sahne: Scene;
@@ -23,6 +24,8 @@ export interface ModulBaglami {
   golge(mesh: Mesh, ne: { atar?: boolean; alir?: boolean }): void;
   /** Güneşe doğru birim yön (güneş diski gibi modüller her karede okur — ışık canlı değişebilir). */
   gunesYonu(): Vec3;
+  /** Canlı dünya durumu (saat, gece, gün ışığı, o saatin paleti): her karede okunur, nesne aynı kalır. */
+  dunya(): DunyaDurumu;
   /** Kendinden ÖNCE kurulmuş zeminin yüksekliği (yoksa 0). Katman sırası = bağımlılık sırası. */
   yukseklik(x: number, z: number): number;
   /** Kendinden ÖNCE kurulmuş zeminin (x, z)'deki rengi (yoksa null) — çim altındaki lekeyle eşleşsin. */

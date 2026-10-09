@@ -129,7 +129,11 @@
           0.62,
           0.86
         ],
-        "tohum": 1907
+        "tohum": 1907,
+        "golX": -30,
+        "golZ": -32,
+        "golYaricap": 16,
+        "golDerinlik": 1.1
       }
     },
     {
@@ -174,7 +178,19 @@
         "ruzgarHiz": 1.8,
         "ruzgarOlcek": 0.05,
         "ruzgarAci": 35,
-        "tohum": 4242
+        "tohum": 4242,
+        "enAlcak": -0.2
+      }
+    },
+    {
+      "tur": "su",
+      "ad": "su",
+      "acik": true,
+      "ayar": {
+        "x": -30,
+        "z": -32,
+        "yaricap": 16,
+        "seviye": -0.25
       }
     },
     {
@@ -232,6 +248,12 @@
         "golgeAtar": true,
         "tohum": 5
       }
+    },
+    {
+      "tur": "parcacik",
+      "ad": "havadakiler",
+      "acik": true,
+      "ayar": {}
     }
   ],
   "stil": {
@@ -455,6 +477,11 @@
     },
     {
       "tur": "elyazmasi",
+      "acik": false,
+      "ayar": {}
+    },
+    {
+      "tur": "atmosfer",
       "acik": false,
       "ayar": {}
     }

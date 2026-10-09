@@ -147,7 +147,8 @@ export function isikSistemiKur(sahne: Scene): IsikSistemi {
       // İlk sürümde ay 0,32 ve dolgu 0,45 idi — şafak/akşam/gece kareleri simsiyah çıktı (görüntüde yakalandı).
       gunes.intensity = taban.gunesSiddet * (gunduz ? 0.35 + 0.65 * d.gunIsigi : 0.55 * Math.max(0.4, d.gece));
       dolgu.diffuse = pDolgu ? c3(pDolgu) : taban.dolguRenk;
-      dolgu.intensity = taban.dolguSiddet * (0.6 + 0.4 * d.gunIsigi);
+      // Alacakaranlıkta güneş ufka yatık: yer neredeyse yalnız dolguyla aydınlanır → dolgu o anda en güçlü (görüntüde: akşam yer simsiyahtı).
+      dolgu.intensity = taban.dolguSiddet * (0.6 + 0.4 * d.gunIsigi + 0.7 * d.alacakaranlik);
       // Sis ve arka plan ufuk rengini izler: gece uzak dağlar gündüz sisiyle açık kalmasın (görüntüde yakalandı).
       const ufuk = d.palet["gokUfuk"];
       if (ufuk) {

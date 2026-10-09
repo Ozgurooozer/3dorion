@@ -111,6 +111,7 @@ export function levelKur(sahne: Scene, tanimHam: unknown, kayit: ModulKaydi, sha
     malzeme: (ad, tur, ayar) => malzemeKur(sahne, ad, tur, { ...ayar, ...(tur === "isikli" ? { stil: stil.isikDurumu } : {}), dunya: shaderlar.uniform }),
     golge: (mesh, ne) => isik.golgeyeKat(mesh, ne),
     gunesYonu: () => isik.gunesYonu(),
+    dunya: () => dunya,
     yukseklik: (x, z) => yukseklik(x, z),
     zeminRengi: (x, z) => {
       for (const { ornek } of kurulu.values()) if (ornek.renk) return ornek.renk(x, z);

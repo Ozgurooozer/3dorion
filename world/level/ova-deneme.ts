@@ -42,6 +42,7 @@ export const OVA_ACILARI = {
   alcak: { konum: [4, 0.45, 6], hedef: [40, 1.5, -30] },
   tepe: { konum: [-30, 28, 40], hedef: [20, 0, -20] },
   gunes: { konum: [0, GOZ, 0], hedef: [-55, 30, -72] },
+  gol: { konum: [-50, 2.4, -14], hedef: [-30, -0.3, -32] },
 } satisfies Record<string, Aci>;
 
 const dosyadanOku = async (): Promise<unknown> => (await fetch(`${LEVEL_DOSYASI}?t=${Date.now()}`)).json();

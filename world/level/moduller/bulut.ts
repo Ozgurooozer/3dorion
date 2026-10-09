@@ -2,9 +2,12 @@
 //
 // Gölge ışıktan bağımsız: yüz aşağı baktıkça gölge rengine kayar (sanat yönü sabit kalsın). Bütün bulutlar
 // tek mesh (tek çizim çağrısı); ağır ağır döner. Tohumlu: aynı ayar → aynı gök.
+// Gün/gece: pişmiş malzeme ışıktan bağımsız olduğu için parlaklık dünya durumundan gelir — gece sönük (`geceParlak`),
+// şafak/akşam ışığın renginden pay alır (altın bulutlar).
 "use strict";
 import { flatGeometri, meshKur, type Geometri, type Ucgen, type V3 } from "../cekirdek/geometri.ts";
 import { karistir, type Renk } from "../cekirdek/renk.ts";
+import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { rastgele } from "../cekirdek/rastgele.ts";
 import type { LevelModulu } from "../cekirdek/modul.ts";
 
@@ -26,6 +29,10 @@ export const BULUT_VARSAYILAN = {
   golge: "bulutGolge",
   /** Dönüş hızı (rad/sn). */
   donus: 0.004,
+  /** Gece parlaklığı (gündüz 1). */
+  geceParlak: 0.16,
+  /** Şafak/akşam ışık rengine kayma (0–1). */
+  alacaPayi: 0.65,
 };
 export type BulutAyari = typeof BULUT_VARSAYILAN;
 
@@ -77,11 +84,22 @@ export const bulutModulu: LevelModulu<BulutAyari> = {
     uzakMin: { min: 50, max: 450, adim: 5 }, uzakMax: { min: 50, max: 450, adim: 5 },
     olcekMin: { min: 2, max: 60, adim: 1 }, olcekMax: { min: 2, max: 80, adim: 1 },
     basiklik: { min: 0.3, max: 1.5, adim: 0.01 }, donus: { min: 0, max: 0.05, adim: 0.001 },
+    geceParlak: { min: 0, max: 1, adim: 0.01 }, alacaPayi: { min: 0, max: 1, adim: 0.01 },
   },
   kur(b, a) {
     const m = meshKur(b.sahne, "bulut", bulutGeometrisi(a, b.renk(a.renk), b.renk(a.golge)));
     const malzeme = b.malzeme("bulut", "pismis");
     m.material = malzeme;
-    return { meshler: [m], guncelle(dt) { m.rotation.y += a.donus * dt; }, yokEt() { m.dispose(); malzeme.dispose(); } };
+    const gunRengi = b.renk(a.renk), tint = new Color3();
+    return {
+      meshler: [m],
+      guncelle(dt) {
+        m.rotation.y += a.donus * dt;
+        const d = b.dunya(), isik = d.palet["isik"] ?? gunRengi;
+        const alaca = karistir(gunRengi, isik, d.alacakaranlik * a.alacaPayi), p = a.geceParlak + (1 - a.geceParlak) * d.gunIsigi;
+        malzeme.emissiveColor = tint.set(alaca[0] * p, alaca[1] * p, alaca[2] * p);
+      },
+      yokEt() { m.dispose(); malzeme.dispose(); },
+    };
   },
 };

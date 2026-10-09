@@ -8,6 +8,8 @@ import { ZEMIN_VARSAYILAN, zeminGeometrisi, zeminYuksekligi, zeminRenkAdi } from
 import { BULUT_VARSAYILAN, bulutGeometrisi, bulutYerleri } from "./bulut.ts";
 import { KAYA_VARSAYILAN, kayaGeometrisi } from "./kaya.ts";
 import { CIM_VARSAYILAN, cimAltKume, cimHucreleri, cimOrnekleri, tutamGeometrisi, yaprakUcgeni } from "./cim.ts";
+import { SU_VARSAYILAN, SU_UNIFORMLAR, SU_FRAGMAN_KODU, SU_KOSE_KODU, suDiski } from "./su.ts";
+import { PARCACIK_VARSAYILAN, yaymaHizi } from "./parcacik.ts";
 import { DEKOR_VARSAYILAN, dekorYerleri, dekorGeometrisi, silindir, kutu, kure } from "./dekor.ts";
 import { ayarBirlestir } from "../cekirdek/modul.ts";
 import { ucgenSayisi, type Geometri } from "../cekirdek/geometri.ts";
@@ -216,4 +218,51 @@ test("dekor normalleri parça merkezinden dışa (ağaç tacının üst yüzleri
   const y = konumY(g), ny = normalY(g);
   const tepe = y.indexOf(Math.max(...y));
   assert.ok(ny[tepe]! > 0.5, String(ny[tepe]));
+});
+
+// ── göl + su (spec 21) ──
+const GOLLU = { ...ZEMIN_VARSAYILAN, golDerinlik: 1.1 };
+test("göl yokken (derinlik 0) zemin eskisi gibi: gölün olacağı yer çanak değil", () => {
+  const y = zeminYuksekligi(ZEMIN_VARSAYILAN)(ZEMIN_VARSAYILAN.golX, ZEMIN_VARSAYILAN.golZ);
+  assert.ok(y > -ZEMIN_VARSAYILAN.tepeYukseklik * 1.01);
+});
+test("göl merkezi derinlik kadar oyulur, uzakta zemin değişmez", () => {
+  const f = zeminYuksekligi(GOLLU), g = zeminYuksekligi(ZEMIN_VARSAYILAN);
+  const merkez = f(GOLLU.golX, GOLLU.golZ), uzak = [200, 150];
+  assert.deepEqual([Math.abs(merkez + GOLLU.golDerinlik) < 1e-6, f(uzak[0]!, uzak[1]!) === g(uzak[0]!, uzak[1]!)], [true, true]);
+});
+test("göl tabanı ve kıyısı toprak renginde", () => {
+  assert.deepEqual([zeminRenkAdi(GOLLU, GOLLU.golX, GOLLU.golZ), zeminRenkAdi(GOLLU, GOLLU.golX + GOLLU.golYaricap * 1.03, GOLLU.golZ)], ["toprak", "toprak"]);
+});
+test("su ve zemin gölü aynı yerde varsayılan (merkez, yarıçap)", () => {
+  assert.deepEqual([SU_VARSAYILAN.x, SU_VARSAYILAN.z, SU_VARSAYILAN.yaricap], [ZEMIN_VARSAYILAN.golX, ZEMIN_VARSAYILAN.golZ, ZEMIN_VARSAYILAN.golYaricap]);
+});
+test("su diski: yarıçap içinde, üçgen sayısı dilim·(2·halka − 1)", () => {
+  const g = suDiski(10, 6, 20);
+  let enUzak = 0;
+  for (let i = 0; i < g.konum.length; i += 3) enUzak = Math.max(enUzak, Math.hypot(g.konum[i]!, g.konum[i + 2]!));
+  assert.deepEqual([g.indeks.length / 3, enUzak <= 10 + 1e-6], [20 * (2 * 6 - 1), true]);
+});
+test("su shader'ı: fragman ve köşe kodundaki her uniform listede, listedeki her ad kodda", () => {
+  const kod = SU_KOSE_KODU + SU_FRAGMAN_KODU;
+  const bildirilen = new Set([...kod.matchAll(/uniform\s+\w+\s+(\w+)/g)].map((m) => m[1]!));
+  const liste = new Set<string>(SU_UNIFORMLAR);
+  // cameraPosition/viewProjection/world Babylon'un kendi uniform'ları; hepsi yine de listede olmalı (ShaderMaterial bağlasın)
+  assert.deepEqual([[...bildirilen].filter((a) => !liste.has(a)), [...liste].filter((a) => !bildirilen.has(a))], [[], []]);
+});
+test("parçacık yayma hızı: sayı ÷ ömür × ışık payı, pay 0–1'e kıstırılır", () => {
+  assert.deepEqual([yaymaHizi(100, 10, 1), yaymaHizi(100, 10, 0.5), yaymaHizi(100, 10, 3), yaymaHizi(100, 10, -1)], [10, 5, 10, 0]);
+});
+test("çim su altına konmaz (enAlcak): hiçbir tutam sınırın altında değil", () => {
+  const f = zeminYuksekligi(GOLLU);
+  const o = cimOrnekleri({ ...CIM_AZ, bosluk: 0, enAlcak: -0.2 }, f, () => null, adla);
+  for (let i = 0; i < o.adet; i++) assert.ok(yerY(o, i) >= -0.2, String(yerY(o, i)));
+});
+test("yeni katman modülleri kayıtta ve varsayılanları şemadan geçer", () => {
+  for (const tur of ["su", "parcacik"]) {
+    const m = MODULLER.get(tur);
+    assert.ok(m, tur);
+    assert.doesNotThrow(() => ayarBirlestir(tur, m!.varsayilan, {}));
+  }
+  assert.ok(PARCACIK_VARSAYILAN.polen > 0);
 });

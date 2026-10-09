@@ -24,6 +24,7 @@ Açık işler tek yerde: `ACIK-ISLER.md`. Fikirler: `FIKIR-HAVUZU.md`. Son günc
 | 16 | Temiz bağlam: yazma süzgeci, durum defteri, çekmeceler, kural yönlendirici, sohbet kipleri | F0–F5b bitti, canlı ölçüldü · P1 çürüdü (iskele baskın) · F6 araç kırpma ölçüm bekliyor | bağlama ne girdiğine dokunurken |
 | 17 | Ova: yeni level (lowpoly, çim, gök, Blender arazi) + level ALTYAPISI (veri tanımı, modüller, ışık sistemi, panel) | MVP L0–L4 bitti, bütçe B1–B4 geçti | `world/level/{cekirdek,moduller,editor,ova}/`, yeni katman/level eklerken |
 | 20 | Özel shader'lar ("Sistem Hatası"): gün/gece paleti shader'da, zaman kırığı, hata imzası, debug taraması, fırça, elyazması; 4 dünya paleti | uygulandı · debug taraması çizim ön kaydını aştı | `world/level/shader/`, yeni shader eklerken |
+| 21 | Yaşayan dünya: kavisli çim (hücre + LOD, 500 bin tutam), gün/gece parçacıkları, göl + su shader'ı, atmosfer eklentisi, serbest uçuş | uygulandı | `world/level/moduller/{cim,su,parcacik}.ts`, `shader/moduller/atmosfer.ts` |
 | 19 | Işık sonrası (bloom, huzme, AO, eğri…), küresel aydınlatma (GIRSM), sağlam gölge (CSM ayarları) | bitti · VRAM ön kaydı 3 önayarda aştı (karar bekliyor) | ışık/gölge/sonrası işlemeye dokunurken |
 | 18 | Stil shader'ları: cel, toon, anime90, Moebius, piksel (t3ssel8r); G/panel geçiş | S0–S5 bitti, bütçe geçti · kendi stilimiz Ozyn'in seçimini bekliyor | `world/level/stil/`, malzeme/ışık görünüşüne dokunurken |
 

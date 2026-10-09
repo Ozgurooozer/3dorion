@@ -49,6 +49,8 @@ export const CIM_VARSAYILAN = {
   egilme: 0.2,
   /** Yaprağın dışa yatması (yerel, boy 1 için). */
   yatma: 0.18,
+  /** Bu yüksekliğin altına çim konmaz (göl tabanı, su altı). */
+  enAlcak: -50,
   /** Öbek ölçeği (m): boy ve açıklık bu gürültüden. */
   lekeOlcek: 6,
   /** Öbek gürültüsü bunun altındaysa tutam yok (açıklık). 0 = her yer çim. */
@@ -141,12 +143,14 @@ export function cimOrnekleri(
     const x = Math.cos(aci) * r, z = Math.sin(aci) * r;
     const g = gurultu(x / a.lekeOlcek, z / a.lekeOlcek, a.tohum + 9);
     if (g < a.bosluk) continue;
+    const yer0 = yukseklik(x, z);
+    if (yer0 < a.enAlcak) continue;
     const uzun = uzunR < a.uzunOran ? a.uzunCarpan : 1;
     const boy = (a.boyMin + boyR * (a.boyMax - a.boyMin)) * (0.55 + 0.9 * g) * uzun * (1 - yumusak(a.yaricap * 0.75, a.yaricap, r));
     if (boy <= 0.01) continue;
     const gen = 1 + (genR - 0.5) * 2 * a.genislikOynama;
     Quaternion.RotationYawPitchRollToRef(don, (egR - 0.5) * 2 * a.egilme, (egR2 - 0.5) * 2 * a.egilme, q);
-    Matrix.ComposeToRef(olcek.set(gen, boy, gen), q, yer.set(x, yukseklik(x, z), z), m);
+    Matrix.ComposeToRef(olcek.set(gen, boy, gen), q, yer.set(x, yer0, z), m);
     m.copyToArray(matris, adet * 16);
     const c = karistir(zeminRengi(x, z) ?? varsayilan, uc, ucR * a.ucKarisim);
     renkler.set([c[0] * parlak, c[1] * parlak, c[2] * parlak, 1], adet * 4);
@@ -199,7 +203,7 @@ export const cimModulu: LevelModulu<CimAyari> = {
     ucKarisim: { min: 0, max: 1, adim: 0.01 }, renkOynama: { min: 0, max: 0.4, adim: 0.01 },
     ruzgarGuc: { min: 0, max: 1, adim: 0.01 }, ruzgarHiz: { min: 0, max: 8, adim: 0.1 }, ruzgarOlcek: { min: 0.005, max: 0.5, adim: 0.005 },
     ruzgarAci: { min: 0, max: 360, adim: 1 },
-    hucre: { min: 4, max: 64, adim: 1 }, mesafe1: { min: 5, max: 200, adim: 1 }, mesafe2: { min: 10, max: 400, adim: 1 },
+    enAlcak: { min: -50, max: 10, adim: 0.05 }, hucre: { min: 4, max: 64, adim: 1 }, mesafe1: { min: 5, max: 200, adim: 1 }, mesafe2: { min: 10, max: 400, adim: 1 },
     tohum: { min: 0, max: 9999, adim: 1 },
   },
   kur(b, a) {

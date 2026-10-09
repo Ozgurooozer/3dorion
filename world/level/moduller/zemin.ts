@@ -1,7 +1,8 @@
 // world/level/moduller/zemin.ts — Zemin: hafif dalgalı lowpoly ızgara, lekeli çayır renkleri, gölge alır.
 //
 // Merkez (yürünen yer) neredeyse düz, dışa doğru dalgalanır. Renk üçgen başına gürültü bandından, paletin
-// çim renklerinden. `yukseklik(x, z)` dışarı açık: kamera ve ileride çim/kaya yerleşimi zemine oturur.
+// çim renklerinden. GÖL: `golDerinlik` > 0 ise (golX, golZ) çevresinde yumuşak bir çanak oyulur ve tabanı toprak renginde
+// olur; su yüzeyi ayrı bir katman (su.ts, aynı merkez/yarıçapı ayrı ayarlar — level dosyasında birlikte yazılır). `yukseklik(x, z)` dışarı açık: kamera ve ileride çim/kaya yerleşimi zemine oturur.
 "use strict";
 import { flatGeometri, meshKur, type Geometri, type Ucgen, type V3 } from "../cekirdek/geometri.ts";
 import { gurultu } from "../cekirdek/rastgele.ts";
@@ -22,9 +23,16 @@ export const ZEMIN_VARSAYILAN = {
   /** Renk bantları: gürültü eşiklerine göre (renkler.length = esikler.length + 1). */
   renkler: ["cimKoyu", "cimOrta", "cimAcik", "cimUc"],
   esikler: [0.3, 0.62, 0.86],
+  /** Göl: merkez (m), yarıçap (m), derinlik (m; 0 = göl yok). */
+  golX: -30,
+  golZ: -32,
+  golYaricap: 16,
+  golDerinlik: 0,
   tohum: 1907,
 };
 export type ZeminAyari = typeof ZEMIN_VARSAYILAN;
+
+const yumusak = (a: number, b: number, x: number) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a || 1))); return t * t * (3 - 2 * t); };
 
 /** (x, z) → yükseklik (m). İki oktav; merkez düz, dışa doğru dalga. */
 export function zeminYuksekligi(a: ZeminAyari): (x: number, z: number) => number {
@@ -32,12 +40,16 @@ export function zeminYuksekligi(a: ZeminAyari): (x: number, z: number) => number
   return (x, z) => {
     const g = 0.65 * gurultu(x / s, z / s, a.tohum) + 0.35 * gurultu(x / (s * 0.37), z / (s * 0.37), a.tohum + 7);
     const merkez = Math.min(1, Math.hypot(x, z) / Math.max(1e-6, a.duzYaricap));
-    return (g - 0.5) * 2 * a.tepeYukseklik * (0.25 + 0.75 * merkez);
+    const arazi = (g - 0.5) * 2 * a.tepeYukseklik * (0.25 + 0.75 * merkez);
+    if (a.golDerinlik <= 0) return arazi;
+    const k = 1 - yumusak(a.golYaricap * 0.35, a.golYaricap * 1.1, Math.hypot(x - a.golX, z - a.golZ));   // çanak: ortası derin
+    return arazi * (1 - k) - a.golDerinlik * k;
   };
 }
 
 /** (x, z) → paletteki renk ADI (gürültü bandı). */
 export function zeminRenkAdi(a: ZeminAyari, x: number, z: number): string {
+  if (a.golDerinlik > 0 && Math.hypot(x - a.golX, z - a.golZ) < a.golYaricap * 1.06) return "toprak";   // göl tabanı ve kıyı
   const g = gurultu(x / a.lekeOlcek, z / a.lekeOlcek, a.tohum + 3);
   const i = a.esikler.findIndex((e) => g < e);
   return a.renkler[i === -1 ? a.renkler.length - 1 : i]!;
@@ -72,6 +84,7 @@ export const zeminModulu: LevelModulu<ZeminAyari> = {
     tepeYukseklik: { min: 0, max: 20, adim: 0.1 }, tepeOlcek: { min: 5, max: 200, adim: 1 },
     duzYaricap: { min: 1, max: 200, adim: 1 }, lekeOlcek: { min: 1, max: 60, adim: 0.5 },
     esikler: { min: 0, max: 1, adim: 0.01 }, tohum: { min: 0, max: 9999, adim: 1 },
+    golX: { min: -300, max: 300, adim: 1 }, golZ: { min: -300, max: 300, adim: 1 }, golYaricap: { min: 2, max: 120, adim: 0.5 }, golDerinlik: { min: 0, max: 8, adim: 0.05 },
   },
   kur(b, a) {
     if (a.renkler.length !== a.esikler.length + 1) throw new Error("zemin: renkler.length = esikler.length + 1 olmalı");
