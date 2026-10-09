@@ -12,6 +12,10 @@ import { malzemeKur } from "./malzeme.ts";
 import { renkCoz } from "./renk.ts";
 import { stilTamamla } from "../stil/stilTanimi.ts";
 import { nesneSistemiKur, type NesneSistemi } from "./nesneSistemi.ts";
+import { shaderSistemiKur, shaderlariNormallestir, type ShaderSistemi, type ShaderKaydi } from "../shader/shaderSistemi.ts";
+import { SHADERLAR } from "../shader/moduller/index.ts";
+import { dunyaDurumuYap, durumuSaateGoreYaz, zamanIlerle, paletZamanda, type DunyaDurumu } from "../shader/dunyaDurumu.ts";
+import { dunyaPaleti } from "../shader/paletler.ts";
 import { stilSistemiKur, type StilSistemi } from "../stil/stilSistemi.ts";
 import { ayarBirlestir, type LevelModulu, type ModulBaglami, type ModulOrnegi } from "./modul.ts";
 
@@ -27,6 +31,9 @@ export interface Level {
   readonly isik: IsikSistemi;
   /** Görsel stil (ışık bantları, çizgi, renk efektleri); efektler için sayfa `stil.kameraBagla` çağırır. */
   readonly stil: StilSistemi;
+  /** Anlık dünya durumu (saat, gece, palet) — gün/gece ve özel shader'lar (spec 20). */
+  readonly dunya: DunyaDurumu;
+  readonly shaderlar: ShaderSistemi;
   /** Elle yerleştirilen varlıklar (asset tarayıcısı): katalog, seçme, önizleme örneği. */
   readonly nesneler: NesneSistemi;
   /** Kurulu katman sayısı ve mesh sayısı (ölçüm satırı için). */
@@ -42,12 +49,13 @@ const kopya = <T>(v: T): T => structuredClone(v);
  * Her katmanın ayarını modülün varsayılanıyla TAMAMLAR (tanımda `{}` olsa da bütün parametreler görünür:
  * panel düzenleyebilsin, kaydedilen dosya açık olsun). Bilinmeyen modül ya da ayar burada hata verir.
  */
-function normallestir(t: LevelTanimi, kayit: ModulKaydi): LevelTanimi {
+function normallestir(t: LevelTanimi, kayit: ModulKaydi, shaderKaydi: ShaderKaydi): LevelTanimi {
   return {
     ...t,
     ortam: { ...t.ortam, piksel: t.ortam.piksel ?? 1 },
     isik: { ...t.isik, gunes: { ...t.isik.gunes, golge: { otomatikSinir: true, kip: 0, karisim: 0.1, ...t.isik.gunes.golge } } },
     stil: stilTamamla(t.stil),
+    shaderlar: shaderlariNormallestir(t.shaderlar ?? [], shaderKaydi),
     nesneler: t.nesneler ?? [],
     katmanlar: t.katmanlar.map((k) => {
       const modul = kayit.get(k.tur);
@@ -57,16 +65,20 @@ function normallestir(t: LevelTanimi, kayit: ModulKaydi): LevelTanimi {
   };
 }
 
-export function levelKur(sahne: Scene, tanimHam: unknown, kayit: ModulKaydi): Level {
+export function levelKur(sahne: Scene, tanimHam: unknown, kayit: ModulKaydi, shaderKaydi: ShaderKaydi = SHADERLAR): Level {
   const ilk = levelTanimiDogrula(tanimHam);
   if (!ilk.ok) throw new Error(`level tanımı geçersiz — ${ilk.hata}`);
-  let tanim = normallestir(kopya(ilk.deger), kayit);
+  let tanim = normallestir(kopya(ilk.deger), kayit, shaderKaydi);
   const isik = isikSistemiKur(sahne);
-  const stil = stilSistemiKur(sahne);
+  // Özel shader'lar (spec 20) ve dünya durumu (saat, gece, palet): her karede ilerler, tanım yeniden kurulmaz.
+  const shaderlar = shaderSistemiKur(sahne, shaderKaydi);
+  const dunya = dunyaDurumuYap();
+  let sonTanimSaati: number | null = null;
+  const stil = stilSistemiKur(sahne, shaderlar);
   const nesneler = nesneSistemiKur({
     sahne,
     // Işıklı: stil eklentili (toon, çizgi…); ışıyan: pişmiş ama sise girer (uzak neon ufka karışsın).
-    malzeme: (ad, tur) => malzemeKur(sahne, ad, tur, tur === "isikli" ? { stil: stil.isikDurumu } : { sis: true }),
+    malzeme: (ad, tur) => malzemeKur(sahne, ad, tur, { ...(tur === "isikli" ? { stil: stil.isikDurumu } : { sis: true }), dunya: shaderlar.uniform }),
     golge: (m, ne) => isik.golgeyeKat(m, ne),
     golgedenCikar: (m) => isik.golgedenCikar(m),
   });
@@ -74,12 +86,29 @@ export function levelKur(sahne: Scene, tanimHam: unknown, kayit: ModulKaydi): Le
 
   const renk = (ad: string) => renkCoz(ad, tanim.palet);
   /** Işık, ortam ve stil: her düzenlemede (ucuz). */
-  const gorunusUygula = () => { isik.uygula(tanim.isik, tanim.ortam, renk); stil.uygula(tanim, renk); };
+  /** Zaman tanımlıysa dünya durumunu o saate kurar ve ışığa uygular (tanımdaki saat değişince oradan başlar). */
+  const zamanaGore = () => {
+    const z = tanim.zaman;
+    if (!z) { dunya.gunesYonu = isik.gunesYonu(); return; }
+    if (z.saat !== sonTanimSaati) { sonTanimSaati = z.saat; dunya.saat = z.saat; }
+    durumuSaateGoreYaz(dunya, dunya.saat, z.egim);
+    dunya.kareler = dunyaPaleti(z.dunya).kareler;
+    dunya.palet = paletZamanda(dunya.kareler, dunya.saat);
+    isik.zamanUygula(dunya);
+  };
+  /** Işık, zaman, özel shader'lar, stil: her düzenlemede (ucuz). */
+  const gorunusUygula = () => {
+    isik.uygula(tanim.isik, tanim.ortam, renk);
+    zamanaGore();
+    shaderlar.uygula(tanim.shaderlar ?? [], renk);
+    stil.uygula(tanim, renk);
+    stil.isikYonu(isik.isikYonu());
+  };
   const baglam: ModulBaglami = {
     sahne,
     renk,
     // Işıklı her malzeme stil eklentisini alır (stil kapalıyken kod dalı atlanır).
-    malzeme: (ad, tur, ayar) => malzemeKur(sahne, ad, tur, tur === "isikli" ? { ...ayar, stil: stil.isikDurumu } : ayar),
+    malzeme: (ad, tur, ayar) => malzemeKur(sahne, ad, tur, { ...ayar, ...(tur === "isikli" ? { stil: stil.isikDurumu } : {}), dunya: shaderlar.uniform }),
     golge: (mesh, ne) => isik.golgeyeKat(mesh, ne),
     gunesYonu: () => isik.gunesYonu(),
     yukseklik: (x, z) => yukseklik(x, z),
@@ -139,7 +168,7 @@ export function levelKur(sahne: Scene, tanimHam: unknown, kayit: ModulKaydi): Le
       const d = levelTanimiDogrula(yeni);
       if (!d.ok) throw new Error(`level tanımı geçersiz — ${d.hata}`);
       const onceki = tanim;
-      tanim = normallestir(kopya(d.deger), kayit);
+      tanim = normallestir(kopya(d.deger), kayit, shaderKaydi);
       try {
         gorunusUygula();
         katmanlariUydur();
@@ -155,7 +184,20 @@ export function levelKur(sahne: Scene, tanimHam: unknown, kayit: ModulKaydi): Le
         throw err;
       }
     },
-    guncelle(dt) { for (const { ornek } of kurulu.values()) ornek.guncelle?.(dt); },
+    guncelle(dt) {
+      if (tanim.zaman) {
+        zamanIlerle(dunya, tanim.zaman, dt, dunyaPaleti(tanim.zaman.dunya).kareler);
+        isik.zamanUygula(dunya);
+        stil.isikYonu(isik.isikYonu());
+      } else {
+        dunya.sure += dt;
+        dunya.gunesYonu = isik.gunesYonu();
+      }
+      shaderlar.kare(dunya);
+      for (const { ornek } of kurulu.values()) ornek.guncelle?.(dt);
+    },
+    dunya,
+    shaderlar,
     yukseklik,
     isik,
     stil,
@@ -165,6 +207,7 @@ export function levelKur(sahne: Scene, tanimHam: unknown, kayit: ModulKaydi): Le
       for (const { ornek } of kurulu.values()) yik(ornek);
       kurulu.clear();
       nesneler.yokEt();
+      shaderlar.yokEt();
       stil.yokEt();
       isik.yokEt();
     },

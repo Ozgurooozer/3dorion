@@ -23,7 +23,8 @@
   Seçenekler `specs/19` §4 sonunda.
 - **Asset tarayıcısı MVP sınırları:** yerleşim indeksi kimlik (silme sonrakileri yeniden kurar); nesne üstüne
   yığma yok (yalnız zemin); şehir parçaları dalgalı zemine gömülüp taşabiliyor (düzleştirme alanı yok).
-- **Kendi stilimiz** (spec 18): altı önayar galeride (`Pictures\shader-ornekleri\index.html`); Ozyn seçer.
+- **Kendi stilimiz** (spec 18/20): stil önayarları + 7 özel shader + 4 dünya paleti; "bir olması" için Ozyn'in seçimi.
+- **Spec 20 açıkları:** debug taraması +22 çizim (derinlik geçişi; gbuffer'dan okumak düşürebilir); 06:00 şafak koyu.
 - **Gece** (referans 2), ağaç/çiçek katmanları; gök bantları kaba (Ozyn: şimdilik dursun).
 - **Orion'u ovaya taşımak** ve **odayı level çekirdeğine taşımak** (olculer/capalar → level verisi).
 - Ova kare hızı LLM ÜRETİRKEN ölçülmedi (yalnız model yüklüyken).

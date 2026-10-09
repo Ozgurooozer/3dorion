@@ -65,6 +65,9 @@ const SABIT: Readonly<Record<string, Aralik>> = {
   "keskinlik.guc": { min: 0, max: 2, adim: 0.01 }, "derinlik.odak": { min: 1, max: 300, adim: 1 }, "derinlik.aciklik": { min: 0.5, max: 16, adim: 0.1 },
   "gi.guc": { min: 0, max: 60, adim: 0.5 }, "gi.yaricap": { min: 0.005, max: 0.5, adim: 0.005 }, "gi.ornek": { min: 16, max: 2048, adim: 16 },
   "gi.alan": { min: 20, max: 300, adim: 5 },
+  // zaman (spec 20)
+  "zaman.saat": { min: 0, max: 24, adim: 0.25 }, "zaman.hiz": { min: 0, max: 2, adim: 0.01 },
+  "zaman.egim": { min: 0, max: 80, adim: 1 }, "zaman.dunya": { min: 0, max: 3, adim: 1 },
 };
 
 /** Değerden türetilen yedek aralık. */

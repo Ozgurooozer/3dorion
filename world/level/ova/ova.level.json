@@ -414,5 +414,49 @@
       "donus": 0,
       "olcek": 1
     }
+  ],
+  "zaman": {
+    "saat": 13,
+    "hiz": 0.1,
+    "akiyor": false,
+    "egim": 35,
+    "dunya": 0
+  },
+  "shaderlar": [
+    {
+      "tur": "gokZamani",
+      "acik": true,
+      "ayar": {}
+    },
+    {
+      "tur": "paletHaritasi",
+      "acik": true,
+      "ayar": {}
+    },
+    {
+      "tur": "zamanKirigi",
+      "acik": false,
+      "ayar": {}
+    },
+    {
+      "tur": "hataImzasi",
+      "acik": false,
+      "ayar": {}
+    },
+    {
+      "tur": "debugTarama",
+      "acik": false,
+      "ayar": {}
+    },
+    {
+      "tur": "firca",
+      "acik": false,
+      "ayar": {}
+    },
+    {
+      "tur": "elyazmasi",
+      "acik": false,
+      "ayar": {}
+    }
   ]
 }

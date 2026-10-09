@@ -11,6 +11,7 @@ import { Color3 } from "@babylonjs/core/Maths/math.color";
 import type { Renk } from "./renk.ts";
 import { RuzgarEklentisi, type RuzgarAyari } from "./ruzgar.ts";
 import { IsikStiliEklentisi, type IsikStiliDurumu } from "../stil/isikEklentisi.ts";
+import { DunyaEklentisi, type DunyaUniformlari } from "../shader/dunyaEklentisi.ts";
 
 export type MalzemeTuru =
   /** Güneş ve dolguyla aydınlanır, gölge alabilir (zemin, kaya, çim). */
@@ -31,6 +32,10 @@ export interface MalzemeAyari {
   stil?: IsikStiliDurumu;
   /** Işıklı malzemede kendinden ışıma (neon, ekran): ışıktan bağımsız eklenen renk. */
   isima?: Renk;
+  /** Özel shader'ların ortak değerleri (spec 20): verilirse dünya eklentisi takılır (ışıklı ve pişmiş). */
+  dunya?: DunyaUniformlari;
+  /** Gök kubbesi malzemesi mi (dünya eklentisinin gece göğü/yıldız/ay dalı yalnız orada derlenir). */
+  gok?: boolean;
 }
 
 export function malzemeKur(sahne: Scene, ad: string, tur: MalzemeTuru, ayar: MalzemeAyari = {}): StandardMaterial {
@@ -50,5 +55,6 @@ export function malzemeKur(sahne: Scene, ad: string, tur: MalzemeTuru, ayar: Mal
   }
   if (ayar.ruzgar) new RuzgarEklentisi(m, ayar.ruzgar);
   if (ayar.stil && tur === "isikli") new IsikStiliEklentisi(m, ayar.stil);
+  if (ayar.dunya) new DunyaEklentisi(m, ayar.dunya, ayar.gok ?? false);
   return m;
 }

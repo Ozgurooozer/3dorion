@@ -9,6 +9,8 @@
 "use strict";
 import { hex } from "./renk.ts";
 import { stilHatasi, type StilAyari } from "../stil/stilTanimi.ts";
+import type { ZamanAyari } from "../shader/dunyaDurumu.ts";
+import type { ShaderTanimi } from "../shader/shaderSistemi.ts";
 
 export const LEVEL_SURUMU = 1;
 
@@ -85,6 +87,10 @@ export interface LevelTanimi {
   katmanlar: KatmanTanimi[];
   /** Asset tarayıcısıyla yerleştirilen nesneler (cekirdek/nesneSistemi.ts). Yoksa boş. */
   nesneler?: NesneYeri[];
+  /** Gün/gece (spec 20): varsa güneş yönü ve ışık rengi SAATTEN gelir (isik.gunes.yon yok sayılır). */
+  zaman?: ZamanAyari;
+  /** Özel shader'lar (spec 20; shader/moduller/): sıra = ekran zinciri sırası. */
+  shaderlar?: ShaderTanimi[];
 }
 
 export type Dogrulama = { ok: true; deger: LevelTanimi } | { ok: false; hata: string };
@@ -136,6 +142,17 @@ function hataBul(v: unknown): string | null {
   const pk = ortam["piksel"];
   if (pk !== undefined && (!Number.isInteger(pk) || (pk as number) < 1 || (pk as number) > 8)) return h("ortam.piksel", "1–8 tamsayı");
   if (v["stil"] !== undefined) { const s = stilHatasi(v["stil"], renkMi); if (s) return h("stil", s); }
+  const z = v["zaman"];
+  if (z !== undefined && (!nesneMi(z) || !["saat", "hiz", "egim", "dunya"].every((k) => sayiMi(z[k])) || typeof z["akiyor"] !== "boolean")) {
+    return h("zaman", "saat, hiz, egim, dunya (sayı) + akiyor (mantıksal) gerekli");
+  }
+  const sl = v["shaderlar"];
+  if (sl !== undefined) {
+    if (!Array.isArray(sl)) return h("shaderlar", "dizi değil");
+    for (const [i, s] of sl.entries()) {
+      if (!nesneMi(s) || typeof s["tur"] !== "string" || typeof s["acik"] !== "boolean" || !nesneMi(s["ayar"])) return h(`shaderlar[${i}]`, "tur/acik/ayar gerekli");
+    }
+  }
   const nesneler = v["nesneler"];
   if (nesneler !== undefined) {
     if (!Array.isArray(nesneler)) return h("nesneler", "dizi değil");

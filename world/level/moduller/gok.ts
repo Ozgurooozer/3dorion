@@ -58,7 +58,7 @@ export const gokModulu: LevelModulu<GokAyari> = {
   },
   kur(b, a) {
     const m = meshKur(b.sahne, "gok", gokGeometrisi(a, b.renk(a.ufuk), b.renk(a.orta), b.renk(a.zenit)));
-    const malzeme = b.malzeme("gok", "pismis");
+    const malzeme = b.malzeme("gok", "pismis", { gok: true });   // gece göğü/yıldız/ay: shader/moduller/gokZamani.ts
     m.material = malzeme;
     m.infiniteDistance = true;
     m.applyFog = false;

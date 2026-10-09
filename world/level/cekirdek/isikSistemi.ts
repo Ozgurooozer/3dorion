@@ -18,16 +18,24 @@ import { DirectionalLight } from "@babylonjs/core/Lights/directionalLight";
 import { CascadedShadowGenerator } from "@babylonjs/core/Lights/Shadows/cascadedShadowGenerator";
 import "@babylonjs/core/Lights/Shadows/shadowGeneratorSceneComponent";
 import type { IsikAyari, OrtamAyari, Vec3 } from "./levelTanimi.ts";
+import type { DunyaDurumu } from "../shader/dunyaDurumu.ts";
 import type { Renk } from "./renk.ts";
 
 export interface IsikSistemi {
   readonly gunes: DirectionalLight;
   readonly dolgu: HemisphericLight;
-  /** Güneşe doğru birim yön. */
+  /** Güneşe doğru birim yön (güneş diski bunu izler). */
   gunesYonu(): Vec3;
+  /** IŞIĞA doğru birim yön (gündüz güneş, zaman akarken gece ay). */
+  isikYonu(): Vec3;
   golgeyeKat(mesh: AbstractMesh, ne: { atar?: boolean; alir?: boolean }): void;
   golgedenCikar(mesh: AbstractMesh): void;
   uygula(isik: IsikAyari, ortam: OrtamAyari, renk: (ad: string) => Renk): void;
+  /**
+   * Gün/gece (spec 20): saatten gelen durum her karede TABANIN üstüne yazılır — gündüz güneş, gece ay (güneşin
+   * karşısı, soğuk ve zayıf); şiddet gün ışığıyla, renkler dünya paletinin o saatinden. Tanım yeniden kurulmaz.
+   */
+  zamanUygula(d: DunyaDurumu): void;
   yokEt(): void;
 }
 
@@ -45,6 +53,8 @@ export function isikSistemiKur(sahne: Scene): IsikSistemi {
   let yon: Vec3 = [0, 1, 0];
   let golge: CascadedShadowGenerator | null = null;
   let golgeAyari = "";
+  /** Tanımdan gelen taban (zaman bunları ölçekler). */
+  let taban = { gunesSiddet: 1, dolguSiddet: 0.5, gunesRenk: Color3.White(), dolguRenk: Color3.White(), sis: Color3.White(), arkaPlan: Color3.White() };
   const atanlar = new Set<AbstractMesh>();
   const alanlar = new Set<AbstractMesh>();
 
@@ -79,6 +89,7 @@ export function isikSistemiKur(sahne: Scene): IsikSistemi {
   return {
     gunes, dolgu,
     gunesYonu: () => yon,
+    isikYonu: () => { const d = gunes.direction; return [-d.x, -d.y, -d.z]; },
     golgeyeKat(mesh, ne) {
       if (ne.atar) { atanlar.add(mesh); golge?.addShadowCaster(mesh, false); }
       if (ne.alir) { alanlar.add(mesh); mesh.receiveShadows = true; }
@@ -93,6 +104,7 @@ export function isikSistemiKur(sahne: Scene): IsikSistemi {
       gunes.diffuse = c3(renk(isik.gunes.renk));
       gunes.specular = Color3.Black();
       gunes.intensity = isik.gunes.siddet;
+      taban = { gunesSiddet: isik.gunes.siddet, dolguSiddet: isik.dolgu.siddet, gunesRenk: gunes.diffuse.clone(), dolguRenk: c3(renk(isik.dolgu.ust)), sis: taban.sis, arkaPlan: taban.arkaPlan };
       dolgu.diffuse = c3(renk(isik.dolgu.ust));
       dolgu.groundColor = c3(renk(isik.dolgu.alt));
       dolgu.specular = Color3.Black();
@@ -108,6 +120,8 @@ export function isikSistemiKur(sahne: Scene): IsikSistemi {
       sahne.fogMode = ortam.sis.acik ? SahneSinifi.FOGMODE_EXP2 : SahneSinifi.FOGMODE_NONE;
       sahne.fogColor = c3(renk(ortam.sis.renk));
       sahne.fogDensity = ortam.sis.yogunluk;
+      taban.sis = sahne.fogColor.clone();
+      taban.arkaPlan = new Color3(sahne.clearColor.r, sahne.clearColor.g, sahne.clearColor.b);
 
       // Ton eşleme AÇIK/TÜRÜ stilden gelir (stil.son.tonlama, isikSonrasi.ts); burada level tabanı: pozlama, kontrast.
       const ip = sahne.imageProcessingConfiguration;
@@ -119,6 +133,28 @@ export function isikSistemiKur(sahne: Scene): IsikSistemi {
       if (motor.getHardwareScalingLevel() !== piksel) motor.setHardwareScalingLevel(piksel);
       const tuval = motor.getRenderingCanvas();
       if (tuval) tuval.style.imageRendering = piksel > 1 ? "pixelated" : "";
+    },
+    zamanUygula(d) {
+      const gunduz = d.gunIsigi > 0.02;
+      // Gündüz güneş, gece ay: ışık tek (gölge haritası da onu izler); ay güneşin üçte biri, gece rengi paletten.
+      // `yon` (gunesYonu) güneş diskini konumlar: hep GÜNEŞ — gece ufkun altında kalır (ay gök shader'ında).
+      yon = d.gunesYonu;
+      const iy = gunduz ? d.gunesYonu : d.ayYonu;
+      gunes.direction = new Vector3(-iy[0], -iy[1], -iy[2]);
+      const pRenk = d.palet["isik"], pDolgu = d.palet["dolgu"];
+      gunes.diffuse = pRenk ? c3(pRenk) : taban.gunesRenk;
+      // Gece OKUNUR kalsın (stilize gece: mavi ama görünür): ay güneşin ~yarısı, dolgu tabanın en az %60'ı.
+      // İlk sürümde ay 0,32 ve dolgu 0,45 idi — şafak/akşam/gece kareleri simsiyah çıktı (görüntüde yakalandı).
+      gunes.intensity = taban.gunesSiddet * (gunduz ? 0.35 + 0.65 * d.gunIsigi : 0.55 * Math.max(0.4, d.gece));
+      dolgu.diffuse = pDolgu ? c3(pDolgu) : taban.dolguRenk;
+      dolgu.intensity = taban.dolguSiddet * (0.6 + 0.4 * d.gunIsigi);
+      // Sis ve arka plan ufuk rengini izler: gece uzak dağlar gündüz sisiyle açık kalmasın (görüntüde yakalandı).
+      const ufuk = d.palet["gokUfuk"];
+      if (ufuk) {
+        const k = Math.max(d.gece, d.alacakaranlik * 0.8);
+        sahne.fogColor = Color3.Lerp(taban.sis, c3(ufuk), k);
+        sahne.clearColor = Color4.FromColor3(Color3.Lerp(taban.arkaPlan, c3(ufuk), k), 1);
+      }
     },
     yokEt() {
       golge?.dispose();

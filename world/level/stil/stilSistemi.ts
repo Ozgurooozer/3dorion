@@ -12,6 +12,9 @@ import type { Renk } from "../cekirdek/renk.ts";
 import { isikStiliDurumuYap, type IsikStiliDurumu } from "./isikEklentisi.ts";
 import { VARSAYILAN_STIL, stilTamamla } from "./stilTanimi.ts";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
+import type { ShaderSistemi } from "../shader/shaderSistemi.ts";
+import type { SonStili } from "./stilTanimi.ts";
+import type { Vec3 } from "../cekirdek/levelTanimi.ts";
 import { etkinSon, sonImzasi, sonKur, boruHattiGerekli, goruntuIslemeUygula, type SonKurulum } from "./isikSonrasi.ts";
 import { cizgiEfektiKur, renkEfektiKur, paletListesi, type CizgiDegerleri, type RenkDegerleri, type Efekt } from "./efektler.ts";
 
@@ -23,6 +26,8 @@ export interface StilSistemi {
   kameraBagla(k: Camera): void;
   /** Katmanlar/nesneler yeniden kurulunca (güneş diski değişmiş olabilir: huzme ve parıltı ona bağlı). */
   sahneDegisti(): void;
+  /** Işık yönü değişti (gün/gece akarken her kare). */
+  isikYonu(yon: Vec3): void;
   /** B tuşu: basılıyken bütün ışık sonrası kapalı (önce/sonra). */
   sonrasiAtla(atla: boolean): void;
   yokEt(): void;
@@ -45,7 +50,7 @@ export function isikDurumunuYaz(d: IsikStiliDurumu, t: LevelTanimi, renk: (ad: s
   d.gunes = [g.yon[0] / l, g.yon[1] / l, g.yon[2] / l];
 }
 
-export function stilSistemiKur(sahne: Scene): StilSistemi {
+export function stilSistemiKur(sahne: Scene, shaderlar: ShaderSistemi | null = null): StilSistemi {
   const isikDurumu = isikStiliDurumuYap();
   const cizgi: CizgiDegerleri = { a: [1, 0.08, 0.4, 0.8], b: [0, 0, 0, 220], renk: [0, 0, 0] };
   const renkD: RenkDegerleri = { a: [0, 0, 0, 1], gren: 0, palet: [] };
@@ -66,7 +71,7 @@ export function stilSistemiKur(sahne: Scene): StilSistemi {
     const gunes = sahne.getMeshByName("gunes_diski");
     const gunesDiski = gunes instanceof Mesh ? gunes : null;
     // Piksel kipinde örnekleme (MSAA) yok: keskin piksel istenir.
-    const yeniImza = JSON.stringify([s.cizgi.acik, s.renk.acik, piksel > 1, sonImzasi(e, gunesDiski?.uniqueId ?? null)]);
+    const yeniImza = JSON.stringify([s.cizgi.acik, s.renk.acik, piksel > 1, sonImzasi(e, gunesDiski?.uniqueId ?? null), shaderlar?.ekranImzasi() ?? ""]);
     if (yeniImza !== imza) {
       imza = yeniImza;
       // SIRA: ışık sonrası (GI, AO, huzme, boru hattı) → çizgi → renk/palet (isikSonrasi.ts başı).
@@ -78,10 +83,14 @@ export function stilSistemiKur(sahne: Scene): StilSistemi {
       const sonrasiVar = boruHattiGerekli(e) || e.ao.acik || e.huzme.acik;
       if (s.cizgi.acik) kurulu.push(cizgiEfektiKur(sahne, kamera, cizgi, sonrasiVar ? 1 : ornekleme));
       if (s.renk.acik) kurulu.push(renkEfektiKur(kamera, renkD, s.cizgi.acik || sonrasiVar ? 1 : ornekleme));
+      // Özel ekran shader'ları (spec 20) zincirin SONUNDA, listedeki sırayla.
+      if (shaderlar) kurulu.push(...shaderlar.ekranKur(kamera));
     }
     const g = t.isik.gunes, l = Math.hypot(...g.yon) || 1;
-    sonKurulum?.guncelle(e, [g.yon[0] / l, g.yon[1] / l, g.yon[2] / l], son.renk(g.renk), g.siddet);
+    sonGuncelle = { e, yon: [g.yon[0] / l, g.yon[1] / l, g.yon[2] / l], renk: son.renk(g.renk), siddet: g.siddet };
+    sonKurulum?.guncelle(sonGuncelle.e, sonGuncelle.yon, sonGuncelle.renk, sonGuncelle.siddet);
   };
+  let sonGuncelle: { e: SonStili; yon: Vec3; renk: Renk; siddet: number } | null = null;
 
   return {
     isikDurumu,
@@ -99,6 +108,11 @@ export function stilSistemiKur(sahne: Scene): StilSistemi {
     },
     kameraBagla(k) { kamera = k; imza = ""; efektleriUydur(); },
     sahneDegisti() { efektleriUydur(); },
+    isikYonu(yon) {
+      // Zaman akarken (spec 20): stil eklentisinin parlama/kenar ışığı ve GI/huzme yeni ışık yönünü izlesin.
+      isikDurumu.gunes = [...yon];
+      if (sonGuncelle) { sonGuncelle.yon = yon; sonKurulum?.guncelle(sonGuncelle.e, yon, sonGuncelle.renk, sonGuncelle.siddet); }
+    },
     sonrasiAtla(b) { if (atla !== b) { atla = b; efektleriUydur(); } },
     yokEt() { for (const e of kurulu) e.yokEt(); kurulu = []; sonKurulum?.yokEt(); sonKurulum = null; },
   };

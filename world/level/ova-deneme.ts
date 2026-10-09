@@ -9,7 +9,7 @@
 //               bu açılışta Kaydet'e basılırsa değer dosyaya da yazılır)
 //   ?panel=0    paneli kapat (ekran görüntüsü için)
 //   ?stil=toon  stil önayarıyla aç (stil/stilTanimi.ts ONAYARLAR) · ?renk=pastel renk düzeniyle aç
-//   ?kapat=gi,ao  ışık sonrası gruplarını kapat (maliyet ölçümü)
+//   ?kapat=gi,ao  ışık sonrası gruplarını kapat (maliyet ölçümü) · ?saat=21 ?dunya=1 ?shader=zamanKirigi,firca
 // Tuşlar: G stil önayarları arasında döner, P renk düzenleri arasında (spec 18). Shader derleme hatası ölçüm
 // satırına ve başlığa "hata=N" olarak düşer (sessiz boş görüntü yok).
 // Hazır olunca (3 sn ölçüm) başlık "hazir …" olur — tools/oda-goruntu.mjs bunu bekler.
@@ -26,6 +26,10 @@ import { inspektorAcKapa } from "./editor/inspektor.ts";
 import { varlikTarayiciKur } from "./editor/varlikTarayici.ts";
 import { Logger } from "@babylonjs/core/Misc/logger";
 import type { SonStili } from "./stil/stilTanimi.ts";
+import { SHADERLAR } from "./shader/moduller/index.ts";
+import { DUNYA_ADLARI } from "./shader/paletler.ts";
+import { ZAMAN_VARSAYILAN } from "./shader/dunyaDurumu.ts";
+import type { LevelTanimi } from "./cekirdek/levelTanimi.ts";
 import { ONAYARLAR, ONAYAR_ADLARI, onayarUygula, onayarAdi, PALET_DUZENI_ADLARI, paletDuzeniUygula, paletDuzeniAdi } from "./stil/stilTanimi.ts";
 
 const LEVEL_DOSYASI = "/world/level/ova/ova.level.json";
@@ -61,6 +65,17 @@ try {
   }
   if (q.has("stil")) level.ayarla(onayarUygula(level.tanim(), q.get("stil")!));
   if (q.has("renk")) level.ayarla(paletDuzeniUygula(level.tanim(), q.get("renk")!));
+  // ?saat=21.5 · ?dunya=1 · ?shader=zamanKirigi,hataImzasi — başsız denemede zaman ve özel shader seçimi (spec 20).
+  if (q.has("saat") || q.has("dunya") || q.has("shader")) {
+    const t = level.tanim();
+    t.zaman = { ...(t.zaman ?? ZAMAN_VARSAYILAN), ...(q.has("saat") ? { saat: Number(q.get("saat")) } : {}), ...(q.has("dunya") ? { dunya: Number(q.get("dunya")) } : {}) };
+    for (const tur of (q.get("shader") ?? "").split(",").filter(Boolean)) {
+      const liste = t.shaderlar ?? (t.shaderlar = []);
+      const s = liste.find((x) => x.tur === tur);
+      if (s) s.acik = true; else liste.push({ tur, acik: true, ayar: {} });
+    }
+    level.ayarla(t);
+  }
   // ?kapat=gi,ao — ışık sonrası gruplarını yüklemede kapat (ölçüm: bir efektin maliyetini ayırmak için).
   if (q.has("kapat")) {
     const t = level.tanim();
@@ -88,7 +103,7 @@ try {
   level.stil.kameraBagla(kamera);
 
   const panel = q.get("panel") !== "0"
-    ? levelPaneliKur({ level, moduller: MODULLER, ad: "ova", dosyadanOku, inspektor: () => inspektorAcKapa(sahne) })
+    ? levelPaneliKur({ level, moduller: MODULLER, shaderlar: SHADERLAR, ad: "ova", dosyadanOku, inspektor: () => inspektorAcKapa(sahne) })
     : null;
 
   const tarayici = varlikTarayiciKur({
@@ -153,6 +168,47 @@ try {
     }
     stilCubugu.append(g);
   }
+  // Özel shader çipleri + zaman satırı (spec 20): tek tıkla aç/kapa; saat kaydırıcısı, akış, dünya paleti.
+  const tanimDegis = (f: (t: LevelTanimi) => void, mesaj: string) => {
+    const t = level.tanim(); f(t);
+    if (panel) panel.tanimDegistir(() => t, mesaj); else level.ayarla(t);
+    cubuguYaz();
+  };
+  {
+    const g = document.createElement("div"); g.className = "grup";
+    const b = document.createElement("span"); b.textContent = "shader"; g.append(b);
+    for (const [tur, m] of SHADERLAR) {
+      const d = document.createElement("button"); d.textContent = tur; d.title = m.aciklama;
+      d.onclick = (e) => {
+        e.stopPropagation(); d.blur();
+        tanimDegis((t) => {
+          const liste = t.shaderlar ?? (t.shaderlar = []);
+          const s = liste.find((x) => x.tur === tur);
+          if (s) s.acik = !s.acik; else liste.push({ tur, acik: true, ayar: {} });
+        }, `shader ${tur}`);
+      };
+      dugmeler.set(`shader:${tur}`, d);
+      g.append(d);
+    }
+    stilCubugu.append(g);
+  }
+  const saatEtiketi = document.createElement("b");
+  {
+    const g = document.createElement("div"); g.className = "grup";
+    const b = document.createElement("span"); b.textContent = "zaman"; g.append(b);
+    const kaydirici = document.createElement("input"); kaydirici.type = "range"; kaydirici.min = "0"; kaydirici.max = "24"; kaydirici.step = "0.25";
+    kaydirici.value = String(level.tanim().zaman?.saat ?? 13);
+    kaydirici.oninput = () => tanimDegis((t) => { t.zaman = { ...(t.zaman ?? ZAMAN_VARSAYILAN), saat: Number(kaydirici.value) }; }, `saat ${kaydirici.value}`);
+    const akis = document.createElement("button"); akis.textContent = "zaman aksın";
+    akis.onclick = (e) => { e.stopPropagation(); akis.blur(); tanimDegis((t) => { const z = t.zaman ?? { ...ZAMAN_VARSAYILAN }; t.zaman = { ...z, akiyor: !z.akiyor, saat: level.dunya.saat }; }, "zaman akışı"); };
+    dugmeler.set("zaman:akis", akis);
+    const dunyaSec = document.createElement("select");
+    DUNYA_ADLARI.forEach((ad, i) => dunyaSec.add(new Option(ad, String(i))));
+    dunyaSec.value = String(level.tanim().zaman?.dunya ?? 0);
+    dunyaSec.onchange = () => tanimDegis((t) => { t.zaman = { ...(t.zaman ?? ZAMAN_VARSAYILAN), dunya: Number(dunyaSec.value), saat: level.dunya.saat }; }, `dünya ${dunyaSec.selectedOptions[0]?.text}`);
+    g.append(saatEtiketi, kaydirici, akis, dunyaSec);
+    stilCubugu.append(g);
+  }
   let atlaniyor = false;
   addEventListener("keydown", (e) => {
     if (e.code !== "KeyB" || atlaniyor || (e.target as HTMLElement | null)?.matches?.("input, select")) return;
@@ -164,7 +220,9 @@ try {
     const s = onayarAdi(level.tanim()), r = paletDuzeniAdi(level.tanim());
     const son = level.tanim().stil?.son;
     const isikAcik = (k: string) => ISIK_CIPLERI.some(([g]) => `isik:${g}` === k && !!son?.[g].acik);
-    for (const [k, d] of dugmeler) d.classList.toggle("secili", k === `stil:${s}` || k === `renk:${r}` || isikAcik(k));
+    const shaderAcik = (k: string) => k.startsWith("shader:") && !!level.tanim().shaderlar?.some((x) => `shader:${x.tur}` === k && x.acik);
+    const akisAcik = (k: string) => k === "zaman:akis" && !!level.tanim().zaman?.akiyor;
+    for (const [k, d] of dugmeler) d.classList.toggle("secili", k === `stil:${s}` || k === `renk:${r}` || isikAcik(k) || shaderAcik(k) || akisAcik(k));
     aciklama.textContent = ONAYARLAR[s]?.aciklama ?? "Stil elle değiştirildi (panelden).";
   }
   const sonraki = (liste: readonly string[], simdiki: string) => liste[(liste.indexOf(simdiki) + 1) % liste.length]!;
@@ -180,6 +238,8 @@ try {
   olcer.captureFrameTime = true;
   sahne.onBeforeRenderObservable.add(() => {
     level.guncelle(motor.getDeltaTime() / 1000);
+    const st = level.dunya.saat;
+    saatEtiketi.textContent = `${String(Math.floor(st)).padStart(2, "0")}:${String(Math.floor((st % 1) * 60)).padStart(2, "0")}`;
     kamera.speed = kos ? 0.6 : 0.25;
     kamera.maxZ = level.tanim().ortam.kamera.uzak;
     if (ay < 10) kamera.position.y = level.yukseklik(kamera.position.x, kamera.position.z) + ay;

@@ -11,6 +11,7 @@
 "use strict";
 import type { Level, ModulKaydi } from "../cekirdek/levelKur.ts";
 import type { LevelTanimi } from "../cekirdek/levelTanimi.ts";
+import type { ShaderKaydi } from "../shader/shaderSistemi.ts";
 import { alanlar, yolaYaz, yoldanOku, type Alan, type Yol } from "./alanlar.ts";
 import { aralikBul, etiket, type Aralik } from "./aralik.ts";
 import { ONAYARLAR, ONAYAR_ADLARI, onayarUygula, onayarAdi, PALET_DUZENI_ADLARI, paletDuzeniUygula, paletDuzeniAdi } from "../stil/stilTanimi.ts";
@@ -22,6 +23,8 @@ export interface PanelAyari {
   ad: string;
   dosyadanOku(): Promise<unknown>;
   inspektor(): Promise<boolean>;
+  /** Özel shader kaydı (spec 20): "Shader'lar" bölümü bundan şema/aralık/açıklama alır. */
+  shaderlar?: ShaderKaydi;
 }
 
 const ACIK_ANAHTARI = "orion.levelPaneli.acik";
@@ -342,6 +345,24 @@ export function levelPaneliKur(p: PanelAyari): LevelPaneli {
       nesneSatirlari.push(s2);
     });
     bolumler.push(bolum("nesneler", `Nesneler (${nesneler.length})`, nesneSatirlari));
+
+    // Zaman (gün/gece) ve özel shader'lar (spec 20): katman deseni — aç/kapa, ↺ varsayılan, kaydırıcılar.
+    if (t.zaman) {
+      const zs = [el("div", "ipucu", "Saat güneşi ve ışığı yönetir (isik.gunes.yon yok sayılır); dünya: 0 ova · 1 siberpunk · 2 ortaçağ · 3 büyü."), ...alanSatirlari(["zaman"], t.zaman, t)];
+      bolumler.push(bolum("zaman", "Zaman (gün/gece)", zs));
+    }
+    (t.shaderlar ?? []).forEach((s, i) => {
+      const modul = p.shaderlar?.get(s.tur);
+      const ozet = el("span", "bosluk");
+      ozet.append(el("span", "ad", s.tur), el("span", "tur", " shader"));
+      const sifirla = el("button", "", "↺"); sifirla.title = "varsayılana dön";
+      sifirla.onclick = (e) => { e.preventDefault(); e.stopPropagation(); if (modul) degistir(["shaderlar", i, "ayar"], { ...modul.varsayilan }); ciz(); };
+      const bas3 = el("span"); bas3.style.display = "contents";
+      bas3.append(anahtar(s.acik, (v) => { degistir(["shaderlar", i, "acik"], v); ciz(); }), ozet, sifirla);
+      const satirlar = alanSatirlari(["shaderlar", i, "ayar"], s.ayar, t, modul?.aralik as Readonly<Record<string, Aralik>> | undefined);
+      if (modul) satirlar.unshift(el("div", "ipucu", modul.aciklama));
+      bolumler.push(bolum(`shader:${s.tur}`, bas3, satirlar, s.acik ? "" : "kapali-katman"));
+    });
 
     t.katmanlar.forEach((k, i) => {
       const modul = p.moduller.get(k.tur);
