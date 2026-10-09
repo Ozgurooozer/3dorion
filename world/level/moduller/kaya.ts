@@ -8,6 +8,7 @@ import { flatGeometri, meshKur, type Geometri, type Ucgen, type V3 } from "../ce
 import { karistir, type Renk } from "../cekirdek/renk.ts";
 import { rastgele } from "../cekirdek/rastgele.ts";
 import type { LevelModulu } from "../cekirdek/modul.ts";
+import { karma, ornekle, seyrekOku } from "../cekirdek/arazi.ts";
 
 export const KAYA_VARSAYILAN = {
   sayi: 14,
@@ -21,6 +22,9 @@ export const KAYA_VARSAYILAN = {
   bozma: 0.35,
   /** Dikey basıklık. */
   basiklik: 0.7,
+  /** Arazi fırçasının seyreltmesi (seyrek: [anahtar, 0–1, …]; 1 = bu hücrede hiç yok) ve hücre aralığı (m). */
+  maske: [] as number[],
+  maskeHucre: 2,
   renk: "kaya",
   koyu: "kayaKoyu",
 };
@@ -46,7 +50,11 @@ export function kayaYerleri(a: KayaAyari): KayaYeri[] {
 export function kayaGeometrisi(a: KayaAyari, yukseklik: (x: number, z: number) => number, renk: Renk, koyu: Renk): Geometri {
   const rnd = rastgele(a.tohum + 1);
   const u: Ucgen[] = [];
-  for (const y of kayaYerleri(a)) {
+  const maske = seyrekOku(a.maske);
+  for (const [n, y] of kayaYerleri(a).entries()) {
+    // Maskeli kaya da ÜRETİLİR (rastgele sırası bozulmasın: diğer kayaların biçimi değişmesin), yalnız eklenmez.
+    const dahil = !maske.size || karma(a.tohum * 131 + n) >= ornekle(maske, a.maskeHucre, y.x, y.z);
+    const u0 = u.length;
     // Köşe başına sabit bozma (komşu yüzler aynı köşeyi paylaşsın: çatlak açılmasın).
     const bozuk = K.map((v) => { const s = 1 + (rnd() - 0.5) * 2 * a.bozma; return [v[0] * s, v[1] * s * a.basiklik, v[2] * s] as V3; });
     const c = Math.cos(y.aci), s = Math.sin(y.aci);
@@ -60,6 +68,7 @@ export function kayaGeometrisi(a: KayaAyari, yukseklik: (x: number, z: number) =
       const yon: V3 = [(ka[0] + kb[0] + kc[0]) / 3 - merkez[0], (ka[1] + kb[1] + kc[1]) / 3 - merkez[1], (ka[2] + kb[2] + kc[2]) / 3 - merkez[2]];
       u.push({ a: ka, b: kb, c: kc, renk: karistir(koyu, renk, rnd()), yon });
     }
+    if (!dahil) u.length = u0;
   }
   return flatGeometri(u);
 }
@@ -68,11 +77,12 @@ export const kayaModulu: LevelModulu<KayaAyari> = {
   tur: "kaya",
   aciklama: "Lowpoly kayalar (tohumlu, zemine oturur, gölge atar/alır). Zeminden sonra gelmeli.",
   varsayilan: KAYA_VARSAYILAN,
+  veri: ["maske"],
   aralik: {
     sayi: { min: 0, max: 200, adim: 1 }, tohum: { min: 0, max: 9999, adim: 1 },
     icYaricap: { min: 0, max: 100, adim: 1 }, disYaricap: { min: 5, max: 300, adim: 1 },
     boyMin: { min: 0.1, max: 5, adim: 0.05 }, boyMax: { min: 0.1, max: 10, adim: 0.05 },
-    bozma: { min: 0, max: 0.9, adim: 0.01 }, basiklik: { min: 0.2, max: 2, adim: 0.01 },
+    bozma: { min: 0, max: 0.9, adim: 0.01 }, basiklik: { min: 0.2, max: 2, adim: 0.01 }, maskeHucre: { min: 0.5, max: 10, adim: 0.5 },
   },
   kur(b, a) {
     const m = meshKur(b.sahne, "kaya", kayaGeometrisi(a, b.yukseklik, b.renk(a.renk), b.renk(a.koyu)));

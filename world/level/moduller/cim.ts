@@ -20,10 +20,12 @@
 import "@babylonjs/core/Meshes/thinInstanceMesh";
 import { Matrix, Quaternion, Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
+import { BoundingInfo } from "@babylonjs/core/Culling/boundingInfo";
 import { flatGeometri, meshKur, type Geometri, type Ucgen, type V3 } from "../cekirdek/geometri.ts";
 import { karistir, type Renk } from "../cekirdek/renk.ts";
-import { gurultu, rastgele } from "../cekirdek/rastgele.ts";
-import type { LevelModulu } from "../cekirdek/modul.ts";
+import { gurultu, rastgele, rastgeleAtla } from "../cekirdek/rastgele.ts";
+import type { Bolge, LevelModulu } from "../cekirdek/modul.ts";
+import { farkBolgesi, karma, ornekle, seyrekOku } from "../cekirdek/arazi.ts";
 
 export const CIM_VARSAYILAN = {
   /** Denenecek tutam sayısı (açıklıklara düşenler konmaz). */
@@ -49,6 +51,9 @@ export const CIM_VARSAYILAN = {
   egilme: 0.2,
   /** Yaprağın dışa yatması (yerel, boy 1 için). */
   yatma: 0.18,
+  /** Arazi fırçasının seyreltmesi (seyrek: [anahtar, 0–1, …]; 1 = bu hücrede hiç yok) ve hücre aralığı (m). */
+  maske: [] as number[],
+  maskeHucre: 2,
   /** Bu yüksekliğin altına çim konmaz (göl tabanı, su altı). */
   enAlcak: -50,
   /** Öbek ölçeği (m): boy ve açıklık bu gürültüden. */
@@ -125,22 +130,34 @@ export function tutamGeometrisi(a: CimAyari, seviye = 0): Geometri {
 
 export interface CimOrnekleri { matris: Float32Array; renk: Float32Array; adet: number }
 
-/** Tutam yerleri: dünya matrisleri (16) ve renkler (rgba). Saf; tohumla belirleyici. */
+/** Tutam başına rastgele çekim sayısı (sabit: her aday aynı sayıda çeker — bölge yenilemesi `rastgeleAtla` ile ona sıçrar). */
+const CEKIM = 10;
+
+/**
+ * Tutam yerleri: dünya matrisleri (16) ve renkler (rgba). Saf; tohumla belirleyici. `indeksler` verilirse yalnız o
+ * ADAYLAR üretilir (bölge yenilemesi: `cimAdayHucreleri`nden) — her aday kendi çekimine sıçrar, sonuç bütünün o
+ * adaylarıyla birebir aynı.
+ */
 export function cimOrnekleri(
   a: CimAyari, yukseklik: (x: number, z: number) => number, zeminRengi: (x: number, z: number) => Renk | null, renk: (ad: string) => Renk,
+  indeksler: readonly number[] | null = null,
 ): CimOrnekleri {
-  const rnd = rastgele(a.tohum);
-  const N = Math.max(0, Math.round(a.sayi));
+  const maske = seyrekOku(a.maske);
+  let rnd = rastgele(a.tohum);
+  const N = indeksler ? indeksler.length : Math.max(0, Math.round(a.sayi));
   const matris = new Float32Array(N * 16), renkler = new Float32Array(N * 4);
   const varsayilan = renk(a.renk), uc = renk(a.uc);
   const m = new Matrix(), q = new Quaternion(), olcek = new Vector3(), yer = new Vector3();
   let adet = 0;
-  for (let i = 0; i < N; i++) {
-    // Her deneme aynı sayıda rnd() çeker: bir ayar açıklığı değiştirince geri kalan tutamlar yerinden oynamasın.
+  for (let n = 0; n < N; n++) {
+    const i = indeksler ? indeksler[n]! : n;
+    if (indeksler) rnd = rastgeleAtla(a.tohum, i * CEKIM);
+    // Her deneme aynı sayıda (CEKIM) rnd() çeker: bir ayar açıklığı değiştirince geri kalan tutamlar yerinden oynamasın.
     const aci = rnd() * Math.PI * 2, r = a.yaricap * Math.pow(rnd(), a.merkezYogunluk / 2);
     const don = rnd() * Math.PI * 2, boyR = rnd(), ucR = rnd(), parlak = 1 + (rnd() - 0.5) * 2 * a.renkOynama;
     const uzunR = rnd(), genR = rnd(), egR = rnd(), egR2 = rnd();
     const x = Math.cos(aci) * r, z = Math.sin(aci) * r;
+    if (maske.size && karma(i) < ornekle(maske, a.maskeHucre, x, z)) continue;
     const g = gurultu(x / a.lekeOlcek, z / a.lekeOlcek, a.tohum + 9);
     if (g < a.bosluk) continue;
     const yer0 = yukseklik(x, z);
@@ -157,6 +174,34 @@ export function cimOrnekleri(
     adet++;
   }
   return { matris: matris.subarray(0, adet * 16), renk: renkler.subarray(0, adet * 4), adet };
+}
+
+/** Bütün ADAY tutamların (maske/boşluk/yükseklik süzgecinden önce) hücrelere dağılımı: "ix,iz" → aday indeksleri. Saf. */
+export function cimAdayHucreleri(a: CimAyari): Map<string, number[]> {
+  const rnd = rastgele(a.tohum);
+  const N = Math.max(0, Math.round(a.sayi));
+  const harita = new Map<string, number[]>();
+  for (let i = 0; i < N; i++) {
+    const aci = rnd() * Math.PI * 2, r = a.yaricap * Math.pow(rnd(), a.merkezYogunluk / 2);
+    for (let k = 2; k < CEKIM; k++) rnd();
+    const x = Math.cos(aci) * r, z = Math.sin(aci) * r;
+    const anahtar = `${Math.floor(x / a.hucre)},${Math.floor(z / a.hucre)}`;
+    const l = harita.get(anahtar);
+    if (l) l.push(i); else harita.set(anahtar, [i]);
+  }
+  return harita;
+}
+
+/** Örneklerin sınır kutusu: konumlar ± yatay pay, üstte en uzun tutam. Saf (Babylon BoundingInfo döner). */
+export function tutamKutusu(e: CimOrnekleri, a: CimAyari): BoundingInfo {
+  let x0 = Infinity, y0 = Infinity, z0 = Infinity, x1 = -Infinity, y1 = -Infinity, z1 = -Infinity;
+  for (let i = 0; i < e.adet; i++) {
+    const x = e.matris[i * 16 + 12]!, y = e.matris[i * 16 + 13]!, z = e.matris[i * 16 + 14]!;
+    if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; if (z < z0) z0 = z; if (z > z1) z1 = z;
+  }
+  if (x0 === Infinity) return new BoundingInfo(Vector3.Zero(), Vector3.Zero());
+  const yatay = (a.yatma + a.genislik) * 3 + 0.2, dikey = a.boyMax * a.uzunCarpan * 1.2 + 0.1;
+  return new BoundingInfo(new Vector3(x0 - yatay, y0 - 0.1, z0 - yatay), new Vector3(x1 + yatay, y1 + dikey, z1 + yatay));
 }
 
 export interface CimHucresi { ix: number; iz: number; idx: number[] }
@@ -193,6 +238,7 @@ export const cimModulu: LevelModulu<CimAyari> = {
   tur: "cim",
   aciklama: "Rüzgârlı lowpoly çim (kavisli yaprak, hücre + mesafe detayı; renk altındaki zeminden). Zeminden sonra gelmeli.",
   varsayilan: CIM_VARSAYILAN,
+  veri: ["maske"],
   aralik: {
     sayi: { min: 0, max: 1500000, adim: 5000 }, yaricap: { min: 5, max: 250, adim: 1 }, merkezYogunluk: { min: 1, max: 4, adim: 0.05 },
     boyMin: { min: 0.02, max: 2, adim: 0.01 }, boyMax: { min: 0.02, max: 3, adim: 0.01 }, genislik: { min: 0.01, max: 0.4, adim: 0.005 },
@@ -203,37 +249,109 @@ export const cimModulu: LevelModulu<CimAyari> = {
     ucKarisim: { min: 0, max: 1, adim: 0.01 }, renkOynama: { min: 0, max: 0.4, adim: 0.01 },
     ruzgarGuc: { min: 0, max: 1, adim: 0.01 }, ruzgarHiz: { min: 0, max: 8, adim: 0.1 }, ruzgarOlcek: { min: 0.005, max: 0.5, adim: 0.005 },
     ruzgarAci: { min: 0, max: 360, adim: 1 },
-    enAlcak: { min: -50, max: 10, adim: 0.05 }, hucre: { min: 4, max: 64, adim: 1 }, mesafe1: { min: 5, max: 200, adim: 1 }, mesafe2: { min: 10, max: 400, adim: 1 },
+    enAlcak: { min: -50, max: 10, adim: 0.05 }, maskeHucre: { min: 0.5, max: 10, adim: 0.5 }, hucre: { min: 4, max: 64, adim: 1 }, mesafe1: { min: 5, max: 200, adim: 1 }, mesafe2: { min: 10, max: 400, adim: 1 },
     tohum: { min: 0, max: 9999, adim: 1 },
   },
-  kur(b, a) {
-    const o = cimOrnekleri(a, b.yukseklik, b.zeminRengi, b.renk);
+  kur(b, a0) {
+    let a = a0;
     const malzeme = b.malzeme("cim", "isikli", {
       ciftYuz: true, ruzgar: { guc: a.ruzgarGuc, hiz: a.ruzgarHiz, olcek: a.ruzgarOlcek, aci: a.ruzgarAci },
     });
     const meshler: Mesh[] = [];
+    const hucreMeshleri = new Map<string, Mesh[]>();
+    /** Mesh → örnek tamponu (Babylon aynı diziyi tutar: yerinde y güncellemesi için). */
+    const ornekleri = new Map<Mesh, CimOrnekleri>();
+    /** Aday dizini (ilk bölge yenilemesinde bir kez; sayı/yarıçap/hücre/tohum değişirse modül zaten yeniden kurulur). */
+    let adaylar: Map<string, number[]> | null = null;
     // Seviye geometrileri bir kez üretilir; hücre başına her seviye ayrı mesh (kendi örnek tamponu), seviye 1/2 ana mesh'in
     // LOD'u. Örneksiz ince örnek mesh'i tek tutamı merkeze çizerdi: boş hücre hiç kurulmaz (cimHucreleri yalnız dolu verir).
     const geo = [0, 1, 2].map((s) => tutamGeometrisi(a, s));
-    const hazirla = (ad: string, g: Geometri, e: CimOrnekleri): Mesh => {
+    const hazirla = (ad: string, g: Geometri, e: CimOrnekleri, liste: Mesh[]): Mesh => {
       const m = meshKur(b.sahne, ad, g);
       m.material = malzeme;
+      // Sınır kutusu tutam KONUMLARINDAN + en büyük tutam boyu (kamera dışı hücre kırpılır). Babylon'un kendi hesabı
+      // her örnek için 8 köşe dönüştürüyordu ve setBuffer + refresh ile iki kez: arazi damgasında ~65 ms (profil).
+      m.doNotSyncBoundingInfo = true;
       m.thinInstanceSetBuffer("matrix", e.matris, 16, true);
       m.thinInstanceSetBuffer("color", e.renk, 4, true);
-      m.thinInstanceRefreshBoundingInfo(true);         // sınır kutusu hücrenin tutamları: kamera dışı hücre kırpılır
+      m.setBoundingInfo(tutamKutusu(e, a));
+      ornekleri.set(m, e);
       // Çizgi efektine girmez: binlerce yaprak gürültü kenarı üretir, rüzgâr kayması gbuffer'da yok (stil/efektler.ts).
       m.metadata = { cizgisiz: true };
       m.freezeWorldMatrix();
       b.golge(m, { alir: true });
-      meshler.push(m);
+      meshler.push(m); liste.push(m);
       return m;
     };
-    for (const h of cimHucreleri(o, a.hucre)) {
-      const ad = `cim_${h.ix}_${h.iz}`;
-      const yakin = hazirla(ad, geo[0]!, cimAltKume(o, h.idx, 1, 1));
-      yakin.addLODLevel(a.mesafe1, hazirla(`${ad}_orta`, geo[1]!, cimAltKume(o, h.idx, 2, 1.5)));
-      yakin.addLODLevel(a.mesafe2, hazirla(`${ad}_uzak`, geo[2]!, cimAltKume(o, h.idx, 4, 2.4)));
-    }
-    return { meshler, yokEt() { for (const m of meshler) m.dispose(); malzeme.dispose(); } };
+    /** Tutamları üretip hücrelere kurar; `bolge` verilirse yalnız o bölgenin (hücre sınırına genişletilmiş) hücreleri. */
+    const kurBolge = (bolge: Bolge | null) => {
+      const h = a.hucre;
+      const genis = bolge && { x0: Math.floor(bolge.x0 / h) * h, z0: Math.floor(bolge.z0 / h) * h, x1: (Math.floor(bolge.x1 / h) + 1) * h, z1: (Math.floor(bolge.z1 / h) + 1) * h };
+      if (genis) {
+        for (const [anahtar, l] of hucreMeshleri) {
+          const [ix, iz] = anahtar.split(",").map(Number) as [number, number];
+          if (ix * h < genis.x0 || ix * h >= genis.x1 || iz * h < genis.z0 || iz * h >= genis.z1) continue;
+          for (const m of l) { m.dispose(); meshler.splice(meshler.indexOf(m), 1); ornekleri.delete(m); }
+          hucreMeshleri.delete(anahtar);
+        }
+      }
+      // Bölge: yalnız o hücrelerin adayları (500 bin tutamı yürümeden — 74 ms → birkaç ms, ölçüldü).
+      let indeksler: number[] | null = null;
+      if (genis) {
+        adaylar ??= cimAdayHucreleri(a);
+        indeksler = [];
+        for (let ix = Math.floor(genis.x0 / h); ix * h < genis.x1; ix++) for (let iz = Math.floor(genis.z0 / h); iz * h < genis.z1; iz++) {
+          const l = adaylar.get(`${ix},${iz}`);
+          if (l) for (const i of l) indeksler.push(i);
+        }
+      }
+      const o = cimOrnekleri(a, b.yukseklik, b.zeminRengi, b.renk, indeksler);
+      for (const c of cimHucreleri(o, h)) {
+        const ad = `cim_${c.ix}_${c.iz}`, l: Mesh[] = [];
+        const yakin = hazirla(ad, geo[0]!, cimAltKume(o, c.idx, 1, 1), l);
+        yakin.addLODLevel(a.mesafe1, hazirla(`${ad}_orta`, geo[1]!, cimAltKume(o, c.idx, 2, 1.5), l));
+        yakin.addLODLevel(a.mesafe2, hazirla(`${ad}_uzak`, geo[2]!, cimAltKume(o, c.idx, 4, 2.4), l));
+        hucreMeshleri.set(`${c.ix},${c.iz}`, l);
+      }
+    };
+    kurBolge(null);
+    /**
+     * Zemin bu bölgede YALNIZ yükseklik değiştirdi: tutamların y'si yerinde güncellenir (yeniden üretim yok —
+     * renk, dönüş, boy aynı). Bölge su seviyesine (`enAlcak`) yakınsa tutam doğabilir/yok olabilir: tam üretim.
+     */
+    const yerindeYukselt = (bolge: Bolge): boolean => {
+      for (let x = bolge.x0; x <= bolge.x1; x += 2) for (let z = bolge.z0; z <= bolge.z1; z += 2) if (b.yukseklik(x, z) < a.enAlcak + 0.5) return false;
+      const h = a.hucre, pay = 0.01;
+      for (const [anahtar, l] of hucreMeshleri) {
+        const [ix, iz] = anahtar.split(",").map(Number) as [number, number];
+        if ((ix + 1) * h < bolge.x0 || ix * h > bolge.x1 || (iz + 1) * h < bolge.z0 || iz * h > bolge.z1) continue;
+        for (const m of l) {
+          const e = ornekleri.get(m);
+          if (!e) continue;
+          const d = e.matris;
+          for (let i = 0; i < e.adet; i++) {
+            const x = d[i * 16 + 12]!, z = d[i * 16 + 14]!;
+            if (x >= bolge.x0 - pay && x <= bolge.x1 + pay && z >= bolge.z0 - pay && z <= bolge.z1 + pay) d[i * 16 + 13] = b.yukseklik(x, z);
+          }
+          m.thinInstanceBufferUpdated("matrix");
+          m.setBoundingInfo(tutamKutusu(e, a));
+        }
+      }
+      return true;
+    };
+    return {
+      meshler,
+      // Yalnız maske değiştiyse: değişen hücreleri yeniden kur (bütün çim 860 ms; bölge birkaç ms — spec 22).
+      ayarGuncelle(yeniHam) {
+        const yeni = yeniHam as CimAyari;
+        if (JSON.stringify({ ...yeni, maske: 0 }) !== JSON.stringify({ ...a, maske: 0 })) return false;
+        const bolge = farkBolgesi(seyrekOku(a.maske), seyrekOku(yeni.maske), a.maskeHucre);
+        a = yeni;
+        if (bolge) kurBolge(bolge);
+        return null;
+      },
+      bolgeYenile: (bolge) => { if (!yerindeYukselt(bolge)) kurBolge(bolge); },
+      yokEt() { for (const m of meshler) m.dispose(); malzeme.dispose(); },
+    };
   },
 };

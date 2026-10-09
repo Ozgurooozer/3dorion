@@ -11,6 +11,7 @@ import { flatGeometri, meshKur, type Geometri, type Ucgen, type V3 } from "../ce
 import { karistir, type Renk } from "../cekirdek/renk.ts";
 import { rastgele } from "../cekirdek/rastgele.ts";
 import type { LevelModulu } from "../cekirdek/modul.ts";
+import { karma, ornekle, seyrekOku } from "../cekirdek/arazi.ts";
 
 export const DEKOR_VARSAYILAN = {
   agac: 22,
@@ -31,6 +32,9 @@ export const DEKOR_VARSAYILAN = {
   tacAcik: "#5d8a3a",
   ahsap: "#6e5138",
   demir: "#33363a",
+  /** Arazi fırçasının seyreltmesi (seyrek: [anahtar, 0–1, …]; 1 = bu hücrede hiç yok) ve hücre aralığı (m). */
+  maske: [] as number[],
+  maskeHucre: 2,
   lambaBasi: "#d8cfa0",
 };
 export type DekorAyari = typeof DEKOR_VARSAYILAN;
@@ -128,7 +132,11 @@ export function dekorGeometrisi(a: DekorAyari, yukseklik: (x: number, z: number)
   const govde = renk(a.govde), tac = renk(a.tac), tacAcik = renk(a.tacAcik), ahsap = renk(a.ahsap), demir = renk(a.demir), bas = renk(a.lambaBasi);
   const sabit = (r: Renk) => () => r;
   const u: Ucgen[] = [];
-  for (const y of dekorYerleri(a)) {
+  const maske = seyrekOku(a.maske);
+  for (const [n, y] of dekorYerleri(a).entries()) {
+    // Maskeli nesne de üretilir (rastgele sırası bozulmasın), yalnız eklenmez.
+    const dahil = !maske.size || karma(a.tohum * 131 + n) >= ornekle(maske, a.maskeHucre, y.x, y.z);
+    const u0 = u.length;
     const d = donusum(y.x, yukseklik(y.x, y.z) - 0.1, y.z, y.aci, y.olcek);
     if (y.tur === "agac") {
       parca(u, silindir(0.32, 0.22, 0, 3.78, 6), [0, 1.9, 0], sabit(govde), d);
@@ -152,6 +160,7 @@ export function dekorGeometrisi(a: DekorAyari, yukseklik: (x: number, z: number)
       const basi = kure(0.3, 8, 6, 0, 0.6, rnd).map((t) => t.map((p) => [p[0], p[1] + 7.15, p[2] * 1.6 + 1.9]) as [V3, V3, V3]);
       parca(u, basi, [0, 7.15, 1.9], sabit(bas), d);
     }
+    if (!dahil) u.length = u0;
   }
   return flatGeometri(u);
 }
@@ -160,11 +169,12 @@ export const dekorModulu: LevelModulu<DekorAyari> = {
   tur: "dekor",
   aciklama: "Ağaç, bank, sokak lambası (Nightfall City Props.js'ten), tohumlu rastgele, zemine oturur. Zeminden sonra gelmeli.",
   varsayilan: DEKOR_VARSAYILAN,
+  veri: ["maske"],
   aralik: {
     agac: { min: 0, max: 200, adim: 1 }, bank: { min: 0, max: 40, adim: 1 }, lamba: { min: 0, max: 40, adim: 1 },
     tohum: { min: 0, max: 9999, adim: 1 }, icYaricap: { min: 0, max: 200, adim: 1 }, disYaricap: { min: 5, max: 300, adim: 1 },
     aralik: { min: 0, max: 30, adim: 0.5 }, agacOlcekMin: { min: 0.2, max: 3, adim: 0.05 }, agacOlcekMax: { min: 0.2, max: 4, adim: 0.05 },
-    tacBozma: { min: 0, max: 0.6, adim: 0.01 },
+    tacBozma: { min: 0, max: 0.6, adim: 0.01 }, maskeHucre: { min: 0.5, max: 10, adim: 0.5 },
   },
   kur(b, a) {
     const m = meshKur(b.sahne, "dekor", dekorGeometrisi(a, b.yukseklik, b.renk));

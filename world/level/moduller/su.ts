@@ -125,6 +125,7 @@ export const suModulu: LevelModulu<SuAyari> = {
   tur: "su",
   aciklama: "Lowpoly dalgalı su: gök paletinden yansıma (gece/gündüz), güneş-ay parıltısı, kıyı köpüğü. Zeminden sonra gelmeli.",
   varsayilan: SU_VARSAYILAN,
+  zemineBagli: false,
   aralik: {
     x: { min: -300, max: 300, adim: 1 }, z: { min: -300, max: 300, adim: 1 }, yaricap: { min: 2, max: 120, adim: 0.5 },
     seviye: { min: -10, max: 10, adim: 0.05 }, yaricapCarpani: { min: 1, max: 2, adim: 0.01 },

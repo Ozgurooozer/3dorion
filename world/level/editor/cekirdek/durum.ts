@@ -13,6 +13,7 @@ import { gecmisKur } from "./gecmis.ts";
 import { secimiTemizle } from "./secim.ts";
 import { YASLAMA_VARSAYILAN, type YaslamaAyari } from "./yaslama.ts";
 import { FIRCA_VARSAYILAN, type FircaAyari } from "./firca.ts";
+import { ARAZI_VARSAYILAN, type AraziAyari } from "./araziKomutu.ts";
 
 export type AracAdi = "sec" | "tasi" | "dondur" | "olcek" | "kutu" | "firca" | "arazi" | "gunes" | "olcu";
 export const ARACLAR: readonly AracAdi[] = ["sec", "tasi", "dondur", "olcek", "kutu", "firca", "arazi", "gunes", "olcu"];
@@ -25,14 +26,20 @@ export interface EditorAyarlari {
   kameraHizi: number;
   izgara: boolean;
   firca: FircaAyari;
+  arazi: AraziAyari;
 }
 
-export const AYAR_VARSAYILAN: EditorAyarlari = { uzay: "dunya", yaslama: YASLAMA_VARSAYILAN, kameraHizi: 1, izgara: true, firca: FIRCA_VARSAYILAN };
+export const AYAR_VARSAYILAN: EditorAyarlari = { uzay: "dunya", yaslama: YASLAMA_VARSAYILAN, kameraHizi: 1, izgara: true, firca: FIRCA_VARSAYILAN, arazi: ARAZI_VARSAYILAN };
 
 /** Geri al ile saklanan hâl. */
 export interface Hal { tanim: LevelTanimi; secim: string[] }
 
-export type OlayAdi = "tanim" | "secim" | "arac" | "ayarlar" | "kirli" | "mesaj" | "gecmis" | "kip";
+/**
+ * "tanim": kalıcı değişiklik (geri al dahil) — arayüz yeniden çizilir. "onizleme": geçmişsiz canlı uygulama
+ * (sürgü, fırça/arazi damgası) — arayüz ÇİZİLMEZ (her damgada sahne ağacı kurmak damgayı ~90 ms yavaşlatıyordu);
+ * bırakınca gelen `degistir` "tanim" yayar.
+ */
+export type OlayAdi = "tanim" | "onizleme" | "secim" | "arac" | "ayarlar" | "kirli" | "mesaj" | "gecmis" | "kip";
 
 /** Editör: fare serbest, araçlar, arayüz açık. Uçuş: fare kilitli serbest uçuş, arayüz gizli (Tab). */
 export type Kip = "editor" | "ucus";
@@ -149,7 +156,7 @@ export function editorDurumuKur(u: Uygulayici, ayar: EditorAyarlari = AYAR_VARSA
     },
     onizle(t) {
       if (!uygula(t)) return false;
-      yay("tanim");
+      yay("onizleme");
       kirliGuncelle();
       return true;
     },

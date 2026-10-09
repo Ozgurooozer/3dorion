@@ -28,6 +28,8 @@ export interface Yuzey {
   isin(r: Ray, haric?: ReadonlySet<string>): YuzeyIsabeti | null;
   /** Tuval pikselinden (CSS piksel, tuvalin sol üstüne göre). */
   ekrandan(x: number, y: number, haric?: ReadonlySet<string>): YuzeyIsabeti | null;
+  /** Yalnız ARAZİ (nesneler yok sayılır): arazi aracı binanın arkasındaki/altındaki zemini işler (Unreal sculpt gibi). */
+  araziden(x: number, y: number): YuzeyIsabeti | null;
   /** Tuval pikselinden ışın (kamera ışını). */
   ekranIsini(x: number, y: number): Ray;
   /** (x, z) noktasında `ustY`nin ALTINDAKİ en yüksek yüzey (End, yüzeye oturtma). */
@@ -95,6 +97,12 @@ export function yuzeyKur(sahne: Scene, kamera: Camera, level: Level): Yuzey {
     isin,
     ekranIsini,
     ekrandan: (x, y, haric) => isin(ekranIsini(x, y), haric),
+    araziden(x, y) {
+      const r = ekranIsini(x, y), t = araziIsini(r);
+      if (t === null) return null;
+      const q = r.origin.add(r.direction.scale(t));
+      return { nokta: [q.x, q.y, q.z], normal: araziNormali(q.x, q.z), id: null, uzaklik: t };
+    },
     altindaki(x, z, ustY, haric) {
       const bas = new Vector3(x, ustY + 0.01, z);
       // Yalnız YUKARI bakan yüzler oturulacak yüzeydir: ışın bir binanın içinden başlarsa ilk çarptığı taban yüzüdür

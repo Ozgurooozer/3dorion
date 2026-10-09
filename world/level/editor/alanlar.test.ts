@@ -37,3 +37,7 @@ test("olmayan yola yazmak hata verir (yazım hatası yeni alan açmaz)", () => {
 test("yoldan okunur", () => {
   assert.equal(yoldanOku({ k: [{ x: 7 }] }, ["k", 0, "x"]), 7);
 });
+
+test("uzun sayı dizisi (arazi verisi) panel alanı değildir", () => {
+  assert.deepEqual(alanlar({ duzenleme: Array.from({ length: 40 }, (_, i) => i), hucre: 2 }, new Set()).map((a) => a.yol.join(".")), ["hucre"]);
+});

@@ -92,7 +92,8 @@ export function isikSistemiKur(sahne: Scene): IsikSistemi {
     isikYonu: () => { const d = gunes.direction; return [-d.x, -d.y, -d.z]; },
     golgeyeKat(mesh, ne) {
       if (ne.atar) { atanlar.add(mesh); golge?.addShadowCaster(mesh, false); }
-      if (ne.alir) { alanlar.add(mesh); mesh.receiveShadows = true; }
+      // Örnekli mesh gölge almayı kaynağından okur (kaynakta açık: nesneSistemi) — örneğe yazmak her biri için uyarı basar.
+      if (ne.alir) { alanlar.add(mesh); if (!mesh.isAnInstance) mesh.receiveShadows = true; }
     },
     golgedenCikar(mesh) {
       atanlar.delete(mesh); alanlar.delete(mesh);

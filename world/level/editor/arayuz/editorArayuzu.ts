@@ -15,6 +15,7 @@ import { parcaMetni, parcaOku } from "../cekirdek/pano.ts";
 import { AYAR_VARSAYILAN, type EditorAyarlari } from "../cekirdek/durum.ts";
 import { YASLAMA_VARSAYILAN } from "../cekirdek/yaslama.ts";
 import { FIRCA_VARSAYILAN } from "../cekirdek/firca.ts";
+import { ARAZI_VARSAYILAN } from "../cekirdek/araziKomutu.ts";
 import { levelPaneliKur } from "../levelPaneli.ts";
 import { el, cssKur, cssEkle, boyutTutamagi, oku, yaz } from "./ortak.ts";
 import { aracCubuguKur } from "./aracCubugu.ts";
@@ -31,7 +32,7 @@ const YUVA_ANAHTARI = "orion.editor.yuvalar";
 /** Saklanan editör ayarları (eksik alanlar varsayılandan; eski kayıt yeni alanı bozmaz). */
 export function editorAyarlariniOku(): EditorAyarlari {
   const a = oku<EditorAyarlari>(AYAR_ANAHTARI, AYAR_VARSAYILAN);
-  return { ...AYAR_VARSAYILAN, ...a, yaslama: { ...YASLAMA_VARSAYILAN, ...a.yaslama }, firca: { ...FIRCA_VARSAYILAN, ...a.firca } };
+  return { ...AYAR_VARSAYILAN, ...a, yaslama: { ...YASLAMA_VARSAYILAN, ...a.yaslama }, firca: { ...FIRCA_VARSAYILAN, ...a.firca }, arazi: { ...ARAZI_VARSAYILAN, ...a.arazi } };
 }
 
 const L_CSS = `

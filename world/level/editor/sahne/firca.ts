@@ -12,7 +12,7 @@ import type { Yuzey } from "./yuzey.ts";
 
 export interface FircaImleci {
   /** İmleç (tuval pikseli); halkayı yüzeye koyar. Yüzey yoksa null. */
-  imlec(x: number, y: number, yaricap: number, silgi: boolean): Vec3 | null;
+  imlec(x: number, y: number, yaricap: number, silgi: boolean, yalnizArazi?: boolean): Vec3 | null;
   /** Basılı gezinirken: damga vurulacak mı (son damgadan yarıçapın yarısı uzaklaştıysa). */
   damgaZamani(nokta: Vec3, yaricap: number): boolean;
   /** Vuruş başladı/bitti (ilk damga hemen). */
@@ -39,8 +39,8 @@ export function fircaImleciKur(sahne: Scene, yuzey: Yuzey): FircaImleci {
   let son: Vec3 | null = null;
   let gorunur = false;
   return {
-    imlec(x, y, yaricap, silgi) {
-      const h = yuzey.ekrandan(x, y);
+    imlec(x, y, yaricap, silgi, yalnizArazi = false) {
+      const h = yalnizArazi ? yuzey.araziden(x, y) : yuzey.ekrandan(x, y);
       halka.setEnabled(gorunur && !!h);
       if (!h) return null;
       halka.position.set(h.nokta[0], h.nokta[1] + 0.05, h.nokta[2]);

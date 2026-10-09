@@ -105,8 +105,12 @@ export interface LevelPaneli {
   bolumAc(anahtar: string): void;
 }
 
-/** Panelin gösterdiği kısım (nesneler hariç): yalnız bu değişince yeniden çizilir (gizmo sürüklemesi paneli bozmasın). */
-const dunyaImzasi = (t: LevelTanimi) => JSON.stringify({ ...t, nesneler: undefined, gruplar: undefined, kameraYerleri: undefined });
+/**
+ * Panelin gösterdiği kısım (nesneler ve modüllerin VERİ alanları — arazi fırçası — hariç): yalnız bu değişince
+ * yeniden çizilir (gizmo sürüklemesi ya da arazi vuruşu paneli her damgada yeniden kurmasın).
+ */
+const dunyaImzasi = (t: LevelTanimi, veri: ReadonlySet<string>) =>
+  JSON.stringify({ ...t, nesneler: undefined, gruplar: undefined, kameraYerleri: undefined }, (k, v: unknown) => (veri.has(k) ? undefined : v));
 
 export function levelPaneliKur(p: PanelAyari): LevelPaneli {
   if (!document.getElementById("lpStil")) { const s = el("style"); s.id = "lpStil"; s.textContent = STIL; document.head.append(s); }
@@ -117,7 +121,8 @@ export function levelPaneliKur(p: PanelAyari): LevelPaneli {
   let surukleOnce: Hal | null = null;
   let bekleyen: { yol: Yol; deger: unknown } | null = null;
   let arama = "";
-  let sonImza = dunyaImzasi(durum.tanim());
+  const veriAlanlari = new Set([...p.moduller.values()].flatMap((m) => m.veri ?? []));
+  let sonImza = dunyaImzasi(durum.tanim(), veriAlanlari);
 
   const metin = (yol: Yol, deger: unknown) => `${yol.map(etiket).join(" › ")} = ${Array.isArray(deger) ? `[${deger.join(", ")}]` : String(deger)}`;
   /** Kaydırıcı sürüklenirken: kareye bir kez, geçmişsiz uygula (son değer kazanır). */
@@ -269,7 +274,7 @@ export function levelPaneliKur(p: PanelAyari): LevelPaneli {
 
   const ciz = () => {
     const t = durum.tanim();
-    sonImza = dunyaImzasi(t);
+    sonImza = dunyaImzasi(t, veriAlanlari);
     const kaydir = govde.scrollTop;
     const bolumler: HTMLElement[] = [];
 
@@ -326,7 +331,10 @@ export function levelPaneliKur(p: PanelAyari): LevelPaneli {
       sifirla.onclick = (e) => { e.preventDefault(); e.stopPropagation(); if (modul) degistir(["katmanlar", i, "ayar"], { ...modul.varsayilan }); };
       const bas2 = el("span"); bas2.style.display = "contents";
       bas2.append(anahtar(k.acik, (v) => { degistir(["katmanlar", i, "acik"], v); }), ozet, sifirla);
-      const satirlar = alanSatirlari(["katmanlar", i, "ayar"], k.ayar, t, modul?.aralik as Readonly<Record<string, Aralik>> | undefined);
+      const veri = new Set<string>(modul?.veri ?? []);
+      const gorunen = Object.fromEntries(Object.entries(k.ayar).filter(([a]) => !veri.has(a)));
+      const satirlar = alanSatirlari(["katmanlar", i, "ayar"], gorunen, t, modul?.aralik as Readonly<Record<string, Aralik>> | undefined);
+      if (veri.size) satirlar.push(el("div", "ipucu", `${[...veri].join(", ")}: arazi aracıyla çizilir (editör, 7)`));
       if (modul) satirlar.unshift(el("div", "ipucu", modul.aciklama));
       const b = bolum(`katman:${k.ad}`, bas2, satirlar, k.acik ? "" : "kapali-katman");
       b.dataset["bolum"] = `katman:${k.ad}`;
@@ -355,7 +363,7 @@ export function levelPaneliKur(p: PanelAyari): LevelPaneli {
   // değiştiyse ve kaydırıcı sürüklenmiyorsa; bir kutuya yazılıyorsa odak kaybolmasın diye bırakınca.
   let bekliyor = false;
   durum.abone("tanim", () => {
-    if (surukleOnce || bekliyor || dunyaImzasi(durum.tanim()) === sonImza) return;
+    if (surukleOnce || bekliyor || dunyaImzasi(durum.tanim(), veriAlanlari) === sonImza) return;
     const odak = document.activeElement as HTMLElement | null;
     if (odak && kok.contains(odak) && odak.matches("input[type=text], input[type=number]")) {
       bekliyor = true;

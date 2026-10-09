@@ -40,6 +40,11 @@ import { cetvelKur, olcumMetni } from "./sahne/cetvel.ts";
 import { damgaAdaylari, adaylariEkle, silgiDamgasi } from "./cekirdek/firca.ts";
 import { normaleHizaliDonus } from "./cekirdek/yaslama.ts";
 import { rastgele } from "../cekirdek/rastgele.ts";
+import { araziDamgasiUygula, araziKatmani, araziIslemAdi, nesneleriOturt, rampaKomutu } from "./cekirdek/araziKomutu.ts";
+import { bolgeBirlesim } from "../cekirdek/arazi.ts";
+import type { Bolge } from "../cekirdek/modul.ts";
+import { ZEMIN_VARSAYILAN, zeminTabanYuksekligi, zeminYuksekligi, type ZeminAyari } from "../moduller/zemin.ts";
+import { ayarBirlestir } from "../cekirdek/modul.ts";
 
 export interface EditorAyari {
   level: Level;
@@ -132,8 +137,12 @@ export function editorKur(a: EditorAyari): Editor {
   let bas: { x: number; y: number; id: string | null; tur: "nesne" | "bos" | "yerlestir"; suruklendi: boolean; mod: SecimKipi } | null = null;
   let kutu: { x0: number; y0: number; x1: number; y1: number } | null = null;
   /** Fırça / güneş vuruşu sürüyor: başlangıç hâli (bırakınca tek geri al adımı). */
-  let vurus: { tur: "firca" | "gunes"; once: ReturnType<EditorDurumu["hal"]>; silgi: boolean; x: number; saat: number; eklenen: number } | null = null;
+  let vurus: { tur: "firca" | "gunes" | "arazi"; once: ReturnType<EditorDurumu["hal"]>; silgi: boolean; x: number; saat: number; eklenen: number;
+    hedefY: number; bolge: Bolge | null; nokta: Vec3 | null; son: number; damga: number;
+    /** Arazi: vuruşun başladığı nokta ve oradaki arazi normali (eğime göre düzle, rampa). */
+    bas?: Vec3; normal?: Vec3 } | null = null;
   let rng = rastgele(1);
+  let imlecOynadiArazi = false;
 
   const tuvalNoktasi = (e: { clientX: number; clientY: number }) => { const r = tuval.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
   const dugumler = (idler: readonly string[]): Map<string, TransformNode> => {
@@ -164,13 +173,13 @@ export function editorKur(a: EditorAyari): Editor {
     durum.abone("tanim", sahneyiYenile),
     durum.abone("arac", () => {
       gizmoYenile();
-      firca.goster(durum.arac() === "firca" && durum.kip() === "editor");
+      firca.goster(["firca", "arazi"].includes(durum.arac()) && durum.kip() === "editor");
       if (durum.arac() !== "olcu") cetvel.temizle();
       const ipucu: Partial<Record<AracAdi, string>> = {
         firca: "fırça: sürükleyerek serpiştir · Shift basılı: sil · fırça varlıkları: tarayıcıda kartlara tıkla · ayarlar sağda",
         gunes: level.tanim().zaman ? "güneş: yatay sürükle → saat (zaman tanımlı)" : "güneş: gökyüzüne sürükle → güneş oraya",
         olcu: "ölç: iki noktaya tıkla · Esc temizler",
-        arazi: "arazi aracı henüz yok (spec 22 faz 7)",
+        arazi: "arazi: basılı tut / sürükle · Shift ters işlem · Ctrl+tekerlek yarıçap · ayarlar sağda (hedef: yükseklik, çim, kaya, dekor)",
       };
       const m = ipucu[durum.arac()];
       if (m) durum.bildir(m);
@@ -181,7 +190,7 @@ export function editorKur(a: EditorAyari): Editor {
       kamera.editorKipi(ed);
       vurgu.goster(ed);
       gizmoYenile();
-      firca.goster(ed && durum.arac() === "firca");
+      firca.goster(ed && ["firca", "arazi"].includes(durum.arac()));
       if (!ed) { yerlestir.bitir(); vurgu.ustunde(null); cetvel.temizle(); }
       else if (document.pointerLockElement === tuval) document.exitPointerLock();
     }),
@@ -276,6 +285,38 @@ export function editorKur(a: EditorAyari): Editor {
     durum.onizle(s.tanim);
     if (vurus) vurus.eklenen += s.idler.length;
   };
+  /** Arazi: vuruş boyunca her ~90 ms bir damga (fare dursa da basılı tuttukça işler — heykel fırçası). */
+  const zeminAyariOf = (t: LevelTanimi): ZeminAyari | null => {
+    const i = araziKatmani(t, "yukseklik");
+    // Tanımdaki ayar zaten normalleştirilmiş; varsayılanla birleştirmek tipi doğrular (kaçışsız).
+    return i < 0 ? null : ayarBirlestir("zemin", ZEMIN_VARSAYILAN, t.katmanlar[i]!.ayar);
+  };
+  const araziDamgasi = () => {
+    if (!vurus || vurus.tur !== "arazi" || !vurus.nokta) return;
+    const a = ayarlar().arazi, n = vurus.nokta;
+    if (a.hedef === "yukseklik" && a.islem === "rampa") {
+      // Rampa: her güncellemede vuruş BAŞINDAKİ tanıma A→imleç rampası (canlı önizleme; bırakınca kalır).
+      const t0 = vurus.once.tanim, z0 = zeminAyariOf(t0), A = vurus.bas!;
+      if (!z0 || Math.hypot(n[0] - A[0], n[2] - A[2]) < 0.5) return;
+      durum.onizle(rampaKomutu(t0, a, { x: A[0], z: A[2], y: A[1] }, { x: n[0], z: n[2], y: n[1] }, zeminTabanYuksekligi(z0)));
+      vurus.bolge = bolgeBirlesim({ x0: Math.min(A[0], n[0]) - a.yaricap, z0: Math.min(A[2], n[2]) - a.yaricap, x1: Math.max(A[0], n[0]) + a.yaricap, z1: Math.max(A[2], n[2]) + a.yaricap }, null);
+      vurus.son = performance.now();
+      vurus.damga = 1;
+      return;
+    }
+    const t = durum.tanim();
+    const z = zeminAyariOf(t);
+    const taban = z ? zeminTabanYuksekligi(z) : () => 0;
+    const nr = vurus.normal, b0 = vurus.bas;
+    durum.onizle(araziDamgasiUygula(t, a, { x: n[0], z: n[2], yaricap: a.yaricap, guc: a.guc, sertlik: a.sertlik }, vurus.silgi, taban, {
+      hedef: a.hedefHerDamga ? level.yukseklik(n[0], n[2]) : vurus.hedefY,
+      ...(a.egimeGore && nr && b0 ? { egim: { x: b0[0], z: b0[2], y: b0[1], nx: nr[0], ny: nr[1], nz: nr[2] } } : {}),
+      tohum: 1 + vurus.damga,
+    }));
+    vurus.bolge = bolgeBirlesim(vurus.bolge, { x0: n[0] - a.yaricap, z0: n[2] - a.yaricap, x1: n[0] + a.yaricap, z1: n[2] + a.yaricap });
+    vurus.son = performance.now();
+    vurus.damga++;
+  };
   /** Güneş: zaman yoksa güneş imlecin gösterdiği yöne; zaman varsa yatay sürükleme saati değiştirir. */
   const gunesSurukle = (p: { x: number; y: number }) => {
     if (!vurus) return;
@@ -295,6 +336,17 @@ export function editorKur(a: EditorAyari): Editor {
     if (!vurus) return;
     const v = vurus; vurus = null;
     firca.bitir();
+    if (v.tur === "arazi") {
+      const a = ayarlar().arazi;
+      const once = zeminAyariOf(v.once.tanim);
+      durum.degistir((t) => {
+        const simdi = zeminAyariOf(t);
+        // Tabanı eski arazide olan nesneler yeni araziye (havadakilere ve nesne üstündekilere dokunmaz).
+        return a.hedef === "yukseklik" && a.nesneleriOturt && v.bolge && once && simdi
+          ? nesneleriOturt(t, zeminYuksekligi(once), zeminYuksekligi(simdi), v.bolge) : t;
+      }, `arazi: ${araziIslemAdi(a, v.silgi)} (${v.damga} damga)`, { onceki: v.once });
+      return;
+    }
     const mesaj = v.tur === "gunes" ? (v.once.tanim.zaman ? "saat değişti" : "güneş yönü değişti")
       : v.silgi ? `fırça: ${-v.eklenen} nesne silindi` : `fırça: ${v.eklenen} nesne serpiştirildi`;
     durum.degistir((t) => t, mesaj, { onceki: v.once });
@@ -313,7 +365,7 @@ export function editorKur(a: EditorAyari): Editor {
     if (arac === "firca") {
       const f = ayarlar().firca;
       if (!f.varliklar.length && !e.shiftKey) { durum.bildir("fırça boş: varlık tarayıcısında kartlara tıklayarak fırçaya varlık ekle", true); return; }
-      vurus = { tur: "firca", once: durum.hal(), silgi: e.shiftKey, x: p.x, saat: 0, eklenen: 0 };
+      vurus = { tur: "firca", once: durum.hal(), silgi: e.shiftKey, x: p.x, saat: 0, eklenen: 0, hedefY: 0, bolge: null, nokta: null, son: 0, damga: 0 };
       rng = rastgele((Date.now() % 1e9) | 0);
       firca.basla();
       const n = firca.imlec(p.x, p.y, f.yaricap, e.shiftKey);
@@ -322,8 +374,20 @@ export function editorKur(a: EditorAyari): Editor {
       return;
     }
     if (arac === "gunes") {
-      vurus = { tur: "gunes", once: durum.hal(), silgi: false, x: p.x, saat: level.dunya.saat, eklenen: 0 };
+      vurus = { tur: "gunes", once: durum.hal(), silgi: false, x: p.x, saat: level.dunya.saat, eklenen: 0, hedefY: 0, bolge: null, nokta: null, son: 0, damga: 0 };
       gunesSurukle(p);
+      tuval.setPointerCapture?.(e.pointerId);
+      return;
+    }
+    if (arac === "arazi") {
+      const a = ayarlar().arazi;
+      if (araziKatmani(durum.tanim(), a.hedef) < 0) { durum.bildir(`arazi: açık "${a.hedef === "yukseklik" ? "zemin" : a.hedef}" katmanı yok`, true); return; }
+      const n = firca.imlec(p.x, p.y, a.yaricap, e.shiftKey, true);
+      if (!n) return;
+      const y0 = level.yukseklik(n[0], n[2]);
+      vurus = { tur: "arazi", once: durum.hal(), silgi: e.shiftKey, x: p.x, saat: 0, eklenen: 0, hedefY: y0, bolge: null, nokta: n, son: 0, damga: 0,
+        bas: [n[0], y0, n[2]], normal: yuzey.araziNormali(n[0], n[2]) };
+      araziDamgasi();
       tuval.setPointerCapture?.(e.pointerId);
       return;
     }
@@ -351,6 +415,11 @@ export function editorKur(a: EditorAyari): Editor {
       return;
     }
     if (vurus?.tur === "gunes" && (e.buttons & 1)) { gunesSurukle(p); return; }
+    if (durum.arac() === "arazi" && !kamera.bakiyor()) {
+      const n = firca.imlec(p.x, p.y, ayarlar().arazi.yaricap, vurus ? vurus.silgi : e.shiftKey, true);
+      if (vurus?.tur === "arazi" && n) { vurus.nokta = n; imlecOynadiArazi = true; }
+      return;
+    }
     if (durum.arac() === "olcu" && !kamera.bakiyor()) {
       const h = yuzey.ekrandan(p.x, p.y);
       const o = cetvel.imlec(h ? h.nokta : null);
@@ -405,6 +474,11 @@ export function editorKur(a: EditorAyari): Editor {
     const adim = (e.shiftKey ? 90 : ayarlar().yaslama.aci ? ayarlar().yaslama.aciAdim : 15) * Math.sign(e.deltaY || e.deltaX);
     if (surukle.surukleniyor()) surukle.dondur(adim);
     else if (yerlestir.etkin()) yerlestir.dondur(adim);
+    else if (durum.arac() === "arazi" && (e.ctrlKey || e.metaKey)) {
+      durum.ayarDegistir((a) => ({ ...a, arazi: { ...a.arazi, yaricap: Math.max(0.5, Math.min(80, Math.round(a.arazi.yaricap * (e.deltaY < 0 ? 1.15 : 1 / 1.15) * 10) / 10)) } }));
+      if (imlec) firca.imlec(imlec.x, imlec.y, ayarlar().arazi.yaricap, false);
+      durum.bildir(`arazi yarıçapı ${ayarlar().arazi.yaricap} m`);
+    }
     else if (durum.arac() === "firca" && (e.ctrlKey || e.metaKey)) {
       // Ctrl+tekerlek: fırça yarıçapı (tekerlek tek başına yine kamerayı yaklaştırır).
       durum.ayarDegistir((a) => ({ ...a, firca: { ...a.firca, yaricap: Math.max(0.5, Math.min(60, Math.round(a.firca.yaricap * (e.deltaY < 0 ? 1.15 : 1 / 1.15) * 10) / 10)) } }));
@@ -591,6 +665,11 @@ export function editorKur(a: EditorAyari): Editor {
   const kareGozcu = sahne.onBeforeRenderObservable.add(() => {
     const dt = sahne.getEngine().getDeltaTime() / 1000;
     kamera.guncelle(dt);
+    // Rampa yalnız imleç oynadıkça (önizleme), diğerleri basılı tutuldukça ~90 ms'de bir damga (Unreal "Apply Without Moving").
+    if (vurus?.tur === "arazi" && performance.now() - vurus.son > 90) {
+      const a = ayarlar().arazi, rampa = a.hedef === "yukseklik" && a.islem === "rampa";
+      if (!rampa || imlecOynadiArazi) { araziDamgasi(); imlecOynadiArazi = false; }
+    }
     const ed = durum.kip() === "editor";
     // Üstünde durma vurgusu: karede en çok bir seçim ışını.
     const secmeAraci = !["firca", "gunes", "olcu", "arazi"].includes(durum.arac());

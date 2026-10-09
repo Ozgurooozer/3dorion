@@ -22,6 +22,7 @@ export const gunesDiskiModulu: LevelModulu<GunesDiskiAyari> = {
   tur: "gunesDiski",
   aciklama: "Güneş diski: ışığın güneş yönünü izler.",
   varsayilan: GUNES_DISKI_VARSAYILAN,
+  zemineBagli: false,
   aralik: { yaricap: { min: 2, max: 60, adim: 1 }, kenar: { min: 3, max: 32, adim: 1 }, uzaklik: { min: 100, max: 900, adim: 10 } },
   kur(b, a) {
     const m = CreateDisc("gunes_diski", { radius: a.yaricap, tessellation: Math.max(3, Math.round(a.kenar)) }, b.sahne);

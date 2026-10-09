@@ -18,7 +18,7 @@ import { SHADERLAR } from "../shader/moduller/index.ts";
 import { dunyaDurumuYap, durumuSaateGoreYaz, zamanIlerle, paletZamanda, type DunyaDurumu } from "../shader/dunyaDurumu.ts";
 import { dunyaPaleti } from "../shader/paletler.ts";
 import { stilSistemiKur, type StilSistemi } from "../stil/stilSistemi.ts";
-import { ayarBirlestir, type LevelModulu, type ModulBaglami, type ModulOrnegi } from "./modul.ts";
+import { ayarBirlestir, type Bolge, type LevelModulu, type ModulBaglami, type ModulOrnegi } from "./modul.ts";
 
 export type ModulKaydi = ReadonlyMap<string, LevelModulu>;
 
@@ -42,7 +42,7 @@ export interface Level {
   yokEt(): void;
 }
 
-interface Kurulu { imza: string; ornek: ModulOrnegi }
+interface Kurulu { imza: string; palet: string; ornek: ModulOrnegi }
 
 const kopya = <T>(v: T): T => structuredClone(v);
 
@@ -135,26 +135,31 @@ export function levelKur(sahne: Scene, tanimHam: unknown, kayit: ModulKaydi, sha
     return 0;
   };
 
-  const katmanKur = (k: KatmanTanimi): ModulOrnegi => {
+  const ayarlari = (k: KatmanTanimi) => {
     const modul = kayit.get(k.tur);
     if (!modul) throw new Error(`katman "${k.ad}": bilinmeyen modül "${k.tur}" (bilinenler: ${[...kayit.keys()].join(", ")})`);
-    return modul.kur(baglam, ayarBirlestir(k.tur, modul.varsayilan, k.ayar));
+    return ayarBirlestir(k.tur, modul.varsayilan, k.ayar);
   };
+  const katmanKur = (k: KatmanTanimi): ModulOrnegi => kayit.get(k.tur)!.kur(baglam, ayarlari(k));
   const yik = (o: ModulOrnegi) => {
     for (const m of o.meshler) isik.golgedenCikar(m);
     o.yokEt();
   };
 
   /**
-   * Katmanları tanıma uydurur: değişeni yık-kur, kalkanı yık, yeniyi kur. Palet değişirse hepsi değişmiş
-   * sayılır. KATMAN SIRASI = BAĞIMLILIK SIRASI: bir katman yeniden kurulunca (ya da kalkınca) ondan SONRAKİLER
-   * de yeniden kurulur — zemin değişince üstüne oturan kayalar yeniden yerleşsin. `kurulu` sıralı tutulur.
+   * Katmanları tanıma uydurur: değişeni yık-kur (ya da modül yapabiliyorsa YERİNDE güncelle), kalkanı yık, yeniyi
+   * kur. Palet değişirse hepsi değişmiş sayılır. KATMAN SIRASI = BAĞIMLILIK SIRASI: zemini SAĞLAYAN bir katman
+   * (yukseklik/renk veren) yeniden kurulunca ya da bir katman kalkınca, ondan sonraki ZEMİNE BAĞLI katmanlar da
+   * yeniden kurulur — zemin değişince üstüne oturan kayalar yeniden yerleşsin. Kaya değişince çim kurulmaz
+   * (çim kayayı okumaz; eskiden her sonraki kuruluyordu: kaya tohumu 887 ms, çoğu çim — ölçüldü, spec 22).
+   * Zemin yalnız bir BÖLGEDE değiştiyse (arazi fırçası) sonrakiler o bölgeyi yeniler (`bolgeYenile`).
    */
   const katmanlariUydur = () => {
     const paletImza = JSON.stringify(tanim.palet);
     const istenen = tanim.katmanlar.filter((k) => k.acik);
     const istenenAd = new Set(istenen.map((k) => k.ad));
     let zincir = false;
+    const bolgeler: Bolge[] = [];
     for (const [ad, k] of kurulu) if (!istenenAd.has(ad)) { yik(k.ornek); kurulu.delete(ad); zincir = true; }
     const eskiler = new Map(kurulu);
     kurulu.clear();
@@ -162,10 +167,26 @@ export function levelKur(sahne: Scene, tanimHam: unknown, kayit: ModulKaydi, sha
       const imza = paletImza + JSON.stringify([k.tur, k.ayar]);
       const eski = eskiler.get(k.ad);
       eskiler.delete(k.ad);
-      if (eski && eski.imza === imza && !zincir) { kurulu.set(k.ad, eski); continue; }
-      if (eski) yik(eski.ornek);
-      zincir = true;
-      kurulu.set(k.ad, { imza, ornek: katmanKur(k) });
+      const bagli = kayit.get(k.tur)?.zemineBagli !== false;
+      const kur = () => {
+        if (eski) yik(eski.ornek);
+        const ornek = katmanKur(k);
+        kurulu.set(k.ad, { imza, palet: paletImza, ornek });
+        if (ornek.yukseklik || ornek.renk) zincir = true;   // zemini sağlayan değişti: bağlılar yeniden kurulsun
+      };
+      if (!eski) { kur(); continue; }
+      if (zincir && bagli) { kur(); continue; }
+      if (eski.imza !== imza) {
+        // Yerinde güncelleme: palet aynıysa ve modül yapabiliyorsa (yalnız arazi verisi değişti gibi).
+        const r = eski.palet === paletImza && eski.ornek.ayarGuncelle ? eski.ornek.ayarGuncelle(ayarlari(k)) : false;
+        if (r === false) { kur(); continue; }
+        if (r) bolgeler.push(r);
+      }
+      if (bolgeler.length && bagli && !(eski.ornek.yukseklik || eski.ornek.renk)) {
+        if (!eski.ornek.bolgeYenile) { kur(); continue; }
+        for (const b of bolgeler) eski.ornek.bolgeYenile(b);
+      }
+      kurulu.set(k.ad, { imza, palet: paletImza, ornek: eski.ornek });
     }
   };
 

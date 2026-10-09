@@ -1,7 +1,7 @@
 # Spec 22 — Level editörü: modüler çekirdek + bütün araçlar
 
-> Durum: **Faz 1–6 uygulandı** (2026-10-09). Faz 7 (arazi araçları) Ozyn'in onayını bekliyor.
-> Deneme: `npm run editor-dene` (29 adım, gerçek fare/klavye) · ölçüm: `npm run editor-dene -- --olc`.
+> Durum: **Faz 1–7 uygulandı** (2026-10-09).
+> Deneme: `npm run editor-dene` (36 adım, gerçek fare/klavye) · ölçüm: `npm run editor-dene -- --olc`.
 
 ## 0. Neden
 Ozyn: "Bu dünyada her şey zemine sabitleniyor"; "level editör araçlarımızın hepsi olmalı… baştan savma değil,
@@ -98,11 +98,53 @@ yerleşimler hiç örneklenmiyordu; 192 nesnede kare başına **1106** çizim, 1
 **106** çizim, 398 fps. Örnek gölge almayı kaynaktan okur → birleşik kaynak mesh'te `receiveShadows` açıldı.
 Hayalet bilerek kopya (yarı saydamlık örnekte bütün aynı varlıklara geçerdi).
 
-## 6. Yapılmayanlar (dürüstçe)
-- **Faz 7 arazi araçları** (yükselt/alçalt/düzle/yumuşat, çim-kaya maskesi): ayrı onay — zemin değişince çim/kaya/
-  dekor zinciri yeniden kurulur, bırakma gecikmesi ölçülmeli.
+## 6. Arazi araçları (Faz 7, araç 7)
+Ozyn: "internette teknikler var, matematik üzerine araştır; Unreal bu işi çok iyi yapıyor." Unreal Landscape
+Sculpt araçları ve erozyon literatürü tarandı; karşılıkları:
+| Unreal | bizde (`cekirdek/arazi.ts`) |
+|---|---|
+| Sculpt (raise/lower) | Yükselt / Alçalt (Shift tersi), güç m/damga |
+| Brush falloff Smooth/Linear/Sphere/Tip + Falloff % | düşüş `yumusak` (smoothstep) / `dogrusal` (1−u) / `kure` (√(1−u²)) / `uc` (1−√(1−(1−u)²)), `sertlik` = tam etkili iç oran |
+| Apply Without Moving | basılı tuttukça ~90 ms'de bir damga |
+| Flatten: mode, Use Slope Flatten, Pick Value Per Apply | Düzle: ikisi / yalnız doldur / yalnız kes; eğime göre (başlangıç normaline dik düzlem); hedefi her damgada al |
+| Smooth: Filter Kernel Radius | Yumuşat: çekirdek dairesi ortalamasına (damga öncesi değerlerden) |
+| Erosion (thermal) | Aşındır: dinlenme açısı + yineleme; fazlanın yarısı en alçak komşuya (Musgrave–Kolb–Mace 1989), kütle korunur [TEST] |
+| Noise | Pürüz: tohumlu değer gürültüsü, ölçek |
+| Ramp: width, side falloff | Rampa: bas A, sürükle B (canlı önizleme), yarı genişlik = yarıçap |
+| Paint layers / foliage erase | çim / kaya / dekor MASKESİ: Kaldır / Geri boya |
+Yapılmayan Unreal araçları: hidrolik erozyon (damla/boru modeli; ayrı iş), Mirror, Region copy/paste, Visibility
+(delik), Alpha/Pattern fırçası, katmanlı (non-destructive) düzenleme.
+
+**Veri:** zemin `duzenleme`, çim/kaya/dekor `maske` — modül ayarında SEYREK `[anahtar, değer, …]` (yalnız sıfırdan
+farklı hücreler; 2 m hücre, çift doğrusal). Modüller `veri: [...]` bildirir → panelde gösterilmez.
+**Çekirdek değişikliği (levelKur):** modül `ayarGuncelle` ile değişikliği YERİNDE uygulayabilir (zemin: yalnız
+bölgedeki köşeler + normaller; çim: yalnız değişen maske hücreleri) ve değişen BÖLGEyi bildirir; zemine bağlı sonraki
+katmanlar `bolgeYenile` alır (yoksa yeniden kurulur). Zincir kuralı daraldı: yalnız zemini SAĞLAYAN katman yeniden
+kurulunca, yalnız `zemineBagli` katmanlar yeniden kurulur (kaya değişince çim kurulmaz; gök/bulut/su/parçacık hiç).
+**Çim bölgesi:** mulberry32'nin durumu çekim başına sabit artar → `rastgeleAtla(tohum, n)` ile herhangi bir tutama
+baştan yürümeden sıçranır; ilk bölge yenilemesinde "hücre → aday tutam" dizini bir kez çıkar. Yalnız yükseklik
+değiştiyse tutamların y'si yerinde güncellenir; bölge su seviyesine (`enAlcak`) yakınsa tam yeniden üretim.
+**Nesneler:** vuruş bitince tabanı eski arazide olan nesneler yeni araziye taşınır (havadaki/nesne üstündeki değil).
+İmleç ışını yalnız ARAZİYE çarpar (binanın arkasındaki zemin işlenir; rampa ucu çatıya bağlanmasın — denemede yakalandı).
+
+**Ölçüm [ÖLÇÜLDÜ]** (damga = bir `level.ayarla`, 6 m fırça):
+| sürüm | damga |
+|---|---|
+| ilk (her damgada bütün katman zinciri) | ~950 ms (çim 860) |
+| bölge + yerinde zemin | 166 ms (editörde; arayüz her damgada yeniden çiziliyordu) |
+| önizleme ayrı olay (arayüz çizilmez) + çim aday dizini | 115 ms |
+| çim sınır kutusu konumlardan (Babylon 8 köşe × her örnek, iki kez: ~65 ms) | ~110 ms |
+| çim y'si yerinde (yeniden üretim yok) | **22 ms** ort., en çok 32 (ilki 46: aday dizini) |
+Kare başına çizim çağrıları değişmedi (113/86/106/175/184); fps bu oturumda makine yüküyle oynadı (aynı kodla
+ardışık iki koşuda taban 584 ve 354) — fps karşılaştırması için sessiz makinede yinelenmeli.
+Zemin mesh karesi ova'da 5,8 m (`bolum` 110): 2 m'lik arazi verisi kaba görünür; ince şekil için bolum artırılmalı
+(220 → 2,9 m, 97 bin üçgen) — lowpoly görünüşü değiştirdiği için Ozyn'in kararı.
+
+## 7. Yapılmayanlar (dürüstçe)
+- Hidrolik erozyon, ayna, bölge kopyala/yapıştır, arazi deliği, desen fırçası, katmanlı arazi düzenlemesi (§6).
 - Bağlı prefab; prefab önizleme resmi (kartta 🏗).
 - Hazır yapı ve kaydetme yalnız geliştirme sunucusunda (Electron paketinde dosya yazma uç noktası yok).
-- Nesneler araziye "bağlı" değil (mutlak y): arazi değişirse End ile yeniden oturtulur.
+- Nesneler araziye "bağlı" değil (mutlak y): arazi aracı tabanı eski arazide olanları taşır; başka yoldan (ör. zemin
+  tohumu) değişirse End ile yeniden oturtulur.
 - Çim yerleştirilen nesnelerin tabanından geçer (çim, nesne yerleşimini bilmiyor).
 - DOM arayüzünün birim testi yok; davranış `tools/editor-dene.mjs` ile canlıda sınanıyor.

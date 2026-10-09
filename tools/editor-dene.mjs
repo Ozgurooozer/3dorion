@@ -211,6 +211,52 @@ async function etkilesim() {
   await deg(`[...document.querySelectorAll(".ed-vt .ed-sekme")].find(b=>b.textContent==="Varlıklar").click()`);
   fs.rmSync(path.join(HAZIR_KLASORU, `${ad}.hazir.json`), { force: true });
   try { fs.rmdirSync(HAZIR_KLASORU); } catch { /* başka hazır yapı var */ }
+  // arazi (7): yükselt (basılı tut) → tepe, zemindeki nesne oturur, çim izler; geri al; çim kaldır; rampa; aşındır
+  await tus("Digit7", "7", 55);
+  const ayarla = (o) => deg(`ova.editor.durum.ayarDegistir(a=>({...a, arazi:{...a.arazi, ...${JSON.stringify(o)}}}))`);
+  await ayarla({ hedef: "yukseklik", islem: "yukselt", yaricap: 6, guc: 0.25, sertlik: 0.3, dusus: "yumusak" });
+  const AP = [tv[0] + tv[2] * 0.55, tv[1] + tv[3] * 0.62];
+  const yer = await deg(`(()=>{ const r=ova.editor.tuval.getBoundingClientRect(); return ova.editor.yuzey.araziden(${AP[0]}-r.left, ${AP[1]}-r.top)?.nokta; })()`);
+  const yOnce = await deg(`ova.level.yukseklik(${yer[0]}, ${yer[2]})`);
+  await deg(`ova.editor.durum.degistir(t=>({...t, nesneler:[...t.nesneler, {id:"tz", varlik:t.nesneler[1].varlik, konum:[${yer[0]} + 1, ova.level.yukseklik(${yer[0]} + 1, ${yer[2]}), ${yer[2]}], donus:0, olcek:0.3}]}), "deneme")`);
+  const geriOnce = await deg("ova.editor.durum.gecmisSayisi().geri");
+  await fare("mouseMoved", AP[0], AP[1]); await bekle(80);
+  await fare("mousePressed", AP[0], AP[1]); await bekle(1500); await fare("mouseReleased", AP[0], AP[1]); await bekle(400);
+  const yTepe = await deg(`ova.level.yukseklik(${yer[0]}, ${yer[2]})`);
+  kontrol("arazi: basılı tutunca yükselir", yTepe > yOnce + 1, `${yOnce.toFixed(2)} → ${yTepe.toFixed(2)}`);
+  kontrol("arazi: vuruş tek geri al adımı", (await deg("ova.editor.durum.gecmisSayisi().geri")) === geriOnce + 1);
+  const tz = (await T()).nesneler.find((n) => n.id === "tz").konum;
+  const zTz = await deg(`ova.level.yukseklik(${tz[0]}, ${tz[2]})`);
+  kontrol("arazi: zemindeki nesne yeni yüzeye oturur", Math.abs(tz[1] - zTz) < 0.02, `y=${tz[1]} arazi=${zTz.toFixed(3)}`);
+  const cim = await deg(`(()=>{ let en=1e9, y=null; for (const m of ova.sahne.meshes) { if (!/^cim_-?\\d+_-?\\d+$/.test(m.name)) continue; const b=m._thinInstanceDataStorage?.matrixData; if(!b) continue;
+    for (let i=0;i<b.length;i+=16){ const d=Math.hypot(b[i+12]-(${yer[0]}), b[i+14]-(${yer[2]})); if (d<en){en=d; y=b[i+13];} } } return [en, y]; })()`);
+  const zCim = await deg(`ova.level.yukseklik(${yer[0]}, ${yer[2]})`);
+  kontrol("arazi: çim yeni yüzeyde", cim[1] !== null && cim[0] < 1.5 && Math.abs(cim[1] - zCim) < 0.6, `tutam y ${cim[1]?.toFixed(2)} arazi ${zCim.toFixed(2)}`);
+  await ekran("arazi-tepe");
+  await tus("KeyZ", "z", 90, CTRL);
+  kontrol("arazi: Ctrl+Z geri alır", Math.abs((await deg(`ova.level.yukseklik(${yer[0]}, ${yer[2]})`)) - yOnce) < 1e-6);
+  // çim kaldır
+  await ayarla({ hedef: "cim", maskeIslem: "sil", guc: 1 });
+  const cimSay = () => deg(`(()=>{ let n=0; for (const m of ova.sahne.meshes) if (/^cim_-?\\d+_-?\\d+$/.test(m.name)) n+=m.thinInstanceCount; return n; })()`);
+  const c0 = await cimSay();
+  await surukle(AP[0] - 150, AP[1], AP[0] + 150, AP[1], 12);
+  const c1 = await cimSay();
+  kontrol("arazi: çim kaldır tutamları azaltır", c1 < c0 - 300, `${c0} → ${c1}`);
+  await tus("KeyZ", "z", 90, CTRL);
+  // rampa: A'dan B'ye; ortası iki ucun arasında
+  await ayarla({ hedef: "yukseklik", islem: "rampa", yaricap: 3, sertlik: 0.5 });
+  const B = [AP[0] + 220, AP[1] - 60];
+  const pA = await deg(`(()=>{ const r=ova.editor.tuval.getBoundingClientRect(); return ova.editor.yuzey.araziden(${AP[0]}-r.left, ${AP[1]}-r.top)?.nokta; })()`);
+  await surukle(AP[0], AP[1], B[0], B[1], 16);
+  const pB = (await T()).katmanlar && await deg(`(()=>{ const r=ova.editor.tuval.getBoundingClientRect(); return ova.editor.yuzey.araziden(${B[0]}-r.left, ${B[1]}-r.top)?.nokta; })()`);
+  const orta = [(pA[0] + pB[0]) / 2, (pA[2] + pB[2]) / 2];
+  const yOrta = await deg(`ova.level.yukseklik(${orta[0]}, ${orta[1]})`);
+  kontrol("arazi: rampa ortası uçların arasında", yOrta >= Math.min(pA[1], pB[1]) - 0.15 && yOrta <= Math.max(pA[1], pB[1]) + 0.15, `A ${pA[1].toFixed(2)} orta ${yOrta.toFixed(2)} B ${pB[1].toFixed(2)}`);
+  await ekran("arazi-rampa");
+  await tus("KeyZ", "z", 90, CTRL);
+  await deg(`ova.editor.durum.degistir(t=>({...t, nesneler:t.nesneler.filter(n=>n.id!=="tz")}), "deneme sil")`);
+  await tus("Digit1", "1", 49);
+
   // uçuş kipi + yardım
   await tus("Tab", "Tab", 9);
   kontrol("Tab: uçuş kipi, arayüz gizli", (await deg("ova.editor.durum.kip()")) === "ucus" && await deg("document.body.classList.contains('ed-ucus')"));
@@ -258,6 +304,17 @@ async function olcum() {
     for (let i = 1; i <= 60; i++) { await fare("mouseMoved", uc[0] + ok.y[0] * i * 3, uc[1] + ok.y[1] * i * 3, 0, 1); await bekle(45); }
     await fare("mouseReleased", uc[0] + ok.y[0] * 180, uc[1] + ok.y[1] * 180);
   });
+  // Arazi damgası süresi (yükselt, 6 m, aynı yerde basılı): level.ayarla süresi
+  await tus("Escape", "Escape", 27);
+  await tus("Digit7", "7", 55);
+  await deg(`ova.editor.durum.ayarDegistir(a=>({...a, arazi:{...a.arazi, hedef:"yukseklik", islem:"yukselt", yaricap:6, guc:0.25}}))`);
+  await deg(`(()=>{ const l=ova.level, a=l.ayarla.bind(l); window.__sure=[]; l.ayarla=(t)=>{ const b=performance.now(); a(t); window.__sure.push(performance.now()-b); }; })()`);
+  const tv2 = await deg("(()=>{const r=ova.editor.tuval.getBoundingClientRect(); return [r.left + r.width*0.55, r.top + r.height*0.62];})()");
+  await fare("mouseMoved", tv2[0], tv2[1]); await bekle(80);
+  await olc("arazi fırçası basılıyken", async () => { await fare("mousePressed", tv2[0], tv2[1]); await bekle(3000); await fare("mouseReleased", tv2[0], tv2[1]); });
+  const sureler = await deg("window.__sure");
+  const damga = sureler.slice(1, -1);
+  console.log(`[ÖLÇÜLDÜ] arazi damgası: ${damga.length} adet, ortalama ${(damga.reduce((a, b) => a + b, 0) / Math.max(1, damga.length)).toFixed(1)} ms, en çok ${Math.max(...damga).toFixed(1)} ms (ilki aday dizini dahil ${sureler[0]?.toFixed(1)} ms)`);
   const t0 = performance.now();
   await deg(`ova.editor.durum.geriAl()`);
   console.log(`[ÖLÇÜLDÜ] geri al (200 nesnelik level, 50 nesne dönüşümü): ${(performance.now() - t0).toFixed(0)} ms (CDP gidiş-dönüş dahil)`);

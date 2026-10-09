@@ -52,6 +52,7 @@ export const gokModulu: LevelModulu<GokAyari> = {
   tur: "gok",
   aciklama: "Bantlı gök kubbesi (ışıksız, kameraya yapışık).",
   varsayilan: GOK_VARSAYILAN,
+  zemineBagli: false,
   aralik: {
     yaricap: { min: 100, max: 900, adim: 10 }, dilim: { min: 6, max: 48, adim: 1 }, bant: { min: 2, max: 32, adim: 1 },
     ortaKonum: { min: 0.05, max: 0.95, adim: 0.01 },

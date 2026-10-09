@@ -32,8 +32,19 @@ export interface ModulBaglami {
   zeminRengi(x: number, z: number): Renk | null;
 }
 
+/** Dünya xz kutusu (m): arazi düzenlemesinin değiştirdiği bölge. */
+export interface Bolge { x0: number; z0: number; x1: number; z1: number }
+
 export interface ModulOrnegi {
   meshler: Mesh[];
+  /**
+   * Yalnız bu ayar değişikliğini YERİNDE uygula (yık-kur yerine; spec 22 arazi fırçası). Dönüş: `false` =
+   * yapamam (level yıkıp kurar) · `null` = yaptım, başka katmanı etkilemez · Bolge = yaptım, YÜZEY bu bölgede
+   * değişti (zemine bağlı sonraki katmanlar `bolgeYenile` alır).
+   */
+  ayarGuncelle?(yeni: Ayar): Bolge | null | false;
+  /** Altındaki zemin bu bölgede değişti: içeriği yalnız orada yeniden yerleştir (yoksa level yıkıp kurar). */
+  bolgeYenile?(bolge: Bolge): void;
   /** Her karede (dt saniye). */
   guncelle?(dt: number): void;
   /** Zemin gibi modüller: (x, z) noktasındaki yüzey yüksekliği (kamera ve yerleştirme için). */
@@ -61,6 +72,13 @@ export interface LevelModulu<A extends Ayar = Ayar> {
   varsayilan: A;
   /** Sayı ayarlarının anlamlı aralıkları (panel kaydırıcısı). Verilmeyen ayar değerinden türetilir. */
   aralik?: Readonly<Partial<Record<keyof A & string, AyarAraligi>>>;
+  /**
+   * Kurulurken zemini (`baglam.yukseklik` / `zeminRengi`) okur mu: zemin değişince yeniden kurulsun ya da bölge
+   * yenilensin. Verilmezse true (temkinli). Gök, bulut, su, parçacık false: zemin değişince dokunulmaz.
+   */
+  zemineBagli?: boolean;
+  /** Editör araçlarının yazdığı VERİ alanları (arazi fırçası: duzenleme, maske): panelde gösterilmez. */
+  veri?: readonly (keyof A & string)[];
   kur(b: ModulBaglami, ayar: A): ModulOrnegi;
 }
 

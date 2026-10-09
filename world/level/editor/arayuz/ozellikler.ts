@@ -131,6 +131,68 @@ export function ozelliklerKur(ed: Editor): OzellikPaneli {
       el("h4", "", "Fırçadaki varlıklar"), liste);
   };
 
+  /** Arazi aracındayken: hedef (yükseklik/çim/kaya/dekor), işlem, yarıçap/güç/sertlik. */
+  const araziBolumu = (): HTMLElement => {
+    const a = durum.ayarlar().arazi;
+    const yaz = (f: (x: typeof a) => typeof a) => durum.ayarDegistir((x) => ({ ...x, arazi: f(x.arazi) }));
+    const secenekler = <T extends string>(liste: readonly [T, string, string][], simdiki: T, sec: (v: T) => void) => {
+      const d = el("div", "dugmeler");
+      for (const [v, ad, ipucuMetni] of liste) {
+        const b = el("button", v === simdiki ? "secili" : "", ad); b.title = ipucuMetni;
+        b.onclick = () => { sec(v); b.blur(); };
+        d.append(b);
+      }
+      return d;
+    };
+    type SayiAlani = "yaricap" | "guc" | "sertlik" | "cekirdek" | "talus" | "yineleme" | "puruzOlcek";
+    const sayi = (etiket: string, alan: SayiAlani, adim: number, min: number, max: number, ipucuMetni = "") => {
+      const r = satir(etiket, sayiKutusu({ etiket: "↔", deger: a[alan], adim,
+        baslarken: () => { fircaSurukle = true; },
+        canli: (v) => yaz((x) => ({ ...x, [alan]: Math.max(min, Math.min(max, v)) })),
+        bitti: (v) => { fircaSurukle = false; yaz((x) => ({ ...x, [alan]: Math.max(min, Math.min(max, v)) })); } }));
+      if (ipucuMetni) r.title = ipucuMetni;
+      return r;
+    };
+    const onay = (yazi: string, baslikMetni: string, alan: "nesneleriOturt" | "egimeGore" | "hedefHerDamga") => {
+      const l = el("label"); const c = el("input"); c.type = "checkbox"; c.checked = a[alan];
+      c.onchange = () => { yaz((x) => ({ ...x, [alan]: c.checked })); c.blur(); };
+      l.append(c, document.createTextNode(` ${yazi}`)); l.title = baslikMetni; l.style.display = "block";
+      return l;
+    };
+    const z = durum.tanim().katmanlar.find((k) => k.tur === "zemin");
+    const kare = z ? (2 * Number(z.ayar["yaricap"])) / Number(z.ayar["bolum"]) : 0;
+    const yuk = a.hedef === "yukseklik";
+    // İşleme göre ek ayarlar (Unreal Landscape araçlarının karşılıkları).
+    const ek: HTMLElement[] = [];
+    if (yuk && a.islem === "duzle") ek.push(
+      secenekler<typeof a.duzleKip>([["ikisi", "İkisi", "Hedefe hem yükselt hem alçalt"], ["yukselt", "Yalnız doldur", "Yalnız hedefin altındakini yükselt"], ["alcalt", "Yalnız kes", "Yalnız hedefin üstündekini alçalt"]], a.duzleKip, (v) => yaz((x) => ({ ...x, duzleKip: v }))),
+      onay("eğime göre düzle", "Hedef yatay düzlem değil: vuruşun başladığı noktadan geçen, oradaki eğime paralel düzlem (yamaçta düz yol/teras)", "egimeGore"),
+      onay("hedefi her damgada al", "Hedef yükseklik her damgada imlecin altından alınır (sürükledikçe yeni yüksekliğe uyar)", "hedefHerDamga"));
+    if (yuk && a.islem === "yumusat") ek.push(sayi("Çekirdek (hücre)", "cekirdek", 0.1, 1, 8, "Ortalama alınan yarıçap: büyüdükçe büyük ayrıntılar da düzleşir"));
+    if (yuk && a.islem === "asindir") ek.push(
+      sayi("Dinlenme açısı (°)", "talus", 0.5, 5, 80, "Bu açıdan dik eğimlerde malzeme aşağı kayar (ısıl erozyon)"),
+      sayi("Yineleme", "yineleme", 0.1, 1, 20, "Damga başına erozyon adımı"));
+    if (yuk && a.islem === "puruz") ek.push(sayi("Gürültü ölçeği (m)", "puruzOlcek", 0.1, 0.5, 50, "Pürüzün dalga boyu"));
+    if (yuk && a.islem === "rampa") ek.push(el("div", "ed-ipucu", "Rampa: başlangıç noktasına bas, bitişe sürükle, bırak. Genişlik = 2 × yarıçap, yanlar sertlik/düşüşle karışır."));
+    const DUSUS: [typeof a.dusus, string, string][] = [["yumusak", "Yumuşak", "Kenarı yuvarlatılmış (smoothstep)"], ["dogrusal", "Doğrusal", "Düz eğim"], ["kure", "Küre", "Yumuşak başlar, sert biter (yarım elipsoit)"], ["uc", "Uç", "Sert başlar, yumuşak biter"]];
+    return bolum("⛰ Arazi",
+      el("div", "ed-ipucu", "Basılı tut / sürükle · Shift: ters işlem (alçalt, geri boya) · Ctrl+tekerlek: yarıçap · tek vuruş = tek geri al"),
+      secenekler<typeof a.hedef>([["yukseklik", "⛰ Yükseklik", "Zemini şekillendir"], ["cim", "🌿 Çim", "Çim yoğunluğunu boya"], ["kaya", "🪨 Kaya", "Kayaları kaldır/geri getir"], ["dekor", "🌳 Dekor", "Ağaç/bank/lambayı kaldır/geri getir"]], a.hedef, (v) => yaz((x) => ({ ...x, hedef: v }))),
+      yuk
+        ? secenekler<typeof a.islem>([["yukselt", "Yükselt", "Tepe yap (Shift: alçalt)"], ["alcalt", "Alçalt", "Çukur kaz (Shift: yükselt)"], ["duzle", "Düzle", "Hedef yüksekliğe getir"],
+          ["yumusat", "Yumuşat", "Çekirdek ortalamasına çek"], ["asindir", "Aşındır", "Isıl erozyon: dik eğimler yayılır"], ["puruz", "Pürüz", "Gürültüyle doğal pürüz"],
+          ["rampa", "Rampa", "İki nokta arası eğimli yol"], ["sifirla", "Sıfırla", "Düzenlemeyi kaldır (özgün arazi)"]], a.islem, (v) => yaz((x) => ({ ...x, islem: v })))
+        : secenekler<typeof a.maskeIslem>([["sil", "Kaldır", "Bu bölgeden kaldır (Shift: geri boya)"], ["boya", "Geri boya", "Kaldırılanı geri getir (Shift: kaldır)"]], a.maskeIslem, (v) => yaz((x) => ({ ...x, maskeIslem: v }))),
+      ...ek,
+      sayi("Yarıçap (m)", "yaricap", 0.1, 0.5, 80),
+      ...(yuk && a.islem === "rampa" ? [] : [sayi(yuk && ["yukselt", "alcalt", "puruz"].includes(a.islem) ? "Güç (m/damga)" : "Güç (0–1)", "guc", 0.01, 0.01, 5)]),
+      sayi("Sertlik", "sertlik", 0.01, 0, 1, "Tam etkili iç bölge oranı (0 = merkezden kenara düşer, 1 = düz silindir)"),
+      el("h4", "", "Düşüş"),
+      secenekler<typeof a.dusus>(DUSUS, a.dusus, (v) => yaz((x) => ({ ...x, dusus: v }))),
+      yuk ? onay("nesneleri yeni araziye oturt", "Vuruş bitince tabanı eski arazide duran nesneler yeni yüzeye taşınır (havadakiler ve nesne üstündekiler dokunulmaz)", "nesneleriOturt") : el("span"),
+      yuk && kare ? el("div", "ed-ipucu", `Zemin mesh karesi ${kare.toFixed(1)} m: daha ince şekil için Dünya › zemin › bolum'u artır (yükseklik verisi ${String(z?.ayar["duzenlemeHucre"] ?? 2)} m hücrede).`) : el("span"));
+  };
+
   const ciz = () => {
     if (bekliyor) return;
     // Bir kutuya yazılırken yeniden çizme (odak kaybolur): bırakınca çizilir.
@@ -142,7 +204,7 @@ export function ozelliklerKur(ed: Editor): OzellikPaneli {
     if (surukleOnce) return;
     const t = durum.tanim();
     const sec = secililer(t);
-    const ust = durum.arac() === "firca" ? [fircaBolumu()] : [];
+    const ust = durum.arac() === "firca" ? [fircaBolumu()] : durum.arac() === "arazi" ? [araziBolumu()] : [];
     if (!sec.length) {
       const n = t.nesneler?.length ?? 0;
       kok.replaceChildren(...ust,
@@ -235,8 +297,11 @@ export function ozelliklerKur(ed: Editor): OzellikPaneli {
   durum.abone("secim", ciz);
   durum.abone("tanim", ciz);
   durum.abone("arac", ciz);
-  let sonFirca = JSON.stringify(durum.ayarlar().firca);
-  durum.abone("ayarlar", () => { const f = JSON.stringify(durum.ayarlar().firca); if (f !== sonFirca) { sonFirca = f; if (durum.arac() === "firca" && !fircaSurukle) ciz(); } });
+  let sonFirca = JSON.stringify([durum.ayarlar().firca, durum.ayarlar().arazi]);
+  durum.abone("ayarlar", () => {
+    const f = JSON.stringify([durum.ayarlar().firca, durum.ayarlar().arazi]);
+    if (f !== sonFirca) { sonFirca = f; if (["firca", "arazi"].includes(durum.arac()) && !fircaSurukle) ciz(); }
+  });
   ed.level.nesneler.yuklenince(() => { if (!durum.secim().length) ciz(); });
   ciz();
   return { kok, ekle(f) { ozelEkler.push(f); ciz(); } };

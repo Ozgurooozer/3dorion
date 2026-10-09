@@ -89,6 +89,7 @@ export const parcacikModulu: LevelModulu<ParcacikAyari> = {
   tur: "parcacik",
   aciklama: "Havada uçuşanlar: gündüz polen, gece ateşböcekleri (gün/gece durumuna bağlı).",
   varsayilan: PARCACIK_VARSAYILAN,
+  zemineBagli: false,
   aralik: {
     x: { min: -300, max: 300, adim: 1 }, z: { min: -300, max: 300, adim: 1 }, alan: { min: 2, max: 150, adim: 1 },
     yukseklikMin: { min: 0, max: 20, adim: 0.05 }, yukseklikMax: { min: 0.1, max: 40, adim: 0.05 },

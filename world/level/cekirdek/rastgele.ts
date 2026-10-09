@@ -16,6 +16,12 @@ export function rastgele(tohum: number): () => number {
   };
 }
 
+/**
+ * `rastgele(tohum)`un `n` çekim SONRAKİ hâli (mulberry32'nin durumu her çekimde sabit kadar artar: n·sabit ileri
+ * sarılır). Uzun bir dizinin ortasındaki öğeyi baştan yürümeden üretmek için (çim bölge yenilemesi, spec 22).
+ */
+export const rastgeleAtla = (tohum: number, n: number): (() => number) => rastgele(((tohum >>> 0) + Math.imul(n >>> 0, 0x6d2b79f5)) >>> 0);
+
 /** Izgara noktasının belirleyici değeri [0,1). */
 function koseDegeri(ix: number, iz: number, tohum: number): number {
   let h = (Math.imul(ix, 374761393) + Math.imul(iz, 668265263) + Math.imul(tohum, 2246822519)) >>> 0;

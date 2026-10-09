@@ -11,6 +11,9 @@ export type AlanTuru = "sayi" | "renk" | "paletAdi" | "metin" | "mantik" | "sayi
 
 export interface Alan { yol: Yol; deger: unknown; tur: AlanTuru }
 
+/** Bundan uzun dizi panelde gösterilmez (veri; editör araçları yazar). */
+export const VERI_SINIRI = 16;
+
 const nesneMi = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 
 /** Bir yaprağın türü. Palet adları verilirse, paletteki bir ada eşit metin "paletAdi" sayılır. */
@@ -25,6 +28,8 @@ export function alanTuru(v: unknown, paletAdlari: ReadonlySet<string>): AlanTuru
 
 /** Nesnenin bütün yapraklarını (yol, değer, tür) sırayla döner. Katman dizisi indeksle iner. */
 export function alanlar(kok: unknown, paletAdlari: ReadonlySet<string>, yol: Yol = []): Alan[] {
+  // Uzun dizi elle düzenlenecek ayar değil VERİDİR (arazi fırçasının hücreleri, spec 22): panelde gösterilmez.
+  if (Array.isArray(kok) && kok.length > VERI_SINIRI) return [];
   const t = alanTuru(kok, paletAdlari);
   if (t) return [{ yol, deger: kok, tur: t }];
   if (Array.isArray(kok)) return kok.flatMap((v, i) => alanlar(v, paletAdlari, [...yol, i]));

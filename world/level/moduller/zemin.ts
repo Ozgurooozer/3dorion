@@ -3,11 +3,18 @@
 // Merkez (yürünen yer) neredeyse düz, dışa doğru dalgalanır. Renk üçgen başına gürültü bandından, paletin
 // çim renklerinden. GÖL: `golDerinlik` > 0 ise (golX, golZ) çevresinde yumuşak bir çanak oyulur ve tabanı toprak renginde
 // olur; su yüzeyi ayrı bir katman (su.ts, aynı merkez/yarıçapı ayrı ayarlar — level dosyasında birlikte yazılır). `yukseklik(x, z)` dışarı açık: kamera ve ileride çim/kaya yerleşimi zemine oturur.
+//
+// ARAZİ DÜZENLEME (spec 22 Faz 7): `duzenleme` = editörün arazi fırçasıyla çizilen yükseklik FARKI (seyrek hücre
+// verisi, cekirdek/arazi.ts; `duzenlemeHucre` m aralıklı, çift doğrusal). Gürültü tabanının üstüne eklenir. Yalnız
+// bu alan değişince mesh yıkılmaz: değişen bölgenin köşeleri yerinde oynar (`ayarGuncelle`) ve bölge zemine bağlı
+// katmanlara bildirilir (çim yalnız o hücrelerini yeniler). Mesh ızgarası `bolum`dan: ince düzenleme için bolum'u artır.
 "use strict";
 import { flatGeometri, meshKur, type Geometri, type Ucgen, type V3 } from "../cekirdek/geometri.ts";
 import { gurultu } from "../cekirdek/rastgele.ts";
 import type { Renk } from "../cekirdek/renk.ts";
-import type { LevelModulu } from "../cekirdek/modul.ts";
+import type { Bolge, LevelModulu } from "../cekirdek/modul.ts";
+import { VertexBuffer } from "@babylonjs/core/Buffers/buffer";
+import { farkBolgesi, ornekle, seyrekOku } from "../cekirdek/arazi.ts";
 
 export const ZEMIN_VARSAYILAN = {
   /** Yarı genişlik (m): sis kenarı göstermesin diye geniş. */
@@ -29,13 +36,23 @@ export const ZEMIN_VARSAYILAN = {
   golYaricap: 16,
   golDerinlik: 0,
   tohum: 1907,
+  /** Arazi fırçasının yükseklik farkı (seyrek: [anahtar, m, …]; editör yazar) ve hücre aralığı (m). */
+  duzenleme: [] as number[],
+  duzenlemeHucre: 2,
 };
 export type ZeminAyari = typeof ZEMIN_VARSAYILAN;
 
 const yumusak = (a: number, b: number, x: number) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a || 1))); return t * t * (3 - 2 * t); };
 
-/** (x, z) → yükseklik (m). İki oktav; merkez düz, dışa doğru dalga. */
+/** (x, z) → yükseklik (m): taban + arazi fırçası farkı. */
 export function zeminYuksekligi(a: ZeminAyari): (x: number, z: number) => number {
+  const taban = zeminTabanYuksekligi(a);
+  const d = seyrekOku(a.duzenleme), h = a.duzenlemeHucre;
+  return d.size ? (x, z) => taban(x, z) + ornekle(d, h, x, z) : taban;
+}
+
+/** (x, z) → düzenlemesiz yükseklik (m). İki oktav; merkez düz, dışa doğru dalga (düzle/yumuşat bunu taban alır). */
+export function zeminTabanYuksekligi(a: ZeminAyari): (x: number, z: number) => number {
   const s = a.tepeOlcek;
   return (x, z) => {
     const g = 0.65 * gurultu(x / s, z / s, a.tohum) + 0.35 * gurultu(x / (s * 0.37), z / (s * 0.37), a.tohum + 7);
@@ -55,8 +72,7 @@ export function zeminRenkAdi(a: ZeminAyari, x: number, z: number): string {
   return a.renkler[i === -1 ? a.renkler.length - 1 : i]!;
 }
 
-export function zeminGeometrisi(a: ZeminAyari, renk: (ad: string) => Renk): Geometri {
-  const y = zeminYuksekligi(a);
+export function zeminGeometrisi(a: ZeminAyari, renk: (ad: string) => Renk, y = zeminYuksekligi(a)): Geometri {
   const adim = (2 * a.yaricap) / a.bolum;
   const nokta = (i: number, j: number): V3 => { const x = -a.yaricap + i * adim, z = -a.yaricap + j * adim; return [x, y(x, z), z]; };
   const u: Ucgen[] = [];
@@ -79,22 +95,62 @@ export const zeminModulu: LevelModulu<ZeminAyari> = {
   tur: "zemin",
   aciklama: "Lowpoly çayır zemini (dalgalı ızgara, lekeli renk, gölge alır).",
   varsayilan: ZEMIN_VARSAYILAN,
+  veri: ["duzenleme"],
+  zemineBagli: false,
   aralik: {
-    yaricap: { min: 50, max: 600, adim: 10 }, bolum: { min: 8, max: 200, adim: 1 },
+    yaricap: { min: 50, max: 600, adim: 10 }, bolum: { min: 8, max: 400, adim: 1 }, duzenlemeHucre: { min: 0.5, max: 10, adim: 0.5 },
     tepeYukseklik: { min: 0, max: 20, adim: 0.1 }, tepeOlcek: { min: 5, max: 200, adim: 1 },
     duzYaricap: { min: 1, max: 200, adim: 1 }, lekeOlcek: { min: 1, max: 60, adim: 0.5 },
     esikler: { min: 0, max: 1, adim: 0.01 }, tohum: { min: 0, max: 9999, adim: 1 },
     golX: { min: -300, max: 300, adim: 1 }, golZ: { min: -300, max: 300, adim: 1 }, golYaricap: { min: 2, max: 120, adim: 0.5 }, golDerinlik: { min: 0, max: 8, adim: 0.05 },
   },
-  kur(b, a) {
-    if (a.renkler.length !== a.esikler.length + 1) throw new Error("zemin: renkler.length = esikler.length + 1 olmalı");
-    const m = meshKur(b.sahne, "zemin", zeminGeometrisi(a, b.renk));
+  kur(b, a0) {
+    if (a0.renkler.length !== a0.esikler.length + 1) throw new Error("zemin: renkler.length = esikler.length + 1 olmalı");
+    let a = a0;
+    const taban = zeminTabanYuksekligi(a);
+    let duz = seyrekOku(a.duzenleme);
+    const yuk = (x: number, z: number) => taban(x, z) + ornekle(duz, a.duzenlemeHucre, x, z);
+    const m = meshKur(b.sahne, "zemin", zeminGeometrisi(a, b.renk, yuk));
     const malzeme = b.malzeme("zemin", "isikli");
     m.material = malzeme;
     m.freezeWorldMatrix();
     b.golge(m, { alir: true });
+    const konum = m.getVerticesData(VertexBuffer.PositionKind) as Float32Array;
+    const normal = m.getVerticesData(VertexBuffer.NormalKind) as Float32Array;
+    /** Bölgedeki dörtgenlerin köşe yüksekliklerini ve yüz normallerini yeniden hesaplar (geometri sırası: dörtgen (i, j) → 2 üçgen × 3 köşe). */
+    const koseleriGuncelle = (bolge: Bolge) => {
+      const adim = (2 * a.yaricap) / a.bolum;
+      const ic = (v: number) => Math.floor((v + a.yaricap) / adim);
+      const i0 = Math.max(0, ic(bolge.x0) - 1), i1 = Math.min(a.bolum - 1, ic(bolge.x1) + 1);
+      const j0 = Math.max(0, ic(bolge.z0) - 1), j1 = Math.min(a.bolum - 1, ic(bolge.z1) + 1);
+      for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) {
+        for (let t = 0; t < 2; t++) {
+          const o = ((i * a.bolum + j) * 2 + t) * 9;
+          for (let k = 0; k < 3; k++) konum[o + k * 3 + 1] = yuk(konum[o + k * 3]!, konum[o + k * 3 + 2]!);
+          const e1x = konum[o + 3]! - konum[o]!, e1y = konum[o + 4]! - konum[o + 1]!, e1z = konum[o + 5]! - konum[o + 2]!;
+          const e2x = konum[o + 6]! - konum[o]!, e2y = konum[o + 7]! - konum[o + 1]!, e2z = konum[o + 8]! - konum[o + 2]!;
+          let nx = e1y * e2z - e1z * e2y, ny = e1z * e2x - e1x * e2z, nz = e1x * e2y - e1y * e2x;
+          const l = Math.hypot(nx, ny, nz) || 1;
+          if (ny < 0) { nx = -nx; ny = -ny; nz = -nz; }   // zemin yukarı bakar
+          for (let k = 0; k < 3; k++) normal.set([nx / l, ny / l, nz / l], o + k * 3);
+        }
+      }
+      m.setVerticesData(VertexBuffer.PositionKind, konum, true);
+      m.setVerticesData(VertexBuffer.NormalKind, normal, true);
+      m.refreshBoundingInfo();
+    };
     return {
-      meshler: [m], yukseklik: zeminYuksekligi(a), renk: (x, z) => b.renk(zeminRenkAdi(a, x, z)),
+      meshler: [m], yukseklik: yuk, renk: (x, z) => b.renk(zeminRenkAdi(a, x, z)),
+      ayarGuncelle(yeniHam) {
+        const yeni = yeniHam as ZeminAyari;
+        // Yalnız arazi farkı değiştiyse yerinde; başka her ayar (bolum, tohum, göl…) yık-kur.
+        if (JSON.stringify({ ...yeni, duzenleme: 0 }) !== JSON.stringify({ ...a, duzenleme: 0 })) return false;
+        const yeniDuz = seyrekOku(yeni.duzenleme);
+        const bolge = farkBolgesi(duz, yeniDuz, a.duzenlemeHucre);
+        duz = yeniDuz; a = yeni;
+        if (bolge) koseleriGuncelle(bolge);
+        return bolge;
+      },
       yokEt() { m.dispose(); malzeme.dispose(); },
     };
   },

@@ -77,6 +77,7 @@ export const bulutModulu: LevelModulu<BulutAyari> = {
   tur: "bulut",
   aciklama: "Kümülüs bulutlar (ikosahedron kümeleri, pişmiş gölge, yavaş dönüş).",
   varsayilan: BULUT_VARSAYILAN,
+  zemineBagli: false,
   aralik: {
     sayi: { min: 0, max: 40, adim: 1 }, tohum: { min: 0, max: 9999, adim: 1 },
     topakMin: { min: 1, max: 12, adim: 1 }, topakMax: { min: 1, max: 16, adim: 1 },
