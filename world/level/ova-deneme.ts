@@ -2,7 +2,7 @@
 //
 // Level = veri: world/level/ova/ova.level.json. Sayfa onu okur, `levelKur` ile kurar (modüller:
 // world/level/moduller/), level panelini açar (canlı düzenle, Kaydet → dosya) — F8 Babylon Inspector, H paneli
-// gizler. Elle gezinmek: tıkla, WASD + fare, Shift koş.
+// gizler. Elle gezinmek (SERBEST UÇUŞ): tıkla, WASD + fare, Space/E yukarı, Q/C aşağı, Shift hızlı.
 //
 //   /world/level/ova-deneme.html?aci=ufuk | alcak | tepe | gunes
 //   ?piksel=3   tanımdaki `ortam.piksel`i geçersiz kılar (piksel kipi; panelde "Ortam › piksel boyu" aynı ayar —
@@ -92,6 +92,7 @@ try {
   kamera.minZ = 0.05;
   kamera.maxZ = level.tanim().ortam.kamera.uzak;
   kamera.keysUp = [87]; kamera.keysDown = [83]; kamera.keysLeft = [65]; kamera.keysRight = [68];
+  kamera.keysUpward = [32, 69]; kamera.keysDownward = [81, 67];   // Space/E yukarı, Q/C aşağı (zemine kilit yok: her açıdan bakılır)
   kamera.angularSensibility = 2500;
   kamera.attachControl(tuval, true);
   let kos = false;
@@ -242,7 +243,6 @@ try {
     saatEtiketi.textContent = `${String(Math.floor(st)).padStart(2, "0")}:${String(Math.floor((st % 1) * 60)).padStart(2, "0")}`;
     kamera.speed = kos ? 0.6 : 0.25;
     kamera.maxZ = level.tanim().ortam.kamera.uzak;
-    if (ay < 10) kamera.position.y = level.yukseklik(kamera.position.x, kamera.position.z) + ay;
   });
   motor.runRenderLoop(() => sahne.render());
   addEventListener("resize", () => motor.resize());
