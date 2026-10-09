@@ -37,4 +37,7 @@ Açık işler tek yerde: `ACIK-ISLER.md`. Fikirler: `FIKIR-HAVUZU.md`. Son günc
 ## Bu turun kalıcı davranışları (spec dışı, commit mesajlarında)
 - **Kulak:** `3dorion.bat mikrofon` / K aç-kapa, V bas-konuş; Nemotron Speech EN, CPU (`tools/nemotron-dinle.py`, `voice/nemotron.ts`).
 - **Uzaktan terminal:** onaylanan komut terminal kapalıysa arka planda açar, kamerayı kaçırmaz (`uygulama/terminalYazici.ts`; canlı `onaydene`).
+- **Asset tarayıcısı (ova, V):** şehir kiti `assets/sehir/` (86 glb + önizleme + katalog; kaynak Masaüstü
+  "city build test moduler 1.blend", betik `assets/kaynak/sehir-kiti.py`); yerleşimler `tanim.nesneler`
+  (`world/level/cekirdek/nesneSistemi.ts`, `editor/varlikTarayici.ts`).
 - **Beni takip et:** içgüdü `kopru.takip` (`mind/takipSozu.ts`, `uygulama/takip.ts`; canlı `3dorion.bat takipdene`).

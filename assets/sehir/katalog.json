@@ -1,0 +1,1124 @@
+{
+  "surum": 1,
+  "kaynak": "city build test moduler 1.blend",
+  "varliklar": [
+    {
+      "ad": "INFRA_Cable_Bundle_Overhead",
+      "kategori": "altyapi",
+      "dosya": "sehir/INFRA_Cable_Bundle_Overhead.glb",
+      "onizleme": "sehir/onizleme/INFRA_Cable_Bundle_Overhead.png",
+      "boyut": [
+        12.009,
+        1.188,
+        0.19
+      ],
+      "ucgen": 960,
+      "bayt": 19348
+    },
+    {
+      "ad": "INFRA_FireEscape_4x8",
+      "kategori": "altyapi",
+      "dosya": "sehir/INFRA_FireEscape_4x8.glb",
+      "onizleme": "sehir/onizleme/INFRA_FireEscape_4x8.png",
+      "boyut": [
+        4.05,
+        9.25,
+        1.56
+      ],
+      "ucgen": 336,
+      "bayt": 19396
+    },
+    {
+      "ad": "INFRA_Pipe_Wall_Cluster",
+      "kategori": "altyapi",
+      "dosya": "sehir/INFRA_Pipe_Wall_Cluster.glb",
+      "onizleme": "sehir/onizleme/INFRA_Pipe_Wall_Cluster.png",
+      "boyut": [
+        1.4,
+        3.28,
+        5.0
+      ],
+      "ucgen": 484,
+      "bayt": 25388
+    },
+    {
+      "ad": "INFRA_Transformer_Box",
+      "kategori": "altyapi",
+      "dosya": "sehir/INFRA_Transformer_Box.glb",
+      "onizleme": "sehir/onizleme/INFRA_Transformer_Box.png",
+      "boyut": [
+        1.05,
+        1.9,
+        0.75
+      ],
+      "ucgen": 144,
+      "bayt": 11148
+    },
+    {
+      "ad": "CORP_BLD_Annex_SM",
+      "kategori": "bina",
+      "dosya": "sehir/CORP_BLD_Annex_SM.glb",
+      "onizleme": "sehir/onizleme/CORP_BLD_Annex_SM.png",
+      "boyut": [
+        8.2,
+        18.0,
+        8.26
+      ],
+      "ucgen": 108,
+      "bayt": 9028
+    },
+    {
+      "ad": "CORP_BLD_Highrise_LG",
+      "kategori": "bina",
+      "dosya": "sehir/CORP_BLD_Highrise_LG.glb",
+      "onizleme": "sehir/onizleme/CORP_BLD_Highrise_LG.png",
+      "boyut": [
+        12.2,
+        87.0,
+        12.24
+      ],
+      "ucgen": 260,
+      "bayt": 18032
+    },
+    {
+      "ad": "CORP_BLD_MegaTower_Mega",
+      "kategori": "bina",
+      "dosya": "sehir/CORP_BLD_MegaTower_Mega.glb",
+      "onizleme": "sehir/onizleme/CORP_BLD_MegaTower_Mega.png",
+      "boyut": [
+        24.4,
+        120.0,
+        24.4
+      ],
+      "ucgen": 540,
+      "bayt": 33012
+    },
+    {
+      "ad": "CORP_BLD_OfficeBlock_MD",
+      "kategori": "bina",
+      "dosya": "sehir/CORP_BLD_OfficeBlock_MD.glb",
+      "onizleme": "sehir/onizleme/CORP_BLD_OfficeBlock_MD.png",
+      "boyut": [
+        20.5,
+        38.75,
+        12.55
+      ],
+      "ucgen": 264,
+      "bayt": 18012
+    },
+    {
+      "ad": "CORP_BLD_TwinTower_LG",
+      "kategori": "bina",
+      "dosya": "sehir/CORP_BLD_TwinTower_LG.glb",
+      "onizleme": "sehir/onizleme/CORP_BLD_TwinTower_LG.png",
+      "boyut": [
+        24.2,
+        84.14,
+        10.2
+      ],
+      "ucgen": 548,
+      "bayt": 33500
+    },
+    {
+      "ad": "HARBOR_BLD_Factory_MD",
+      "kategori": "bina",
+      "dosya": "sehir/HARBOR_BLD_Factory_MD.glb",
+      "onizleme": "sehir/onizleme/HARBOR_BLD_Factory_MD.png",
+      "boyut": [
+        16.303,
+        28.0,
+        15.0
+      ],
+      "ucgen": 320,
+      "bayt": 20484
+    },
+    {
+      "ad": "HARBOR_BLD_Warehouse_LG",
+      "kategori": "bina",
+      "dosya": "sehir/HARBOR_BLD_Warehouse_LG.glb",
+      "onizleme": "sehir/onizleme/HARBOR_BLD_Warehouse_LG.png",
+      "boyut": [
+        24.3,
+        17.95,
+        16.3
+      ],
+      "ucgen": 232,
+      "bayt": 15136
+    },
+    {
+      "ad": "NEON_BLD_Market_MD",
+      "kategori": "bina",
+      "dosya": "sehir/NEON_BLD_Market_MD.glb",
+      "onizleme": "sehir/onizleme/NEON_BLD_Market_MD.png",
+      "boyut": [
+        16.22,
+        20.7,
+        10.6
+      ],
+      "ucgen": 144,
+      "bayt": 14296
+    },
+    {
+      "ad": "NEON_BLD_SignTower_LG",
+      "kategori": "bina",
+      "dosya": "sehir/NEON_BLD_SignTower_LG.glb",
+      "onizleme": "sehir/onizleme/NEON_BLD_SignTower_LG.png",
+      "boyut": [
+        10.32,
+        60.135,
+        10.39
+      ],
+      "ucgen": 412,
+      "bayt": 27736
+    },
+    {
+      "ad": "SLUM_BLD_Shack_SM",
+      "kategori": "bina",
+      "dosya": "sehir/SLUM_BLD_Shack_SM.glb",
+      "onizleme": "sehir/onizleme/SLUM_BLD_Shack_SM.png",
+      "boyut": [
+        4.4,
+        8.5,
+        4.4
+      ],
+      "ucgen": 112,
+      "bayt": 8612
+    },
+    {
+      "ad": "SLUM_BLD_ShopHouse_MD",
+      "kategori": "bina",
+      "dosya": "sehir/SLUM_BLD_ShopHouse_MD.glb",
+      "onizleme": "sehir/onizleme/SLUM_BLD_ShopHouse_MD.png",
+      "boyut": [
+        12.7,
+        24.0,
+        10.6
+      ],
+      "ucgen": 180,
+      "bayt": 14284
+    },
+    {
+      "ad": "SLUM_BLD_StackedBlock_LG",
+      "kategori": "bina",
+      "dosya": "sehir/SLUM_BLD_StackedBlock_LG.glb",
+      "onizleme": "sehir/onizleme/SLUM_BLD_StackedBlock_LG.png",
+      "boyut": [
+        11.0,
+        48.0,
+        35.0
+      ],
+      "ucgen": 432,
+      "bayt": 28200
+    },
+    {
+      "ad": "DETAIL_AC_Unit_MD",
+      "kategori": "detay",
+      "dosya": "sehir/DETAIL_AC_Unit_MD.glb",
+      "onizleme": "sehir/onizleme/DETAIL_AC_Unit_MD.png",
+      "boyut": [
+        1.2,
+        0.8,
+        0.735
+      ],
+      "ucgen": 204,
+      "bayt": 13756
+    },
+    {
+      "ad": "DETAIL_Fan_Industrial_SM",
+      "kategori": "detay",
+      "dosya": "sehir/DETAIL_Fan_Industrial_SM.glb",
+      "onizleme": "sehir/onizleme/DETAIL_Fan_Industrial_SM.png",
+      "boyut": [
+        0.96,
+        0.96,
+        0.419
+      ],
+      "ucgen": 352,
+      "bayt": 18628
+    },
+    {
+      "ad": "DETAIL_Gutter_Drain_1m",
+      "kategori": "detay",
+      "dosya": "sehir/DETAIL_Gutter_Drain_1m.glb",
+      "onizleme": "sehir/onizleme/DETAIL_Gutter_Drain_1m.png",
+      "boyut": [
+        1.0,
+        0.11,
+        0.15
+      ],
+      "ucgen": 120,
+      "bayt": 8312
+    },
+    {
+      "ad": "DETAIL_Intercom_Panel",
+      "kategori": "detay",
+      "dosya": "sehir/DETAIL_Intercom_Panel.glb",
+      "onizleme": "sehir/onizleme/DETAIL_Intercom_Panel.png",
+      "boyut": [
+        0.2,
+        0.35,
+        0.055
+      ],
+      "ucgen": 84,
+      "bayt": 7868
+    },
+    {
+      "ad": "DETAIL_Junction_Box",
+      "kategori": "detay",
+      "dosya": "sehir/DETAIL_Junction_Box.glb",
+      "onizleme": "sehir/onizleme/DETAIL_Junction_Box.png",
+      "boyut": [
+        0.5,
+        0.745,
+        0.3
+      ],
+      "ucgen": 168,
+      "bayt": 11016
+    },
+    {
+      "ad": "DETAIL_Manhole_Cover",
+      "kategori": "detay",
+      "dosya": "sehir/DETAIL_Manhole_Cover.glb",
+      "onizleme": "sehir/onizleme/DETAIL_Manhole_Cover.png",
+      "boyut": [
+        1.1,
+        0.075,
+        1.1
+      ],
+      "ucgen": 324,
+      "bayt": 16756
+    },
+    {
+      "ad": "DETAIL_Pipe_Elbow_90deg",
+      "kategori": "detay",
+      "dosya": "sehir/DETAIL_Pipe_Elbow_90deg.glb",
+      "onizleme": "sehir/onizleme/DETAIL_Pipe_Elbow_90deg.png",
+      "boyut": [
+        1.32,
+        1.22,
+        0.24
+      ],
+      "ucgen": 116,
+      "bayt": 7212
+    },
+    {
+      "ad": "DETAIL_Pipe_Straight_1m",
+      "kategori": "detay",
+      "dosya": "sehir/DETAIL_Pipe_Straight_1m.glb",
+      "onizleme": "sehir/onizleme/DETAIL_Pipe_Straight_1m.png",
+      "boyut": [
+        0.22,
+        1.01,
+        0.22
+      ],
+      "ucgen": 100,
+      "bayt": 6540
+    },
+    {
+      "ad": "DETAIL_Power_Line_Pole",
+      "kategori": "detay",
+      "dosya": "sehir/DETAIL_Power_Line_Pole.glb",
+      "onizleme": "sehir/onizleme/DETAIL_Power_Line_Pole.png",
+      "boyut": [
+        2.5,
+        7.0,
+        0.3
+      ],
+      "ucgen": 192,
+      "bayt": 11052
+    },
+    {
+      "ad": "DETAIL_Satellite_Dish_LG",
+      "kategori": "detay",
+      "dosya": "sehir/DETAIL_Satellite_Dish_LG.glb",
+      "onizleme": "sehir/onizleme/DETAIL_Satellite_Dish_LG.png",
+      "boyut": [
+        1.15,
+        2.2,
+        0.902
+      ],
+      "ucgen": 856,
+      "bayt": 40504
+    },
+    {
+      "ad": "DETAIL_Satellite_Dish_SM",
+      "kategori": "detay",
+      "dosya": "sehir/DETAIL_Satellite_Dish_SM.glb",
+      "onizleme": "sehir/onizleme/DETAIL_Satellite_Dish_SM.png",
+      "boyut": [
+        0.58,
+        1.34,
+        0.595
+      ],
+      "ucgen": 488,
+      "bayt": 24356
+    },
+    {
+      "ad": "DETAIL_Security_Camera",
+      "kategori": "detay",
+      "dosya": "sehir/DETAIL_Security_Camera.glb",
+      "onizleme": "sehir/onizleme/DETAIL_Security_Camera.png",
+      "boyut": [
+        0.47,
+        0.94,
+        0.18
+      ],
+      "ucgen": 132,
+      "bayt": 9892
+    },
+    {
+      "ad": "DETAIL_Steam_Pipe_Vent",
+      "kategori": "detay",
+      "dosya": "sehir/DETAIL_Steam_Pipe_Vent.glb",
+      "onizleme": "sehir/onizleme/DETAIL_Steam_Pipe_Vent.png",
+      "boyut": [
+        0.26,
+        1.29,
+        0.26
+      ],
+      "ucgen": 128,
+      "bayt": 7856
+    },
+    {
+      "ad": "DETAIL_Trash_Pile_SM",
+      "kategori": "detay",
+      "dosya": "sehir/DETAIL_Trash_Pile_SM.glb",
+      "onizleme": "sehir/onizleme/DETAIL_Trash_Pile_SM.png",
+      "boyut": [
+        1.025,
+        0.4,
+        1.025
+      ],
+      "ucgen": 60,
+      "bayt": 5112
+    },
+    {
+      "ad": "DETAIL_Vent_Grille_1x1",
+      "kategori": "detay",
+      "dosya": "sehir/DETAIL_Vent_Grille_1x1.glb",
+      "onizleme": "sehir/onizleme/DETAIL_Vent_Grille_1x1.png",
+      "boyut": [
+        1.0,
+        1.0,
+        0.08
+      ],
+      "ucgen": 132,
+      "bayt": 8956
+    },
+    {
+      "ad": "PROP_Barricade_Concrete",
+      "kategori": "esya",
+      "dosya": "sehir/PROP_Barricade_Concrete.glb",
+      "onizleme": "sehir/onizleme/PROP_Barricade_Concrete.png",
+      "boyut": [
+        2.0,
+        1.0,
+        0.62
+      ],
+      "ucgen": 48,
+      "bayt": 5288
+    },
+    {
+      "ad": "PROP_Barricade_Metal",
+      "kategori": "esya",
+      "dosya": "sehir/PROP_Barricade_Metal.glb",
+      "onizleme": "sehir/onizleme/PROP_Barricade_Metal.png",
+      "boyut": [
+        2.6,
+        1.3,
+        0.8
+      ],
+      "ucgen": 120,
+      "bayt": 7904
+    },
+    {
+      "ad": "PROP_CoolingTower_LG",
+      "kategori": "esya",
+      "dosya": "sehir/PROP_CoolingTower_LG.glb",
+      "onizleme": "sehir/onizleme/PROP_CoolingTower_LG.png",
+      "boyut": [
+        3.0,
+        3.95,
+        3.0
+      ],
+      "ucgen": 360,
+      "bayt": 18088
+    },
+    {
+      "ad": "PROP_Dish_Array_MD",
+      "kategori": "esya",
+      "dosya": "sehir/PROP_Dish_Array_MD.glb",
+      "onizleme": "sehir/onizleme/PROP_Dish_Array_MD.png",
+      "boyut": [
+        3.14,
+        1.49,
+        2.0
+      ],
+      "ucgen": 1308,
+      "bayt": 60392
+    },
+    {
+      "ad": "PROP_Dumpster_Closed",
+      "kategori": "esya",
+      "dosya": "sehir/PROP_Dumpster_Closed.glb",
+      "onizleme": "sehir/onizleme/PROP_Dumpster_Closed.png",
+      "boyut": [
+        1.85,
+        1.47,
+        0.955
+      ],
+      "ucgen": 48,
+      "bayt": 5504
+    },
+    {
+      "ad": "PROP_Dumpster_Open",
+      "kategori": "esya",
+      "dosya": "sehir/PROP_Dumpster_Open.glb",
+      "onizleme": "sehir/onizleme/PROP_Dumpster_Open.png",
+      "boyut": [
+        1.85,
+        1.55,
+        1.225
+      ],
+      "ucgen": 60,
+      "bayt": 6720
+    },
+    {
+      "ad": "PROP_HVAC_Cluster_MD",
+      "kategori": "esya",
+      "dosya": "sehir/PROP_HVAC_Cluster_MD.glb",
+      "onizleme": "sehir/onizleme/PROP_HVAC_Cluster_MD.png",
+      "boyut": [
+        3.4,
+        1.09,
+        2.79
+      ],
+      "ucgen": 468,
+      "bayt": 24168
+    },
+    {
+      "ad": "PROP_Hydrant_Cyber",
+      "kategori": "esya",
+      "dosya": "sehir/PROP_Hydrant_Cyber.glb",
+      "onizleme": "sehir/onizleme/PROP_Hydrant_Cyber.png",
+      "boyut": [
+        0.54,
+        0.86,
+        0.28
+      ],
+      "ucgen": 100,
+      "bayt": 7712
+    },
+    {
+      "ad": "PROP_NewsKiosk_Cyber",
+      "kategori": "esya",
+      "dosya": "sehir/PROP_NewsKiosk_Cyber.glb",
+      "onizleme": "sehir/onizleme/PROP_NewsKiosk_Cyber.png",
+      "boyut": [
+        1.6,
+        2.325,
+        1.3
+      ],
+      "ucgen": 72,
+      "bayt": 8356
+    },
+    {
+      "ad": "PROP_PalmTree_LG",
+      "kategori": "esya",
+      "dosya": "sehir/PROP_PalmTree_LG.glb",
+      "onizleme": "sehir/onizleme/PROP_PalmTree_LG.png",
+      "boyut": [
+        3.291,
+        10.0,
+        3.725
+      ],
+      "ucgen": 82,
+      "bayt": 6956
+    },
+    {
+      "ad": "PROP_Payphone_Cyber",
+      "kategori": "esya",
+      "dosya": "sehir/PROP_Payphone_Cyber.glb",
+      "onizleme": "sehir/onizleme/PROP_Payphone_Cyber.png",
+      "boyut": [
+        0.55,
+        2.2,
+        0.57
+      ],
+      "ucgen": 96,
+      "bayt": 8144
+    },
+    {
+      "ad": "PROP_RadioMast_LG",
+      "kategori": "esya",
+      "dosya": "sehir/PROP_RadioMast_LG.glb",
+      "onizleme": "sehir/onizleme/PROP_RadioMast_LG.png",
+      "boyut": [
+        2.0,
+        8.055,
+        1.22
+      ],
+      "ucgen": 208,
+      "bayt": 12160
+    },
+    {
+      "ad": "PROP_Streetlamp_Corp_LG",
+      "kategori": "esya",
+      "dosya": "sehir/PROP_Streetlamp_Corp_LG.glb",
+      "onizleme": "sehir/onizleme/PROP_Streetlamp_Corp_LG.png",
+      "boyut": [
+        2.925,
+        9.15,
+        0.25
+      ],
+      "ucgen": 108,
+      "bayt": 8500
+    },
+    {
+      "ad": "PROP_Streetlamp_Slum_MD",
+      "kategori": "esya",
+      "dosya": "sehir/PROP_Streetlamp_Slum_MD.glb",
+      "onizleme": "sehir/onizleme/PROP_Streetlamp_Slum_MD.png",
+      "boyut": [
+        2.1,
+        7.0,
+        0.3
+      ],
+      "ucgen": 72,
+      "bayt": 6208
+    },
+    {
+      "ad": "PROP_TrafficCone_SM",
+      "kategori": "esya",
+      "dosya": "sehir/PROP_TrafficCone_SM.glb",
+      "onizleme": "sehir/onizleme/PROP_TrafficCone_SM.png",
+      "boyut": [
+        0.56,
+        0.7,
+        0.56
+      ],
+      "ucgen": 100,
+      "bayt": 6788
+    },
+    {
+      "ad": "PROP_VendingMachine_Cyber",
+      "kategori": "esya",
+      "dosya": "sehir/PROP_VendingMachine_Cyber.glb",
+      "onizleme": "sehir/onizleme/PROP_VendingMachine_Cyber.png",
+      "boyut": [
+        0.8,
+        2.02,
+        0.53
+      ],
+      "ucgen": 72,
+      "bayt": 8440
+    },
+    {
+      "ad": "PROP_WaterTank_LG",
+      "kategori": "esya",
+      "dosya": "sehir/PROP_WaterTank_LG.glb",
+      "onizleme": "sehir/onizleme/PROP_WaterTank_LG.png",
+      "boyut": [
+        2.1,
+        3.3,
+        2.1
+      ],
+      "ucgen": 364,
+      "bayt": 18480
+    },
+    {
+      "ad": "HARBOR_PROP_ContainerStack_MD",
+      "kategori": "liman",
+      "dosya": "sehir/HARBOR_PROP_ContainerStack_MD.glb",
+      "onizleme": "sehir/onizleme/HARBOR_PROP_ContainerStack_MD.png",
+      "boyut": [
+        12.6,
+        7.4,
+        5.22
+      ],
+      "ucgen": 252,
+      "bayt": 16656
+    },
+    {
+      "ad": "HARBOR_PROP_Container_SM",
+      "kategori": "liman",
+      "dosya": "sehir/HARBOR_PROP_Container_SM.glb",
+      "onizleme": "sehir/onizleme/HARBOR_PROP_Container_SM.png",
+      "boyut": [
+        6.1,
+        2.4,
+        2.425
+      ],
+      "ucgen": 84,
+      "bayt": 7088
+    },
+    {
+      "ad": "HARBOR_PROP_Crane_XL",
+      "kategori": "liman",
+      "dosya": "sehir/HARBOR_PROP_Crane_XL.glb",
+      "onizleme": "sehir/onizleme/HARBOR_PROP_Crane_XL.png",
+      "boyut": [
+        20.0,
+        31.54,
+        4.0
+      ],
+      "ucgen": 268,
+      "bayt": 17920
+    },
+    {
+      "ad": "CORP_MOD_Roof_AntennaBank",
+      "kategori": "modul",
+      "dosya": "sehir/CORP_MOD_Roof_AntennaBank.glb",
+      "onizleme": "sehir/onizleme/CORP_MOD_Roof_AntennaBank.png",
+      "boyut": [
+        4.0,
+        8.635,
+        4.0
+      ],
+      "ucgen": 408,
+      "bayt": 21164
+    },
+    {
+      "ad": "CORP_MOD_Roof_Helipad",
+      "kategori": "modul",
+      "dosya": "sehir/CORP_MOD_Roof_Helipad.glb",
+      "onizleme": "sehir/onizleme/CORP_MOD_Roof_Helipad.png",
+      "boyut": [
+        8.0,
+        0.56,
+        8.0
+      ],
+      "ucgen": 448,
+      "bayt": 23344
+    },
+    {
+      "ad": "CORP_MOD_Wall_Glass_4x4",
+      "kategori": "modul",
+      "dosya": "sehir/CORP_MOD_Wall_Glass_4x4.glb",
+      "onizleme": "sehir/onizleme/CORP_MOD_Wall_Glass_4x4.png",
+      "boyut": [
+        4.1,
+        4.0,
+        0.42
+      ],
+      "ucgen": 48,
+      "bayt": 4988
+    },
+    {
+      "ad": "CORP_MOD_Wall_Logo_4x8",
+      "kategori": "modul",
+      "dosya": "sehir/CORP_MOD_Wall_Logo_4x8.glb",
+      "onizleme": "sehir/onizleme/CORP_MOD_Wall_Logo_4x8.png",
+      "boyut": [
+        4.0,
+        8.0,
+        0.435
+      ],
+      "ucgen": 48,
+      "bayt": 5144
+    },
+    {
+      "ad": "CORP_MOD_Wall_Panel_4x4",
+      "kategori": "modul",
+      "dosya": "sehir/CORP_MOD_Wall_Panel_4x4.glb",
+      "onizleme": "sehir/onizleme/CORP_MOD_Wall_Panel_4x4.png",
+      "boyut": [
+        4.0,
+        4.0,
+        0.43
+      ],
+      "ucgen": 72,
+      "bayt": 6428
+    },
+    {
+      "ad": "SIGN_Arrow_Neon",
+      "kategori": "tabela",
+      "dosya": "sehir/SIGN_Arrow_Neon.glb",
+      "onizleme": "sehir/onizleme/SIGN_Arrow_Neon.png",
+      "boyut": [
+        2.15,
+        0.4,
+        0.11
+      ],
+      "ucgen": 48,
+      "bayt": 4632
+    },
+    {
+      "ad": "SIGN_Billboard_Mega",
+      "kategori": "tabela",
+      "dosya": "sehir/SIGN_Billboard_Mega.glb",
+      "onizleme": "sehir/onizleme/SIGN_Billboard_Mega.png",
+      "boyut": [
+        12.3,
+        10.8,
+        0.77
+      ],
+      "ucgen": 240,
+      "bayt": 16956
+    },
+    {
+      "ad": "SIGN_Billboard_Standard",
+      "kategori": "tabela",
+      "dosya": "sehir/SIGN_Billboard_Standard.glb",
+      "onizleme": "sehir/onizleme/SIGN_Billboard_Standard.png",
+      "boyut": [
+        6.0,
+        6.5,
+        0.6
+      ],
+      "ucgen": 120,
+      "bayt": 9720
+    },
+    {
+      "ad": "SIGN_Hologram_Projector",
+      "kategori": "tabela",
+      "dosya": "sehir/SIGN_Hologram_Projector.glb",
+      "onizleme": "sehir/onizleme/SIGN_Hologram_Projector.png",
+      "boyut": [
+        0.5,
+        2.55,
+        0.5
+      ],
+      "ucgen": 112,
+      "bayt": 8304
+    },
+    {
+      "ad": "SIGN_Neon_Horizontal_LG",
+      "kategori": "tabela",
+      "dosya": "sehir/SIGN_Neon_Horizontal_LG.glb",
+      "onizleme": "sehir/onizleme/SIGN_Neon_Horizontal_LG.png",
+      "boyut": [
+        8.12,
+        2.11,
+        0.67
+      ],
+      "ucgen": 216,
+      "bayt": 15744
+    },
+    {
+      "ad": "SIGN_Neon_Horizontal_MD",
+      "kategori": "tabela",
+      "dosya": "sehir/SIGN_Neon_Horizontal_MD.glb",
+      "onizleme": "sehir/onizleme/SIGN_Neon_Horizontal_MD.png",
+      "boyut": [
+        4.08,
+        0.8,
+        0.175
+      ],
+      "ucgen": 72,
+      "bayt": 7128
+    },
+    {
+      "ad": "SIGN_Neon_Horizontal_SM",
+      "kategori": "tabela",
+      "dosya": "sehir/SIGN_Neon_Horizontal_SM.glb",
+      "onizleme": "sehir/onizleme/SIGN_Neon_Horizontal_SM.png",
+      "boyut": [
+        2.0,
+        0.56,
+        0.15
+      ],
+      "ucgen": 48,
+      "bayt": 5232
+    },
+    {
+      "ad": "SIGN_Neon_Kanji_Panel",
+      "kategori": "tabela",
+      "dosya": "sehir/SIGN_Neon_Kanji_Panel.glb",
+      "onizleme": "sehir/onizleme/SIGN_Neon_Kanji_Panel.png",
+      "boyut": [
+        0.82,
+        5.05,
+        0.19
+      ],
+      "ucgen": 60,
+      "bayt": 6916
+    },
+    {
+      "ad": "SIGN_Neon_Vertical_LG",
+      "kategori": "tabela",
+      "dosya": "sehir/SIGN_Neon_Vertical_LG.glb",
+      "onizleme": "sehir/onizleme/SIGN_Neon_Vertical_LG.png",
+      "boyut": [
+        1.36,
+        8.02,
+        0.2
+      ],
+      "ucgen": 72,
+      "bayt": 7220
+    },
+    {
+      "ad": "SIGN_Neon_Vertical_SM",
+      "kategori": "tabela",
+      "dosya": "sehir/SIGN_Neon_Vertical_SM.glb",
+      "onizleme": "sehir/onizleme/SIGN_Neon_Vertical_SM.png",
+      "boyut": [
+        0.6,
+        3.0,
+        0.175
+      ],
+      "ucgen": 48,
+      "bayt": 5200
+    },
+    {
+      "ad": "SIGN_Screen_Curved_LG",
+      "kategori": "tabela",
+      "dosya": "sehir/SIGN_Screen_Curved_LG.glb",
+      "onizleme": "sehir/onizleme/SIGN_Screen_Curved_LG.png",
+      "boyut": [
+        8.0,
+        3.5,
+        0.587
+      ],
+      "ucgen": 120,
+      "bayt": 9216
+    },
+    {
+      "ad": "SIGN_Screen_Panel_LG",
+      "kategori": "tabela",
+      "dosya": "sehir/SIGN_Screen_Panel_LG.glb",
+      "onizleme": "sehir/onizleme/SIGN_Screen_Panel_LG.png",
+      "boyut": [
+        4.05,
+        3.05,
+        0.34
+      ],
+      "ucgen": 132,
+      "bayt": 10556
+    },
+    {
+      "ad": "SIGN_Screen_Panel_SM",
+      "kategori": "tabela",
+      "dosya": "sehir/SIGN_Screen_Panel_SM.glb",
+      "onizleme": "sehir/onizleme/SIGN_Screen_Panel_SM.png",
+      "boyut": [
+        2.0,
+        2.0,
+        0.285
+      ],
+      "ucgen": 108,
+      "bayt": 8368
+    },
+    {
+      "ad": "ROAD_Alley_Narrow_4m",
+      "kategori": "yol",
+      "dosya": "sehir/ROAD_Alley_Narrow_4m.glb",
+      "onizleme": "sehir/onizleme/ROAD_Alley_Narrow_4m.png",
+      "boyut": [
+        7.2,
+        0.28,
+        16.0
+      ],
+      "ucgen": 144,
+      "bayt": 9576
+    },
+    {
+      "ad": "ROAD_Divider_Barrier",
+      "kategori": "yol",
+      "dosya": "sehir/ROAD_Divider_Barrier.glb",
+      "onizleme": "sehir/onizleme/ROAD_Divider_Barrier.png",
+      "boyut": [
+        0.415,
+        0.98,
+        4.0
+      ],
+      "ucgen": 48,
+      "bayt": 5144
+    },
+    {
+      "ad": "ROAD_Main_4Lane_Corner",
+      "kategori": "yol",
+      "dosya": "sehir/ROAD_Main_4Lane_Corner.glb",
+      "onizleme": "sehir/onizleme/ROAD_Main_4Lane_Corner.png",
+      "boyut": [
+        18.0,
+        0.28,
+        18.0
+      ],
+      "ucgen": 48,
+      "bayt": 4340
+    },
+    {
+      "ad": "ROAD_Main_4Lane_Cross",
+      "kategori": "yol",
+      "dosya": "sehir/ROAD_Main_4Lane_Cross.glb",
+      "onizleme": "sehir/onizleme/ROAD_Main_4Lane_Cross.png",
+      "boyut": [
+        16.0,
+        0.22,
+        16.0
+      ],
+      "ucgen": 180,
+      "bayt": 11504
+    },
+    {
+      "ad": "ROAD_Main_4Lane_Straight",
+      "kategori": "yol",
+      "dosya": "sehir/ROAD_Main_4Lane_Straight.glb",
+      "onizleme": "sehir/onizleme/ROAD_Main_4Lane_Straight.png",
+      "boyut": [
+        20.0,
+        0.28,
+        16.0
+      ],
+      "ucgen": 144,
+      "bayt": 10452
+    },
+    {
+      "ad": "ROAD_Main_4Lane_TCross",
+      "kategori": "yol",
+      "dosya": "sehir/ROAD_Main_4Lane_TCross.glb",
+      "onizleme": "sehir/onizleme/ROAD_Main_4Lane_TCross.png",
+      "boyut": [
+        16.0,
+        0.28,
+        18.0
+      ],
+      "ucgen": 24,
+      "bayt": 2844
+    },
+    {
+      "ad": "ROAD_Sidewalk_Corner",
+      "kategori": "yol",
+      "dosya": "sehir/ROAD_Sidewalk_Corner.glb",
+      "onizleme": "sehir/onizleme/ROAD_Sidewalk_Corner.png",
+      "boyut": [
+        4.0,
+        0.3,
+        4.0
+      ],
+      "ucgen": 12,
+      "bayt": 1680
+    },
+    {
+      "ad": "ROAD_Sidewalk_Straight",
+      "kategori": "yol",
+      "dosya": "sehir/ROAD_Sidewalk_Straight.glb",
+      "onizleme": "sehir/onizleme/ROAD_Sidewalk_Straight.png",
+      "boyut": [
+        4.0,
+        0.32,
+        16.0
+      ],
+      "ucgen": 120,
+      "bayt": 8292
+    },
+    {
+      "ad": "ELEV_Bridge_Pillar",
+      "kategori": "yukseltilmis",
+      "dosya": "sehir/ELEV_Bridge_Pillar.glb",
+      "onizleme": "sehir/onizleme/ELEV_Bridge_Pillar.png",
+      "boyut": [
+        4.0,
+        8.65,
+        3.0
+      ],
+      "ucgen": 48,
+      "bayt": 5048
+    },
+    {
+      "ad": "ELEV_Bridge_Span_LG",
+      "kategori": "yukseltilmis",
+      "dosya": "sehir/ELEV_Bridge_Span_LG.glb",
+      "onizleme": "sehir/onizleme/ELEV_Bridge_Span_LG.png",
+      "boyut": [
+        8.7,
+        2.8,
+        24.0
+      ],
+      "ucgen": 204,
+      "bayt": 13644
+    },
+    {
+      "ad": "ELEV_Highway_Pillar_LG",
+      "kategori": "yukseltilmis",
+      "dosya": "sehir/ELEV_Highway_Pillar_LG.glb",
+      "onizleme": "sehir/onizleme/ELEV_Highway_Pillar_LG.png",
+      "boyut": [
+        3.0,
+        12.65,
+        2.5
+      ],
+      "ucgen": 60,
+      "bayt": 5604
+    },
+    {
+      "ad": "ELEV_Highway_Straight",
+      "kategori": "yukseltilmis",
+      "dosya": "sehir/ELEV_Highway_Straight.glb",
+      "onizleme": "sehir/onizleme/ELEV_Highway_Straight.png",
+      "boyut": [
+        20.68,
+        1.4,
+        16.0
+      ],
+      "ucgen": 132,
+      "bayt": 11128
+    },
+    {
+      "ad": "ELEV_Monorail_Support_Pillar",
+      "kategori": "yukseltilmis",
+      "dosya": "sehir/ELEV_Monorail_Support_Pillar.glb",
+      "onizleme": "sehir/onizleme/ELEV_Monorail_Support_Pillar.png",
+      "boyut": [
+        1.2,
+        15.0,
+        2.8
+      ],
+      "ucgen": 92,
+      "bayt": 6592
+    },
+    {
+      "ad": "ELEV_Monorail_Track_Corner",
+      "kategori": "yukseltilmis",
+      "dosya": "sehir/ELEV_Monorail_Track_Corner.glb",
+      "onizleme": "sehir/onizleme/ELEV_Monorail_Track_Corner.png",
+      "boyut": [
+        8.1,
+        0.76,
+        8.1
+      ],
+      "ucgen": 36,
+      "bayt": 4200
+    },
+    {
+      "ad": "ELEV_Monorail_Track_Straight",
+      "kategori": "yukseltilmis",
+      "dosya": "sehir/ELEV_Monorail_Track_Straight.glb",
+      "onizleme": "sehir/onizleme/ELEV_Monorail_Track_Straight.png",
+      "boyut": [
+        2.66,
+        1.16,
+        16.2
+      ],
+      "ucgen": 84,
+      "bayt": 7840
+    },
+    {
+      "ad": "ELEV_Walkway_Corner",
+      "kategori": "yukseltilmis",
+      "dosya": "sehir/ELEV_Walkway_Corner.glb",
+      "onizleme": "sehir/onizleme/ELEV_Walkway_Corner.png",
+      "boyut": [
+        8.1,
+        0.2,
+        8.1
+      ],
+      "ucgen": 24,
+      "bayt": 3028
+    },
+    {
+      "ad": "ELEV_Walkway_Straight",
+      "kategori": "yukseltilmis",
+      "dosya": "sehir/ELEV_Walkway_Straight.glb",
+      "onizleme": "sehir/onizleme/ELEV_Walkway_Straight.png",
+      "boyut": [
+        4.41,
+        1.11,
+        16.0
+      ],
+      "ucgen": 156,
+      "bayt": 10372
+    }
+  ]
+}

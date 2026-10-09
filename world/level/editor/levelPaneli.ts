@@ -104,7 +104,13 @@ function acikYaz(s: Set<string>): void {
   try { localStorage.setItem(ACIK_ANAHTARI, JSON.stringify([...s])); } catch { /* önemsiz */ }
 }
 
-export function levelPaneliKur(p: PanelAyari): { yenile(): void } {
+export interface LevelPaneli {
+  yenile(): void;
+  /** Bütün tanımı değiştiren işlem: geri alma geçmişine yazılır, panel yeniden çizilir (asset tarayıcısı kullanır). */
+  tanimDegistir(yeni: (t: LevelTanimi) => LevelTanimi, mesaj: string): void;
+}
+
+export function levelPaneliKur(p: PanelAyari): LevelPaneli {
   if (!document.getElementById("lpStil")) { const s = el("style"); s.id = "lpStil"; s.textContent = STIL; document.head.append(s); }
   const kok = el("div"); kok.id = "lp"; document.body.append(kok);
 
@@ -324,6 +330,19 @@ export function levelPaneliKur(p: PanelAyari): { yenile(): void } {
     bolumler.push(bolum("isik", "Işık", alanSatirlari(["isik"], t.isik, t)));
     bolumler.push(bolum("ortam", "Ortam", alanSatirlari(["ortam"], t.ortam, t)));
 
+    // Yerleştirilen nesneler (asset tarayıcısı, V): liste + sil.
+    const nesneler = t.nesneler ?? [];
+    const nesneSatirlari: HTMLElement[] = [el("div", "ipucu", "V: asset tarayıcısı — karta tıkla, zemine yerleştir; sahnede tıkla seç, Q/E döndür, Del sil.")];
+    nesneler.forEach((n, i) => {
+      const sil = el("button", "", "×"); sil.title = "sil";
+      sil.onclick = () => tanimDegistir((x) => ({ ...x, nesneler: (x.nesneler ?? []).filter((_, j) => j !== i) }), `silindi: ${n.varlik}`);
+      const s2 = el("div", "satir");
+      s2.dataset["ara"] = `nesne ${n.varlik}`.toLocaleLowerCase("tr");
+      s2.append(el("span", "", `${i + 1}. ${n.varlik}`), el("span", "", `${n.konum.map((v) => v.toFixed(1)).join(", ")} · ${n.donus}°`), sil);
+      nesneSatirlari.push(s2);
+    });
+    bolumler.push(bolum("nesneler", `Nesneler (${nesneler.length})`, nesneSatirlari));
+
     t.katmanlar.forEach((k, i) => {
       const modul = p.moduller.get(k.tur);
       const ozet = el("span", "bosluk");
@@ -392,5 +411,5 @@ export function levelPaneliKur(p: PanelAyari): { yenile(): void } {
 
   ciz();
   durumYaz("hazır — bir değeri değiştir, sahne anında güncellenir");
-  return { yenile: ciz };
+  return { yenile: ciz, tanimDegistir };
 }

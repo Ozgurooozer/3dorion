@@ -10,7 +10,8 @@ import { levelTanimiDogrula, type LevelTanimi, type KatmanTanimi } from "./level
 import { isikSistemiKur, type IsikSistemi } from "./isikSistemi.ts";
 import { malzemeKur } from "./malzeme.ts";
 import { renkCoz } from "./renk.ts";
-import { VARSAYILAN_STIL } from "../stil/stilTanimi.ts";
+import { stilTamamla } from "../stil/stilTanimi.ts";
+import { nesneSistemiKur, type NesneSistemi } from "./nesneSistemi.ts";
 import { stilSistemiKur, type StilSistemi } from "../stil/stilSistemi.ts";
 import { ayarBirlestir, type LevelModulu, type ModulBaglami, type ModulOrnegi } from "./modul.ts";
 
@@ -26,6 +27,8 @@ export interface Level {
   readonly isik: IsikSistemi;
   /** Görsel stil (ışık bantları, çizgi, renk efektleri); efektler için sayfa `stil.kameraBagla` çağırır. */
   readonly stil: StilSistemi;
+  /** Elle yerleştirilen varlıklar (asset tarayıcısı): katalog, seçme, önizleme örneği. */
+  readonly nesneler: NesneSistemi;
   /** Kurulu katman sayısı ve mesh sayısı (ölçüm satırı için). */
   sayim(): { katman: number; mesh: number };
   yokEt(): void;
@@ -43,7 +46,8 @@ function normallestir(t: LevelTanimi, kayit: ModulKaydi): LevelTanimi {
   return {
     ...t,
     ortam: { ...t.ortam, piksel: t.ortam.piksel ?? 1 },
-    stil: t.stil ?? structuredClone(VARSAYILAN_STIL),
+    stil: stilTamamla(t.stil),
+    nesneler: t.nesneler ?? [],
     katmanlar: t.katmanlar.map((k) => {
       const modul = kayit.get(k.tur);
       if (!modul) throw new Error(`katman "${k.ad}": bilinmeyen modül "${k.tur}" (bilinenler: ${[...kayit.keys()].join(", ")})`);
@@ -58,6 +62,12 @@ export function levelKur(sahne: Scene, tanimHam: unknown, kayit: ModulKaydi): Le
   let tanim = normallestir(kopya(ilk.deger), kayit);
   const isik = isikSistemiKur(sahne);
   const stil = stilSistemiKur(sahne);
+  const nesneler = nesneSistemiKur({
+    sahne,
+    malzeme: (ad, r, isima) => malzemeKur(sahne, ad, "isikli", { renk: r, ...(isima ? { isima } : {}), stil: stil.isikDurumu }),
+    golge: (m, ne) => isik.golgeyeKat(m, ne),
+    golgedenCikar: (m) => isik.golgedenCikar(m),
+  });
   const kurulu = new Map<string, Kurulu>();
 
   const renk = (ad: string) => renkCoz(ad, tanim.palet);
@@ -118,6 +128,7 @@ export function levelKur(sahne: Scene, tanimHam: unknown, kayit: ModulKaydi): Le
 
   gorunusUygula();
   katmanlariUydur();
+  nesneler.uygula(tanim.nesneler ?? []);
 
   return {
     tanim: () => kopya(tanim),
@@ -129,11 +140,13 @@ export function levelKur(sahne: Scene, tanimHam: unknown, kayit: ModulKaydi): Le
       try {
         gorunusUygula();
         katmanlariUydur();
+        nesneler.uygula(tanim.nesneler ?? []);
       } catch (err) {
         // Yarım kalmasın: önceki tanıma dön (kurulamayan katman zaten eski hâlinde ya da yıkılmış).
         tanim = onceki;
         gorunusUygula();
         katmanlariUydur();
+        nesneler.uygula(tanim.nesneler ?? []);
         throw err;
       }
     },
@@ -141,10 +154,12 @@ export function levelKur(sahne: Scene, tanimHam: unknown, kayit: ModulKaydi): Le
     yukseklik,
     isik,
     stil,
+    nesneler,
     sayim: () => ({ katman: kurulu.size, mesh: [...kurulu.values()].reduce((t, k) => t + k.ornek.meshler.length, 0) }),
     yokEt() {
       for (const { ornek } of kurulu.values()) yik(ornek);
       kurulu.clear();
+      nesneler.yokEt();
       stil.yokEt();
       isik.yokEt();
     },

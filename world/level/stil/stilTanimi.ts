@@ -63,17 +63,70 @@ export interface RenkStili {
   gren: number;
 }
 
-export interface StilAyari { isik: IsikStili; cizgi: CizgiStili; renk: RenkStili }
+/**
+ * IŞIK SONRASI (spec 19): Babylon'un hazır sonrası işlemleri, stile göre ayarlı. Sıra (stil/isikSonrasi.ts): sahne →
+ * AO → huzme → boru hattı (bloom, alan derinliği, keskinlik, renk sapması, görüntü işleme: ton eşleme + eğri +
+ * vinyet, gren) → çizgi → renk/palet. Değer aralıkları Babylon'unkiler (eğriler: ton 0–360, yoğunluk ve doygunluk
+ * −100…100).
+ */
+export interface SonStili {
+  /** 0 yok · 1 standart · 2 ACES · 3 nötr (KHR PBR Neutral: renk tonu ve doygunluğu korur). */
+  tonlama: { tur: number };
+  bloom: { acik: boolean; esik: number; guc: number; cekirdek: number; olcek: number };
+  /** Güneş huzmesi (hacimsel ışık saçılması, güneş diskinden). */
+  huzme: { acik: boolean; yogunluk: number; azalma: number; agirlik: number; parlaklik: number; ornek: number };
+  /** Kendinden ışıklının parıltısı (güneş diski). */
+  parilti: { acik: boolean; guc: number; cekirdek: number };
+  /** Ortam kapanması (SSAO2): köşe, dip, temas karartısı. */
+  ao: { acik: boolean; yaricap: number; guc: number; ornek: number };
+  egri: {
+    acik: boolean; genelTon: number; genelDoygunluk: number;
+    golgeTon: number; golgeYogunluk: number; golgeDoygunluk: number;
+    parlakTon: number; parlakYogunluk: number; parlakDoygunluk: number;
+  };
+  vinyet: { acik: boolean; guc: number; renk: string };
+  gren: { acik: boolean; guc: number };
+  sapma: { acik: boolean; guc: number };
+  keskinlik: { acik: boolean; guc: number };
+  /** Alan derinliği (minyatür görünümü): odak uzaklığı (m) ve açıklık (f sayısı; küçük = daha bulanık). */
+  derinlik: { acik: boolean; odak: number; aciklik: number };
+}
+
+export interface StilAyari { isik: IsikStili; cizgi: CizgiStili; renk: RenkStili; son: SonStili }
 
 const KAPALI: StilAyari = {
   isik: { acik: false, bant: 3, yumusaklik: 0.02, enKoyu: 0.35, golgeRengi: "#4b4f8f", golgeKarisim: 0, parlama: 0, parlamaBoyu: 32, kenarIsik: 0, kenarEsik: 0.72, tarama: 0 },
   cizgi: { acik: false, kip: 0, kalinlik: 1, derinlikEsik: 0.08, normalEsik: 0.4, renk: "#1d1a2e", guc: 0.8, vurgu: 0, titreme: 0, uzaklik: 220 },
   renk: { acik: false, palet: 0, titreme: 0, posterize: 0, doygunluk: 1, gren: 0 },
+  son: {
+    // Ton eşleme ACES: spec 17'den beri görünüm buydu (standart önayar değişmesin).
+    tonlama: { tur: 2 },
+    bloom: { acik: false, esik: 0.8, guc: 0.3, cekirdek: 64, olcek: 0.5 },
+    huzme: { acik: false, yogunluk: 0.93, azalma: 0.965, agirlik: 0.5, parlaklik: 0.25, ornek: 80 },
+    parilti: { acik: false, guc: 0.8, cekirdek: 48 },
+    ao: { acik: false, yaricap: 2, guc: 1, ornek: 16 },
+    egri: { acik: false, genelTon: 30, genelDoygunluk: 0, golgeTon: 230, golgeYogunluk: 0, golgeDoygunluk: 0, parlakTon: 40, parlakYogunluk: 0, parlakDoygunluk: 0 },
+    vinyet: { acik: false, guc: 1.5, renk: "#1d1a2e" },
+    gren: { acik: false, guc: 10 },
+    sapma: { acik: false, guc: 20 },
+    keskinlik: { acik: false, guc: 0.3 },
+    derinlik: { acik: false, odak: 20, aciklik: 2 },
+  },
 };
 
 interface Onayar { aciklama: string; piksel: number; stil: StilAyari }
-const ile = (d: { isik?: Partial<IsikStili>; cizgi?: Partial<CizgiStili>; renk?: Partial<RenkStili> }): StilAyari => ({
-  isik: { ...KAPALI.isik, ...d.isik }, cizgi: { ...KAPALI.cizgi, ...d.cizgi }, renk: { ...KAPALI.renk, ...d.renk },
+type SonParcasi = { [G in keyof SonStili]?: Partial<SonStili[G]> };
+const sonIle = (d: SonParcasi = {}): SonStili => {
+  const k = KAPALI.son;
+  return {
+    tonlama: { ...k.tonlama, ...d.tonlama }, bloom: { ...k.bloom, ...d.bloom }, huzme: { ...k.huzme, ...d.huzme },
+    parilti: { ...k.parilti, ...d.parilti }, ao: { ...k.ao, ...d.ao }, egri: { ...k.egri, ...d.egri },
+    vinyet: { ...k.vinyet, ...d.vinyet }, gren: { ...k.gren, ...d.gren }, sapma: { ...k.sapma, ...d.sapma },
+    keskinlik: { ...k.keskinlik, ...d.keskinlik }, derinlik: { ...k.derinlik, ...d.derinlik },
+  };
+};
+const ile = (d: { isik?: Partial<IsikStili>; cizgi?: Partial<CizgiStili>; renk?: Partial<RenkStili>; son?: SonParcasi }): StilAyari => ({
+  isik: { ...KAPALI.isik, ...d.isik }, cizgi: { ...KAPALI.cizgi, ...d.cizgi }, renk: { ...KAPALI.renk, ...d.renk }, son: sonIle(d.son),
 });
 
 /** Önayarlar (G tuşu bu sırayla döner). Kaynaklar: docs/arastirma/stil-shaderlari.md. */
@@ -81,13 +134,21 @@ export const ONAYARLAR: Readonly<Record<string, Onayar>> = {
   standart: { aciklama: "Bugünkü ışık (stil kapalı).", piksel: 1, stil: KAPALI },
   cel: {
     aciklama: "Cel (Catuhe / Babylon CellMaterial): ışık 5 basamak, çizgisiz.", piksel: 1,
-    stil: ile({ isik: { acik: true, bant: 5, yumusaklik: 0.01, enKoyu: 0.2 } }),
+    stil: ile({
+      isik: { acik: true, bant: 5, yumusaklik: 0.01, enKoyu: 0.2 },
+      son: { tonlama: { tur: 3 }, ao: { acik: true, yaricap: 2, guc: 1.1 }, egri: { acik: true, genelDoygunluk: 12 } },
+    }),
   },
   toon: {
     aciklama: "Toon (Roystan / BotW): iki ton, renkli gölge, eşikli parlama ve kenar ışığı, ince çizgi.", piksel: 1,
     stil: ile({
       isik: { acik: true, bant: 2, yumusaklik: 0.03, enKoyu: 0.5, golgeRengi: "#6b72c4", golgeKarisim: 0.45, parlama: 0.35, parlamaBoyu: 24, kenarIsik: 0.3, kenarEsik: 0.72 },
       cizgi: { acik: true, kip: 0, kalinlik: 1, guc: 0.45, renk: "#2a2f45" },
+      son: {
+        tonlama: { tur: 3 }, bloom: { acik: true, esik: 0.75, guc: 0.35 }, huzme: { acik: true }, parilti: { acik: true },
+        egri: { acik: true, genelDoygunluk: 10, golgeTon: 235, golgeYogunluk: 35, golgeDoygunluk: 20, parlakTon: 45, parlakYogunluk: 25 },
+        vinyet: { acik: true, guc: 0.8, renk: "#2a2f45" },
+      },
     }),
   },
   anime90: {
@@ -96,6 +157,11 @@ export const ONAYARLAR: Readonly<Record<string, Onayar>> = {
       isik: { acik: true, bant: 2, yumusaklik: 0, enKoyu: 0.38, golgeRengi: "#4b3f8f", golgeKarisim: 0.85, parlama: 0.25, parlamaBoyu: 12 },
       cizgi: { acik: true, kip: 0, kalinlik: 2, guc: 0.95, renk: "#1d1a2e", normalEsik: 0.3 },
       renk: { acik: true, posterize: 7, doygunluk: 1.2, gren: 0.05 },
+      son: {
+        tonlama: { tur: 3 }, bloom: { acik: true, esik: 0.6, guc: 0.6, cekirdek: 96 }, parilti: { acik: true, guc: 1.2 },
+        egri: { acik: true, genelDoygunluk: 25, golgeTon: 250, golgeYogunluk: 55, golgeDoygunluk: 30, parlakTon: 35, parlakYogunluk: 20 },
+        vinyet: { acik: true, guc: 2, renk: "#1d1a2e" }, sapma: { acik: true, guc: 18 }, keskinlik: { acik: true, guc: 0.3 },
+      },
     }),
   },
   moebius: {
@@ -104,6 +170,7 @@ export const ONAYARLAR: Readonly<Record<string, Onayar>> = {
       isik: { acik: true, bant: 3, yumusaklik: 0, enKoyu: 0.6, golgeRengi: "#7a6a5a", golgeKarisim: 0.2, tarama: 0.85 },
       cizgi: { acik: true, kip: 0, kalinlik: 1.5, guc: 1, renk: "#16140f", titreme: 1.5 },
       renk: { acik: true, doygunluk: 0.85 },
+      son: { tonlama: { tur: 0 }, ao: { acik: true, yaricap: 2.5, guc: 1.3 }, egri: { acik: true, genelDoygunluk: -20, parlakTon: 45, parlakYogunluk: 15 } },
     }),
   },
   piksel: {
@@ -112,11 +179,19 @@ export const ONAYARLAR: Readonly<Record<string, Onayar>> = {
       isik: { acik: true, bant: 3, yumusaklik: 0, enKoyu: 0.42, golgeRengi: "#3d4a7a", golgeKarisim: 0.55 },
       cizgi: { acik: true, kip: 1, kalinlik: 1, guc: 0.55, vurgu: 0.45, renk: "#262236", derinlikEsik: 0.06 },
       renk: { acik: true, palet: 0.85, titreme: 0.15 },
+      // Bloom ve alan derinliği YOK: pikseli bulandırır (stilSistemi piksel kipinde zaten kapatır).
+      son: { tonlama: { tur: 3 }, ao: { acik: true, yaricap: 1.5, guc: 1 }, egri: { acik: true, genelDoygunluk: 8, golgeTon: 240, golgeYogunluk: 35, golgeDoygunluk: 15 } },
     }),
   },
 };
 export const ONAYAR_ADLARI = Object.keys(ONAYARLAR);
 export const VARSAYILAN_STIL: StilAyari = KAPALI;
+
+/** Eski tanımda (spec 19 öncesi) `son` yoksa kapalı değerlerle tamamlar: eski dosyalar aynı görünür. */
+export function stilTamamla(s: StilAyari | undefined): StilAyari {
+  if (!s) return structuredClone(KAPALI);
+  return s.son ? s : { ...s, son: structuredClone(KAPALI.son) };
+}
 
 /** Önayarı tanıma uygular (stil + piksel boyu); tanımın kopyasını döndürür. */
 export function onayarUygula(t: LevelTanimi, ad: string): LevelTanimi {
@@ -127,7 +202,7 @@ export function onayarUygula(t: LevelTanimi, ad: string): LevelTanimi {
 
 /** Tanımın stili hangi önayara birebir eşit (yoksa "özel"). */
 export function onayarAdi(t: LevelTanimi): string {
-  const s = JSON.stringify(t.stil ?? KAPALI), p = t.ortam.piksel ?? 1;
+  const s = JSON.stringify(stilTamamla(t.stil)), p = t.ortam.piksel ?? 1;
   return ONAYAR_ADLARI.find((ad) => JSON.stringify(ONAYARLAR[ad]!.stil) === s && ONAYARLAR[ad]!.piksel === p) ?? "özel";
 }
 
@@ -154,23 +229,24 @@ export function paletDuzeniAdi(t: LevelTanimi): string {
 
 const nesneMi = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 
+/** Şablona göre biçim denetimi (özyinelemeli): eksik/fazla alan, yanlış tür, renk olmayan metin → yol + neden. */
+function bicimHatasi(yol: string, sablon: unknown, v: unknown, renkMi: (r: unknown) => boolean): string | null {
+  if (nesneMi(sablon)) {
+    if (!nesneMi(v)) return `${yol}: nesne değil`;
+    for (const k of Object.keys(v)) if (!(k in sablon)) return `${yol}.${k}: bilinmeyen alan`;
+    for (const [k, o] of Object.entries(sablon)) { const h = bicimHatasi(`${yol}.${k}`, o, v[k], renkMi); if (h) return h; }
+    return null;
+  }
+  if (typeof sablon === "string") return renkMi(v) ? null : `${yol}: renk olmalı`;
+  if (typeof v !== typeof sablon || (typeof v === "number" && !Number.isFinite(v))) return `${yol}: ${typeof sablon} olmalı`;
+  return null;
+}
+
 /**
  * Stil bölümünün ilk hatası (yoksa null). Biçim KAPALI ile aynı olmalı: eksik/fazla alan ya da yanlış tür hata
- * (yazım hatası sessiz geçmesin). Renk alanları `renkMi` ile denetlenir.
+ * (yazım hatası sessiz geçmesin). Renk alanları `renkMi` ile denetlenir. `son` (spec 19) eski dosyalarda olmayabilir.
  */
 export function stilHatasi(v: unknown, renkMi: (r: unknown) => boolean): string | null {
   if (!nesneMi(v)) return "stil: nesne değil";
-  for (const bolum of ["isik", "cizgi", "renk"] as const) {
-    const ornek: Record<string, unknown> = Object.fromEntries(Object.entries(KAPALI[bolum])), deger = v[bolum];
-    if (!nesneMi(deger)) return `stil.${bolum}: nesne değil`;
-    for (const k of Object.keys(deger)) if (!(k in ornek)) return `stil.${bolum}.${k}: bilinmeyen alan`;
-    for (const [k, o] of Object.entries(ornek)) {
-      const x = deger[k];
-      if (typeof o === "string" ? !renkMi(x) : typeof x !== typeof o || (typeof x === "number" && !Number.isFinite(x))) {
-        return `stil.${bolum}.${k}: ${typeof o === "string" ? "renk" : typeof o} olmalı`;
-      }
-    }
-  }
-  for (const k of Object.keys(v)) if (!["isik", "cizgi", "renk"].includes(k)) return `stil.${k}: bilinmeyen bölüm`;
-  return null;
+  return bicimHatasi("stil", KAPALI, v.son === undefined ? { ...v, son: KAPALI.son } : v, renkMi);
 }

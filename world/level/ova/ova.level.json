@@ -150,19 +150,266 @@
       "tur": "cim",
       "ad": "cim",
       "acik": true,
-      "ayar": {}
+      "ayar": {
+        "sayi": 40000,
+        "yaricap": 70,
+        "merkezYogunluk": 1.6,
+        "boyMin": 0.22,
+        "boyMax": 0.55,
+        "genislik": 0.07,
+        "yaprak": 3,
+        "yatma": 0.18,
+        "lekeOlcek": 6,
+        "bosluk": 0.16,
+        "kokKoyuluk": 0.55,
+        "govdeKoyuluk": 0.78,
+        "uc": "cimUc",
+        "ucKarisim": 0.4,
+        "renk": "cimOrta",
+        "renkOynama": 0.08,
+        "ruzgarGuc": 0.16,
+        "ruzgarHiz": 1.8,
+        "ruzgarOlcek": 0.05,
+        "ruzgarAci": 35,
+        "tohum": 4242
+      }
     },
     {
       "tur": "dekor",
       "ad": "dekor",
       "acik": true,
-      "ayar": {}
+      "ayar": {
+        "agac": 22,
+        "bank": 4,
+        "lamba": 3,
+        "tohum": 31,
+        "icYaricap": 10,
+        "disYaricap": 95,
+        "aralik": 5,
+        "agacOlcekMin": 0.8,
+        "agacOlcekMax": 1.5,
+        "tacBozma": 0.18,
+        "govde": "#5a4632",
+        "tac": "#3f6631",
+        "tacAcik": "#5d8a3a",
+        "ahsap": "#6e5138",
+        "demir": "#33363a",
+        "lambaBasi": "#d8cfa0"
+      }
     },
     {
       "tur": "uzakArazi",
       "ad": "uzakArazi",
       "acik": true,
-      "ayar": {}
+      "ayar": {
+        "renkler": [
+          "cimOrta",
+          "cimKoyu",
+          "toprak",
+          "kaya"
+        ],
+        "esikler": [
+          6,
+          20,
+          42
+        ],
+        "bantGurultu": 7,
+        "dikEsik": 0.6,
+        "dik": "kaya",
+        "kaya": "kaya",
+        "titreme": 0.06,
+        "sis": true,
+        "hava": "gokUfuk",
+        "havaYakin": 90,
+        "havaUzak": 430,
+        "havaGuc": 0,
+        "pus": 0.3,
+        "pusYukseklik": 22,
+        "oturt": true,
+        "golgeAtar": true,
+        "tohum": 5
+      }
+    }
+  ],
+  "stil": {
+    "isik": {
+      "acik": false,
+      "bant": 3,
+      "yumusaklik": 0.02,
+      "enKoyu": 0.35,
+      "golgeRengi": "#4b4f8f",
+      "golgeKarisim": 0,
+      "parlama": 0,
+      "parlamaBoyu": 32,
+      "kenarIsik": 0,
+      "kenarEsik": 0.72,
+      "tarama": 0
+    },
+    "cizgi": {
+      "acik": false,
+      "kip": 0,
+      "kalinlik": 1,
+      "derinlikEsik": 0.08,
+      "normalEsik": 0.4,
+      "renk": "#1d1a2e",
+      "guc": 0.8,
+      "vurgu": 0,
+      "titreme": 0,
+      "uzaklik": 220
+    },
+    "renk": {
+      "acik": false,
+      "palet": 0,
+      "titreme": 0,
+      "posterize": 0,
+      "doygunluk": 1,
+      "gren": 0
+    },
+    "son": {
+      "tonlama": {
+        "tur": 2
+      },
+      "bloom": {
+        "acik": false,
+        "esik": 0.8,
+        "guc": 0.3,
+        "cekirdek": 64,
+        "olcek": 0.5
+      },
+      "huzme": {
+        "acik": false,
+        "yogunluk": 0.93,
+        "azalma": 0.965,
+        "agirlik": 0.5,
+        "parlaklik": 0.25,
+        "ornek": 80
+      },
+      "parilti": {
+        "acik": false,
+        "guc": 0.8,
+        "cekirdek": 48
+      },
+      "ao": {
+        "acik": false,
+        "yaricap": 2,
+        "guc": 1,
+        "ornek": 16
+      },
+      "egri": {
+        "acik": false,
+        "genelTon": 30,
+        "genelDoygunluk": 0,
+        "golgeTon": 230,
+        "golgeYogunluk": 0,
+        "golgeDoygunluk": 0,
+        "parlakTon": 40,
+        "parlakYogunluk": 0,
+        "parlakDoygunluk": 0
+      },
+      "vinyet": {
+        "acik": false,
+        "guc": 1.5,
+        "renk": "#1d1a2e"
+      },
+      "gren": {
+        "acik": false,
+        "guc": 10
+      },
+      "sapma": {
+        "acik": false,
+        "guc": 20
+      },
+      "keskinlik": {
+        "acik": false,
+        "guc": 0.3
+      },
+      "derinlik": {
+        "acik": false,
+        "odak": 20,
+        "aciklik": 2
+      }
+    }
+  },
+  "nesneler": [
+    {
+      "varlik": "INFRA_Pipe_Wall_Cluster",
+      "konum": [
+        11.19,
+        0.66,
+        -13.85
+      ],
+      "donus": 0,
+      "olcek": 1
+    },
+    {
+      "varlik": "CORP_BLD_Annex_SM",
+      "konum": [
+        5.44,
+        0.83,
+        -19.98
+      ],
+      "donus": 0,
+      "olcek": 1
+    },
+    {
+      "varlik": "CORP_BLD_Annex_SM",
+      "konum": [
+        19.86,
+        0.5,
+        -16.59
+      ],
+      "donus": 0,
+      "olcek": 1
+    },
+    {
+      "varlik": "CORP_BLD_Annex_SM",
+      "konum": [
+        10.35,
+        0.52,
+        6.42
+      ],
+      "donus": 0,
+      "olcek": 1
+    },
+    {
+      "varlik": "CORP_BLD_Annex_SM",
+      "konum": [
+        -13.59,
+        0.74,
+        -9.75
+      ],
+      "donus": 0,
+      "olcek": 1
+    },
+    {
+      "varlik": "CORP_BLD_Annex_SM",
+      "konum": [
+        -7.83,
+        0.8,
+        -24.32
+      ],
+      "donus": 0,
+      "olcek": 1
+    },
+    {
+      "varlik": "CORP_BLD_Annex_SM",
+      "konum": [
+        -12.35,
+        0.46,
+        9.89
+      ],
+      "donus": 0,
+      "olcek": 1
+    },
+    {
+      "varlik": "CORP_BLD_Annex_SM",
+      "konum": [
+        27.38,
+        0.2,
+        0.24
+      ],
+      "donus": 0,
+      "olcek": 1
     }
   ]
 }

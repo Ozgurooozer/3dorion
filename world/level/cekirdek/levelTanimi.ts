@@ -56,6 +56,14 @@ export interface KatmanTanimi {
   ayar: Record<string, unknown>;
 }
 
+/** Elle yerleştirilmiş bir varlık (asset tarayıcısından): katalogdaki adı, taban ortası konumu, Y dönüşü (derece). */
+export interface NesneYeri {
+  varlik: string;
+  konum: Vec3;
+  donus: number;
+  olcek: number;
+}
+
 export interface LevelTanimi {
   surum: number;
   ad: string;
@@ -66,6 +74,8 @@ export interface LevelTanimi {
   /** Görsel stil (toon, cel, çizgi, piksel… — stil/stilTanimi.ts). Yoksa "standart" (levelKur doldurur). */
   stil?: StilAyari;
   katmanlar: KatmanTanimi[];
+  /** Asset tarayıcısıyla yerleştirilen nesneler (cekirdek/nesneSistemi.ts). Yoksa boş. */
+  nesneler?: NesneYeri[];
 }
 
 export type Dogrulama = { ok: true; deger: LevelTanimi } | { ok: false; hata: string };
@@ -117,6 +127,17 @@ function hataBul(v: unknown): string | null {
   const pk = ortam["piksel"];
   if (pk !== undefined && (!Number.isInteger(pk) || (pk as number) < 1 || (pk as number) > 8)) return h("ortam.piksel", "1–8 tamsayı");
   if (v["stil"] !== undefined) { const s = stilHatasi(v["stil"], renkMi); if (s) return h("stil", s); }
+  const nesneler = v["nesneler"];
+  if (nesneler !== undefined) {
+    if (!Array.isArray(nesneler)) return h("nesneler", "dizi değil");
+    for (const [i, n] of nesneler.entries()) {
+      const k = nesneMi(n) ? n["konum"] : null;
+      if (!nesneMi(n) || typeof n["varlik"] !== "string" || !n["varlik"] || !Array.isArray(k) || k.length !== 3 || !k.every(sayiMi)
+        || !sayiMi(n["donus"]) || !sayiMi(n["olcek"]) || (n["olcek"] as number) <= 0) {
+        return h(`nesneler[${i}]`, "varlik (ad) + konum [x,y,z] + donus + olcek (> 0) gerekli");
+      }
+    }
+  }
   const katmanlar = v["katmanlar"];
   if (!Array.isArray(katmanlar)) return h("katmanlar", "dizi değil");
   const adlar = new Set<string>();

@@ -19,6 +19,10 @@
 - **İngilizce cevap kipi** (talimat + İngilizce Piper sesi) — mikrofon İngilizce duyuyor, Orion Türkçe cevaplıyor.
 
 ## Ova (spec 17) — sıradaki adımlar, her biri ayrı onay
+- **Spec 19 ışık sonrası işleme YARIM:** veri (`stil.son`, önayar değerleri, doğrulama) hazır; uygulayıcı
+  (`stil/isikSonrasi.ts`: AO, huzme, boru hattı, parıltı, eğri, vinyet, B önce/sonra) yazılmadı.
+- **Asset tarayıcısı MVP sınırları:** yerleşim indeksi kimlik (silme sonrakileri yeniden kurar); nesne üstüne
+  yığma yok (yalnız zemin); şehir parçaları dalgalı zemine gömülüp taşabiliyor (düzleştirme alanı yok).
 - **Kendi stilimiz** (spec 18): altı önayar galeride (`Pictures\shader-ornekleri\index.html`); Ozyn seçer.
 - **Gece** (referans 2), ağaç/çiçek katmanları; gök bantları kaba (Ozyn: şimdilik dursun).
 - **Orion'u ovaya taşımak** ve **odayı level çekirdeğine taşımak** (olculer/capalar → level verisi).

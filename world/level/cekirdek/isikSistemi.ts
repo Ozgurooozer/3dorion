@@ -10,7 +10,7 @@
 "use strict";
 import type { Scene } from "@babylonjs/core/scene";
 import { Scene as SahneSinifi } from "@babylonjs/core/scene";
-import type { Mesh } from "@babylonjs/core/Meshes/mesh";
+import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { Color3, Color4 } from "@babylonjs/core/Maths/math.color";
 import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
@@ -26,8 +26,8 @@ export interface IsikSistemi {
   readonly dolgu: HemisphericLight;
   /** Güneşe doğru birim yön. */
   gunesYonu(): Vec3;
-  golgeyeKat(mesh: Mesh, ne: { atar?: boolean; alir?: boolean }): void;
-  golgedenCikar(mesh: Mesh): void;
+  golgeyeKat(mesh: AbstractMesh, ne: { atar?: boolean; alir?: boolean }): void;
+  golgedenCikar(mesh: AbstractMesh): void;
   uygula(isik: IsikAyari, ortam: OrtamAyari, renk: (ad: string) => Renk): void;
   yokEt(): void;
 }
@@ -46,8 +46,8 @@ export function isikSistemiKur(sahne: Scene): IsikSistemi {
   let yon: Vec3 = [0, 1, 0];
   let golge: CascadedShadowGenerator | null = null;
   let golgeAyari = "";
-  const atanlar = new Set<Mesh>();
-  const alanlar = new Set<Mesh>();
+  const atanlar = new Set<AbstractMesh>();
+  const alanlar = new Set<AbstractMesh>();
 
   const golgeKur = (a: IsikAyari["gunes"]["golge"]) => {
     golge?.dispose();

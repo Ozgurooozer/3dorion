@@ -29,6 +29,8 @@ export interface MalzemeAyari {
   ruzgar?: RuzgarAyari;
   /** Stil sisteminin ortak ışık durumu: verilirse ışık stil eklentisi takılır (yalnız ışıklıda anlamlı). */
   stil?: IsikStiliDurumu;
+  /** Işıklı malzemede kendinden ışıma (neon, ekran): ışıktan bağımsız eklenen renk. */
+  isima?: Renk;
 }
 
 export function malzemeKur(sahne: Scene, ad: string, tur: MalzemeTuru, ayar: MalzemeAyari = {}): StandardMaterial {
@@ -44,6 +46,7 @@ export function malzemeKur(sahne: Scene, ad: string, tur: MalzemeTuru, ayar: Mal
     m.diffuseColor = Color3.Black();
   } else {
     m.diffuseColor = renk;
+    if (ayar.isima) m.emissiveColor = new Color3(...ayar.isima);
   }
   if (ayar.ruzgar) new RuzgarEklentisi(m, ayar.ruzgar);
   if (ayar.stil && tur === "isikli") new IsikStiliEklentisi(m, ayar.stil);

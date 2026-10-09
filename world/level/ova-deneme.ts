@@ -22,6 +22,7 @@ import { levelKur } from "./cekirdek/levelKur.ts";
 import { MODULLER } from "./moduller/index.ts";
 import { levelPaneliKur } from "./editor/levelPaneli.ts";
 import { inspektorAcKapa } from "./editor/inspektor.ts";
+import { varlikTarayiciKur } from "./editor/varlikTarayici.ts";
 import { Logger } from "@babylonjs/core/Misc/logger";
 import { ONAYARLAR, ONAYAR_ADLARI, onayarUygula, onayarAdi, PALET_DUZENI_ADLARI, paletDuzeniUygula, paletDuzeniAdi } from "./stil/stilTanimi.ts";
 
@@ -73,12 +74,23 @@ try {
   let kos = false;
   addEventListener("keydown", (e) => { if (e.key === "Shift") kos = true; });
   addEventListener("keyup", (e) => { if (e.key === "Shift") kos = false; });
-  tuval.addEventListener("click", () => { void tuval.requestPointerLock?.(); });
+  // Asset tarayıcısı açıkken fare kilitlenmez (tıklama = yerleştir/seç; sürükle = bak).
+  let tarayiciAcik = () => false;
+  tuval.addEventListener("click", () => { if (!tarayiciAcik()) void tuval.requestPointerLock?.(); });
   level.stil.kameraBagla(kamera);
 
   const panel = q.get("panel") !== "0"
     ? levelPaneliKur({ level, moduller: MODULLER, ad: "ova", dosyadanOku, inspektor: () => inspektorAcKapa(sahne) })
     : null;
+
+  const tarayici = varlikTarayiciKur({
+    level, kamera, tuval,
+    degistir: (yeni, mesaj) => { if (panel) panel.tanimDegistir(yeni, mesaj); else level.ayarla(yeni(level.tanim())); console.log(`[varlik] ${mesaj}`); },
+  });
+  tarayiciAcik = tarayici.acikMi;
+  // Konsoldan / başsız denemeden erişim (yalnız bu deneme sayfası): window.ova.level.ayarla(...)
+  Object.assign(window, { ova: { level, tarayici, sahne, kamera } });
+  if (q.get("varlik") === "1") tarayici.acKapa();
 
   // Stil düğme çubuğu (sağ üst) + G/P tuşları: tek tıkla önayar ve renk düzeni (Ozyn'in denemesi için).
   const stilCubugu = document.getElementById("stil") as HTMLDivElement;
@@ -102,6 +114,15 @@ try {
   };
   grup("stil (G)", "stil", ONAYAR_ADLARI);
   grup("renk (P)", "renk", PALET_DUZENI_ADLARI);
+  {
+    const g = document.createElement("div"); g.className = "grup";
+    const b = document.createElement("span"); b.textContent = "araç";
+    const d = document.createElement("button"); d.textContent = "Varlıklar (V)"; d.title = "asset tarayıcısı: yerleştir, seç, döndür, sil";
+    d.onclick = (e) => { e.stopPropagation(); tarayici.acKapa(); d.classList.toggle("secili", tarayici.acikMi()); d.blur(); };
+    addEventListener("keydown", (e) => { if (e.code === "KeyV") setTimeout(() => d.classList.toggle("secili", tarayici.acikMi())); });
+    g.append(b, d);
+    stilCubugu.append(g);
+  }
   const aciklama = document.createElement("div"); aciklama.className = "aciklama"; stilCubugu.append(aciklama);
   function cubuguYaz() {
     const s = onayarAdi(level.tanim()), r = paletDuzeniAdi(level.tanim());
