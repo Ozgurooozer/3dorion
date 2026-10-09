@@ -1,7 +1,7 @@
 # Açık işler — tek liste
 
 Önceliği Ozyn belirler. Her madde tek satır + nerede. Biten madde SİLİNİR (geçmişi git'te);
-"çözüldü" arşivi tutulmaz. Son güncelleme: 2026-10-08.
+"çözüldü" arşivi tutulmaz. Son güncelleme: 2026-10-09.
 
 ## Karar bekleyen (Ozyn)
 - **Spec 15 S2–S5** (mekânsal bellek, gölge) — ön kayıt hazır, onay bekliyor. `specs/15`
@@ -21,8 +21,10 @@
 ## Ova (spec 17) — sıradaki adımlar, her biri ayrı onay
 - **Spec 19 bütçe aşımı (karar):** cel +538, toon +594 MiB ve 158 çizim, anime90 +637 MiB (sınır 500 MiB / 150).
   Seçenekler `specs/19` §4 sonunda.
-- **Asset tarayıcısı MVP sınırları:** yerleşim indeksi kimlik (silme sonrakileri yeniden kurar); nesne üstüne
-  yığma yok (yalnız zemin); şehir parçaları dalgalı zemine gömülüp taşabiliyor (düzleştirme alanı yok).
+- **Spec 22 Faz 7 — arazi araçları (onay):** yükselt/alçalt/düzle/yumuşat + çim/kaya maskesi; zemin zinciri
+  yeniden kurulur, bırakma gecikmesi ölçülecek. Şehir parçaları dalgalı zemine gömülüp taşabiliyor (düzleştirme bununla).
+- **Spec 22 açıkları:** bağlı prefab yok; hazır yapı/kaydet yalnız dev sunucusunda; dönmüş nesnelerde gruplu eksen
+  ölçeği kayma üretir; çim nesne tabanından geçer.
 - **Kendi stilimiz** (spec 18/20): stil önayarları + 7 özel shader + 4 dünya paleti; "bir olması" için Ozyn'in seçimi.
 - **Spec 20 açıkları:** debug taraması +22 çizim (derinlik geçişi; gbuffer'dan okumak düşürebilir); 06:00 şafak koyu.
 - **Spec 21 açıkları:** su binaları yansıtmıyor (SSR yok); hacimsel bulut/sis yok; atmosfer sisi kapalı (sonsuz uzak düzlem ister); ateşböceği parlaklığı gözle ayarlanmadı (soluk beyaz).

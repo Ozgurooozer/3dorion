@@ -1,13 +1,16 @@
 // world/level/cekirdek/nesneSistemi.ts — Elle yerleştirilen varlıklar (`tanim.nesneler`): yükle, örnekle, yerleştir.
 //
-// Her varlık (katalogdaki glb) oturumda BİR KEZ yüklenir (AssetContainer); her yerleşim onun örneğidir (Babylon
-// örnekli mesh — aynı varlıktan çok sayıda ucuz).
+// Her varlık (katalogdaki glb) oturumda BİR KEZ yüklenir (AssetContainer); her yerleşim onun ÖRNEĞİDİR (Babylon
+// InstancedMesh — aynı varlıktan çok sayıda tek çizimde). DİKKAT: `instantiateModelsToScene` varsayılanı KOPYADIR
+// (`doNotInstantiate: true`); spec 22 ölçümüne dek öyle kalmıştı — 192 nesnede kare başına 1106 çizim çağrısı.
+// Yerleştirme hayaleti bilerek kopya (yarı saydamlığı örnekte bütün aynı varlıklara geçerdi).
 //
 // BİRLEŞTİRME (çizim çağrısı): glTF her malzemeyi ayrı parça mesh'e böler; şehir parçası 4–7 parça, her biri ana
 // çizimde VE her gölge kademesinde ayrı çizilir — 8 nesne çizimi 20'den 156'ya çıkardı (ölçüldü, spec 19). Yüklenince
 // parçaların rengi KÖŞE RENGİNE gömülür ve tek mesh'te birleşir; ışıyanlar (neon, ekran — glTF emissive'i olan;
 // uyarı boyası hariç) ayrı bir mesh'e. İki ortak malzeme: ışıklı (level fabrikası: güneş, gölge, sis, STİL
-// eklentisi işler) ve ışıyan (pişmiş). Varlık başına ≤ 2 çizim; aynı varlığın yerleşimleri örneklemeyle tek çizim.
+// eklentisi işler) ve ışıyan (pişmiş). Varlık başına ≤ 2 kaynak mesh; aynı varlığın bütün yerleşimleri tek örnekli çizim
+// (geçiş başına: ana + her gölge kademesi).
 //
 // KİMLİK (spec 22): yerleşim `id` ile eşleşir (sıra değil): silme ya da araya ekleme diğerlerine dokunmaz. İmza iki
 // parça: VARLIK değişirse yeniden yüklenir; yalnız konum/dönüş/ölçek/gizlilik değişirse düğüm YERİNDE güncellenir
@@ -34,8 +37,11 @@ import type { Renk } from "./renk.ts";
 
 export const KATALOG_DOSYASI = "sehir/katalog.json";
 
-/** Varlığın bir örneğini `ust` altına kurar, mesh'lerini döner (test sahte yükleyici verir; asıl yol glb). */
-export type NesneYukleyici = (ad: string, ust: TransformNode) => Promise<AbstractMesh[]>;
+/**
+ * Varlığın bir örneğini `ust` altına kurar, mesh'lerini döner (test sahte yükleyici verir; asıl yol glb).
+ * `kopya`: örnekli değil bağımsız kopya (hayalet: kendi saydamlığı olsun).
+ */
+export type NesneYukleyici = (ad: string, ust: TransformNode, kopya?: boolean) => Promise<AbstractMesh[]>;
 
 export interface NesneBaglami {
   sahne: Scene;
@@ -150,6 +156,8 @@ export function nesneSistemiKur(b: NesneBaglami): NesneSistemi {
       tum.applyToMesh(m, false);
       m.parent = ust;
       m.material = ortakMalzeme(isiyan ? "pismis" : "isikli");
+      // Örnekler gölge almayı KAYNAKTAN okur (InstancedMesh.receiveShadows kaynağınki): burada açık olmalı.
+      m.receiveShadows = !isiyan;
       sahne.removeMesh(m);   // sahnede değil kapta dursun (örnekler ondan türer)
       kap.meshes.push(m);
     }
@@ -177,12 +185,12 @@ export function nesneSistemiKur(b: NesneBaglami): NesneSistemi {
   };
 
   /** Asıl yükleyici: katalogdan bul, kabı yükle, örnekle. Bu arada üst düğüm yıkıldıysa örnekleri atar (sızıntı yok). */
-  const glbYukleyici: NesneYukleyici = async (ad, ust) => {
+  const glbYukleyici: NesneYukleyici = async (ad, ust, kopya = false) => {
     const k = await katalog();
     const v = k.varliklar.find((x) => x.ad === ad);
     if (!v) throw new Error(`katalogda yok: ${ad}`);
     const kap = await kapYukle(v);
-    const ornekler = kap.instantiateModelsToScene((n) => `${ad}_${n}`, false);
+    const ornekler = kap.instantiateModelsToScene((n) => `${ad}_${n}`, false, { doNotInstantiate: kopya });
     if (ust.isDisposed()) { for (const r of ornekler.rootNodes) r.dispose(false, false); return []; }
     for (const r of ornekler.rootNodes) r.parent = ust;
     return ust.getChildMeshes(false).filter((m) => m.getTotalVertices() > 0);
@@ -263,7 +271,7 @@ export function nesneSistemiKur(b: NesneBaglami): NesneSistemi {
     meshleri: (id) => kurulu.get(id)?.meshler ?? [],
     async ornekOlustur(ad) {
       const dugum = new TransformNode(`onizleme_${ad}`, sahne);
-      const meshler = await yukle(ad, dugum);
+      const meshler = await yukle(ad, dugum, true);
       for (const m of meshler) m.isPickable = false;
       return dugum;
     },

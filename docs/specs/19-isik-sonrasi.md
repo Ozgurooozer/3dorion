@@ -32,7 +32,9 @@ ayarlanabilsin", sonra "Lumen tarzı daha güçlü bir şey var mı; sağlam bir
    ("IsikStiliEklentisi not found") → iki eklenti `RegisterClass` ile kaydedildi, kurucular tek argümanla çalışır.
    Teşhis: sayfa içinden RSM dokuları okundu (önce akı/konum boş, sonra dolu); "yalnız GI" görünümü.
 2. **Şehir nesneleri çizimi 20 → 156'ya çıkardı:** glTF malzeme başına parça → yüklemede köşe rengiyle tek mesh'e
-   birleştirme (ışıyanlar ayrı) → 87.
+   birleştirme (ışıyanlar ayrı) → 87. (Spec 22 düzeltmesi: yerleşimler o zaman ÖRNEKLENMİYORDU —
+   `instantiateModelsToScene` varsayılanı kopya; örneklemeyle aynı varlığın yerleşimleri tek çizim, 192 nesnede
+   1106 → 106 çizim/kare.)
 3. **VRAM:** boru hattının 4× MSAA HDR hedefleri (toon +1724 MiB) → FXAA (+594); AO tam çözünürlük bulanıklaştırma →
    yarım; GI dokusu çeyrek çözünürlük.
 

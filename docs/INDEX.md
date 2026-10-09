@@ -1,7 +1,7 @@
 # docs/ — dizin
 
 Bir spec'i yalnız o alana dokunacaksan aç. Her satır: ne · durum · dokunmadan önce okunacağı yer.
-Açık işler tek yerde: `ACIK-ISLER.md`. Fikirler: `FIKIR-HAVUZU.md`. Son güncelleme: 2026-10-08.
+Açık işler tek yerde: `ACIK-ISLER.md`. Fikirler: `FIKIR-HAVUZU.md`. Son güncelleme: 2026-10-09.
 
 ## Spec'ler (`specs/`)
 | # | konu | durum | ne zaman oku |
@@ -25,6 +25,7 @@ Açık işler tek yerde: `ACIK-ISLER.md`. Fikirler: `FIKIR-HAVUZU.md`. Son günc
 | 17 | Ova: yeni level (lowpoly, çim, gök, Blender arazi) + level ALTYAPISI (veri tanımı, modüller, ışık sistemi, panel) | MVP L0–L4 bitti, bütçe B1–B4 geçti | `world/level/{cekirdek,moduller,editor,ova}/`, yeni katman/level eklerken |
 | 20 | Özel shader'lar ("Sistem Hatası"): gün/gece paleti shader'da, zaman kırığı, hata imzası, debug taraması, fırça, elyazması; 4 dünya paleti | uygulandı · debug taraması çizim ön kaydını aştı | `world/level/shader/`, yeni shader eklerken |
 | 21 | Yaşayan dünya: kavisli çim (hücre + LOD, 500 bin tutam), gün/gece parçacıkları, göl + su shader'ı, atmosfer eklentisi, serbest uçuş | uygulandı | `world/level/moduller/{cim,su,parcacik}.ts`, `shader/moduller/atmosfer.ts` |
+| 22 | Level editörü: kimlikli yerleşim, 3 eksen, gruplar; saf çekirdek (geri/ileri al, komutlar, tek tuş haritası); gizmo, yüzeyde sürükle/çatıya koy, kutu seçimi, fırça, güneş, ölçü, hazır yapı; sahne ağacı, özellikler, varlık tarayıcısı v2; örnekleme düzeltmesi (1106 → 106 çizim) | Faz 1–6 bitti · Faz 7 (arazi) onay bekliyor | `world/level/editor/`, yerleşim/editör/kısayola dokunurken; deneme `npm run editor-dene` |
 | 19 | Işık sonrası (bloom, huzme, AO, eğri…), küresel aydınlatma (GIRSM), sağlam gölge (CSM ayarları) | bitti · VRAM ön kaydı 3 önayarda aştı (karar bekliyor) | ışık/gölge/sonrası işlemeye dokunurken |
 | 18 | Stil shader'ları: cel, toon, anime90, Moebius, piksel (t3ssel8r); G/panel geçiş | S0–S5 bitti, bütçe geçti · kendi stilimiz Ozyn'in seçimini bekliyor | `world/level/stil/`, malzeme/ışık görünüşüne dokunurken |
 
@@ -40,7 +41,7 @@ Açık işler tek yerde: `ACIK-ISLER.md`. Fikirler: `FIKIR-HAVUZU.md`. Son günc
 ## Bu turun kalıcı davranışları (spec dışı, commit mesajlarında)
 - **Kulak:** `3dorion.bat mikrofon` / K aç-kapa, V bas-konuş; Nemotron Speech EN, CPU (`tools/nemotron-dinle.py`, `voice/nemotron.ts`).
 - **Uzaktan terminal:** onaylanan komut terminal kapalıysa arka planda açar, kamerayı kaçırmaz (`uygulama/terminalYazici.ts`; canlı `onaydene`).
-- **Asset tarayıcısı (ova, V):** şehir kiti `assets/sehir/` (86 glb + önizleme + katalog; kaynak Masaüstü
+- **Varlık kataloğu:** şehir kiti `assets/sehir/` (86 glb + önizleme + katalog; kaynak Masaüstü
   "city build test moduler 1.blend", betik `assets/kaynak/sehir-kiti.py`); yerleşimler `tanim.nesneler`
-  (`world/level/cekirdek/nesneSistemi.ts`, `editor/varlikTarayici.ts`).
+  (`world/level/cekirdek/nesneSistemi.ts`); editör spec 22.
 - **Beni takip et:** içgüdü `kopru.takip` (`mind/takipSozu.ts`, `uygulama/takip.ts`; canlı `3dorion.bat takipdene`).

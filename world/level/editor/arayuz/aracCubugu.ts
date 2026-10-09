@@ -98,14 +98,14 @@ export function aracCubuguKur(ed: Editor, ad: string): HTMLElement {
         secim(KONUM_ADIMLARI, y.konumAdim, (v) => `${v} m`, (v) => yaz((x) => ({ ...x, konumAdim: v })))),
       etiketli("Y", "Dikey kaydırma adımı (PageUp/PageDown); gizmo okları ızgara adımını kullanır",
         secim(Y_ADIMLARI, y.yAdim, (v) => `${v} m`, (v) => yaz((x) => ({ ...x, yAdim: v })))),
-      kutu("açı", "Döndürme açı adımı (gizmo, tekerlek, [ ])", y.aci, (v) => yaz((x) => ({ ...x, aci: v })),
+      kutu("∠", "Açı yaslaması: döndürme adımı (gizmo, tekerlek, [ ])", y.aci, (v) => yaz((x) => ({ ...x, aci: v })),
         secim(ACI_ADIMLARI, y.aciAdim, (v) => `${v}°`, (v) => yaz((x) => ({ ...x, aciAdim: v })))),
-      kutu("ölçek", "Ölçek adımı", y.olcek, (v) => yaz((x) => ({ ...x, olcek: v })),
+      kutu("⤡", "Ölçek yaslaması: ölçek adımı", y.olcek, (v) => yaz((x) => ({ ...x, olcek: v })),
         secim(OLCEK_ADIMLARI, y.olcekAdim, (v) => `${v}`, (v) => yaz((x) => ({ ...x, olcekAdim: v })))),
       el("span", "ayrac"),
-      kutu("yüzeye otur", "Yerleştirirken/sürüklerken imlecin altındaki yüzeye (zemin ya da nesne üstü) otur; kapalıysa yükseklik korunur", y.yuzeyeOtur, (v) => yaz((x) => ({ ...x, yuzeyeOtur: v }))),
-      kutu("normale hizala", "Yüzeye otururken yamaca eğik dur (tek nesne)", y.normaleHizala, (v) => yaz((x) => ({ ...x, normaleHizala: v }))),
-      kutu("ızgara görseli", ipucu("Çalışılan nesnenin tabanında yaslama ızgarası", "izgara"), durum.ayarlar().izgara, () => ed.eylem("izgara")),
+      kutu("yüzey", "Yüzeye otur: yerleştirirken/sürüklerken imlecin altındaki yüzeye (zemin ya da nesne üstü); kapalıysa yükseklik korunur", y.yuzeyeOtur, (v) => yaz((x) => ({ ...x, yuzeyeOtur: v }))),
+      kutu("eğ", "Normale hizala: yüzeye otururken yamaca eğik dur (tek nesne)", y.normaleHizala, (v) => yaz((x) => ({ ...x, normaleHizala: v }))),
+      kutu("▦", ipucu("Çalışılan nesnenin tabanında yaslama ızgarası", "izgara"), durum.ayarlar().izgara, () => ed.eylem("izgara")),
     );
   };
   kok.append(el("span", "ayrac"));
@@ -114,11 +114,11 @@ export function aracCubuguKur(ed: Editor, ad: string): HTMLElement {
   const ileri = el("button", "", "↷"); ileri.onclick = () => { durum.ileriAl(); ileri.blur(); };
   const kaydet = el("button", "ana", "Kaydet"); kaydet.title = ipucu("Level dosyasına yaz", "kaydet");
   kaydet.onclick = () => { ed.eylem("kaydet"); kaydet.blur(); };
-  const kip = el("button", "", "✈ Uçuş"); kip.title = ipucu("Uçuş kipine geç: fare kilitli serbest uçuş, arayüz gizli", "kipDegistir");
+  const kip = el("button", "", "✈"); kip.title = ipucu("Uçuş kipine geç: fare kilitli serbest uçuş, arayüz gizli", "kipDegistir");
   kip.onclick = () => { ed.eylem("kipDegistir"); kip.blur(); };
   const yardim = el("button", "", "?"); yardim.title = ipucu("Kısayol kartı", "yardim");
   yardim.onclick = () => { ed.eylem("yardim"); yardim.blur(); };
-  const insp = el("button", "", "Inspector"); insp.title = ipucu("Babylon Inspector (sahne ağacı, malzemeler — kaydedilmez)", "inspektor");
+  const insp = el("button", "", "🔍"); insp.title = ipucu("Babylon Inspector (sahne ağacı, malzemeler — kaydedilmez)", "inspektor");
   insp.onclick = () => { ed.eylem("inspektor"); insp.blur(); };
   kok.append(geri, ileri, kaydet, el("span", "ayrac"), kip, yardim, insp);
 
