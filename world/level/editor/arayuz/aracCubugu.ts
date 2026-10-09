@@ -12,8 +12,10 @@ const ARAC_BILGI: Record<AracAdi, { ad: string; simge: string; eylem: Eylem; ipu
   dondur: { ad: "Döndür", simge: "⟳", eylem: "aracDondur", ipucu: "Üç eksen halkası (açı adımına yaslanır)" },
   olcek: { ad: "Ölçek", simge: "⤡", eylem: "aracOlcek", ipucu: "Eksen başına ölçek; ortadaki küp eşit ölçek" },
   kutu: { ad: "Kutu", simge: "▣", eylem: "aracKutu", ipucu: "Sınır kutusu: köşeden ölçek, kenar küresinden döndür" },
-  firca: { ad: "Fırça", simge: "✎", eylem: "aracFirca", ipucu: "Seçili varlığı boyayarak serpiştir (Alt: sil)" },
+  firca: { ad: "Fırça", simge: "✎", eylem: "aracFirca", ipucu: "Fırçadaki varlıkları boyayarak serpiştir (Shift: sil)" },
   arazi: { ad: "Arazi", simge: "⛰", eylem: "aracArazi", ipucu: "Zemini yükselt/alçalt/düzle/yumuşat, çim-kaya boya" },
+  gunes: { ad: "Güneş", simge: "☀", eylem: "aracGunes", ipucu: "Gökyüzüne sürükle: güneş oraya (zaman tanımlıysa yatay sürükleme saati değiştirir)" },
+  olcu: { ad: "Ölç", simge: "📏", eylem: "aracOlcu", ipucu: "İki noktaya tıkla: aradaki mesafe (yatay/dikey); Esc temizler" },
 };
 
 const CSS = `

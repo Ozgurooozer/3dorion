@@ -12,9 +12,10 @@ import type { LevelTanimi } from "../../cekirdek/levelTanimi.ts";
 import { gecmisKur } from "./gecmis.ts";
 import { secimiTemizle } from "./secim.ts";
 import { YASLAMA_VARSAYILAN, type YaslamaAyari } from "./yaslama.ts";
+import { FIRCA_VARSAYILAN, type FircaAyari } from "./firca.ts";
 
-export type AracAdi = "sec" | "tasi" | "dondur" | "olcek" | "kutu" | "firca" | "arazi";
-export const ARACLAR: readonly AracAdi[] = ["sec", "tasi", "dondur", "olcek", "kutu", "firca", "arazi"];
+export type AracAdi = "sec" | "tasi" | "dondur" | "olcek" | "kutu" | "firca" | "arazi" | "gunes" | "olcu";
+export const ARACLAR: readonly AracAdi[] = ["sec", "tasi", "dondur", "olcek", "kutu", "firca", "arazi", "gunes", "olcu"];
 
 export interface EditorAyarlari {
   /** Gizmo ekseni: dünya ya da nesnenin kendi ekseni. */
@@ -23,9 +24,10 @@ export interface EditorAyarlari {
   /** Sağ tık uçuş hızı (m/kare çarpanı). */
   kameraHizi: number;
   izgara: boolean;
+  firca: FircaAyari;
 }
 
-export const AYAR_VARSAYILAN: EditorAyarlari = { uzay: "dunya", yaslama: YASLAMA_VARSAYILAN, kameraHizi: 1, izgara: true };
+export const AYAR_VARSAYILAN: EditorAyarlari = { uzay: "dunya", yaslama: YASLAMA_VARSAYILAN, kameraHizi: 1, izgara: true, firca: FIRCA_VARSAYILAN };
 
 /** Geri al ile saklanan hâl. */
 export interface Hal { tanim: LevelTanimi; secim: string[] }

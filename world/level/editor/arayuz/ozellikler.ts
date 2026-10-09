@@ -99,6 +99,38 @@ export function ozelliklerKur(ed: Editor): OzellikPaneli {
     return s;
   };
 
+  let fircaSurukle = false;
+  /** Fırça aracındayken: fırça ayarları (sayı kutuları sürüklenerek) ve fırçadaki varlıklar. */
+  const fircaBolumu = (): HTMLElement => {
+    const f = durum.ayarlar().firca;
+    const yaz = (alan: keyof typeof f, v: unknown) => durum.ayarDegistir((a) => ({ ...a, firca: { ...a.firca, [alan]: v } }));
+    const sayi = (etiket: string, alan: "yaricap" | "yogunluk" | "minAralik" | "olcekMin" | "olcekMax", adim: number, min: number) =>
+      satir(etiket, sayiKutusu({ etiket: "↔", deger: f[alan], adim,
+        baslarken: () => { fircaSurukle = true; },
+        canli: (v) => yaz(alan, Math.max(min, v)),
+        bitti: (v) => { fircaSurukle = false; yaz(alan, Math.max(min, v)); } }));
+    const onay = (etiket: string, alan: "rastgeleDonus" | "normaleHizala") => {
+      const l = el("label"); const c = el("input"); c.type = "checkbox"; c.checked = f[alan];
+      c.onchange = () => { yaz(alan, c.checked); c.blur(); };
+      l.append(c, document.createTextNode(` ${etiket}`)); return l;
+    };
+    const liste = el("div");
+    for (const v of f.varliklar) {
+      const r = el("div", "ed-satir");
+      const x = el("button", "", "×"); x.title = "fırçadan çıkar"; x.onclick = () => yaz("varliklar", f.varliklar.filter((a) => a !== v));
+      r.append(x, el("span", "", kisaAd(v)));
+      r.style.gridTemplateColumns = "24px 1fr";
+      liste.append(r);
+    }
+    if (!f.varliklar.length) liste.append(el("div", "ed-ipucu", "Fırça boş — alttaki varlık kartlarına tıklayarak ekle (ağaç, kaya, lamba…)."));
+    return bolum("🖌 Fırça",
+      el("div", "ed-ipucu", "Sürükleyerek serpiştir · Shift basılı: sil (yalnız fırçadaki varlıklar) · Ctrl+tekerlek: yarıçap · tek vuruş = tek geri al"),
+      sayi("Yarıçap (m)", "yaricap", 0.1, 0.5), sayi("Yoğunluk /m²", "yogunluk", 0.005, 0.005), sayi("En az ara (m)", "minAralik", 0.05, 0),
+      sayi("Ölçek min", "olcekMin", 0.01, 0.05), sayi("Ölçek maks", "olcekMax", 0.01, 0.05),
+      onay("rastgele dönüş", "rastgeleDonus"), onay("yamaca eğ (normale hizala)", "normaleHizala"),
+      el("h4", "", "Fırçadaki varlıklar"), liste);
+  };
+
   const ciz = () => {
     if (bekliyor) return;
     // Bir kutuya yazılırken yeniden çizme (odak kaybolur): bırakınca çizilir.
@@ -110,9 +142,10 @@ export function ozelliklerKur(ed: Editor): OzellikPaneli {
     if (surukleOnce) return;
     const t = durum.tanim();
     const sec = secililer(t);
+    const ust = durum.arac() === "firca" ? [fircaBolumu()] : [];
     if (!sec.length) {
       const n = t.nesneler?.length ?? 0;
-      kok.replaceChildren(
+      kok.replaceChildren(...ust,
         bolum("Seçim yok",
           el("div", "ed-ipucu", `${n} nesne · ${t.gruplar?.length ?? 0} grup · ${ed.level.nesneler.bekleyen()} yükleniyor`),
           el("div", "ed-ipucu", "Sahnede bir nesneye tıkla ya da sahne ağacından seç. Boşlukta sürükleyerek kutu seçimi; Ctrl+A hepsi.")),
@@ -179,7 +212,7 @@ export function ozelliklerKur(ed: Editor): OzellikPaneli {
         return d;
       })());
 
-    const parcalar: HTMLElement[] = [bas, donusum, bilgi];
+    const parcalar: HTMLElement[] = [...ust, bas, donusum, bilgi];
     if (sec.length >= 2) {
       const hiza = bolum("Hizala / dağıt");
       (["X", "Y", "Z"] as const).forEach((e, i) => {
@@ -201,6 +234,9 @@ export function ozelliklerKur(ed: Editor): OzellikPaneli {
   const ozelEkler: ((sec: NesneYeri[]) => HTMLElement | null)[] = [];
   durum.abone("secim", ciz);
   durum.abone("tanim", ciz);
+  durum.abone("arac", ciz);
+  let sonFirca = JSON.stringify(durum.ayarlar().firca);
+  durum.abone("ayarlar", () => { const f = JSON.stringify(durum.ayarlar().firca); if (f !== sonFirca) { sonFirca = f; if (durum.arac() === "firca" && !fircaSurukle) ciz(); } });
   ed.level.nesneler.yuklenince(() => { if (!durum.secim().length) ciz(); });
   ciz();
   return { kok, ekle(f) { ozelEkler.push(f); ciz(); } };

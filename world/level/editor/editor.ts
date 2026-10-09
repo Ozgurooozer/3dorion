@@ -35,6 +35,11 @@ import { vurguKur } from "./sahne/vurgu.ts";
 import { yuzeySuruklemeKur } from "./sahne/yuzeySurukle.ts";
 import { yerlestirmeKur, type YerlestirmeKaynagi } from "./sahne/yerlestirme.ts";
 import { izgaraKur } from "./sahne/izgara.ts";
+import { fircaImleciKur } from "./sahne/firca.ts";
+import { cetvelKur, olcumMetni } from "./sahne/cetvel.ts";
+import { damgaAdaylari, adaylariEkle, silgiDamgasi } from "./cekirdek/firca.ts";
+import { normaleHizaliDonus } from "./cekirdek/yaslama.ts";
+import { rastgele } from "../cekirdek/rastgele.ts";
 
 export interface EditorAyari {
   level: Level;
@@ -84,7 +89,7 @@ export interface Editor {
 }
 
 const TEKRARLI: ReadonlySet<Eylem> = new Set(["kaydirSol", "kaydirSag", "kaydirIleri", "kaydirGeri", "kaydirYukari", "kaydirAsagi", "solaDondur", "sagaDondur", "geriAl", "ileriAl"]);
-const ARAC_EYLEMI: Partial<Record<Eylem, AracAdi>> = { aracSec: "sec", aracTasi: "tasi", aracDondur: "dondur", aracOlcek: "olcek", aracKutu: "kutu", aracFirca: "firca", aracArazi: "arazi" };
+const ARAC_EYLEMI: Partial<Record<Eylem, AracAdi>> = { aracSec: "sec", aracTasi: "tasi", aracDondur: "dondur", aracOlcek: "olcek", aracKutu: "kutu", aracFirca: "firca", aracArazi: "arazi", aracGunes: "gunes", aracOlcu: "olcu" };
 const SURUKLEME_ESIGI = 4;
 
 const yazilabilirMi = (h: EventTarget | null): boolean => {
@@ -112,6 +117,8 @@ export function editorKur(a: EditorAyari): Editor {
     bitir() { const vardi = yerlestirAsil.etkin(); yerlestirAsil.bitir(); if (vardi) yerlestirmeYay(); },
   };
   const izgara = izgaraKur(sahne);
+  const firca = fircaImleciKur(sahne, yuzey);
+  const cetvel = cetvelKur(sahne);
   const kancalar: ArayuzKancalari = {};
   const yerlestirmeDinleyicileri = new Set<() => void>();
   const yerlestirmeYay = () => { for (const f of yerlestirmeDinleyicileri) f(); };
@@ -124,6 +131,9 @@ export function editorKur(a: EditorAyari): Editor {
   let onceki: ReturnType<EditorDurumu["hal"]> | null = null;
   let bas: { x: number; y: number; id: string | null; tur: "nesne" | "bos" | "yerlestir"; suruklendi: boolean; mod: SecimKipi } | null = null;
   let kutu: { x0: number; y0: number; x1: number; y1: number } | null = null;
+  /** Fırça / güneş vuruşu sürüyor: başlangıç hâli (bırakınca tek geri al adımı). */
+  let vurus: { tur: "firca" | "gunes"; once: ReturnType<EditorDurumu["hal"]>; silgi: boolean; x: number; saat: number; eklenen: number } | null = null;
+  let rng = rastgele(1);
 
   const tuvalNoktasi = (e: { clientX: number; clientY: number }) => { const r = tuval.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
   const dugumler = (idler: readonly string[]): Map<string, TransformNode> => {
@@ -152,14 +162,27 @@ export function editorKur(a: EditorAyari): Editor {
   const abonelikler = [
     durum.abone("secim", sahneyiYenile),
     durum.abone("tanim", sahneyiYenile),
-    durum.abone("arac", gizmoYenile),
+    durum.abone("arac", () => {
+      gizmoYenile();
+      firca.goster(durum.arac() === "firca" && durum.kip() === "editor");
+      if (durum.arac() !== "olcu") cetvel.temizle();
+      const ipucu: Partial<Record<AracAdi, string>> = {
+        firca: "fırça: sürükleyerek serpiştir · Shift basılı: sil · fırça varlıkları: tarayıcıda kartlara tıkla · ayarlar sağda",
+        gunes: level.tanim().zaman ? "güneş: yatay sürükle → saat (zaman tanımlı)" : "güneş: gökyüzüne sürükle → güneş oraya",
+        olcu: "ölç: iki noktaya tıkla · Esc temizler",
+        arazi: "arazi aracı henüz yok (spec 22 faz 7)",
+      };
+      const m = ipucu[durum.arac()];
+      if (m) durum.bildir(m);
+    }),
     durum.abone("ayarlar", () => { gizmoYenile(); kamera.hizAyarla(ayarlar().kameraHizi); }),
     durum.abone("kip", () => {
       const ed = durum.kip() === "editor";
       kamera.editorKipi(ed);
       vurgu.goster(ed);
       gizmoYenile();
-      if (!ed) { yerlestir.bitir(); vurgu.ustunde(null); }
+      firca.goster(ed && durum.arac() === "firca");
+      if (!ed) { yerlestir.bitir(); vurgu.ustunde(null); cetvel.temizle(); }
       else if (document.pointerLockElement === tuval) document.exitPointerLock();
     }),
     level.nesneler.yuklenince((id) => { if (durum.secim().includes(id)) vurguYenile(); }),
@@ -234,6 +257,49 @@ export function editorKur(a: EditorAyari): Editor {
   };
   let sonEklenen: string[] = [];
 
+  // ── fırça / güneş / ölçü ──
+  const fircaDamgasi = (n: Vec3, silgi: boolean) => {
+    const f = ayarlar().firca;
+    const t = durum.tanim();
+    if (silgi) {
+      const s = silgiDamgasi(t, { x: n[0], z: n[2] }, f.yaricap, f.varliklar);
+      if (s.idler.length) { durum.onizle(s.tanim); if (vurus) vurus.eklenen -= s.idler.length; }
+      return;
+    }
+    const dolu = (t.nesneler ?? []).map((m) => ({ x: m.konum[0], z: m.konum[2] }));
+    const adaylar = damgaAdaylari({ x: n[0], z: n[2] }, f, dolu, rng);
+    if (!adaylar.length) return;
+    const s = adaylariEkle(t, adaylar, (x) => {
+      const y = yuzey.altindaki(x.x, x.z, n[1] + 2);
+      return { y, donus: f.normaleHizala ? normaleHizaliDonus(yuzey.araziNormali(x.x, x.z), x.yaw) : [0, x.yaw, 0] };
+    });
+    durum.onizle(s.tanim);
+    if (vurus) vurus.eklenen += s.idler.length;
+  };
+  /** Güneş: zaman yoksa güneş imlecin gösterdiği yöne; zaman varsa yatay sürükleme saati değiştirir. */
+  const gunesSurukle = (p: { x: number; y: number }) => {
+    if (!vurus) return;
+    const t = vurus.once.tanim;
+    if (t.zaman) {
+      const saat = (((vurus.saat + ((p.x - vurus.x) / Math.max(1, tuval.clientWidth)) * 12) % 24) + 24) % 24;
+      durum.onizle({ ...durum.tanim(), zaman: { ...t.zaman, saat: Math.round(saat * 4) / 4 } });
+      durum.bildir(`saat ${String(Math.floor(saat)).padStart(2, "0")}:${String(Math.round((saat % 1) * 60) % 60).padStart(2, "0")} (bırak: kaydet, Esc: iptal)`);
+      return;
+    }
+    const d = yuzey.ekranIsini(p.x, p.y).direction;
+    const yon: Vec3 = [d.x, Math.max(0.03, d.y), d.z];
+    const x = durum.tanim();
+    durum.onizle({ ...x, isik: { ...x.isik, gunes: { ...x.isik.gunes, yon: yon.map((v) => Math.round(v * 1000) / 1000) as Vec3 } } });
+  };
+  const vurusBitir = () => {
+    if (!vurus) return;
+    const v = vurus; vurus = null;
+    firca.bitir();
+    const mesaj = v.tur === "gunes" ? (v.once.tanim.zaman ? "saat değişti" : "güneş yönü değişti")
+      : v.silgi ? `fırça: ${-v.eklenen} nesne silindi` : `fırça: ${v.eklenen} nesne serpiştirildi`;
+    durum.degistir((t) => t, mesaj, { onceki: v.once });
+  };
+
   // ── işaretçi ──
   const asagi = (e: PointerEvent) => {
     if (durum.kip() !== "editor") { if (e.button === 0) void tuval.requestPointerLock?.(); return; }
@@ -243,6 +309,31 @@ export function editorKur(a: EditorAyari): Editor {
     const p = tuvalNoktasi(e);
     const mod: SecimKipi = e.shiftKey ? "ekle" : e.ctrlKey || e.metaKey ? "tersle" : "yeni";
     if (yerlestir.etkin()) { bas = { ...p, id: null, tur: "yerlestir", suruklendi: false, mod }; return; }
+    const arac = durum.arac();
+    if (arac === "firca") {
+      const f = ayarlar().firca;
+      if (!f.varliklar.length && !e.shiftKey) { durum.bildir("fırça boş: varlık tarayıcısında kartlara tıklayarak fırçaya varlık ekle", true); return; }
+      vurus = { tur: "firca", once: durum.hal(), silgi: e.shiftKey, x: p.x, saat: 0, eklenen: 0 };
+      rng = rastgele((Date.now() % 1e9) | 0);
+      firca.basla();
+      const n = firca.imlec(p.x, p.y, f.yaricap, e.shiftKey);
+      if (n && firca.damgaZamani(n, f.yaricap)) fircaDamgasi(n, e.shiftKey);
+      tuval.setPointerCapture?.(e.pointerId);
+      return;
+    }
+    if (arac === "gunes") {
+      vurus = { tur: "gunes", once: durum.hal(), silgi: false, x: p.x, saat: level.dunya.saat, eklenen: 0 };
+      gunesSurukle(p);
+      tuval.setPointerCapture?.(e.pointerId);
+      return;
+    }
+    if (arac === "olcu") {
+      const h = yuzey.ekrandan(p.x, p.y);
+      if (!h) return;
+      const o = cetvel.tikla(h.nokta);
+      durum.bildir(o ? olcumMetni(o) : "ölçü: ikinci noktaya tıkla");
+      return;
+    }
     const id = nesneAlti(p.x, p.y);
     bas = { ...p, id, tur: id ? "nesne" : "bos", suruklendi: false, mod };
     tuval.setPointerCapture?.(e.pointerId);
@@ -253,6 +344,19 @@ export function editorKur(a: EditorAyari): Editor {
     ctrl = e.ctrlKey || e.metaKey;
     if (durum.kip() !== "editor") return;
     if (yerlestir.etkin() && !kamera.bakiyor()) yerlestir.tasi(p.x, p.y, ayarlar().yaslama, ctrl);
+    if (durum.arac() === "firca" && !kamera.bakiyor()) {
+      const f = ayarlar().firca;
+      const n = firca.imlec(p.x, p.y, f.yaricap, vurus ? vurus.silgi : e.shiftKey);
+      if (vurus?.tur === "firca" && n && (e.buttons & 1) && firca.damgaZamani(n, f.yaricap)) fircaDamgasi(n, vurus.silgi);
+      return;
+    }
+    if (vurus?.tur === "gunes" && (e.buttons & 1)) { gunesSurukle(p); return; }
+    if (durum.arac() === "olcu" && !kamera.bakiyor()) {
+      const h = yuzey.ekrandan(p.x, p.y);
+      const o = cetvel.imlec(h ? h.nokta : null);
+      if (o) durum.bildir(olcumMetni(o));
+      return;
+    }
     if (!bas || !(e.buttons & 1)) return;
     if (!bas.suruklendi && Math.hypot(p.x - bas.x, p.y - bas.y) > SURUKLEME_ESIGI) {
       bas.suruklendi = true;
@@ -270,6 +374,7 @@ export function editorKur(a: EditorAyari): Editor {
     else if (kutu) { kutu.x1 = p.x; kutu.y1 = p.y; kancalar.secimKutusu?.(kutu); }
   };
   const yukari = (e: PointerEvent) => {
+    if (e.button === 0 && vurus) { tuval.releasePointerCapture?.(e.pointerId); vurusBitir(); return; }
     if (e.button !== 0 || !bas) return;
     const b = bas; bas = null;
     tuval.releasePointerCapture?.(e.pointerId);
@@ -300,6 +405,12 @@ export function editorKur(a: EditorAyari): Editor {
     const adim = (e.shiftKey ? 90 : ayarlar().yaslama.aci ? ayarlar().yaslama.aciAdim : 15) * Math.sign(e.deltaY || e.deltaX);
     if (surukle.surukleniyor()) surukle.dondur(adim);
     else if (yerlestir.etkin()) yerlestir.dondur(adim);
+    else if (durum.arac() === "firca" && (e.ctrlKey || e.metaKey)) {
+      // Ctrl+tekerlek: fırça yarıçapı (tekerlek tek başına yine kamerayı yaklaştırır).
+      durum.ayarDegistir((a) => ({ ...a, firca: { ...a.firca, yaricap: Math.max(0.5, Math.min(60, Math.round(a.firca.yaricap * (e.deltaY < 0 ? 1.15 : 1 / 1.15) * 10) / 10)) } }));
+      if (imlec) firca.imlec(imlec.x, imlec.y, ayarlar().firca.yaricap, false);
+      durum.bildir(`fırça yarıçapı ${ayarlar().firca.yaricap} m`);
+    }
     else return;
     e.preventDefault();
     e.stopImmediatePropagation();
@@ -389,6 +500,8 @@ export function editorKur(a: EditorAyari): Editor {
       case "sil": return seciliyle((ids) => { durum.degistir((t) => K.nesneSil(t, ids).tanim, `${ids.length} nesne silindi`); });
       case "hepsiniSec": durum.secimAyarla(hepsiniSec(durum.tanim())); return;
       case "secimiBirak":
+        if (vurus) { const v = vurus; vurus = null; firca.bitir(); durum.onizle(v.once.tanim); durum.bildir("iptal"); return; }
+        if (durum.arac() === "olcu") { cetvel.temizle(); durum.bildir("ölçü temizlendi"); }
         if (surukle.surukleniyor()) { surukle.iptal(); if (onceki) durum.onizle(onceki.tanim); onceki = null; bas = null; durum.bildir("sürükleme iptal"); return; }
         if (gizmo.iptal()) { if (onceki) durum.onizle(onceki.tanim); onceki = null; durum.bildir("dönüşüm iptal"); return; }
         if (kutu) { kutu = null; bas = null; kancalar.secimKutusu?.(null); return; }
@@ -480,7 +593,8 @@ export function editorKur(a: EditorAyari): Editor {
     kamera.guncelle(dt);
     const ed = durum.kip() === "editor";
     // Üstünde durma vurgusu: karede en çok bir seçim ışını.
-    if (ed && imlecOynadi && imlec && !bas && !yerlestir.etkin() && !kamera.bakiyor() && !gizmo.surukleniyor()) {
+    const secmeAraci = !["firca", "gunes", "olcu", "arazi"].includes(durum.arac());
+    if (ed && secmeAraci && imlecOynadi && imlec && !bas && !yerlestir.etkin() && !kamera.bakiyor() && !gizmo.surukleniyor()) {
       imlecOynadi = false;
       const id = gizmo.ustunde() ? null : nesneAlti(imlec.x, imlec.y);
       vurgu.ustunde(id && !durum.secim().includes(id) ? level.nesneler.meshleri(id) : null);
@@ -532,7 +646,7 @@ export function editorKur(a: EditorAyari): Editor {
       tuval.removeEventListener("contextmenu", sagTikMenusu);
       removeEventListener("keydown", tusBas);
       removeEventListener("keyup", tusBirak);
-      yerlestir.bitir(); gizmo.yokEt(); vurgu.yokEt(); izgara.yokEt(); kamera.yokEt();
+      yerlestir.bitir(); gizmo.yokEt(); vurgu.yokEt(); izgara.yokEt(); kamera.yokEt(); firca.yokEt(); cetvel.yokEt();
     },
   };
 }

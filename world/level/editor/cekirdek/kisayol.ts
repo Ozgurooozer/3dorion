@@ -13,7 +13,7 @@
 export type Baglam = "editor" | "ucus" | "her";
 
 export type Eylem =
-  | "aracSec" | "aracTasi" | "aracDondur" | "aracOlcek" | "aracKutu" | "aracFirca" | "aracArazi"
+  | "aracSec" | "aracTasi" | "aracDondur" | "aracOlcek" | "aracKutu" | "aracFirca" | "aracArazi" | "aracGunes" | "aracOlcu"
   | "geriAl" | "ileriAl" | "cogalt" | "kopyala" | "yapistir" | "kes" | "sil" | "hepsiniSec" | "secimiBirak"
   | "grupla" | "grubuCoz" | "gizle" | "hepsiniGoster" | "kilitle" | "zemineIndir" | "uzayDegistir"
   | "odakla" | "solaDondur" | "sagaDondur" | "kaydirSol" | "kaydirSag" | "kaydirIleri" | "kaydirGeri" | "kaydirYukari" | "kaydirAsagi"
@@ -50,8 +50,10 @@ export const KISAYOLLAR: readonly Kisayol[] = [
   k("aracDondur", "Digit3", ARAC, "Döndür (gizmo halkaları)"),
   k("aracOlcek", "Digit4", ARAC, "Ölçekle"),
   k("aracKutu", "Digit5", ARAC, "Sınır kutusu (köşeden ölçek/dönüş)"),
-  k("aracFirca", "Digit6", ARAC, "Fırça: boya-yerleştir"),
+  k("aracFirca", "Digit6", ARAC, "Fırça: boya-yerleştir (Shift basılı: sil, Ctrl+tekerlek: yarıçap)"),
   k("aracArazi", "Digit7", ARAC, "Arazi fırçası"),
+  k("aracGunes", "Digit8", ARAC, "Güneş: gökyüzüne sürükle (zaman tanımlıysa yatay sürükleme saati değiştirir)"),
+  k("aracOlcu", "Digit9", ARAC, "Ölç: iki noktaya tıkla, aradaki mesafe"),
   k("uzayDegistir", "KeyX", ARAC, "Gizmo: yerel ⇄ dünya ekseni"),
   k("yaslamaAcKapa", "KeyN", ARAC, "Izgaraya yaslama aç/kapa (Ctrl basılı = geçici tersle)"),
 

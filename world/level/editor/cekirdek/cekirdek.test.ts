@@ -13,6 +13,9 @@ import { secimUygula, secimiTemizle, hepsiniSec, kutudakiler } from "./secim.ts"
 import { yasla, etkin, konumYasla, normaleHizaliDonus, YASLAMA_VARSAYILAN } from "./yaslama.ts";
 import { KISAYOLLAR, cakismalar, eslesen, tusMetni } from "./kisayol.ts";
 import { parcaAl, parcaYerlestir, parcaOku, parcaMetni } from "./pano.ts";
+import { FIRCA_VARSAYILAN, damgaAdaylari, adaylariEkle, silgiDamgasi } from "./firca.ts";
+import { rastgele } from "../../cekirdek/rastgele.ts";
+import { olc } from "../sahne/cetvel.ts";
 
 const N = (id: string, x = 0, ek: Partial<NesneYeri> = {}): NesneYeri => ({ id, varlik: "A", konum: [x, 0, 0], donus: 0, olcek: 1, ...ek });
 const T = (nesneler: NesneYeri[], ek: Partial<LevelTanimi> = {}): LevelTanimi => ({ ...ornekTanim(), katmanlar: [], nesneler, ...ek });
@@ -264,3 +267,37 @@ test("parça metni geri okunur", () => {
   assert.deepEqual(parcaOku(parcaMetni(p)), p);
 });
 test("rastgele metin parça diye yutulmaz", () => { assert.throws(() => parcaOku('{"merhaba":1}'), /parça/); });
+
+// ── fırça ──
+const FIRCA = { ...FIRCA_VARSAYILAN, varliklar: ["agac"], yaricap: 5, yogunluk: 0.2, minAralik: 1.5 };
+const sabitRng = () => { const r = rastgele(7); return () => r(); };
+test("fırça boşsa damga aday üretmez", () => { assert.deepEqual(damgaAdaylari({ x: 0, z: 0 }, { ...FIRCA, varliklar: [] }, [], sabitRng()), []); });
+test("damga adayları dairenin içinde", () => {
+  assert.ok(damgaAdaylari({ x: 10, z: 10 }, FIRCA, [], sabitRng()).every((a) => Math.hypot(a.x - 10, a.z - 10) <= 5 + 1e-9));
+});
+test("damga adayları birbirine en az aralıktan yakın değil", () => {
+  const l = damgaAdaylari({ x: 0, z: 0 }, FIRCA, [], sabitRng());
+  const enYakin = Math.min(...l.flatMap((a, i) => l.slice(i + 1).map((b) => Math.hypot(a.x - b.x, a.z - b.z))));
+  assert.ok(enYakin >= 1.5, `en yakın ${enYakin}`);
+});
+test("dolu noktanın dibine aday konmaz", () => {
+  assert.ok(damgaAdaylari({ x: 0, z: 0 }, FIRCA, [{ x: 0, z: 0 }], sabitRng()).every((a) => Math.hypot(a.x, a.z) >= 1.5));
+});
+test("aday ölçeği aralıkta", () => {
+  assert.ok(damgaAdaylari({ x: 0, z: 0 }, { ...FIRCA, olcekMin: 0.5, olcekMax: 0.6 }, [], sabitRng()).every((a) => a.olcek >= 0.5 && a.olcek <= 0.6));
+});
+test("adaylar yükseklik işleviyle eklenir", () => {
+  const s = adaylariEkle(T([]), [{ varlik: "agac", x: 1, z: 2, yaw: 30, olcek: 1 }], () => ({ y: 4, donus: [0, 30, 0] }));
+  assert.deepEqual(s.tanim.nesneler![0]!.konum, [1, 4, 2]);
+});
+test("silgi yalnız fırça varlığını siler", () => {
+  const t = T([N("a", 0, { varlik: "agac" }), N("b", 1, { varlik: "bina" })]);
+  assert.deepEqual(idler(silgiDamgasi(t, { x: 0, z: 0 }, 3, ["agac"]).tanim), ["b"]);
+});
+test("silgi kilitli fırça varlığına dokunmaz", () => {
+  const t = T([N("a", 0, { varlik: "agac", kilitli: true })]);
+  assert.equal(silgiDamgasi(t, { x: 0, z: 0 }, 3, ["agac"]).idler.length, 0);
+});
+
+// ── ölçü ──
+test("ölçü: yatay ve dikey ayrı", () => { assert.deepEqual(olc([0, 0, 0], [3, 2, 4]), { toplam: Math.hypot(3, 2, 4), yatay: 5, dikey: 2 }); });

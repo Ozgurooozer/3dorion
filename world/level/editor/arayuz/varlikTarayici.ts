@@ -29,6 +29,9 @@ const VT_CSS = `
 .ed-vt .kart i { color: var(--ed-soluk); font-size: 10px; font-style: normal; }
 .ed-vt .kart .yildiz { position: absolute; right: 4px; top: 3px; color: #8a97ad; font-size: 14px; line-height: 1; }
 .ed-vt .kart .yildiz.acik { color: var(--ed-uyari); }
+.ed-vt .kart.fircada { border-color: #6fd18f; box-shadow: 0 0 0 1px #6fd18f inset; }
+.ed-vt .kart .firca-rozet { position: absolute; left: 4px; top: 3px; font-size: 12px; }
+.ed-vt .firca-ipucu { color: #8fe0a8; font-size: 11px; }
 .ed-vt .kart .hazir-ikon { width: 100%; aspect-ratio: 1; display: grid; place-items: center; font-size: 32px; background: #0d1320; border-radius: 4px; }
 .ed-vt .bos { color: var(--ed-soluk); padding: 12px; }
 `;
@@ -92,14 +95,25 @@ export function varlikTarayicisiKur(ed: Editor, hazir: HazirKaynagi | null): Var
   };
 
   const varlikKarti = (v: Varlik) => {
-    const k = el("div", `kart${ed.yerlestiriliyor()?.ad === v.ad ? " secili" : ""}`);
-    k.title = `${v.ad}\n${v.boyut.map((x) => x.toFixed(1)).join(" × ")} m · ${v.ucgen} üçgen · ${(v.bayt / 1024).toFixed(0)} KB\nTıkla: yerleştir (art arda) · Sürükle: sahneye bırak`;
+    const fircaKipi = ed.durum.arac() === "firca";
+    const fircada = ed.durum.ayarlar().firca.varliklar.includes(v.ad);
+    const k = el("div", `kart${ed.yerlestiriliyor()?.ad === v.ad ? " secili" : ""}${fircada ? " fircada" : ""}`);
+    k.title = `${v.ad}\n${v.boyut.map((x) => x.toFixed(1)).join(" × ")} m · ${v.ucgen} üçgen · ${(v.bayt / 1024).toFixed(0)} KB\n`
+      + (fircaKipi ? "Tıkla: fırçaya ekle / çıkar" : "Tıkla: yerleştir (art arda) · Sürükle: sahneye bırak");
     const r = el("img"); r.src = varlik(v.onizleme); r.alt = ""; r.loading = "lazy";
     const y = el("span", `yildiz${yildizli.has(v.ad) ? " acik" : ""}`, yildizli.has(v.ad) ? "★" : "☆");
     y.title = "yıldızla";
     y.onclick = (e) => { e.stopPropagation(); if (yildizli.has(v.ad)) yildizli.delete(v.ad); else yildizli.add(v.ad); yaz(YILDIZ, [...yildizli]); ciz(); };
     k.append(r, y, el("span", "", kisaAd(v.ad)), el("i", "", `${v.boyut[0].toFixed(1)}×${v.boyut[2].toFixed(1)}×${v.boyut[1].toFixed(1)} m`));
-    k.onclick = () => { kullanildi(v.ad); ed.yerlestirmeyeBasla({ tur: "varlik", ad: v.ad }); };
+    if (fircada) k.append(el("b", "firca-rozet", "🖌"));
+    k.onclick = () => {
+      kullanildi(v.ad);
+      if (ed.durum.arac() === "firca") {
+        ed.durum.ayarDegistir((a) => ({ ...a, firca: { ...a.firca, varliklar: a.firca.varliklar.includes(v.ad) ? a.firca.varliklar.filter((x) => x !== v.ad) : [...a.firca.varliklar, v.ad] } }));
+        return;
+      }
+      ed.yerlestirmeyeBasla({ tur: "varlik", ad: v.ad });
+    };
     k.draggable = true;
     k.ondragstart = (e) => { kullanildi(v.ad); surukleBasla(e, { tur: "varlik", ad: v.ad }, r); };
     return k;
@@ -158,6 +172,7 @@ export function varlikTarayicisiKur(ed: Editor, hazir: HazirKaynagi | null): Var
     if (ayar.suzgec === "yildiz") liste = liste.filter((v) => yildizli.has(v.ad));
     if (ayar.suzgec === "son") liste = son.map((ad) => liste.find((v) => v.ad === ad)).filter((v): v is Varlik => !!v);
     izgara.replaceChildren(...(liste.length ? liste.map(varlikKarti) : [el("div", "bos", "eşleşen varlık yok")]));
+    if (ed.durum.arac() === "firca") izgara.prepend(el("div", "firca-ipucu", `🖌 Fırça kipi: kartlara tıklayarak fırçaya ekle/çıkar (${ed.durum.ayarlar().firca.varliklar.length} seçili)`));
   };
 
   ed.katalog().then((k) => { katalog = k; ciz(); })
@@ -166,6 +181,9 @@ export function varlikTarayicisiKur(ed: Editor, hazir: HazirKaynagi | null): Var
     const ad = ed.yerlestiriliyor()?.ad;
     for (const k of izgara.querySelectorAll<HTMLElement>(".kart")) k.classList.toggle("secili", !!ad && k.querySelector("span:not(.yildiz)")?.textContent === (ayar.sekme === "varlik" ? kisaAd(ad) : ad));
   });
+  ed.durum.abone("arac", () => ciz());
+  let sonFirca = JSON.stringify(ed.durum.ayarlar().firca.varliklar);
+  ed.durum.abone("ayarlar", () => { const f = JSON.stringify(ed.durum.ayarlar().firca.varliklar); if (f !== sonFirca) { sonFirca = f; ciz(); } });
   if (ayar.sekme === "hazir") hazirlariYenile();
   ciz();
   return { kok, araOdakla: () => { ara.focus(); ara.select(); }, hazirlariYenile };
