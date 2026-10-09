@@ -150,6 +150,24 @@ export function levelTanimiDogrula(v: unknown): Dogrulama {
 /** Tip koruyucu: tanım geçerli mi. */
 export function levelMi(v: unknown): v is LevelTanimi { return hataBul(v) === null; }
 
+/**
+ * Tek yerleşimin hatası (alan + neden; geçerliyse null). `grupIdleri` verilmezse grup bağı denetlenmez (pano ve
+ * hazır yapı dosyası: grubu yapıştırırken çözülür). Kimlik benzersizliği listenin işi (çağıran denetler).
+ */
+export function nesneHatasi(n: unknown, grupIdleri?: ReadonlySet<string>): { alan: string; neden: string } | null {
+  const k = nesneMi(n) ? n["konum"] : null;
+  if (!nesneMi(n) || typeof n["varlik"] !== "string" || !n["varlik"] || !vec3Mu(k)) return { alan: "", neden: "varlik (ad) + konum [x,y,z] gerekli" };
+  if (!sayiMi(n["donus"]) && !vec3Mu(n["donus"])) return { alan: "donus", neden: "sayı ya da [x,y,z] olmalı" };
+  const o = n["olcek"];
+  if (!(sayiMi(o) && o > 0) && !(vec3Mu(o) && o.every((x) => x > 0))) return { alan: "olcek", neden: "> 0 sayı ya da [x,y,z] (> 0) olmalı" };
+  if (n["id"] !== undefined && !metinMi(n["id"])) return { alan: "id", neden: "boş olmayan metin olmalı" };
+  if (n["ad"] !== undefined && typeof n["ad"] !== "string") return { alan: "ad", neden: "metin olmalı" };
+  const g = n["grup"];
+  if (g !== undefined && (typeof g !== "string" || (grupIdleri && !grupIdleri.has(g)))) return { alan: "grup", neden: `olmayan grup "${String(g)}"` };
+  const e = secimliHata(n, ["gizli", "kilitli"]);
+  return e ? { alan: e, neden: "mantıksal olmalı" } : null;
+}
+
 /** İlk hatanın yolu ve nedeni; geçerliyse `null`. */
 function hataBul(v: unknown): string | null {
   const h = (yol: string, neden: string): string => `${yol}: ${neden}`;
@@ -222,22 +240,13 @@ function hataBul(v: unknown): string | null {
     if (!Array.isArray(nesneler)) return h("nesneler", "dizi değil");
     const idler = new Set<string>();
     for (const [i, n] of nesneler.entries()) {
-      const k = nesneMi(n) ? n["konum"] : null;
-      if (!nesneMi(n) || typeof n["varlik"] !== "string" || !n["varlik"] || !vec3Mu(k)) {
-        return h(`nesneler[${i}]`, "varlik (ad) + konum [x,y,z] gerekli");
+      const e = nesneHatasi(n, grupIdleri);
+      if (e) return h(`nesneler[${i}]${e.alan ? `.${e.alan}` : ""}`, e.neden);
+      const id = (n as Record<string, unknown>)["id"];
+      if (typeof id === "string") {
+        if (idler.has(id)) return h(`nesneler[${i}].id`, `yinelenen kimlik "${id}"`);
+        idler.add(id);
       }
-      if (!sayiMi(n["donus"]) && !vec3Mu(n["donus"])) return h(`nesneler[${i}].donus`, "sayı ya da [x,y,z] olmalı");
-      const o = n["olcek"];
-      if (!(sayiMi(o) && o > 0) && !(vec3Mu(o) && o.every((x) => x > 0))) return h(`nesneler[${i}].olcek`, "> 0 sayı ya da [x,y,z] (> 0) olmalı");
-      if (n["id"] !== undefined) {
-        if (!metinMi(n["id"])) return h(`nesneler[${i}].id`, "boş olmayan metin olmalı");
-        if (idler.has(n["id"])) return h(`nesneler[${i}].id`, `yinelenen kimlik "${n["id"]}"`);
-        idler.add(n["id"]);
-      }
-      if (n["ad"] !== undefined && typeof n["ad"] !== "string") return h(`nesneler[${i}].ad`, "metin olmalı");
-      if (n["grup"] !== undefined && (typeof n["grup"] !== "string" || !grupIdleri.has(n["grup"]))) return h(`nesneler[${i}].grup`, `olmayan grup "${String(n["grup"])}"`);
-      const e = secimliHata(n, ["gizli", "kilitli"]);
-      if (e) return h(`nesneler[${i}].${e}`, "mantıksal olmalı");
     }
   }
   const yerler = v["kameraYerleri"];
