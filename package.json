@@ -24,6 +24,7 @@
     "vite": "^8.3.0"
   },
   "dependencies": {
+    "@babylonjs/addons": "^9.30.0",
     "@babylonjs/core": "^9.26.0",
     "@babylonjs/loaders": "^9.26.0",
     "@xterm/addon-fit": "^0.11.0",

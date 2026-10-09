@@ -10,7 +10,8 @@ import { hataImzasiModulu } from "./hataImzasi.ts";
 import { debugTaramaModulu } from "./debugTarama.ts";
 import { fircaModulu } from "./firca.ts";
 import { elyazmasiModulu } from "./elyazmasi.ts";
+import { atmosferModulu } from "./atmosfer.ts";
 
-const liste: ShaderModulu[] = [gokZamaniModulu, paletHaritasiModulu, zamanKirigiModulu, hataImzasiModulu, debugTaramaModulu, fircaModulu, elyazmasiModulu];
+const liste: ShaderModulu[] = [gokZamaniModulu, paletHaritasiModulu, zamanKirigiModulu, hataImzasiModulu, debugTaramaModulu, fircaModulu, elyazmasiModulu, atmosferModulu];
 
 export const SHADERLAR: ShaderKaydi = new Map(liste.map((m) => [m.tur, m]));

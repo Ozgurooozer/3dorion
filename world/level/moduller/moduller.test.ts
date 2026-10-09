@@ -7,7 +7,7 @@ import { GOK_VARSAYILAN, gokGeometrisi } from "./gok.ts";
 import { ZEMIN_VARSAYILAN, zeminGeometrisi, zeminYuksekligi, zeminRenkAdi } from "./zemin.ts";
 import { BULUT_VARSAYILAN, bulutGeometrisi, bulutYerleri } from "./bulut.ts";
 import { KAYA_VARSAYILAN, kayaGeometrisi } from "./kaya.ts";
-import { CIM_VARSAYILAN, cimOrnekleri, tutamGeometrisi } from "./cim.ts";
+import { CIM_VARSAYILAN, cimAltKume, cimHucreleri, cimOrnekleri, tutamGeometrisi, yaprakUcgeni } from "./cim.ts";
 import { DEKOR_VARSAYILAN, dekorYerleri, dekorGeometrisi, silindir, kutu, kure } from "./dekor.ts";
 import { ayarBirlestir } from "../cekirdek/modul.ts";
 import { ucgenSayisi, type Geometri } from "../cekirdek/geometri.ts";
@@ -107,8 +107,20 @@ test("çim tutamı rüzgâr sözleşmesine uyar: kök y = 0, uç y = 1", () => {
   const y = konumY(tutamGeometrisi(CIM_VARSAYILAN));
   assert.deepEqual([Math.min(...y), Math.max(...y)], [0, 1]);
 });
-test("çim tutamı yaprak başına 3 üçgen", () => {
-  assert.equal(ucgenSayisi(tutamGeometrisi({ ...CIM_VARSAYILAN, yaprak: 4 })), 12);
+test("çim yaprağı dilim başına 2 üçgen, uç tek üçgen (2·dilim − 1)", () => {
+  const g = (dilim: number) => ucgenSayisi(tutamGeometrisi({ ...CIM_VARSAYILAN, yaprak: 4, dilim }));
+  assert.deepEqual([g(1), g(3), g(4)], [4 * yaprakUcgeni(1), 4 * yaprakUcgeni(3), 4 * yaprakUcgeni(4)]);
+});
+test("çim detay seviyeleri üçgeni azaltır, her seviye rüzgâr sözleşmesine uyar (kök 0, uç 1)", () => {
+  const u = [0, 1, 2].map((s) => ucgenSayisi(tutamGeometrisi(CIM_VARSAYILAN, s)));
+  const sinir = [0, 1, 2].map((s) => { const y = konumY(tutamGeometrisi(CIM_VARSAYILAN, s)); return [Math.min(...y), Math.max(...y)]; });
+  assert.deepEqual([u[0]! > u[1]! && u[1]! > u[2]!, sinir], [true, [[0, 1], [0, 1], [0, 1]]]);
+});
+test("çim yaprağı kavisli: uç kökten yatay uzakta (düz çubuk değil)", () => {
+  const g = tutamGeometrisi({ ...CIM_VARSAYILAN, yaprak: 1 });
+  let uzak = 0;
+  for (let i = 0; i < g.konum.length; i += 3) if (g.konum[i + 1] === 1) uzak = Math.hypot(g.konum[i]!, g.konum[i + 2]!);
+  assert.ok(uzak > CIM_VARSAYILAN.yatma * 0.55, String(uzak));
 });
 test("çim normalleri yukarı (zeminle aynı ışık)", () => {
   assert.ok(normalY(tutamGeometrisi(CIM_VARSAYILAN)).every((y) => y === 1));
@@ -141,6 +153,25 @@ test("çim merkeze yığılır: merkezYogunluk büyüdükçe iç yarıdaki pay a
 test("çim rengi altındaki zeminden (uç karışımı 0 ve oynama 0 iken tam zemin rengi)", () => {
   const o = cimOrnekleri({ ...CIM_AZ, ucKarisim: 0, renkOynama: 0 }, () => 0, () => [0.2, 0.4, 0.1], adla);
   assert.deepEqual(Array.from(o.renk.slice(0, 3)).map((v) => +v.toFixed(4)), [0.2, 0.4, 0.1]);
+});
+test("çim boyları çeşitli: uzun tutamlar var, ama azınlıkta", () => {
+  const o = cimOrnekleri({ ...CIM_AZ, bosluk: 0, merkezYogunluk: 1 }, () => 0, () => null, adla);
+  const boylar = Array.from({ length: o.adet }, (_, i) => o.matris[i * 16 + 5]!);
+  const uzun = boylar.filter((b) => b > CIM_AZ.boyMax * 1.4).length / o.adet;
+  assert.ok(uzun > 0.01 && uzun < 0.2, String(uzun));
+});
+test("çim hücreleri her tutamı tam bir kez kapsar ve hücreye düşer", () => {
+  const o = cimOrnekleri(CIM_AZ, () => 0, () => null, adla), hucre = 16;
+  const hs = cimHucreleri(o, hucre);
+  const hepsi = hs.flatMap((h) => h.idx).sort((a, b) => a - b);
+  const dogru = hs.every((h) => h.idx.every((i) => Math.floor(o.matris[i * 16 + 12]! / hucre) === h.ix && Math.floor(o.matris[i * 16 + 14]! / hucre) === h.iz));
+  assert.deepEqual([hepsi.length === o.adet && hepsi.every((v, i) => v === i), dogru], [true, true]);
+});
+test("çim alt kümesi: her adim'inci tutam kalır, boy/konum aynı, yatay ölçek genişlik kat", () => {
+  const o = cimOrnekleri(CIM_AZ, () => 0, () => null, adla), idx = Array.from({ length: 40 }, (_, i) => i);
+  const k = cimAltKume(o, idx, 4, 2);
+  const bakis = [k.adet, k.matris[5] === o.matris[5], k.matris[12] === o.matris[12], k.matris[0] === o.matris[0]! * 2];
+  assert.deepEqual(bakis, [10, true, true, true]);
 });
 test("çim tohumla belirleyici", () => {
   const a = cimOrnekleri(CIM_AZ, () => 0, () => null, adla), b = cimOrnekleri(CIM_AZ, () => 0, () => null, adla);
