@@ -137,8 +137,10 @@ değiştiyse tutamların y'si yerinde güncellenir; bölge su seviyesine (`enAlc
 | çim y'si yerinde (yeniden üretim yok) | **22 ms** ort., en çok 32 (ilki 46: aday dizini) |
 Kare başına çizim çağrıları değişmedi (113/86/106/175/184); fps bu oturumda makine yüküyle oynadı (aynı kodla
 ardışık iki koşuda taban 584 ve 354) — fps karşılaştırması için sessiz makinede yinelenmeli.
-Zemin mesh karesi ova'da 5,8 m (`bolum` 110): 2 m'lik arazi verisi kaba görünür; ince şekil için bolum artırılmalı
-(220 → 2,9 m, 97 bin üçgen) — lowpoly görünüşü değiştirdiği için Ozyn'in kararı.
+**Zemin çözünürlüğü (Ozyn: "sana mantıklı olan"):** ova `bolum` 110 → **190** (kare 5,8 → 3,4 m, 24 → 72 bin
+üçgen). 110/220/320 aynı tepe düzenlemesiyle görüntülendi: 110'da tepe eteğinde açılı düz levha ve çim–mesh
+uyumsuzluğu, 220'de yumuşak geçiş; 190 220'ye yakın ve spec 17 ön kayıtlı üçgen bütçesinin (gök+zemin+bulut+kaya
+< 80 bin; 220 = 98 bin aşıyordu) içinde. Faset görünüşü korunuyor; fps vsync tavanında (100) değişmedi.
 
 ## 7. Yapılmayanlar (dürüstçe)
 - Hidrolik erozyon, ayna, bölge kopyala/yapıştır, arazi deliği, desen fırçası, katmanlı arazi düzenlemesi (§6).

@@ -21,8 +21,7 @@
 ## Ova (spec 17) — sıradaki adımlar, her biri ayrı onay
 - **Spec 19 bütçe aşımı (karar):** cel +538, toon +594 MiB ve 158 çizim, anime90 +637 MiB (sınır 500 MiB / 150).
   Seçenekler `specs/19` §4 sonunda.
-- **Spec 22 — ova zemin çözünürlüğü (karar):** mesh karesi 5,8 m, arazi verisi 2 m; ince heykel için `bolum` 220
-  (2,9 m) — lowpoly görünüşü değişir. Şehir parçaları dalgalı zemine gömülebiliyor: arazi aracı "Düzle" ile altları düzlenebilir.
+- Şehir parçaları dalgalı zemine gömülebiliyor: arazi aracı "Düzle" ile altları düzlenebilir (araç var, ova'da yapılmadı).
 - **Spec 22 açıkları:** bağlı prefab yok; hazır yapı/kaydet yalnız dev sunucusunda; dönmüş nesnelerde gruplu eksen
   ölçeği kayma üretir; çim nesne tabanından geçer; hidrolik erozyon/ayna/bölge kopyala/arazi deliği yok; editör fps'i
   sessiz makinede yeniden ölçülmeli (bu oturumda makine yüklüydü).
