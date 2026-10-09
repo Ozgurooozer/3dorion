@@ -16,6 +16,8 @@ import { Matrix } from "@babylonjs/core/Maths/math.vector";
 import "@babylonjs/core/Culling/ray";
 import type { Level } from "../cekirdek/levelKur.ts";
 import type { LevelTanimi, NesneYeri } from "../cekirdek/levelTanimi.ts";
+import { donusVec, kisaDonus } from "../cekirdek/donusum.ts";
+import { yeniId } from "../cekirdek/kimlik.ts";
 import { KATEGORI_ADLARI, kisaAd, yasla, type Katalog, type Varlik } from "../cekirdek/katalog.ts";
 import { varlik } from "../../varlik.ts";
 
@@ -64,7 +66,7 @@ export function varlikTarayiciKur(a: TarayiciAyari): { acikMi(): boolean; acKapa
   let hayalet: TransformNode | null = null;
   let hayaletNesil = 0;
   let donus = 0;
-  let secilenNesne: number | null = null;     // seçme kipi
+  let secilenNesne: string | null = null;     // seçme kipi (yerleşim kimliği)
   const durumYaz = (m: string) => { durum.textContent = m; };
 
   // ── üst şerit ──
@@ -137,33 +139,31 @@ export function varlikTarayiciKur(a: TarayiciAyari): { acikMi(): boolean; acKapa
     const p = zemindeNokta();
     if (!secilenVarlik || !p) return;
     const n: NesneYeri = { varlik: secilenVarlik.ad, konum: p.map((x) => Math.round(x * 100) / 100) as [number, number, number], donus, olcek: 1 };
-    a.degistir((t) => ({ ...t, nesneler: [...(t.nesneler ?? []), n] }), `yerleştirildi: ${kisaAd(n.varlik)}`);
+    a.degistir((t) => ({ ...t, nesneler: [...(t.nesneler ?? []), { id: yeniId((t.nesneler ?? []).map((x) => x.id ?? "")), ...n }] }), `yerleştirildi: ${kisaAd(n.varlik)}`);
   };
 
   // ── seçme ──
-  const vurgula = (i: number | null, acik: boolean) => {
-    if (i === null) return;
-    for (const m of sahne.meshes) if (level.nesneler.indeksi(m) === i) m.showBoundingBox = acik;
+  const vurgula = (id: string | null, acik: boolean) => {
+    if (id === null) return;
+    for (const m of level.nesneler.meshleri(id)) m.showBoundingBox = acik;
   };
   const seciliBirak = () => { vurgula(secilenNesne, false); secilenNesne = null; };
   const sec = () => {
-    const p = sahne.pick(sahne.pointerX, sahne.pointerY, (m) => m.isPickable && level.nesneler.indeksi(m) !== null, false, kamera);
+    const p = sahne.pick(sahne.pointerX, sahne.pointerY, (m) => m.isPickable && level.nesneler.idsi(m) !== null, false, kamera);
     seciliBirak();
-    const i = level.nesneler.indeksi(p?.pickedMesh);
-    if (i === null) { durumYaz("Bir varlığa tıkla → zemine yerleştir. Sahnedeki nesneye tıkla → seç."); return; }
-    secilenNesne = i;
-    vurgula(i, true);
-    const n = level.tanim().nesneler?.[i];
-    durumYaz(`seçili: ${n ? kisaAd(n.varlik) : i} — Q/E döndür (Shift 90°) · Del sil · Esc bırak`);
+    const id = level.nesneler.idsi(p?.pickedMesh);
+    if (id === null) { durumYaz("Bir varlığa tıkla → zemine yerleştir. Sahnedeki nesneye tıkla → seç."); return; }
+    secilenNesne = id;
+    vurgula(id, true);
+    const n = level.tanim().nesneler?.find((x) => x.id === id);
+    durumYaz(`seçili: ${n ? kisaAd(n.varlik) : id} — Q/E döndür (Shift 90°) · Del sil · Esc bırak`);
   };
   const seciliyiDegistir = (f: (n: NesneYeri) => NesneYeri | null, mesaj: string) => {
     const i = secilenNesne;
     if (i === null) return;
     vurgula(i, false);
     a.degistir((t) => {
-      const liste = [...(t.nesneler ?? [])];
-      const yeni = liste[i] ? f(liste[i]!) : null;
-      if (yeni) liste[i] = yeni; else liste.splice(i, 1);
+      const liste = (t.nesneler ?? []).flatMap((n) => (n.id === i ? (f(n) ?? []) : n));
       return { ...t, nesneler: liste };
     }, mesaj);
     if (mesaj.startsWith("silindi")) secilenNesne = null;
@@ -192,7 +192,7 @@ export function varlikTarayiciKur(a: TarayiciAyari): { acikMi(): boolean; acKapa
     if (e.code === "KeyQ" || e.code === "KeyE") {
       const yon = e.code === "KeyQ" ? -1 : 1;
       if (secilenVarlik) { donus = (donus + yon * adimD + 360) % 360; hayaletiTasi(); }
-      else seciliyiDegistir((n) => ({ ...n, donus: (n.donus + yon * adimD + 360) % 360 }), "döndürüldü");
+      else seciliyiDegistir((n) => { const d = donusVec(n.donus); d[1] += yon * adimD; return { ...n, donus: kisaDonus(d) }; }, "döndürüldü");
     } else if (e.code === "Escape") {
       if (secilenVarlik) yerlestirmeyiBitir(); else seciliBirak();
     } else if ((e.code === "Delete" || e.code === "Backspace") && secilenNesne !== null) {

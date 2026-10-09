@@ -11,7 +11,8 @@ import { isikSistemiKur, type IsikSistemi } from "./isikSistemi.ts";
 import { malzemeKur } from "./malzeme.ts";
 import { renkCoz } from "./renk.ts";
 import { stilTamamla } from "../stil/stilTanimi.ts";
-import { nesneSistemiKur, type NesneSistemi } from "./nesneSistemi.ts";
+import { nesneSistemiKur, type NesneSistemi, type NesneYukleyici } from "./nesneSistemi.ts";
+import { kimlikleriDoldur } from "./kimlik.ts";
 import { shaderSistemiKur, shaderlariNormallestir, type ShaderSistemi, type ShaderKaydi } from "../shader/shaderSistemi.ts";
 import { SHADERLAR } from "../shader/moduller/index.ts";
 import { dunyaDurumuYap, durumuSaateGoreYaz, zamanIlerle, paletZamanda, type DunyaDurumu } from "../shader/dunyaDurumu.ts";
@@ -56,7 +57,10 @@ function normallestir(t: LevelTanimi, kayit: ModulKaydi, shaderKaydi: ShaderKayd
     isik: { ...t.isik, gunes: { ...t.isik.gunes, golge: { otomatikSinir: true, kip: 0, karisim: 0.1, ...t.isik.gunes.golge } } },
     stil: stilTamamla(t.stil),
     shaderlar: shaderlariNormallestir(t.shaderlar ?? [], shaderKaydi),
-    nesneler: t.nesneler ?? [],
+    // Kimliksiz yerleşime kimlik (editör seçimi ve sahne düğümü eşleşmesi kimlikle; eski dosyalar kimliksiz).
+    nesneler: kimlikleriDoldur(t.nesneler ?? []),
+    gruplar: t.gruplar ?? [],
+    kameraYerleri: t.kameraYerleri ?? [],
     katmanlar: t.katmanlar.map((k) => {
       const modul = kayit.get(k.tur);
       if (!modul) throw new Error(`katman "${k.ad}": bilinmeyen modül "${k.tur}" (bilinenler: ${[...kayit.keys()].join(", ")})`);
@@ -65,7 +69,12 @@ function normallestir(t: LevelTanimi, kayit: ModulKaydi, shaderKaydi: ShaderKayd
   };
 }
 
-export function levelKur(sahne: Scene, tanimHam: unknown, kayit: ModulKaydi, shaderKaydi: ShaderKaydi = SHADERLAR): Level {
+export interface LevelSecenekleri {
+  /** Nesne yükleyicisi (testler sahte verir; verilmezse katalog + glb). */
+  nesneYukleyici?: NesneYukleyici;
+}
+
+export function levelKur(sahne: Scene, tanimHam: unknown, kayit: ModulKaydi, shaderKaydi: ShaderKaydi = SHADERLAR, secenek: LevelSecenekleri = {}): Level {
   const ilk = levelTanimiDogrula(tanimHam);
   if (!ilk.ok) throw new Error(`level tanımı geçersiz — ${ilk.hata}`);
   let tanim = normallestir(kopya(ilk.deger), kayit, shaderKaydi);
@@ -81,7 +90,9 @@ export function levelKur(sahne: Scene, tanimHam: unknown, kayit: ModulKaydi, sha
     malzeme: (ad, tur) => malzemeKur(sahne, ad, tur, { ...(tur === "isikli" ? { stil: stil.isikDurumu } : { sis: true }), dunya: shaderlar.uniform }),
     golge: (m, ne) => isik.golgeyeKat(m, ne),
     golgedenCikar: (m) => isik.golgedenCikar(m),
+    ...(secenek.nesneYukleyici ? { yukleyici: secenek.nesneYukleyici } : {}),
   });
+  const nesneleriUygula = () => nesneler.uygula(tanim.nesneler ?? [], tanim.gruplar ?? []);
   const kurulu = new Map<string, Kurulu>();
 
   const renk = (ad: string) => renkCoz(ad, tanim.palet);
@@ -160,7 +171,7 @@ export function levelKur(sahne: Scene, tanimHam: unknown, kayit: ModulKaydi, sha
 
   gorunusUygula();
   katmanlariUydur();
-  nesneler.uygula(tanim.nesneler ?? []);
+  nesneleriUygula();
   stil.sahneDegisti();
 
   return {
@@ -173,14 +184,14 @@ export function levelKur(sahne: Scene, tanimHam: unknown, kayit: ModulKaydi, sha
       try {
         gorunusUygula();
         katmanlariUydur();
-        nesneler.uygula(tanim.nesneler ?? []);
+        nesneleriUygula();
         stil.sahneDegisti();
       } catch (err) {
         // Yarım kalmasın: önceki tanıma dön (kurulamayan katman zaten eski hâlinde ya da yıkılmış).
         tanim = onceki;
         gorunusUygula();
         katmanlariUydur();
-        nesneler.uygula(tanim.nesneler ?? []);
+        nesneleriUygula();
         stil.sahneDegisti();
         throw err;
       }

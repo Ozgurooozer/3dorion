@@ -9,23 +9,33 @@
 // uyarı boyası hariç) ayrı bir mesh'e. İki ortak malzeme: ışıklı (level fabrikası: güneş, gölge, sis, STİL
 // eklentisi işler) ve ışıyan (pişmiş). Varlık başına ≤ 2 çizim; aynı varlığın yerleşimleri örneklemeyle tek çizim.
 //
+// KİMLİK (spec 22): yerleşim `id` ile eşleşir (sıra değil): silme ya da araya ekleme diğerlerine dokunmaz. İmza iki
+// parça: VARLIK değişirse yeniden yüklenir; yalnız konum/dönüş/ölçek/gizlilik değişirse düğüm YERİNDE güncellenir
+// (yükleme yok) — editör sürüklemeyi bitirince binlerce nesnelik level'da bile anında.
+//
 // Yerleşim konumu = varlığın TABAN ORTASI (Blender betiği pivotu oraya koyar, assets/kaynak/sehir-kiti.py).
-// Seçme: örneğin mesh'lerinde `metadata.nesneIndeks` (asset tarayıcısı tıklananı bulur).
+// Seçme: düğümde ve örneğin mesh'lerinde `metadata.nesneId` (`idsi` üst zincirde arar).
 // Yükleyici paketi ve varlik.ts dinamik import: modül Node testlerinde de yüklenebilsin (sahnesiz yol fetch etmez).
 "use strict";
 import type { Scene } from "@babylonjs/core/scene";
 import type { AssetContainer } from "@babylonjs/core/assetContainer";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import type { Material } from "@babylonjs/core/Materials/material";
+import type { Node } from "@babylonjs/core/node";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { VertexData } from "@babylonjs/core/Meshes/mesh.vertexData";
 import type { Color3 } from "@babylonjs/core/Maths/math.color";
 import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
-import type { NesneYeri } from "./levelTanimi.ts";
+import type { GrupTanimi, NesneYeri } from "./levelTanimi.ts";
 import { katalogOku, type Katalog, type Varlik } from "./katalog.ts";
+import { donusRadyan, olcekVec } from "./donusum.ts";
+import { etkinBayrak } from "./grup.ts";
 import type { Renk } from "./renk.ts";
 
 export const KATALOG_DOSYASI = "sehir/katalog.json";
+
+/** Varlığın bir örneğini `ust` altına kurar, mesh'lerini döner (test sahte yükleyici verir; asıl yol glb). */
+export type NesneYukleyici = (ad: string, ust: TransformNode) => Promise<AbstractMesh[]>;
 
 export interface NesneBaglami {
   sahne: Scene;
@@ -33,21 +43,42 @@ export interface NesneBaglami {
   malzeme(ad: string, tur: "isikli" | "pismis"): Material;
   golge(mesh: AbstractMesh, ne: { atar?: boolean; alir?: boolean }): void;
   golgedenCikar(mesh: AbstractMesh): void;
+  /** Verilmezse katalog + glb (asıl yol). */
+  yukleyici?: NesneYukleyici;
 }
 
 export interface NesneSistemi {
   katalog(): Promise<Katalog>;
-  uygula(nesneler: readonly NesneYeri[]): void;
-  /** Tıklanan mesh hangi yerleşim (yoksa null). */
-  indeksi(mesh: AbstractMesh | null | undefined): number | null;
+  /** Yerleşimleri tanıma uydurur (kimlikle eşler; gruplar gizliliği verir). Kimliksiz yerleşim atlanır. */
+  uygula(nesneler: readonly NesneYeri[], gruplar?: readonly GrupTanimi[]): void;
+  /** Tıklanan mesh hangi yerleşim (kimliği; yoksa null). */
+  idsi(mesh: Node | null | undefined): string | null;
+  /** Yerleşimin sahne düğümü (editör gizmosu buna takılır). Yoksa null. */
+  dugum(id: string): TransformNode | null;
+  /** Yerleşimin yüklenmiş mesh'leri (vurgu, sınır kutusu). Yüklenmemişse boş. */
+  meshleri(id: string): AbstractMesh[];
   /** Yerleşimden bağımsız tek örnek (yerleştirme önizlemesi); çağıran `dispose` eder. */
   ornekOlustur(ad: string): Promise<TransformNode>;
-  /** Kurulu yerleşim sayısı (yüklenmiş olanlar). */
+  /** Kurulu yerleşim sayısı ve yüklemesi süren sayı. */
   sayi(): number;
+  bekleyen(): number;
+  /** Süren bütün yüklemeler bitince (testler, CDP betikleri). */
+  hazir(): Promise<void>;
+  /** Bir yerleşim yüklenince (kimliğiyle): editör vurguyu/gizmoyu yeniden bağlar. */
+  yuklenince(f: (id: string) => void): () => void;
+  /** Varlık kaç kez yüklendi (örnek kuruldu) — ölçüm/test: taşıma yeniden yüklememeli. */
+  yuklemeSayisi(): number;
   yokEt(): void;
 }
 
-interface Kurulu { imza: string; dugum: TransformNode | null; nesil: number }
+interface Kurulu {
+  varlik: string;
+  donusum: string;
+  dugum: TransformNode;
+  meshler: AbstractMesh[];
+  nesil: number;
+  yukleniyor: boolean;
+}
 
 /** glTF doğrusal renk → Standard malzemenin gamma rengi. */
 const gamma = (c: Color3): Renk => [c.r ** (1 / 2.2), c.g ** (1 / 2.2), c.b ** (1 / 2.2)];
@@ -68,13 +99,18 @@ export function parcaRengi(m: { name: string; albedoColor?: Color3; emissiveColo
   return { renk: m?.albedoColor ? gamma(m.albedoColor) : [0.7, 0.7, 0.7], isiyan: false };
 }
 
+/** Yerinde güncellenebilen kısım (konum, dönüş, ölçek, gizlilik) — değişirse yükleme YOK. Saf. */
+export const donusumImzasi = (n: NesneYeri, gizli: boolean): string => JSON.stringify([n.konum, n.donus, n.olcek, gizli]);
+
 export function nesneSistemiKur(b: NesneBaglami): NesneSistemi {
   const { sahne } = b;
   let katalogSozu: Promise<Katalog> | null = null;
   const kaplar = new Map<string, Promise<AssetContainer>>();
   const malzemeler = new Map<string, Material>();
-  const kurulu: Kurulu[] = [];
-  let nesil = 0;
+  const kurulu = new Map<string, Kurulu>();
+  const yuklenmeDinleyicileri = new Set<(id: string) => void>();
+  const surenler = new Set<Promise<unknown>>();
+  let nesil = 0, yuklemeSayaci = 0;
 
   const katalog = (): Promise<Katalog> => {
     katalogSozu ??= import("../../varlik.ts")
@@ -140,67 +176,106 @@ export function nesneSistemiKur(b: NesneBaglami): NesneSistemi {
     return p;
   };
 
-  const ornek = async (ad: string, ust: TransformNode): Promise<AbstractMesh[]> => {
+  /** Asıl yükleyici: katalogdan bul, kabı yükle, örnekle. Bu arada üst düğüm yıkıldıysa örnekleri atar (sızıntı yok). */
+  const glbYukleyici: NesneYukleyici = async (ad, ust) => {
     const k = await katalog();
     const v = k.varliklar.find((x) => x.ad === ad);
     if (!v) throw new Error(`katalogda yok: ${ad}`);
     const kap = await kapYukle(v);
     const ornekler = kap.instantiateModelsToScene((n) => `${ad}_${n}`, false);
+    if (ust.isDisposed()) { for (const r of ornekler.rootNodes) r.dispose(false, false); return []; }
     for (const r of ornekler.rootNodes) r.parent = ust;
     return ust.getChildMeshes(false).filter((m) => m.getTotalVertices() > 0);
   };
+  const yukle = b.yukleyici ?? glbYukleyici;
 
   const yik = (k: Kurulu) => {
-    if (!k.dugum) return;
-    for (const m of k.dugum.getChildMeshes(false)) b.golgedenCikar(m);
+    k.nesil = -1;
+    for (const m of k.meshler) b.golgedenCikar(m);
     k.dugum.dispose(false, false);
-    k.dugum = null;
+    k.meshler = [];
+  };
+
+  const donusumUygula = (d: TransformNode, n: NesneYeri, gizli: boolean) => {
+    d.position.set(...n.konum);
+    d.rotationQuaternion = null;
+    d.rotation.set(...donusRadyan(n.donus));
+    d.scaling.set(...olcekVec(n.olcek));
+    d.setEnabled(!gizli);
+  };
+
+  const kur = (id: string, n: NesneYeri, gizli: boolean): Kurulu => {
+    const dugum = new TransformNode(`nesne_${id}_${n.varlik}`, sahne);
+    dugum.metadata = { nesneId: id };
+    donusumUygula(dugum, n, gizli);
+    const k: Kurulu = { varlik: n.varlik, donusum: donusumImzasi(n, gizli), dugum, meshler: [], nesil: ++nesil, yukleniyor: true };
+    const benim = k.nesil;
+    yuklemeSayaci++;
+    const s = yukle(n.varlik, dugum).then((meshler) => {
+      if (k.nesil !== benim || dugum.isDisposed()) {
+        // Bu arada değişti ya da silindi: geç gelen örnekler sahnede kalmasın.
+        for (const m of meshler) if (!m.isDisposed()) m.dispose(false, false);
+        return;
+      }
+      k.yukleniyor = false;
+      k.meshler = meshler;
+      for (const m of meshler) {
+        m.isPickable = true;
+        m.metadata = { ...(m.metadata as object | null), nesneId: id };
+        b.golge(m, { atar: true, alir: true });
+      }
+      for (const f of yuklenmeDinleyicileri) f(id);
+    }).catch((err: unknown) => {
+      k.yukleniyor = false;
+      console.error(`[nesneler] ${n.varlik} yüklenemedi:`, err);
+    }).finally(() => surenler.delete(s));
+    surenler.add(s);
+    return k;
   };
 
   return {
     katalog,
-    uygula(nesneler) {
-      // Fazlaları yık, değişenleri yeniden kur (indeks = kimlik; silme sonrakileri kaydırır — MVP'de kabul).
-      while (kurulu.length > nesneler.length) yik(kurulu.pop()!);
-      nesneler.forEach((n, i) => {
-        const imza = JSON.stringify(n);
-        const k = kurulu[i] ??= { imza: "", dugum: null, nesil: 0 };
-        if (k.imza === imza) return;
-        yik(k);
-        k.imza = imza;
-        const benim = k.nesil = ++nesil;
-        const dugum = new TransformNode(`nesne_${i}_${n.varlik}`, sahne);
-        dugum.position.set(...n.konum);
-        dugum.rotation.y = (n.donus * Math.PI) / 180;
-        dugum.scaling.setAll(n.olcek);
-        k.dugum = dugum;
-        ornek(n.varlik, dugum).then((meshler) => {
-          if (k.nesil !== benim) return;   // bu arada değişti ya da silindi
-          for (const m of meshler) {
-            m.isPickable = true;
-            m.metadata = { ...(m.metadata as object | null), nesneIndeks: i };
-            b.golge(m, { atar: true, alir: true });
-          }
-        }).catch((err: unknown) => console.error(`[nesneler] ${n.varlik} yüklenemedi:`, err));
-      });
+    uygula(nesneler, gruplar = []) {
+      const istenen = new Set<string>();
+      for (const n of nesneler) {
+        if (!n.id) continue;
+        istenen.add(n.id);
+        const gizli = etkinBayrak(n, gruplar, "gizli");
+        const k = kurulu.get(n.id);
+        if (k && k.varlik === n.varlik) {
+          const imza = donusumImzasi(n, gizli);
+          if (k.donusum !== imza) { donusumUygula(k.dugum, n, gizli); k.donusum = imza; }
+          continue;
+        }
+        if (k) yik(k);
+        kurulu.set(n.id, kur(n.id, n, gizli));
+      }
+      for (const [id, k] of kurulu) if (!istenen.has(id)) { yik(k); kurulu.delete(id); }
     },
-    indeksi(mesh) {
-      for (let m: AbstractMesh | null | undefined = mesh; m; m = m.parent as AbstractMesh | null) {
-        const i = (m.metadata as { nesneIndeks?: number } | null | undefined)?.nesneIndeks;
-        if (typeof i === "number") return i;
+    idsi(dugum) {
+      for (let d: Node | null | undefined = dugum; d; d = d.parent) {
+        const id = (d.metadata as { nesneId?: string } | null | undefined)?.nesneId;
+        if (typeof id === "string") return id;
       }
       return null;
     },
+    dugum: (id) => kurulu.get(id)?.dugum ?? null,
+    meshleri: (id) => kurulu.get(id)?.meshler ?? [],
     async ornekOlustur(ad) {
       const dugum = new TransformNode(`onizleme_${ad}`, sahne);
-      const meshler = await ornek(ad, dugum);
+      const meshler = await yukle(ad, dugum);
       for (const m of meshler) m.isPickable = false;
       return dugum;
     },
-    sayi: () => kurulu.filter((k) => k.dugum).length,
+    sayi: () => [...kurulu.values()].filter((k) => !k.yukleniyor).length,
+    bekleyen: () => [...kurulu.values()].filter((k) => k.yukleniyor).length,
+    async hazir() { while (surenler.size) await Promise.allSettled([...surenler]); },
+    yuklenince(f) { yuklenmeDinleyicileri.add(f); return () => { yuklenmeDinleyicileri.delete(f); }; },
+    yuklemeSayisi: () => yuklemeSayaci,
     yokEt() {
-      for (const k of kurulu) yik(k);
-      kurulu.length = 0;
+      for (const k of kurulu.values()) yik(k);
+      kurulu.clear();
+      yuklenmeDinleyicileri.clear();
       for (const p of kaplar.values()) void p.then((k) => k.dispose()).catch(() => undefined);
       kaplar.clear();
       for (const m of malzemeler.values()) m.dispose();

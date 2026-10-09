@@ -357,6 +357,7 @@
   },
   "nesneler": [
     {
+      "id": "n1",
       "varlik": "INFRA_Pipe_Wall_Cluster",
       "konum": [
         11.19,
@@ -367,6 +368,7 @@
       "olcek": 1
     },
     {
+      "id": "n2",
       "varlik": "CORP_BLD_Annex_SM",
       "konum": [
         5.44,
@@ -377,6 +379,7 @@
       "olcek": 1
     },
     {
+      "id": "n3",
       "varlik": "CORP_BLD_Annex_SM",
       "konum": [
         19.86,
@@ -387,6 +390,7 @@
       "olcek": 1
     },
     {
+      "id": "n4",
       "varlik": "CORP_BLD_Annex_SM",
       "konum": [
         10.35,
@@ -397,6 +401,7 @@
       "olcek": 1
     },
     {
+      "id": "n5",
       "varlik": "CORP_BLD_Annex_SM",
       "konum": [
         -13.59,
@@ -407,6 +412,7 @@
       "olcek": 1
     },
     {
+      "id": "n6",
       "varlik": "CORP_BLD_Annex_SM",
       "konum": [
         -7.83,
@@ -417,6 +423,7 @@
       "olcek": 1
     },
     {
+      "id": "n7",
       "varlik": "CORP_BLD_Annex_SM",
       "konum": [
         -12.35,
@@ -427,6 +434,7 @@
       "olcek": 1
     },
     {
+      "id": "n8",
       "varlik": "CORP_BLD_Annex_SM",
       "konum": [
         27.38,

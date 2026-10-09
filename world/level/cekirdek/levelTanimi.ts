@@ -67,12 +67,44 @@ export interface KatmanTanimi {
   ayar: Record<string, unknown>;
 }
 
-/** Elle yerleştirilmiş bir varlık (asset tarayıcısından): katalogdaki adı, taban ortası konumu, Y dönüşü (derece). */
+/**
+ * Elle yerleştirilmiş bir varlık (level editörü, spec 22): katalogdaki adı, taban ortası konumu, dönüş, ölçek.
+ * Eski biçim (yalnız Y dönüşü + tek ölçek sayısı) aynen geçerli; editör ancak gerekince diziye genişletir
+ * (cekirdek/donusum.ts) — dosya küçük kalır.
+ */
 export interface NesneYeri {
+  /** Kararlı kimlik (seçim, sahne düğümü, geri al). Yoksa levelKur doldurur (cekirdek/kimlik.ts); benzersiz. */
+  id?: string;
   varlik: string;
+  /** Sahne ağacında görünen ad; yoksa varlığın kısa adı. */
+  ad?: string;
   konum: Vec3;
-  donus: number;
-  olcek: number;
+  /** Derece. Sayı = yalnız Y (eski biçim); [x, y, z] = Babylon Euler (yaw-pitch-roll sırası). */
+  donus: number | Vec3;
+  /** Sayı = eşit ölçek; [x, y, z] = eksen başına. Hepsi > 0. */
+  olcek: number | Vec3;
+  /** Bağlı olduğu grubun kimliği (`gruplar`). */
+  grup?: string;
+  /** Sahnede görünmez (kaydedilir; oyunda da yok). */
+  gizli?: boolean;
+  /** Editörde seçilemez/taşınamaz (yanlışlıkla oynatılmasın). */
+  kilitli?: boolean;
+}
+
+/** Sahne ağacındaki klasör. İç içe olabilir (`ust`); gizli/kilitli içindekilere geçer. */
+export interface GrupTanimi {
+  id: string;
+  ad: string;
+  ust?: string;
+  gizli?: boolean;
+  kilitli?: boolean;
+}
+
+/** Kamera yer imi (editörde Shift+rakam): level'la birlikte kaydedilir. */
+export interface KameraYeri {
+  ad: string;
+  konum: Vec3;
+  hedef: Vec3;
 }
 
 export interface LevelTanimi {
@@ -87,6 +119,10 @@ export interface LevelTanimi {
   katmanlar: KatmanTanimi[];
   /** Asset tarayıcısıyla yerleştirilen nesneler (cekirdek/nesneSistemi.ts). Yoksa boş. */
   nesneler?: NesneYeri[];
+  /** Nesne grupları (sahne ağacı klasörleri). Yoksa boş. */
+  gruplar?: GrupTanimi[];
+  /** Kamera yer imleri. Yoksa boş. */
+  kameraYerleri?: KameraYeri[];
   /** Gün/gece (spec 20): varsa güneş yönü ve ışık rengi SAATTEN gelir (isik.gunes.yon yok sayılır). */
   zaman?: ZamanAyari;
   /** Özel shader'lar (spec 20; shader/moduller/): sıra = ekran zinciri sırası. */
@@ -97,6 +133,11 @@ export type Dogrulama = { ok: true; deger: LevelTanimi } | { ok: false; hata: st
 
 const nesneMi = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 const sayiMi = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
+const metinMi = (v: unknown): v is string => typeof v === "string" && v.length > 0;
+const vec3Mu = (v: unknown): v is Vec3 => Array.isArray(v) && v.length === 3 && v.every(sayiMi);
+/** Seçimli mantıksal alanlardan ilk bozuğun adı (yoksa null). */
+const secimliHata = (n: Record<string, unknown>, alanlar: readonly string[]): string | null =>
+  alanlar.find((a) => n[a] !== undefined && typeof n[a] !== "boolean") ?? null;
 
 /**
  * Tanımı doğrular. Bozuk tanım SESSİZCE düzeltilmez: hata yolu ve nedeniyle döner (panel kaydetmeyi reddeder,
@@ -153,15 +194,57 @@ function hataBul(v: unknown): string | null {
       if (!nesneMi(s) || typeof s["tur"] !== "string" || typeof s["acik"] !== "boolean" || !nesneMi(s["ayar"])) return h(`shaderlar[${i}]`, "tur/acik/ayar gerekli");
     }
   }
+  const gruplar = v["gruplar"];
+  const grupIdleri = new Set<string>();
+  if (gruplar !== undefined) {
+    if (!Array.isArray(gruplar)) return h("gruplar", "dizi değil");
+    for (const [i, g] of gruplar.entries()) {
+      if (!nesneMi(g) || !metinMi(g["id"]) || typeof g["ad"] !== "string") return h(`gruplar[${i}]`, "id + ad gerekli");
+      if (grupIdleri.has(g["id"])) return h(`gruplar[${i}].id`, `yinelenen kimlik "${g["id"]}"`);
+      grupIdleri.add(g["id"]);
+      const e = secimliHata(g, ["gizli", "kilitli"]);
+      if (e) return h(`gruplar[${i}].${e}`, "mantıksal olmalı");
+    }
+    const ustu = new Map(gruplar.map((g) => [(g as Record<string, unknown>)["id"] as string, (g as Record<string, unknown>)["ust"]]));
+    for (const [id, ust] of ustu) {
+      if (ust === undefined) continue;
+      if (typeof ust !== "string" || !grupIdleri.has(ust)) return h(`gruplar(${id}).ust`, `olmayan grup "${String(ust)}"`);
+      // Döngü: üst zinciri kendine dönmemeli.
+      const gorulen = new Set([id]);
+      for (let u: unknown = ust; typeof u === "string"; u = ustu.get(u)) {
+        if (gorulen.has(u)) return h(`gruplar(${id}).ust`, "döngü");
+        gorulen.add(u);
+      }
+    }
+  }
   const nesneler = v["nesneler"];
   if (nesneler !== undefined) {
     if (!Array.isArray(nesneler)) return h("nesneler", "dizi değil");
+    const idler = new Set<string>();
     for (const [i, n] of nesneler.entries()) {
       const k = nesneMi(n) ? n["konum"] : null;
-      if (!nesneMi(n) || typeof n["varlik"] !== "string" || !n["varlik"] || !Array.isArray(k) || k.length !== 3 || !k.every(sayiMi)
-        || !sayiMi(n["donus"]) || !sayiMi(n["olcek"]) || (n["olcek"] as number) <= 0) {
-        return h(`nesneler[${i}]`, "varlik (ad) + konum [x,y,z] + donus + olcek (> 0) gerekli");
+      if (!nesneMi(n) || typeof n["varlik"] !== "string" || !n["varlik"] || !vec3Mu(k)) {
+        return h(`nesneler[${i}]`, "varlik (ad) + konum [x,y,z] gerekli");
       }
+      if (!sayiMi(n["donus"]) && !vec3Mu(n["donus"])) return h(`nesneler[${i}].donus`, "sayı ya da [x,y,z] olmalı");
+      const o = n["olcek"];
+      if (!(sayiMi(o) && o > 0) && !(vec3Mu(o) && o.every((x) => x > 0))) return h(`nesneler[${i}].olcek`, "> 0 sayı ya da [x,y,z] (> 0) olmalı");
+      if (n["id"] !== undefined) {
+        if (!metinMi(n["id"])) return h(`nesneler[${i}].id`, "boş olmayan metin olmalı");
+        if (idler.has(n["id"])) return h(`nesneler[${i}].id`, `yinelenen kimlik "${n["id"]}"`);
+        idler.add(n["id"]);
+      }
+      if (n["ad"] !== undefined && typeof n["ad"] !== "string") return h(`nesneler[${i}].ad`, "metin olmalı");
+      if (n["grup"] !== undefined && (typeof n["grup"] !== "string" || !grupIdleri.has(n["grup"]))) return h(`nesneler[${i}].grup`, `olmayan grup "${String(n["grup"])}"`);
+      const e = secimliHata(n, ["gizli", "kilitli"]);
+      if (e) return h(`nesneler[${i}].${e}`, "mantıksal olmalı");
+    }
+  }
+  const yerler = v["kameraYerleri"];
+  if (yerler !== undefined) {
+    if (!Array.isArray(yerler)) return h("kameraYerleri", "dizi değil");
+    for (const [i, y] of yerler.entries()) {
+      if (!nesneMi(y) || typeof y["ad"] !== "string" || !vec3Mu(y["konum"]) || !vec3Mu(y["hedef"])) return h(`kameraYerleri[${i}]`, "ad + konum + hedef [x,y,z] gerekli");
     }
   }
   const katmanlar = v["katmanlar"];
