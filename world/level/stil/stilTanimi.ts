@@ -90,6 +90,11 @@ export interface SonStili {
   keskinlik: { acik: boolean; guc: number };
   /** Alan derinliği (minyatür görünümü): odak uzaklığı (m) ve açıklık (f sayısı; küçük = daha bulanık). */
   derinlik: { acik: boolean; odak: number; aciklik: number };
+  /**
+   * Küresel aydınlatma (Babylon GIRSMManager, yansıtıcı gölge haritası — Lumen'e en yakın yerleşik araç): güneş ışığı
+   * bir kez seker, yüzeyler komşularını kendi renginde aydınlatır. Kameranın çevresindeki `alan` (m) içinde hesaplanır.
+   */
+  gi: { acik: boolean; guc: number; yaricap: number; ornek: number; alan: number };
 }
 
 export interface StilAyari { isik: IsikStili; cizgi: CizgiStili; renk: RenkStili; son: SonStili }
@@ -111,6 +116,9 @@ const KAPALI: StilAyari = {
     sapma: { acik: false, guc: 20 },
     keskinlik: { acik: false, guc: 0.3 },
     derinlik: { acik: false, odak: 20, aciklik: 2 },
+    // Ölçüldü (spec 19): güç 10 + yarıçap 0,05 → "yalnız GI" ortalama 9,6/255, bina dipleri ve gölgeli yüzler
+    // seken ışıkla belirgin; güç 1–3 neredeyse görünmez (ortalama ≤ 3).
+    gi: { acik: false, guc: 10, yaricap: 0.05, ornek: 400, alan: 90 },
   },
 };
 
@@ -122,7 +130,7 @@ const sonIle = (d: SonParcasi = {}): SonStili => {
     tonlama: { ...k.tonlama, ...d.tonlama }, bloom: { ...k.bloom, ...d.bloom }, huzme: { ...k.huzme, ...d.huzme },
     parilti: { ...k.parilti, ...d.parilti }, ao: { ...k.ao, ...d.ao }, egri: { ...k.egri, ...d.egri },
     vinyet: { ...k.vinyet, ...d.vinyet }, gren: { ...k.gren, ...d.gren }, sapma: { ...k.sapma, ...d.sapma },
-    keskinlik: { ...k.keskinlik, ...d.keskinlik }, derinlik: { ...k.derinlik, ...d.derinlik },
+    keskinlik: { ...k.keskinlik, ...d.keskinlik }, derinlik: { ...k.derinlik, ...d.derinlik }, gi: { ...k.gi, ...d.gi },
   };
 };
 const ile = (d: { isik?: Partial<IsikStili>; cizgi?: Partial<CizgiStili>; renk?: Partial<RenkStili>; son?: SonParcasi }): StilAyari => ({
@@ -136,7 +144,7 @@ export const ONAYARLAR: Readonly<Record<string, Onayar>> = {
     aciklama: "Cel (Catuhe / Babylon CellMaterial): ışık 5 basamak, çizgisiz.", piksel: 1,
     stil: ile({
       isik: { acik: true, bant: 5, yumusaklik: 0.01, enKoyu: 0.2 },
-      son: { tonlama: { tur: 3 }, ao: { acik: true, yaricap: 2, guc: 1.1 }, egri: { acik: true, genelDoygunluk: 12 } },
+      son: { tonlama: { tur: 3 }, ao: { acik: true, yaricap: 2, guc: 1.1 }, egri: { acik: true, genelDoygunluk: 12 }, gi: { acik: true } },
     }),
   },
   toon: {
@@ -145,7 +153,7 @@ export const ONAYARLAR: Readonly<Record<string, Onayar>> = {
       isik: { acik: true, bant: 2, yumusaklik: 0.03, enKoyu: 0.5, golgeRengi: "#6b72c4", golgeKarisim: 0.45, parlama: 0.35, parlamaBoyu: 24, kenarIsik: 0.3, kenarEsik: 0.72 },
       cizgi: { acik: true, kip: 0, kalinlik: 1, guc: 0.45, renk: "#2a2f45" },
       son: {
-        tonlama: { tur: 3 }, bloom: { acik: true, esik: 0.75, guc: 0.35 }, huzme: { acik: true }, parilti: { acik: true },
+        tonlama: { tur: 3 }, bloom: { acik: true, esik: 0.75, guc: 0.35 }, huzme: { acik: true }, parilti: { acik: true }, gi: { acik: true },
         egri: { acik: true, genelDoygunluk: 10, golgeTon: 235, golgeYogunluk: 35, golgeDoygunluk: 20, parlakTon: 45, parlakYogunluk: 25 },
         vinyet: { acik: true, guc: 0.8, renk: "#2a2f45" },
       },
@@ -158,7 +166,7 @@ export const ONAYARLAR: Readonly<Record<string, Onayar>> = {
       cizgi: { acik: true, kip: 0, kalinlik: 2, guc: 0.95, renk: "#1d1a2e", normalEsik: 0.3 },
       renk: { acik: true, posterize: 7, doygunluk: 1.2, gren: 0.05 },
       son: {
-        tonlama: { tur: 3 }, bloom: { acik: true, esik: 0.6, guc: 0.6, cekirdek: 96 }, parilti: { acik: true, guc: 1.2 },
+        tonlama: { tur: 3 }, bloom: { acik: true, esik: 0.6, guc: 0.6, cekirdek: 96 }, parilti: { acik: true, guc: 1.2 }, gi: { acik: true, guc: 14 },
         egri: { acik: true, genelDoygunluk: 25, golgeTon: 250, golgeYogunluk: 55, golgeDoygunluk: 30, parlakTon: 35, parlakYogunluk: 20 },
         vinyet: { acik: true, guc: 2, renk: "#1d1a2e" }, sapma: { acik: true, guc: 18 }, keskinlik: { acik: true, guc: 0.3 },
       },
@@ -187,10 +195,17 @@ export const ONAYARLAR: Readonly<Record<string, Onayar>> = {
 export const ONAYAR_ADLARI = Object.keys(ONAYARLAR);
 export const VARSAYILAN_STIL: StilAyari = KAPALI;
 
-/** Eski tanımda (spec 19 öncesi) `son` yoksa kapalı değerlerle tamamlar: eski dosyalar aynı görünür. */
+/**
+ * Eksik `son` bölümünü ya da sonradan eklenen grupları (ör. `gi`) kapalı değerlerle tamamlar: eski dosyalar
+ * açılır ve aynı görünür. Var olan grup olduğu gibi kalır (içindeki yazım hatası doğrulamada yakalanır).
+ */
+function sonTamamla(son: unknown): SonStili {
+  const v = (nesneMi(son) ? son : {}) as Partial<SonStili>;
+  return { ...structuredClone(KAPALI.son), ...v };
+}
 export function stilTamamla(s: StilAyari | undefined): StilAyari {
   if (!s) return structuredClone(KAPALI);
-  return s.son ? s : { ...s, son: structuredClone(KAPALI.son) };
+  return { ...s, son: sonTamamla(s.son) };
 }
 
 /** Önayarı tanıma uygular (stil + piksel boyu); tanımın kopyasını döndürür. */
@@ -248,5 +263,5 @@ function bicimHatasi(yol: string, sablon: unknown, v: unknown, renkMi: (r: unkno
  */
 export function stilHatasi(v: unknown, renkMi: (r: unknown) => boolean): string | null {
   if (!nesneMi(v)) return "stil: nesne değil";
-  return bicimHatasi("stil", KAPALI, v.son === undefined ? { ...v, son: KAPALI.son } : v, renkMi);
+  return bicimHatasi("stil", KAPALI, { ...v, son: sonTamamla(v["son"]) }, renkMi);
 }

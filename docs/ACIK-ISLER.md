@@ -19,8 +19,8 @@
 - **İngilizce cevap kipi** (talimat + İngilizce Piper sesi) — mikrofon İngilizce duyuyor, Orion Türkçe cevaplıyor.
 
 ## Ova (spec 17) — sıradaki adımlar, her biri ayrı onay
-- **Spec 19 ışık sonrası işleme YARIM:** veri (`stil.son`, önayar değerleri, doğrulama) hazır; uygulayıcı
-  (`stil/isikSonrasi.ts`: AO, huzme, boru hattı, parıltı, eğri, vinyet, B önce/sonra) yazılmadı.
+- **Spec 19 bütçe aşımı (karar):** cel +538, toon +594 MiB ve 158 çizim, anime90 +637 MiB (sınır 500 MiB / 150).
+  Seçenekler `specs/19` §4 sonunda.
 - **Asset tarayıcısı MVP sınırları:** yerleşim indeksi kimlik (silme sonrakileri yeniden kurar); nesne üstüne
   yığma yok (yalnız zemin); şehir parçaları dalgalı zemine gömülüp taşabiliyor (düzleştirme alanı yok).
 - **Kendi stilimiz** (spec 18): altı önayar galeride (`Pictures\shader-ornekleri\index.html`); Ozyn seçer.

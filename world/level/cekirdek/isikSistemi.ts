@@ -17,7 +17,6 @@ import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
 import { DirectionalLight } from "@babylonjs/core/Lights/directionalLight";
 import { CascadedShadowGenerator } from "@babylonjs/core/Lights/Shadows/cascadedShadowGenerator";
 import "@babylonjs/core/Lights/Shadows/shadowGeneratorSceneComponent";
-import { ImageProcessingConfiguration } from "@babylonjs/core/Materials/imageProcessingConfiguration";
 import type { IsikAyari, OrtamAyari, Vec3 } from "./levelTanimi.ts";
 import type { Renk } from "./renk.ts";
 
@@ -63,6 +62,16 @@ export function isikSistemiKur(sahne: Scene): IsikSistemi {
       : a.yumusaklik > 0.33 ? CascadedShadowGenerator.QUALITY_MEDIUM : CascadedShadowGenerator.QUALITY_LOW;
     g.bias = 0.004;
     g.normalBias = 0.02;
+    // Sağlam gölge (spec 19): kademeler görünen derinliğe sıkışır, uzak düzlem kırpılmaz, geçişler karışır.
+    g.autoCalcDepthBounds = a.otomatikSinir ?? true;
+    g.depthClamp = true;
+    g.cascadeBlendPercentage = a.karisim ?? 0.1;
+    if ((a.kip ?? 0) === 1) {
+      g.usePercentageCloserFiltering = false;
+      g.useContactHardeningShadow = true;
+      g.contactHardeningLightSizeUVRatio = 0.02 + a.yumusaklik * 0.1;
+      g.penumbraDarkness = 0;
+    }
     for (const m of atanlar) g.addShadowCaster(m, false);
     golge = g;
   };
@@ -91,18 +100,17 @@ export function isikSistemiKur(sahne: Scene): IsikSistemi {
 
       // Gölge: yalnız üreteci etkileyen ayarlar değişince yeniden kur; koyuluk canlı.
       const g = isik.gunes.golge;
-      const anahtar = JSON.stringify([g.acik, g.boyut, g.kademe, g.uzaklik, g.yumusaklik]);
+      const anahtar = JSON.stringify([g.acik, g.boyut, g.kademe, g.uzaklik, g.yumusaklik, g.otomatikSinir, g.kip]);
       if (anahtar !== golgeAyari) { golgeAyari = anahtar; golgeKur(g); }
-      if (golge) golge.darkness = g.koyuluk;
+      if (golge) { golge.darkness = g.koyuluk; golge.cascadeBlendPercentage = g.karisim ?? 0.1; }
 
       sahne.clearColor = new Color4(...renk(ortam.arkaPlan), 1);
       sahne.fogMode = ortam.sis.acik ? SahneSinifi.FOGMODE_EXP2 : SahneSinifi.FOGMODE_NONE;
       sahne.fogColor = c3(renk(ortam.sis.renk));
       sahne.fogDensity = ortam.sis.yogunluk;
 
+      // Ton eşleme AÇIK/TÜRÜ stilden gelir (stil.son.tonlama, isikSonrasi.ts); burada level tabanı: pozlama, kontrast.
       const ip = sahne.imageProcessingConfiguration;
-      ip.toneMappingEnabled = ortam.tonlama.acik;
-      ip.toneMappingType = ImageProcessingConfiguration.TONEMAPPING_ACES;
       ip.exposure = ortam.tonlama.pozlama;
       ip.contrast = ortam.tonlama.kontrast;
 

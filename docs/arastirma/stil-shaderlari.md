@@ -28,6 +28,13 @@ sütunlar/kayalar, pastel gün batımı gök.
 Işık eklentisi: piksel başına birkaç işlem (önemsiz). Çizgi: sahne bir kez daha gbuffer'a çizilir (çizim ~2×) +
 tam ekran geçiş. Renk efekti: tam ekran geçiş, palet döngüsü ≤ 32. Ön kayıt spec 18'de.
 
+## Işık: GI ve gölge (spec 19)
+- **Lumen karşılığı Babylon'da yok.** En yakını `GIRSMManager` (yansıtıcı gölge haritası, Dachsbacher & Stamminger):
+  güneşten tek sekme dolaylı ışık, Standard malzemeyi destekler, yansıma yok. Malzemeyi kopyalar → özel eklentiler
+  `RegisterClass` ile kayıtlı olmalı; geometri tamponunu AO ve çizgiyle PAYLAŞMALI (SSAO2 `forceGeometryBuffer`).
+- IBL gölgeleri (voksel izleme, `IblShadowsRenderPipeline`): HDR ortam dokusu ister; geniş açık alanda kaba.
+- Sağlam CSM: `autoCalcDepthBounds`, `depthClamp`, `cascadeBlendPercentage`, PCSS `useContactHardeningShadow`.
+
 ## Kaynaklar
 - https://www.smashingmagazine.com/2016/11/building-shaders-with-babylon-js/
 - https://github.com/BabylonJS/Babylon.js/blob/master/packages/dev/materials/src/cell/cell.fragment.fx

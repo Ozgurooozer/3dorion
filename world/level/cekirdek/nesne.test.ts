@@ -8,6 +8,8 @@ import { levelTanimiDogrula } from "./levelTanimi.ts";
 import { ornekTanim } from "./ornekTanim.ts";
 import { katalogOku, yasla, kisaAd } from "./katalog.ts";
 import { levelKur } from "./levelKur.ts";
+import { renkDizisi, parcaRengi } from "./nesneSistemi.ts";
+import { Color3 } from "@babylonjs/core/Maths/math.color";
 
 const NESNE = { varlik: "PROP_TrafficCone_SM", konum: [1, 0, 2] as [number, number, number], donus: 90, olcek: 1 };
 
@@ -49,4 +51,18 @@ test("ızgara 0 iken serbest", () => {
 });
 test("kısa ad: kategori öneki atılır", () => {
   assert.equal(kisaAd("PROP_TrafficCone_SM"), "TrafficCone SM");
+});
+
+// ── birleştirme (çizim çağrısı) ──
+test("renk dizisi köşe başına rgba", () => {
+  assert.deepEqual(Array.from(renkDizisi(2, [0.5, 0.25, 1])), [0.5, 0.25, 1, 1, 0.5, 0.25, 1, 1]);
+});
+test("emissive'li parça ışıyan sayılır", () => {
+  assert.equal(parcaRengi({ name: "MN_Neon_Pink", albedoColor: new Color3(1, 0, 1), emissiveColor: new Color3(1, 0, 1) }).isiyan, true);
+});
+test("uyarı boyası emissive'li olsa da ışımaz (gündüz yol çizgisi parlamasın)", () => {
+  assert.equal(parcaRengi({ name: "MH_Warning_Yell", albedoColor: new Color3(1, 1, 0), emissiveColor: new Color3(1, 1, 0) }).isiyan, false);
+});
+test("ışımayan parçanın rengi albedo'nun gamma karşılığı", () => {
+  assert.deepEqual(parcaRengi({ name: "x", albedoColor: new Color3(1, 1, 1), emissiveColor: new Color3(0, 0, 0) }).renk, [1, 1, 1]);
 });

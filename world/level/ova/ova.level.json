@@ -27,11 +27,14 @@
       "siddet": 1.6,
       "golge": {
         "acik": true,
-        "boyut": 512,
+        "boyut": 2048,
         "kademe": 4,
-        "uzaklik": 400,
-        "yumusaklik": 0.5,
-        "koyuluk": 0.35
+        "uzaklik": 250,
+        "yumusaklik": 0.2,
+        "koyuluk": 0.35,
+        "otomatikSinir": true,
+        "kip": 0,
+        "karisim": 0.1
       }
     },
     "dolgu": {

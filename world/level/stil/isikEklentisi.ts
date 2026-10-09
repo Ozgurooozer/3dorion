@@ -16,6 +16,7 @@ import { MaterialPluginBase } from "@babylonjs/core/Materials/materialPluginBase
 import type { Material } from "@babylonjs/core/Materials/material";
 import type { MaterialDefines } from "@babylonjs/core/Materials/materialDefines";
 import type { UniformBuffer } from "@babylonjs/core/Materials/uniformBuffer";
+import { RegisterClass } from "@babylonjs/core/Misc/typeStore";
 
 /** Stil sisteminin yazdığı, bütün ışıklı malzemelerin okuduğu değerler (uniform düzeninde). */
 export interface IsikStiliDurumu {
@@ -77,7 +78,11 @@ if (stilA.x > 0.5) {
 export class IsikStiliEklentisi extends MaterialPluginBase {
   private readonly durum: IsikStiliDurumu;
 
-  constructor(malzeme: Material, durum: IsikStiliDurumu) {
+  /**
+   * `durum` verilmezse kapalı bir durum: Babylon malzemeyi KOPYALARKEN (ör. GI'nin yansıtıcı gölge haritası, ışıksız
+   * kopya) eklentiyi sınıf adından tek argümanla yeniden kurar — kayıtsız ya da argüman zorunluyken kopya kırıldı.
+   */
+  constructor(malzeme: Material, durum: IsikStiliDurumu = isikStiliDurumuYap()) {
     super(malzeme, "IsikStili", 210, { STIL: false });
     this.durum = durum;
     this._enable(true);
@@ -109,3 +114,4 @@ export class IsikStiliEklentisi extends MaterialPluginBase {
     return { "!vec3 finalDiffuse=": `${ISIK_STILI_GLSL}\nvec3 finalDiffuse=` };
   }
 }
+RegisterClass("BABYLON.IsikStiliEklentisi", IsikStiliEklentisi);

@@ -46,6 +46,7 @@ function normallestir(t: LevelTanimi, kayit: ModulKaydi): LevelTanimi {
   return {
     ...t,
     ortam: { ...t.ortam, piksel: t.ortam.piksel ?? 1 },
+    isik: { ...t.isik, gunes: { ...t.isik.gunes, golge: { otomatikSinir: true, kip: 0, karisim: 0.1, ...t.isik.gunes.golge } } },
     stil: stilTamamla(t.stil),
     nesneler: t.nesneler ?? [],
     katmanlar: t.katmanlar.map((k) => {
@@ -64,7 +65,8 @@ export function levelKur(sahne: Scene, tanimHam: unknown, kayit: ModulKaydi): Le
   const stil = stilSistemiKur(sahne);
   const nesneler = nesneSistemiKur({
     sahne,
-    malzeme: (ad, r, isima) => malzemeKur(sahne, ad, "isikli", { renk: r, ...(isima ? { isima } : {}), stil: stil.isikDurumu }),
+    // Işıklı: stil eklentili (toon, çizgi…); ışıyan: pişmiş ama sise girer (uzak neon ufka karışsın).
+    malzeme: (ad, tur) => malzemeKur(sahne, ad, tur, tur === "isikli" ? { stil: stil.isikDurumu } : { sis: true }),
     golge: (m, ne) => isik.golgeyeKat(m, ne),
     golgedenCikar: (m) => isik.golgedenCikar(m),
   });
@@ -129,6 +131,7 @@ export function levelKur(sahne: Scene, tanimHam: unknown, kayit: ModulKaydi): Le
   gorunusUygula();
   katmanlariUydur();
   nesneler.uygula(tanim.nesneler ?? []);
+  stil.sahneDegisti();
 
   return {
     tanim: () => kopya(tanim),
@@ -141,12 +144,14 @@ export function levelKur(sahne: Scene, tanimHam: unknown, kayit: ModulKaydi): Le
         gorunusUygula();
         katmanlariUydur();
         nesneler.uygula(tanim.nesneler ?? []);
+        stil.sahneDegisti();
       } catch (err) {
         // Yarım kalmasın: önceki tanıma dön (kurulamayan katman zaten eski hâlinde ya da yıkılmış).
         tanim = onceki;
         gorunusUygula();
         katmanlariUydur();
         nesneler.uygula(tanim.nesneler ?? []);
+        stil.sahneDegisti();
         throw err;
       }
     },

@@ -26,6 +26,15 @@ export interface GolgeAyari {
   yumusaklik: number;
   /** Gölgenin koyuluğu (0 = siyah, 1 = görünmez). */
   koyuluk: number;
+  /**
+   * Kademeleri kameranın GÖRDÜĞÜ derinliğe sıkıştır (Babylon autoCalcDepthBounds): boş gökyüzüne/uzağa harita
+   * harcanmaz, gölge belirgin keskinleşir. Eski dosyalarda yoksa açık (levelKur doldurur).
+   */
+  otomatikSinir?: boolean;
+  /** 0 = PCF (sert/yumuşak kenar `yumusaklik`tan) · 1 = PCSS: temasta sert, uzaklaştıkça yumuşayan gölge. */
+  kip?: number;
+  /** Kademe geçişinde karışım payı (0–0,5): geçiş çizgisi görünmesin. */
+  karisim?: number;
 }
 
 export interface IsikAyari {

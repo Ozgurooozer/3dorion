@@ -10,7 +10,9 @@ import type { Camera } from "@babylonjs/core/Cameras/camera";
 import type { LevelTanimi } from "../cekirdek/levelTanimi.ts";
 import type { Renk } from "../cekirdek/renk.ts";
 import { isikStiliDurumuYap, type IsikStiliDurumu } from "./isikEklentisi.ts";
-import { VARSAYILAN_STIL } from "./stilTanimi.ts";
+import { VARSAYILAN_STIL, stilTamamla } from "./stilTanimi.ts";
+import { Mesh } from "@babylonjs/core/Meshes/mesh";
+import { etkinSon, sonImzasi, sonKur, boruHattiGerekli, goruntuIslemeUygula, type SonKurulum } from "./isikSonrasi.ts";
 import { cizgiEfektiKur, renkEfektiKur, paletListesi, type CizgiDegerleri, type RenkDegerleri, type Efekt } from "./efektler.ts";
 
 export interface StilSistemi {
@@ -19,6 +21,10 @@ export interface StilSistemi {
   uygula(t: LevelTanimi, renk: (ad: string) => Renk): void;
   /** Ekran efektleri bu kameraya kurulur (level kamerayı bilmez; sayfa bağlar). */
   kameraBagla(k: Camera): void;
+  /** Katmanlar/nesneler yeniden kurulunca (güneş diski değişmiş olabilir: huzme ve parıltı ona bağlı). */
+  sahneDegisti(): void;
+  /** B tuşu: basılıyken bütün ışık sonrası kapalı (önce/sonra). */
+  sonrasiAtla(atla: boolean): void;
   yokEt(): void;
 }
 
@@ -48,18 +54,33 @@ export function stilSistemiKur(sahne: Scene): StilSistemi {
   let imza = "";
   let son: { t: LevelTanimi; renk: (ad: string) => Renk } | null = null;
 
+  let atla = false;
+  let sonKurulum: SonKurulum | null = null;
+
   const efektleriUydur = () => {
-    if (!kamera || !son) return;
-    const s = son.t.stil ?? VARSAYILAN_STIL, piksel = son.t.ortam.piksel ?? 1;
+    if (!son) return;
+    const t = son.t, s = stilTamamla(t.stil), piksel = t.ortam.piksel ?? 1;
+    const e = etkinSon(s.son, piksel, atla);
+    goruntuIslemeUygula(sahne, e, t.ortam.tonlama.acik, son.renk, (kamera as { fov?: number } | null)?.fov ?? 0.8);
+    if (!kamera) return;
+    const gunes = sahne.getMeshByName("gunes_diski");
+    const gunesDiski = gunes instanceof Mesh ? gunes : null;
     // Piksel kipinde örnekleme (MSAA) yok: keskin piksel istenir.
-    const yeniImza = JSON.stringify([s.cizgi.acik, s.renk.acik, piksel > 1]);
-    if (yeniImza === imza) return;
-    imza = yeniImza;
-    for (const e of kurulu) e.yokEt();
-    kurulu = [];
-    const ornekleme = piksel > 1 ? 1 : 4;
-    if (s.cizgi.acik) kurulu.push(cizgiEfektiKur(sahne, kamera, cizgi, ornekleme));
-    if (s.renk.acik) kurulu.push(renkEfektiKur(kamera, renkD, s.cizgi.acik ? 1 : ornekleme));
+    const yeniImza = JSON.stringify([s.cizgi.acik, s.renk.acik, piksel > 1, sonImzasi(e, gunesDiski?.uniqueId ?? null)]);
+    if (yeniImza !== imza) {
+      imza = yeniImza;
+      // SIRA: ışık sonrası (GI, AO, huzme, boru hattı) → çizgi → renk/palet (isikSonrasi.ts başı).
+      for (const x of kurulu) x.yokEt();
+      sonKurulum?.yokEt();
+      kurulu = [];
+      const ornekleme = piksel > 1 ? 1 : 4;
+      sonKurulum = sonKur(sahne, kamera, e, ornekleme, gunesDiski);
+      const sonrasiVar = boruHattiGerekli(e) || e.ao.acik || e.huzme.acik;
+      if (s.cizgi.acik) kurulu.push(cizgiEfektiKur(sahne, kamera, cizgi, sonrasiVar ? 1 : ornekleme));
+      if (s.renk.acik) kurulu.push(renkEfektiKur(kamera, renkD, s.cizgi.acik || sonrasiVar ? 1 : ornekleme));
+    }
+    const g = t.isik.gunes, l = Math.hypot(...g.yon) || 1;
+    sonKurulum?.guncelle(e, [g.yon[0] / l, g.yon[1] / l, g.yon[2] / l], son.renk(g.renk), g.siddet);
   };
 
   return {
@@ -77,6 +98,8 @@ export function stilSistemiKur(sahne: Scene): StilSistemi {
       efektleriUydur();
     },
     kameraBagla(k) { kamera = k; imza = ""; efektleriUydur(); },
-    yokEt() { for (const e of kurulu) e.yokEt(); kurulu = []; },
+    sahneDegisti() { efektleriUydur(); },
+    sonrasiAtla(b) { if (atla !== b) { atla = b; efektleriUydur(); } },
+    yokEt() { for (const e of kurulu) e.yokEt(); kurulu = []; sonKurulum?.yokEt(); sonKurulum = null; },
   };
 }

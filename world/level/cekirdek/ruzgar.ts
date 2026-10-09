@@ -12,6 +12,7 @@ import { MaterialPluginBase } from "@babylonjs/core/Materials/materialPluginBase
 import type { Material } from "@babylonjs/core/Materials/material";
 import type { MaterialDefines } from "@babylonjs/core/Materials/materialDefines";
 import type { UniformBuffer } from "@babylonjs/core/Materials/uniformBuffer";
+import { RegisterClass } from "@babylonjs/core/Misc/typeStore";
 
 export interface RuzgarAyari {
   /** Uçtaki en büyük kayma (m, yerel boy 1 için). */
@@ -27,7 +28,8 @@ export interface RuzgarAyari {
 export class RuzgarEklentisi extends MaterialPluginBase {
   ayar: RuzgarAyari;
 
-  constructor(malzeme: Material, ayar: RuzgarAyari) {
+  /** `ayar` verilmezse rüzgârsız (malzeme kopyası eklentiyi tek argümanla kurar — isikEklentisi.ts'deki not). */
+  constructor(malzeme: Material, ayar: RuzgarAyari = { guc: 0, hiz: 0, olcek: 0.05, aci: 0 }) {
     super(malzeme, "Ruzgar", 200, { RUZGAR: false });
     this.ayar = ayar;
     this._enable(true);
@@ -66,3 +68,4 @@ export class RuzgarEklentisi extends MaterialPluginBase {
     };
   }
 }
+RegisterClass("BABYLON.RuzgarEklentisi", RuzgarEklentisi);

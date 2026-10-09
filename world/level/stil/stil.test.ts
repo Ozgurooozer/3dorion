@@ -16,6 +16,9 @@ import {
 import { paletListesi, PALET_SINIRI } from "./efektler.ts";
 import { isikDurumunuYaz } from "./stilSistemi.ts";
 import { isikStiliDurumuYap, ISIK_STILI_GLSL } from "./isikEklentisi.ts";
+import { etkinSon, sonImzasi } from "./isikSonrasi.ts";
+import { stilTamamla } from "./stilTanimi.ts";
+import { levelKur } from "../cekirdek/levelKur.ts";
 
 const renkMi = (r: unknown) => typeof r === "string" && /^#[0-9a-f]{6}$/i.test(r);
 
@@ -107,4 +110,33 @@ test("Babylon Standard fragment shader'ı eklentinin kullandığı yer ve deği�
 });
 test("eklenti GLSL'i yalnız bekçideki Babylon değişkenlerine dayanır", () => {
   for (const ad of ["diffuseBase", "normalW", "viewDirectionW", "aggShadow", "numLights"]) assert.ok(ISIK_STILI_GLSL.includes(ad), ad);
+});
+
+// ── ışık sonrası (spec 19) ──
+const TOON_SON = ONAYARLAR["toon"]!.stil.son;
+const acikGruplar = (s: typeof TOON_SON) => Object.entries(s).filter(([, g]) => "acik" in g && (g as { acik: boolean }).acik).map(([k]) => k);
+test("B (atla): bütün ışık sonrası grupları kapalı", () => {
+  assert.deepEqual(acikGruplar(etkinSon(TOON_SON, 1, true)), []);
+});
+test("B (atla): ton eşleme standart görünüşe (ACES) döner", () => {
+  assert.equal(etkinSon(TOON_SON, 1, true).tonlama.tur, 2);
+});
+test("piksel kipinde bloom ve alan derinliği kapanır, diğerleri kalır", () => {
+  const e = etkinSon({ ...TOON_SON, derinlik: { ...TOON_SON.derinlik, acik: true } }, 3, false);
+  assert.deepEqual([e.bloom.acik, e.derinlik.acik, e.huzme.acik], [false, false, true]);
+});
+test("canlı değer (bloom gücü) yeniden kurma imzasını değiştirmez", () => {
+  assert.equal(sonImzasi({ ...TOON_SON, bloom: { ...TOON_SON.bloom, guc: 0.9 } }, 1), sonImzasi(TOON_SON, 1));
+});
+test("bir efektin aç/kapa'sı yeniden kurma imzasını değiştirir (sıra korunur)", () => {
+  assert.notEqual(sonImzasi({ ...TOON_SON, ao: { ...TOON_SON.ao, acik: !TOON_SON.ao.acik } }, 1), sonImzasi(TOON_SON, 1));
+});
+test("gi grubu olmayan eski stil geçerli ve kapalı gi ile tamamlanır", () => {
+  const eski = structuredClone(VARSAYILAN_STIL) as unknown as { son: Record<string, unknown> };
+  delete eski.son["gi"];
+  assert.deepEqual([stilHatasi(eski, renkMi), stilTamamla(eski as unknown as typeof VARSAYILAN_STIL).son.gi.acik], [null, false]);
+});
+test("gölgede yeni alanlar yoksa keskin varsayılanla tamamlanır (otomatik sınır açık)", () => {
+  const level = levelKur(new Scene(new NullEngine()), { ...ornekTanim(), katmanlar: [] }, new Map());
+  assert.equal(level.tanim().isik.gunes.golge.otomatikSinir, true);
 });

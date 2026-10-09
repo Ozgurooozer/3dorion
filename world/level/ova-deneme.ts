@@ -9,6 +9,7 @@
 //               bu açılışta Kaydet'e basılırsa değer dosyaya da yazılır)
 //   ?panel=0    paneli kapat (ekran görüntüsü için)
 //   ?stil=toon  stil önayarıyla aç (stil/stilTanimi.ts ONAYARLAR) · ?renk=pastel renk düzeniyle aç
+//   ?kapat=gi,ao  ışık sonrası gruplarını kapat (maliyet ölçümü)
 // Tuşlar: G stil önayarları arasında döner, P renk düzenleri arasında (spec 18). Shader derleme hatası ölçüm
 // satırına ve başlığa "hata=N" olarak düşer (sessiz boş görüntü yok).
 // Hazır olunca (3 sn ölçüm) başlık "hazir …" olur — tools/oda-goruntu.mjs bunu bekler.
@@ -24,6 +25,7 @@ import { levelPaneliKur } from "./editor/levelPaneli.ts";
 import { inspektorAcKapa } from "./editor/inspektor.ts";
 import { varlikTarayiciKur } from "./editor/varlikTarayici.ts";
 import { Logger } from "@babylonjs/core/Misc/logger";
+import type { SonStili } from "./stil/stilTanimi.ts";
 import { ONAYARLAR, ONAYAR_ADLARI, onayarUygula, onayarAdi, PALET_DUZENI_ADLARI, paletDuzeniUygula, paletDuzeniAdi } from "./stil/stilTanimi.ts";
 
 const LEVEL_DOSYASI = "/world/level/ova/ova.level.json";
@@ -59,6 +61,12 @@ try {
   }
   if (q.has("stil")) level.ayarla(onayarUygula(level.tanim(), q.get("stil")!));
   if (q.has("renk")) level.ayarla(paletDuzeniUygula(level.tanim(), q.get("renk")!));
+  // ?kapat=gi,ao — ışık sonrası gruplarını yüklemede kapat (ölçüm: bir efektin maliyetini ayırmak için).
+  if (q.has("kapat")) {
+    const t = level.tanim();
+    for (const g of q.get("kapat")!.split(",")) { const grup = t.stil?.son?.[g as Exclude<keyof SonStili, "tonlama">]; if (grup) grup.acik = false; }
+    level.ayarla(t);
+  }
 
   const ad = q.get("aci") ?? "ufuk";
   const aci: Aci = (OVA_ACILARI as Record<string, Aci | undefined>)[ad] ?? OVA_ACILARI.ufuk;
@@ -123,16 +131,47 @@ try {
     g.append(b, d);
     stilCubugu.append(g);
   }
+  // Işık sonrası çipleri (spec 19): her efekti tek tıkla aç/kapa (stil.son.<grup>.acik) + B basılıyken hepsi kapalı.
+  const ISIK_CIPLERI: [Exclude<keyof SonStili, "tonlama">, string][] = [["gi", "GI"], ["ao", "AO"], ["huzme", "huzme"], ["parilti", "parıltı"], ["bloom", "bloom"],
+    ["egri", "eğri"], ["vinyet", "vinyet"], ["gren", "gren"], ["sapma", "sapma"], ["keskinlik", "keskinlik"], ["derinlik", "derinlik"]];
+  {
+    const g = document.createElement("div"); g.className = "grup";
+    const b = document.createElement("span"); b.textContent = "ışık (B)"; g.append(b);
+    for (const [k, ad] of ISIK_CIPLERI) {
+      const d = document.createElement("button"); d.textContent = ad; d.title = `ışık sonrası: ${ad} aç/kapa (değerleri panelde Stil › ışık sonrası)`;
+      d.onclick = (e) => {
+        e.stopPropagation(); d.blur();
+        const t = level.tanim();
+        const grupD = t.stil?.son?.[k];
+        if (!grupD) return;
+        grupD.acik = !grupD.acik;
+        if (panel) panel.tanimDegistir(() => t, `${ad}: ${grupD.acik ? "açık" : "kapalı"}`); else level.ayarla(t);
+        cubuguYaz();
+      };
+      dugmeler.set(`isik:${k}`, d);
+      g.append(d);
+    }
+    stilCubugu.append(g);
+  }
+  let atlaniyor = false;
+  addEventListener("keydown", (e) => {
+    if (e.code !== "KeyB" || atlaniyor || (e.target as HTMLElement | null)?.matches?.("input, select")) return;
+    atlaniyor = true; level.stil.sonrasiAtla(true); aciklama.textContent = "B: ışık sonrası KAPALI (bırakınca geri gelir)";
+  });
+  addEventListener("keyup", (e) => { if (e.code === "KeyB" && atlaniyor) { atlaniyor = false; level.stil.sonrasiAtla(false); cubuguYaz(); } });
   const aciklama = document.createElement("div"); aciklama.className = "aciklama"; stilCubugu.append(aciklama);
   function cubuguYaz() {
     const s = onayarAdi(level.tanim()), r = paletDuzeniAdi(level.tanim());
-    for (const [k, d] of dugmeler) d.classList.toggle("secili", k === `stil:${s}` || k === `renk:${r}`);
+    const son = level.tanim().stil?.son;
+    const isikAcik = (k: string) => ISIK_CIPLERI.some(([g]) => `isik:${g}` === k && !!son?.[g].acik);
+    for (const [k, d] of dugmeler) d.classList.toggle("secili", k === `stil:${s}` || k === `renk:${r}` || isikAcik(k));
     aciklama.textContent = ONAYARLAR[s]?.aciklama ?? "Stil elle değiştirildi (panelden).";
   }
   const sonraki = (liste: readonly string[], simdiki: string) => liste[(liste.indexOf(simdiki) + 1) % liste.length]!;
   addEventListener("keydown", (e) => {
     if ((e.target as HTMLElement | null)?.matches?.("input, select")) return;
     if (e.code === "KeyG") sec("stil", sonraki(ONAYAR_ADLARI, onayarAdi(level.tanim())));
+    else if (e.code === "KeyZ" && (e.ctrlKey || e.metaKey)) setTimeout(cubuguYaz);
     else if (e.code === "KeyP") sec("renk", sonraki(PALET_DUZENI_ADLARI, paletDuzeniAdi(level.tanim())));
   });
   cubuguYaz();
