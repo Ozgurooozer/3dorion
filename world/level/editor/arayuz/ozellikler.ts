@@ -34,6 +34,8 @@ export interface OzellikPaneli {
   kok: HTMLElement;
   /** Seçime göre ek bölüm (ör. hazır yapı olarak kaydet); null dönerse eklenmez. */
   ekle(f: (sec: NesneYeri[]) => HTMLElement | null): void;
+  /** Dışarıdan yeniden çiz (ör. anlam sözlüğü yüklendi). */
+  yenile(): void;
 }
 
 export function ozelliklerKur(ed: Editor): OzellikPaneli {
@@ -304,5 +306,5 @@ export function ozelliklerKur(ed: Editor): OzellikPaneli {
   });
   ed.level.nesneler.yuklenince(() => { if (!durum.secim().length) ciz(); });
   ciz();
-  return { kok, ekle(f) { ozelEkler.push(f); ciz(); } };
+  return { kok, ekle(f) { ozelEkler.push(f); ciz(); }, yenile: () => ciz() };
 }

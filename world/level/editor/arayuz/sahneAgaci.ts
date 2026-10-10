@@ -7,7 +7,7 @@
 "use strict";
 import type { Editor } from "../editor.ts";
 import type { GrupTanimi, LevelTanimi, NesneYeri } from "../../cekirdek/levelTanimi.ts";
-import { kisaAd } from "../../cekirdek/katalog.ts";
+import { anlamBilgisi } from "./anlamBilgisi.ts";
 import { etkinBayrak } from "../../cekirdek/grup.ts";
 import { yeniId } from "../../cekirdek/kimlik.ts";
 import * as K from "../cekirdek/komutlar.ts";
@@ -33,6 +33,7 @@ const AGAC_CSS = `
 .ed-agac .s .gor { visibility: hidden; }
 .ed-agac .s:hover .gor { visibility: visible; }
 .ed-agac .s.soluk .ad { color: #66779a; }
+.ed-agac .s .gormez { color: #8a6f9e; font-size: 10px; margin-left: 2px; }
 .ed-agac .grupS .ad { font-weight: 600; color: #c8d6f0; }
 .ed-agac .baslikS { color: var(--ed-soluk); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; padding: 6px 8px 2px; }
 .ed-agac .kok-birak { min-height: 18px; margin: 4px 6px; border: 1px dashed transparent; border-radius: 4px; color: var(--ed-soluk); font-size: 11px; text-align: center; }
@@ -68,7 +69,9 @@ export function sahneAgaciKur(ed: Editor, katmanSec: (ad: string) => void): Sahn
   };
 
   const mod = (e: MouseEvent): SecimKipi => (e.shiftKey ? "ekle" : e.ctrlKey || e.metaKey ? "tersle" : "yeni");
-  const nesneAdi = (n: NesneYeri) => n.ad ?? kisaAd(n.varlik);
+  // Ad = Orion'un bildiği ad (yerleşim > anlam sözlüğü > kısa ad; spec 23 B).
+  const ab = anlamBilgisi(ed);
+  const nesneAdi = (n: NesneYeri) => ab.etkin(n).ad;
   const eslesir = (n: NesneYeri) => !arama || `${nesneAdi(n)} ${n.varlik} ${n.id}`.toLocaleLowerCase("tr").includes(arama);
 
   const ikon = (yazi: string, acik: boolean, baslik: string, is: () => void, gorunurHep = false) => {
@@ -111,10 +114,14 @@ export function sahneAgaciKur(ed: Editor, katmanSec: (ad: string) => void): Sahn
     const gizli = etkinBayrak(n, g, "gizli"), kilitli = etkinBayrak(n, g, "kilitli");
     const s = el("div", `s${durum.secim().includes(id) ? " secili" : ""}${gizli || kilitli ? " soluk" : ""}`);
     s.style.paddingLeft = `${6 + derinlik * 14}px`;
-    s.title = `${id} · ${n.varlik}\n${n.konum.map((v) => v.toFixed(2)).join(", ")}`;
+    const an = ab.etkin(n);
+    s.title = `${id} · ${n.varlik}\n${n.konum.map((v) => v.toFixed(2)).join(", ")}\nOrion: ${an.algilanir ? `${an.tur} · ${an.eylemler.join(", ")}` : "görmez"}`;
     s.dataset["id"] = id;
+    const gormez = el("span", "gormez", an.algilanir ? "" : "⊘");
+    gormez.title = "Orion bu nesneyi algılamaz (görsel kalabalık)";
     s.append(el("span", "ac", "·"),
       adAlani(nesneAdi(n), id, (ad) => durum.degistir((x) => K.adlandir(x, id, ad).tanim, `ad: ${ad}`)),
+      gormez,
       ikon("◎", false, "Odakla (F)", () => { durum.secimAyarla([id]); ed.eylem("odakla"); }),
       ikon(n.gizli ? "◌" : "👁", !!n.gizli, n.gizli ? "Göster" : "Gizle (H)", () => durum.degistir((x) => K.bayrakAyarla(x, [id], "gizli", !n.gizli).tanim, n.gizli ? "gösterildi" : "gizlendi")),
       ikon(n.kilitli ? "🔒" : "🔓", !!n.kilitli, n.kilitli ? "Kilidi aç" : "Kilitle (L)", () => durum.degistir((x) => K.bayrakAyarla(x, [id], "kilitli", !n.kilitli).tanim, n.kilitli ? "kilit açıldı" : "kilitlendi")));
@@ -194,6 +201,7 @@ export function sahneAgaciKur(ed: Editor, katmanSec: (ad: string) => void): Sahn
     if (son) agac.querySelector<HTMLElement>(`[data-id="${CSS.escape(son)}"]`)?.scrollIntoView({ block: "nearest" });
   };
   durum.abone("tanim", ciz);
+  ab.hazirOlunca(ciz);
   durum.abone("secim", () => { ciz(); secimeKaydir(); });
   ciz();
   return { kok, yenile: ciz };

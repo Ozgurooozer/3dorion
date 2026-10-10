@@ -31,11 +31,14 @@ import type { Color3 } from "@babylonjs/core/Maths/math.color";
 import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import type { GrupTanimi, NesneYeri } from "./levelTanimi.ts";
 import { katalogOku, type Katalog, type Varlik } from "./katalog.ts";
+import { anlamSozluguOku, type AnlamSozlugu } from "./anlam.ts";
 import { donusRadyan, olcekVec } from "./donusum.ts";
 import { etkinBayrak } from "./grup.ts";
 import type { Renk } from "./renk.ts";
 
 export const KATALOG_DOSYASI = "sehir/katalog.json";
+/** Varlıkların Orion için anlam sözlüğü (spec 23 B; cekirdek/anlam.ts). */
+export const ANLAM_DOSYASI = "sehir/anlam.json";
 
 /**
  * Varlığın bir örneğini `ust` altına kurar, mesh'lerini döner (test sahte yükleyici verir; asıl yol glb).
@@ -55,6 +58,8 @@ export interface NesneBaglami {
 
 export interface NesneSistemi {
   katalog(): Promise<Katalog>;
+  /** Anlam sözlüğü (Türkçe ad, tür, eylemler; katalogla aynı önbellek deseni). */
+  anlamlar(): Promise<AnlamSozlugu>;
   /** Yerleşimleri tanıma uydurur (kimlikle eşler; gruplar gizliliği verir). Kimliksiz yerleşim atlanır. */
   uygula(nesneler: readonly NesneYeri[], gruplar?: readonly GrupTanimi[]): void;
   /** Tıklanan mesh hangi yerleşim (kimliği; yoksa null). */
@@ -125,6 +130,15 @@ export function nesneSistemiKur(b: NesneBaglami): NesneSistemi {
       .then(katalogOku);
     katalogSozu.catch(() => { katalogSozu = null; });
     return katalogSozu;
+  };
+  let anlamSozu: Promise<AnlamSozlugu> | null = null;
+  const anlamlar = (): Promise<AnlamSozlugu> => {
+    anlamSozu ??= import("../../varlik.ts")
+      .then(({ varlik }) => fetch(varlik(ANLAM_DOSYASI)))
+      .then((y) => { if (!y.ok) throw new Error(`${ANLAM_DOSYASI}: HTTP ${y.status}`); return y.json(); })
+      .then(anlamSozluguOku);
+    anlamSozu.catch(() => { anlamSozu = null; });
+    return anlamSozu;
   };
 
   const ortakMalzeme = (tur: "isikli" | "pismis"): Material => {
@@ -243,6 +257,7 @@ export function nesneSistemiKur(b: NesneBaglami): NesneSistemi {
 
   return {
     katalog,
+    anlamlar,
     uygula(nesneler, gruplar = []) {
       const istenen = new Set<string>();
       for (const n of nesneler) {

@@ -8,6 +8,7 @@
 // Ortak çekirdek: ova bugün kullanıyor; Orion'un odası ileride aynı tanıma taşınacak (ayrı adım).
 "use strict";
 import { hex } from "./renk.ts";
+import { anlamHatasi, type Anlam } from "./anlam.ts";
 import { stilHatasi, type StilAyari } from "../stil/stilTanimi.ts";
 import type { ZamanAyari } from "../shader/dunyaDurumu.ts";
 import type { ShaderTanimi } from "../shader/shaderSistemi.ts";
@@ -89,6 +90,11 @@ export interface NesneYeri {
   gizli?: boolean;
   /** Editörde seçilemez/taşınamaz (yanlışlıkla oynatılmasın). */
   kilitli?: boolean;
+  /**
+   * Orion için anlam (spec 23 B): tür, eylemler, algılanır mı, not. Verilmeyen alan varlığın/kategorinin
+   * sözlükteki anlamından gelir (cekirdek/anlam.ts `etkinAnlam`). `ad` burada değil, yukarıda (tek ad).
+   */
+  anlam?: Omit<Anlam, "ad">;
 }
 
 /** Sahne ağacındaki klasör. İç içe olabilir (`ust`); gizli/kilitli içindekilere geçer. */
@@ -174,7 +180,13 @@ export function nesneHatasi(n: unknown, grupIdleri?: ReadonlySet<string>): { ala
   const g = n["grup"];
   if (g !== undefined && (typeof g !== "string" || (grupIdleri && !grupIdleri.has(g)))) return { alan: "grup", neden: `olmayan grup "${String(g)}"` };
   const e = secimliHata(n, ["gizli", "kilitli"]);
-  return e ? { alan: e, neden: "mantıksal olmalı" } : null;
+  if (e) return { alan: e, neden: "mantıksal olmalı" };
+  if (n["anlam"] !== undefined) {
+    if (typeof n["anlam"] === "object" && n["anlam"] !== null && "ad" in n["anlam"]) return { alan: "anlam.ad", neden: "ad yerleşimin kendisinde (nesneler[].ad)" };
+    const h = anlamHatasi(n["anlam"]);
+    if (h) return { alan: `anlam${h.alan ? `.${h.alan}` : ""}`, neden: h.neden };
+  }
+  return null;
 }
 
 /** İlk hatanın yolu ve nedeni; geçerliyse `null`. */

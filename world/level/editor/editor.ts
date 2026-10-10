@@ -19,6 +19,7 @@ import { Vector3, Matrix } from "@babylonjs/core/Maths/math.vector";
 import type { Level } from "../cekirdek/levelKur.ts";
 import type { LevelTanimi, Vec3 } from "../cekirdek/levelTanimi.ts";
 import type { Katalog } from "../cekirdek/katalog.ts";
+import type { AnlamSozlugu } from "../cekirdek/anlam.ts";
 import { kisaAd } from "../cekirdek/katalog.ts";
 import { kisaDonus } from "../cekirdek/donusum.ts";
 import { onayarUygula, onayarAdi, ONAYAR_ADLARI, paletDuzeniUygula, paletDuzeniAdi, PALET_DUZENI_ADLARI } from "../stil/stilTanimi.ts";
@@ -60,6 +61,8 @@ export interface EditorAyari {
 export interface ArayuzKancalari {
   yardim?(): void;
   varlikAra?(): void;
+  /** Orion'un gözü katmanını aç/kapa (spec 23 B). */
+  orionGozu?(): void;
   /** Kutu seçimi dikdörtgeni (tuval pikseli); null = gizle. */
   secimKutusu?(k: { x0: number; y0: number; x1: number; y1: number } | null): void;
 }
@@ -72,6 +75,8 @@ export interface Editor {
   readonly yuzey: Yuzey;
   readonly kamera: EditorKamerasi;
   katalog(): Promise<Katalog>;
+  /** Orion için anlam sözlüğü (spec 23 B). */
+  anlamlar(): Promise<AnlamSozlugu>;
   eylem(e: Eylem, s?: { yuva?: number; shift?: boolean }): void;
   yerlestirmeyeBasla(k: YerlestirmeKaynagi): void;
   yerlestirmeyiBitir(): void;
@@ -639,6 +644,7 @@ export function editorKur(a: EditorAyari): Editor {
       }
       case "sonrasiAtla": level.stil.sonrasiAtla(true); return;
       case "inspektor": void a.inspektor?.(); return;
+      case "orionGozu": kancalar.orionGozu?.(); return;
       default: return;
     }
   };
@@ -693,6 +699,7 @@ export function editorKur(a: EditorAyari): Editor {
   return {
     durum, level, sahne, tuval, yuzey, kamera, kancalar,
     katalog: () => level.nesneler.katalog(),
+    anlamlar: () => level.nesneler.anlamlar(),
     eylem,
     yerlestirmeyeBasla(k) {
       durum.secimAyarla([]);

@@ -14,6 +14,9 @@ import type { NesneYeri } from "../../cekirdek/levelTanimi.ts";
 import { parcaOku } from "../cekirdek/pano.ts";
 import { VarHatasi, type LevelDeposu } from "../../depo/levelDeposu.ts";
 import { levelMenusuKur } from "./levelMenusu.ts";
+import { anlamBilgisi } from "./anlamBilgisi.ts";
+import { orionBolumu } from "./orionIcin.ts";
+import { orionGozuKur } from "./orionGozu.ts";
 import { AYAR_VARSAYILAN, type EditorAyarlari } from "../cekirdek/durum.ts";
 import { YASLAMA_VARSAYILAN } from "../cekirdek/yaslama.ts";
 import { FIRCA_VARSAYILAN } from "../cekirdek/firca.ts";
@@ -171,7 +174,18 @@ export function editorArayuzuKur(ed: Editor, a: ArayuzAyari): void {
     return b;
   });
 
+  // Orion için anlam (spec 23 B): özelliklerde bölüm, sahnede göz katmanı (O).
+  const ab = anlamBilgisi(ed);
+  oz.ekle(orionBolumu(ed, ab));
+  ab.hazirOlunca(() => oz.yenile());
+  const goz = orionGozuKur(ed, ab);
+  ed.kancalar.orionGozu = () => { const acik = goz.acKapa(); gozDugmesi.classList.toggle("secili", acik); durum.bildir(acik ? "Orion'un gözü açık (O kapatır)" : "Orion'un gözü kapalı"); };
+
   aracCubuguKur(ed, a.ad);
+  const gozDugmesi = el("button", "", "🤖");
+  gozDugmesi.title = "Orion'un gözü (O): bildiği nesneler, adları, eylemleri; bu açıdan gördükleri parlak";
+  gozDugmesi.onclick = () => { ed.eylem("orionGozu"); gozDugmesi.blur(); };
+  document.getElementById("ed-ust")?.insertBefore(gozDugmesi, document.getElementById("ed-ust")!.querySelector("button[title^='Kısayol']") ?? null);
   // Araç çubuğuna yuva düğmeleri.
   const ust = document.getElementById("ed-ust")!;
   const yuvaDugmesi = (yazi: string, baslik: string, k: keyof typeof yuvalar) => {

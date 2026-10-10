@@ -149,6 +149,18 @@ export function hepsiniGoster(t: LevelTanimi): LevelTanimi {
 export const adlandir = (t: LevelTanimi, id: string, ad: string): Sonuc =>
   nesneleriDegistir(t, [id], (n) => { const { ad: _a, ...geri } = n; return ad.trim() ? { ...geri, ad: ad.trim() } : geri; });
 
+/**
+ * Orion için anlamı değiştirir (spec 23 B). `f` yerleşimin kendi anlamını (sözlüğün üstüne yazılanı) alır, yenisini
+ * döner; undefined ya da boş nesne = sözlüğe dön (alan dosyada kalmaz).
+ */
+export const anlamYaz = (t: LevelTanimi, idler: readonly string[], f: (a: NonNullable<NesneYeri["anlam"]>) => NesneYeri["anlam"]): Sonuc =>
+  nesneleriDegistir(t, idler, (n) => {
+    const { anlam: eski, ...geri } = n;
+    const yeni = f({ ...eski });
+    const temiz = yeni ? Object.fromEntries(Object.entries(yeni).filter(([, v]) => v !== undefined && v !== "")) : {};
+    return Object.keys(temiz).length ? { ...geri, anlam: temiz as NesneYeri["anlam"] } : geri;
+  });
+
 export const varlikDegistir = (t: LevelTanimi, idler: readonly string[], varlik: string): Sonuc =>
   nesneleriDegistir(t, idler, (n) => ({ ...n, varlik }));
 

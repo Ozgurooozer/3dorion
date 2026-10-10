@@ -316,3 +316,14 @@ test("silgi kilitli fırça varlığına dokunmaz", () => {
 
 // ── ölçü ──
 test("ölçü: yatay ve dikey ayrı", () => { assert.deepEqual(olc([0, 0, 0], [3, 2, 4]), { toplam: Math.hypot(3, 2, 4), yatay: 5, dikey: 2 }); });
+
+// ── Orion için anlam (spec 23 B) ──
+test("anlam yazılır", () => {
+  assert.deepEqual(K.anlamYaz(T([N("n1")]), ["n1"], (a) => ({ ...a, eylemler: ["otur"] })).tanim.nesneler![0]!.anlam, { eylemler: ["otur"] });
+});
+test("boş anlam alanı dosyada kalmaz (sözlüğe dön)", () => {
+  assert.equal("anlam" in K.anlamYaz(T([N("n1", 0, { anlam: { tur: "yapi" } })]), ["n1"], () => undefined).tanim.nesneler![0]!, false);
+});
+test("boş not yazılmaz", () => {
+  assert.deepEqual(K.anlamYaz(T([N("n1", 0, { anlam: { tur: "yapi" } })]), ["n1"], (a) => ({ ...a, not: "" })).tanim.nesneler![0]!.anlam, { tur: "yapi" });
+});

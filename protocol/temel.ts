@@ -65,6 +65,15 @@ export const CAPA_ETIKETLERI: Readonly<Record<CapaAdi, string>> = {
   admin: "yönetim terminali",
 };
 
+/**
+ * Bir NESNEYLE yapılabilecekler (algıda `YakinNesne.eylemler`, level nesnelerinin anlamı — spec 23 B). Her biri
+ * Orion'un bir niyetine karşılık gelir: bak, git (yanına), otur, al, odaklan (ekrana/yüzeye), yaz (tahtaya),
+ * kullan (makine, telefon). Durum geçişleri (kalk, bırak) nesnenin değil Orion'un hâlinin eylemidir: burada yok.
+ * Değer EKLEMEK kırıcı değil; çıkarmak kırıcı.
+ */
+export const NESNE_EYLEMLERI = ["bak", "git", "otur", "al", "odaklan", "yaz", "kullan"] as const;
+export type NesneEylemi = (typeof NESNE_EYLEMLERI)[number];
+
 const KATLAMA: Record<string, string> = { "ı": "i", "ö": "o", "ü": "u", "ş": "s", "ç": "c", "ğ": "g", "â": "a", "î": "i", "û": "u" };
 
 /**

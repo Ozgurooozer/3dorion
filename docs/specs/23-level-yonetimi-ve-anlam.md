@@ -1,8 +1,8 @@
 # Spec 23 — Level yönetimi, kalıcı kayıt ve Orion için anlam
 
-> Durum: **Faz A uygulandı** (2026-10-10). Faz B (nesnelere anlam) onay bekliyor; C (Orion'u level'a taşımak,
-> spec 24) ve D (düzenleme niyeti) tasarım olarak sabit.
-> Deneme: `npm run editor-dene` (46 adım; 10'u level yönetimi).
+> Durum: **Faz A ve B uygulandı** (2026-10-10). C (Orion'u level'a taşımak, spec 24) ve D (düzenleme niyeti)
+> tasarım olarak sabit.
+> Deneme: `npm run editor-dene` (51 adım; 10'u level yönetimi, 5'i Orion için anlam).
 
 ## 0. Neden
 Spec 22 editörü bitince Ozyn "eksiklerimiz neler?" diye sordu; öncelik önerisi (Ozyn: "istediğinden başla"):
@@ -52,10 +52,27 @@ tarayıcıya yazılır ve kendiliğinden uygulanmaz.
 - Geri al geçmişi sayfa yenilenince kaybolur (kurtarma son hâli korur, adımları değil).
 - Level silme / yeniden adlandırma (geri alınamaz; elle).
 
-## 4. Sonraki fazlar (tasarım, plan: Faz B–D)
-- **B — anlam:** `NesneYeri.anlam?: { tur?, etkilesim?: ("bak"|"git"|"otur"|"al")[], not? }`; katalog varsayılanları
-  veri (`assets/sehir/anlam.json`); `nesneKaydi.ts`in `Nesne` biçimini level'dan üreten saf `levelNesneleri`;
-  editörde "Orion için" bölümü ve anlamsız nesne denetimi.
+## 4. Faz B — nesnelere Orion için anlam (uygulandı)
+- **Ortak sözlük protokolde:** `NESNE_EYLEMLERI = bak, git, otur, al, odaklan, yaz, kullan` (protocol/temel.ts) —
+  Orion'un niyetleriyle aynı adlar; algıdaki `YakinNesne.eylemler` ile aynı dil. Sabit eklemek kırıcı değil (SURUM 1).
+- **Veri:** `NesneYeri.anlam?: { tur?, eylemler?, algilanir?, not? }` (ad tek yerde: `NesneYeri.ad`). Katalog
+  varsayılanları VERİ: `assets/sehir/anlam.json` — 10 kategori + 86 varlığın Türkçe adı ("ek bina", "trafik konisi",
+  "otomat"…), tür ve eylemleri; boru, havalandırma gibi görsel kalabalık `algilanir: false`.
+- **Saf çekirdek** `world/level/cekirdek/anlam.ts`: öncelik yerleşim > varlık > kategori > varsayılan (her alanın
+  kaynağı bilinir); `levelNesneleri` level'dan spec 15 `Nesne` biçiminde kayıt üretir — oda görünürlük kodu
+  (`world/player/gorunurluk.ts`) level kaydıyla aynen çalışır (test: önündeki bina görünür, arkadaki örtülür).
+  Tür birliği tek yerde (`NESNE_TURLERI`; nesneKaydi.ts oradan alır).
+- **Editör:** sahne ağacı Orion'un adını gösterir (⊘ = algılamaz); Özellikler'de "🤖 Orion için" (tür, eylemler,
+  Orion görsün, not; sözlükten gelen soluk, "Sözlüğe dön"); **Orion'un gözü (O)**: sahnede bildiği nesneler adıyla
+  ve eylemleriyle etiketli, şu anki kameradan görünen parlak, örtülü soluk; üstte "bilir / görür / görmez" sayısı.
+- **Bekçiler:** `sehir/anlam.test.ts` (sözlük katalogla birebir: her varlık ve kategori, fazlası yok, hepsinin Türkçe
+  adı var), `cekirdek/anlam.test.ts` (17: öncelik, kayıt, görünürlük uyumu, doğrulama), anlamYaz (3).
+- **Canlı [ÖLÇÜLDÜ]** editor-dene: ağaçta "ek bina"; bölüm "yapı; bakılır, yanına gidilir"; eylem kutusu yerleşime
+  `["bak","git","otur"]` yazar, Ctrl+Z geri alır; O: "bilir 12 · görür 11".
+- **Görülen sorun:** ova'da 9 nesnenin hepsi "ek bina" — Orion için ayırt edilemez. Sonraki iyileştirme: aynı adlı
+  algılanan nesneler için denetim uyarısı ve kısa ayırt edici (konum: "kuzeydeki ek bina") ya da elle ad.
+
+## 5. Sonraki fazlar (tasarım, plan: Faz B–D)
 - **C — Orion'u level'a taşımak:** ayrı spec 24 (oda = bir level; `giris.ts` level çekirdeğiyle).
 - **D — düzenleme niyeti:** `protocol/niyet.ts`e `{ tur: "duzenle"; islem: koy|tasi|dondur|sil; …; gerekce }`,
   `YAZAN_NIYETLER`, `dogrula.ts`, `bridge/araclar.ts` satırı; yürütme `niyetiYurut` → editörün saf komutları →

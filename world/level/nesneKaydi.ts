@@ -15,8 +15,12 @@
 import { CAPA_ETIKETLERI, type CapaAdi } from "../../protocol/temel.ts";
 import { BERJER, KATI_YUZEYLER, LAMBA, RAF, YIGIN, type Kutu } from "./olculer.ts";
 
-/** `yuzey` = duvara/masaya bakan ekran-panel; `mobilya` = taşınabilir/oturulabilir; `aydinlatma` = lamba. */
-export type NesneTuru = "yuzey" | "mobilya" | "aydinlatma";
+/**
+ * Türler TEK yerde (cekirdek/anlam.ts `NESNE_TURLERI`): oda `yuzey` (ekran-panel), `mobilya` (taşınabilir/
+ * oturulabilir), `aydinlatma` (lamba) kullanır; level nesneleri ayrıca yapı, tabela, yol… (spec 23 B).
+ */
+export type { NesneTuru } from "./cekirdek/anlam.ts";
+import type { NesneTuru } from "./cekirdek/anlam.ts";
 
 export interface Nesne {
   /** Kararlı kimlik: çapalıysa çapa adı, değilse kısa ad. */

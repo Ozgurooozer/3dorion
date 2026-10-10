@@ -276,7 +276,29 @@ async function etkilesim() {
   await tus("F1", "F1", 112);
   kontrol("kirli işareti (kaydedilmedi)", await deg("ova.editor.durum.kirli()"));
   kontrol("sayfada hata yok", loglar.length === 0, loglar.slice(0, 3).join(" | "));
+  await orionAnlami();
   await levelYonetimi();
+}
+
+/** Spec 23 B: sahne ağacında Orion'un adları, "Orion için" bölümü, eylem yazma, göz katmanı. */
+async function orionAnlami() {
+  await bekle(500);
+  kontrol("sahne ağacı Orion'un Türkçe adını gösterir (ek bina)", await deg(`[...document.querySelectorAll(".ed-agac .s .ad")].some((e) => e.textContent === "ek bina")`));
+  await deg(`ova.editor.durum.secimAyarla(["n2"])`); await bekle(300);
+  kontrol("özelliklerde Orion için bölümü (yapı, bakılır)", await deg(`(document.querySelector(".ed-orion .ozet")?.textContent ?? "").includes("yapı")`),
+    await deg(`document.querySelector(".ed-orion .ozet")?.textContent`));
+  await deg(`[...document.querySelectorAll(".ed-orion .eylemler label")].find((l) => l.textContent.includes("oturulur")).querySelector("input").click()`);
+  await bekle(300);
+  const an = (await T()).nesneler.find((n) => n.id === "n2").anlam;
+  kontrol("eylem kutusu yerleşime anlam yazar (sözlüğünkiler + otur)", JSON.stringify(an?.eylemler) === JSON.stringify(["bak", "git", "otur"]), JSON.stringify(an));
+  await tus("KeyZ", "z", 90, CTRL);
+  kontrol("anlam değişikliği geri alınır", (await T()).nesneler.find((n) => n.id === "n2").anlam === undefined);
+  await tus("Escape", "Escape", 27);
+  await tus("KeyO", "o", 79); await bekle(500);
+  const ozet = await deg(`document.querySelector("#ed-orion-gozu .ozet")?.textContent ?? ""`);
+  kontrol("O: Orion'un gözü açılır, bildiği nesneleri sayar", /bilir: \d+/.test(ozet) && await deg(`document.querySelectorAll("#ed-orion-gozu .etiket").length > 0`), ozet);
+  await ekran("orion-gozu");
+  await tus("KeyO", "o", 79);
 }
 
 /** Spec 23 A: yeni level (şablondan), kaydet, kurtarma, farklı kaydet. Açtığı level klasörlerini sonunda siler. */

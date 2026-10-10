@@ -18,7 +18,7 @@ export type Eylem =
   | "grupla" | "grubuCoz" | "gizle" | "hepsiniGoster" | "kilitle" | "zemineIndir" | "uzayDegistir"
   | "odakla" | "solaDondur" | "sagaDondur" | "kaydirSol" | "kaydirSag" | "kaydirIleri" | "kaydirGeri" | "kaydirYukari" | "kaydirAsagi"
   | "yerImiKaydet" | "yerImineGit" | "kaydet" | "varlikAra" | "kipDegistir" | "yardim" | "izgara" | "yaslamaAcKapa"
-  | "stilSonraki" | "renkSonraki" | "sonrasiAtla" | "inspektor";
+  | "stilSonraki" | "renkSonraki" | "sonrasiAtla" | "inspektor" | "orionGozu";
 
 export interface Kisayol {
   eylem: Eylem;
@@ -101,6 +101,7 @@ export const KISAYOLLAR: readonly Kisayol[] = [
   k("renkSonraki", "KeyP", GORUNUM, "Sonraki renk şeması", { shift: true, baglam: "her" }),
   k("sonrasiAtla", "KeyB", GORUNUM, "Basılıyken ışık sonrası kapalı (önce/sonra)", { baglam: "her", basili: true }),
   k("inspektor", "F8", GORUNUM, "Babylon Inspector", { baglam: "her" }),
+  k("orionGozu", "KeyO", GORUNUM, "Orion'un gözü: bildiği nesneler, adları ve eylemleri; bu açıdan gördükleri parlak", { baglam: "her" }),
 ];
 
 /** Yardım kartı için fare hareketleri (harita değil, açıklama). */
