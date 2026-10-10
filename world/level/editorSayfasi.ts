@@ -1,11 +1,13 @@
-// world/level/ova-deneme.ts — Ova level'ini BEYİNSİZ gösteren ve DÜZENLETEN deneme sayfası (spec 17, editör spec 22).
+// world/level/editorSayfasi.ts — Level EDİTÖRÜ sayfası (spec 17 ova denemesi → spec 22 editör → spec 23 genel).
 //
-// Level = veri: world/level/ova/ova.level.json. Sayfa onu okur, `levelKur` ile kurar (modüller:
-// world/level/moduller/) ve level EDİTÖRÜNÜ açar (editor/editor.ts + arayuz/): sahne ağacı, dünya ayarları,
-// özellikler, varlık tarayıcısı, gizmo, geri/ileri al, Ctrl+S → dosya. F1 kısayol kartı. Tab: uçuş kipi
-// (fare kilitli serbest uçuş: WASD + fare, Space/E yukarı, Q/C aşağı, Shift hızlı).
+// Level = veri: world/level/<ad>/<ad>.level.json. Sayfa onu DEPODAN okur (depo/levelDeposu.ts; geliştirmede
+// httpDeposu — kompozisyon kökü burası), `levelKur` ile kurar (modüller: world/level/moduller/) ve level
+// EDİTÖRÜNÜ açar (editor/editor.ts + arayuz/): level menüsü (aç / yeni / farklı kaydet), sahne ağacı, dünya
+// ayarları, özellikler, varlık tarayıcısı, gizmo, geri/ileri al, Ctrl+S → dosya, çökme kurtarması. F1 kısayol
+// kartı. Tab: uçuş kipi (fare kilitli serbest uçuş: WASD + fare, Space/E yukarı, Q/C aşağı, Shift hızlı).
 //
-//   /world/level/ova-deneme.html?aci=ufuk | alcak | tepe | gunes
+//   /world/level/editor.html?level=ova   (ova-deneme.html = level=ova; eski adres ve araçlar için)
+//   ?aci=<yer imi adı>  level'ın kamera yer imlerinden (ova: ufuk | alcak | tepe | gunes | gol); yoksa 1. yuva
 //   ?piksel=3   tanımdaki `ortam.piksel`i geçersiz kılar (piksel kipi; panelde "Ortam › piksel boyu" aynı ayar —
 //               bu açılışta Kaydet'e basılırsa değer dosyaya da yazılır)
 //   ?panel=0    editör arayüzü yok, uçuş kipinde açılır (ekran görüntüsü için)
@@ -30,23 +32,15 @@ import type { SonStili } from "./stil/stilTanimi.ts";
 import { SHADERLAR } from "./shader/moduller/index.ts";
 import { ZAMAN_VARSAYILAN } from "./shader/dunyaDurumu.ts";
 import { onayarUygula, onayarAdi, paletDuzeniUygula } from "./stil/stilTanimi.ts";
+import { httpDeposuKur } from "./depo/httpDeposu.ts";
+import { yerImi, yerImiMutlak } from "./editor/cekirdek/komutlar.ts";
+import type { Vec3 } from "./cekirdek/levelTanimi.ts";
 
-const LEVEL_DOSYASI = "/world/level/ova/ova.level.json";
 const GOZ = 1.7;
-
-interface Aci { konum: [number, number, number]; hedef: [number, number, number] }
-/** Sabit açılar (y: zeminden yükseklik; 10 m üstü serbest uçuş). */
-export const OVA_ACILARI = {
-  ufuk: { konum: [0, GOZ, 0], hedef: [60, 6, -40] },
-  alcak: { konum: [4, 0.45, 6], hedef: [40, 1.5, -30] },
-  tepe: { konum: [-30, 28, 40], hedef: [20, 0, -20] },
-  gunes: { konum: [0, GOZ, 0], hedef: [-55, 30, -72] },
-  gol: { konum: [-50, 2.4, -14], hedef: [-30, -0.3, -32] },
-} satisfies Record<string, Aci>;
-
-const dosyadanOku = async (): Promise<unknown> => (await fetch(`${LEVEL_DOSYASI}?t=${Date.now()}`)).json();
-
 const q = new URLSearchParams(location.search);
+const levelAdi = q.get("level") ?? "ova";
+const depo = httpDeposuKur();
+const dosyadanOku = () => depo.oku(levelAdi);
 const tuval = document.getElementById("tuval") as HTMLCanvasElement;
 const olcumKutusu = document.getElementById("olcum") as HTMLDivElement;
 const motor = new Engine(tuval, true, { preserveDrawingBuffer: true, stencil: true }, true);
@@ -83,11 +77,13 @@ try {
     level.ayarla(t);
   }
 
-  const ad = q.get("aci") ?? "ufuk";
-  const aci: Aci = (OVA_ACILARI as Record<string, Aci | undefined>)[ad] ?? OVA_ACILARI.ufuk;
-  const [ax, ay, az] = aci.konum;
-  const kamera = new UniversalCamera("ova_kamera", new Vector3(ax, level.yukseklik(ax, az) + ay, az), sahne);
-  kamera.setTarget(new Vector3(...aci.hedef));
+  // Başlangıç açısı level verisinden: ?aci=<yer imi adı>, yoksa 1. yuva, o da yoksa merkezde göz yüksekliği.
+  const yerler = level.tanim().kameraYerleri ?? [];
+  const yer = (q.has("aci") ? yerler.find((y) => y.ad === q.get("aci")) : null) ?? yerImi(level.tanim(), 1) ?? yerler[0] ?? null;
+  const ad = yer?.ad ?? "merkez";
+  const bas: { konum: Vec3; hedef: Vec3 } = yer ? yerImiMutlak(yer, level.yukseklik) : { konum: [0, level.yukseklik(0, 0) + GOZ, 0], hedef: [60, GOZ, 0] };
+  const kamera = new UniversalCamera("ova_kamera", new Vector3(...bas.konum), sahne);
+  kamera.setTarget(new Vector3(...bas.hedef));
   kamera.fov = 0.95;
   kamera.minZ = 0.05;
   kamera.maxZ = level.tanim().ortam.kamera.uzak;
@@ -106,14 +102,9 @@ try {
     level, kamera, tuval,
     ayarlar: editorAyarlariniOku(),
     inspektor: () => inspektorAcKapa(sahne),
-    async kaydet(t) {
-      const r = await fetch("/__level/kaydet?ad=ova", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(t) });
-      const m = await r.text();
-      if (!r.ok) throw new Error(m);
-      return m;
-    },
+    kaydet: (t) => depo.kaydet(levelAdi, t),
   });
-  if (arayuzVar) editorArayuzuKur(editor, { ad: "ova", moduller: MODULLER, shaderlar: SHADERLAR, dosyadanOku });
+  if (arayuzVar) editorArayuzuKur(editor, { ad: levelAdi, depo, moduller: MODULLER, shaderlar: SHADERLAR });
   else editor.durum.kipAyarla("ucus");
   // Konsoldan / başsız denemeden erişim (yalnız bu deneme sayfası): window.ova.editor.eylem("odakla")…
   Object.assign(window, { ova: { level, editor, sahne, kamera } });
@@ -140,9 +131,9 @@ try {
         return t + ((m?.getTotalIndices?.() ?? 0) / 3) * kopya;
       }, 0);
       const s = level.sayim();
-      const ozet = `aci=${ad} stil=${onayarAdi(level.tanim())} hata=${shaderHatasi} piksel=${level.tanim().ortam.piksel} fps=${(kare / sn).toFixed(1)} cizim=${(cizim / Math.max(kare, 1)).toFixed(0)} ucgen=${Math.round(ucgen)} katman=${s.katman} mesh=${s.mesh}`;
+      const ozet = `level=${levelAdi} aci=${ad} stil=${onayarAdi(level.tanim())} hata=${shaderHatasi} piksel=${level.tanim().ortam.piksel} fps=${(kare / sn).toFixed(1)} cizim=${(cizim / Math.max(kare, 1)).toFixed(0)} ucgen=${Math.round(ucgen)} katman=${s.katman} mesh=${s.mesh}`;
       olcumKutusu.textContent = ozet;
-      console.log(`[OVA-DENEME] ${ozet}`);
+      console.log(`[LEVEL-EDITOR] ${ozet}`);
       document.title = `hazir ${ozet}`;
     }, 3000);
   });
@@ -152,5 +143,5 @@ try {
   olcumKutusu.textContent = `HATA: ${m}`;
   olcumKutusu.style.color = "#b00020";
   document.title = `hata ${m}`;
-  console.error("[OVA-DENEME]", err);
+  console.error("[LEVEL-EDITOR]", err);
 }

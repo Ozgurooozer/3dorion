@@ -19,7 +19,6 @@ import { ONAYARLAR, ONAYAR_ADLARI, onayarUygula, onayarAdi, PALET_DUZENI_ADLARI,
 export interface PanelAyari {
   durum: EditorDurumu;
   moduller: ModulKaydi;
-  dosyadanOku(): Promise<unknown>;
   /** Özel shader kaydı (spec 20): "Shader'lar" bölümü bundan şema/aralık/açıklama alır. */
   shaderlar?: ShaderKaydi;
 }
@@ -263,7 +262,6 @@ export function levelPaneliKur(p: PanelAyari): LevelPaneli {
   const bas = el("div", "bas");
   const dugmeler = el("div", "dugmeler");
   const dugme = (yazi: string, baslikMetni: string, is: () => void) => { const x = el("button", "", yazi); x.title = baslikMetni; x.onclick = () => { is(); x.blur(); }; dugmeler.append(x); return x; };
-  dugme("Dosyadan yükle", "Diskteki level dosyasını yeniden oku (geri alınabilir)", () => { void yukle(); });
   dugme("JSON", "Tanımı panoya kopyala", () => { void navigator.clipboard.writeText(JSON.stringify(durum.tanim(), null, 2)).then(() => durum.bildir("tanım panoya kopyalandı")); });
   const ara = el("input", "ara"); ara.type = "text"; ara.placeholder = "Ara… (ör. gölge, sayı, renk)";
   ara.oninput = () => { arama = ara.value.trim().toLocaleLowerCase("tr"); ciz(); ara.focus(); };
@@ -352,12 +350,7 @@ export function levelPaneliKur(p: PanelAyari): LevelPaneli {
     govde.scrollTop = kaydir;
   };
 
-  const yukle = async () => {
-    try {
-      const yeni = await p.dosyadanOku();
-      if (durum.degistir(() => yeni as LevelTanimi, "dosyadan yüklendi")) durum.kaydedildi();
-    } catch (err) { durum.bildir(err instanceof Error ? err.message : String(err), true); }
-  };
+
 
   // Dışarıdan değişince (geri al, araç çubuğu, sahne ağacındaki katman gözü) yeniden çiz: panelin gösterdiği kısım
   // değiştiyse ve kaydırıcı sürüklenmiyorsa; bir kutuya yazılıyorsa odak kaybolmasın diye bırakınca.

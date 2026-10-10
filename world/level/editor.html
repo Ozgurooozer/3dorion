@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<title>3dorion — level editörü</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #b7d3ee; overflow: hidden; }
+  canvas { display: block; width: 100%; height: 100%; outline: none; }
+  /* Ölçüm satırı (editör arayüzü yokken, ?panel=0): sol altta. */
+  #olcum { position: fixed; left: 8px; bottom: 6px; color: #23324a; font: 12px system-ui, sans-serif; }
+</style>
+</head>
+<body>
+  <canvas id="tuval" tabindex="0"></canvas>
+  <div id="olcum"></div>
+  <script type="module" src="/world/level/editorSayfasi.ts"></script>
+</body>
+</html>

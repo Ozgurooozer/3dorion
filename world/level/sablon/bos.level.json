@@ -1,0 +1,343 @@
+{
+  "surum": 1,
+  "ad": "boş ova",
+  "palet": {
+    "gokZenit": "#2c63c9",
+    "gokOrta": "#5d93e0",
+    "gokUfuk": "#b7d3ee",
+    "gunes": "#fff3cf",
+    "bulut": "#ffffff",
+    "bulutGolge": "#b9c7dd",
+    "cimKoyu": "#4e6e2a",
+    "cimOrta": "#7d9a34",
+    "cimAcik": "#a9b544",
+    "cimUc": "#d2c46a",
+    "toprak": "#8b7a52",
+    "kaya": "#9c9a96",
+    "kayaKoyu": "#6d6c70"
+  },
+  "isik": {
+    "gunes": {
+      "yon": [
+        -0.48,
+        0.42,
+        -0.63
+      ],
+      "renk": "cimAcik",
+      "siddet": 1.6,
+      "golge": {
+        "acik": true,
+        "boyut": 2048,
+        "kademe": 4,
+        "uzaklik": 250,
+        "yumusaklik": 0.2,
+        "koyuluk": 0.35,
+        "otomatikSinir": true,
+        "kip": 0,
+        "karisim": 0.1
+      }
+    },
+    "dolgu": {
+      "ust": "gokOrta",
+      "alt": "cimUc",
+      "siddet": 0.66
+    }
+  },
+  "ortam": {
+    "arkaPlan": "gokZenit",
+    "sis": {
+      "acik": true,
+      "renk": "gokUfuk",
+      "yogunluk": 0.0042
+    },
+    "tonlama": {
+      "acik": true,
+      "pozlama": 1,
+      "kontrast": 1.1
+    },
+    "kamera": {
+      "uzak": 1000
+    },
+    "piksel": 1
+  },
+  "katmanlar": [
+    {
+      "tur": "gok",
+      "ad": "gok",
+      "acik": true,
+      "ayar": {
+        "yaricap": 480,
+        "dilim": 18,
+        "bant": 7,
+        "ufuk": "gokUfuk",
+        "orta": "gokOrta",
+        "zenit": "gokZenit",
+        "ortaKonum": 0.25
+      }
+    },
+    {
+      "tur": "gunesDiski",
+      "ad": "gunes",
+      "acik": true,
+      "ayar": {
+        "yaricap": 16,
+        "kenar": 10,
+        "renk": "gunes",
+        "uzaklik": 440
+      }
+    },
+    {
+      "tur": "bulut",
+      "ad": "bulutlar",
+      "acik": true,
+      "ayar": {
+        "sayi": 9,
+        "tohum": 1907,
+        "topakMin": 5,
+        "topakMax": 8,
+        "yukseklikMin": 55,
+        "yukseklikMax": 100,
+        "uzakMin": 170,
+        "uzakMax": 370,
+        "olcekMin": 14,
+        "olcekMax": 30,
+        "basiklik": 0.8,
+        "renk": "bulut",
+        "golge": "bulutGolge",
+        "donus": 0.004
+      }
+    },
+    {
+      "tur": "zemin",
+      "ad": "zemin",
+      "acik": true,
+      "ayar": {
+        "yaricap": 320,
+        "bolum": 190,
+        "tepeYukseklik": 2.2,
+        "tepeOlcek": 55,
+        "duzYaricap": 40,
+        "lekeOlcek": 9,
+        "renkler": [
+          "cimKoyu",
+          "cimOrta",
+          "cimAcik",
+          "cimUc"
+        ],
+        "esikler": [
+          0.3,
+          0.62,
+          0.86
+        ],
+        "tohum": 1907,
+        "golX": -30,
+        "golZ": -32,
+        "golYaricap": 16,
+        "golDerinlik": 0,
+        "duzenleme": []
+      }
+    },
+    {
+      "tur": "cim",
+      "ad": "cim",
+      "acik": true,
+      "ayar": {
+        "sayi": 500000,
+        "yaricap": 70,
+        "merkezYogunluk": 1.6,
+        "boyMin": 0.14,
+        "boyMax": 0.5,
+        "genislik": 0.07,
+        "yaprak": 5,
+        "yatma": 0.18,
+        "lekeOlcek": 6,
+        "bosluk": 0.06,
+        "kokKoyuluk": 0.55,
+        "govdeKoyuluk": 0.78,
+        "uc": "cimUc",
+        "ucKarisim": 0.4,
+        "renk": "cimOrta",
+        "renkOynama": 0.08,
+        "ruzgarGuc": 0.16,
+        "ruzgarHiz": 1.8,
+        "ruzgarOlcek": 0.05,
+        "ruzgarAci": 35,
+        "tohum": 4242,
+        "enAlcak": -0.2
+      }
+    },
+    {
+      "tur": "parcacik",
+      "ad": "havadakiler",
+      "acik": true,
+      "ayar": {}
+    }
+  ],
+  "stil": {
+    "isik": {
+      "acik": false,
+      "bant": 3,
+      "yumusaklik": 0.02,
+      "enKoyu": 0.35,
+      "golgeRengi": "#4b4f8f",
+      "golgeKarisim": 0,
+      "parlama": 0,
+      "parlamaBoyu": 32,
+      "kenarIsik": 0,
+      "kenarEsik": 0.72,
+      "tarama": 0
+    },
+    "cizgi": {
+      "acik": false,
+      "kip": 0,
+      "kalinlik": 1,
+      "derinlikEsik": 0.08,
+      "normalEsik": 0.4,
+      "renk": "#1d1a2e",
+      "guc": 0.8,
+      "vurgu": 0,
+      "titreme": 0,
+      "uzaklik": 220
+    },
+    "renk": {
+      "acik": false,
+      "palet": 0,
+      "titreme": 0,
+      "posterize": 0,
+      "doygunluk": 1,
+      "gren": 0
+    },
+    "son": {
+      "tonlama": {
+        "tur": 2
+      },
+      "bloom": {
+        "acik": false,
+        "esik": 0.8,
+        "guc": 0.3,
+        "cekirdek": 64,
+        "olcek": 0.5
+      },
+      "huzme": {
+        "acik": false,
+        "yogunluk": 0.93,
+        "azalma": 0.965,
+        "agirlik": 0.5,
+        "parlaklik": 0.25,
+        "ornek": 80
+      },
+      "parilti": {
+        "acik": false,
+        "guc": 0.8,
+        "cekirdek": 48
+      },
+      "ao": {
+        "acik": false,
+        "yaricap": 2,
+        "guc": 1,
+        "ornek": 16
+      },
+      "egri": {
+        "acik": false,
+        "genelTon": 30,
+        "genelDoygunluk": 0,
+        "golgeTon": 230,
+        "golgeYogunluk": 0,
+        "golgeDoygunluk": 0,
+        "parlakTon": 40,
+        "parlakYogunluk": 0,
+        "parlakDoygunluk": 0
+      },
+      "vinyet": {
+        "acik": false,
+        "guc": 1.5,
+        "renk": "#1d1a2e"
+      },
+      "gren": {
+        "acik": false,
+        "guc": 10
+      },
+      "sapma": {
+        "acik": false,
+        "guc": 20
+      },
+      "keskinlik": {
+        "acik": false,
+        "guc": 0.3
+      },
+      "derinlik": {
+        "acik": false,
+        "odak": 20,
+        "aciklik": 2
+      }
+    }
+  },
+  "nesneler": [],
+  "zaman": {
+    "saat": 13,
+    "hiz": 0.1,
+    "akiyor": false,
+    "egim": 35,
+    "dunya": 0
+  },
+  "shaderlar": [
+    {
+      "tur": "gokZamani",
+      "acik": true,
+      "ayar": {}
+    },
+    {
+      "tur": "paletHaritasi",
+      "acik": true,
+      "ayar": {}
+    },
+    {
+      "tur": "zamanKirigi",
+      "acik": false,
+      "ayar": {}
+    },
+    {
+      "tur": "hataImzasi",
+      "acik": false,
+      "ayar": {}
+    },
+    {
+      "tur": "debugTarama",
+      "acik": false,
+      "ayar": {}
+    },
+    {
+      "tur": "firca",
+      "acik": false,
+      "ayar": {}
+    },
+    {
+      "tur": "elyazmasi",
+      "acik": false,
+      "ayar": {}
+    },
+    {
+      "tur": "atmosfer",
+      "acik": false,
+      "ayar": {}
+    }
+  ],
+  "kameraYerleri": [
+    {
+      "ad": "başlangıç",
+      "konum": [
+        0,
+        1.7,
+        0
+      ],
+      "hedef": [
+        60,
+        6,
+        -40
+      ],
+      "yuva": 1,
+      "zemineGore": true
+    }
+  ],
+  "gruplar": []
+}

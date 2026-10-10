@@ -193,10 +193,25 @@ test("grubu kendi altına taşımak reddedilir (döngü)", () => {
 test("gizlemeyi kaldırmak alanı siler (dosyada gizli:false kalmaz)", () => {
   assert.equal("gizli" in K.bayrakAyarla(T([N("n1", 0, { gizli: true })]), ["n1"], "gizli", false).tanim.nesneler![0]!, false);
 });
-test("yer imi yuvası adla eşleşir ve üzerine yazılır", () => {
+test("aynı yuvaya ikinci kayıt üzerine yazar", () => {
   let t = K.yerImiYaz(T([]), 3, { konum: [0, 0, 0], hedef: [1, 0, 0] });
   t = K.yerImiYaz(t, 3, { konum: [5, 0, 0], hedef: [1, 0, 0] });
-  assert.deepEqual(t.kameraYerleri!.map((y) => [y.ad, y.konum[0]]), [["3", 5]]);
+  assert.deepEqual(t.kameraYerleri!.map((y) => [y.ad, y.yuva, y.konum[0]]), [["yer 3", 3, 5]]);
+});
+test("eski biçim yer imi (ad = rakam) yuvasıyla bulunur", () => {
+  const t = T([], { kameraYerleri: [{ ad: "4", konum: [1, 2, 3], hedef: [0, 0, 0] }] });
+  assert.equal(K.yerImi(t, 4)?.konum[0], 1);
+});
+test("adlı yer imine yazmak adını korur", () => {
+  const t = T([], { kameraYerleri: [{ ad: "tepe", yuva: 2, konum: [1, 2, 3], hedef: [0, 0, 0] }] });
+  assert.equal(K.yerImiYaz(t, 2, { konum: [9, 9, 9], hedef: [0, 0, 0] }).kameraYerleri![0]!.ad, "tepe");
+});
+test("zemine göre yer iminin dünya y'si zemin + göz yüksekliği", () => {
+  assert.equal(K.yerImiMutlak({ ad: "a", konum: [0, 1.7, 0], hedef: [1, 0, 0], zemineGore: true }, () => 3).konum[1], 4.7);
+});
+test("zemine göre yer imi kaydedilince y yeniden zeminden yüksekliğe çevrilir", () => {
+  const t = T([], { kameraYerleri: [{ ad: "a", yuva: 1, konum: [0, 1.7, 0], hedef: [1, 0, 0], zemineGore: true }] });
+  assert.equal(K.yerImiYaz(t, 1, { konum: [0, 5, 0], hedef: [1, 0, 0] }, 3).kameraYerleri![0]!.konum[1], 2);
 });
 
 // ── seçim ──

@@ -30,7 +30,7 @@ const CSS = `
 #ed-ust .arac.secili sup { color: #dfe8ff; }
 #ed-ust label.kutu { display: flex; align-items: center; gap: 3px; color: #c3cee2; white-space: nowrap; }
 #ed-ust select { padding: 1px 3px; }
-#ed-ust .baslik { font-weight: 700; color: #a9bde0; margin-right: 4px; white-space: nowrap; }
+#ed-ust .baslik { font-weight: 700; color: #a9bde0; margin-right: 4px; white-space: nowrap; background: none; border: 1px solid #2f3d5c; }
 #ed-ust .nokta { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #3a4a66; margin-right: 5px; }
 #ed-ust .nokta.kirli { background: var(--ed-uyari); }
 `;
@@ -47,7 +47,8 @@ export function aracCubuguKur(ed: Editor, ad: string): HTMLElement {
   const ipucu = (yazi: string, e: Eylem) => { const t = eylemTusu(e); return t ? `${yazi} (${t})` : yazi; };
 
   const nokta = el("span", "nokta");
-  const baslik = el("span", "baslik"); baslik.append(nokta, document.createTextNode(`Level · ${ad}`));
+  // Level adı = level menüsünün düğmesi (arayuz/levelMenusu.ts takar).
+  const baslik = el("button", "baslik"); baslik.id = "ed-level-adi"; baslik.append(nokta, document.createTextNode(`${ad} ▾`));
   kok.append(baslik);
 
   const aracDugmeleri = new Map<AracAdi, HTMLButtonElement>();

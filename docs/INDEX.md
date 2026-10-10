@@ -1,7 +1,7 @@
 # docs/ — dizin
 
 Bir spec'i yalnız o alana dokunacaksan aç. Her satır: ne · durum · dokunmadan önce okunacağı yer.
-Açık işler tek yerde: `ACIK-ISLER.md`. Fikirler: `FIKIR-HAVUZU.md`. Son güncelleme: 2026-10-09.
+Açık işler tek yerde: `ACIK-ISLER.md`. Fikirler: `FIKIR-HAVUZU.md`. Son güncelleme: 2026-10-10.
 
 ## Spec'ler (`specs/`)
 | # | konu | durum | ne zaman oku |
@@ -26,6 +26,7 @@ Açık işler tek yerde: `ACIK-ISLER.md`. Fikirler: `FIKIR-HAVUZU.md`. Son günc
 | 20 | Özel shader'lar ("Sistem Hatası"): gün/gece paleti shader'da, zaman kırığı, hata imzası, debug taraması, fırça, elyazması; 4 dünya paleti | uygulandı · debug taraması çizim ön kaydını aştı | `world/level/shader/`, yeni shader eklerken |
 | 21 | Yaşayan dünya: kavisli çim (hücre + LOD, 500 bin tutam), gün/gece parçacıkları, göl + su shader'ı, atmosfer eklentisi, serbest uçuş | uygulandı | `world/level/moduller/{cim,su,parcacik}.ts`, `shader/moduller/atmosfer.ts` |
 | 22 | Level editörü: kimlikli yerleşim, 3 eksen, gruplar; saf çekirdek (geri/ileri al, komutlar, tek tuş haritası); gizmo, yüzeyde sürükle/çatıya koy, kutu seçimi, fırça, güneş, ölçü, hazır yapı; sahne ağacı, özellikler, varlık tarayıcısı v2; örnekleme düzeltmesi (1106 → 106 çizim); arazi araçları (Unreal karşılıkları, bölgesel güncelleme, damga 22 ms) | Faz 1–7 bitti | `world/level/editor/`, yerleşim/editör/kısayola dokunurken; deneme `npm run editor-dene` |
+| 23 | Level yönetimi (aç / yeni / şablon / farklı kaydet, `editor.html?level=`), depo katmanı (host/levelDosyasi.js ↔ world/level/depo), çökme kurtarması, kamera açıları veride; sonra Orion için anlam ve düzenleme niyeti | Faz A bitti · B onay bekliyor · C (spec 24) / D tasarım | level dosyalarına, editörün kaydetmesine, `host/levelDosyasi.js`e dokunurken |
 | 19 | Işık sonrası (bloom, huzme, AO, eğri…), küresel aydınlatma (GIRSM), sağlam gölge (CSM ayarları) | bitti · VRAM ön kaydı 3 önayarda aştı (karar bekliyor) | ışık/gölge/sonrası işlemeye dokunurken |
 | 18 | Stil shader'ları: cel, toon, anime90, Moebius, piksel (t3ssel8r); G/panel geçiş | S0–S5 bitti, bütçe geçti · kendi stilimiz Ozyn'in seçimini bekliyor | `world/level/stil/`, malzeme/ışık görünüşüne dokunurken |
 

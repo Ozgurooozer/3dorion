@@ -1,7 +1,7 @@
 # Açık işler — tek liste
 
 Önceliği Ozyn belirler. Her madde tek satır + nerede. Biten madde SİLİNİR (geçmişi git'te);
-"çözüldü" arşivi tutulmaz. Son güncelleme: 2026-10-09.
+"çözüldü" arşivi tutulmaz. Son güncelleme: 2026-10-10.
 
 ## Karar bekleyen (Ozyn)
 - **Spec 15 S2–S5** (mekânsal bellek, gölge) — ön kayıt hazır, onay bekliyor. `specs/15`
@@ -22,6 +22,9 @@
 - **Spec 19 bütçe aşımı (karar):** cel +538, toon +594 MiB ve 158 çizim, anime90 +637 MiB (sınır 500 MiB / 150).
   Seçenekler `specs/19` §4 sonunda.
 - Şehir parçaları dalgalı zemine gömülebiliyor: arazi aracı "Düzle" ile altları düzlenebilir (araç var, ova'da yapılmadı).
+- **Spec 23 sırası (onay):** B nesnelere anlam (Orion için ad/tür/etkileşim) → C Orion'u level'a taşımak (spec 24,
+  oda = bir level) → D düzenleme niyeti. Açık sorular: Orion'un düzenlemesi doğrudan mı onaylı mı; Electron'da
+  level'ların yeri. Electron IPC deposu (`host/levelDosyasi.js` hazır) editör pakete girince bağlanacak.
 - **Spec 22 açıkları:** bağlı prefab yok; hazır yapı/kaydet yalnız dev sunucusunda; dönmüş nesnelerde gruplu eksen
   ölçeği kayma üretir; çim nesne tabanından geçer; hidrolik erozyon/ayna/bölge kopyala/arazi deliği yok; editör fps'i
   sessiz makinede yeniden ölçülmeli (bu oturumda makine yüklüydü).

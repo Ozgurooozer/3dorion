@@ -8,6 +8,7 @@
 // yazılır (cekirdek/donusum.ts) — dosya farkı okunur kalsın.
 "use strict";
 import type { GrupTanimi, KameraYeri, LevelTanimi, NesneYeri, Vec3 } from "../../cekirdek/levelTanimi.ts";
+import { yerImiYuvasi } from "../../cekirdek/levelTanimi.ts";
 import { yeniId, yeniIdler } from "../../cekirdek/kimlik.ts";
 import { donusVec, olcekVec, kisaDonus, kisaOlcek, kisaKonum } from "../../cekirdek/donusum.ts";
 import { grupZinciri } from "../../cekirdek/grup.ts";
@@ -214,10 +215,26 @@ export const grubuAdlandir = (t: LevelTanimi, grupId: string, ad: string): Level
 
 // ── kamera yer imleri ──
 
-/** Yer imi yuvası (1–9) adla eşleşir: "3" adlı yer Shift+3'tür. Varsa üzerine yazar, yoksa ekler. */
-export function yerImiYaz(t: LevelTanimi, yuva: number, yer: Omit<KameraYeri, "ad">): LevelTanimi {
-  const ad = String(yuva), liste = t.kameraYerleri ?? [];
-  const yeni: KameraYeri = { ad, konum: kisaKonum(yer.konum), hedef: kisaKonum(yer.hedef) };
-  return { ...t, kameraYerleri: liste.some((y) => y.ad === ad) ? liste.map((y) => (y.ad === ad ? yeni : y)) : [...liste, yeni] };
+/** Yuvadaki yer imi (yeni `yuva` alanı ya da eski biçim: ad = rakam). */
+export const yerImi = (t: LevelTanimi, yuva: number): KameraYeri | null => t.kameraYerleri?.find((y) => yerImiYuvasi(y) === yuva) ?? null;
+
+/**
+ * Yuvaya yer imi yazar. O yuvada yer imi varsa adı ve "zemine göre"si korunur, konumu güncellenir (zemine göreyse
+ * y yeniden zeminden yüksekliğe çevrilir); yoksa "yer N" adıyla eklenir. `zeminY`: konumun altındaki zemin.
+ */
+export function yerImiYaz(t: LevelTanimi, yuva: number, yer: { konum: Vec3; hedef: Vec3 }, zeminY = 0): LevelTanimi {
+  const liste = t.kameraYerleri ?? [];
+  const eski = yerImi(t, yuva);
+  const zemine = !!eski?.zemineGore;
+  const konum: Vec3 = [yer.konum[0], zemine ? yer.konum[1] - zeminY : yer.konum[1], yer.konum[2]];
+  const yeni: KameraYeri = {
+    ad: eski?.ad ?? `yer ${yuva}`, konum: kisaKonum(konum), hedef: kisaKonum(yer.hedef), yuva, ...(zemine ? { zemineGore: true } : {}),
+  };
+  return { ...t, kameraYerleri: eski ? liste.map((y) => (y === eski ? yeni : y)) : [...liste, yeni] };
 }
-export const yerImi = (t: LevelTanimi, yuva: number): KameraYeri | null => t.kameraYerleri?.find((y) => y.ad === String(yuva)) ?? null;
+
+/** Yer iminin dünya konumu (zemine göreyse zemin yüksekliği eklenir). */
+export const yerImiMutlak = (y: KameraYeri, yukseklik: (x: number, z: number) => number): { konum: Vec3; hedef: Vec3 } => ({
+  konum: y.zemineGore ? [y.konum[0], y.konum[1] + yukseklik(y.konum[0], y.konum[2]), y.konum[2]] : [...y.konum],
+  hedef: [...y.hedef],
+});

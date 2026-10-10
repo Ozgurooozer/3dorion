@@ -53,3 +53,9 @@ test("grup döngüsü hata", () => {
 });
 test("gizli alanı mantıksal değilse hata", () => { assert.match(hata({ nesneler: [{ ...NESNE, gizli: "evet" }] }), /gizli/); });
 test("kamera yer imi konum+hedef ister", () => { assert.match(hata({ kameraYerleri: [{ ad: "a", konum: [0, 0, 0] }] }), /kameraYerleri/); });
+test("aynı yuvaya iki yer imi hata", () => {
+  assert.match(hata({ kameraYerleri: [{ ad: "a", yuva: 2, konum: [0, 0, 0], hedef: [0, 0, 0] }, { ad: "2", konum: [0, 0, 0], hedef: [0, 0, 0] }] }), /yuva/);
+});
+test("yer imi yuvası 1–9 dışında hata", () => {
+  assert.match(hata({ kameraYerleri: [{ ad: "a", yuva: 12, konum: [0, 0, 0], hedef: [0, 0, 0] }] }), /yuva/);
+});

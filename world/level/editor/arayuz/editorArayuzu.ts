@@ -11,7 +11,9 @@ import type { Editor } from "../editor.ts";
 import type { ModulKaydi } from "../../cekirdek/levelKur.ts";
 import type { ShaderKaydi } from "../../shader/shaderSistemi.ts";
 import type { NesneYeri } from "../../cekirdek/levelTanimi.ts";
-import { parcaMetni, parcaOku } from "../cekirdek/pano.ts";
+import { parcaOku } from "../cekirdek/pano.ts";
+import { VarHatasi, type LevelDeposu } from "../../depo/levelDeposu.ts";
+import { levelMenusuKur } from "./levelMenusu.ts";
 import { AYAR_VARSAYILAN, type EditorAyarlari } from "../cekirdek/durum.ts";
 import { YASLAMA_VARSAYILAN } from "../cekirdek/yaslama.ts";
 import { FIRCA_VARSAYILAN } from "../cekirdek/firca.ts";
@@ -48,10 +50,12 @@ const L_CSS = `
 `;
 
 export interface ArayuzAyari {
+  /** Açık level'ın klasör adı (world/level/<ad>/). */
   ad: string;
+  /** Level ve hazır yapı dosyaları (kompozisyon kökü seçer: geliştirmede HTTP). */
+  depo: LevelDeposu;
   moduller: ModulKaydi;
   shaderlar: ShaderKaydi;
-  dosyadanOku(): Promise<unknown>;
 }
 
 export function editorArayuzuKur(ed: Editor, a: ArayuzAyari): void {
@@ -85,7 +89,7 @@ export function editorArayuzuKur(ed: Editor, a: ArayuzAyari): void {
   const sekmeDugmeleri = sekmeler.map((s) => el("button", "ed-sekme", s));
   const solY = yuva("ed-sol", sekmeDugmeleri);
   const agac = sahneAgaciKur(ed, (katman) => { sekmeSec("Dünya"); panel.bolumAc(`katman:${katman}`); });
-  const panel = levelPaneliKur({ durum, moduller: a.moduller, shaderlar: a.shaderlar, dosyadanOku: a.dosyadanOku });
+  const panel = levelPaneliKur({ durum, moduller: a.moduller, shaderlar: a.shaderlar });
   const dunya = el("div"); dunya.style.cssText = "display:flex;flex-direction:column;flex:1;min-height:0;overflow:auto";
   dunya.append(gorunumKur(ed, a.shaderlar), panel.kok);
   const gecmis = el("div", "ed-gecmis");
@@ -125,9 +129,10 @@ export function editorArayuzuKur(ed: Editor, a: ArayuzAyari): void {
   boyutTutamagi(sagY.y, "sol", "orion.editor.sagBoy", boy.sag, 220, 520, (v) => { boy.sag = v; yerlestir(); });
 
   // Alt: varlık tarayıcısı (+ hazır yapılar).
-  const hazir: HazirKaynagi | null = import.meta.env?.DEV ? {
-    async liste() { const r = await fetch("/__level/hazir"); if (!r.ok) throw new Error(await r.text()); return await r.json() as string[]; },
-    async oku(ad) { const r = await fetch(`/__level/hazir?ad=${encodeURIComponent(ad)}`); if (!r.ok) throw new Error(await r.text()); return parcaOku(await r.text()); },
+  // Hazır yapılar depodan (yazılabilir depoda): içerik okunurken parça biçimi doğrulanır.
+  const hazir: HazirKaynagi | null = a.depo.yazilabilir ? {
+    liste: () => a.depo.hazirListe(),
+    oku: async (ad) => parcaOku(await a.depo.hazirOku(ad)),
   } : null;
   const altY = yuva("ed-altyuva", []);
   const tarayici = varlikTarayicisiKur(ed, hazir);
@@ -150,12 +155,16 @@ export function editorArayuzuKur(ed: Editor, a: ArayuzAyari): void {
       if (!temiz) { durum.bildir("hazır yapıya bir ad ver", true); return; }
       const p = ed.parca(temiz);
       if (!p) return;
-      const gonder = (ez: boolean) => fetch(`/__level/hazir?ad=${encodeURIComponent(temiz)}${ez ? "&ez=1" : ""}`, { method: "POST", body: parcaMetni(p) });
-      let y = await gonder(false);
-      if (y.status === 409 && confirm(`"${temiz}" zaten var. Üstüne yazılsın mı?`)) y = await gonder(true);
-      const m = await y.text();
-      durum.bildir(y.ok ? `hazır yapı kaydedildi → ${m}` : `kaydedilemedi: ${m}`, !y.ok);
-      if (y.ok) tarayici.hazirlariYenile();
+      const gonder = (ez: boolean) => a.depo.hazirKaydet(temiz, p, ez);
+      try {
+        let yol: string;
+        try { yol = await gonder(false); } catch (err) {
+          if (!(err instanceof VarHatasi) || !confirm(`"${temiz}" zaten var. Üstüne yazılsın mı?`)) throw err;
+          yol = await gonder(true);
+        }
+        durum.bildir(`hazır yapı kaydedildi → ${yol}`);
+        tarayici.hazirlariYenile();
+      } catch (err) { if (!(err instanceof VarHatasi)) durum.bildir(`kaydedilemedi: ${err instanceof Error ? err.message : String(err)}`, true); }
     };
     r.append(ad, kaydet);
     b.append(r, el("div", "ed-ipucu", `${sec.length} nesne · konumlar seçimin taban ortasına göre saklanır`));
@@ -202,7 +211,8 @@ export function editorArayuzuKur(ed: Editor, a: ArayuzAyari): void {
 
   // Ayarlar saklanır; kaydedilmemiş değişiklikle sayfadan çıkılırken sor.
   durum.abone("ayarlar", () => yaz(AYAR_ANAHTARI, durum.ayarlar()));
-  addEventListener("beforeunload", (e) => { if (durum.kirli()) e.preventDefault(); });
+  const menu = levelMenusuKur(ed, a.depo, a.ad);
+  addEventListener("beforeunload", (e) => { if (durum.kirli() && !menu.gecisSuruyor()) e.preventDefault(); });
 
   sekmeSec(etkinSekme);
   kuruldu = true;

@@ -39,6 +39,8 @@ const bekleyen = new Map(), loglar = [];
 ws.onmessage = (e) => {
   const m = JSON.parse(e.data);
   if (m.id && bekleyen.has(m.id)) { bekleyen.get(m.id)(m); bekleyen.delete(m.id); }
+  // Level geçişi / sayfa yenileme "kaydedilmemiş değişiklik" onayı açar: deneme kabul eder.
+  else if (m.method === "Page.javascriptDialogOpening") ws.send(JSON.stringify({ id: ++sira, method: "Page.handleJavaScriptDialog", params: { accept: true } }));
   else if (m.method === "Runtime.exceptionThrown") loglar.push(`İSTİSNA ${m.params.exceptionDetails.exception?.description ?? m.params.exceptionDetails.text}`);
   else if (m.method === "Runtime.consoleAPICalled" && m.params.type === "error") loglar.push(m.params.args.map((a) => a.value ?? a.description).join(" "));
 };
@@ -70,6 +72,12 @@ const ekran = async (ad) => {
 };
 
 await g("Runtime.enable");
+await g("Page.enable");
+/** Sayfa (yeniden) açılınca editör hazır olana dek bekle. */
+const hazirBekle = async () => {
+  for (let i = 0; i < 90; i++) { if (String(await deg("document.title").catch(() => "")).startsWith("hazir")) return true; await bekle(500); }
+  return false;
+};
 await g("Page.navigate", { url: ADRES });
 for (let i = 0; i < 90; i++) { if (String(await deg("document.title").catch(() => "")).startsWith("hazir")) break; await bekle(500); }
 const baslik = await deg("document.title");
@@ -268,6 +276,49 @@ async function etkilesim() {
   await tus("F1", "F1", 112);
   kontrol("kirli işareti (kaydedilmedi)", await deg("ova.editor.durum.kirli()"));
   kontrol("sayfada hata yok", loglar.length === 0, loglar.slice(0, 3).join(" | "));
+  await levelYonetimi();
+}
+
+/** Spec 23 A: yeni level (şablondan), kaydet, kurtarma, farklı kaydet. Açtığı level klasörlerini sonunda siler. */
+async function levelYonetimi() {
+  const ad = `deneme-${Date.now() % 100000}`, ad2 = `${ad}-b`;
+  const kok = path.resolve("world/level");
+  try {
+    await deg(`document.getElementById("ed-level-adi").click()`); await bekle(800);
+    kontrol("level menüsü listede ova'yı gösterir", await deg(`[...document.querySelectorAll("#ed-level-menu .s")].some((s) => s.textContent.includes("ova"))`));
+    await deg(`(()=>{ const f=[...document.querySelectorAll("#ed-level-menu .ed-bolum")].find((b)=>b.querySelector("h4")?.textContent==="Yeni level");
+      const i=f.querySelector("input[type=text]"); i.value=${JSON.stringify(ad)}; i.dispatchEvent(new Event("input"));
+      const s=f.querySelector("select"); s.value="bos"; s.dispatchEvent(new Event("change")); f.querySelector("button.ana").click(); })()`);
+    await bekle(1500);
+    kontrol("yeni level: sayfa yeni level'la açılır", await hazirBekle() && (await deg("location.search")).includes(`level=${ad}`));
+    const t = await T();
+    kontrol("yeni level: boş şablondan (nesnesiz, 6 katman)", t.ad === ad && t.nesneler.length === 0 && t.katmanlar.length === 6, `${t.ad} · ${t.nesneler.length} nesne · ${t.katmanlar.length} katman`);
+    kontrol("yeni level: dosyası diskte", fs.existsSync(path.join(kok, ad, `${ad}.level.json`)));
+    // Nesne koy + Ctrl+S → dosyada.
+    await deg(`ova.editor.katalog().then((k)=>ova.editor.durum.degistir((x)=>({...x, nesneler:[{id:"n1", varlik:k.varliklar[0].ad, konum:[3, ova.level.yukseklik(3,3), 3], donus:0, olcek:1}]}), "deneme nesnesi"))`);
+    await tus("KeyS", "s", 83, CTRL); await bekle(800);
+    const disk = JSON.parse(fs.readFileSync(path.join(kok, ad, `${ad}.level.json`), "utf8"));
+    kontrol("Ctrl+S yeni level'a yazar", disk.nesneler?.length === 1 && !(await deg("ova.editor.durum.kirli()")));
+    // Kurtarma: kaydetmeden değiştir, 3 sn bekle, sayfayı yenile → şerit → Kurtar.
+    await deg(`ova.editor.durum.degistir((x)=>({...x, nesneler:[...x.nesneler, {...x.nesneler[0], id:"n2", konum:[6, x.nesneler[0].konum[1], 6]}]}), "kurtarılacak değişiklik")`);
+    await bekle(3600);
+    kontrol("kirliyken kurtarma kopyası yazılır", (await deg(`localStorage.getItem("orion.editor.kurtarma.${ad}")`)) !== null);
+    await g("Page.reload"); await bekle(1500);
+    await hazirBekle(); await bekle(500);
+    kontrol("açılışta kurtarma şeridi çıkar", await deg(`document.getElementById("ed-kurtarma")?.classList.contains("acik") ?? false`));
+    await deg(`[...document.querySelectorAll("#ed-kurtarma button")].find((b)=>b.textContent==="Kurtar").click()`); await bekle(500);
+    kontrol("Kurtar kaydedilmemiş nesneyi geri getirir (kaydetmeden)", (await T()).nesneler.length === 2 && await deg("ova.editor.durum.kirli()"));
+    // Farklı kaydet → yeni klasör, sayfa oraya geçer.
+    await deg(`document.getElementById("ed-level-adi").click()`); await bekle(400);
+    await deg(`(()=>{ const f=[...document.querySelectorAll("#ed-level-menu .ed-bolum")].find((b)=>b.querySelector("h4")?.textContent==="Farklı kaydet");
+      const i=f.querySelector("input[type=text]"); i.value=${JSON.stringify(ad2)}; i.dispatchEvent(new Event("input")); f.querySelector("button.ana").click(); })()`);
+    await bekle(1500);
+    kontrol("farklı kaydet: yeni level 2 nesneyle açılır", await hazirBekle() && (await T()).nesneler.length === 2 && (await deg("location.search")).includes(`level=${ad2}`));
+    kontrol("farklı kaydet: eski level'ın kurtarma kopyası silinir", (await deg(`localStorage.getItem("orion.editor.kurtarma.${ad}")`)) === null);
+    await ekran("level-farkli");
+  } finally {
+    for (const a of [ad, ad2]) fs.rmSync(path.join(kok, a), { recursive: true, force: true });
+  }
 }
 
 /** Kare başına çizim çağrısı + fps (WebGL çizim çağrılarını sayar; 3 sn). */

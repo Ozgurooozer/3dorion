@@ -493,5 +493,82 @@
       "acik": false,
       "ayar": {}
     }
+  ],
+  "kameraYerleri": [
+    {
+      "ad": "ufuk",
+      "konum": [
+        0,
+        1.7,
+        0
+      ],
+      "hedef": [
+        60,
+        6,
+        -40
+      ],
+      "yuva": 1,
+      "zemineGore": true
+    },
+    {
+      "ad": "alcak",
+      "konum": [
+        4,
+        0.45,
+        6
+      ],
+      "hedef": [
+        40,
+        1.5,
+        -30
+      ],
+      "yuva": 2,
+      "zemineGore": true
+    },
+    {
+      "ad": "tepe",
+      "konum": [
+        -30,
+        28,
+        40
+      ],
+      "hedef": [
+        20,
+        0,
+        -20
+      ],
+      "yuva": 3,
+      "zemineGore": true
+    },
+    {
+      "ad": "gunes",
+      "konum": [
+        0,
+        1.7,
+        0
+      ],
+      "hedef": [
+        -55,
+        30,
+        -72
+      ],
+      "yuva": 4,
+      "zemineGore": true
+    },
+    {
+      "ad": "gol",
+      "konum": [
+        -50,
+        2.4,
+        -14
+      ],
+      "hedef": [
+        -30,
+        -0.3,
+        -32
+      ],
+      "yuva": 5,
+      "zemineGore": true
+    }
   ]
 }

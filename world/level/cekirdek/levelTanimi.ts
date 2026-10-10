@@ -100,12 +100,21 @@ export interface GrupTanimi {
   kilitli?: boolean;
 }
 
-/** Kamera yer imi (editörde Shift+rakam): level'la birlikte kaydedilir. */
+/**
+ * Kamera yer imi: level'la birlikte kaydedilir. `ad` serbest metin (sayfa `?aci=<ad>` ile açar); `yuva` 1–9 ise
+ * editörde Shift+rakam. Eski biçim (ad "3", yuva yok) geçerli: yuva addan okunur (`yerImiYuvasi`).
+ * `zemineGore`: konumun y'si ZEMİNDEN yükseklik (arazi düzenlenince göz yüksekliği korunur, yere gömülmez).
+ */
 export interface KameraYeri {
   ad: string;
   konum: Vec3;
   hedef: Vec3;
+  yuva?: number;
+  zemineGore?: boolean;
 }
+
+/** Yer iminin yuvası: açıkça verilmişse o, yoksa ad tek rakamsa (eski biçim) o, değilse null. */
+export const yerImiYuvasi = (y: KameraYeri): number | null => y.yuva ?? (/^[1-9]$/.test(y.ad) ? Number(y.ad) : null);
 
 export interface LevelTanimi {
   surum: number;
@@ -254,7 +263,14 @@ function hataBul(v: unknown): string | null {
     if (!Array.isArray(yerler)) return h("kameraYerleri", "dizi değil");
     for (const [i, y] of yerler.entries()) {
       if (!nesneMi(y) || typeof y["ad"] !== "string" || !vec3Mu(y["konum"]) || !vec3Mu(y["hedef"])) return h(`kameraYerleri[${i}]`, "ad + konum + hedef [x,y,z] gerekli");
+      const yv = y["yuva"];
+      if (yv !== undefined && (!Number.isInteger(yv) || (yv as number) < 1 || (yv as number) > 9)) return h(`kameraYerleri[${i}].yuva`, "1–9 tamsayı");
+      if (y["zemineGore"] !== undefined && typeof y["zemineGore"] !== "boolean") return h(`kameraYerleri[${i}].zemineGore`, "mantıksal olmalı");
     }
+    const yuvalar = yerler.map((y) => yerImiYuvasi(y as KameraYeri)).filter((y): y is number => y !== null);
+    if (new Set(yuvalar).size !== yuvalar.length) return h("kameraYerleri", "aynı yuvaya iki yer imi");
+    const adlar = yerler.map((y) => (y as KameraYeri).ad);
+    if (new Set(adlar).size !== adlar.length) return h("kameraYerleri", "yinelenen yer imi adı");
   }
   const katmanlar = v["katmanlar"];
   if (!Array.isArray(katmanlar)) return h("katmanlar", "dizi değil");

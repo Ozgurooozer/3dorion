@@ -614,13 +614,14 @@ export function editorKur(a: EditorAyari): Editor {
       case "kaydirAsagi": kaydirma([0, -1, 0], true); return;
       case "yerImiKaydet": {
         const yuva = s.yuva ?? 1, p = a.kamera.position, h = p.add(a.kamera.getDirection(Vector3.Forward()).scale(10));
-        durum.degistir((t) => K.yerImiYaz(t, yuva, { konum: [p.x, p.y, p.z], hedef: [h.x, h.y, h.z] }), `kamera yer imi ${yuva} kaydedildi`);
+        durum.degistir((t) => K.yerImiYaz(t, yuva, { konum: [p.x, p.y, p.z], hedef: [h.x, h.y, h.z] }, level.yukseklik(p.x, p.z)), `kamera yer imi ${yuva} kaydedildi`);
         return;
       }
       case "yerImineGit": {
         const y = K.yerImi(durum.tanim(), s.yuva ?? 1);
         if (!y) { durum.bildir(`yer imi ${s.yuva} yok — Ctrl+Shift+${s.yuva} ile kaydet`); return; }
-        kamera.git(y.konum, y.hedef); return;
+        const m = K.yerImiMutlak(y, level.yukseklik);
+        kamera.git(m.konum, m.hedef); durum.bildir(`yer imi ${s.yuva}: ${y.ad}`); return;
       }
       case "kaydet":
         a.kaydet(durum.tanim()).then((yol) => { durum.kaydedildi(); durum.bildir(`kaydedildi → ${yol}`); })
