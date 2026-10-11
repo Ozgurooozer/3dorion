@@ -115,7 +115,7 @@ const KAYIT: readonly Capa[] = [
     durak: v(KAPI.x, 0, KAPI.z - 1.1),
     yon: ONE,
     yaklasmaYaricapi: 1.4,
-    eylemler: ["bak"],
+    eylemler: ["gec", "bak"],
     etiket: CAPA_ETIKETLERI.kapi,
   },
   // ── Zihin duvarı (sağ duvar, normal -X) ────────────────────────────────

@@ -1,7 +1,7 @@
 # Spec 24 — Ofisin kapısından ovaya
 
-> Durum: **C0 ölçüldü, C1 ve C2 uygulandı** (2026-10-11). Sırada C3 (kapı geçişi: E → kararma).
-> Deneme: uygulamayı `?yer=ova` ile aç ya da konsolda `dunya.ovayaCik()` / `dunya.odayaDon()`.
+> Durum: **C0 ölçüldü, C1–C3 uygulandı** (2026-10-11): ofiste kapıya bak, E → kararma → ova; ofis kapısından
+> aynı yolla dönüş. Sırada C4 (Orion ovayı bilir). Deneme: `3dorion.bat kapidene` (14 kontrol) ya da `?yer=ova`.
 > Plan ve kararlar: aşağıda; ölçüm betiği atıldı (sonuçlar burada).
 
 ## 0. Neden
@@ -95,6 +95,24 @@ oda yüzeyleri YOK (bunlar C2'de uygulamada ölçülür). Eşikler ölçmeden ö
   sınırındaydı). Orion'un bedeni güneş gölgesine henüz katılmadı (avatar meshleri dışarı açılmıyor). Kaya / dekor
   katmanı örnekleri engel değil.
 
-## 5. Sıradakiler
-- **C3 kapı geçişi** (E → kararma → ova; ofis kapısından dönüş; Orion yanında) · **C4** Orion ovayı bilir (algıda
+## 5. C3 — Kapı geçişi (uygulandı)
+- **Eylem `gec`:** oda kapısı ve ova'daki ofis kapısı çapaları `["gec", "bak"]` (C6'daki `gec` niyetiyle aynı ad).
+  İpucu "[E] kapı — geç" / "[E] ofis kapısı — geç" (eylem kimliği ASCII, ekranda Türkçe: `etkilesim.ts`).
+  `capalar.test` güncellendi: kapı artık durağında etkileşim adayı (eskiden yalnız "bak").
+- **E → `kapidanGec()`** (`giris.ts`): `gec` anlık bir eylem — etkileşim açık kalmaz. Kararma 320 ms (CSS geçişi,
+  `#kararma`) → odadaysa `ovayaCik`, ovadaysa `odayaDon` → sahne hazır + iki kare → aydınlanma. Kararma ovanın
+  kurulumunu (~1 sn, tik takılması) ve kameranın ışınlanmasını örter.
+- **Orion beraber:** Ozyn'le AYNI yerdeyse geçer (Ozyn'in sağında / kapının içinde yanında belirir); başka yerdeyse
+  kalır ve bedeni gizlenir (`orionGorunurlugu`, C6 için hazır). Süren işi `iptal`.
+- **Senaryo `3dorion.bat kapidene`** (`uygulama/senaryolar/kapidene.ts`, `ORION_KAPIDENE`): gerçek E klavye olayı;
+  SenaryoBaglami'na `yerler()` eklendi.
+- **Canlı [ÖLÇÜLDÜ]** Electron, paketli yapı (`vite build` + `electron .`), 14/14: ipucu "geç" · E → ova, en koyu
+  kararma 1,00 · Orion ovada, Ozyn'e 1,20 m · ovadayken odanın meshleri kapalı · Orion 10 m uzaklaşıp ofis kapısına
+  yürüdü · ofis kapısında ipucu "geç" · E → oda, kararma 1,00 · Orion ofiste, 1,08 m · oda mesh sayısı 44 → 44,
+  sis 0,035 → 0,035. İlk kurulum 1258 ms. Paketli uygulamada ova dosyası (`?url`) ve şehir varlıkları yüklendi.
+  (İlk koşudaki "Orion kapıya yürüdü" kontrolü zayıftı — Orion zaten yaklaşma yarıçapında belirmişti; uzaklaşma
+  adımı eklendi.) Oda: `eylemdene` 6/6, `gordene` geçti.
+
+## 6. Sıradakiler
+- **C4** Orion ovayı bilir (algıda
   `yer`, sabit bilgi yere göre, 9 "ek bina" ayırt edici ad) · **C6** `gec` niyeti · **C5** paket + `kapi-dene`.

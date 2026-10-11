@@ -126,10 +126,10 @@ test("etkilesilebilirCapa yalnızca eylemli ve yarıçap içindekini döner", ()
   assert.ok(["monitor", "masa", "sandalye"].includes(yakin.ad));
   // Odanın uzak köşesinde hiçbir şey etkileşilebilir değil
   assert.equal(etkilesilebilirCapa({ x: SINIR.maxX - 0.4, z: SINIR.maxZ - 0.4 }), null);
-  // "kapi" yalnızca "bak" içeriyor → etkileşim adayı değil
+  // "kapi" spec 24'ten beri "gec" taşıyor (kapıdan geçilir) → durağında etkileşim adayı
   const kapi = capaBul("kapi");
   assert.ok(kapi);
-  assert.notEqual(etkilesilebilirCapa(kapi.durak)?.ad, "kapi");
+  assert.equal(etkilesilebilirCapa(kapi.durak)?.ad, "kapi");
 });
 
 test("mesafeXZ Y'yi yok sayar", () => {

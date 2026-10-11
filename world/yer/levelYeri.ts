@@ -68,7 +68,8 @@ export function gecitCapasi(g: Gecit, yukseklik: (x: number, z: number) => numbe
     durak: onunde(g, KAPI_DURAGI, yukseklik),
     yon: { x: -d.x, y: 0, z: -d.z },
     yaklasmaYaricapi: 1.4,
-    eylemler: ["bak"],
+    // "gec": kapıdan geçilir (E; Orion için `gec` niyeti, C6). Oda kapısıyla aynı eylemler.
+    eylemler: ["gec", "bak"],
     etiket: g.etiket ?? "kapı",
   };
 }

@@ -22,7 +22,7 @@
 - **Spec 19 bütçe aşımı (karar):** cel +538, toon +594 MiB ve 158 çizim, anime90 +637 MiB (sınır 500 MiB / 150).
   Seçenekler `specs/19` §4 sonunda.
 - Şehir parçaları dalgalı zemine gömülebiliyor: arazi aracı "Düzle" ile altları düzlenebilir (araç var, ova'da yapılmadı).
-- **Spec 24 kapıdan ovaya** (`specs/24`): C0 ölçüldü, C1 Yer soyutlaması ve C2 ova yeri bitti (`?yer=ova`); sırada C3 kapı → C4 Orion
+- **Spec 24 kapıdan ovaya** (`specs/24`): C0–C3 bitti: ofiste kapıya bak, E → ova (`3dorion.bat kapidene`); sırada C4 Orion
   ovayı bilir → C6 `gec` niyeti → C5 paket. Kopya: `tools/ogretmen.ts` SABIT ↔ giris "In the room" (C4'te tek kaynak).
 - **Spec 23 sırası (onay):** C = spec 24 (yukarıda) → D düzenleme niyeti. B'den kalan:
   aynı adlı nesneler (ova'da 9 "ek bina") Orion için ayırt edilemiyor — denetim uyarısı + ayırt edici ad. Açık sorular: Orion'un düzenlemesi doğrudan mı onaylı mı; Electron'da

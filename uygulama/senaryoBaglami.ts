@@ -17,6 +17,7 @@ import type { KameraRig } from "../world/engine/kamera.ts";
 import type { OdaKurulumu } from "../world/level/oda.ts";
 import type { Oyuncu } from "../world/player/oyuncu.ts";
 import type { Avatar } from "../world/avatar/index.ts";
+import type { Yer } from "../world/yer/yer.ts";
 import type { Monitor } from "../world/surfaces/monitor.ts";
 import type { Tahta } from "../world/surfaces/tahta.ts";
 import type { GunlukEkrani } from "../world/surfaces/gunluk.ts";
@@ -52,6 +53,8 @@ export interface SenaryoBaglami {
   readonly kopru: Kopru | null;
   readonly gordumGeldi: boolean;
   readonly zoomPayi: number;
+  /** Ozyn'in ve Orion'un bulunduğu yer (spec 24). */
+  yerler(): { ozyn: Yer; orion: Yer };
   // ── eylemler ──
   niyetiYurut(n: Niyet, id: string): void;
   onayKarari(onaylandi: boolean): void;
@@ -68,6 +71,7 @@ export const SENARYOLAR = [
   "terminaldene", "otodene", "gorudene", "sessizdene", "davranis", "tezdene", "gordene", "admindene",
   "zoomdene", "zihindene", "onaydene", "tahtabeyin", "becerdene", "bakdene", "acidene", "saglobdene",
   "senaryodene", "eylemdene", "benlikdene", "apidene", "tahtadene", "hafizadene", "yuzdene", "baglamdene", "takipdene",
+  "kapidene",
 ] as const;
 export type SenaryoAdi = (typeof SENARYOLAR)[number];
 

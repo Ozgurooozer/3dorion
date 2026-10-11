@@ -108,7 +108,10 @@ export class EtkilesimYayici {
  */
 export const EtkilesimOlaylari = new EtkilesimYayici();
 
+/** Eylem kimliği ASCII ("gec"); ekranda Türkçe yazımı. Listede olmayan kimlik olduğu gibi yazılır. */
+const EYLEM_YAZIMI: Readonly<Record<string, string>> = { gec: "geç" };
+
 /** İpucu metnini üretir: "[E] monitörü kullan". */
 export function ipucuMetni(etiket: string, eylem: string): string {
-  return `[E] ${etiket} — ${eylem}`;
+  return `[E] ${etiket} — ${EYLEM_YAZIMI[eylem] ?? eylem}`;
 }

@@ -255,8 +255,10 @@ async function ovayaCik(): Promise<boolean> {
     const tanim: unknown = await (await fetch(ovaAdresi)).json();
     disari = await levelSahnesiKur({ sahne, tanim, ad: "ova", oda, kamera: rig.kamera, golgeAtanlar: [oyuncu.govde] });
     const yer = disari.yer;
+    // Orion, Ozyn'le AYNI yerdeyse beraber çıkar (Ozyn'in kararı, 2026-10-11); kendi başına başka yerdeyse kalır (C6).
+    const orionGelir = orionYeri === ozynYeri;
     ozynYeri = yer;
-    orionYeri = yer;
+    if (orionGelir) orionYeri = yer;
     const v = disari.gecit ? gecitVarisi(disari.gecit, yer.yukseklik) : { konum: { x: 0, y: 0, z: 0 }, yaw: 0 };
     oyuncu.isinla(v.konum.x, v.konum.z, v.yaw);
     // Orion Ozyn'in yanında belirir: önce sağı, kapalıysa solu, o da kapalıysa önü.
@@ -264,7 +266,8 @@ async function ovayaCik(): Promise<boolean> {
     const adaylar = [1.2, -1.2].map((k) => ({ x: v.konum.x + sag.x * k, z: v.konum.z + sag.z * k }))
       .concat([{ x: v.konum.x + ileri.x * 1.4, z: v.konum.z + ileri.z * 1.4 }]);
     const o = adaylar.find((p) => !carpisiyorMu(p.x, p.z, 0.4, yer)) ?? adaylar[0]!;
-    orion?.isinla(o.x, o.z, v.yaw);
+    if (orionGelir) orion?.isinla(o.x, o.z, v.yaw);
+    orionGorunurlugu();
     gunluk.ekle("bilgi", "yer", `ovaya çıkıldı (${disari.kurulumMs} ms)`);
     console.log(`[YER] ova kuruldu ${disari.kurulumMs} ms · engel ${yer.engeller.length} · nesne ${yer.nesneler.length} · çapa ${yer.capalar.map((c) => c.ad).join(",")}`);
     return true;
@@ -279,17 +282,53 @@ async function ovayaCik(): Promise<boolean> {
 
 function odayaDon(): boolean {
   if (!disari || gecisSuruyor) return false;
+  const orionGelir = orionYeri === ozynYeri;
+  // Sahne yıkılır, ova yeri (saf veri) kalır: Orion dışarıda kaldıysa orada yürümeye devam eder (C6).
   disari.yokEt();
   disari = null;
   ozynYeri = ODA_YERI;
-  orionYeri = ODA_YERI;
+  if (orionGelir) orionYeri = ODA_YERI;
   // Kapının içinde, odaya dönük (çapa `kapi`nın durağı); Orion yanında.
   const kapi = capaBul("kapi")!;
   oyuncu.isinla(kapi.durak.x, kapi.durak.z, Math.PI);
-  orion?.isinla(kapi.durak.x - 1.0, kapi.durak.z - 0.4, Math.PI);
+  if (orionGelir) orion?.isinla(kapi.durak.x - 1.0, kapi.durak.z - 0.4, Math.PI);
+  orionGorunurlugu();
   gunluk.ekle("bilgi", "yer", "ofise dönüldü");
   console.log("[YER] ofise dönüldü");
   return true;
+}
+
+/** Orion'un bedeni yalnız Ozyn'le aynı yerdeyse görünür (başka yerin koordinatında hayalet olmasın). */
+function orionGorunurlugu(): void { orion?.gorunur(orionYeri === ozynYeri); }
+
+// ── KAPIDAN GEÇİŞ: kısa kararma (Ozyn'in kararı) ──
+// Kararma, ovanın kurulumunu (~1 sn, tik takılır) ve kameranın ışınlanmasını örter. Süre CSS geçişiyle aynı.
+const KARARMA_MS = 320;
+const kararma = document.createElement("div");
+kararma.id = "kararma";
+Object.assign(kararma.style, {
+  position: "fixed", inset: "0", background: "#000", opacity: "0", pointerEvents: "none", zIndex: "60",
+  transition: `opacity ${KARARMA_MS}ms ease`,
+});
+document.body.append(kararma);
+let kapiGecisi = false;
+
+/** Kapıdan geç: odadaysa ovaya, ovadaysa ofise. Kararma → geçiş → sahne hazır → aydınlanma. */
+async function kapidanGec(): Promise<boolean> {
+  if (kapiGecisi) return false;
+  kapiGecisi = true;
+  try {
+    kararma.style.opacity = "1";
+    await new Promise((r) => setTimeout(r, KARARMA_MS + 30));
+    const oldu = disari ? odayaDon() : await ovayaCik();
+    await sahne.whenReadyAsync();
+    // İki kare: ilk kare yeni yerin gölge haritasını ve kamerayı oturtur.
+    await new Promise<void>((r) => { let n = 0; const g = sahne.onAfterRenderObservable.add(() => { if (++n >= 2) { sahne.onAfterRenderObservable.remove(g); r(); } }); });
+    return oldu;
+  } finally {
+    kararma.style.opacity = "0";
+    kapiGecisi = false;
+  }
 }
 
 // ── MANTIK: 20Hz ───────────────────────────────────────────────────────────
@@ -850,6 +889,12 @@ function altyaziGoster(metin: string, ms = 2200): void {
 let altyaziZaman: ReturnType<typeof setTimeout>;
 
 EtkilesimOlaylari.dinle("basladi", (o) => {
+  // Kapı (spec 24): "geç" anlık bir eylem — etkileşim açık kalmaz, geçiş başlar.
+  if (o.eylem === "gec") {
+    EtkilesimOlaylari.bitir();
+    void kapidanGec();
+    return;
+  }
   altyaziGoster(`${o.capa} · ${o.eylem} — çıkmak için Esc`);
   console.log(`[etkilesim] basladi capa=${o.capa} eylem=${o.eylem} t=${o.t.toFixed(2)}`);
   // `E` ile YÜZEYE GEÇ. Tek tablo (`YUZEY_GECISI`) hem `E`yi hem odaktaki
@@ -861,6 +906,7 @@ EtkilesimOlaylari.dinle("basladi", (o) => {
   void YUZEY_GECISI[o.capa]?.();
 });
 EtkilesimOlaylari.dinle("bitti", (o) => {
+  if (o.eylem === "gec") return;
   altyaziGoster("etkileşim kapandı");
   console.log(`[etkilesim] bitti capa=${o.capa}`);
   // Terminaller klavye odağını da bırakmalı; paneller için kamera yeter.
@@ -1223,6 +1269,7 @@ const dunyaKancasi = {
   /** Spec 24: ovaya çık / ofise dön (kapı tetiği C3'te; bu deneme yüzeyi). */
   ovayaCik: () => ovayaCik(),
   odayaDon: () => odayaDon(),
+  kapidanGec: () => kapidanGec(),
   yer: () => ({ ozyn: ozynYeri.ad, orion: orionYeri.ad, kurulumMs: disari?.kurulumMs ?? null }),
   tahta: {
     yaz: (m: string, temizle = false) => tahta.yaz(m, temizle),
@@ -1773,6 +1820,7 @@ const senaryoBaglami: SenaryoBaglami = {
   get kopru() { return kopru; },
   get gordumGeldi() { return gordumGeldi; },
   get zoomPayi() { return zoomPayi; },
+  yerler: () => ({ ozyn: ozynYeri, orion: orionYeri }),
   niyetiYurut, onayKarari, algiSor, monitoreGec, admineGec, panelOdak, panoyuAl, zoomUygula,
 };
 for (const ad of istenenSenaryolar(location.search)) {
