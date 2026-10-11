@@ -1,6 +1,6 @@
 # Spec 25 — Orion gerçekten görsün (yerel görme modeli)
 
-> Durum: **V0 koşuldu** (yanlış soruyu ölçtü, §4) · **Faz 1 ALGI (NPC) uygulandı** (§5) · Faz 2 GÖRME sırada (§6).
+> Durum: **V0 koşuldu** (yanlış soruyu ölçtü, §4) · **Faz 1 ALGI (NPC) uygulandı** (§5) · Faz 2 GÖRME: V1 ön kaydı §7 (koşudan önce).
 > Ön kayıt (§1) koşudan önce commit edildi (`fb16533`), değiştirilmedi.
 
 ## 0. Neden
@@ -132,4 +132,42 @@ ulaşmıyordu. Spec 24 C4 ("Orion ovayı bilir") bu fazla birleşti.
 ## 6. Faz 2 — GÖRME (sırada; Ozyn'in onayıyla)
 `sor { ne: "gor" }` → Orion'un gözünden kare (`world/avatar/goz.ts`) + o anki algı metni → `bridge/goz.ts` (Gemma,
 `/api/chat` + görüntü) → "algılarınla birleştirerek 2–3 cümle" → `gordum` algısı. Ölçüm: birleştirme (algıdaki adları
-kullanır, yerde olmayan adı söylemez, gece/gündüz tutarlı, ≤ 3 sn, ≤ 7,6 GB) — yeni ön kayıt.
+kullanır, yerde olmayan adı söylemez, gece/gündüz tutarlı, ≤ 3 sn, ≤ 7,6 GB) — ön kayıt §7.
+
+## 7. V1 deneyi — ön kayıt (görme ALGIYLA BİRLEŞİYOR mu)
+**Soru:** Orion `sor gor` dediğinde gerçek yol (niyet → göz karesi + o anki algı metni → yerel görme modeli → `gordum`)
+algıyla tutarlı, yerinde, kısa ve Türkçe bir betim veriyor mu; ne kadar sürede, belleğe sığarak? "Bulabiliyor mu"
+ÖLÇÜLMEZ (V0'ın hatası, §4): adlar ve konumlar algıdan gelir, görme onları değiştirmez.
+
+**Düzenek.**
+- Canlı senaryo `3dorion.bat gozdene` (Electron, paketlenmemiş geliştirme yapısı). Beyin susturulur (beden senaryosu:
+  `gordum` beyni uyandırmaz). Model `ORION_GOZ` ile seçilir (`?goz=`); iki koşu: önce `gemma4:e4b`, sonra `gemma4:e2b`.
+- Pozlar V0'ınkiler (§1, 22: oda 12, ova 10), aynı sırayla. Orion pozuna ışınlanır, iki kare beklenir, sonra GERÇEK yoldan
+  `niyetiYurut({ tur: "sor", ne: "gor" })`. Ozyn (oyuncu) odada başlangıç yerinde, ovada kapıdan çıkış noktasında durur.
+- Model girdisi: kare 896×504 (Orion'un gözü, `world/avatar/goz.ts`) + algı metni = o anki `sor dunya` ve `sor oyuncu`
+  cevapları. Sistem metni (Türkçe): "algıların kesin; karede yalnız önündekiler var; gördüğünü algılarınla birleştirerek
+  en fazla 3 kısa cümle anlat (ışık, renk, ekranlarda ne var, Ozyn ne yapıyor); nesnelere algındaki adlarla değin;
+  algında olmayan bir şeyi kesinmiş gibi söyleme". `think: false`, sıcaklık 0, `num_ctx` 4096, `num_predict` 160.
+- Isınma: pozlardan önce bir `sor gor` (sayılmaz; soğuk süresi ayrıca yazılır).
+- Ova saati level verisinden: 19,75, zaman akmıyor (V0 karelerinde gece, yıldızlı gök). Ozyn'in commit dışı ova
+  düzenlemesi olduğu gibi kullanılır.
+- Bellek: koşu boyunca dışarıdan `nvidia-smi` örnekleyici (0,5 sn).
+- Kayıt: poz başına algı metni, cevap, süre, model → `docs/olcum/goz-v1.jsonl` (Ozyn okusun diye).
+
+**Ölçütler ve eşikler (önceden; cevap başına, model başına 22 cevap):**
+- **B1 (algıya bağlı):** cevap, o pozun algı metninde geçen nesne adlarından en az birini içerir. Oran ≥ 0,80.
+- **B2 (yerde olmayanı uydurmaz):** cevap ÖBÜR yerin nesne adlarından hiçbirini içermez (bu yerin bir adının parçası
+  olanlar sayılmaz: ovada "kapı" ⊂ "ofis kapısı"). İhlalli cevap oranı ≤ 0,10.
+- **B3 (gece tutarlı):** ova cevaplarında gündüz sözü yok (`güneş`, `gündüz`, `mavi gök`). İhlal ≤ 1 / 10.
+- **B4 (hız):** niyet → `gordum` süresi (kare + model), ısınmadan sonra ortanca ≤ 3,0 sn.
+- **B5 (bellek):** uygulama açıkken ekran kartı belleği tepesi ≤ 7,6 GB.
+- **B6 (biçim):** Türkçe (Türkçe harf içerir), ≤ 3 cümle, ≤ 350 karakter. Uyan oranı ≥ 0,90.
+- **Hata:** her `sor gor` bir `gordum` üretir (model çökse de dürüst cevapla). Cevapsız poz = 0.
+
+**Karar kuralı:** e4b B1–B6'nın hepsini geçerse varsayılan görme modeli e4b. e4b bir ölçütte kalır, e2b hepsini geçerse
+e2b. İkisi de kalırsa görme açık kalır ama varsayılan model seçilmez; sonuç ve kayıt Ozyn'e, sonraki adımı o seçer.
+
+**Bilinen zayıflıklar (önceden):** sıcaklık 0, poz başına bir cevap → n = 22 (oda 12, ova 10); ova gece ve az nesneli
+(B2/B3 ova'da sınanır, kanıtı zayıf). B1/B2 ad eşleşmesi metin içinde arama — çekim ekleri ("monitörde") kökü içerdiği
+için sayılır; "masa" gibi kısa adlar başka sözcüğün içinde yanlış eşleşebilir (kayıtta elle bakılır, ölçüt değişmez).
+Betimin DOĞRULUĞU (ışık/renk gerçekten öyle mi) otomatik ölçülmez — nitel, Ozyn kayda bakar.
