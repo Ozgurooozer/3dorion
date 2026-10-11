@@ -20,6 +20,8 @@ import type { Jest, Niyet, NiyetSonucu, Poz } from "../../protocol/niyet.ts";
 import type { OrionDurumu } from "../../protocol/algi.ts";
 import { BEDEN } from "../../protocol/bedenTanimi.ts";
 import { capaBul, mesafeXZ } from "../level/capalar.ts";
+import type { Yer } from "../yer/yer.ts";
+import { ODA_YERI } from "../yer/odaYeri.ts";
 import { SANDALYE } from "../level/olculer.ts";
 import { PozMakinesi, hareketliMi } from "./durumMakinesi.ts";
 import {
@@ -181,6 +183,12 @@ export interface YurutucuAyari {
    * durmak yerine sebebini söyler.
    */
   oyuncuKonumu?: () => Vec3;
+  /**
+   * Orion'un bulunduğu yer (spec 24): yol bulma, engeller ve çapalar buradan. Varsayılan oda.
+   * Geri çağrı, çünkü kapıdan geçince yer değişir; yürütücü yeniden kurulmaz. Oturma (sandalye) oda
+   * sabitlerine bağlı kalır — sandalye çapası olmayan yerde `otur` zaten "bilinmeyen çapa" döner.
+   */
+  yer?: () => Yer;
 }
 
 // ── İç iş tanımı ───────────────────────────────────────────────────────────
@@ -269,6 +277,7 @@ export class Yurutucu {
   private _oturmaCikisi: Nokta2 = { x: 0, z: -1.62 };
 
   private _oyuncuKonumu: (() => Vec3) | null;
+  private _yer: () => Yer;
 
   constructor(ayar: YurutucuAyari = {}) {
     const s = ayar.spawn ?? { x: 0, y: 0, z: 0 };
@@ -276,6 +285,7 @@ export class Yurutucu {
     this._govdeYaw = ayar.yaw ?? 0;
     this._govdeHedefYaw = this._govdeYaw;
     this._oyuncuKonumu = ayar.oyuncuKonumu ?? null;
+    this._yer = ayar.yer ?? (() => ODA_YERI);
   }
 
   // ── Dış yüzey ────────────────────────────────────────────────────────────
@@ -406,7 +416,7 @@ export class Yurutucu {
     const coz = this._hedefNoktasi(n.hedef);
     if (!coz.ok) { cikti.push(this._hata(id, coz.not)); return; }
 
-    const capa = n.hedef.tip === "capa" || n.hedef.tip === "nesne" ? capaBul(n.hedef.ad) : null;
+    const capa = n.hedef.tip === "capa" || n.hedef.tip === "nesne" ? capaBul(n.hedef.ad, this._yer().capalar) : null;
     const mesafeVerildi = n.mesafe !== undefined && Number.isFinite(n.mesafe) && n.mesafe > 0;
     // İKİ AYRI TOLERANS — bilerek:
     //   `tolerans`      yürürken "vardım" eşiği. SIKI olmalı, yoksa avatar
@@ -422,8 +432,8 @@ export class Yurutucu {
 
     // Hedef bir engelin içindeyse tolerans dahilinde dışına çık.
     let varis: Nokta2 | null = istenen;
-    if (!noktaSerbestMi(istenen, AVATAR_YARICAP)) {
-      varis = enYakinSerbest(istenen, AVATAR_YARICAP, Math.max(tolerans, zatenOrada));
+    if (!noktaSerbestMi(istenen, AVATAR_YARICAP, this._yer())) {
+      varis = enYakinSerbest(istenen, AVATAR_YARICAP, Math.max(tolerans, zatenOrada), undefined, this._yer());
     }
     if (!varis) {
       cikti.push(this._hata(id,
@@ -469,7 +479,7 @@ export class Yurutucu {
 
   private _otur(n: Extract<Niyet, { tur: "otur" }>, id: string, cikti: NiyetSonucu[]): void {
     const ad = n.capa ?? "sandalye";
-    const capa = capaBul(ad);
+    const capa = capaBul(ad, this._yer().capalar);
     if (!capa) { cikti.push(this._hata(id, `bilinmeyen çapa: '${ad}'. Oturulabilir: sandalye.`)); return; }
     if (!capa.eylemler.includes("otur")) {
       cikti.push(this._hata(id, `'${ad}' çapasına oturulmaz (eylemleri: ${capa.eylemler.join(", ")}). Oturulabilir: sandalye.`));
@@ -482,7 +492,7 @@ export class Yurutucu {
     // sandalyenin içinden geçerek oturmak yok.
     const yakinYan = this._konum.x >= OTURMA_NOKTASI.x ? 1 : -1;
     const yan = [yakinYan, -yakinYan].find((s) =>
-      noktaSerbestMi({ x: OTURMA_NOKTASI.x + s * YANASMA_UZAKLIGI, z: OTURMA_NOKTASI.z }));
+      noktaSerbestMi({ x: OTURMA_NOKTASI.x + s * YANASMA_UZAKLIGI, z: OTURMA_NOKTASI.z }, AVATAR_YARICAP, this._yer()));
     if (yan === undefined) {
       cikti.push(this._hata(id, "sandalyenin iki yanı da kapalı; oturmak için yandan yaklaşılacak yer yok."));
       return;
@@ -597,7 +607,7 @@ export class Yurutucu {
       cikti.push(this._hata(id, `elinde zaten '${this._elinde}' var; önce \`birak\`.`));
       return;
     }
-    const c = capaBul(nesne);
+    const c = capaBul(nesne, this._yer().capalar);
     if (!c || !c.eylemler.includes("al")) {
       cikti.push(this._hata(id, `'${nesne}' alınabilir değil. Şu an alınabilen: masa.`));
       return;
@@ -628,7 +638,7 @@ export class Yurutucu {
       }
       case "capa":
       case "nesne": {
-        const c = capaBul(h.ad);
+        const c = capaBul(h.ad, this._yer().capalar);
         if (!c) return { ok: false, not: `bilinmeyen çapa/nesne: '${h.ad}'.` };
         return { ok: true, nokta: c.konum };
       }
@@ -652,7 +662,7 @@ export class Yurutucu {
     const bas = { x: this._konum.x, z: this._konum.z };
     const yanasmada = is.yanasma !== undefined
       && mesafeXZ(bas, hedef) <= mesafeXZ(is.yanasma, hedef) + 1e-6;
-    const yol = yanasmada ? [] : yolBul(bas, is.yanasma ?? hedef);
+    const yol = yanasmada ? [] : yolBul(bas, is.yanasma ?? hedef, AVATAR_YARICAP, this._yer());
     if (!yol) {
       return `hedefe giden yol yok: (${hedef.x.toFixed(2)}, ${hedef.z.toFixed(2)}) engellerin arkasında kalıyor. Ulaşılabilir bir çapa ya da nokta seç.`;
     }

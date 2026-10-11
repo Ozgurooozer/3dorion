@@ -22,7 +22,9 @@
 - **Spec 19 bütçe aşımı (karar):** cel +538, toon +594 MiB ve 158 çizim, anime90 +637 MiB (sınır 500 MiB / 150).
   Seçenekler `specs/19` §4 sonunda.
 - Şehir parçaları dalgalı zemine gömülebiliyor: arazi aracı "Düzle" ile altları düzlenebilir (araç var, ova'da yapılmadı).
-- **Spec 23 sırası (onay):** C Orion'u level'a taşımak (spec 24, oda = bir level) → D düzenleme niyeti. B'den kalan:
+- **Spec 24 kapıdan ovaya** (`specs/24`): C0 ölçüldü, C1 Yer soyutlaması bitti; sırada C2 ova yeri → C3 kapı → C4 Orion
+  ovayı bilir → C6 `gec` niyeti → C5 paket. Kopya: `tools/ogretmen.ts` SABIT ↔ giris "In the room" (C4'te tek kaynak).
+- **Spec 23 sırası (onay):** C = spec 24 (yukarıda) → D düzenleme niyeti. B'den kalan:
   aynı adlı nesneler (ova'da 9 "ek bina") Orion için ayırt edilemiyor — denetim uyarısı + ayırt edici ad. Açık sorular: Orion'un düzenlemesi doğrudan mı onaylı mı; Electron'da
   level'ların yeri. Electron IPC deposu (`host/levelDosyasi.js` hazır) editör pakete girince bağlanacak.
 - **Spec 22 açıkları:** bağlı prefab yok; hazır yapı/kaydet yalnız dev sunucusunda; dönmüş nesnelerde gruplu eksen
@@ -32,7 +34,7 @@
 - **Spec 20 açıkları:** debug taraması +22 çizim (derinlik geçişi; gbuffer'dan okumak düşürebilir); 06:00 şafak koyu.
 - **Spec 21 açıkları:** su binaları yansıtmıyor (SSR yok); hacimsel bulut/sis yok; atmosfer sisi kapalı (sonsuz uzak düzlem ister); ateşböceği parlaklığı gözle ayarlanmadı (soluk beyaz).
 - **Gece** (referans 2), ağaç/çiçek katmanları; gök bantları kaba (Ozyn: şimdilik dursun).
-- **Orion'u ovaya taşımak** ve **odayı level çekirdeğine taşımak** (olculer/capalar → level verisi).
+- **Odayı level çekirdeğine taşımak** (olculer/capalar → level verisi) — spec 24 bunu gerektirmedi (oda bir `Yer`).
 - Ova kare hızı LLM ÜRETİRKEN ölçülmedi (yalnız model yüklüyken).
 
 ## Spec açıkları

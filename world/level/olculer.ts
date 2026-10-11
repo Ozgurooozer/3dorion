@@ -17,6 +17,7 @@
 //              x=-5            x=+5
 "use strict";
 import type { CapaAdi } from "../../protocol/temel.ts";
+import type { YurumeAlani } from "../yer/yer.ts";
 
 /** Bir eksen hizalı kutu (AABB). Çarpışma ve mesh üretimi aynı veriyi okur. */
 export interface Kutu {
@@ -217,14 +218,18 @@ export const GOZ_YUKSEKLIK = 1.62;
 /** Oyuncu gövde yüksekliği. */
 export const GOVDE_YUKSEKLIK = 1.75;
 
+/** Odanın yürüme alanı — yol bulma ve çarpışmanın varsayılanı (spec 24: yer verilmezse oda). */
+export const ODA_ALANI: YurumeAlani = { sinir: SINIR, engeller: ENGELLER };
+
 /**
  * Bir noktanın XZ'de engele/duvara çarpıp çarpmadığını söyler.
  * Saf fonksiyon — Babylon'suz test edilebilir.
  */
-export function carpisiyorMu(x: number, z: number, yaricap = OYUNCU_YARICAP): boolean {
-  if (x - yaricap < SINIR.minX || x + yaricap > SINIR.maxX) return true;
-  if (z - yaricap < SINIR.minZ || z + yaricap > SINIR.maxZ) return true;
-  for (const e of ENGELLER) {
+export function carpisiyorMu(x: number, z: number, yaricap = OYUNCU_YARICAP, alan: YurumeAlani = ODA_ALANI): boolean {
+  const { sinir } = alan;
+  if (x - yaricap < sinir.minX || x + yaricap > sinir.maxX) return true;
+  if (z - yaricap < sinir.minZ || z + yaricap > sinir.maxZ) return true;
+  for (const e of alan.engeller) {
     const yx = e.g / 2 + yaricap;
     const yz = e.d / 2 + yaricap;
     if (Math.abs(x - e.x) < yx && Math.abs(z - e.z) < yz) return true;

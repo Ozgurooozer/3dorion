@@ -31,7 +31,9 @@ import "@babylonjs/core/Culling/ray";
 import { Saat, TIK_HZ } from "./engine/tik.ts";
 import { KameraRig } from "./engine/kamera.ts";
 import { odaKur } from "./level/oda.ts";
-import { bulunduguCapa, capaAdlari, capaBul, tumCapalar } from "./level/capalar.ts";
+import { bulunduguCapa, capaBul } from "./level/capalar.ts";
+import type { Yer } from "./yer/yer.ts";
+import { ODA_YERI } from "./yer/odaYeri.ts";
 import { isinTara } from "./player/isinTarama.ts";
 import { sorguYanitla, type Cevap, type Soru } from "../mind/algiHizmeti.ts";
 import { yerelTepki } from "../mind/yerelTepki.ts";
@@ -106,11 +108,16 @@ sahne.autoClear = true;
 
 // ── Dünya ──────────────────────────────────────────────────────────────────
 const oda = odaKur(sahne);
+// YER (spec 24): Ozyn ve Orion AYRI yerde olabilir (Orion kendi kararıyla kapıdan çıkar, C6). Çarpışma, bakış
+// ışını, çapalar ve algı her aktörün kendi yerinden okunur. Bugün ikisi de ofiste; kapı geçişi (C3) bunları değiştirir.
+let ozynYeri: Yer = ODA_YERI;
+let orionYeri: Yer = ODA_YERI;
 const rig = new KameraRig(sahne, tuval);
 // Doğum yeri köşeden İÇERİ: (2.6, 2.6) kapı köşesiydi ve omuz kamerası iki
 // duvara birden sıkışıp oyuncunun gövdesine yapışıyordu (ölçüm: 1.44 m).
 const oyuncu = new Oyuncu(sahne, oda, rig, {
   dogumYeri: new Vector3(1.6, 0, 1.9),
+  yer: () => ozynYeri,
   // Esc yığınının 0. aşaması: panel içindeki alt görünüm önce kapanır.
   // `sema` aşağıda kuruluyor; kapanış çağrı ANINDA okunduğu için sorun yok.
   // Esc yığını sırayla daralır: teyit → detay → (oyuncu.ts: etkileşim →
@@ -212,6 +219,7 @@ void avatarKur({
   // göz kırpma görünmez, `jest` klibi yok (el sallama görünmez) — `?yuzdene`
   // bunu dürüstçe KALDI diye raporlar. Yüz eklenince bu satır kalkmalı.
   vrmZorla: true,
+  yer: () => orionYeri,
   // bak {tip:"oyuncu"} için: avatar oyuncunun yerini buradan öğrenir.
   oyuncuKonumu: () => oyuncu.oyuncuDurumu().konum,
 }).then((a) => {
@@ -550,7 +558,7 @@ function algiSor(ne: Soru): Cevap {
     gozYuksekligi: GOZ_YUKSEKLIK,
     // Sanal çapalar (oda_ortasi) elenir: gidilebilir hedeftirler ama
     // görülebilir nesne değildirler.
-    capalar: tumCapalar()
+    capalar: orionYeri.capalar
       .filter((c) => !c.sanal)
       .map((c) => ({ ad: c.ad, konum: c.konum, etiket: c.etiket })),
     oyuncu: oyuncu.oyuncuDurumu().konum,
@@ -558,7 +566,7 @@ function algiSor(ne: Soru): Cevap {
       const dx = hedef.x - kaynak.x, dy = hedef.y - kaynak.y, dz = hedef.z - kaynak.z;
       const u = Math.hypot(dx, dy, dz);
       if (u < 1e-4) return true;
-      const isabet = isinTara(kaynak, { x: dx / u, y: dy / u, z: dz / u }, u);
+      const isabet = isinTara(kaynak, { x: dx / u, y: dy / u, z: dz / u }, u, orionYeri.katiYuzeyler);
       // Işın hedefe VARMADAN bir şeye çarptıysa engel var demektir.
       // 0.25 m pay: hedefin kendi yüzeyi ışını durdurur, bu engel sayılmaz.
       return !isabet || isabet.mesafe >= u - 0.25;
@@ -1054,7 +1062,7 @@ tuval.addEventListener("mousemove", (e) => {
   sonVurgu = tiklanabilir;
   tuval.style.cursor = tiklanabilir ? "pointer" : "";
   if (tiklanabilir) {
-    const c = capaBul(tiklanabilir);
+    const c = capaBul(tiklanabilir, ozynYeri.capalar);
     altyaziGoster(`${c?.etiket ?? tiklanabilir} — tıkla`, 1600);
   }
 });
@@ -1124,7 +1132,7 @@ setInterval(() => {
     `|  fare ${rig.odakta ? (rig.fareKamerada ? "KAMERA (Ctrl)" : "imleç serbest") : (rig.fareKamerada ? "kamera" : "kamera — tuvale tıkla")}  ` +
     `|  gövde ${oyuncu.govdeUzakligi.toFixed(2)}m ${oyuncu.govde.isVisible ? "görünür" : "GİZLİ"}  ` +
     `|  konum ${d.konum.x.toFixed(1)},${d.konum.z.toFixed(1)}  ` +
-    `|  mesh ${oda.meshler.length}  |  çapa ${tumCapalar().length}\n` +
+    `|  mesh ${oda.meshler.length}  |  çapa ${ozynYeri.capalar.length}\n` +
     (ipucuMetin ? ipucuMetin : "WASD yürü · Shift koş · fare bak · F kamera · E terminal (orada: imleç serbest, Ctrl+fare bak) · T Orion'a yaz · Esc çık");
 }, 250);
 
@@ -1133,13 +1141,13 @@ setInterval(() => {
 // Bu bir DEBUG yüzeyi; protokol değil, köprü değil.
 const dunyaKancasi = {
   sinematik(capa: string, sure = 4): boolean {
-    const k = capaKonumu(capa);
-    if (!k) { console.warn(`[dunya] bilinmeyen çapa: ${capa}. Geçerli: ${capaAdlari().join(", ")}`); return false; }
+    const k = capaKonumu(capa, ozynYeri.capalar);
+    if (!k) { console.warn(`[dunya] bilinmeyen çapa: ${capa}. Geçerli: ${ozynYeri.capalar.map((c) => c.ad).join(", ")}`); return false; }
     rig.sinematikBak(k, 2.6, 0.7, sure);
     return true;
   },
   oyuncuDurumu: () => oyuncu.oyuncuDurumu(),
-  capalar: capaAdlari,
+  capalar: () => ozynYeri.capalar.map((c) => c.ad),
 
   /**
    * Orion'a elle niyet gönder — T4 (köprü) gelene kadar deneme yüzeyi.
@@ -1305,7 +1313,7 @@ function beyniBagla(a: Avatar): void {
     // şey anlatmıyordu; algı hizmeti "yönetim terminali" derken sabit liste
     // "admin" diyordu ve model ikisini aynı şey saymıyordu.
     // Çapa ETİKETLERİ Türkçe kalır: onlar odadaki şeylerin ADI, çerçeve değil.
-    sabitBilgi: () => `In the room: ${tumCapalar().map((c) => c.etiket).join(", ")}.`,
+    sabitBilgi: () => `In the room: ${orionYeri.capalar.map((c) => c.etiket).join(", ")}.`,
     toplamaMs: 900,
     // Ölçüm için ayarlanabilir: kısa pencere hipotezi (anı, alakasız sohbetin
     // altında gömülüyor mu?) tek değişkenle sınanabilsin.
@@ -1327,7 +1335,7 @@ function beyniBagla(a: Avatar): void {
     // `?hafiza=otomatik` eski davranışı geri getirir — kıyas ölçüsü için (spec 16 P1).
     hafizaKipi: HAFIZA_KIPI,
     ...(HAFIZA_KIPI === "yonlendirici" ? { yakinPencere: { kayit: 4, yasMs: 10 * 60_000 } } : {}),
-    yerAdlari: () => tumCapalar().map((c) => c.etiket),
+    yerAdlari: () => orionYeri.capalar.map((c) => c.etiket),
     // "BENİ TAKİP ET" (içgüdü `kopru.takip`): köprü sözü tanır, dünya (Takipci) yürütür.
     takipDinle: (aktif) => {
       if (aktif) takipci.baslat(); else takipci.birak();
@@ -1480,7 +1488,7 @@ function beyniBagla(a: Avatar): void {
   setInterval(() => {
     takipci.tik();
     try {
-      durumKopru.durum.konumGozlem(bulunduguCapa(a.durum().konum, durumKopru.durum.oku("konum")?.deger)?.etiket ?? "odanın ortası");
+      durumKopru.durum.konumGozlem(bulunduguCapa(a.durum().konum, durumKopru.durum.oku("konum")?.deger, orionYeri.capalar)?.etiket ?? "odanın ortası");
       durumKopru.durum.monitor(monitor.acikMi());
     } catch (err) { console.warn("[DURUM] gozlem hatasi:", err); }
   }, 500);
@@ -1647,7 +1655,7 @@ setTimeout(() => {
   console.log(
     `[DUMAN] fps=${motor.getFps().toFixed(1)} hz=${saat.olculenHz.toFixed(2)} ` +
     `tik=${saat.tikSayisi} atlanan=${saat.atlanan} ` +
-    `kamera=${rig.mod} mesh=${oda.meshler.length} capa=${tumCapalar().length} ` +
+    `kamera=${rig.mod} mesh=${oda.meshler.length} capa=${ozynYeri.capalar.length} ` +
     `kopru=${JSON.stringify(kopru?.sayac() ?? null)} ` +
     `oyuncu=${d.konum.x.toFixed(2)},${d.konum.y.toFixed(2)},${d.konum.z.toFixed(2)} ` +
     `etkilesim=${d.etkilesim ?? "-"} kopru=${typeof window.kopru} ` +

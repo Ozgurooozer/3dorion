@@ -59,7 +59,8 @@ const SOLA   = v(-1, 0, 0);
 const SAGA   = v(1, 0, 0);
 
 /**
- * Kayıt defteri. Sıra anlamlı değil; `capaBul` ada göre arar.
+ * ODANIN kayıt defteri. Sıra anlamlı değil; `capaBul` ada göre arar. Sorgular `kayit` parametresiyle başka bir
+ * yerin çapalarına da bakar (spec 24: `Yer.capalar`); verilmezse oda.
  * Koordinatlar `olculer.ts`'ten türetilir — iki yerde sayı tutulmaz.
  */
 const KAYIT: readonly Capa[] = [
@@ -175,13 +176,14 @@ export function capaAdlari(): string[] {
  * çünkü ad LLM çıktısından gelebilir ve dünya çökmemeli (bkz. SOZLESME
  * "güvenilmezlik varsayımı"). Çağıran `null`u `sonuc: "hata"`ya çevirir.
  */
-export function capaBul(ad: string): Capa | null {
-  return INDEKS.get(ad) ?? null;
+export function capaBul(ad: string, kayit: readonly Capa[] = KAYIT): Capa | null {
+  if (kayit === KAYIT) return INDEKS.get(ad) ?? null;
+  return kayit.find((c) => c.ad === ad) ?? null;
 }
 
 /** Bir çapanın belirli eylemi destekleyip desteklemediği. */
-export function eylemVarMi(ad: string, eylem: string): boolean {
-  const c = INDEKS.get(ad);
+export function eylemVarMi(ad: string, eylem: string, kayit: readonly Capa[] = KAYIT): boolean {
+  const c = capaBul(ad, kayit);
   return c ? c.eylemler.includes(eylem) : false;
 }
 
@@ -194,8 +196,8 @@ export function mesafeXZ(a: { x: number; z: number }, b: { x: number; z: number 
  * Bir noktanın `yaklasmaYaricapi` içinde kalıp kalmadığı.
  * `git` niyetinin "vardım" kararı ve `E` ipucu eşiği aynı fonksiyonu kullanır.
  */
-export function yaklastiMi(ad: string, nokta: { x: number; z: number }): boolean {
-  const c = INDEKS.get(ad);
+export function yaklastiMi(ad: string, nokta: { x: number; z: number }, kayit: readonly Capa[] = KAYIT): boolean {
+  const c = capaBul(ad, kayit);
   if (!c) return false;
   return mesafeXZ(nokta, c.durak) <= c.yaklasmaYaricapi;
 }
@@ -210,10 +212,10 @@ export const YER_HISTEREZISI = 0.3;
  * Hiçbirinin yanında değilse `null` (odanın ortası). Durum defterinin "konum"u bundan türer
  * (spec 16 F2) — ham koordinat modele bir şey anlatmıyordu.
  */
-export function bulunduguCapa(nokta: { x: number; z: number }, mevcutEtiket?: string): Capa | null {
+export function bulunduguCapa(nokta: { x: number; z: number }, mevcutEtiket?: string, kayit: readonly Capa[] = KAYIT): Capa | null {
   let en: Capa | null = null;
   let enMesafe = Infinity;
-  for (const c of KAYIT) {
+  for (const c of kayit) {
     const m = mesafeXZ(nokta, c.durak);
     if (m < enMesafe) { enMesafe = m; en = c; }
   }
@@ -222,7 +224,7 @@ export function bulunduguCapa(nokta: { x: number; z: number }, mevcutEtiket?: st
   // ondan en az `YER_HISTEREZISI` daha yakın olana kadar korunur. Salt "yarıçaptaysa koru" kuralı
   // (3.–7. koşu) yanlıştı: Orion terminalin yanında doğup sandalyeye oturunca da "terminalde" kalıyordu.
   if (mevcutEtiket && en) {
-    const m = KAYIT.find((c) => c.etiket === mevcutEtiket);
+    const m = kayit.find((c) => c.etiket === mevcutEtiket);
     if (m && m !== en) {
       const d = mesafeXZ(nokta, m.durak);
       if (d <= Math.max(BULUNMA_YARICAPI, m.yaklasmaYaricapi) && d - enMesafe < YER_HISTEREZISI) return m;
@@ -237,9 +239,9 @@ export interface YakinCapa { capa: Capa; mesafe: number }
  * Verilen noktaya `menzil` metre içindeki çapalar, yakından uzağa.
  * T4 bunu `YakinNesne[]` algısına çevirir.
  */
-export function yakinCapalar(nokta: { x: number; z: number }, menzil = 3): YakinCapa[] {
+export function yakinCapalar(nokta: { x: number; z: number }, menzil = 3, kayit: readonly Capa[] = KAYIT): YakinCapa[] {
   const sonuc: YakinCapa[] = [];
-  for (const capa of KAYIT) {
+  for (const capa of kayit) {
     const mesafe = mesafeXZ(nokta, capa.konum);
     if (mesafe <= menzil) sonuc.push({ capa, mesafe });
   }
@@ -250,10 +252,10 @@ export function yakinCapalar(nokta: { x: number; z: number }, menzil = 3): Yakin
  * Etkileşimli (en az bir eylemi `bak`tan fazla olan) ve `yaklasmaYaricapi`
  * içindeki en yakın çapa. `E` ipucunu bu belirler.
  */
-export function etkilesilebilirCapa(nokta: { x: number; z: number }): Capa | null {
+export function etkilesilebilirCapa(nokta: { x: number; z: number }, kayit: readonly Capa[] = KAYIT): Capa | null {
   let enIyi: Capa | null = null;
   let enIyiMesafe = Infinity;
-  for (const c of KAYIT) {
+  for (const c of kayit) {
     if (c.eylemler.length === 0) continue;
     if (c.eylemler.every((e) => e === "bak")) continue;
     const m = mesafeXZ(nokta, c.durak);

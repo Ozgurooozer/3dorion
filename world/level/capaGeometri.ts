@@ -6,7 +6,7 @@
 "use strict";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { Vec3 } from "../../protocol/temel.ts";
-import { capaBul } from "./capalar.ts";
+import { capaBul, type Capa } from "./capalar.ts";
 
 /** Saf Vec3 → Babylon Vector3. */
 export function vek(v: Vec3): Vector3 {
@@ -19,13 +19,13 @@ export function vec3(v: Vector3): Vec3 {
 }
 
 /** Çapanın bakılacak noktası. Bilinmeyen ad → `null`. */
-export function capaKonumu(ad: string): Vector3 | null {
-  const c = capaBul(ad);
+export function capaKonumu(ad: string, kayit?: readonly Capa[]): Vector3 | null {
+  const c = capaBul(ad, kayit);
   return c ? vek(c.konum) : null;
 }
 
 /** Çapanın durak (ayak) noktası. Bilinmeyen ad → `null`. */
-export function capaDuragi(ad: string): Vector3 | null {
-  const c = capaBul(ad);
+export function capaDuragi(ad: string, kayit?: readonly Capa[]): Vector3 | null {
+  const c = capaBul(ad, kayit);
   return c ? vek(c.durak) : null;
 }

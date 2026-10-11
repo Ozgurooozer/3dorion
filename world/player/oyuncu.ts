@@ -27,6 +27,8 @@ import {
 } from "../level/olculer.ts";
 import { EtkilesimOlaylari, ipucuMetni, type EtkilesimYayici } from "./etkilesim.ts";
 import { bakilanCapa } from "./isinTarama.ts";
+import type { Yer } from "../yer/yer.ts";
+import { ODA_YERI } from "../yer/odaYeri.ts";
 
 /** Yürüme / koşma hızı (m/s). */
 const HIZ_YURU = 2.6;
@@ -71,6 +73,11 @@ export interface OyuncuSecenekleri {
    * `true` dönerse Esc TÜKETİLMİŞ sayılır, alt aşamalar koşmaz.
    */
   escOnce?: () => boolean;
+  /**
+   * Oyuncunun bulunduğu yer (spec 24): çarpışma, bakış ışını ve çapalar buradan. Varsayılan oda.
+   * Geri çağrı, çünkü kapıdan geçince yer değişir; Oyuncu yeniden kurulmaz.
+   */
+  yer?: () => Yer;
 }
 
 export class Oyuncu implements KameraHedefi {
@@ -82,6 +89,7 @@ export class Oyuncu implements KameraHedefi {
 
   private _rig: KameraRig;
   private _escOnce: (() => boolean) | null;
+  private _yer: () => Yer;
   private _yayici: EtkilesimYayici;
 
   private _tuslar = new Set<string>();
@@ -100,6 +108,7 @@ export class Oyuncu implements KameraHedefi {
     this._rig = rig;
     this._yayici = sec.yayici ?? EtkilesimOlaylari;
     this._escOnce = sec.escOnce ?? null;
+    this._yer = sec.yer ?? (() => ODA_YERI);
 
     // Doğum yeri köşeden İÇERİ alındı. (2.6, 2.6) kapının önündeki köşeydi ve
     // omuz kamerası arkadaki iki duvara birden sıkışıyordu: açılış manzarası
@@ -191,10 +200,11 @@ export class Oyuncu implements KameraHedefi {
     // Eksen ayrıştırmalı çarpışma: X ve Z ayrı denenir → duvara sürtünürken
     // durmak yerine kayar. Babylon moveWithCollisions'a gerek yok; oda
     // eksen hizalı kutulardan oluşuyor, AABB testi hem doğru hem bedava.
+    const yer = this._yer();
     const yeniX = this.konum.x + dx * adim;
-    if (!carpisiyorMu(yeniX, this.konum.z)) this.konum.x = yeniX;
+    if (!carpisiyorMu(yeniX, this.konum.z, OYUNCU_YARICAP, yer)) this.konum.x = yeniX;
     const yeniZ = this.konum.z + dz * adim;
-    if (!carpisiyorMu(this.konum.x, yeniZ)) this.konum.z = yeniZ;
+    if (!carpisiyorMu(this.konum.x, yeniZ, OYUNCU_YARICAP, yer)) this.konum.z = yeniZ;
 
     this.konum.y = 0;
     this._govdeyiYerlestir();
@@ -254,8 +264,9 @@ export class Oyuncu implements KameraHedefi {
     if (this._yayici.aktif) { this._yayici.ipucuAyarla(null); return; }
 
     const kaynak = { x: this.konum.x, y: this.konum.y + GOZ_YUKSEKLIK, z: this.konum.z };
-    const ad = bakilanCapa(kaynak, this._rig.bakisYonu(), ISIN_MENZIL);
-    const capa = ad ? capaBul(ad) : null;
+    const yer = this._yer();
+    const ad = bakilanCapa(kaynak, this._rig.bakisYonu(), ISIN_MENZIL, yer.katiYuzeyler);
+    const capa = ad ? capaBul(ad, yer.capalar) : null;
     if (!capa) { this._yayici.ipucuAyarla(null); return; }
 
     const eylem = this._birincilEylem(capa.eylemler);

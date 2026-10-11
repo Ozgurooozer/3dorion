@@ -19,8 +19,13 @@
 // fonksiyondur. "Masanın öbür yanına git" testinde yol uzunluğunun düz
 // çizgiden uzun olduğunu ölçebiliyoruz. Babylon çağrısının içine gömülmüş bir
 // çarpışma-kaydırma döngüsü bunu ölçülemez hâle getirirdi.
+//
+// Alan (sınır + engeller) parametreyle gelir, varsayılan oda (spec 24 C1): ovada engeller bina kutularıdır.
+// Önceden `engeller` parametresi yalnız görüş hattına geçiyor, nokta testi (`noktaSerbestMi`) hep odanın
+// engellerine bakıyordu — artık ikisi aynı alanı görür.
 "use strict";
-import { ENGELLER, SINIR, carpisiyorMu, type Kutu } from "../level/olculer.ts";
+import { ODA_ALANI, carpisiyorMu, type Kutu } from "../level/olculer.ts";
+import type { Sinir, YurumeAlani } from "../yer/yer.ts";
 
 /** Yön bileşeni bundan küçükse eksene paralel kabul edilir. */
 const EPS = 1e-9;
@@ -83,9 +88,9 @@ export function parcaKutuKesisiyor(a: Nokta2, b: Nokta2, d: Dilim): boolean {
 }
 
 /** Nokta duvar içi sınırlarda mı (engeller HARİÇ, yalnızca oda kabuğu). */
-function odaIcinde(p: Nokta2, yaricap: number): boolean {
-  return p.x - yaricap >= SINIR.minX && p.x + yaricap <= SINIR.maxX
-      && p.z - yaricap >= SINIR.minZ && p.z + yaricap <= SINIR.maxZ;
+function odaIcinde(p: Nokta2, yaricap: number, sinir: Sinir): boolean {
+  return p.x - yaricap >= sinir.minX && p.x + yaricap <= sinir.maxX
+      && p.z - yaricap >= sinir.minZ && p.z + yaricap <= sinir.maxZ;
 }
 
 /**
@@ -98,33 +103,33 @@ function odaIcinde(p: Nokta2, yaricap: number): boolean {
 export function serbestMi(
   a: Nokta2, b: Nokta2,
   yaricap = AVATAR_YARICAP,
-  engeller: readonly Kutu[] = ENGELLER,
+  alan: YurumeAlani = ODA_ALANI,
 ): boolean {
-  if (!odaIcinde(a, yaricap) || !odaIcinde(b, yaricap)) return false;
-  for (const e of engeller) {
+  if (!odaIcinde(a, yaricap, alan.sinir) || !odaIcinde(b, yaricap, alan.sinir)) return false;
+  for (const e of alan.engeller) {
     if (parcaKutuKesisiyor(a, b, sismisDilim(e, yaricap))) return false;
   }
   return true;
 }
 
 /** Nokta üzerinde durulabilir mi (duvar + engel). `carpisiyorMu`nun tersi. */
-export function noktaSerbestMi(p: Nokta2, yaricap = AVATAR_YARICAP): boolean {
-  return !carpisiyorMu(p.x, p.z, yaricap);
+export function noktaSerbestMi(p: Nokta2, yaricap = AVATAR_YARICAP, alan: YurumeAlani = ODA_ALANI): boolean {
+  return !carpisiyorMu(p.x, p.z, yaricap, alan);
 }
 
 /** Şişmiş engel köşeleri — grafiğin sabit düğümleri. Çarpışanlar atılır. */
 export function koseNoktalari(
   yaricap = AVATAR_YARICAP,
-  engeller: readonly Kutu[] = ENGELLER,
+  alan: YurumeAlani = ODA_ALANI,
 ): Nokta2[] {
   const out: Nokta2[] = [];
-  for (const e of engeller) {
+  for (const e of alan.engeller) {
     const yx = e.g / 2 + yaricap + KOSE_PAYI;
     const yz = e.d / 2 + yaricap + KOSE_PAYI;
     for (const sx of [-1, 1]) {
       for (const sz of [-1, 1]) {
         const p = { x: e.x + sx * yx, z: e.z + sz * yz };
-        if (noktaSerbestMi(p, yaricap)) out.push(p);
+        if (noktaSerbestMi(p, yaricap, alan)) out.push(p);
       }
     }
   }
@@ -144,14 +149,15 @@ export function enYakinSerbest(
   yaricap = AVATAR_YARICAP,
   azami = 1.5,
   adim = 0.15,
+  alan: YurumeAlani = ODA_ALANI,
 ): Nokta2 | null {
-  if (noktaSerbestMi(p, yaricap)) return p;
+  if (noktaSerbestMi(p, yaricap, alan)) return p;
   for (let r = adim; r <= azami + 1e-6; r += adim) {
     let enIyi: Nokta2 | null = null;
     for (let i = 0; i < 16; i++) {
       const a = (i / 16) * Math.PI * 2;
       const q = { x: p.x + Math.cos(a) * r, z: p.z + Math.sin(a) * r };
-      if (noktaSerbestMi(q, yaricap)) { enIyi = q; break; }
+      if (noktaSerbestMi(q, yaricap, alan)) { enIyi = q; break; }
     }
     if (enIyi) return enIyi;
   }
@@ -172,24 +178,24 @@ function uzaklik(a: Nokta2, b: Nokta2): number {
 export function yolBul(
   bas: Nokta2, son: Nokta2,
   yaricap = AVATAR_YARICAP,
-  engeller: readonly Kutu[] = ENGELLER,
+  alan: YurumeAlani = ODA_ALANI,
 ): Nokta2[] | null {
-  if (!noktaSerbestMi(son, yaricap)) return null;
+  if (!noktaSerbestMi(son, yaricap, alan)) return null;
 
   // Başlangıç bir engelin içinde kaldıysa önce kendini kurtar; o kurtarma
   // noktası yolun ilk adımı olur (görüş hattı aranmaz, kısa bir kaçıştır).
   let onek: Nokta2[] = [];
   let kaynak = bas;
-  if (!noktaSerbestMi(bas, yaricap)) {
-    const kacis = enYakinSerbest(bas, yaricap);
+  if (!noktaSerbestMi(bas, yaricap, alan)) {
+    const kacis = enYakinSerbest(bas, yaricap, undefined, undefined, alan);
     if (!kacis) return null;
     onek = [kacis];
     kaynak = kacis;
   }
 
-  if (serbestMi(kaynak, son, yaricap, engeller)) return [...onek, son];
+  if (serbestMi(kaynak, son, yaricap, alan)) return [...onek, son];
 
-  const dugumler: Nokta2[] = [kaynak, ...koseNoktalari(yaricap, engeller), son];
+  const dugumler: Nokta2[] = [kaynak, ...koseNoktalari(yaricap, alan), son];
   const n = dugumler.length;
   const sonIx = n - 1;
 
@@ -200,7 +206,7 @@ export function yolBul(
     const a = dugumler[i]!;
     for (let j = i + 1; j < n; j++) {
       const b = dugumler[j]!;
-      if (!serbestMi(a, b, yaricap, engeller)) continue;
+      if (!serbestMi(a, b, yaricap, alan)) continue;
       const m = uzaklik(a, b);
       kenar[i]![j] = m;
       kenar[j]![i] = m;

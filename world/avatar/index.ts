@@ -18,6 +18,7 @@ import { prosedurelIskelet } from "./prosedurel.ts";
 import { iskeletSec } from "./iskeletSecim.ts";
 import { vrmIskeletYukle } from "./vrm.ts";
 import type { AvatarIskeleti } from "./iskelet.ts";
+import type { Yer } from "../yer/yer.ts";
 
 /**
  * Varsayılan karakter dosyası — vite `publicDir: assets` sayesinde kök altında.
@@ -46,6 +47,8 @@ export interface AvatarAyari {
   oyuncuKonumu?: () => Vec3;
   /** Başlangıç gövde yaw'ı (radyan, 0 = +Z). */
   yaw?: number;
+  /** Orion'un bulunduğu yer (spec 24); yürütücüye geçer. Varsayılan oda. */
+  yer?: () => Yer;
 }
 
 export interface Avatar {
@@ -102,7 +105,7 @@ export async function avatarKur(ayar: AvatarAyari): Promise<Avatar> {
   }
 
   const spawn = ayar.spawn ?? { x: 0, y: 0, z: 0 };
-  const yurutucu = new Yurutucu({ spawn, yaw: ayar.yaw ?? 0, oyuncuKonumu: ayar.oyuncuKonumu });
+  const yurutucu = new Yurutucu({ spawn, yaw: ayar.yaw ?? 0, oyuncuKonumu: ayar.oyuncuKonumu, yer: ayar.yer });
   const beden = new Beden(iskelet);
   beden.yerlestir(spawn.x, spawn.y, spawn.z, ayar.yaw ?? 0);
 
