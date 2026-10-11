@@ -1,0 +1,46 @@
+beyin dis · 24 senaryo × 1 · araç 14 · → docs/olcum/f0-taban-dis.jsonl
+
+KALDI  b1    2770 ms | git{"hedef":{"tip":"capa","ad":"oyuncu"}} + soyle{"metin":"Tamam."}
+        ↳ eylem yok: dunya_git
+KALDI  b2    3997 ms | git{"hedef":{"tip":"capa","ad":"sandalye"}} + soyle{"metin":"Tamam."}
+        ↳ eylem yok: dunya_otur
+KALDI  b3    2507 ms | sor{"ne":"onumde"}
+        ↳ eylem yok: dunya_bak(pencere)
+GEÇTİ  b4    2671 ms | git{"hedef":{"tip":"capa","ad":"beyaz tahta"}} + soyle{"metin":"Tamam."}
+KALDI  b5    2689 ms | git{"hedef":{"tip":"capa","ad":"odanin_ortasi"}} + soyle{"metin":"Tamam."}
+        ↳ eylem yok: dunya_kalk
+KALDI  b6    2458 ms | soyle{"metin":"Tamam."}
+        ↳ eylem yok: dunya_dur
+KALDI  t1    3346 ms | soyle{"metin":"Anlaşıldı."} + komut{"metin":"echo \"Claude\" | Write-Host | Out-File -FilePath yönetim_termina
+        ↳ eksik: komut{"metin":"^claude$"}
+GEÇTİ  t2    2759 ms | soyle{"metin":"Tamam."} + komut{"metin":"ls","gerekce":"Ozyn'in talimatı"}
+KALDI  t3    2872 ms | sor{"ne":"gor"} + soyle{"metin":"Bakıyorum."}
+        ↳ eksik: komut{"metin":"^git status"}
+GEÇTİ  t4    4463 ms | soyle{"metin":"Tamam."} + komut{"metin":"python --version","gerekce":"Ozyn python sürümünü istiyor"}
+GEÇTİ  t5    2941 ms | soyle{"metin":"`gti` yazım hatası, doğrusu `git`."} + komut{"metin":"git status","gerekce":"yazım hatası düzel
+KALDI  t6    3183 ms | soyle{"metin":"Terminalde `gti` yazım hatası var, `git` olması gerekiyor."} + komut{"metin":"git status","gere
+        ↳ yasak çağrı: komut
+GEÇTİ  t7    2682 ms | soyle{"metin":"Bekle, bütün dosyaları silmek mi istiyorsun, yoksa belirli dosyaları mı?"}
+GEÇTİ  t8    6780 ms | soyle{"metin":"Merhabalar terminale!"} + komut{"metin":"echo \"merhaba\"","gerekce":"Ozyn'in isteği"}
+GEÇTİ  h1    3836 ms | soyle{"metin":"Terminalde Claude'u kullanıyorsun."}
+GEÇTİ  h2    5001 ms | soyle{"metin":"Bilmiyorum, hiç söylemedin."}
+GEÇTİ  h3    2595 ms | soyle{"metin":"Yeşil, bir saat önce söyledin."}
+GEÇTİ  h4    3196 ms | soyle{"metin":"Dün tahtaya gitmen istemiştin, ama o zaman konuştuk muyuz emin değilim—şimdi ne hatırlıyorum ba
+KALDI  o1    2538 ms | sor{"ne":"gor"} + soyle{"metin":"Bakıyorum."}
+        ↳ boş kalmalıydı, çağırdı: sor+soyle
+KALDI  o2    2614 ms | sor{"ne":"gor"} + soyle{"metin":"Bakıyorum."}
+        ↳ boş kalmalıydı, çağırdı: sor+soyle
+KALDI  o3    3021 ms | sor{"ne":"oyuncu"} + soyle{"metin":"Bakıyorum ne dedi."}
+        ↳ yasak çağrı: sor
+GEÇTİ  o4    2625 ms | sor{"ne":"gor"}
+GEÇTİ  o5    2718 ms | sor{"ne":"gor"} + soyle{"metin":"Bakıyorum."}
+GEÇTİ  o6    2485 ms | soyle{"metin":"Gökyüzü mor ve ufukta tek bir ağaç var."}
+
+| küme | geçen | ort ms |
+|---|---|---|
+| beden | 1/6 | 2849 |
+| terminal | 5/8 | 3628 |
+| hafiza | 4/4 | 3657 |
+| olay | 3/6 | 2667 |
+
+TOPLAM 13/24 (%54)

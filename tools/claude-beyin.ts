@@ -26,6 +26,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { baglamMetni, hamdanCikti } from "../bridge/baglam.ts";
+import { aracRehberi, yapisalSema, yapisaldanCikti } from "../bridge/yapisalSozlesme.ts";
 import type { BeyinGirdisi } from "../bridge/beyin.ts";
 
 const arg = (ad: string, v: string) =>
@@ -33,14 +34,18 @@ const arg = (ad: string, v: string) =>
 
 const PORT = Number(arg("port", "4700"));
 const MODEL = arg("model", "haiku");
+// Çıktı kipi (spec 26 F1): `satir` = eski satır sözleşmesi (4 eylem), `yapisal` = `--json-schema` + TAM araç yüzeyi.
+const MOD = arg("mod", "satir") as "satir" | "yapisal";
 const EXE = process.env.ORION_CLAUDE_EXE
   ?? path.join(process.env.APPDATA ?? "", "npm/node_modules/@anthropic-ai/claude-code/bin/claude.exe");
 // Boş çalışma dizini: bir üst dizindeki CLAUDE.md bağlama sızmasın.
 const BOS = fs.mkdtempSync(path.join(os.tmpdir(), "orion-claude-beyin-"));
 
-interface Sonuc { result?: string; is_error?: boolean; num_turns?: number; usage?: { input_tokens?: number } }
+interface Sonuc { result?: string; structured_output?: unknown; is_error?: boolean; num_turns?: number; usage?: { input_tokens?: number } }
 
-function claudeCalistir(sistem: string, kullanici: string): Promise<Sonuc> {
+function tryJson(ham: string | undefined): unknown { try { return ham ? JSON.parse(ham) : undefined; } catch { return undefined; } }
+
+function claudeCalistir(sistem: string, kullanici: string, sema?: Record<string, unknown>): Promise<Sonuc> {
   const istemDosyasi = path.join(BOS, `sistem-${process.hrtime.bigint()}.txt`);
   fs.writeFileSync(istemDosyasi, sistem, "utf8");
   return new Promise((coz, reddet) => {
@@ -49,6 +54,7 @@ function claudeCalistir(sistem: string, kullanici: string): Promise<Sonuc> {
       "--tools", "", "--strict-mcp-config", "--setting-sources", "",
       "--disable-slash-commands", "--no-session-persistence",
       "--system-prompt-file", istemDosyasi,
+      ...(sema ? ["--json-schema", JSON.stringify(sema)] : []),
     ], {
       cwd: BOS, windowsHide: true,
       // DÜŞÜNME KAPALI — ölçüldü (2026-09-17, aynı gerçek istem, B fixture'ı):
@@ -92,12 +98,14 @@ const sunucu = http.createServer(async (istek, yanit) => {
   try {
     const girdi = JSON.parse(ham) as BeyinGirdisi;
     // Durumsuz: her tur yeni `claude -p`, geçmiş metne girer.
-    const { sistem, kullanici } = baglamMetni(girdi, { gecmis: true });
-    const s = await claudeCalistir(sistem, kullanici);
-    const c = hamdanCikti(s.result ?? "", {
-      model: `claude:${MODEL}`, sureMs: Date.now() - t0,
-      girisToken: s.usage?.input_tokens, tur: s.num_turns,
-    });
+    const yapisal = MOD === "yapisal";
+    const m = baglamMetni(girdi, { gecmis: true, satirSozlesmesi: !yapisal });
+    // Rehber ve şema köprünün bu tur için SÜZDÜĞÜ listeden (girdi.araclar): tur kuralları bu yolda da işler.
+    const sistem = yapisal ? `${m.sistem}
+${aracRehberi(girdi.araclar)}` : m.sistem;
+    const s = await claudeCalistir(sistem, m.kullanici, yapisal ? yapisalSema(girdi.araclar) : undefined);
+    const bilgi = { model: `claude:${MODEL}`, kip: MOD, sureMs: Date.now() - t0, girisToken: s.usage?.input_tokens, tur: s.num_turns };
+    const c = yapisal ? yapisaldanCikti(s.structured_output ?? tryJson(s.result), bilgi, girdi.araclar) : hamdanCikti(s.result ?? "", bilgi);
     console.log(`[claude-beyin] ${Date.now() - t0} ms · ${s.usage?.input_tokens} tok · ${c.cagrilar.map((x) => x.ad).join(",") || "-"}`);
     gonder(200, c);
   } catch (e) {

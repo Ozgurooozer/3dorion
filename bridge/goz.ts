@@ -23,17 +23,20 @@ export interface GozAyari {
 }
 
 /**
- * Modelin sistem metni. Türkçe: cevap Orion'un kendi gözlemi olarak ŞİMDİ satırına Türkçe girer (algı da Türkçe).
+ * Modelin sistem metni. İNGİLİZCE (spec 26 F1: içerisi tek dil): cevap Orion'un beynine İngilizce girer, Orion onu
+ * Türkçe SÖYLER (talimat DİL bölümü). Karışık dil (İngilizce çerçeve içinde Türkçe betim) beyni şaşırtıyordu.
+ * Nesne adları algıdan GELDİĞİ gibi (Türkçe adlar: "beyaz tahta", "yönetim terminali") kalır, çevrilmez.
  * "Algında olmayanı kesinmiş gibi söyleme": görme yeni şeyi fark edebilir ama ona ad koymaz — ad algının işi.
  */
 export function gozIstemi(algi: string): string {
   return [
-    "Sen Orion'sun. Bu kare SENİN gözünden, şu an bulunduğun yerden.",
-    `Algıların (kesin, etrafındaki her şey; karede yalnız önündekiler var): ${algi}`,
-    "Kareye bak ve gördüğünü algılarınla birleştirerek en fazla 3 kısa cümleyle Türkçe anlat:",
-    "ışık ve renkler, ekranlarda ne var, Ozyn (oradaki insan) görünüyorsa ne yapıyor.",
-    "Nesnelere algındaki adlarıyla değin. Algında olmayan bir şeyi kesinmiş gibi söyleme;",
-    "emin değilsen \"gibi görünüyor\" de. Liste, başlık, madde işareti yazma.",
+    "You are Orion. This frame is from YOUR eyes, from where you stand right now.",
+    `Your perception (certain, everything around you; the frame shows only what is in front of you): ${algi}`,
+    "Look at the frame and, combining it with your perception, describe in at most 3 short English sentences:",
+    "light and colours, what is on the screens, and what Ozyn (the person there) is doing if he is visible.",
+    "Refer to objects by the names in your perception, exactly as given (they are Turkish names; do not translate them).",
+    "Do not state anything as certain that is not in your perception; if unsure, say \"looks like\".",
+    "No lists, headings or bullet points.",
   ].join("\n");
 }
 

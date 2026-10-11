@@ -114,3 +114,18 @@ test("çıkarılan araç verilmezse bütün araçlar sunulur", async () => {
   const { soyle } = kur();
   assert.ok((await soyle("merhaba")).araclar.some((a) => a.ad === "dunya_al"));
 });
+
+test("kendi bakışının cevabıyla uyanan turda `sor` aracı yok (gordum→sor döngüsü, spec 26 F1)", async () => {
+  const { k, b } = kur();
+  k.algi({ tur: "gordum", ne: "gor", metin: "Monitörde bir terminal var." });
+  await bekle(25);
+  assert.equal(b.gordugu.at(-1)!.araclar.some((a) => a.ad === "dunya_sor"), false);
+});
+
+test("Ozyn aynı turda konuştuysa `sor` aracı yerinde", async () => {
+  const { k, b } = kur();
+  k.algi({ tur: "gordum", ne: "gor", metin: "Monitörde bir terminal var." });
+  k.algi({ tur: "duydum", metin: "peki ya pencere?", kesin: true });
+  await bekle(25);
+  assert.equal(b.gordugu.at(-1)!.araclar.some((a) => a.ad === "dunya_sor"), true);
+});

@@ -19,7 +19,7 @@
 // "gereksiz uyandırma" riski taşımalı.
 "use strict";
 import type { Niyet } from "../protocol/niyet.ts";
-import { OZET_ONEKI, type Algi, type AlgiTur } from "../protocol/algi.ts";
+import { OZET_ONEKI, GURULTU_OLAYLARI, type Algi, type AlgiTur } from "../protocol/algi.ts";
 import type { RefleksKurali } from "./icgudu.ts";
 import { niyetKaynagi } from "./durumKodu.ts";
 
@@ -189,7 +189,7 @@ export class KuralRefleksi implements Refleks {
       // Önekin UZUNLUĞU da tek kaynaktan: sabit 5 yazılıydı ("Olay:") ve önek
       // İngilizceye dönünce bir harf kayıp olay adı bozulacaktı.
       const ad = o.slice(OZET_ONEKI.olay.length).trim();
-      const gurultu = ONEMSIZ_OLAYLAR.has(ad);
+      const gurultu = GURULTU_OLAYLARI.has(ad);
       return gurultu
         ? { terfi: false, gerekce: "gürültü olay", kural: "refleks.olay.gurultu" }
         : { terfi: true, gerekce: "dünya olayı", kural: "refleks.olay.dunya" };
@@ -243,7 +243,6 @@ function govdesi(o: string): string {
 
 /** dikkat.ts ile aynı liste — tek kaynak olması için oradan türetilmeli
  *  ama dikkat onu dışa vermiyor; ölçüm sonrası birleştirilecek. */
-const ONEMSIZ_OLAYLAR = new Set(["kamera_degisti", "ipucu", "fare_kilidi"]);
 
 const TALIMAT =
   "Sen bir 3D odadaki AI'ın refleks katmanısın. Sana odadaki küçük bir " +

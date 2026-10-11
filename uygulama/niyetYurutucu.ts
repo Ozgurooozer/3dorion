@@ -21,6 +21,7 @@ import type { SemaPaneli } from "../world/surfaces/sema.ts";
 import { yaklastiMi, type Capa } from "../world/level/capalar.ts";
 import { bilgisayariAc } from "../world/bilgisayar.ts";
 import type { OnayKapisi } from "../mind/onayKapisi.ts";
+import { onaysizCalissinMi, type KomutKipi } from "./komutKipi.ts";
 import type { Cevap, Soru } from "../mind/algiHizmeti.ts";
 
 /** Yürütücünün dünyadan gördüğü kadarı. Sonradan atananlar (beden, köprü) fonksiyondur. */
@@ -35,6 +36,12 @@ export interface YurutucuBaglami {
   algiSor(ne: Soru): Cevap;
   altyazi(metin: string, ms?: number): void;
   onayPaneliCiz(): void;
+  /**
+   * Komut kipi (spec 26 F2) ve bekleyen komutu Ozyn'in tuşu OLMADAN onaylayan işlev (giris.ts `onayKarari(true, true)`).
+   * Verilmezse eski davranış: her komut onay bekler.
+   */
+  komutKipi?(): KomutKipi;
+  otomatikOnay?(): void;
   /** `sor` cevabı beyne gitti (`bakdene` yedeği: zincir kendiliğinden işledi mi?). */
   gordumBildir(): void;
   /**
@@ -106,8 +113,9 @@ export function niyetYurutucusuKur(b: YurutucuBaglami): NiyetYurutucu {
       return;
     }
 
-    // `komut` TERMINALE GITMEZ: onay kapisina girer. Orion hicbir kosulda
-    // komut CALISTIRMAZ; calistiran sey Ozyn'in tusudur.
+    // `komut` her zaman ONAY KAPISINA girer (tek tehlikeli yetenek: tek yol, her karar kayda geçer). Kip `onayli` ise
+    // çalıştıran Ozyn'in tuşudur; `otomatik`/`tam` kipinde (spec 26 F2, Ozyn'in kararı) kapı komutu hemen onaylar —
+    // aynı yol, aynı kayıt, yalnız tuşa basan sistemdir. Yıkıcı sınıf `otomatik`te yine bekler (komutKipi.ts).
     if (n.tur === "komut") {
       const r = b.onayKapisi.oner(id, n.metin, n.gerekce);
       if (!r.kabul) {
@@ -116,6 +124,11 @@ export function niyetYurutucusuKur(b: YurutucuBaglami): NiyetYurutucu {
         return;
       }
       const bk = b.onayKapisi.bekleyen;
+      if (bk && b.otomatikOnay && onaysizCalissinMi(b.komutKipi?.() ?? "onayli", bk.risk.seviye)) {
+        console.log(`[ONAY] OTOMATIK (${bk.risk.seviye}, kip ${b.komutKipi?.()}): ${n.metin}  | gerekce: ${n.gerekce}`);
+        b.otomatikOnay();
+        return;
+      }
       console.log(`[ONAY] ONERILDI (${bk?.risk.seviye}): ${n.metin}  | gerekce: ${n.gerekce}`);
       b.sema.vur("onay", `bekliyor (${bk?.risk.seviye ?? "?"})`);
       b.gunluk.ekle(bk?.risk.seviye === "yikici" ? "hata"
@@ -186,7 +199,7 @@ export function niyetYurutucusuKur(b: YurutucuBaglami): NiyetYurutucu {
       metin = await b.goz.gor(png, algi);
     } catch (e) {
       hata = (e as Error).message;
-      metin = `Gözlerin şu an çalışmıyor (${hata}). Algın: ${algi}`;
+      metin = `Your eyes are not working right now (${hata}). Your perception: ${algi}`;
     } finally {
       bakiyor = false;
     }

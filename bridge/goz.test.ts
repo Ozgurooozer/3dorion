@@ -74,6 +74,10 @@ test("boş cevap fırlatır (sessizce boş betim dönmez)", async () => {
   } finally { s.geri(); }
 });
 
+test("istem İNGİLİZCE: Türkçe harfli çerçeve cümlesi yok (karışık dil beyni şaşırtıyordu, spec 26 F1)", () => {
+  assert.deepEqual(gozIstemi("beyaz tahta (önünde)").replace("beyaz tahta (önünde)", "").match(/[çğıöşüÇĞİÖŞÜ]/g) ?? [], []);
+});
+
 test("zaman aşımı Türkçe sebeple fırlatır", async () => {
   const s = sunucu({ gecikmeMs: 500 });
   try {
@@ -83,8 +87,8 @@ test("zaman aşımı Türkçe sebeple fırlatır", async () => {
 
 test("istem: adları algıdan kullan, olmayanı kesinmiş gibi söyleme", () => {
   const i = gozIstemi("x");
-  assert.match(i, /algındaki adlarıyla/);
-  assert.match(i, /kesinmiş gibi söyleme/);
+  assert.match(i, /names in your perception, exactly as given/);
+  assert.match(i, /Do not state anything as certain/);
 });
 
 test("betimiTemizle madde işaretlerini ve satır sonlarını kaldırır", () => {

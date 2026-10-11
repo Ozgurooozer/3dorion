@@ -42,6 +42,8 @@ function kur(beyin: Beyin) {
     niyetGonder: (n, id) => niyetler.push({ n, id }),
     dunyaDurumu: () => "Oda: masa, tahta. Ozyn 2m uzakta.",
     toplamaMs: 20,
+    // Bu dosya hareket turlarının sessizliğini sınar: hareket olayları ancak uyandırırsa tur oluşur (spec 26: varsayılan kapalı).
+    dikkat: { hareketUyandirir: true },
     simdi: () => 1_000,
     kararKaydi: kayit,
     hafizaGetirme: 0,

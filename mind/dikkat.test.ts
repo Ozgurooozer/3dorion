@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { Dikkat, kanalAcikMi } from "./dikkat.ts";
-import type { Algi } from "../protocol/algi.ts";
+import { HAREKET_OLAYLARI, GURULTU_OLAYLARI, type Algi } from "../protocol/algi.ts";
 
 /** Kontrollü saat: bütçe/tekrar/kısma testleri gerçek zamana bağlı olmamalı. */
 function saatli(baslangic = 1_000_000) {
@@ -108,6 +108,32 @@ test("önemsiz olaylar gürültü sayılır", () => {
   assert.equal(k.gecsin, false);
   assert.equal(k.sebep, "onemsiz");
   assert.equal(d.karar({ tur: "olay", ad: "oyuncu_odaya_girdi" }).gecsin, true);
+});
+
+const HAREKETLER = ["ozyn_yaklasti", "ozyn_uzaklasti", "ozyn_sana_bakti", "ozyn_yuzeye_gecti", "ozyn_yuzeyden_cikti"];
+
+test("Ozyn'in hareket olayları beyni uyandırmaz (ölçüm: %54'ü boş uyanış) — sebep 'onemsiz'", () => {
+  const d = new Dikkat();
+  for (const ad of HAREKETLER) {
+    const k = d.karar({ tur: "olay", ad });
+    assert.deepEqual([ad, k.gecsin, k.sebep], [ad, false, "onemsiz"]);
+  }
+});
+
+test("hareketUyandirir açıkken hareket olayları yine geçer (eski davranışa dönüş anahtarı)", () => {
+  const d = new Dikkat({ hareketUyandirir: true });
+  assert.equal(d.karar({ tur: "olay", ad: "ozyn_yaklasti" }).gecsin, true);
+});
+
+test("hareket olayı dışındaki dünya olayları geçmeye devam eder (boşta inisiyatif dahil)", () => {
+  const d = new Dikkat();
+  assert.equal(d.karar({ tur: "olay", ad: "inisiyatif" }).gecsin, true);
+  assert.equal(d.karar({ tur: "olay", ad: "kapi_acildi" }).gecsin, true);
+});
+
+test("gürültü ve hareket kümeleri tek kaynakta, çakışmıyor (iki kopya ayrışmasın)", () => {
+  assert.deepEqual([...HAREKET_OLAYLARI].sort(), [...HAREKETLER].sort());
+  assert.deepEqual([...HAREKET_OLAYLARI].filter((x) => GURULTU_OLAYLARI.has(x)), []);
 });
 
 test("sifirla kısıtları kaldırır — kullanıcı bekletilemez", () => {

@@ -39,8 +39,8 @@ export const SABIT = yerSabitBilgisi(ODA_YERI);
  * "masada": Ozyn monitörde çalışıyor — terminal çıktısının doğal bağlamı.
  */
 export const BAGLAMLAR = {
-  masada: "You: duruyor, position 0.9,-1.2. Ozyn is 1.1m away. Ozyn is working on your monitor. It is afternoon, 15:20. You have been in this room for 2 hours.",
-  uzakta: "You: duruyor, position 0.9,-1.2. Ozyn is 4.6m away, looking at you. It is morning, 9:15. You have just arrived in this room.",
+  masada: "You: duruyor, position 0.9,-1.2. Ozyn is 1.1m away. Ozyn is working on your monitor. It is afternoon, 15:20. You have been here for 2 hours.",
+  uzakta: "You: duruyor, position 0.9,-1.2. Ozyn is 4.6m away, looking at you. It is morning, 9:15. You have just arrived here.",
 } as const;
 
 export interface OgretmenCevabi {

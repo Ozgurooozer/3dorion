@@ -124,6 +124,22 @@ export const SORU_ETIKETI: Record<string, string> = {
   gor: "with your eyes",
 };
 
+/**
+ * Beyni uyandırmaya değmeyen GÜRÜLTÜ olaylar (tek kaynak: dikkat de refleks süzgeci de bunu okur; eskiden iki kopya).
+ */
+export const GURULTU_OLAYLARI: ReadonlySet<string> = new Set(["kamera_degisti", "ipucu", "fare_kilidi"]);
+
+/**
+ * Ozyn'in HAREKET olayları (world/olayUretici.ts). Dünya satırı zaten durumu söylüyor ("Ozyn is 3.6m away, looking
+ * at you"); olay beyne ayrıca gitmesi bir şey katmıyor. ÖLÇÜM (spec 26 §1, karar kaydı, 801 uyanış): yalnız bu
+ * olaylarla uyanan 215 uyanış (%27); bunların 117'si (%54) HİÇBİR ŞEY yapmadan bitti, 41'i `sor`, 32'si "Bakıyorum." /
+ * "Ozyn yaklaştı. Bekliyorum." gibi söz, 26'sı beden eylemi (çoğu eski yerel beyin kalıbı). Dikkat bunları beyne GEÇİRMEZ (`Dikkat` ayarı `hareketUyandirir` açarsa geçer); benlik ve
+ * hafıza yine görür (beyne gitmeden önce işlenir).
+ */
+export const HAREKET_OLAYLARI: ReadonlySet<string> = new Set([
+  "ozyn_yaklasti", "ozyn_uzaklasti", "ozyn_sana_bakti", "ozyn_yuzeye_gecti", "ozyn_yuzeyden_cikti",
+]);
+
 export const VARSAYILAN_KANAL: Record<AlgiTur, Kanal> = {
   tik:      "yerel",
   dunya:    "beyin",

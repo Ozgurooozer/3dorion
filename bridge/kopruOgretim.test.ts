@@ -68,8 +68,9 @@ test("ezilemez içgüdünün (dikkat.tekrar) düşürdüğü algı öğrenilemez
     dikkat: { simdi: () => 5_000_000 },
     kararKaydi: new KararKaydi({ yaz: (s) => satirlar.push(JSON.parse(s.slice(KARAR_ONEKI.length + 1))) }),
   });
-  k.algi({ tur: "olay", ad: "ozyn_yaklasti", ayrinti: { mesafe: 1 } });
-  k.algi({ tur: "olay", ad: "ozyn_yaklasti", ayrinti: { mesafe: 1 } });
+  // Hareket olayı değil (onlar zaten tekrar penceresinden ÖNCE düşer, spec 26): beyni uyandıran sıradan bir olay.
+  k.algi({ tur: "olay", ad: "kapi_acildi", ayrinti: { mesafe: 1 } });
+  k.algi({ tur: "olay", ad: "kapi_acildi", ayrinti: { mesafe: 1 } });
   const ikinci = satirlar.filter((s): s is AlgiSatiri => s.tur === "algi")[1]!;
   assert.deepEqual({ kural: ikinci.kapi.kural, isaret: "isaret" in ikinci, golge: "golge" in ikinci }, { kural: "dikkat.tekrar", isaret: false, golge: false });
 });

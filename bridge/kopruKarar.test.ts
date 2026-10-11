@@ -126,6 +126,14 @@ test("dikkatin tekrar penceresinde düşen algı dikkat.tekrar ile yazılır", a
   assert.deepEqual(algilar().map((a) => a.kapi.kural), ["dikkat.gecti", "dikkat.tekrar"]);
 });
 
+test("Ozyn'in hareket olayı beyni uyandırmaz: dikkat.onemsiz ile yazılır, uyanış olmaz (spec 26 F1)", async () => {
+  const sahte = new SahteBeyin();
+  const { k, algilar } = kur(sahte);
+  k.algi({ tur: "olay", ad: "ozyn_yaklasti", ayrinti: { mesafe: 1.1 } });
+  await bekle(40);
+  assert.deepEqual({ kural: algilar()[0]?.kapi.kural, uyanis: sahte.gordugu.length }, { kural: "dikkat.onemsiz", uyanis: 0 });
+});
+
 test("yerel kanaldaki algı dikkat.yerel_kanal ile yazılır", () => {
   const { k, algilar } = kur(new SahteBeyin());
   k.algi({ tur: "yakin", nesneler: [] });

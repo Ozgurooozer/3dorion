@@ -10,6 +10,9 @@ import type { Niyet, NiyetSonucu } from "../protocol/niyet.ts";
 import type { Algi, OrionDurumu } from "../protocol/algi.ts";
 import type { Vec3 } from "../protocol/temel.ts";
 
+import type { KomutKipi } from "./komutKipi.ts";
+import type { RiskSeviyesi } from "../mind/komutRiski.ts";
+
 const TAHTA_ONU: Vec3 = capaBul("tahta")!.durak;
 const UZAK: Vec3 = { x: TAHTA_ONU.x + 6, y: 0, z: TAHTA_ONU.z };
 
@@ -18,6 +21,9 @@ function sahneKur(ayar: {
   konum?: Vec3;
   beden?: boolean;
   onerKabul?: boolean;
+  /** Komut kipi (spec 26 F2) ve önerilen komutun risk seviyesi; kip verilmezse eski davranış (hepsi onay bekler). */
+  komutKipi?: KomutKipi;
+  risk?: RiskSeviyesi;
   bedenCevabi?: (n: Niyet) => { durum: NiyetSonucu["durum"]; varis?: Vec3 } | null;
   /** Orion'un bulunduğu yerin çapaları (spec 24); verilmezse yürütücü odayı varsayar. */
   capalar?: readonly Capa[];
@@ -31,6 +37,7 @@ function sahneKur(ayar: {
     tahtaYazilan: [] as string[],
     onerilen: [] as string[],
     panelCizildi: 0,
+    otomatikOnay: 0,
     gordumBildirildi: 0,
     gozeGiden: [] as { png: string; algi: string }[],
   };
@@ -60,13 +67,14 @@ function sahneKur(ayar: {
         kayit.onerilen.push(komut);
         return ayar.onerKabul === false ? { kabul: false, sebep: "zaten bekleyen var" } : { kabul: true };
       },
-      bekleyen: null,
+      get bekleyen() { return kayit.onerilen.length ? ({ risk: { seviye: ayar.risk ?? "okur", nedenler: [] } } as never) : null; },
     },
     sema: { vur: () => {} },
     gunluk: { ekle: () => {} },
     algiSor: (ne) => ({ metin: ne === "oyuncu" ? "Ozyn yanında" : "tahta görünüyor", maliyet: 15, kirpildi: false }),
     altyazi: () => {},
     onayPaneliCiz: () => { kayit.panelCizildi++; },
+    ...(ayar.komutKipi ? { komutKipi: () => ayar.komutKipi!, otomatikOnay: () => { kayit.otomatikOnay++; } } : {}),
     gordumBildir: () => { kayit.gordumBildirildi++; },
     ...(ayar.capalar ? { orionCapalari: () => ayar.capalar! } : {}),
     ...(ayar.goz ? { goz: {
@@ -141,6 +149,32 @@ test("kabul edilen komut onay panelini çizer", () => {
   assert.equal(kayit.panelCizildi, 1);
 });
 
+test("kip otomatik: okuyan komut Ozyn'in tuşu beklenmeden onaylanır, panel çizilmez (spec 26 F2)", () => {
+  const { kayit, y } = sahneKur({ komutKipi: "otomatik", risk: "okur" });
+  y.niyetiYurut({ tur: "komut", metin: "ls", gerekce: "listele" }, "n1");
+  assert.deepEqual([kayit.otomatikOnay, kayit.panelCizildi], [1, 0]);
+});
+
+test("kip otomatik: YIKICI komut yine onay bekler (panel çizilir, otomatik onay yok)", () => {
+  const { kayit, y } = sahneKur({ komutKipi: "otomatik", risk: "yikici" });
+  y.niyetiYurut({ tur: "komut", metin: "rm -rf .", gerekce: "temizle" }, "n1");
+  assert.deepEqual([kayit.otomatikOnay, kayit.panelCizildi], [0, 1]);
+});
+
+test("kip tam: yıkıcı komut da onaysız; kip onayli: okuyan komut bile onay bekler", () => {
+  const tam = sahneKur({ komutKipi: "tam", risk: "yikici" });
+  tam.y.niyetiYurut({ tur: "komut", metin: "rm -rf .", gerekce: "x" }, "n1");
+  const onayli = sahneKur({ komutKipi: "onayli", risk: "okur" });
+  onayli.y.niyetiYurut({ tur: "komut", metin: "ls", gerekce: "x" }, "n1");
+  assert.deepEqual([tam.kayit.otomatikOnay, onayli.kayit.otomatikOnay, onayli.kayit.panelCizildi], [1, 0, 1]);
+});
+
+test("kapı komutu reddettiyse (bekleyen var) otomatik onay da yok", () => {
+  const { kayit, y } = sahneKur({ komutKipi: "tam", onerKabul: false });
+  y.niyetiYurut({ tur: "komut", metin: "ls", gerekce: "x" }, "n1");
+  assert.equal(kayit.otomatikOnay, 0);
+});
+
 test("kapının reddettiği komut köprüye sebebiyle hata döner", () => {
   const { kayit, y } = sahneKur({ onerKabul: false });
   y.niyetiYurut({ tur: "komut", metin: "dir", gerekce: "listele" }, "n1");
@@ -194,7 +228,7 @@ test("model çalışmazsa `gordum` dürüst: gözlerin çalışmıyor + algı", 
   const { kayit, y } = sahneKur({ goz: { gor: async () => { throw new Error("model yok"); } } });
   y.niyetiYurut({ tur: "sor", ne: "gor" }, "n1");
   await bekleBiraz();
-  assert.equal(kayit.kopruAlgi[0]?.metin, "Gözlerin şu an çalışmıyor (model yok). Algın: tahta görünüyor. Ozyn: Ozyn yanında");
+  assert.equal(kayit.kopruAlgi[0]?.metin, "Your eyes are not working right now (model yok). Your perception: tahta görünüyor. Ozyn: Ozyn yanında");
 });
 
 test("model çalışmazsa niyet sebebiyle `hata` kapanır", async () => {
@@ -208,7 +242,7 @@ test("göz bağlı değilse `gordum` bunu söyler", async () => {
   const { kayit, y } = sahneKur();
   y.niyetiYurut({ tur: "sor", ne: "gor" }, "n1");
   await bekleBiraz();
-  assert.match(kayit.kopruAlgi[0]?.metin ?? "", /^Gözlerin şu an çalışmıyor \(gözün bağlı değil\)/);
+  assert.match(kayit.kopruAlgi[0]?.metin ?? "", /^Your eyes are not working right now \(gözün bağlı değil\)/);
 });
 
 test("kare yoksa (beden hazır değil) modele gidilmez", async () => {

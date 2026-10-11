@@ -38,7 +38,7 @@ import { sohbetEylemi, sonrakiKip, SOHBET_ONAYI, type SohbetEylemi, type SohbetK
 import { takipEylemi, TAKIP_ONAYI, type TakipEylemi } from "../mind/takipSozu.ts";
 import { terminalAyristir } from "../mind/durumKodu.ts";
 import { suzgecMercegi, type MercekOnerisi } from "../mind/mercekSuzgec.ts";
-import { araclariUret, cagriyiNiyete } from "./araclar.ts";
+import { araclariUret, cagriyiNiyete, turIcinAraclar } from "./araclar.ts";
 import type { Beyin, BeyinCikti, BeyinGirdisi } from "./beyin.ts";
 import { talimatUret } from "./talimat.ts";
 import { baglamOlcusu } from "./baglamOlcusu.ts";
@@ -1001,6 +1001,7 @@ export class Kopru {
       terminal: turler.has("terminal"),
       anilar: anilar.length > 0,
       olay: turler.has("olay"),
+      gordum: turler.has("gordum"),
     });
 
     // ŞİMDİ (spec 06 K2/K3): anlık gözlemler dünya durumunun yanında,
@@ -1041,7 +1042,7 @@ export class Kopru {
         dunya,
         sabit: this._ayar.sabitBilgi?.(),
         gecmis,
-        araclar: this._araclar(),
+        araclar: this._araclar(turler),
       },
       sessiz,
       istekler,
@@ -1220,11 +1221,11 @@ export class Kopru {
     return sonuc;
   }
 
-  /** Modele sunulan araçlar (spec 16 F6): `cikarilanAraclar` dışındakiler. */
-  private _araclar(): ReturnType<typeof araclariUret> {
+  /** Modele sunulan araçlar: `cikarilanAraclar` dışındakiler (spec 16 F6) + tur kuralı (`turIcinAraclar`, spec 26 F1). */
+  private _araclar(turler: ReadonlySet<string>): ReturnType<typeof araclariUret> {
     const c = this._ayar.cikarilanAraclar;
     const hepsi = araclariUret();
-    return c?.length ? hepsi.filter((a) => !c.includes(a.ad)) : hepsi;
+    return turIcinAraclar(c?.length ? hepsi.filter((a) => !c.includes(a.ad)) : hepsi, turler);
   }
 
   private _gecmiseEkle(k: BeyinGirdisi["gecmis"][number]): void {

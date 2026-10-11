@@ -6,7 +6,8 @@
 // Kullanım:
 //   node --experimental-strip-types tools/f0-olc.ts --beyin=ollama:qwen2.5:7b [--n=1] [--kume=beden,terminal] [--id=t1,t5]
 //        [--etiket=taban] [--cikar=dunya_al,dunya_birak]
-//   node --experimental-strip-types tools/f0-olc.ts --beyin=dis            (claude-beyin.ts 4700'de çalışıyor olmalı = Haiku)
+//   node --experimental-strip-types tools/f0-olc.ts --beyin=dis [--adres=http://127.0.0.1:4701]   (claude-beyin.ts çalışıyor olmalı = Haiku;
+//        4700 = satır kipi, `claude-beyin.ts --mod=yapisal --port=4701` = yapısal kip)
 //
 // Her koşu docs/olcum/f0-<etiket>-<beyin>.jsonl'a SENARYO başına bir satır yazar (ham çağrılar dahil): özet sayı
 // aletin yanlış saydığını gizler, ham çıktı HER ZAMAN saklanır.
@@ -17,7 +18,7 @@ import { DisBeyin } from "../bridge/disBeyin.ts";
 import { yetenekleriCoz, OLLAMA_VARSAYILAN_ADRES } from "../bridge/ollamaKatalog.ts";
 import { talimatUret } from "../bridge/talimat.ts";
 import { ornekUret } from "../bridge/ornekler.ts";
-import { araclariUret } from "../bridge/araclar.ts";
+import { araclariUret, turIcinAraclar } from "../bridge/araclar.ts";
 import { baglamMetni } from "../bridge/baglam.ts";
 import type { Beyin, BeyinGirdisi } from "../bridge/beyin.ts";
 import { CAPALAR, CAPA_ETIKETLERI } from "../protocol/temel.ts";
@@ -42,7 +43,7 @@ const araclar = araclariUret().filter((a) => !cikar.has(a.ad));
 const f = JSON.parse(fs.readFileSync(arg("fixture", "fixtures/f0/senaryolar.json")!, "utf8")) as Fixture;
 
 async function beyinKur(): Promise<Beyin> {
-  if (beyinAdi === "dis") return new DisBeyin({ zamanAsimiMs: 90_000, ad: "claude:haiku" });
+  if (beyinAdi === "dis") return new DisBeyin({ zamanAsimiMs: 90_000, ad: "claude:haiku", adres: arg("adres") });
   const model = beyinAdi.replace(/^ollama:/, "");
   const goster = await fetch(`${OLLAMA_VARSAYILAN_ADRES}/api/show`, { method: "POST", body: JSON.stringify({ model }) });
   return new OllamaBeyni({ model, yetenekler: goster.ok ? yetenekleriCoz(await goster.json()) : null, zamanAsimiMs: 120_000 });
@@ -58,10 +59,12 @@ function girdiKur(s: Senaryo): BeyinGirdisi {
     ...(s.soz ? [`Ozyn said: "${s.soz}"`] : []),
   ];
   return {
-    talimat: talimatUret({ konusma: !!s.soz, terminal: !!s.terminal, anilar: !!s.anilar, olay: !!s.olay || (!!s.gordum && !s.soz) }),
+    talimat: talimatUret({ konusma: !!s.soz, terminal: !!s.terminal, anilar: !!s.anilar, olay: !!s.olay, gordum: !!s.gordum }),
     ornekler: ornekUret({ terminal: !!s.terminal, konusma: !!s.soz }),
     anilar: s.anilar ?? [],
-    ozetler, dunya: f.durumlar[s.durum] ?? "", sabit, gecmis: [], araclar,
+    // Tur kuralı köprüyle AYNI işlevden (canlıda gordum-yalnız turda `sor` yok).
+    ozetler, dunya: f.durumlar[s.durum] ?? "", sabit, gecmis: [],
+    araclar: turIcinAraclar(araclar, new Set([s.soz ? "duydum" : "", s.gordum ? "gordum" : "", s.olay ? "olay" : "", s.terminal ? "terminal" : ""].filter(Boolean))),
   };
 }
 

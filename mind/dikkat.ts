@@ -11,7 +11,7 @@
 // Bağımlılık: yalnızca protocol/. Babylon yok, ağ yok, saf karar.
 "use strict";
 import type { Algi, AlgiTur } from "../protocol/algi.ts";
-import { VARSAYILAN_KANAL } from "../protocol/algi.ts";
+import { VARSAYILAN_KANAL, GURULTU_OLAYLARI, HAREKET_OLAYLARI } from "../protocol/algi.ts";
 
 /**
  * Ayar: sabit sayı ya da TEL.
@@ -31,6 +31,11 @@ export interface DikkatAyari {
   terminalKisMs?: Ayar;
   /** Test edilebilirlik: zaman kaynağı dışarıdan verilebilir. */
   simdi?: () => number;
+  /**
+   * Ozyn'in hareket olayları (yaklaştı, uzaklaştı, bakıyor, yüzeye geçti/çıktı) beyni uyandırsın mı. VARSAYILAN
+   * KAPALI: ölçüldü, o uyanışların %54'ü boş bitiyor (spec 26 §1; `HAREKET_OLAYLARI`).
+   */
+  hareketUyandirir?: boolean;
 }
 
 export interface DikkatKarari {
@@ -57,14 +62,12 @@ export function kanalAcikMi(a: Algi): boolean {
   return a.tur === "sonuc" && a.sonuc.durum === "hata";
 }
 
-/** Beyni ilgilendirmeyen, yalnızca gürültü üreten olay adları. */
-const ONEMSIZ_OLAYLAR = new Set(["kamera_degisti", "ipucu", "fare_kilidi"]);
-
 export class Dikkat {
   private _azami: () => number;
   private _tekrarMs: () => number;
   private _terminalMs: () => number;
   private _simdi: () => number;
+  private _hareketUyandirir: boolean;
 
   /** Beyne gönderilen mesajların zaman damgaları (kayan pencere). */
   private _gecmis: number[] = [];
@@ -81,6 +84,7 @@ export class Dikkat {
     this._tekrarMs = tel(ayar.tekrarPenceresiMs, 4000);
     this._terminalMs = tel(ayar.terminalKisMs, 2500);
     this._simdi = ayar.simdi ?? (() => Date.now());
+    this._hareketUyandirir = ayar.hareketUyandirir ?? false;
   }
 
   /**
@@ -97,8 +101,8 @@ export class Dikkat {
     //    `kanalAcikMi`de: başarısız niyet sonucu).
     if (!kanalAcikMi(a)) return { gecsin: false, sebep: "yerel_kanal" };
 
-    // 3) Önemsiz olay gürültüsü
-    if (a.tur === "olay" && ONEMSIZ_OLAYLAR.has(a.ad)) {
+    // 3) Önemsiz olay gürültüsü; Ozyn'in hareket olayları da (durum dünya satırında zaten var, bkz. HAREKET_OLAYLARI)
+    if (a.tur === "olay" && (GURULTU_OLAYLARI.has(a.ad) || (!this._hareketUyandirir && HAREKET_OLAYLARI.has(a.ad)))) {
       return { gecsin: false, sebep: "onemsiz" };
     }
 

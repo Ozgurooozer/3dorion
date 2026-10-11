@@ -36,6 +36,8 @@ export interface TalimatBaglami {
   anilar: boolean;
   /** Bu turda dünya olayı geldi mi (yaklaştı, yüzeye geçti...). */
   olay: boolean;
+  /** Bu turda KENDİ bakışının cevabı geldi mi (`gordum`; spec 26 F1). Verilmezse yok sayılır. */
+  gordum?: boolean;
 }
 
 /**
@@ -47,7 +49,8 @@ export interface TalimatBaglami {
  * TANIKLIK eder, hatırlar ve yardım eder.
  */
 const KIMLIK = [
-  "You are Orion. You are a presence in Ozyn's workroom, sharing the same physical space with him.",
+  // Yer-nötr (spec 26 F1): "workroom" ovada yanlıştı ("7 dakikadır bu odadasın"). Yerin adı dünya satırında gelir.
+  "You are Orion. You live in Ozyn's workroom and the world outside its door, sharing the same physical space with him.",
   "You have a body: you walk, look, sit, write on the whiteboard, speak aloud.",
   "There is a monitor on your desk; Ozyn works there and you can see the screen.",
   "You look at the room with dunya_sor; what you see is what is visible from where you stand.",
@@ -78,6 +81,9 @@ const KONUSMA = [
   + "To use the computer: dunya_odaklan with capa 'monitor'.",
   // Taban ölçüsü: "masaya git ve otur", "tahtaya yaz" hep yalnız `git` ile bitti.
   // Köprü aynı turdaki beden araçlarını SIRAYLA yürütür (eylem sırası, spec 13).
+  // GERİ ALINDI (F0/F1a ölçümü): "Body tools: sit = dunya_otur…" eşleme satırı qwen2.5:7b'yi aracı ÇAĞIRMAK yerine adını düz
+  // metin yazmaya itti (beden 11/18 → 5/18). Haiku'nun beden hatası talimat değil eylem sözlüğüydü (yapısal kip, spec 26).
+  // Ders: zayıf modele talimatta araç adı sıralama; ayırt edici bilgi araç tanımında (araclar.ts) durur.
   "If it takes several steps, call ALL the tools in this one turn, in order; "
   + "they run one after another (e.g. dunya_git to the board, then dunya_yaz).",
   "If something in the room is asked about, LOOK first with dunya_sor: "
@@ -92,7 +98,8 @@ const TERMINAL = [
   "If something failed, say CONCRETELY what failed; 'there is an error' is not enough.",
   // Ölçümden (tez denemesi, 2026-09-13): komutu CÜMLE İÇİNDE tarif etti,
   // aracı çağırmadı, onay kapısına hiçbir şey gelmedi.
-  "If you know the fix, SUGGEST it with dunya_komut. It does not run; it runs only if Ozyn approves.",
+  // Spec 26 F2: komut artık (yıkıcı olmayanlar) onaysız çalışır.
+  "If you know the fix, run it with dunya_komut. It is typed into the terminal and runs; destructive commands wait for Ozyn.",
   "Make the suggestion one complete, runnable line (e.g. `git status`), not a description.",
   "Staying silent on routine, successful output is the right behavior.",
 ];
@@ -103,6 +110,13 @@ const TERMINAL = [
 const HAFIZA = [
   "The 'You remember' list gives you what came from the past: USE its content.",
   "When asked about the past, do not settle for saying you remember — say WHAT it was.",
+];
+
+// Kendi bakışının cevabı geldi. Ölçüm (2026-10-11): Haiku Gemma'nın söylemediği renkleri ekledi, "gibi" çekincesini
+// düşürdü ve cevaptan sonra yine `sor` çağırdı. Cevap geldi: aktar, ekleme, tekrar bakma.
+const GORDUM = [
+  "You just looked and the answer arrived. Tell Ozyn what it says, in Turkish, and ONLY what it says: do not add colours, "
+  + "objects or details it did not mention, and keep its hedges ('looks like'). Do not look again.",
 ];
 
 const OLAY = [
@@ -135,6 +149,7 @@ export function talimatUret(b: TalimatBaglami): string {
   if (b.terminal) p.push(...TERMINAL);
   if (b.anilar) p.push(...HAFIZA);
   if (b.olay && !b.konusma) p.push(...OLAY);
+  if (b.gordum) p.push(...GORDUM);
   p.push(TAHTA, ...DIL);
   return p.join(" ");
 }

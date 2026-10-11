@@ -30,7 +30,7 @@ test("süre sözü ölçeğe göre birim değiştirir", () => {
 test("BİR DAKİKA ALTINDA bozuk cümle çıkmaz", () => {
   // Hata buydu: "az önce bu odadasin" — İngilizcede karşılığı
   // "You have been in this room just now."
-  assert.equal(odadaSure(10_000), "You have just arrived in this room.");
+  assert.equal(odadaSure(10_000), "You have just arrived here.");
   assert.ok(!odadaSure(10_000).includes("just now."), "sürekliliğe 'just now' gömüldü");
   assert.equal(sessizlikSozu(10_000), "Ozyn spoke just now.");
 });

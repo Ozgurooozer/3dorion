@@ -60,8 +60,9 @@ export function oncesiSozu(ms: number): string {
  * metin bu; bozuk dil modelin de diline bulaşır.
  */
 export function odadaSure(ms: number): string {
-  if (Math.floor(ms / DK) < 1) return "You have just arrived in this room.";
-  return `You have been in this room ${sureSozu(ms)}.`;
+  // Yer adı YOK (spec 26 F1): "this room" ovada yanlıştı; yerin adı dünya satırının başında zaten geliyor.
+  if (Math.floor(ms / DK) < 1) return "You have just arrived here.";
+  return `You have been here ${sureSozu(ms)}.`;
 }
 
 /** Sessizliğin ne kadar sürdüğü — varlığın farkında olması gereken şey. */

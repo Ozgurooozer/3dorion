@@ -146,6 +146,8 @@ function pencereAc() {
   if (process.env.ORION_GOZ) parcalar.push(`goz=${encodeURIComponent(process.env.ORION_GOZ)}`);
   // Spec 12 Faz 5: süzgeç merceğinin yetkisi (varsayılan kapalı).
   if (process.env.ORION_BENLIK_SUZGEC === "1") parcalar.push("benliksuzgec=1");
+  // Terminal komutu kipi (spec 26 F2): otomatik (varsayılan) | tam | onayli
+  if (process.env.ORION_KOMUT_KIPI) parcalar.push(`komutkipi=${encodeURIComponent(process.env.ORION_KOMUT_KIPI)}`);
   if (process.env.ORION_TAHTABEYIN === "1") parcalar.push("tahtabeyin=1", "sessiz=1");
   if (process.env.ORION_BECERDENE === "1") parcalar.push("becerdene=1", "sessiz=1");
   if (process.env.ORION_BECERDENE_SOZLER) parcalar.push(`becerdenesoz=${encodeURIComponent(process.env.ORION_BECERDENE_SOZLER)}`);

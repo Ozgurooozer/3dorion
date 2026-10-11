@@ -82,12 +82,14 @@ export const ARAC_TABLOSU: Record<NiyetTur, Omit<AracTanimi, "ad">> = {
     },
   },
   komut: {
+    // Spec 26 F2 (Ozyn: "terminal onaysız çalışsın"): satırı terminale YAZAR ve Enter'a basar. Kabuk komutu da olur,
+    // orada çalışan programa (claude gibi) gidecek metin de: "terminale claude yaz" = `claude`, "merhaba yaz" = `merhaba`.
+    // Yıkıcı komutlar Ozyn'in onayını bekleyebilir; sonuç sana söylenir.
     aciklama:
-      "SUGGEST a command to the terminal. The command DOES NOT RUN — it is shown " +
-      "to Ozyn on screen and runs only if he approves. Must be a single line. " +
-      "Works from anywhere in the room: you do not need to walk to the desk. " +
-      "`gerekce` is required: why this command? Suggestions without one are " +
-      "rejected. Do not insist if rejected.",
+      "Type ONE line into Ozyn's terminal and press Enter: a shell command, or text for the program running there " +
+      "(e.g. to talk to claude, just send the text). Type exactly what was asked; do not wrap it in echo or Write-Host. " +
+      "Works from anywhere: you do not need to walk to the desk. Destructive commands may wait for Ozyn's approval; " +
+      "you are told if one is rejected, do not insist. `gerekce` is required: why this line?",
     sema: {
       type: "object",
       properties: {
@@ -135,6 +137,15 @@ export const ARAC_TABLOSU: Record<NiyetTur, Omit<AracTanimi, "ad">> = {
 /** LLM'e sunulacak araç listesi. */
 export function araclariUret(): AracTanimi[] {
   return (Object.keys(ARAC_TABLOSU) as NiyetTur[]).map((tur) => ({ ad: ONEK + tur, ...ARAC_TABLOSU[tur] }));
+}
+
+/**
+ * Bir TUR için sunulacak araçlar (spec 26 F1; köprü ve ölçüm koşucusu aynı işlevi kullanır): yalnız kendi bakışının
+ * cevabıyla (`gordum`) uyanan turda `dunya_sor` sunulmaz — cevap geldi, söylemek kaldı. Ölçüm: gordum→sor 6/19 Haiku turu.
+ * Ozyn aynı turda konuştuysa (`duydum`) araç yerinde: yeni bir şey isteyebilir.
+ */
+export function turIcinAraclar(araclar: readonly AracTanimi[], turler: ReadonlySet<string>): AracTanimi[] {
+  return turler.has("gordum") && !turler.has("duydum") ? araclar.filter((a) => a.ad !== "dunya_sor") : [...araclar];
 }
 
 /** Araç adı → niyet türü. Bilinmeyen ad için null. */

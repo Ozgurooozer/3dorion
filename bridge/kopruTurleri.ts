@@ -230,9 +230,8 @@ export const REFLEKS_ZAMAN_ASIMI_MS = 30_000;
  * olay yine beyni uyandırır (ölçüm haftası verisi bozulmasın), Orion bakabilir,
  * el sallayabilir, yürüyebilir — yalnız sesi iç seste kalır.
  */
-export const HAREKET_OLAYLARI: ReadonlySet<string> = new Set([
-  "ozyn_yaklasti", "ozyn_uzaklasti", "ozyn_sana_bakti", "ozyn_yuzeye_gecti", "ozyn_yuzeyden_cikti",
-]);
+// Küme TEK kaynakta (protokol): dikkat de aynı kümeyi okur.
+export { HAREKET_OLAYLARI } from "../protocol/algi.ts";
 
 /** Bedeni hareket ettirmeyen niyetler: eylem sırasına girmez, hemen gider. */
 export const SOZ_NIYETLERI: ReadonlySet<NiyetTur> = new Set(["soyle", "sor"]);

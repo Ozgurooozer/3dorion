@@ -75,6 +75,7 @@ import type { Beyin } from "../bridge/beyin.ts";
 import { MetinGirdi } from "../voice/metin-girdi.ts";
 import { NemotronGirdi } from "../voice/nemotron.ts";
 import { komutuTerminaleYaz } from "../uygulama/terminalYazici.ts";
+import { komutKipiCoz } from "../uygulama/komutKipi.ts";
 import { Takipci } from "../uygulama/takip.ts";
 import { ikiCumleyeKisalt } from "../voice/kisalt.ts";
 import { Ajanda } from "../mind/ajanda.ts";
@@ -614,8 +615,8 @@ function onayPaneliCiz(): void {
   onayGerekceEl.textContent = `Orion: ${b.gerekce}`;
 }
 
-/** Onaylanan komut terminale YAZILIR — calistiran Ozyn'in tusudur. */
-function onayKarari(onaylandi: boolean): void {
+/** Onaylanan komut terminale YAZILIR. `otomatik`: Ozyn'in tuşu değil komut kipi onayladı (spec 26 F2). */
+function onayKarari(onaylandi: boolean, otomatik = false): void {
   const o = onaylandi ? onayKapisi.onayla() : onayKapisi.reddet();
   onayPaneliCiz();
   if (!o) return;
@@ -630,14 +631,15 @@ function onayKarari(onaylandi: boolean): void {
     return;
   }
 
-  console.log(`[ONAY] ONAYLANDI (${o.risk.seviye}): ${o.komut}`);
-  gunluk.ekle("iyi", "onay", `onaylandı (${o.risk.seviye}): ${o.komut}`);
-  sema.vur("onay", "onaylandı");
+  console.log(`[ONAY] ${otomatik ? "OTOMATIK ONAYLANDI" : "ONAYLANDI"} (${o.risk.seviye}): ${o.komut}`);
+  gunluk.ekle("iyi", "onay", `${otomatik ? "otomatik çalıştı" : "onaylandı"} (${o.risk.seviye}): ${o.komut}`);
+  sema.vur("onay", otomatik ? "otomatik" : "onaylandı");
   // UZAKTAN TERMİNAL (Ozyn, 2026-10-08): Orion nerede olursa olsun. Kapalı terminal ARKA PLANDA
   // açılır; Ozyn'in kamerası ve klavye odağı kaçırılmaz (eskiden `monitoreGec()` ikisini de alıyordu).
   void komutuTerminaleYaz(monitor, o.komut).then(() => {
     kopru?.sonuc({ niyet_id: o.id, durum: "bitti",
-      not: "Ozyn onayladi, komut terminalde calisti; sonucu ekrandan gorecegin." });
+      not: otomatik ? "The line was typed into the terminal and ran; its result will appear on screen."
+        : "Ozyn approved; the line was typed into the terminal. You will see the result on screen." });
     altyaziGoster("komut calistiriliyor", 1800);
   }, (e: unknown) => {
     console.error("[monitor] açılamadı:", e);
@@ -696,6 +698,11 @@ function algiSor(ne: Soru): Cevap {
   });
 }
 
+// Komut kipi (spec 26 F2): Orion'un terminal komutu onaysız çalışsın mı. `?komutkipi=otomatik|tam|onayli`; varsayılan otomatik.
+const komutKipiSecimi = komutKipiCoz(new URLSearchParams(location.search).get("komutkipi"));
+if (!komutKipiSecimi.gecerli) console.warn(`[ONAY] bilinmeyen komutkipi, varsayılan kullanılıyor: ${komutKipiSecimi.kip}`);
+console.log(`[ONAY] komut kipi: ${komutKipiSecimi.kip}`);
+
 // TEK niyet yönlendirme noktası: avatar, ses hattı, tahta, onay kapısı ve algı hizmeti
 // uygulama/niyetYurutucu.ts'te ayrılır (spec 14 R4: buradan taşındı, testli). Bu dosya yalnız
 // dünyayı verir; sonradan atananlar (beden, köprü) çağrı anında okunur.
@@ -705,6 +712,8 @@ const { niyetiYurut, bedenAdimi, sonGorme } = niyetYurutucusuKur({
   tahta, monitor, onayKapisi, sema, gunluk, algiSor,
   altyazi: (metin, ms) => altyaziGoster(metin, ms),
   onayPaneliCiz,
+  komutKipi: () => komutKipiSecimi.kip,
+  otomatikOnay: () => onayKarari(true, true),
   gordumBildir: () => { gordumGeldi = true; },
   orionCapalari: () => orionYeri.capalar,
   goz: {
