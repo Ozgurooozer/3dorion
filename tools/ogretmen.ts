@@ -28,10 +28,11 @@ import { uyanisEyleme } from "../mind/kararZinciri.ts";
 import { KUME, type Durum } from "../mind/refleksKumesi.ts";
 import type { Algi } from "../protocol/algi.ts";
 import type { NiyetSonucu } from "../protocol/niyet.ts";
-import { tumCapalar } from "../world/level/capalar.ts";
+import { yerSabitBilgisi } from "../world/yer/yer.ts";
+import { ODA_YERI } from "../world/yer/odaYeri.ts";
 
-/** Odanın değişmeyen bilgisi — canlıda kompozisyon kökünün yazdığı satırın aynısı. */
-export const SABIT = `In the room: ${tumCapalar().map((c) => c.etiket).join(", ")}.`;
+/** Odanın değişmeyen bilgisi — canlıda kompozisyon kökünün yazdığı satırın AYNI işlevden türeyeni (kopya yok). */
+export const SABIT = yerSabitBilgisi(ODA_YERI);
 
 /**
  * Bağlam: beynin zemini (dünya durumu). Biçim canlı `dunyaDurumuMetni`nden.

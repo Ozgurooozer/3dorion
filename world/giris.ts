@@ -32,7 +32,7 @@ import { Saat, TIK_HZ } from "./engine/tik.ts";
 import { KameraRig } from "./engine/kamera.ts";
 import { odaKur } from "./level/oda.ts";
 import { bulunduguCapa, capaBul } from "./level/capalar.ts";
-import type { Yer } from "./yer/yer.ts";
+import { yerSabitBilgisi, yerOrtasiSozu, type Yer } from "./yer/yer.ts";
 import { ODA_YERI } from "./yer/odaYeri.ts";
 import { levelSahnesiKur, type LevelSahnesi } from "./yer/levelSahnesi.ts";
 import { gecitVarisi } from "./yer/levelYeri.ts";
@@ -41,6 +41,7 @@ import { carpisiyorMu } from "./level/olculer.ts";
 // `?url`: vite dosyayı pakete kopyalar ve adresini verir (Electron file:// yüklemesinde de çözülür).
 import ovaAdresi from "./level/ova/ova.level.json?url";
 import { isinTara } from "./player/isinTarama.ts";
+import { gorunenNesneler } from "./player/gorunurluk.ts";
 import { sorguYanitla, type Cevap, type Soru } from "../mind/algiHizmeti.ts";
 import { yerelTepki } from "../mind/yerelTepki.ts";
 import { capaKonumu } from "./level/capaGeometri.ts";
@@ -652,9 +653,17 @@ function algiSor(ne: Soru): Cevap {
   // Avatarın baktığı yön; yoksa odanın içine doğru makul bir varsayılan.
   const bakis = d?.bakis ?? { x: 0, y: 0, z: -1 };
 
+  // NPC ALGISI (Ozyn 2026-10-11): Orion'un yerindeki algılanır nesneler; görüş hattı nesnenin 9 noktasından
+  // (gorunurluk.ts — tek ışın büyük nesnede kendi duvarına çarpıyordu). Menzil ve seçim algı hizmetinde (mind/).
+  const gorunum = new Map(gorunenNesneler(konum, bakis, GOZ_YUKSEKLIK, orionYeri.nesneler, orionYeri.katiYuzeyler).map((g) => [g.id, g]));
+  const nesneler = orionYeri.nesneler.map((n) => ({
+    ad: n.ad, konum: { x: n.kutu.x, y: n.kutu.y, z: n.kutu.z }, gorunur: gorunum.get(n.id)?.gorunur ?? false,
+  }));
   return sorguYanitla(ne, {
     konum, bakis,
     gozYuksekligi: GOZ_YUKSEKLIK,
+    nesneler,
+    ...(orionYeri.algiMenzil !== undefined ? { menzil: orionYeri.algiMenzil } : {}),
     // Sanal çapalar (oda_ortasi) elenir: gidilebilir hedeftirler ama
     // görülebilir nesne değildirler.
     capalar: orionYeri.capalar
@@ -683,6 +692,7 @@ const { niyetiYurut, bedenAdimi } = niyetYurutucusuKur({
   altyazi: (metin, ms) => altyaziGoster(metin, ms),
   onayPaneliCiz,
   gordumBildir: () => { gordumGeldi = true; },
+  orionCapalari: () => orionYeri.capalar,
 });
 
 /** Davranis olcumu acikken kayit defterine erisim (yoksa null). */
@@ -1439,7 +1449,7 @@ function beyniBagla(a: Avatar): void {
     // şey anlatmıyordu; algı hizmeti "yönetim terminali" derken sabit liste
     // "admin" diyordu ve model ikisini aynı şey saymıyordu.
     // Çapa ETİKETLERİ Türkçe kalır: onlar odadaki şeylerin ADI, çerçeve değil.
-    sabitBilgi: () => `In the room: ${orionYeri.capalar.map((c) => c.etiket).join(", ")}.`,
+    sabitBilgi: () => yerSabitBilgisi(orionYeri),
     toplamaMs: 900,
     // Ölçüm için ayarlanabilir: kısa pencere hipotezi (anı, alakasız sohbetin
     // altında gömülüyor mu?) tek değişkenle sınanabilsin.
@@ -1614,7 +1624,7 @@ function beyniBagla(a: Avatar): void {
   setInterval(() => {
     takipci.tik();
     try {
-      durumKopru.durum.konumGozlem(bulunduguCapa(a.durum().konum, durumKopru.durum.oku("konum")?.deger, orionYeri.capalar)?.etiket ?? "odanın ortası");
+      durumKopru.durum.konumGozlem(bulunduguCapa(a.durum().konum, durumKopru.durum.oku("konum")?.deger, orionYeri.capalar)?.etiket ?? yerOrtasiSozu(orionYeri));
       durumKopru.durum.monitor(monitor.acikMi());
     } catch (err) { console.warn("[DURUM] gozlem hatasi:", err); }
   }, 500);

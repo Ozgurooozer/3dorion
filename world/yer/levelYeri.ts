@@ -145,5 +145,8 @@ export function levelYeri(g: LevelYeriGirdisi): Yer {
   }
   nesneler.push(...levelNesneleri(gorunur, kutular, g.anlamOf));
 
-  return { ad: g.ad, sinir: levelSiniri(tanim), engeller, katiYuzeyler, capalar, nesneler, yukseklik };
+  return {
+    ad: g.ad, sinir: levelSiniri(tanim), engeller, katiYuzeyler, capalar, nesneler, yukseklik,
+    ...(tanim.algi ? { algiMenzil: tanim.algi.menzil } : {}),
+  };
 }

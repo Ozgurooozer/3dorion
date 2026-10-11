@@ -6,7 +6,7 @@
 "use strict";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import type { Yer } from "./yer.ts";
+import { yerSabitBilgisi, yerOrtasiSozu, type Yer } from "./yer.ts";
 import { ODA_YERI } from "./odaYeri.ts";
 import { ENGELLER, KATI_YUZEYLER, SINIR, carpisiyorMu, OYUNCU_YARICAP, type Kutu } from "../level/olculer.ts";
 import { tumCapalar, capaBul, type Capa } from "../level/capalar.ts";
@@ -128,4 +128,15 @@ test("ışınlanınca yeni noktada ve o noktanın zemininde", () => {
   y.isinla(8, 3, 0);
   const k = y.durum().konum;
   assert.deepEqual([k.x, +k.y.toFixed(9), k.z], [8, 0.8, 3]);
+});
+
+// ── 5. Sabit yer bilgisi (spec 25 Faz 1) ──────────────────────────────────
+test("odanın sabit bilgisi eski metnin aynısı (istem ölçümleri buna dayanır)", () => {
+  assert.equal(yerSabitBilgisi(ODA_YERI), `In the room: ${tumCapalar().map((c) => c.etiket).join(", ")}.`);
+});
+test("dışarıdaki yerin sabit bilgisi dışarıda olduğunu ve yerin adlarını söyler", () => {
+  assert.equal(yerSabitBilgisi(ALAN), "Outside, in the deneme-alani (you left the room through its door): ofis kapısı.");
+});
+test("çapa yanında değilken: odada 'odanın ortası', dışarıda yerin adı", () => {
+  assert.deepEqual([yerOrtasiSozu(ODA_YERI), yerOrtasiSozu(ALAN)], ["odanın ortası", "dışarıda (deneme-alani)"]);
 });

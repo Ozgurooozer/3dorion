@@ -158,6 +158,8 @@ export interface LevelTanimi {
   kameraYerleri?: KameraYeri[];
   /** Başka yerlere açılan kapılar (spec 24). Yoksa boş. */
   gecitler?: Gecit[];
+  /** Orion'un bu level'daki algısı: alan yarıçapı (m). Yoksa künyeden (`BEDEN.duyu.algiMenzil`). */
+  algi?: { menzil: number };
   /** Gün/gece (spec 20): varsa güneş yönü ve ışık rengi SAATTEN gelir (isik.gunes.yon yok sayılır). */
   zaman?: ZamanAyari;
   /** Özel shader'lar (spec 20; shader/moduller/): sıra = ekran zinciri sırası. */
@@ -303,6 +305,10 @@ function hataBul(v: unknown): string | null {
     if (new Set(yuvalar).size !== yuvalar.length) return h("kameraYerleri", "aynı yuvaya iki yer imi");
     const adlar = yerler.map((y) => (y as KameraYeri).ad);
     if (new Set(adlar).size !== adlar.length) return h("kameraYerleri", "yinelenen yer imi adı");
+  }
+  const algi = v["algi"];
+  if (algi !== undefined) {
+    if (!nesneMi(algi) || !sayiMi(algi["menzil"]) || algi["menzil"] <= 0) return h("algi.menzil", "pozitif sayı (m) gerekli");
   }
   const gecitler = v["gecitler"];
   if (gecitler !== undefined) {

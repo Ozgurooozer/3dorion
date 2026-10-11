@@ -55,6 +55,9 @@ export async function kos(d: SenaryoBaglami): Promise<void> {
   kontrol("Orion da ovada", d.yerler().orion.ad === "ova");
   kontrol("Orion Ozyn'in yanında (≤ 2,5 m)", mesafe() <= 2.5, `${mesafe().toFixed(2)} m`);
   kontrol("ovadayken odanın meshleri kapalı", odaKapali(d));
+  // NPC algısı (spec 25 Faz 1): Orion'un "dunya" algısı bulunduğu yerin nesnelerinden; ofisin eşyası ovaya sızmaz.
+  const ovaAlgisi = d.algiSor("dunya").metin;
+  kontrol("ovada algı ova'nın nesnelerinden, ofis eşyası yok", /ofis kapısı|boru duvarı/.test(ovaAlgisi) && !/beyaz tahta|monitör|çalışma masası/.test(ovaAlgisi), ovaAlgisi);
 
   // ── 3. Orion ovada ofis kapısına yürür ──
   // Önce kapıdan ~10 m uzaklaşır: Orion kapının yanında belirdiği için doğrudan "kapıya git" bir şey kanıtlamaz
@@ -70,7 +73,9 @@ export async function kos(d: SenaryoBaglami): Promise<void> {
   // ── 4. Ozyn ofis kapısına bakar: ipucu → E → oda ──
   const ovaKapi = capaBul("kapi", ova.capalar)!;
   const yaw = Math.atan2(ovaKapi.yon.x, ovaKapi.yon.z);
-  oyuncu.isinla(ovaKapi.durak.x + 0.6, ovaKapi.durak.z, yaw);
+  // Kapının TAM karşısında, durağın 0,4 m gerisinde (kapı 1 m geniş: ilk sürüm 0,6 m yana koyuyordu, dümdüz bakış
+  // kapının kenarını 10 cm ıskalıyordu). Orion durakta dursa da ışını kesmez (beden katı yüzey değil).
+  oyuncu.isinla(ovaKapi.durak.x - ovaKapi.yon.x * 0.4, ovaKapi.durak.z - ovaKapi.yon.z * 0.4, yaw);
   kontrol("ovada ofis kapısına bakınca ipucu: geç", await olana(() => EtkilesimOlaylari.sonIpucu?.eylem === "gec", 3000),
     EtkilesimOlaylari.sonIpucu?.metin ?? "ipucu yok");
   eBas();
@@ -80,6 +85,9 @@ export async function kos(d: SenaryoBaglami): Promise<void> {
   kontrol("Orion da ofiste, yanında", d.yerler().orion.ad === "oda" && mesafe() <= 2.5, `${mesafe().toFixed(2)} m`);
   kontrol("oda birebir geri: mesh sayısı", sahne.meshes.length === odaMesh, `${odaMesh} → ${sahne.meshes.length}`);
   kontrol("oda birebir geri: sis", sahne.fogDensity === odaSis, `${odaSis} → ${sahne.fogDensity}`);
+  const odaAlgisi = d.algiSor("dunya").metin;
+  // "kapı" tek başına yetmez: "ofis kapısı" da onu içerir (ilk sürüm dönüş olmadan geçmişti).
+  kontrol("ofiste algı yine odanın nesnelerinden", /beyaz tahta|monitör|çalışma masası/.test(odaAlgisi) && !/boru duvarı|ofis kapısı/.test(odaAlgisi), odaAlgisi);
   bitir();
 }
 

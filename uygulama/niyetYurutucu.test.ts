@@ -5,7 +5,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { niyetYurutucusuKur, type YurutucuBaglami } from "./niyetYurutucu.ts";
-import { capaBul } from "../world/level/capalar.ts";
+import { capaBul, type Capa } from "../world/level/capalar.ts";
 import type { Niyet, NiyetSonucu } from "../protocol/niyet.ts";
 import type { Algi, OrionDurumu } from "../protocol/algi.ts";
 import type { Vec3 } from "../protocol/temel.ts";
@@ -19,6 +19,8 @@ function sahneKur(ayar: {
   beden?: boolean;
   onerKabul?: boolean;
   bedenCevabi?: (n: Niyet) => { durum: NiyetSonucu["durum"]; varis?: Vec3 } | null;
+  /** Orion'un bulunduğu yerin çapaları (spec 24); verilmezse yürütücü odayı varsayar. */
+  capalar?: readonly Capa[];
 } = {}) {
   const kayit = {
     bedeneGiden: [] as { n: Niyet; id: string }[],
@@ -63,6 +65,7 @@ function sahneKur(ayar: {
     altyazi: () => {},
     onayPaneliCiz: () => { kayit.panelCizildi++; },
     gordumBildir: () => { kayit.gordumBildirildi++; },
+    ...(ayar.capalar ? { orionCapalari: () => ayar.capalar! } : {}),
   };
   return { kayit, y: niyetYurutucusuKur(b) };
 }
@@ -85,6 +88,12 @@ test("tahtanın önündeyken yaz hemen tahtaya yazar", () => {
   const { kayit, y } = sahneKur({ konum: TAHTA_ONU });
   y.niyetiYurut({ tur: "yaz", metin: "not" }, "n1");
   assert.deepEqual(kayit.tahtaYazilan, ["not"]);
+});
+
+test("tahtasız yerde (ova) odanın tahta koordinatında olsa da yaz yazmaz", () => {
+  const { kayit, y } = sahneKur({ konum: TAHTA_ONU, capalar: [] });
+  y.niyetiYurut({ tur: "yaz", metin: "not" }, "n1");
+  assert.deepEqual(kayit.tahtaYazilan, []);
 });
 
 test("uzaktan yaz hemen yazmaz", () => {

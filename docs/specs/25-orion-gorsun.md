@@ -1,6 +1,7 @@
 # Spec 25 — Orion gerçekten görsün (yerel görme modeli)
 
-> Durum: **V0 koşuldu** (2026-10-11). Ön kayıt (§1) koşudan önce commit edildi (`fb16533`), değiştirilmedi; sonuç §3.
+> Durum: **V0 koşuldu** (yanlış soruyu ölçtü, §4) · **Faz 1 ALGI (NPC) uygulandı** (§5) · Faz 2 GÖRME sırada (§6).
+> Ön kayıt (§1) koşudan önce commit edildi (`fb16533`), değiştirilmedi.
 
 ## 0. Neden
 Ozyn (2026-10-11, spec 24 C3'ten sonra): "elimizde Google Gemma yerel modeli var, iki adet, biri büyük biri küçük;
@@ -87,3 +88,48 @@ kablo demeti "detay", Orion görmez) ve ova kareleri GECE. Ova'da yalnız 5 beli
 ("beyin şeması — sağ duvarda akış şeması gösteren ekran"), (b) görmeyi doğrulama değil serbest betim olarak kullanmak
 (Orion "ne görüyorsun" deyince betim; adlar geometriden), (c) gerçeğin kutularını görünen modelle hizalamak (lamba).
 Her biri yeni ön kayıt ister.
+
+## 4. Ozyn'in düzeltmesi: algı ve görme AYRI (2026-10-11)
+"Amacı bulması değil görmesi. Görme ve algılama farklı şeyler. Orion simülasyondan, mekanik olarak bir NPC gibi
+etrafındaki her şeyi algılayacak — bunu kodla otomatik vereceğiz: bulunduğu level'da belli bir alandaki, ayarlanmış
+bütün objeler. Resim / Google tarafı işin ekstrası; ikisini karıştırma. Resimde ne gördüğünü bilgileriyle birleştirecek."
+V0, görmeyi algının YERİNE koyup "bulabiliyor mu" diye ölçtü — soru yanlıştı; sayılar kayıtta kalır ama karar dayanağı
+değil. Doğru ayrım:
+- **ALGI** — gerçek, kesin, ucuz, koddan (NPC): ne, nerede, hangi yönde, ne kadar uzakta.
+- **GÖRME** — algının ÜSTÜNE nitel deneyim (ışık, renk, ekranda ne var, Ozyn ne yapıyor); model algıyı bağlam alır.
+Kararlar: alandaki algılanır nesnelerden yalnız GÖRÜŞ HATTI açık olanlar algılanır (duvar/bina arkası bilinmez, sayısı
+söylenir); görme yalnız İSTEYİNCE.
+
+## 5. Faz 1 — ALGI (NPC gibi) [uygulandı]
+Bulgu: o güne dek algı hizmeti yalnız ODANIN 10 ÇAPASINI biliyordu; level nesneleri ve spec 23 B anlamları Orion'a hiç
+ulaşmıyordu. Spec 24 C4 ("Orion ovayı bilir") bu fazla birleşti.
+- **Alan:** künye `BEDEN.duyu.algiMenzil = 12` m (protocol/bedenTanimi.ts); level verisi `algi?: { menzil }` (doğrulanır),
+  `Yer.algiMenzil` (levelYeri doldurur).
+- **`mind/algiHizmeti.ts`:** `DunyaGorusu.nesneler` (ad, konum, gorunur) + `menzil` verilince algı nesnelerden kurulur:
+  alan içi + görüş hattı; yön sözü `yonSozu` (önünde ±35° / arkanda ±45° / sağında / solunda — Babylon sol-elli);
+  aynı adlılar gruplanır ("3 ek bina (en yakını solunda)"); alan içi ama görünmeyenler SAYILIR, alan dışı hiç anılmaz;
+  Ozyn'in yanındaki şey nesnelerden. `nesneler` verilmezse eski davranış (çapalar + ışın) — eski 14 test aynen geçer.
+- **`world/giris.ts` `algiSor`:** `orionYeri.nesneler`; görüş hattını DÜNYA hesaplar (`gorunurluk.ts` gorunenNesneler, 9
+  nokta — tek ışın büyük nesnede kendi duvarına çarpıyordu); mind yalnız seçer ve söze döker (K4 korunur).
+- **Yer bilgisi:** `yerSabitBilgisi(yer)` (oda metni ESKİSİNİN AYNISI — "In the room: …", istem ölçümleri ona dayanır;
+  dışarıda "Outside, in the ova (you left the room through its door): ofis kapısı."); `tools/ogretmen.ts` SABIT aynı
+  işlevden (kopya kalktı); durum defterinde çapa yoksa `yerOrtasiSozu` ("odanın ortası" / "dışarıda (ova)").
+- **Tahta kuralı:** `niyetYurutucu` `yaklastiMi("tahta", …, orionCapalari)` — ovada odanın tahta koordinatına denk gelince
+  "tahtanın yanındasın" denmez.
+- **Testler:** algiHizmeti +17 (alan, görüş hattı, sayılan gizli, alan dışı anılmaz, dört yön, gruplama, sıra, yakın,
+  Ozyn'in yanı, çapa sızmaz); bozma denemesi (sağ/sol ters) 4 testte yakalandı. yer.test +3 (sabit bilgi eskisinin
+  aynısı), niyetYurutucu +1 (tahtasız yerde yazmaz).
+- **Canlı [ÖLÇÜLDÜ]:** `gordene` geçti — masada: "sandalye (sağında), yönetim terminali (önünde), çalışma masası (önünde),
+  monitör (önünde), banker lambası (sağında), pencere (önünde), kırmızı berjer (solunda), … kapı (arkanda) (+2 tane
+  daha)"; tahtada: "beyaz tahta (önünde), kutu yığını (solunda), raf (sağında) …". `kapidene` 16/16 (+2 algı kontrolü:
+  ovada "ofis kapısı (arkanda)", ofis eşyası yok; dönünce odanın nesneleri). `eylemdene` 6/6, `tahtadene` 4/4.
+  kapidene düzeltmesi: oyuncu ova kapısına 0,6 m yandan bakıyordu, 1 m'lik kapıyı 10 cm ıskaladı (önceki koşuda neden
+  geçtiği açıklanmadı); artık kapının tam karşısından. "Ofiste algı" kontrolü "kapı" sözüyle zayıftı ("ofis kapısı" da
+  uyuyordu), sıkılaştırıldı.
+- **Bilinen:** "dunya" cevabı 300 karakter bütçesinde (odada 2 nesne kırpılıyor, söyleniyor). Kaya/dekor katmanı
+  örnekleri algıda yok (yerleşim değiller).
+
+## 6. Faz 2 — GÖRME (sırada; Ozyn'in onayıyla)
+`sor { ne: "gor" }` → Orion'un gözünden kare (`world/avatar/goz.ts`) + o anki algı metni → `bridge/goz.ts` (Gemma,
+`/api/chat` + görüntü) → "algılarınla birleştirerek 2–3 cümle" → `gordum` algısı. Ölçüm: birleştirme (algıdaki adları
+kullanır, yerde olmayan adı söylemez, gece/gündüz tutarlı, ≤ 3 sn, ≤ 7,6 GB) — yeni ön kayıt.

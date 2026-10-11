@@ -18,7 +18,7 @@ import type { Tahta } from "../world/surfaces/tahta.ts";
 import type { Monitor } from "../world/surfaces/monitor.ts";
 import type { GunlukEkrani } from "../world/surfaces/gunluk.ts";
 import type { SemaPaneli } from "../world/surfaces/sema.ts";
-import { yaklastiMi } from "../world/level/capalar.ts";
+import { yaklastiMi, type Capa } from "../world/level/capalar.ts";
 import { bilgisayariAc } from "../world/bilgisayar.ts";
 import type { OnayKapisi } from "../mind/onayKapisi.ts";
 import type { Cevap, Soru } from "../mind/algiHizmeti.ts";
@@ -37,6 +37,11 @@ export interface YurutucuBaglami {
   onayPaneliCiz(): void;
   /** `sor` cevabı beyne gitti (`bakdene` yedeği: zincir kendiliğinden işledi mi?). */
   gordumBildir(): void;
+  /**
+   * Orion'un bulunduğu yerin çapaları (spec 24). Verilmezse oda. Ovada tahta yok: "tahtanın yanında mı" sorusu
+   * odanın tahta koordinatına denk gelen bir ova noktasında yanlışlıkla "evet" demesin.
+   */
+  orionCapalari?(): readonly Capa[];
 }
 
 export interface NiyetYurutucu {
@@ -56,7 +61,7 @@ export function niyetYurutucusuKur(b: YurutucuBaglami): NiyetYurutucu {
     // uygulanıyor ve reddin gerekçesi beyne geri besleniyor.
     if (n.tur === "yaz") {
       const yeri = b.beden()?.durum().konum;
-      if (!yeri || !yaklastiMi("tahta", yeri)) {
+      if (!yeri || !yaklastiMi("tahta", yeri, b.orionCapalari?.())) {
         // ROBOT İLKESİ (spec 13): uzaktan YAZILMAZ ama Orion reddedilip beklemez —
         // önce tahtaya KENDİSİ yürür, varınca yazar (`otur`un sandalyeye yürümesi gibi).
         // Ortak test 3 (2026-10-02): lfm25-tb uzaktan 15 kez `yaz` denedi, her seferinde
@@ -64,7 +69,7 @@ export function niyetYurutucusuKur(b: YurutucuBaglami): NiyetYurutucu {
         console.log(`[TAHTA] uzakta (${yeri ? `${yeri.x.toFixed(1)},${yeri.z.toFixed(1)}` : "konum yok"}): once tahtaya yuruyor`);
         void bedenAdimi({ tur: "git", hedef: { tip: "capa", ad: "tahta" } }).then((s) => {
           const varis = b.beden()?.durum().konum;
-          if (s.durum !== "bitti" || !varis || !yaklastiMi("tahta", varis)) {
+          if (s.durum !== "bitti" || !varis || !yaklastiMi("tahta", varis, b.orionCapalari?.())) {
             b.kopru()?.sonuc({ niyet_id: id, durum: "hata", not: `tahtaya yürüyemedim: ${s.not ?? s.durum}` });
             b.altyazi("Orion tahtaya ulaşamadı", 2000);
             return;

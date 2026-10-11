@@ -115,5 +115,10 @@ export const BEDEN = {
     koniYarim: 0.70,
     /** `yakin` sorgusunun menzili (m). */
     yakinMenzil: 2.5,
+    /**
+     * ALGI alanı (m): NPC gibi, bu yarıçaptaki algılanır nesneleri — görüş hattı açıksa — bilir (Ozyn 2026-10-11:
+     * "algılama mekanik, görme ekstra"). Level kendi alanını verebilir (`LevelTanimi.algi.menzil`); oda bunun içinde.
+     */
+    algiMenzil: 12,
   },
 } as const;

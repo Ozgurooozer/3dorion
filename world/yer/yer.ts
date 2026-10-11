@@ -35,4 +35,21 @@ export interface Yer extends YurumeAlani {
   readonly nesneler: readonly Nesne[];
   /** Zemin yüksekliği (m). Oda düz: hep 0. */
   yukseklik(x: number, z: number): number;
+  /** Orion'un algı alanı (m) bu yerde; yoksa künyeden (`BEDEN.duyu.algiMenzil`). Level verisinden: `algi.menzil`. */
+  readonly algiMenzil?: number;
+}
+
+/**
+ * Orion'un sistem mesajındaki DEĞİŞMEZ yer bilgisi (her tura tekrarlanmaz; spec 06 K3). Oda metni spec 06'dan beri
+ * aynı ("In the room: …") — istem ölçümleri ve tools/ogretmen.ts ona dayanır; değiştirilmez. Başka yer: dışarıda
+ * olduğunu ve oradaki adlandırılmış yerleri söyler. Çerçeve İngilizce, adlar Türkçe (spec 06 §6.8).
+ */
+export function yerSabitBilgisi(yer: Yer): string {
+  const adlar = yer.capalar.map((c) => c.etiket).join(", ");
+  return yer.ad === "oda" ? `In the room: ${adlar}.` : `Outside, in the ${yer.ad} (you left the room through its door): ${adlar}.`;
+}
+
+/** Durum defterinin konumu, hiçbir çapanın yanında değilken: odada "odanın ortası", dışarıda yerin adı. */
+export function yerOrtasiSozu(yer: Yer): string {
+  return yer.ad === "oda" ? "odanın ortası" : `dışarıda (${yer.ad})`;
 }

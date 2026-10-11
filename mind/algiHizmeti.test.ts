@@ -5,8 +5,8 @@
 "use strict";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { BUTCE, mesafeSozu, sorguYanitla } from "./algiHizmeti.ts";
-import type { DunyaGorusu } from "./algiHizmeti.ts";
+import { BUTCE, mesafeSozu, sorguYanitla, yonSozu } from "./algiHizmeti.ts";
+import type { AlgiNesnesi, DunyaGorusu } from "./algiHizmeti.ts";
 import type { CapaAdi, Vec3 } from "../protocol/temel.ts";
 
 const v = (x: number, y: number, z: number): Vec3 => ({ x, y, z });
@@ -135,3 +135,52 @@ test("görüş testi GÖZ hizasından yapılır — yerden değil", () => {
   assert.ok(gorulenKaynak, "gorus testi hic cagrilmadi");
   assert.equal((gorulenKaynak as unknown as Vec3).y, 1.62);
 });
+
+// ── NPC ALGISI (Ozyn 2026-10-11: "algılama mekanik, görme ekstra") ──────────
+// Orion odanın ortasında -Z'ye bakıyor. Babylon sol-elli: -Z'ye bakarken SAĞ = -X, SOL = +X.
+const N = (ad: string, x: number, z: number, gorunur = true): AlgiNesnesi => ({ ad, konum: v(x, 1, z), gorunur });
+const npc = (nesneler: AlgiNesnesi[], ek: Partial<DunyaGorusu> = {}) => gorus({ nesneler, ...ek });
+
+test("NPC: algı alanındaki görünür nesne bilinir", () => {
+  assert.match(sorguYanitla("dunya", npc([N("trafik konisi", 0, -5)])).metin, /trafik konisi/);
+});
+test("NPC: algı alanı dışındaki nesne söylenmez", () => {
+  assert.doesNotMatch(sorguYanitla("dunya", npc([N("trafik konisi", 0, -20)], { menzil: 12 })).metin, /trafik konisi/);
+});
+test("NPC: alan verilmezse künyedeki alan (12 m) — 11 m bilinir", () => {
+  assert.match(sorguYanitla("dunya", npc([N("koni", 0, -11)])).metin, /koni/);
+});
+test("NPC: görüş hattı kapalı nesne söylenmez (duvar/bina arkası bilinmez)", () => {
+  assert.doesNotMatch(sorguYanitla("dunya", npc([N("koni", 0, -5, false), N("bank", 2, -2)])).metin, /koni/);
+});
+test("NPC: görüş hattı kapalı nesne SAYILIR — sessiz eksiltme yok", () => {
+  assert.match(sorguYanitla("dunya", npc([N("koni", 0, -5, false), N("bank", 2, -2)])).metin, /1 şey buradan görünmüyor/);
+});
+test("NPC: alan dışındaki nesne 'görünmüyor' sayısına da girmez (alanın dışı bilinmez)", () => {
+  assert.doesNotMatch(sorguYanitla("dunya", npc([N("koni", 0, -40, false), N("bank", 2, -2)])).metin, /görünmüyor/);
+});
+test("NPC: önündeki nesne 'önünde'", () => { assert.match(sorguYanitla("dunya", npc([N("koni", 0, -5)])).metin, /koni \(önünde\)/); });
+test("NPC: -X'teki nesne 'sağında' (-Z'ye bakarken)", () => { assert.match(sorguYanitla("dunya", npc([N("koni", -5, 0)])).metin, /koni \(sağında\)/); });
+test("NPC: +X'teki nesne 'solunda' (-Z'ye bakarken)", () => { assert.match(sorguYanitla("dunya", npc([N("koni", 5, 0)])).metin, /koni \(solunda\)/); });
+test("NPC: arkadaki nesne 'arkanda'", () => { assert.match(sorguYanitla("dunya", npc([N("koni", 0, 5)])).metin, /koni \(arkanda\)/); });
+test("NPC: aynı adlı nesneler gruplanır, en yakını söylenir", () => {
+  const c = sorguYanitla("dunya", npc([N("ek bina", 6, 0), N("ek bina", 0, -9), N("ek bina", -8, -8)]));
+  assert.match(c.metin, /^3 ek bina \(en yakını solunda\)/);
+});
+test("NPC: dünya cevabı en yakından uzağa", () => {
+  const c = sorguYanitla("dunya", npc([N("uzak", 0, -9), N("yakın", 0, -2)]));
+  assert.ok(c.metin.indexOf("yakın") < c.metin.indexOf("uzak"), c.metin);
+});
+test("NPC: yakın sorgusu yön ve mesafe söyler", () => {
+  assert.equal(sorguYanitla("yakin", npc([N("bank", -1, 0)])).metin, "bank (sağında, hemen yanında)");
+});
+test("NPC: yakın sorgusu dokunma menzili dışını söylemez", () => {
+  assert.equal(sorguYanitla("yakin", npc([N("bank", 0, -6)])).metin, "yakınında bir şey yok");
+});
+test("NPC: Ozyn'in yanındaki şey algıdaki nesneden", () => {
+  assert.match(sorguYanitla("oyuncu", npc([N("bank", 0, -2)], { oyuncu: v(0.3, 0, -2) })).metin, /Ozyn bank başında/);
+});
+test("NPC: algıda nesne yokken çapa adı sızmaz (ovada 'beyaz tahta' bilinmez)", () => {
+  assert.doesNotMatch(sorguYanitla("dunya", npc([N("boru duvarı", 3, -6)])).metin, /beyaz tahta/);
+});
+test("yön sözü: konum ile hedef aynıysa 'önünde' (bölme yok)", () => { assert.equal(yonSozu(v(0, 0, 0), v(0, 0, -1), v(0, 1, 0)), "önünde"); });
