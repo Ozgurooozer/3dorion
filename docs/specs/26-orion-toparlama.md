@@ -116,3 +116,16 @@ köprünün kurduğu gibi (talimat, örnekler, 14 araç şeması). Taban = BUGÜ
 - H6 Yerel modeller (qwen2.5:7b, gemma4:e2b) Haiku'nun gerisinde: toplam < Haiku − 6 senaryo.
 **Karar kuralı:** Hiçbir eşik koşudan sonra değiştirilmez. Çürüyen hipotez raporda çürüdü diye yazılır. Haiku koşusu
 1 kez; belirsiz çıkarsa (puan ≤ 1 farkla eşikte) yalnız o senaryo 2 kez daha. Sonuçlar `docs/olcum/f0-taban-*.jsonl`.
+
+## 7. F3-A ÖN KAYDI — hafıza GETİRME yöntemi (koşudan ÖNCE, 2026-10-11)
+**Araç:** `tools/hafiza-sinav.ts` · fikstür `fixtures/hafiza/sinav.json` (60 anı: 12 olgu, 12 olay özeti, 24 ham söz + dolgu;
+36 soru, çoğu eş anlamlı/dolaylı). Model YOK, ücretsiz: doğru anı ilk k sonuçta mı (hit@k). Gömme: `nomic-embed-text` (kurulu).
+**Yöntemler:** K2 mevcut `Hafiza.getir` · K2k yalnız kelime · K3 yalnız gömme · K3b `Hafiza.getir` + gömme ilgisi · K1 hepsi-bağlamda (boyut).
+**Hipotezler (eşikler şimdi sabit):**
+- HA1 K2 hit@3 ≤ 0,55 (kayıt: bağlama giren anı ≈ 0).
+- HA2 K3 hit@3 ≥ 0,80.
+- HA3 K3b hit@3 ≥ K2 hit@3 + 0,15.
+- HA4 Damıtılmış anıların (olgu+olay) toplamı ≤ 3000 karakter → "hepsi bağlamda" (K1) kâğıt üstünde mümkün.
+**Karar kuralı:** HA2 VE (K3 ≥ K2 + 0,20) tutarsa arşiv aramasında gömme; tutmazsa kelime+çekmece kalır. Her durumda
+"damıtılmış çekirdek blok her zaman bağlamda" (Letta bulgusu) ayrı karar olarak F3-B'de ölçülür. Bu sınav SENTETİK korpustur
+(gerçek hafıza bu özellikleri taşımıyor çünkü ham söz torbası); sonuç "yöntem" içindir, "Orion hatırlıyor" iddiası DEĞİL.
