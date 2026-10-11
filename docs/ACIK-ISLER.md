@@ -3,9 +3,13 @@
 Önceliği Ozyn belirler. Her madde tek satır + nerede. Biten madde SİLİNİR (geçmişi git'te);
 "çözüldü" arşivi tutulmaz. Son güncelleme: 2026-10-11.
 
-## ŞU AN: odak OVA. Orion tarafı ARKA PLANDA (Ozyn, 2026-10-11)
-"Projenin Orion kısmını arka plana alıyoruz, artık ovaya odaklanacağız." Aşağıdaki Orion maddeleri (karar bekleyen,
-yarım iş, beden, davranış) Ozyn yeniden açana kadar BEKLER; önerilmez. Bırakıldığı yer:
+## ŞU AN: Orion YENİDEN AÇILDI (Ozyn, 2026-10-11 akşam) — plan `specs/26-orion-toparlama.md`, onay bekliyor
+Ozyn: terminal kullanımı kötü, hafıza kötü, beyin/prompt/harness prototip, promptlar İngilizce olmalı, Orion ovadaki
+her şeyi (oturmak, takip) anlık kullanabilmeli. Sıra önerisi: F0 ölçüm tezgâhı → F1 harness → F2 terminal → F3 hafıza
+→ F4 ova yetenekleri. (Aşağıdaki "arka plan" notu bugün öğleden sonrasının; bırakıldığı yer bilgisi hâlâ geçerli.)
+
+## (eski, öğleden sonra) odak OVA, Orion arka planda
+Bırakıldığı yer:
 - **Spec 25 görme:** Faz 1 NPC algısı + Faz 2 `sor gor` (Gemma e4b) bitti, Ozyn canlıda denedi, çalıştı (`specs/25` §8).
   Koşulmadı: V1 ön kayıtlı ölçüm `3dorion.bat gozdene` (§7). Karar: beyin Haiku kalır, Gemma yalnız göz.
 - **Talimat + ajan yapısı düzgün değil (Ozyn) — spec 26 adayı, yazılmadı.** Teşhis (karar kaydı 2026-10-11): talimat
