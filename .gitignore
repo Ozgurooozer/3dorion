@@ -11,3 +11,6 @@ graphify-out/
 # brain-lab experiment records: subjects, ledgers, run logs (large; summaries go to the vault)
 brain-lab/data/*
 !brain-lab/data/preregistration-*.md
+
+# Python bayt kodu (tools/avatar-blender vb.)
+__pycache__/

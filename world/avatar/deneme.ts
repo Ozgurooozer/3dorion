@@ -32,6 +32,8 @@ const gunlukEl = document.getElementById("gunluk") as HTMLDivElement;
 const sorgu = new URLSearchParams(location.search);
 /** Bilerek bozuk yol vermek için: ?vrm=/yok.vrm */
 const vrmYolu = sorgu.get("vrm") ?? undefined;
+/** Yüzsüz (ağız blend shape'i olmayan) bir modeli yine de denemek için: ?vrmzorla=1 */
+const vrmZorla = sorgu.get("vrmzorla") === "1";
 
 const motor = new Engine(tuval, true, { preserveDrawingBuffer: true, stencil: true }, true);
 const sahne = new Scene(motor);
@@ -43,10 +45,14 @@ const oda = odaKur(sahne);
 // Sabit sinematik kamera: odanın sağ ön köşesinden, masa/tahta hattını görür.
 // `?kamera=yakin` sandalyeyi soldan-önden çerçeveler: oturma pozu sandalyenin
 // arkalığı ardında kalmasın diye ayrı bir kanıt açısı.
-const YAKIN = sorgu.get("kamera") === "yakin";
+// `?kamera=yan` sandalyeyi yaklaşılan (-X) yandan, çapraz görür: oturma/kalkma kliplerinde ayağın
+// zeminde kayıp kaymadığı ancak bu açıdan okunur (yakın açıda monitör keser).
+const KAMERA = sorgu.get("kamera");
+const YAKIN = KAMERA === "yakin";
+const YAN = KAMERA === "yan";
 const kamera = new FreeCamera("kam",
-  YAKIN ? new Vector3(1.7, 1.55, -3.85) : new Vector3(3.9, 2.15, 1.5), sahne);
-kamera.setTarget(YAKIN ? new Vector3(0.0, 0.95, -2.35) : new Vector3(-1.0, 0.95, -2.1));
+  YAN ? new Vector3(-2.2, 1.15, -1.3) : YAKIN ? new Vector3(1.7, 1.55, -3.85) : new Vector3(3.9, 2.15, 1.5), sahne);
+kamera.setTarget(YAN ? new Vector3(-0.25, 0.65, -2.4) : YAKIN ? new Vector3(0.0, 0.95, -2.35) : new Vector3(-1.0, 0.95, -2.1));
 kamera.minZ = 0.05;
 
 const saat = new Saat();
@@ -113,6 +119,7 @@ avatarKur({
   spawn: { x: 2.2, y: 0, z: 1.6 },
   yaw: Math.PI,
   vrmYolu,
+  vrmZorla,
   oyuncuKonumu: () => ({ x: 3.6, y: 1.6, z: 2.9 }),
 }).then((a) => {
   avatar = a;

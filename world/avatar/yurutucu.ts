@@ -61,12 +61,6 @@ export const BOYUN_PITCH_SINIRI = BEDEN.eklem.basPitch.sinir;
 export const NOKTA_TOLERANSI = 0.25;
 /** Ara noktanın "geçildi" sayılma yarıçapı. */
 export const ARA_NOKTA_TOLERANSI = 0.02;
-/**
- * `otur` için varış toleransı. Çapanın `yaklasmaYaricapi`sı (0.9 m) kullanılmaz:
- * 90 cm öteden sandalyeye oturmak ışınlanma gibi görünür.
- */
-export const OTURMA_TOLERANSI = 0.35;
-
 /** Bir `git`/`otur` işi bu süreyi aşarsa `hata` yayılır. Sonsuz döngü kalkanı. */
 export const IS_ZAMAN_ASIMI = 20;
 
@@ -86,6 +80,38 @@ export const ADIM_UZUNLUGU = BEDEN.adimUzunlugu;
 export const OTURMA_YUKSELMESI = SANDALYE.oturma - 0.30;
 /** Oturunca gövdenin sandalye üstüne geçtiği nokta. */
 const OTURMA_NOKTASI: Nokta2 = { x: SANDALYE.x, z: SANDALYE.z - 0.04 };
+
+/**
+ * Sandalyeye YANDAN, sırtı dönük oturulur; oturunca döner sandalye masaya
+ * çevrilir (2026-09-26).
+ *
+ * NEDEN. Eskiden kök masa/monitör durağından (z=-1.62) oturma noktasına
+ * düz ileri kayıyordu: sandalyenin SIRTLIĞININ içinden, yüzü masaya dönük,
+ * ~0.9 m. Prosedürel robotta göze batmıyordu; iskeletli low-poly bedende
+ * `otur` klibi kökün 0.45 m GERİ gittiğini varsayıp ayakları buna göre
+ * telafi ediyor. Canlı ölçüm (deneme `?kamera=yan`): kök 0.93 m İLERİ gitti,
+ * ayaklar masanın altına ~1.4 m kaydı.
+ *
+ * Önden oturmak mümkün değil: oturağın ön kenarı ile masa kenarı arası
+ * 0.215 m — ayakta durulacak yer yok. Sandalyenin kolçağı yok (`sandalye_kol`
+ * tabanın yıldız kolları), yani YANDAN yaklaşılabilir: yana gel, arkanı dön,
+ * geri otur, sonra sandalyeyle masaya dön. Gerçek bir döner sandalyede de
+ * böyle oturulur.
+ *
+ * `OTURMA_ADIMI` klipteki telafiyle AYNI olmalı (assets/orion-lowpoly.glb
+ * `otur`/`kalk`: ayakta bilek → oturmuş bilek = 0.453 m). Değişirse klip
+ * yeniden bake edilir; biri değişip öteki değişmezse ayak kayar.
+ */
+export const OTURMA_ADIMI = 0.45;
+/**
+ * Yol bulmanın gidebildiği en yakın yan nokta: sandalye kutusu + avatar
+ * yarıçapı. Oturma yeri (0.45) bunun İÇİNDE kalır — çarpışma yarıçapı
+ * omuz genişliğine göre cömert, sandalye ise diz hizasında. Son 17 cm'yi
+ * `_yoluKur` düz bir adım olarak ekler.
+ */
+const YANASMA_UZAKLIGI = SANDALYE.genislik / 2 + AVATAR_YARICAP + 0.02;
+/** Oturma yerine varış eşiği — klibin varsaydığı mesafeyi bozmayacak kadar sıkı. */
+const OTURMA_YERI_TOLERANSI = 0.03;
 
 /** `poz` niyetiyle doğrudan girilebilen pozlar. Diğerleri kendi niyetini ister. */
 const SERBEST_POZLAR: readonly Poz[] = ["duruyor", "eğiliyor", "yatıyor", "bakıyor"];
@@ -160,7 +186,8 @@ export interface YurutucuAyari {
 // ── İç iş tanımı ───────────────────────────────────────────────────────────
 
 type IsTuru = "git" | "otur" | "kalk";
-type Asama = "kalkiyor" | "yuruyor" | "donuyor" | "poz";
+/** `sandalyeDon`: oturur hâlde döner sandalyeyle dönüş (otur sonu / kalk başı). */
+type Asama = "kalkiyor" | "yuruyor" | "donuyor" | "poz" | "sandalyeDon";
 
 interface AktifIs {
   id: string;
@@ -181,6 +208,15 @@ interface AktifIs {
   pozBasY: number;
   /** `git` otomatik kalkma yaptıysa sonuçta bildirilir. */
   kalkildi: boolean;
+  /**
+   * Yol bulmanın gideceği son SERBEST nokta; `hedef` ondan sonra düz adımla
+   * eklenir. Yalnızca `otur` kullanır (oturma yeri çarpışma payının içinde).
+   */
+  yanasma?: Nokta2;
+  /** `otur`: oturduktan sonra sandalyeyle dönülecek yaw (masaya). */
+  oturmaYaw?: number;
+  /** `kalk`/`kalkiyor`: sandalye çıkışa döndü mü — kalkma ondan sonra başlar. */
+  dondu?: boolean;
 }
 
 // ── Yürütücü ───────────────────────────────────────────────────────────────
@@ -420,8 +456,8 @@ export class Yurutucu {
       pozBasY: this._konum.y,
       kalkildi: this._oturuyor,
     };
-    if (is.asama === "kalkiyor") this._poz.gec("duruyor");
-    else {
+    // "kalkiyor": poz burada DEĞİŞMEZ — önce sandalye çıkışa döner (bkz. `_asamaKalkiyor`).
+    if (is.asama !== "kalkiyor") {
       const hata = this._yoluKur(is);
       if (hata) { cikti.push(this._hata(id, hata)); return; }
     }
@@ -441,18 +477,32 @@ export class Yurutucu {
     }
     if (this._oturuyor) { cikti.push(this._hata(id, "zaten oturuyorsun. Önce `kalk` niyeti gönder.")); return; }
 
+    // Hangi yandan: avatara yakın olan yan; o yanın yanaşma noktası bir
+    // engele (duvar/masa) denk geliyorsa öbürü. İkisi de kapalıysa hata —
+    // sandalyenin içinden geçerek oturmak yok.
+    const yakinYan = this._konum.x >= OTURMA_NOKTASI.x ? 1 : -1;
+    const yan = [yakinYan, -yakinYan].find((s) =>
+      noktaSerbestMi({ x: OTURMA_NOKTASI.x + s * YANASMA_UZAKLIGI, z: OTURMA_NOKTASI.z }));
+    if (yan === undefined) {
+      cikti.push(this._hata(id, "sandalyenin iki yanı da kapalı; oturmak için yandan yaklaşılacak yer yok."));
+      return;
+    }
+    const oturmaYeri: Nokta2 = { x: OTURMA_NOKTASI.x + yan * OTURMA_ADIMI, z: OTURMA_NOKTASI.z };
+
     this._aktifIptal(cikti);
-    const varis: Nokta2 = { x: capa.durak.x, z: capa.durak.z };
     const is: AktifIs = {
       id, tur: "otur",
-      asama: mesafeXZ(this._konum, varis) <= OTURMA_TOLERANSI ? "donuyor" : "yuruyor",
+      asama: mesafeXZ(this._konum, oturmaYeri) <= OTURMA_YERI_TOLERANSI ? "donuyor" : "yuruyor",
       asamaGecen: 0, toplamGecen: 0,
-      hedef: varis, tolerans: OTURMA_TOLERANSI,
-      varisYaw: yonYaw(capa.yon.x, capa.yon.z),
+      hedef: oturmaYeri, tolerans: OTURMA_YERI_TOLERANSI,
+      // Varışta SANDALYEYE SIRTINI döner: yüz, sandalyeden dışarı (yan yönü).
+      varisYaw: yonYaw(yan, 0),
       yol: [], kosuyor: false, capa: ad,
       pozBasKonum: { x: this._konum.x, z: this._konum.z },
       pozBasY: this._konum.y,
       kalkildi: false,
+      yanasma: { x: OTURMA_NOKTASI.x + yan * YANASMA_UZAKLIGI, z: OTURMA_NOKTASI.z },
+      oturmaYaw: yonYaw(capa.yon.x, capa.yon.z),
     };
     if (is.asama === "yuruyor") {
       const hata = this._yoluKur(is);
@@ -468,15 +518,18 @@ export class Yurutucu {
   private _kalk(id: string, cikti: NiyetSonucu[]): void {
     if (!this._oturuyor) { cikti.push(this._hata(id, "zaten ayaktasın; `kalk` yapacak bir şey yok.")); return; }
     this._aktifIptal(cikti);
-    const g = this._poz.gec("duruyor");
-    if (!g.ok) { cikti.push(this._hata(id, g.neden ?? "poz geçişi reddedildi")); return; }
+    // Önce sandalye çıkışa döner, poz ondan SONRA değişir (`_asamaSandalyeDon`):
+    // `kalk` klibi 0.7 s boyunca kökün çıkışa doğru ilerlediğini varsayar;
+    // dönerken oynarsa ayak kayar.
     this._aktif = {
-      id, tur: "kalk", asama: "poz", asamaGecen: 0, toplamGecen: 0,
-      hedef: null, tolerans: 0, varisYaw: null, yol: [], kosuyor: false, capa: null,
+      id, tur: "kalk", asama: "sandalyeDon", asamaGecen: 0, toplamGecen: 0,
+      hedef: null, tolerans: 0, varisYaw: this._cikisYaw(), yol: [], kosuyor: false, capa: null,
       pozBasKonum: { x: this._konum.x, z: this._konum.z },
       pozBasY: this._konum.y,
       kalkildi: false,
     };
+    this._bakis = null;
+    this._govdeHedefYaw = this._aktif.varisYaw!;
     cikti.push({ niyet_id: id, durum: "basladi" });
   }
 
@@ -593,10 +646,17 @@ export class Yurutucu {
   private _yoluKur(is: AktifIs): string | null {
     const hedef = is.hedef;
     if (!hedef) return null;
-    const yol = yolBul({ x: this._konum.x, z: this._konum.z }, hedef);
+    // `yanasma` varsa yol ona kurulur, `hedef` son düz adım olarak eklenir
+    // (bkz. YANASMA_UZAKLIGI). Zaten yanaşma yarıçapının içindeysek (ör. kalkıp
+    // yeniden oturuyor) yol yalnızca o düz adımdır.
+    const bas = { x: this._konum.x, z: this._konum.z };
+    const yanasmada = is.yanasma !== undefined
+      && mesafeXZ(bas, hedef) <= mesafeXZ(is.yanasma, hedef) + 1e-6;
+    const yol = yanasmada ? [] : yolBul(bas, is.yanasma ?? hedef);
     if (!yol) {
       return `hedefe giden yol yok: (${hedef.x.toFixed(2)}, ${hedef.z.toFixed(2)}) engellerin arkasında kalıyor. Ulaşılabilir bir çapa ya da nokta seç.`;
     }
+    if (is.yanasma) yol.push(hedef);
     is.yol = yol;
     is.kosuyor = yolUzunlugu({ x: this._konum.x, z: this._konum.z }, yol) > KOSMA_ESIGI;
     const g = this._poz.gec(is.kosuyor ? "koşuyor" : "yürüyor");
@@ -619,11 +679,61 @@ export class Yurutucu {
       case "yuruyor":  return this._asamaYuruyor(is, dt, cikti);
       case "donuyor":  return this._asamaDonuyor(is, cikti);
       case "poz":      return this._asamaPoz(is, cikti);
+      case "sandalyeDon": return this._asamaSandalyeDon(is, cikti);
     }
   }
 
-  /** `git` oturur hâlde geldiğinde: önce kalk, sonra yürü. */
+  /** Oturur hâlde kalkış yönü: sandalyeden oturmaya gelinen yana doğru. */
+  private _cikisYaw(): number {
+    const dx = this._oturmaCikisi.x - this._konum.x;
+    const dz = this._oturmaCikisi.z - this._konum.z;
+    return Math.hypot(dx, dz) > 1e-6 ? yonYaw(dx, dz) : this._govdeYaw;
+  }
+
+  /** Gövde hedef yaw'a oturdu mu (ya da dönüş takıldıysa süre doldu mu). */
+  private _donduMu(is: AktifIs): boolean {
+    const kalan = Math.abs(aciSar(this._govdeHedefYaw - this._govdeYaw));
+    return kalan <= 0.06 || is.asamaGecen >= 2.5;
+  }
+
+  /**
+   * Döner sandalyeyle oturur hâlde dönüş.
+   *   otur: oturduktan sonra masaya dön → bitti.
+   *   kalk: çıkışa dön → poz "duruyor", kök çıkışa ilerler (`_asamaPoz`).
+   */
+  private _asamaSandalyeDon(is: AktifIs, cikti: NiyetSonucu[]): void {
+    if (is.varisYaw !== null) this._govdeHedefYaw = is.varisYaw;
+    if (!this._donduMu(is)) return;
+    if (is.tur === "otur") { this._bitir(is, cikti); return; }
+    const g = this._poz.gec("duruyor");
+    if (!g.ok) {
+      this._aktif = null;
+      cikti.push(this._hata(is.id, g.neden ?? "poz geçişi reddedildi"));
+      return;
+    }
+    is.asama = "poz";
+    is.asamaGecen = 0;
+    is.pozBasKonum = { x: this._konum.x, z: this._konum.z };
+    is.pozBasY = this._konum.y;
+  }
+
+  /** `git` oturur hâlde geldiğinde: önce sandalye çıkışa döner, kalkar, sonra yürür. */
   private _asamaKalkiyor(is: AktifIs, cikti: NiyetSonucu[]): void {
+    if (!is.dondu) {
+      this._bakis = null;
+      this._govdeHedefYaw = this._cikisYaw();
+      if (!this._donduMu(is)) return;
+      const g = this._poz.gec("duruyor");
+      if (!g.ok) {
+        this._aktif = null;
+        cikti.push(this._hata(is.id, g.neden ?? "poz geçişi reddedildi"));
+        return;
+      }
+      is.dondu = true;
+      is.asamaGecen = 0;
+      is.pozBasKonum = { x: this._konum.x, z: this._konum.z };
+      is.pozBasY = this._konum.y;
+    }
     const u = kis(is.asamaGecen / KALKMA_SURESI, 0, 1);
     this._konum.x = is.pozBasKonum.x + (this._oturmaCikisi.x - is.pozBasKonum.x) * u;
     this._konum.z = is.pozBasKonum.z + (this._oturmaCikisi.z - is.pozBasKonum.z) * u;
@@ -754,6 +864,15 @@ export class Yurutucu {
     this._konum.z = is.pozBasKonum.z + (varisXZ.z - is.pozBasKonum.z) * u;
     this._konum.y = is.pozBasY + (varisY - is.pozBasY) * u;
     if (u < 1) return;
+    if (is.tur === "otur" && is.oturmaYaw !== undefined) {
+      // Oturdu; şimdi sandalyeyle masaya dön. "bitti" dönüş bitince yayılır —
+      // beyin "oturdum" duyduğunda monitöre bakıyor olmalı.
+      is.asama = "sandalyeDon";
+      is.asamaGecen = 0;
+      is.varisYaw = is.oturmaYaw;
+      this._govdeHedefYaw = is.oturmaYaw;
+      return;
+    }
     if (is.tur === "kalk") this._oturuyor = false;
     this._bitir(is, cikti);
   }

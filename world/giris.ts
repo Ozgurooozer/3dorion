@@ -206,6 +206,12 @@ void avatarKur({
   sahne, saat,
   spawn: { x: 0.9, y: 0, z: -1.2 },
   vrmYolu: varlik(VARSAYILAN_VRM),
+  // Ozyn'in kararı (2026-09-27): low-poly beden varsayılan, YÜZ SONRA gelecek.
+  // Modelde ağız/göz blend shape'i yok; seçim kuralı (iskeletSecim.ts) onu
+  // reddedip prosedürel robota düşerdi. Bilinen bedel: TTS ağız senkronu ve
+  // göz kırpma görünmez, `jest` klibi yok (el sallama görünmez) — `?yuzdene`
+  // bunu dürüstçe KALDI diye raporlar. Yüz eklenince bu satır kalkmalı.
+  vrmZorla: true,
   // bak {tip:"oyuncu"} için: avatar oyuncunun yerini buradan öğrenir.
   oyuncuKonumu: () => oyuncu.oyuncuDurumu().konum,
 }).then((a) => {

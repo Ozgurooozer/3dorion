@@ -15,7 +15,7 @@
 "use strict";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { Yurutucu, ARA_NOKTA_TOLERANSI, BOYUN_PITCH_SINIRI, BOYUN_YAW_SINIRI, NOKTA_TOLERANSI, YURUME_HIZI, aciSar } from "./yurutucu.ts";
+import { Yurutucu, ARA_NOKTA_TOLERANSI, BOYUN_PITCH_SINIRI, BOYUN_YAW_SINIRI, NOKTA_TOLERANSI, OTURMA_ADIMI, YURUME_HIZI, aciSar } from "./yurutucu.ts";
 import { AVATAR_YARICAP, yolBul, yolUzunlugu } from "./yolBulma.ts";
 import { capaBul, mesafeXZ } from "../level/capalar.ts";
 import { bostaHesapla } from "./bosta.ts";
@@ -151,8 +151,15 @@ test("oturuyor iken git: otomatik kalkar, sonra yürür, sonuçta kalkildi:true"
 
   k.niyet({ tur: "git", hedef: { tip: "capa", ad: "tahta" } }, "g1").tik();
   assert.equal(k.durumlar("g1")[0], "basladi");
-  // Kalkma aşaması: poz artık oturuyor olamaz.
-  assert.equal(k.y.durum().poz, "duruyor");
+  // Önce döner sandalyeyle çıkışa döner (hâlâ oturuyor), sonra kalkar. Oturur
+  // hâlde YÜRÜME pozu asla görülmemeli — sandalyeyi sürükleyerek yürümek yok.
+  let kalkti = false;
+  for (let i = 0; i < 40 && !kalkti; i++) {
+    const d = k.tik().y.durum();
+    if (d.oturuyor_mu) assert.ok(d.poz === "oturuyor" || d.poz === "duruyor", `oturukken poz=${d.poz}`);
+    kalkti = d.poz === "duruyor";
+  }
+  assert.ok(kalkti, "dönüşten sonra kalkma başlamalı (poz duruyor)");
 
   const bitti = k.bekle("g1", "bitti");
   assert.ok(bitti, "git tamamlanmalı");
@@ -187,6 +194,58 @@ test("otur → kalk turu: y sıfıra döner, poz duruyor", () => {
   assert.equal(k.y.durum().oturuyor_mu, false);
   assert.equal(k.y.durum().poz, "duruyor");
   assert.ok(Math.abs(k.y.durum().konum.y) < 1e-9);
+});
+
+// ── 4b. Oturma geometrisi `otur`/`kalk` klipleriyle SÖZLEŞMELİ ────────────
+//
+// Low-poly bedenin `otur` klibi kökün oturma boyunca OTURMA_ADIMI kadar GERİ
+// gittiğini, `kalk` klibi aynı mesafe İLERİ gittiğini varsayıp ayağı zeminde
+// sabit tutar. Eski akış kökü masa durağından sandalye sırtlığının içinden
+// 0.93 m İLERİ kaydırıyordu; ayaklar masanın altına ~1.4 m kaydı (canlı).
+// Bu testler o çöküşü hedefler.
+
+function ileri(yaw: number): { x: number; z: number } { return { x: Math.sin(yaw), z: Math.cos(yaw) }; }
+
+test("otur: yandan, sırtı dönük — kök OTURMA_ADIMI kadar GERİ gider, sonra masaya döner", () => {
+  const k = new Kosucu({ x: 2.2, y: 0, z: 1.6 });
+  k.niyet({ tur: "otur" }, "o1");
+  let bas: { x: number; z: number; yaw: number } | null = null;
+  for (let i = 0; i < 600 && !bas; i++) {
+    const g = k.tik().y.gorunum();
+    if (g.poz === "oturuyor") bas = { x: g.konum.x, z: g.konum.z, yaw: g.govdeYaw };
+  }
+  assert.ok(bas, "oturma pozuna geçilmeli");
+  const bitti = k.bekle("o1", "bitti");
+  assert.ok(bitti, "otur tamamlanmalı");
+  const son = k.y.gorunum();
+  const dx = son.konum.x - bas!.x, dz = son.konum.z - bas!.z;
+  const yol = Math.hypot(dx, dz);
+  assert.ok(Math.abs(yol - OTURMA_ADIMI) < 0.04, `oturmada kök ${yol.toFixed(3)} m gitti, klip ${OTURMA_ADIMI} varsayar`);
+  const f = ileri(bas!.yaw);
+  assert.ok(dx * f.x + dz * f.z < -0.9 * yol, "kök GERİ gitmeli (sırtı sandalyeye dönük)");
+  const masa = capaBul("sandalye")!.yon;
+  assert.ok(Math.abs(aciSar(son.govdeYaw - Math.atan2(masa.x, masa.z))) < 0.07,
+    `bitti anında masaya dönük olmalı, yaw=${son.govdeYaw.toFixed(2)}`);
+});
+
+test("kalk: önce çıkışa döner, sonra kök OTURMA_ADIMI kadar İLERİ gider", () => {
+  const k = new Kosucu({ x: -2, y: 0, z: 0.5 });
+  k.niyet({ tur: "otur" }, "o1");
+  assert.ok(k.bekle("o1", "bitti"));
+  k.niyet({ tur: "kalk" }, "u1");
+  let bas: { x: number; z: number; yaw: number } | null = null;
+  for (let i = 0; i < 100 && !bas; i++) {
+    const g = k.tik().y.gorunum();
+    if (g.poz === "duruyor") bas = { x: g.konum.x, z: g.konum.z, yaw: g.govdeYaw };
+  }
+  assert.ok(bas, "kalkma başlamalı");
+  assert.ok(k.bekle("u1", "bitti"));
+  const son = k.y.gorunum();
+  const dx = son.konum.x - bas!.x, dz = son.konum.z - bas!.z;
+  const yol = Math.hypot(dx, dz);
+  assert.ok(Math.abs(yol - OTURMA_ADIMI) < 0.04, `kalkmada kök ${yol.toFixed(3)} m gitti`);
+  const f = ileri(bas!.yaw);
+  assert.ok(dx * f.x + dz * f.z > 0.9 * yol, "kök İLERİ gitmeli (yüz çıkışa dönük)");
 });
 
 test("oturulamayan çapaya otur → hata, seçenekleri söyler", () => {

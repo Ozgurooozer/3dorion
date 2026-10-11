@@ -19,8 +19,14 @@ import { iskeletSec } from "./iskeletSecim.ts";
 import { vrmIskeletYukle } from "./vrm.ts";
 import type { AvatarIskeleti } from "./iskelet.ts";
 
-/** Varsayılan karakter dosyası — vite `publicDir: assets` sayesinde kök altında. */
-export const VARSAYILAN_VRM = "/orion.vrm";
+/**
+ * Varsayılan karakter dosyası — vite `publicDir: assets` sayesinde kök altında.
+ *
+ * 2026-09-27: low-poly beden (kaynak `assets/kaynak/orion-lowpoly.blend`,
+ * üretim `tools/avatar-blender/`). 52 kemik VRM humanoid adlı, 5 klip
+ * (bosta/yuru/otur/oturuyor/kalk). Eski `/orion.vrm` Cesium_Man örneğiydi.
+ */
+export const VARSAYILAN_VRM = "/orion-lowpoly.glb";
 
 export interface AvatarAyari {
   sahne: Scene;

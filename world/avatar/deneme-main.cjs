@@ -27,6 +27,7 @@ const KOK = path.resolve(__dirname, "..", "..");
 
 const sorgu = new URLSearchParams();
 if (VRM) sorgu.set("vrm", VRM);
+if (arg("vrmzorla", "") === "1") sorgu.set("vrmzorla", "1");
 const KAMERA = arg("kamera", "");
 if (KAMERA) sorgu.set("kamera", KAMERA);
 sorgu.set("duman", String(Math.max(1000, YAKALAMA_MS - 500)));

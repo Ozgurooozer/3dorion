@@ -115,6 +115,15 @@ export async function vrmIskeletYukle(sahne: Scene, yol: string): Promise<Avatar
   const yurumeKlibi =
     klipler.find((g) => /walk|yuru|yürü/i.test(g.name)) ?? klipler[0] ?? null;
   const bostaKlibi = klipler.find((g) => /idle|bosta|boşta/i.test(g.name)) ?? null;
+  // Oturma üçlüsü (assets/orion-lowpoly.glb, 2026-09-26). Süreleri yürütücünün
+  // kök hareketine EŞİT yazıldı: `otur` 0.8 s = OTURMA_SURESI, `kalk` 0.7 s =
+  // KALKMA_SURESI. Kök o sürede doğrusal kayıp 0.16 m yükselirken klipteki
+  // ayaklar bunu tersine telafi eder — ayak zeminde sabit kalır. Süre
+  // değişirse klip yeniden bake edilmeli (kaynak: assets/kaynak/orion-lowpoly.blend).
+  // `otur` ve `oturuyor` ayrı regex: /otur/ ikisini de yakalardı.
+  const oturKlibi = klipler.find((g) => /^otur$|sit_?down/i.test(g.name)) ?? null;
+  const oturuyorKlibi = klipler.find((g) => /^oturuyor$|sit(ting)?_?idle/i.test(g.name)) ?? null;
+  const kalkKlibi = klipler.find((g) => /^kalk$|stand_?up/i.test(g.name)) ?? null;
   if (!yurumeKlibi) {
     console.warn(`[avatar/vrm] '${yol}' içinde yürüme klibi yok; yürürken gövde kayacak.`);
   }
@@ -168,7 +177,7 @@ export async function vrmIskeletYukle(sahne: Scene, yol: string): Promise<Avatar
   let govdeYaw = 0;
   let oynayan: AnimationGroup | null = null;
 
-  function klipOynat(g: AnimationGroup | null, hizOrani: number): void {
+  function klipOynat(g: AnimationGroup | null, hizOrani: number, dongu = true): void {
     if (oynayan === g) {
       if (g) g.speedRatio = hizOrani;
       return;
@@ -181,8 +190,14 @@ export async function vrmIskeletYukle(sahne: Scene, yol: string): Promise<Avatar
       if (!g) iskelet?.returnToRest();
     }
     oynayan = g;
-    if (g) { g.speedRatio = hizOrani; g.start(true); }
+    if (g) { g.speedRatio = hizOrani; g.start(dongu); }
   }
+
+  // Tek seferlik geçiş (otur/kalk) bitene kadar döngü klibine geçilmez; yoksa
+  // 20 Hz tik ilk karede döngüye atlar ve geçiş hiç görünmez. Yürüme ise
+  // geçişi KESER: kalkarken `git` gelirse bacaklar beklemez.
+  let oncekiPoz: Poz | null = null;
+  let gecis: AnimationGroup | null = null;
 
   function govdeUygula(yaw: number): void {
     govdeYaw = yaw;
@@ -203,8 +218,21 @@ export async function vrmIskeletYukle(sahne: Scene, yol: string): Promise<Avatar
   }
 
   function pozUygula(poz: Poz, _faz: number, hiz: number): void {
-    if (poz === "yürüyor" || poz === "koşuyor") {
+    const yuruyor = poz === "yürüyor" || poz === "koşuyor";
+    if (oncekiPoz !== null && poz !== oncekiPoz) {
+      if (poz === "oturuyor" && oturKlibi) gecis = oturKlibi;
+      else if (oncekiPoz === "oturuyor" && !yuruyor && kalkKlibi) gecis = kalkKlibi;
+      else gecis = null;
+      if (gecis) { klipOynat(null, 1); klipOynat(gecis, 1, false); }
+    }
+    oncekiPoz = poz;
+    if (gecis && gecis.isPlaying && !yuruyor) {
+      // geçiş sürüyor — döngüye dokunma
+    } else if (yuruyor) {
+      gecis = null;
       klipOynat(yurumeKlibi, Math.max(0.4, hiz / 1.25));
+    } else if (poz === "oturuyor" && oturuyorKlibi) {
+      klipOynat(oturuyorKlibi, 1);
     } else if (bostaKlibi) {
       klipOynat(bostaKlibi, 1);
     } else {
