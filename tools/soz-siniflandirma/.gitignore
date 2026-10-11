@@ -6,3 +6,4 @@ sonuc/*.log
 sonuc/canli*-hafiza.json
 sonuc/*.tmp.ts
 sonuc/*_girdi.json
+sonuc/el-*
