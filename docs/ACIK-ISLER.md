@@ -1,7 +1,21 @@
 # Açık işler — tek liste
 
 Önceliği Ozyn belirler. Her madde tek satır + nerede. Biten madde SİLİNİR (geçmişi git'te);
-"çözüldü" arşivi tutulmaz. Son güncelleme: 2026-10-10.
+"çözüldü" arşivi tutulmaz. Son güncelleme: 2026-10-11.
+
+## ŞU AN: odak OVA. Orion tarafı ARKA PLANDA (Ozyn, 2026-10-11)
+"Projenin Orion kısmını arka plana alıyoruz, artık ovaya odaklanacağız." Aşağıdaki Orion maddeleri (karar bekleyen,
+yarım iş, beden, davranış) Ozyn yeniden açana kadar BEKLER; önerilmez. Bırakıldığı yer:
+- **Spec 25 görme:** Faz 1 NPC algısı + Faz 2 `sor gor` (Gemma e4b) bitti, Ozyn canlıda denedi, çalıştı (`specs/25` §8).
+  Koşulmadı: V1 ön kayıtlı ölçüm `3dorion.bat gozdene` (§7). Karar: beyin Haiku kalır, Gemma yalnız göz.
+- **Talimat + ajan yapısı düzgün değil (Ozyn) — spec 26 adayı, yazılmadı.** Teşhis (karar kaydı 2026-10-11): talimat
+  hâlâ "Ozyn'in odasındasın" diyor (ovada "7 dakikadır bu odadasın"); üç "bakmak" (`bak` baş çevirir, `sor` algı,
+  `sor gor` göz) — "gözünle bak" → `bak`; "gördüğünü aktar, ekleme" kuralı yok (Haiku Gemma'nın demediği renkleri
+  ekledi, "gibi" çekincesini düşürdü); olaylar ham kimlik (`ozyn_yuzeyden_cikti` → "Ozyn odadan çıktı"); bağlamın
+  %70'i araç şeması. Dil: İngilizce çerçevenin içine Türkçe algı/görme/durum karışıyor — öneri: içerisi tek dil
+  (İngilizce), Türkçe yalnız ses + adlar sözlüğü. Önce `tools/eylem-olc.ts` / `sadakat-olc.ts` ile taban ölçümü.
+- **Ovada boşta bakma (ajanda) odanın `pencere` çapasını istiyor** → "bilinmeyen çapa" hatası beyni boşuna uyandırıyor.
+- **Spec 24 C6** (`gec`: Orion kendi başına çıkar) ve **C5** (paket) — Orion işi, bekler.
 
 ## Karar bekleyen (Ozyn)
 - **Spec 15 S2–S5** (mekânsal bellek, gölge) — ön kayıt hazır, onay bekliyor. `specs/15`
