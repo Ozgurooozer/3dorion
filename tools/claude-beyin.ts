@@ -34,8 +34,9 @@ const arg = (ad: string, v: string) =>
 
 const PORT = Number(arg("port", "4700"));
 const MODEL = arg("model", "haiku");
-// Çıktı kipi (spec 26 F1): `satir` = eski satır sözleşmesi (4 eylem), `yapisal` = `--json-schema` + TAM araç yüzeyi.
-const MOD = arg("mod", "satir") as "satir" | "yapisal";
+// Çıktı kipi (spec 26 F1): `satir` = eski satır sözleşmesi (4 eylem), `yapisal` = `--json-schema` + TAM araç yüzeyi (VARSAYILAN:
+// F0 ölçümü, Haiku n=1: beden 1/6 → 5/6, toplam %54 → %71).
+const MOD = arg("mod", "yapisal") as "satir" | "yapisal";
 const EXE = process.env.ORION_CLAUDE_EXE
   ?? path.join(process.env.APPDATA ?? "", "npm/node_modules/@anthropic-ai/claude-code/bin/claude.exe");
 // Boş çalışma dizini: bir üst dizindeki CLAUDE.md bağlama sızmasın.

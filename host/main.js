@@ -480,7 +480,9 @@ function claudeBeyniBaslat() {
     claudeBeyni = spawn(
       process.execPath,
       ["--experimental-strip-types", path.join(KOK, "tools", "claude-beyin.ts"),
-       `--port=${port}`, "--model=haiku"],
+       `--port=${port}`, "--model=haiku",
+       // Çıktı kipi (spec 26 F1): yapisal = tam araç yüzeyi (F0: Haiku beden 1/6 → 5/6); satir = eski 4 eylemli kip.
+       `--mod=${process.env.ORION_CLAUDE_MOD || "yapisal"}`],
       { cwd: KOK, stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" } },
     );
     // Adaptörün sesi ana günlüğe düşsün: sessizce ölürse sebebi görünmeli.
