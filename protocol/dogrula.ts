@@ -4,7 +4,7 @@
 // sayı NaN gelebilir. Dünya tarafı doğrulanmamış hiçbir niyeti işlemez.
 // Bağımlılık yok — elle yazılmış doğrulayıcı (şema kütüphanesi taşımıyoruz).
 "use strict";
-import { POZLAR, JESTLER, type Niyet, type NiyetTur } from "./niyet.ts";
+import { POZLAR, JESTLER, SORULAR, type Niyet, type NiyetTur, type SorKonusu } from "./niyet.ts";
 import { capaCoz, type Hedef } from "./temel.ts";
 
 export type Sonuc<T> = { ok: true; deger: T } | { ok: false; hata: string };
@@ -143,9 +143,9 @@ export function niyetDogrula(ham: unknown): Sonuc<Niyet> {
 
     case "sor": {
       const ne = o.ne;
-      if (ne !== "dunya" && ne !== "yakin" && ne !== "oyuncu" && ne !== "onumde")
-        return { ok: false, hata: `sor.ne geçersiz: ${String(ne)} (geçerli: dunya, yakin, oyuncu, onumde)` };
-      return { ok: true, deger: { tur: "sor", ne } };
+      if (!SORULAR.includes(ne as never))
+        return { ok: false, hata: `sor.ne geçersiz: ${String(ne)} (geçerli: ${SORULAR.join(", ")})` };
+      return { ok: true, deger: { tur: "sor", ne: ne as SorKonusu } };
     }
 
     case "kalk":   return { ok: true, deger: { tur: "kalk" } };

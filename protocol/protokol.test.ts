@@ -5,8 +5,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { niyetDogrula, METIN_SINIRI } from "./dogrula.ts";
 import { CAPALAR, CAPA_ETIKETLERI, capaCoz } from "./temel.ts";
-import { POZLAR, JESTLER, SURELI_NIYETLER, okunurMu } from "./niyet.ts";
-import { VARSAYILAN_KANAL, ozetle, OZET_ONEKI } from "./algi.ts";
+import { POZLAR, JESTLER, SURELI_NIYETLER, SORULAR, okunurMu } from "./niyet.ts";
+import { VARSAYILAN_KANAL, ozetle, OZET_ONEKI, SORU_ETIKETI } from "./algi.ts";
 import { zarfla, SURUM } from "./temel.ts";
 
 test("geçerli poz kabul edilir", () => {
@@ -168,6 +168,16 @@ test("özet satırları OZET_ONEKI ile başlar — refleks eşleşmesi kaymasın
   assert.ok(ozetle({ tur: "yakin", nesneler: [] }).startsWith(OZET_ONEKI.yakin));
   assert.ok(ozetle({ tur: "gordum", ne: "onumde", metin: "tahta" }).startsWith(OZET_ONEKI.gordum));
   assert.ok(ozetle({ tur: "terminal", kuyruk: "x", kesildi: false }).startsWith(OZET_ONEKI.terminal));
+});
+
+// Görme cevabı (`gor`) beyne "You looked (with your eyes)" diye gider: algının kesin cevabıyla karışmasın (spec 25).
+test("her sor konusunun beyne giden İngilizce etiketi var (gor dahil)", () => {
+  for (const ne of SORULAR) assert.ok(SORU_ETIKETI[ne], `etiketsiz konu: ${ne}`);
+});
+
+test("sor gor doğrulamadan geçer", () => {
+  const r = niyetDogrula({ tur: "sor", ne: "gor" });
+  assert.equal(r.ok, true);
 });
 
 test("süreli niyetler listesi git ve soyle içerir", () => {

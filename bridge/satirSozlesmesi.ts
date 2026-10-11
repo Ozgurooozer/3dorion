@@ -37,6 +37,7 @@
 //
 // SAF: bağımlılık yok, yan etki yok.
 "use strict";
+import { SORULAR } from "../protocol/niyet.ts";
 
 export interface AyrilmisYanit {
   /** Seslendirilecek doğal cevap (sözleşme satırları ayıklanmış). */
@@ -51,8 +52,8 @@ export interface AyrilmisYanit {
   bak?: string;
 }
 
-/** `BAK:` ile sorulabilecek şeyler. Protokoldeki `sor.ne` ile aynı küme. */
-const BAK_SORULARI = ["onumde", "yakin", "oyuncu", "dunya"] as const;
+/** `BAK:` ile sorulabilecek şeyler: protokoldeki `sor.ne` kümesinin KENDİSİ (kopya değil). */
+const BAK_SORULARI = SORULAR;
 
 /**
  * Sözleşmenin modele anlatımı. Kısa ve örnekli; her turda bağlama giriyor.
@@ -69,7 +70,7 @@ export const SOZLESME_TALIMATI = [
   "KOMUT: <single line to run in the terminal> | GEREKCE: <short reason>",
   "TAHTA: <note to write on the whiteboard>",
   "GIDILECEK: <name of the place in the room to walk to>",
-  "BAK: <onumde|yakin|oyuncu|dunya>   — to see what is in the room",
+  `BAK: <${BAK_SORULARI.join("|")}>   — to see what is in the room (gor: look with your eyes)`,
   "If no action is needed, do not write these lines at all.",
   // ÖRNEKLER anlatımdan güçlü çıktı (ölçüm): örneksiz cevaplar markdown'a ve
   // kod bloğuna kaçıyordu; örnekli cevaplar kısa ve sözleşmeye uygun geldi.

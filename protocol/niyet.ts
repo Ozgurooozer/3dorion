@@ -62,8 +62,16 @@ export type Niyet =
    * karar vermemeli. Gerekçesiz öneri reddedilir.
    */
   | { tur: "komut";    metin: string; gerekce: string }
-  /** Salt-okunur sorgu: dünya durumunu istemek. Yanıt `algi: "dunya"`. */
-  | { tur: "sor";      ne: "dunya" | "yakin" | "oyuncu" | "onumde" };
+  /** Salt-okunur sorgu: dünya durumunu istemek. Yanıt `algi: "gordum"`. */
+  | { tur: "sor";      ne: SorKonusu };
+
+/**
+ * `sor`un konuları — araç şeması, satır sözleşmesi (`BAK:`) ve doğrulayıcı BURADAN türer (önce dört dosyada ayrı
+ * yazılıydı). İlk dördü ALGI: koddan, anında, kesin (NPC gibi; spec 25 Faz 1). `gor` GÖRME: Orion'un gözünden kare +
+ * o anki algı → yerel görme modeli, 1–3 sn, yalnız istenince (spec 25 Faz 2). Algının yerine geçmez, üstüne eklenir.
+ */
+export const SORULAR = ["onumde", "yakin", "oyuncu", "dunya", "gor"] as const;
+export type SorKonusu = (typeof SORULAR)[number];
 
 export type NiyetTur = Niyet["tur"];
 

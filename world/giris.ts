@@ -89,6 +89,7 @@ import { odadaSure, sessizlikSozu, gununVakti } from "../mind/zaman.ts";
 import { depoYukle } from "../mind/hafizaGocu.ts";
 import { GucButcesi, Inisiyatif } from "../mind/inisiyatif.ts";
 import { McpBeyin } from "../bridge/mcpBeyin.ts";
+import { GozModeli } from "../bridge/goz.ts";
 import { KuralRefleksi, UZUN_ISLEM_MS, refleksGirdisi } from "../mind/refleks.ts";
 import { OnayKapisi } from "../mind/onayKapisi.ts";
 import { riskEtiketi } from "../mind/komutRiski.ts";
@@ -249,8 +250,21 @@ void avatarKur({
 // dönüşte ova yıkılır, oda birebir geri gelir. Ozyn ve Orion birlikte geçer; Orion'un kendi başına çıkması C6.
 let disari: LevelSahnesi | null = null;
 let gecisSuruyor = false;
-// Orion'un gözü (spec 25 V0): bugün yalnız ölçüm yüzeyi (`dunya.orionGozu`); beyne bağlanması deney sonucuna bağlı.
+// Orion'un gözü (spec 25): `sor gor` (GÖRME, Faz 2) ve ölçüm yüzeyi `dunya.orionGozu` aynı kareyi çeker.
 const orionGozu = orionGozuKur(sahne);
+// Görme modeli: `?goz=<ollama modeli>` (varsayılan gemma4:e4b), `?ollama=` beyinle aynı adres. Yalnız istenince bakar.
+const gozModeli = (() => {
+  const q = new URLSearchParams(location.search);
+  return new GozModeli({ model: q.get("goz") || undefined, adres: q.get("ollama") || undefined });
+})();
+
+/** Orion'un ŞU ANKİ yerinden ve bakışından kare (beden yoksa null). Çekimde kendi bedeni gizlenir. */
+async function orionKaresi(en = 896, boy = 504, yaw?: number) {
+  if (!orion) return null;
+  const o = orion;
+  const d = o.durum();
+  return orionGozu.kare(d.konum, yaw ?? Math.atan2(d.bakis.x, d.bakis.z), orionYeri, en, boy, (g) => o.gorunur(g && orionYeri === ozynYeri));
+}
 
 async function ovayaCik(): Promise<boolean> {
   if (disari || gecisSuruyor) return false;
@@ -564,7 +578,7 @@ const mcpBeyin = new McpBeyin();
 // AYRIM ÖNEMLİ: beyni TEST EDEN kipler (tezdene, tahtabeyin, hafizadene,
 // gorudene, sessizdene, davranis, otodene) bu listede YOKTUR — orada beynin
 // susturulması testin kendisini anlamsız kılardı.
-const BEDEN_SENARYOLARI = ["tahtadene", "gordene", "yuzdene", "admindene", "zihindene", "senaryodene"] as const;
+const BEDEN_SENARYOLARI = ["tahtadene", "gordene", "yuzdene", "admindene", "zihindene", "senaryodene", "gozdene"] as const;
 
 /** Bu koşu senaryolu bir beden denemesi mi? */
 function bedenSenaryosuMu(): boolean {
@@ -685,7 +699,7 @@ function algiSor(ne: Soru): Cevap {
 // TEK niyet yönlendirme noktası: avatar, ses hattı, tahta, onay kapısı ve algı hizmeti
 // uygulama/niyetYurutucu.ts'te ayrılır (spec 14 R4: buradan taşındı, testli). Bu dosya yalnız
 // dünyayı verir; sonradan atananlar (beden, köprü) çağrı anında okunur.
-const { niyetiYurut, bedenAdimi } = niyetYurutucusuKur({
+const { niyetiYurut, bedenAdimi, sonGorme } = niyetYurutucusuKur({
   beden: () => orion,
   kopru: () => kopru,
   tahta, monitor, onayKapisi, sema, gunluk, algiSor,
@@ -693,6 +707,10 @@ const { niyetiYurut, bedenAdimi } = niyetYurutucusuKur({
   onayPaneliCiz,
   gordumBildir: () => { gordumGeldi = true; },
   orionCapalari: () => orionYeri.capalar,
+  goz: {
+    kare: async () => (await orionKaresi())?.png ?? null,
+    gor: (png, algi) => gozModeli.gor(png, algi),
+  },
 });
 
 /** Davranis olcumu acikken kayit defterine erisim (yoksa null). */
@@ -1294,9 +1312,7 @@ const dunyaKancasi = {
       o.isinla(x, z, yaw);
       await new Promise<void>((r) => { let n = 0; const g = sahne.onAfterRenderObservable.add(() => { if (++n >= 2) { sahne.onAfterRenderObservable.remove(g); r(); } }); });
     }
-    const d = o.durum();
-    const bakisYaw = yaw ?? Math.atan2(d.bakis.x, d.bakis.z);
-    return orionGozu.kare(d.konum, bakisYaw, orionYeri, en, boy, (g) => o.gorunur(g && orionYeri === ozynYeri));
+    return orionKaresi(en, boy, yaw);
   },
   yer: () => ({ ozyn: ozynYeri.ad, orion: orionYeri.ad, kurulumMs: disari?.kurulumMs ?? null }),
   tahta: {
@@ -1849,7 +1865,9 @@ const senaryoBaglami: SenaryoBaglami = {
   get gordumGeldi() { return gordumGeldi; },
   get zoomPayi() { return zoomPayi; },
   yerler: () => ({ ozyn: ozynYeri, orion: orionYeri }),
-  niyetiYurut, onayKarari, algiSor, monitoreGec, admineGec, panelOdak, panoyuAl, zoomUygula,
+  ovayaCik,
+  niyetiYurut, onayKarari, algiSor, monitoreGec, admineGec, panelOdak, panoyuAl, zoomUygula, sonGorme,
+  gozModeli: () => gozModeli.model,
 };
 for (const ad of istenenSenaryolar(location.search)) {
   void import(`../uygulama/senaryolar/${ad}.ts`)

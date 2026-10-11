@@ -11,7 +11,7 @@
 // reddediyor. Açıklamalar Türkçe — model Ozyn'le Türkçe konuşuyor.
 "use strict";
 import { niyetDogrula, type Sonuc } from "../protocol/dogrula.ts";
-import { POZLAR, JESTLER, type Niyet, type NiyetTur } from "../protocol/niyet.ts";
+import { POZLAR, JESTLER, SORULAR, type Niyet, type NiyetTur } from "../protocol/niyet.ts";
 
 /** Sağlayıcıdan bağımsız araç tanımı. Anthropic/OpenAI/Ollama biçimlerine çevrilebilir. */
 export interface AracTanimi {
@@ -120,11 +120,13 @@ export const ARAC_TABLOSU: Record<NiyetTur, Omit<AracTanimi, "ad">> = {
   sor: {
     // Orion odayı BURADAN görür. Cevap yalnızca bulunduğu yerden GÖRÜLEBİLEN
     // şeyleri içerir (mind/algiHizmeti.ts): duvarın arkası bilinmez.
+    // `gor` GÖRME (spec 25 Faz 2): gözünden bakar, algısının üstüne ışığı, rengi, ekranları anlatır — yavaş.
     aciklama: "Look at the room. 'onumde' = the thing right in front of you, 'yakin' = your surroundings, "
-      + "'oyuncu' = where Ozyn is, 'dunya' = everything visible from here. Changes nothing.",
+      + "'oyuncu' = where Ozyn is, 'dunya' = everything visible from here, "
+      + "'gor' = look with your eyes: light, colours, screens, what Ozyn is doing (takes a few seconds). Changes nothing.",
     sema: {
       type: "object",
-      properties: { ne: { type: "string", enum: ["onumde", "yakin", "oyuncu", "dunya"] } },
+      properties: { ne: { type: "string", enum: [...SORULAR] } },
       required: ["ne"],
     },
   },

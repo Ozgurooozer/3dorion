@@ -42,12 +42,36 @@ export interface YurutucuBaglami {
    * odanın tahta koordinatına denk gelen bir ova noktasında yanlışlıkla "evet" demesin.
    */
   orionCapalari?(): readonly Capa[];
+  /**
+   * GÖRME (spec 25 Faz 2): Orion'un gözü (dünya) ve görme modeli (köprü). Verilmezse `sor gor` dürüstçe
+   * "gözün bağlı değil" der ve algıyla cevaplar.
+   */
+  goz?: {
+    /** Orion'un gözünden kare (base64 PNG); beden yoksa null. */
+    kare(): Promise<string | null>;
+    /** Kare + algı metni → betim. Fırlatabilir (model yok, zaman aşımı, boş cevap). */
+    gor(png: string, algi: string): Promise<string>;
+  };
+}
+
+/** Son görmenin kaydı: canlı ölçüm (`gozdene`, spec 25 §7) ve günlük için. */
+export interface GormeKaydi {
+  niyetId: string;
+  /** Modele bağlam olarak giden algı metni. */
+  algi: string;
+  /** Beyne giden `gordum` metni (başarısızsa dürüst yedek). */
+  metin: string;
+  /** Niyetten `gordum`a kadar (kare + model). */
+  sureMs: number;
+  hata?: string;
 }
 
 export interface NiyetYurutucu {
   niyetiYurut(n: Niyet, id: string): void;
   /** Bir programın ara adımı: niyeti avatara verir, sonucu gelince çözülür. */
   bedenAdimi(n: Niyet, sinirMs?: number): Promise<NiyetSonucu>;
+  /** Son `sor gor`un kaydı (henüz bakılmadıysa null). */
+  sonGorme(): GormeKaydi | null;
 }
 
 export function niyetYurutucusuKur(b: YurutucuBaglami): NiyetYurutucu {
@@ -109,6 +133,8 @@ export function niyetYurutucusuKur(b: YurutucuBaglami): NiyetYurutucu {
     // okur (ucuz) ama her nesneyi GÖRÜŞ TESTİNDEN geçirir (gerçek ışın).
     // Böylece bildiği şey, durduğu yerden gerçekten görülebilen şeydir.
     if (n.tur === "sor") {
+      // GÖRME ayrı yol: yavaş (1–3 sn), asenkron; tik'i bekletmez.
+      if (n.ne === "gor") { void gozleBak(id); return; }
       const c = b.algiSor(n.ne);
       console.log(`[SOR] ${n.ne} → "${c.metin}" (${c.maliyet} krk${c.kirpildi ? ", kırpıldı" : ""})`);
       b.sema.vur("bakis", n.ne);
@@ -131,6 +157,46 @@ export function niyetYurutucusuKur(b: YurutucuBaglami): NiyetYurutucu {
     // Beden gerçekten harekete geçti: şemanın son durağı.
     b.sema.vur("beden", n.tur);
     b.beden()?.niyet(n, id);
+  }
+
+  let bakiyor = false;
+  let sonGorme: GormeKaydi | null = null;
+
+  /**
+   * `sor gor` (spec 25 Faz 2): ALGI (kesin, koddan) + Orion'un gözünden KARE → görme modeli → `gordum`.
+   * Algı modelin BAĞLAMIDIR: adlar ve konumlar ondan gelir, görme onların üstüne ışığı, rengi, ekranı, Ozyn'i ekler.
+   * Model çalışmazsa Orion bunu BİLİR: `gordum` "gözlerin çalışmıyor" der ve algıyı verir — görme ekstra, algı kalır.
+   * Aynı anda tek bakış: ikincisi "zaten bakıyorum" hatasıyla kapanır (kart belleği ve sıra korunur).
+   */
+  async function gozleBak(id: string): Promise<void> {
+    if (bakiyor) {
+      b.kopru()?.sonuc({ niyet_id: id, durum: "hata", not: "zaten bakıyorum" });
+      return;
+    }
+    bakiyor = true;
+    const bas = Date.now();
+    const algi = `${b.algiSor("dunya").metin}. Ozyn: ${b.algiSor("oyuncu").metin}`;
+    b.sema.vur("bakis", "gor");
+    let metin: string;
+    let hata: string | undefined;
+    try {
+      if (!b.goz) throw new Error("gözün bağlı değil");
+      const png = await b.goz.kare();
+      if (!png) throw new Error("bedenin hazır değil");
+      metin = await b.goz.gor(png, algi);
+    } catch (e) {
+      hata = (e as Error).message;
+      metin = `Gözlerin şu an çalışmıyor (${hata}). Algın: ${algi}`;
+    } finally {
+      bakiyor = false;
+    }
+    const sureMs = Date.now() - bas;
+    sonGorme = { niyetId: id, algi, metin, sureMs, ...(hata ? { hata } : {}) };
+    console.log(`[GOR] ${(sureMs / 1000).toFixed(1)} sn${hata ? ` HATA ${hata}` : ""} → "${metin}"`);
+    b.gunluk.ekle(hata ? "uyari" : "bilgi", "algi", hata ? `göz çalışmadı: ${hata}` : `gördü: ${metin}`);
+    b.kopru()?.sonuc({ niyet_id: id, durum: hata ? "hata" : "bitti", not: hata ?? metin });
+    b.kopru()?.algi({ tur: "gordum", ne: "gor", metin });
+    b.gordumBildir();
   }
 
   /** Tahtanın önündeyken yazar ve sonucu köprüye bildirir. */
@@ -190,5 +256,5 @@ export function niyetYurutucusuKur(b: YurutucuBaglami): NiyetYurutucu {
     });
   }
 
-  return { niyetiYurut, bedenAdimi };
+  return { niyetiYurut, bedenAdimi, sonGorme: () => sonGorme };
 }

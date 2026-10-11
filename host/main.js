@@ -141,6 +141,9 @@ function pencereAc() {
   if (process.env.ORION_BENLIKDENE === "1") parcalar.push("benlikdene=1", "sessiz=1");
   if (process.env.ORION_EYLEMDENE === "1") parcalar.push("eylemdene=1", "sessiz=1", "komut=1");
   if (process.env.ORION_KAPIDENE === "1") parcalar.push("kapidene=1", "sessiz=1");
+  // Spec 25 Faz 2: görme. `ORION_GOZ` görme modelini seçer (varsayılan bridge/goz.ts'te).
+  if (process.env.ORION_GOZDENE === "1") parcalar.push("gozdene=1", "sessiz=1");
+  if (process.env.ORION_GOZ) parcalar.push(`goz=${encodeURIComponent(process.env.ORION_GOZ)}`);
   // Spec 12 Faz 5: süzgeç merceğinin yetkisi (varsayılan kapalı).
   if (process.env.ORION_BENLIK_SUZGEC === "1") parcalar.push("benliksuzgec=1");
   if (process.env.ORION_TAHTABEYIN === "1") parcalar.push("tahtabeyin=1", "sessiz=1");

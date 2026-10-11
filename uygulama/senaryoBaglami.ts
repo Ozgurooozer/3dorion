@@ -28,6 +28,7 @@ import type { Kopru } from "../bridge/kopru.ts";
 import type { Cevap, Soru } from "../mind/algiHizmeti.ts";
 import type { KuralRefleksi } from "../mind/refleks.ts";
 import type { OnayKapisi } from "../mind/onayKapisi.ts";
+import type { GormeKaydi } from "./niyetYurutucu.ts";
 
 export interface SenaryoBaglami {
   // ── sahne ve oda ──
@@ -55,6 +56,8 @@ export interface SenaryoBaglami {
   readonly zoomPayi: number;
   /** Ozyn'in ve Orion'un bulunduğu yer (spec 24). */
   yerler(): { ozyn: Yer; orion: Yer };
+  /** Kapıdan geçmeden ovaya çık (ikisi birlikte; kapı yolu `kapidene`nin işi). Çıkılamazsa false. */
+  ovayaCik(): Promise<boolean>;
   // ── eylemler ──
   niyetiYurut(n: Niyet, id: string): void;
   onayKarari(onaylandi: boolean): void;
@@ -64,6 +67,11 @@ export interface SenaryoBaglami {
   panelOdak(mesh: AbstractMesh, etiket: string): void;
   panoyuAl(): Pano | null;
   zoomUygula(yenidenCerceveleme?: boolean): void;
+  // ── görme (spec 25 Faz 2) ──
+  /** Son `sor gor`un kaydı (algı, betim, süre). */
+  sonGorme(): GormeKaydi | null;
+  /** Kullanılan görme modelinin adı (`?goz=`). */
+  gozModeli(): string;
 }
 
 /** Senaryo adları — `3dorion.bat` modları ve URL anahtarları. Yükleyici yalnız bunları yükler. */
@@ -71,7 +79,7 @@ export const SENARYOLAR = [
   "terminaldene", "otodene", "gorudene", "sessizdene", "davranis", "tezdene", "gordene", "admindene",
   "zoomdene", "zihindene", "onaydene", "tahtabeyin", "becerdene", "bakdene", "acidene", "saglobdene",
   "senaryodene", "eylemdene", "benlikdene", "apidene", "tahtadene", "hafizadene", "yuzdene", "baglamdene", "takipdene",
-  "kapidene",
+  "kapidene", "gozdene",
 ] as const;
 export type SenaryoAdi = (typeof SENARYOLAR)[number];
 

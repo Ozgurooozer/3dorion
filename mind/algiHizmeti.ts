@@ -31,10 +31,11 @@
 // (resim modeli) bunun üstüne EKSTRADIR, burada değil (spec 25).
 "use strict";
 import type { CapaAdi, Vec3 } from "../protocol/temel.ts";
+import type { SorKonusu } from "../protocol/niyet.ts";
 import { BEDEN } from "../protocol/bedenTanimi.ts";
 
-/** Sorulabilecek şeyler. Protokoldeki `sor.ne` ile birebir eşleşir. */
-export type Soru = "dunya" | "yakin" | "oyuncu" | "onumde";
+/** Algının cevapladığı sorular: protokoldeki `sor.ne`, GÖRME (`gor`) hariç — onu uygulama düzenler (spec 25 Faz 2). */
+export type Soru = Exclude<SorKonusu, "gor">;
 
 /** Hizmetin dünyadan istediği her şey. Dünya tipi BİLİNMEZ. */
 export interface DunyaGorusu {

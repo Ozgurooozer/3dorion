@@ -120,6 +120,8 @@ export const SORU_ETIKETI: Record<string, string> = {
   yakin: "near you",
   oyuncu: "Ozyn",
   dunya: "in the room",
+  // Görme (spec 25 Faz 2): algının değil gözün cevabı — beyin ikisini ayırt edebilsin.
+  gor: "with your eyes",
 };
 
 export const VARSAYILAN_KANAL: Record<AlgiTur, Kanal> = {

@@ -14,6 +14,7 @@ import path from "node:path";
 import { tumCapalar } from "../world/level/capalar.ts";
 import { gecitVarisi, levelYuksekligi } from "../world/yer/levelYeri.ts";
 import type { LevelTanimi } from "../world/level/cekirdek/levelTanimi.ts";
+import { odaPozlari, ovaPozlari, type GozPozu } from "../uygulama/gozPozlari.ts";
 
 const ADRES = process.env.GOZ_ADRES ?? "http://localhost:5273/index.html?sessiz=1";
 const OLLAMA = process.env.OLLAMA_ADRES ?? "http://127.0.0.1:11434";
@@ -26,20 +27,10 @@ const BELIRGIN = 0.02;   // ön kayıt: görünür ve alan ≥ %2 → beklenen "
 const CHROME = process.env.CHROME ?? "C:/Program Files/Google/Chrome/Application/chrome.exe";
 const bekle = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-// ── Pozlar (ön kayıt §1: sabit, 22) ──
-interface Poz { yer: "oda" | "ova"; ad: string; x: number; z: number; yaw: number }
-const YONLER: [string, number][] = [["+Z", 0], ["+X", Math.PI / 2], ["-Z", Math.PI], ["-X", -Math.PI / 2]];
-const pozlar: Poz[] = [];
-for (const ad of ["masa", "monitor", "tahta", "pencere", "kapi", "sema", "gunluk", "admin"]) {
-  const c = tumCapalar().find((x) => x.ad === ad)!;
-  pozlar.push({ yer: "oda", ad: `${ad} durağı`, x: c.durak.x, z: c.durak.z, yaw: Math.atan2(c.yon.x, c.yon.z) });
-}
-for (const [y, a] of YONLER) pozlar.push({ yer: "oda", ad: `oda ortası ${y}`, x: 0, z: 0.5, yaw: a });
+// ── Pozlar (ön kayıt §1: sabit, 22; tek kaynak uygulama/gozPozlari.ts — V1 aynılarını kullanır) ──
+type Poz = GozPozu;
 const OVA: LevelTanimi = JSON.parse(fs.readFileSync("world/level/ova/ova.level.json", "utf8"));
-const v = gecitVarisi(OVA.gecitler![0]!, levelYuksekligi(OVA)).konum;
-for (const [y, a] of YONLER) pozlar.push({ yer: "ova", ad: `ofis çıkışı ${y}`, x: v.x, z: v.z, yaw: a });
-for (const [y, a] of YONLER) pozlar.push({ yer: "ova", ad: `ova merkezi ${y}`, x: 0, z: 0, yaw: a });
-pozlar.push({ yer: "ova", ad: "(15,-5) -X", x: 15, z: -5, yaw: -Math.PI / 2 }, { yer: "ova", ad: "(15,-5) +Z", x: 15, z: -5, yaw: 0 });
+const pozlar: Poz[] = [...odaPozlari(tumCapalar()), ...ovaPozlari(gecitVarisi(OVA.gecitler![0]!, levelYuksekligi(OVA)).konum)];
 
 // ── başsız Chrome + CDP ──
 const port = 9300 + Math.floor(Math.random() * 400);

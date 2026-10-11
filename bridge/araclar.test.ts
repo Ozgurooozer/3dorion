@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { araclariUret, cagriyiNiyete, turCoz, yuzeyMaliyeti, ARAC_TABLOSU } from "./araclar.ts";
-import { POZLAR } from "../protocol/niyet.ts";
+import { POZLAR, SORULAR } from "../protocol/niyet.ts";
 
 // Elle tutulan liste: protokole yeni tür eklenip araç tablosuna eklenmezse
 // test kırmızı yanar. Yeni yeteneğin modele görünmez kalmasını engeller.
@@ -85,8 +85,8 @@ test("araç yüzeyi token bütçesi makul", () => {
 // o çağrının PROTOKOL DOĞRULAMASINDAN geçtiği ayrıca sınanmalı: `onumde`
 // sorusu protokole sonradan eklendi ve iki taraf ayrı dosyalarda.
 
-test("dunya_sor dört sorunun HEPSİ için geçerli niyet üretir", () => {
-  for (const ne of ["onumde", "yakin", "oyuncu", "dunya"]) {
+test("dunya_sor protokolün bütün soruları için geçerli niyet üretir (görme `gor` dahil)", () => {
+  for (const ne of SORULAR) {
     const d = cagriyiNiyete("dunya_sor", { ne });
     assert.ok(d.ok, `${ne} reddedildi: ${d.ok ? "" : d.hata}`);
     assert.equal(d.deger.tur, "sor");

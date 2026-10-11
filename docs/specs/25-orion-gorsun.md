@@ -171,3 +171,19 @@ e2b. İkisi de kalırsa görme açık kalır ama varsayılan model seçilmez; so
 (B2/B3 ova'da sınanır, kanıtı zayıf). B1/B2 ad eşleşmesi metin içinde arama — çekim ekleri ("monitörde") kökü içerdiği
 için sayılır; "masa" gibi kısa adlar başka sözcüğün içinde yanlış eşleşebilir (kayıtta elle bakılır, ölçüt değişmez).
 Betimin DOĞRULUĞU (ışık/renk gerçekten öyle mi) otomatik ölçülmez — nitel, Ozyn kayda bakar.
+
+## 8. Faz 2 uygulandı — ilk canlı deneme (Ozyn, elle; ön kayıt DIŞI, §7 henüz koşulmadı)
+Kod: `sor { ne: "gor" }` (protokol `SORULAR` tek kaynak: araç şeması, `BAK:` satırı, doğrulayıcı ondan türer) →
+`uygulama/niyetYurutucu.ts` `gozleBak` (algı `dunya` + `oyuncu` metni, `orionKaresi`, aynı anda tek bakış; model
+çalışmazsa `gordum` "Gözlerin şu an çalışmıyor (…). Algın: …") → `bridge/goz.ts` `GozModeli` (Ollama `/api/chat` +
+görüntü, `?goz=`, varsayılan e4b) → `gordum` "You looked (with your eyes)". Ölçüm senaryosu `3dorion.bat gozdene`.
+Testler +26 [TEST]; iki bozma denemesi (yedek metin, doğrulayıcı) yakalandı.
+
+Ozyn'in ilk denemesi (2026-10-11 18:10, Haiku beyin) [ÖLÇÜLDÜ, karar kaydı]: "ne görüyorsun" → Haiku `sor dunya`
+seçti, "gözünle bak" → `bak` (görme hiç tetiklenmedi). İkinci denemede üç soru da `gor`a gitti: oda "pembe ışıklar,
+pencereden mor-pembe şehir, yönetim terminali ve monitörler önümde"; ova "mor, yıldızlı gök, ufukta silüetler,
+çimenlik" (gece tutarlı). Bakış süresi ilk ~10 sn (yükleme), sonra 1,9 ve 1,8 sn. Sorunlar: Haiku Gemma'nın
+söylemediği renkleri ekledi ("masa açık renk ahşap, sandalye koyu gri"); Gemma kişi kaydırdı ("senden solunda");
+"ağaçlar arasında hareketlilik var gibi" muhtemel uydurma. Yerel beyin `ornith-32k` (6,3 GB) seçiliyken Gemma e4b
+(6,6 GB) aynı anda sığmaz: her bakış model değiş tokuşu. Ayrı bulgu (spec 24 artığı): ovada boşta bakma davranışı
+odanın `pencere` çapasını istiyor → "bilinmeyen çapa" hatası beyni boşuna uyandırıyor.

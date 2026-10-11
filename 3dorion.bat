@@ -24,6 +24,7 @@ rem    3dorion.bat eylemdene  otur / bana gel / bilgisayari ac / tahtaya git (sp
 rem    3dorion.bat baglamdene temiz baglam (spec 16): neredesin / neredeydin / ne konusmustuk
 rem    3dorion.bat takipdene  "beni takip et": Ozyn uzaklasinca Orion yanina geliyor mu
 rem    3dorion.bat kapidene   ofisin kapisindan ovaya ve geri: E, kararma, Orion yaninda (spec 24)
+rem    3dorion.bat gozdene    Orion gozuyle bakiyor: gorme algiyla birlesiyor mu (spec 25 V1; ORION_GOZ=model)
 rem    3dorion.bat mikrofon   Orion'u MIKROFONLA dene: V tusunu basili tut, Ingilizce konus (Nemotron Speech)
 rem    3dorion.bat zihindene  zihin duvari panelleri (sema + gunluk) gozle dogrulanir
 rem    3dorion.bat admindene  yonetim terminali gercek kabuk mu, Orion'a siziyor mu
@@ -89,6 +90,7 @@ if /i "%MOD%"=="mikrofon" goto :mikrofon
 if /i "%MOD%"=="baglamdene" goto :baglamdene
 if /i "%MOD%"=="takipdene" goto :takipdene
 if /i "%MOD%"=="kapidene" goto :kapidene
+if /i "%MOD%"=="gozdene" goto :gozdene
 if /i "%MOD%"=="tahtabeyin" goto :tahtabeyin
 if /i "%MOD%"=="becerdene" goto :becerdene
 if /i "%MOD%"=="gelistir" goto :gelistir
@@ -211,6 +213,16 @@ echo   Gerekli: python + transformers + librosa + sounddevice (tools/nemotron-di
 call npx vite build
 if errorlevel 1 goto :hata
 set "ORION_MIKROFON=1"
+call npx electron .
+goto :son
+
+:gozdene
+echo [gozdene] Orion gozuyle bakiyor: 22 poz, gorme algiyla birlesiyor mu (spec 25 V1)
+call npx vite build
+if errorlevel 1 goto :hata
+set "ORION_GOZDENE=1"
+set "ORION_SMOKE=1"
+set "ORION_SMOKE_MS=300000"
 call npx electron .
 goto :son
 

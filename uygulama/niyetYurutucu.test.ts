@@ -21,6 +21,8 @@ function sahneKur(ayar: {
   bedenCevabi?: (n: Niyet) => { durum: NiyetSonucu["durum"]; varis?: Vec3 } | null;
   /** Orion'un bulunduğu yerin çapaları (spec 24); verilmezse yürütücü odayı varsayar. */
   capalar?: readonly Capa[];
+  /** Görme (spec 25 Faz 2): verilirse göz bağlı; `gor` modelin cevabı ya da fırlattığı. */
+  goz?: { kare?: string | null; gor: (png: string, algi: string) => Promise<string> };
 } = {}) {
   const kayit = {
     bedeneGiden: [] as { n: Niyet; id: string }[],
@@ -30,6 +32,7 @@ function sahneKur(ayar: {
     onerilen: [] as string[],
     panelCizildi: 0,
     gordumBildirildi: 0,
+    gozeGiden: [] as { png: string; algi: string }[],
   };
   let konum = ayar.konum ?? TAHTA_ONU;
   const dinleyiciler = new Set<(s: NiyetSonucu) => void>();
@@ -61,11 +64,15 @@ function sahneKur(ayar: {
     },
     sema: { vur: () => {} },
     gunluk: { ekle: () => {} },
-    algiSor: () => ({ metin: "tahta görünüyor", maliyet: 15, kirpildi: false }),
+    algiSor: (ne) => ({ metin: ne === "oyuncu" ? "Ozyn yanında" : "tahta görünüyor", maliyet: 15, kirpildi: false }),
     altyazi: () => {},
     onayPaneliCiz: () => { kayit.panelCizildi++; },
     gordumBildir: () => { kayit.gordumBildirildi++; },
     ...(ayar.capalar ? { orionCapalari: () => ayar.capalar! } : {}),
+    ...(ayar.goz ? { goz: {
+      kare: async () => (ayar.goz!.kare === undefined ? "UE5H" : ayar.goz!.kare),
+      gor: (png: string, algi: string) => { kayit.gozeGiden.push({ png, algi }); return ayar.goz!.gor(png, algi); },
+    } } : {}),
   };
   return { kayit, y: niyetYurutucusuKur(b) };
 }
@@ -150,6 +157,90 @@ test("sor `gordum` geldiğini bildirir", () => {
   const { kayit, y } = sahneKur();
   y.niyetiYurut({ tur: "sor", ne: "etrafim" }, "n1");
   assert.equal(kayit.gordumBildirildi, 1);
+});
+
+// ── GÖRME (spec 25 Faz 2): algı + kare → görme modeli → `gordum` ──
+const GOREN = { gor: async () => "Oda loş, tahta beyaz parlıyor." };
+
+test("sor gor kareyi görme modeline verir", async () => {
+  const { kayit, y } = sahneKur({ goz: GOREN });
+  y.niyetiYurut({ tur: "sor", ne: "gor" }, "n1");
+  await bekleBiraz();
+  assert.deepEqual(kayit.gozeGiden.map((g) => g.png), ["UE5H"]);
+});
+
+test("sor gor algıyı (dünya + Ozyn) modele bağlam olarak verir", async () => {
+  const { kayit, y } = sahneKur({ goz: GOREN });
+  y.niyetiYurut({ tur: "sor", ne: "gor" }, "n1");
+  await bekleBiraz();
+  assert.equal(kayit.gozeGiden[0]?.algi, "tahta görünüyor. Ozyn: Ozyn yanında");
+});
+
+test("sor gor modelin betimini beyne `gordum` (gor) olarak verir", async () => {
+  const { kayit, y } = sahneKur({ goz: GOREN });
+  y.niyetiYurut({ tur: "sor", ne: "gor" }, "n1");
+  await bekleBiraz();
+  assert.deepEqual(kayit.kopruAlgi, [{ tur: "gordum", ne: "gor", metin: "Oda loş, tahta beyaz parlıyor." }]);
+});
+
+test("sor gor niyeti `bitti` ile kapatır", async () => {
+  const { kayit, y } = sahneKur({ goz: GOREN });
+  y.niyetiYurut({ tur: "sor", ne: "gor" }, "n1");
+  await bekleBiraz();
+  assert.deepEqual(kayit.kopruSonuc.map((s) => [s.niyet_id, s.durum]), [["n1", "bitti"]]);
+});
+
+test("model çalışmazsa `gordum` dürüst: gözlerin çalışmıyor + algı", async () => {
+  const { kayit, y } = sahneKur({ goz: { gor: async () => { throw new Error("model yok"); } } });
+  y.niyetiYurut({ tur: "sor", ne: "gor" }, "n1");
+  await bekleBiraz();
+  assert.equal(kayit.kopruAlgi[0]?.metin, "Gözlerin şu an çalışmıyor (model yok). Algın: tahta görünüyor. Ozyn: Ozyn yanında");
+});
+
+test("model çalışmazsa niyet sebebiyle `hata` kapanır", async () => {
+  const { kayit, y } = sahneKur({ goz: { gor: async () => { throw new Error("model yok"); } } });
+  y.niyetiYurut({ tur: "sor", ne: "gor" }, "n1");
+  await bekleBiraz();
+  assert.deepEqual(kayit.kopruSonuc, [{ niyet_id: "n1", durum: "hata", not: "model yok" }]);
+});
+
+test("göz bağlı değilse `gordum` bunu söyler", async () => {
+  const { kayit, y } = sahneKur();
+  y.niyetiYurut({ tur: "sor", ne: "gor" }, "n1");
+  await bekleBiraz();
+  assert.match(kayit.kopruAlgi[0]?.metin ?? "", /^Gözlerin şu an çalışmıyor \(gözün bağlı değil\)/);
+});
+
+test("kare yoksa (beden hazır değil) modele gidilmez", async () => {
+  const { kayit, y } = sahneKur({ goz: { ...GOREN, kare: null } });
+  y.niyetiYurut({ tur: "sor", ne: "gor" }, "n1");
+  await bekleBiraz();
+  assert.equal(kayit.gozeGiden.length, 0);
+});
+
+test("bakarken ikinci sor gor `zaten bakıyorum` ile kapanır", async () => {
+  const { kayit, y } = sahneKur({ goz: GOREN });
+  y.niyetiYurut({ tur: "sor", ne: "gor" }, "n1");
+  y.niyetiYurut({ tur: "sor", ne: "gor" }, "n2");
+  await bekleBiraz();
+  assert.deepEqual(kayit.kopruSonuc.find((s) => s.niyet_id === "n2"), { niyet_id: "n2", durum: "hata", not: "zaten bakıyorum" });
+});
+
+test("bakış bitince yeniden bakılabilir", async () => {
+  const { kayit, y } = sahneKur({ goz: GOREN });
+  y.niyetiYurut({ tur: "sor", ne: "gor" }, "n1");
+  await bekleBiraz();
+  y.niyetiYurut({ tur: "sor", ne: "gor" }, "n2");
+  await bekleBiraz();
+  assert.equal(kayit.gozeGiden.length, 2);
+});
+
+test("sonGorme son bakışın algısını ve metnini tutar", async () => {
+  const { y } = sahneKur({ goz: GOREN });
+  y.niyetiYurut({ tur: "sor", ne: "gor" }, "n1");
+  await bekleBiraz();
+  const g = y.sonGorme();
+  assert.deepEqual([g?.niyetId, g?.metin], ["n1", "Oda loş, tahta beyaz parlıyor."]);
 });
 
 test("monitör dışı odaklan o çapaya yürür", () => {

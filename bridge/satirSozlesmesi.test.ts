@@ -3,6 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { yanitAyir, cagrilaraCevir, SOZLESME_TALIMATI } from "./satirSozlesmesi.ts";
+import { SORULAR } from "../protocol/niyet.ts";
 
 test("düz cevap söz olur, eylem üretmez", () => {
   const a = yanitAyir("Ekranda bir hata var, bakıyorum.");
@@ -142,8 +143,8 @@ test("BAK bilinmeyen soruyu REDDEDER — protokole gereksiz tur attırmaz", () =
   }
 });
 
-test("BAK dört geçerli soruyu da tanır", () => {
-  for (const q of ["onumde", "yakin", "oyuncu", "dunya"]) {
+test("BAK protokolün bütün sorularını tanır (görme `gor` dahil)", () => {
+  for (const q of SORULAR) {
     assert.equal(yanitAyir(`x\nBAK: ${q}`).bak, q);
   }
   // Büyük/küçük harf ve noktalama toleransı.
@@ -157,6 +158,6 @@ test("BAK çağrı sırasında EN ÖNDE — bilgi eylemden önce gelir", () => {
 });
 
 test("sözleşme talimatı BAK'ı öğretir ve örnekler", () => {
-  assert.match(SOZLESME_TALIMATI, /BAK: <onumde\|yakin\|oyuncu\|dunya>/);
+  assert.match(SOZLESME_TALIMATI, /BAK: <onumde\|yakin\|oyuncu\|dunya\|gor>/);
   assert.match(SOZLESME_TALIMATI, /BAK: onumde/, "ornek de olmali");
 });
