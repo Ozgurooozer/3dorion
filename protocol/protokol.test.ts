@@ -228,3 +228,15 @@ test("GERİLEME: her araç türü doğrulayıcı tarafından TANINIR", () => {
     assert.ok(d.ok, `'${tur}' dogrulayici tarafindan reddedildi: ${d.ok ? "" : d.hata}`);
   }
 });
+
+test("hatirla: anahtar küçültülür ve boşluk altçizgi olur; değer kırpılır", () => {
+  const r = niyetDogrula({ tur: "hatirla", anahtar: "  Favori Renk ", deger: "  yeşil  " });
+  assert.deepEqual(r, { ok: true, deger: { tur: "hatirla", anahtar: "favori_renk", deger: "yeşil" } });
+});
+
+test("hatirla: boş anahtar, boş değer ve fazla uzun değer reddedilir (ham söz torbası geri gelmesin)", () => {
+  assert.equal(niyetDogrula({ tur: "hatirla", anahtar: "", deger: "x" }).ok, false);
+  assert.equal(niyetDogrula({ tur: "hatirla", anahtar: "k", deger: "" }).ok, false);
+  const uzun = niyetDogrula({ tur: "hatirla", anahtar: "k", deger: "x".repeat(201) });
+  assert.deepEqual([uzun.ok, !uzun.ok && /çok uzun/.test(uzun.hata)], [false, true]);
+});

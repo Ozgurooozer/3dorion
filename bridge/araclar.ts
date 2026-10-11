@@ -119,6 +119,20 @@ export const ARAC_TABLOSU: Record<NiyetTur, Omit<AracTanimi, "ad">> = {
     sema: { type: "object", properties: { capa: { type: "string" } }, required: ["capa"] },
   },
   dur: { aciklama: "Immediately stop everything you are walking and moving.", sema: { type: "object", properties: {} } },
+  hatirla: {
+    // Spec 26 F3: saklanacak şey DAMITILMIŞ olgu, ham söz değil. Aynı anahtar eskisini günceller (çelişkide yenisi kazanır).
+    aciklama:
+      "Remember a LASTING fact about Ozyn or the work (his tools, likes, decisions, how he wants things done), " +
+      "as a short sentence. Not for commands or small talk. Reuse an existing `anahtar` to update that fact.",
+    sema: {
+      type: "object",
+      properties: {
+        anahtar: { type: "string", description: "Short topic id, e.g. favori_renk, terminal_araci." },
+        deger: { type: "string", description: "The fact, one short sentence (at most 200 characters)." },
+      },
+      required: ["anahtar", "deger"],
+    },
+  },
   sor: {
     // Orion odayı BURADAN görür. Cevap yalnızca bulunduğu yerden GÖRÜLEBİLEN
     // şeyleri içerir (mind/algiHizmeti.ts): duvarın arkası bilinmez.

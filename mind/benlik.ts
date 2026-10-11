@@ -63,7 +63,7 @@ export function niyetOzeti(n: Niyet): string {
 }
 
 /** Sonucu beklenmeyen, anlık niyetler: "yapıyorum"a girmez. */
-const ANLIK: ReadonlySet<NiyetTur> = new Set(["soyle", "sor"]);
+const ANLIK: ReadonlySet<NiyetTur> = new Set(["soyle", "sor", "hatirla"]);
 
 export class AnlikBenlik {
   private _simdi: () => number;

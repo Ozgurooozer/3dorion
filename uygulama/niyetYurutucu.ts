@@ -42,6 +42,8 @@ export interface YurutucuBaglami {
    */
   komutKipi?(): KomutKipi;
   otomatikOnay?(): void;
+  /** `hatirla` niyeti (spec 26 F3): olguyu kalıcı hafızaya yazar. Verilmezse hafıza kapalı sayılır. */
+  olguHatirla?(anahtar: string, deger: string): "yeni" | "guncellendi" | "ayni" | null;
   /** `sor` cevabı beyne gitti (`bakdene` yedeği: zincir kendiliğinden işledi mi?). */
   gordumBildir(): void;
   /**
@@ -110,6 +112,15 @@ export function niyetYurutucusuKur(b: YurutucuBaglami): NiyetYurutucu {
         return;
       }
       tahtayaYaz(n, id);
+      return;
+    }
+
+    // `hatirla` bedene gitmez: damıtılmış olgu kalıcı hafızaya yazılır (aynı anahtar eskisini günceller).
+    if (n.tur === "hatirla") {
+      const s = b.olguHatirla?.(n.anahtar, n.deger) ?? null;      // null: hafıza yok/kapalı — "hatırladım" yalanı söylenmez
+      if (!s) { b.kopru()?.sonuc({ niyet_id: id, durum: "hata", not: "memory is not available" }); return; }
+      b.gunluk.ekle("bilgi", "hafıza", `hatırladı (${s}): ${n.anahtar} = ${n.deger}`);
+      b.kopru()?.sonuc({ niyet_id: id, durum: "bitti", not: `Remembered (${s}).` });
       return;
     }
 

@@ -2,7 +2,7 @@
 "use strict";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { Hafiza, kelimeIlgisi, kuralOnemi, BOZULMA, gozlemAnisiMi, cekmecesi } from "./hafiza.ts";
+import { Hafiza, kelimeIlgisi, kuralOnemi, BOZULMA, gozlemAnisiMi, cekmecesi, OLGU_AZAMI } from "./hafiza.ts";
 
 function saatli(baslangic = 1_000_000) {
   let t = baslangic;
@@ -341,4 +341,60 @@ test("budama toplam kapasiteyi aşmaz", () => {
   const h = new Hafiza({ kapasite: 10, simdi: saatli().simdi });
   for (let i = 0; i < 30; i++) h.ekle(`terminal ${i}`, "terminal", 5);
   assert.equal(h.sayi, 10);
+});
+
+// ── OLGU çekmecesi (spec 26 F3) ─────────────────────────────────────────────
+
+test("olgu: aynı anahtarla yeni değer ESKİSİNİN YERİNE geçer (çelişkide yenisi kazanır), ikisi yan yana durmaz", () => {
+  const h = new Hafiza();
+  h.olguEkle("favori_renk", "Ozyn'in en sevdiği renk mavi.");
+  assert.equal(h.olguEkle("favori_renk", "Ozyn'in en sevdiği renk yeşil."), "guncellendi");
+  assert.deepEqual(h.olgular(), [{ anahtar: "favori_renk", metin: "Ozyn'in en sevdiği renk yeşil." }]);
+});
+
+test("olgu: aynı anahtar + aynı değer 'ayni' döner, çoğalmaz; farklı anahtar yeni olgu", () => {
+  const h = new Hafiza();
+  assert.equal(h.olguEkle("terminal_araci", "Ozyn terminalde claude kullanır."), "yeni");
+  assert.equal(h.olguEkle("terminal_araci", "Ozyn terminalde claude kullanır."), "ayni");
+  h.olguEkle("diger_arac", "Ozyn opencode da dener.");
+  assert.equal(h.olgular().length, 2);
+});
+
+test("olgu: anahtar büyük/küçük harften bağımsız (Favori_Renk = favori_renk)", () => {
+  const h = new Hafiza();
+  h.olguEkle("Favori_Renk", "mavi");
+  assert.equal(h.olguEkle("favori_renk", "yeşil"), "guncellendi");
+});
+
+test("olgu: bağlama en yeniden eskiye girer ve karakter sınırını AŞMAZ (yarım olgu yok)", () => {
+  let t = 1_000;
+  const h = new Hafiza({ simdi: () => (t += 1000) });
+  h.olguEkle("a", "x".repeat(300)); h.olguEkle("b", "y".repeat(300)); h.olguEkle("c", "z".repeat(300));
+  const o = h.olgular(700);
+  assert.deepEqual(o.map((s) => s.metin[0]), ["z", "y"]);      // en yeni iki tane; üçüncü 900 kr olurdu
+});
+
+test("olgu: tavan aşılınca EN ESKİ olgu gider, yeniler kalır", () => {
+  let t = 1_000;
+  const h = new Hafiza({ simdi: () => (t += 1000), kapasite: 500 });
+  for (let i = 0; i < OLGU_AZAMI + 1; i++) h.olguEkle(`k${i}`, `olgu ${i}`);
+  const o = h.olgular(100_000).map((x) => x.metin);
+  assert.deepEqual([o.length, o.includes("olgu 0"), o.includes(`olgu ${OLGU_AZAMI}`)], [OLGU_AZAMI, false, true]);
+});
+
+test("olgu: dök → yükle anahtarı korur (yeniden başlatınca güncelleme hâlâ çalışır)", () => {
+  const h = new Hafiza();
+  h.olguEkle("favori_renk", "mavi");
+  const h2 = new Hafiza();
+  h2.yukle(h.dok());
+  assert.equal(h2.olguEkle("favori_renk", "yeşil"), "guncellendi");
+  assert.deepEqual(h2.olgular(), [{ anahtar: "favori_renk", metin: "yeşil" }]);
+});
+
+test("olgu çekmecesi kendi payıyla budanır: konuşma yağmuru olguları atmaz", () => {
+  let t = 1_000;
+  const h = new Hafiza({ simdi: () => (t += 1000), kapasite: 100 });
+  h.olguEkle("renk", "yeşil");
+  for (let i = 0; i < 300; i++) h.ekle(`söz numara ${i}`, "konusma", 8);
+  assert.deepEqual(h.olgular().map((x) => x.metin), ["yeşil"]);
 });

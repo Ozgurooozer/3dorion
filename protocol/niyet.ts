@@ -63,7 +63,16 @@ export type Niyet =
    */
   | { tur: "komut";    metin: string; gerekce: string }
   /** Salt-okunur sorgu: dünya durumunu istemek. Yanıt `algi: "gordum"`. */
-  | { tur: "sor";      ne: SorKonusu };
+  | { tur: "sor";      ne: SorKonusu }
+  /**
+   * Kalıcı bir OLGU hatırla (spec 26 F3): Ozyn'in araçları, tercihleri, kararları. `anahtar` konuyu adlandırır
+   * ("favori_renk"); AYNI anahtarla yeni olgu eskisini GÜNCELLER (çelişki çözümü: yenisi kazanır).
+   */
+  | { tur: "hatirla";  anahtar: string; deger: string };
+
+/** Olgu sınırları: kısa ve damıtılmış kalsın (ham söz torbası geri dönmesin). */
+export const OLGU_ANAHTAR_SINIRI = 40;
+export const OLGU_DEGER_SINIRI = 200;
 
 /**
  * `sor`un konuları — araç şeması, satır sözleşmesi (`BAK:`) ve doğrulayıcı BURADAN türer (önce dört dosyada ayrı

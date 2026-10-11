@@ -129,3 +129,32 @@ test("Ozyn aynı turda konuştuysa `sor` aracı yerinde", async () => {
   await bekle(25);
   assert.equal(b.gordugu.at(-1)!.araclar.some((a) => a.ad === "dunya_sor"), true);
 });
+
+test("olgular Ozyn'in konuştuğu turda bağlama girer (etiketli, en yeni önce), hafıza kipi ne olursa olsun (spec 26 F3)", async () => {
+  const { k, soyle } = kur();
+  k.olguHatirla("terminal_araci", "Ozyn terminalde claude kullanır.");
+  const g = await soyle("merhaba");
+  assert.deepEqual(g.anilar, ["[fact:terminal_araci] Ozyn terminalde claude kullanır."]);
+});
+
+test("olgular olay uyanışında girmez (yalnız konuşma turunda)", async () => {
+  const { k, b } = kur();
+  k.olguHatirla("terminal_araci", "Ozyn terminalde claude kullanır.");
+  k.algi({ tur: "olay", ad: "kapi_acildi" });
+  await bekle(25);
+  assert.deepEqual(b.gordugu.at(-1)?.anilar ?? [], []);
+});
+
+test("temiz sohbet kipinde olgular da girmez", async () => {
+  const { k, soyle } = kur();
+  k.olguHatirla("terminal_araci", "Ozyn terminalde claude kullanır.");
+  await soyle("temiz sohbet");
+  assert.deepEqual((await soyle("merhaba")).anilar, []);
+});
+
+test("güncellenen olgu bağlamda ESKİ değerle birlikte durmaz", async () => {
+  const { k, soyle } = kur();
+  k.olguHatirla("renk", "Ozyn'in en sevdiği renk mavi.");
+  k.olguHatirla("renk", "Ozyn'in en sevdiği renk yeşil.");
+  assert.deepEqual((await soyle("merhaba")).anilar, ["[fact:renk] Ozyn'in en sevdiği renk yeşil."]);
+});

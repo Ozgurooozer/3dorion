@@ -234,7 +234,7 @@ export const REFLEKS_ZAMAN_ASIMI_MS = 30_000;
 export { HAREKET_OLAYLARI } from "../protocol/algi.ts";
 
 /** Bedeni hareket ettirmeyen niyetler: eylem sırasına girmez, hemen gider. */
-export const SOZ_NIYETLERI: ReadonlySet<NiyetTur> = new Set(["soyle", "sor"]);
+export const SOZ_NIYETLERI: ReadonlySet<NiyetTur> = new Set(["soyle", "sor", "hatirla"]);
 
 /**
  * İŞ niyetleri (spec 16 F2): durum defterinin "yapıyor / son iş" satırına girenler. Bakış, jest,

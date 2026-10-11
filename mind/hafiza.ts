@@ -22,7 +22,7 @@
 // SAF: Babylon yok, ağ yok, zaman dışarıdan verilir.
 "use strict";
 
-export type AniTuru = "konusma" | "olay" | "terminal" | "sonuc" | "dusunce";
+export type AniTuru = "konusma" | "olay" | "terminal" | "sonuc" | "dusunce" | "olgu";
 
 export interface Ani {
   metin: string;
@@ -33,6 +33,8 @@ export interface Ani {
   olusma: number;
   /** Son ERİŞİM anı (ms) — recency bundan hesaplanır, oluşmadan değil. */
   sonErisim: number;
+  /** Yalnız `olgu` anılarında: konu kimliği. Aynı anahtarla yeni olgu eskisini GÜNCELLER (spec 26 F3). */
+  anahtar?: string;
 }
 
 /**
@@ -44,10 +46,11 @@ export interface Ani {
  *   ders     başarısızlıklar ("hata: tahtaya oturulmaz") — tekrarlanmasın diye hatırlanan
  *   olay     geri kalan (süzgeçten sonra pratikte boş; eski kayıtlar için)
  */
-export type Cekmece = "konusma" | "is" | "ders" | "olay";
-export const CEKMECELER: readonly Cekmece[] = ["konusma", "is", "ders", "olay"];
+export type Cekmece = "konusma" | "is" | "ders" | "olay" | "olgu";
+export const CEKMECELER: readonly Cekmece[] = ["konusma", "is", "ders", "olay", "olgu"];
 
 export function cekmecesi(a: Pick<Ani, "tur" | "metin">): Cekmece {
+  if (a.tur === "olgu") return "olgu";
   if (a.tur === "konusma") return "konusma";
   if (a.tur === "terminal") return "is";
   if (a.tur === "sonuc") return /^hata\b/.test(a.metin) ? "ders" : "is";
@@ -59,7 +62,11 @@ export function cekmecesi(a: Pick<Ani, "tur" | "metin">): Cekmece {
  * tablosuyla yapılıyordu: gürültü bir kez şişince gerçek sözleri atabiliyordu. Pay, bir çekmecenin
  * öbürünün yerini YEMESİNİ yapısal olarak engeller. Toplam = 1.
  */
-export const CEKMECE_PAYI: Readonly<Record<Cekmece, number>> = { konusma: 0.5, is: 0.2, ders: 0.2, olay: 0.1 };
+export const CEKMECE_PAYI: Readonly<Record<Cekmece, number>> = { konusma: 0.5, is: 0.15, ders: 0.15, olay: 0.05, olgu: 0.15 };
+
+/** Olgu çekmecesinin tavanı (damıtılmış bilgi: az ve kısa) ve bağlama giren en çok karakter. */
+export const OLGU_AZAMI = 40;
+export const OLGU_BAGLAM_KARAKTERI = 700;
 
 export interface HafizaAyari {
   /** Bu sayıyı aşınca en düşük skorlular atılır. Tel de olabilir. */
@@ -240,11 +247,52 @@ export class Hafiza {
         // çekilir; yoksa tazelik hesabı negatif süre görür ve bozulur.
         olusma: saglamZaman(a.olusma, t),
         sonErisim: saglamZaman(a.sonErisim ?? a.olusma, t),
+        ...(typeof a.anahtar === "string" && a.anahtar ? { anahtar: a.anahtar } : {}),
       });
       n++;
     }
     this._budama();
     return n;
+  }
+
+  /**
+   * OLGU kaydet (spec 26 F3): damıtılmış, kalıcı bilgi. AYNI anahtarla yeni değer eskisinin yerine geçer (çelişkide
+   * YENİSİ kazanır; eski değer silinir, çelişen iki olgu bağlamda yan yana durmaz). Tavan `OLGU_AZAMI`: aşılırsa
+   * en eski olgu gider. Dönüş: ne olduğu (günlük/sonuç için).
+   */
+  olguEkle(anahtar: string, deger: string): "yeni" | "guncellendi" | "ayni" {
+    const k = anahtar.trim().toLocaleLowerCase("tr"), d = deger.trim();
+    const t = this._simdi();
+    const mevcut = this._aniler.find((a) => a.tur === "olgu" && a.anahtar === k);
+    if (mevcut) {
+      if (mevcut.metin === d) { mevcut.sonErisim = t; return "ayni"; }
+      mevcut.metin = d; mevcut.olusma = t; mevcut.sonErisim = t;
+      return "guncellendi";
+    }
+    this._aniler.push({ metin: d, tur: "olgu", onem: 9, olusma: t, sonErisim: t, anahtar: k });
+    const olgular = this._aniler.filter((a) => a.tur === "olgu");
+    if (olgular.length > OLGU_AZAMI) {
+      const en = olgular.reduce((x, y) => (x.olusma <= y.olusma ? x : y));
+      this._aniler.splice(this._aniler.indexOf(en), 1);
+    }
+    this._budama();
+    return "yeni";
+  }
+
+  /**
+   * Bağlama girecek olgular (anahtar + metin; anahtar bağlamda `[fact:anahtar]` görünür ki model GÜNCELLEMEDE aynı
+   * anahtarı kullanabilsin): en yeniden eskiye, en çok `karakter` karakter (yarım olgu yok). Getirme
+   * değil: olgular KÜÇÜK ve damıtılmış; ilgi ölçmek yerine hepsi girer (F3-A: tümü ≈ 1,7 bin karakter).
+   * Erişilmiş sayılmaz (tazelik bağlamda görünmekle değil, kullanılmakla yenilenir).
+   */
+  olgular(karakter = OLGU_BAGLAM_KARAKTERI): { anahtar: string; metin: string }[] {
+    const cikti: { anahtar: string; metin: string }[] = [];
+    let toplam = 0;
+    for (const a of this._aniler.filter((x) => x.tur === "olgu").sort((x, y) => y.olusma - x.olusma)) {
+      if (toplam + a.metin.length > karakter) break;
+      cikti.push({ anahtar: a.anahtar ?? "", metin: a.metin }); toplam += a.metin.length;
+    }
+    return cikti;
   }
 
   /** Anıyı kaydet. Aynı metin tekrar gelirse yenisi eklenmez, tazelenir. */
@@ -361,7 +409,7 @@ export class Hafiza {
 
   /** Çekmece başına anı sayısı (panel ve ölçüm için). */
   cekmeceSayilari(): Record<Cekmece, number> {
-    const s: Record<Cekmece, number> = { konusma: 0, is: 0, ders: 0, olay: 0 };
+    const s: Record<Cekmece, number> = { konusma: 0, is: 0, ders: 0, olay: 0, olgu: 0 };
     for (const a of this._aniler) s[cekmecesi(a)]++;
     return s;
   }

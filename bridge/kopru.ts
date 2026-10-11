@@ -246,6 +246,13 @@ export class Kopru {
     }, 3000);
   }
 
+  /** Kalıcı bir olgu kaydet (spec 26 F3; `hatirla` niyeti). Aynı anahtar eskisini günceller. Disk yazımı kısılmış planlanır. */
+  olguHatirla(anahtar: string, deger: string): "yeni" | "guncellendi" | "ayni" {
+    const s = this._hafiza.olguEkle(anahtar, deger);
+    this._hafizaYaz();
+    return s;
+  }
+
   /** Aşama kancası — gözlem amaçlı, hatası akışı kesmez. */
   private _asama(asama: string, not?: string): void {
     try { this._ayar.asamaDinle?.(asama, not); }
@@ -968,7 +975,13 @@ export class Kopru {
     // ZAMAN ETİKETİ (spec 06 K3): anı, şimdiki bilgiden ayırt edilebilsin.
     // Zamansızken canlı kayıtta günler öncesinin "Ozyn komutu reddetti"
     // anısı, model için az önce olmuş gibi duruyordu.
-    const anilar = getirilen.map((x) => `[${oncesiSozu(simdiMs - x.ani.olusma)}] ${x.ani.metin}`);
+    const zamanliAnilar = getirilen.map((x) => `[${oncesiSozu(simdiMs - x.ani.olusma)}] ${x.ani.metin}`);
+    // OLGULAR (spec 26 F3): damıtılmış, kalıcı bilgi ("Ozyn terminalde claude kullanır"). Getirme değil, hepsi (≤ 700 kr):
+    // yalnız Ozyn'in konuştuğu turda ve temiz sohbet DEĞİLKEN — Ozyn'in "sorulmazsa girmez" kuralı (2026-10-08) ham söz
+    // torbası içindi; bu küçük, kürate edilmiş blok konuşmanın zeminidir. Olay uyanışlarında girmez (bağlam şişmesin).
+    const olgular = this._sohbetKipi !== "temiz" && this._turTurleri.has("duydum")
+      ? this._hafiza.olgular().map((o) => `[fact:${o.anahtar}] ${o.metin}`) : [];
+    const anilar = [...olgular, ...zamanliAnilar];
 
     if (anilar.length) console.log(`[HAFIZA] getirilen ${anilar.length}: ${anilar.map((a) => a.slice(0, 60)).join(" | ")}`);
 

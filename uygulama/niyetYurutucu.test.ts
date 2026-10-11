@@ -24,6 +24,8 @@ function sahneKur(ayar: {
   /** Komut kipi (spec 26 F2) ve önerilen komutun risk seviyesi; kip verilmezse eski davranış (hepsi onay bekler). */
   komutKipi?: KomutKipi;
   risk?: RiskSeviyesi;
+  /** `hatirla` (spec 26 F3): olgu yazıcısı; verilmezse hafıza yok. */
+  olguHatirla?: (anahtar: string, deger: string) => "yeni" | "guncellendi" | "ayni" | null;
   bedenCevabi?: (n: Niyet) => { durum: NiyetSonucu["durum"]; varis?: Vec3 } | null;
   /** Orion'un bulunduğu yerin çapaları (spec 24); verilmezse yürütücü odayı varsayar. */
   capalar?: readonly Capa[];
@@ -74,6 +76,7 @@ function sahneKur(ayar: {
     algiSor: (ne) => ({ metin: ne === "oyuncu" ? "Ozyn yanında" : "tahta görünüyor", maliyet: 15, kirpildi: false }),
     altyazi: () => {},
     onayPaneliCiz: () => { kayit.panelCizildi++; },
+    ...(ayar.olguHatirla ? { olguHatirla: ayar.olguHatirla } : {}),
     ...(ayar.komutKipi ? { komutKipi: () => ayar.komutKipi!, otomatikOnay: () => { kayit.otomatikOnay++; } } : {}),
     gordumBildir: () => { kayit.gordumBildirildi++; },
     ...(ayar.capalar ? { orionCapalari: () => ayar.capalar! } : {}),
@@ -299,4 +302,17 @@ test("bedenAdimi: cevap gelmezse süre dolunca hata", async () => {
   const { y } = sahneKur();
   const s = await y.bedenAdimi({ tur: "otur" }, 20);
   assert.equal(s.not, "zaman aşımı");
+});
+
+test("hatirla olguyu hafızaya yazar, bedene gitmez, köprüye 'bitti' döner (spec 26 F3)", () => {
+  const yazilan: [string, string][] = [];
+  const { kayit, y } = sahneKur({ olguHatirla: (a, d) => { yazilan.push([a, d]); return "yeni"; } });
+  y.niyetiYurut({ tur: "hatirla", anahtar: "terminal_araci", deger: "Ozyn terminalde claude kullanır." }, "n1");
+  assert.deepEqual([yazilan, kayit.bedeneGiden.length, kayit.kopruSonuc.map((s) => s.durum)], [[["terminal_araci", "Ozyn terminalde claude kullanır."]], 0, ["bitti"]]);
+});
+
+test("hatirla: hafıza yoksa 'hatırladım' denmez, hata döner", () => {
+  const { kayit, y } = sahneKur();
+  y.niyetiYurut({ tur: "hatirla", anahtar: "k", deger: "v" }, "n1");
+  assert.deepEqual(kayit.kopruSonuc.map((s) => [s.durum, s.not]), [["hata", "memory is not available"]]);
 });

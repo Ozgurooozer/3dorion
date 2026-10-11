@@ -712,6 +712,7 @@ const { niyetiYurut, bedenAdimi, sonGorme } = niyetYurutucusuKur({
   tahta, monitor, onayKapisi, sema, gunluk, algiSor,
   altyazi: (metin, ms) => altyaziGoster(metin, ms),
   onayPaneliCiz,
+  olguHatirla: (anahtar, deger) => kopru?.olguHatirla(anahtar, deger) ?? null,
   komutKipi: () => komutKipiSecimi.kip,
   otomatikOnay: () => onayKarari(true, true),
   gordumBildir: () => { gordumGeldi = true; },

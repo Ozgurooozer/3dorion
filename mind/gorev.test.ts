@@ -14,11 +14,11 @@ import type { Niyet, NiyetTur } from "../protocol/niyet.ts";
 // ── Niyet sınıfları ────────────────────────────────────────────────────────
 
 test("her niyet türü tek bir sınıfta: bedensel tekrar edilir, eşlik eden atlanır, engel beceriyi durdurur", () => {
-  const turler: NiyetTur[] = ["git", "otur", "kalk", "bak", "al", "birak", "dur", "jest", "poz", "odaklan", "soyle", "sor", "yaz", "komut"];
+  const turler: NiyetTur[] = ["git", "otur", "kalk", "bak", "al", "birak", "dur", "jest", "poz", "odaklan", "soyle", "sor", "yaz", "komut", "hatirla"];
   assert.deepEqual(Object.fromEntries(turler.map((t) => [t, niyetSinifi(t)])), {
     git: "bedensel", otur: "bedensel", kalk: "bedensel", bak: "bedensel", al: "bedensel", birak: "bedensel",
     dur: "bedensel", jest: "bedensel", poz: "bedensel", odaklan: "bedensel",
-    soyle: "eslik", sor: "eslik",
+    soyle: "eslik", sor: "eslik", hatirla: "eslik",
     yaz: "engel", komut: "engel",
   });
 });

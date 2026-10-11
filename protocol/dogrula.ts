@@ -4,14 +4,14 @@
 // sayı NaN gelebilir. Dünya tarafı doğrulanmamış hiçbir niyeti işlemez.
 // Bağımlılık yok — elle yazılmış doğrulayıcı (şema kütüphanesi taşımıyoruz).
 "use strict";
-import { POZLAR, JESTLER, SORULAR, type Niyet, type NiyetTur, type SorKonusu } from "./niyet.ts";
+import { POZLAR, JESTLER, SORULAR, OLGU_ANAHTAR_SINIRI, OLGU_DEGER_SINIRI, type Niyet, type NiyetTur, type SorKonusu } from "./niyet.ts";
 import { capaCoz, type Hedef } from "./temel.ts";
 
 export type Sonuc<T> = { ok: true; deger: T } | { ok: false; hata: string };
 
 const TURLER: readonly NiyetTur[] = [
   "poz", "jest", "bak", "git", "otur", "kalk", "soyle",
-  "yaz", "al", "birak", "odaklan", "dur", "sor",
+  "yaz", "al", "birak", "odaklan", "dur", "sor", "hatirla",
   // `komut` BURAYA EKLENMEYİ UNUTMUŞTU ve sessiz bir hata doğurdu:
   // araç tanımı vardı, doğrulayıcı tanımıyordu. Model aracı DOĞRU çağırıyor,
   // köprü "bilinmeyen niyet türü: komut" diyip reddediyordu. Canlı ölçümde
@@ -146,6 +146,16 @@ export function niyetDogrula(ham: unknown): Sonuc<Niyet> {
       if (!SORULAR.includes(ne as never))
         return { ok: false, hata: `sor.ne geçersiz: ${String(ne)} (geçerli: ${SORULAR.join(", ")})` };
       return { ok: true, deger: { tur: "sor", ne: ne as SorKonusu } };
+    }
+
+    case "hatirla": {
+      if (!yazi(o.anahtar)) return { ok: false, hata: "anahtar: boş olmayan konu adı olmalı" };
+      if (!yazi(o.deger)) return { ok: false, hata: "deger: boş olmayan olgu olmalı" };
+      const a = (o.anahtar as string).trim().toLocaleLowerCase("tr").replace(/\s+/g, "_");
+      const d = (o.deger as string).trim();
+      if (a.length > OLGU_ANAHTAR_SINIRI) return { ok: false, hata: `anahtar çok uzun (> ${OLGU_ANAHTAR_SINIRI})` };
+      if (d.length > OLGU_DEGER_SINIRI) return { ok: false, hata: `deger çok uzun (> ${OLGU_DEGER_SINIRI}): kısa, damıtılmış bir olgu yaz` };
+      return { ok: true, deger: { tur: "hatirla", anahtar: a, deger: d } };
     }
 
     case "kalk":   return { ok: true, deger: { tur: "kalk" } };

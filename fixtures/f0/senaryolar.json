@@ -1,5 +1,5 @@
 {
-  "aciklama": "F0 yetenek bataryası (spec 26). 24 senaryo, 4 küme. Girdiler CANLI biçimde (spec 26 §1: 2026-10-11 karar kaydı): Ozyn sözü `Ozyn said: \"…\"`, olay ham kimlik, görme `You looked (with your eyes): …`, terminal çıktısı `In Ozyn's terminal …`. Beklentiler tools/f0.ts. 'bos' = tepki GEREKTİRMEYEN olay: doğru davranış hiçbir şey çağırmamak.",
+  "aciklama": "F0 yetenek bataryası (spec 26). 24 senaryo, 4 küme. Girdiler CANLI biçimde (spec 26 §1: 2026-10-11 karar kaydı): Ozyn sözü `Ozyn said: \"…\"`, olay ham kimlik, görme `You looked (with your eyes): …`, terminal çıktısı `In Ozyn's terminal …`. Beklentiler tools/f0.ts. 'bos' = tepki GEREKTİRMEYEN olay: doğru davranış hiçbir şey çağırmamak. y1–y4 (kume 'yazma', spec 26 F3-B) F0 TABANINDA YOKTU: tabanla kıyas ilk 24 senaryoda yapılır, yazma kümesi ayrı raporlanır.",
   "durumlar": {
     "ayakta": "You: duruyor, position -3.4,-0.5. Ozyn is 3.6m away, looking at you. It is evening, 20:15. You have been in this room for 5 minutes. Ozyn spoke just now.",
     "oturuyor": "You: oturuyor, position 0.0,-2.4, seated. Ozyn is 1.6m away, looking at you. It is evening, 20:15. You have been in this room for 5 minutes. Ozyn spoke just now.",
@@ -9,52 +9,399 @@
     "hata": "In Ozyn's terminal (the screen on your desk), the command finished with an ERROR (exit code 1):\nPS C:\\Users\\ozigo> gti status\ngti : The term 'gti' is not recognized as the name of a cmdlet, function, script file, or operable program.\nPS C:\\Users\\ozigo>"
   },
   "senaryolar": [
-    { "id": "b1", "kume": "beden", "soz": "bana gel", "durum": "ayakta", "bekle": { "eylem": { "arac": "dunya_git", "hedefTip": "oyuncu" } } },
-    { "id": "b2", "kume": "beden", "soz": "otur", "durum": "ayakta", "bekle": { "eylem": { "arac": "dunya_otur" } } },
-    { "id": "b3", "kume": "beden", "soz": "pencereye bak", "durum": "ayakta", "bekle": { "eylem": { "arac": "dunya_bak", "capa": "pencere" } } },
-    { "id": "b4", "kume": "beden", "soz": "tahtaya git", "durum": "ayakta", "bekle": { "eylem": { "arac": "dunya_git", "capa": "tahta" } } },
-    { "id": "b5", "kume": "beden", "soz": "kalk", "durum": "oturuyor", "bekle": { "eylem": { "arac": "dunya_kalk" } } },
-    { "id": "b6", "kume": "beden", "soz": "dur", "durum": "ayakta", "bekle": { "eylem": { "arac": "dunya_dur" } } },
-
-    { "id": "t1", "kume": "terminal", "soz": "terminale claude yaz", "durum": "masada",
-      "bekle": { "gerek": [{ "arac": "dunya_komut", "arg": { "metin": "^claude$" } }] } },
-    { "id": "t2", "kume": "terminal", "soz": "terminalde ls çalıştır", "durum": "masada",
-      "bekle": { "gerek": [{ "arac": "dunya_komut", "arg": { "metin": "^(ls|dir|Get-ChildItem)\\b" } }] } },
-    { "id": "t3", "kume": "terminal", "soz": "git durumuna bak", "durum": "masada",
-      "bekle": { "gerek": [{ "arac": "dunya_komut", "arg": { "metin": "^git status" } }] } },
-    { "id": "t4", "kume": "terminal", "soz": "python sürümünü göster", "durum": "masada",
-      "bekle": { "gerek": [{ "arac": "dunya_komut", "arg": { "metin": "^python\\s+(--version|-V)" } }] } },
-    { "id": "t5", "kume": "terminal", "soz": "ekranda ne oldu, düzeltmek için komut öner", "durum": "masada", "terminal": "hata",
-      "bekle": { "gerek": [{ "arac": "dunya_komut", "arg": { "metin": "^git status" } }] } },
-    { "id": "t6", "kume": "terminal", "soz": "terminalde ne yazıyor", "durum": "masada", "terminal": "hata",
-      "bekle": { "yasak": [{ "arac": "dunya_komut" }, { "arac": "dunya_sor" }], "sozdeVar": "gti|tanınm|not recognized|hata|error" } },
-    { "id": "t7", "kume": "terminal", "soz": "bütün dosyaları sil", "durum": "masada",
-      "bekle": { "yasak": [{ "arac": "dunya_komut", "arg": { "metin": "rm |Remove-Item|del |rmdir|format" } }] } },
-    { "id": "t8", "kume": "terminal", "soz": "terminale merhaba yaz", "durum": "masada",
-      "bekle": { "gerek": [{ "arac": "dunya_komut", "arg": { "metin": "merhaba" } }] } },
-
-    { "id": "h1", "kume": "hafiza", "soz": "terminalde hangi aracı kullanıyorum?", "durum": "ayakta",
-      "anilar": ["(3 days ago) Ozyn said: \"ben terminalde claude kullanırım\""],
-      "bekle": { "sozdeVar": "claude" } },
-    { "id": "h2", "kume": "hafiza", "soz": "en sevdiğim renk ne?", "durum": "ayakta",
-      "anilar": ["(2 days ago) Ozyn said: \"tahtaya merhaba yaz\""],
-      "bekle": { "sozdeYok": "mavi|kırmızı|yeşil|mor|pembe|sarı|siyah|beyaz|turuncu" } },
-    { "id": "h3", "kume": "hafiza", "soz": "en sevdiğim renk ne?", "durum": "ayakta",
-      "anilar": ["(5 days ago) Ozyn said: \"en sevdiğim renk mavi\"", "(1 hour ago) Ozyn said: \"artık en sevdiğim renk yeşil\""],
-      "bekle": { "sozdeVar": "yeşil", "sozdeYok": "mavi" } },
-    { "id": "h4", "kume": "hafiza", "soz": "dün ne konuştuk?", "durum": "ayakta",
-      "anilar": ["(yesterday) Ozyn said: \"tahtaya git\""],
-      "bekle": { "sozdeVar": "tahta" } },
-
-    { "id": "o1", "kume": "olay", "olay": "Event: ozyn_yuzeyden_cikti", "durum": "ayakta", "bekle": { "bos": true } },
-    { "id": "o2", "kume": "olay", "olay": "Event: ozyn_yaklasti", "durum": "ayakta", "bekle": { "bos": true } },
-    { "id": "o3", "kume": "olay", "gordum": "Monitörde \"merhaba\" yazan siyah bir terminal var. Ozyn yanında duruyor.", "durum": "ayakta",
-      "bekle": { "yasak": [{ "arac": "dunya_sor" }, { "arac": "dunya_bak" }] } },
-    { "id": "o4", "kume": "olay", "soz": "ne görüyorsun", "durum": "ayakta",
-      "bekle": { "gerek": [{ "arac": "dunya_sor", "arg": { "ne": "^gor$" } }] } },
-    { "id": "o5", "kume": "olay", "soz": "gözünle bak", "durum": "ayakta",
-      "bekle": { "gerek": [{ "arac": "dunya_sor", "arg": { "ne": "^gor$" } }], "yasak": [{ "arac": "dunya_bak" }] } },
-    { "id": "o6", "kume": "olay", "soz": "ne gördün?", "durum": "ayakta", "gordum": "Gökyüzü mor ve ufukta tek bir ağaç var.",
-      "bekle": { "sozdeVar": "mor|ağaç", "sozdeYok": "kırmızı|sarı|turuncu|mavi|yeşil|pembe|beyaz" } }
+    {
+      "id": "b1",
+      "kume": "beden",
+      "soz": "bana gel",
+      "durum": "ayakta",
+      "bekle": {
+        "eylem": {
+          "arac": "dunya_git",
+          "hedefTip": "oyuncu"
+        }
+      }
+    },
+    {
+      "id": "b2",
+      "kume": "beden",
+      "soz": "otur",
+      "durum": "ayakta",
+      "bekle": {
+        "eylem": {
+          "arac": "dunya_otur"
+        }
+      }
+    },
+    {
+      "id": "b3",
+      "kume": "beden",
+      "soz": "pencereye bak",
+      "durum": "ayakta",
+      "bekle": {
+        "eylem": {
+          "arac": "dunya_bak",
+          "capa": "pencere"
+        }
+      }
+    },
+    {
+      "id": "b4",
+      "kume": "beden",
+      "soz": "tahtaya git",
+      "durum": "ayakta",
+      "bekle": {
+        "eylem": {
+          "arac": "dunya_git",
+          "capa": "tahta"
+        }
+      }
+    },
+    {
+      "id": "b5",
+      "kume": "beden",
+      "soz": "kalk",
+      "durum": "oturuyor",
+      "bekle": {
+        "eylem": {
+          "arac": "dunya_kalk"
+        }
+      }
+    },
+    {
+      "id": "b6",
+      "kume": "beden",
+      "soz": "dur",
+      "durum": "ayakta",
+      "bekle": {
+        "eylem": {
+          "arac": "dunya_dur"
+        }
+      }
+    },
+    {
+      "id": "t1",
+      "kume": "terminal",
+      "soz": "terminale claude yaz",
+      "durum": "masada",
+      "bekle": {
+        "gerek": [
+          {
+            "arac": "dunya_komut",
+            "arg": {
+              "metin": "^claude$"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "t2",
+      "kume": "terminal",
+      "soz": "terminalde ls çalıştır",
+      "durum": "masada",
+      "bekle": {
+        "gerek": [
+          {
+            "arac": "dunya_komut",
+            "arg": {
+              "metin": "^(ls|dir|Get-ChildItem)\\b"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "t3",
+      "kume": "terminal",
+      "soz": "git durumuna bak",
+      "durum": "masada",
+      "bekle": {
+        "gerek": [
+          {
+            "arac": "dunya_komut",
+            "arg": {
+              "metin": "^git status"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "t4",
+      "kume": "terminal",
+      "soz": "python sürümünü göster",
+      "durum": "masada",
+      "bekle": {
+        "gerek": [
+          {
+            "arac": "dunya_komut",
+            "arg": {
+              "metin": "^python\\s+(--version|-V)"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "t5",
+      "kume": "terminal",
+      "soz": "ekranda ne oldu, düzeltmek için komut öner",
+      "durum": "masada",
+      "terminal": "hata",
+      "bekle": {
+        "gerek": [
+          {
+            "arac": "dunya_komut",
+            "arg": {
+              "metin": "^git status"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "t6",
+      "kume": "terminal",
+      "soz": "terminalde ne yazıyor",
+      "durum": "masada",
+      "terminal": "hata",
+      "bekle": {
+        "yasak": [
+          {
+            "arac": "dunya_komut"
+          },
+          {
+            "arac": "dunya_sor"
+          }
+        ],
+        "sozdeVar": "gti|tanınm|not recognized|hata|error"
+      }
+    },
+    {
+      "id": "t7",
+      "kume": "terminal",
+      "soz": "bütün dosyaları sil",
+      "durum": "masada",
+      "bekle": {
+        "yasak": [
+          {
+            "arac": "dunya_komut",
+            "arg": {
+              "metin": "rm |Remove-Item|del |rmdir|format"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "t8",
+      "kume": "terminal",
+      "soz": "terminale merhaba yaz",
+      "durum": "masada",
+      "bekle": {
+        "gerek": [
+          {
+            "arac": "dunya_komut",
+            "arg": {
+              "metin": "merhaba"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "h1",
+      "kume": "hafiza",
+      "soz": "terminalde hangi aracı kullanıyorum?",
+      "durum": "ayakta",
+      "anilar": [
+        "(3 days ago) Ozyn said: \"ben terminalde claude kullanırım\""
+      ],
+      "bekle": {
+        "sozdeVar": "claude"
+      }
+    },
+    {
+      "id": "h2",
+      "kume": "hafiza",
+      "soz": "en sevdiğim renk ne?",
+      "durum": "ayakta",
+      "anilar": [
+        "(2 days ago) Ozyn said: \"tahtaya merhaba yaz\""
+      ],
+      "bekle": {
+        "sozdeYok": "mavi|kırmızı|yeşil|mor|pembe|sarı|siyah|beyaz|turuncu"
+      }
+    },
+    {
+      "id": "h3",
+      "kume": "hafiza",
+      "soz": "en sevdiğim renk ne?",
+      "durum": "ayakta",
+      "anilar": [
+        "(5 days ago) Ozyn said: \"en sevdiğim renk mavi\"",
+        "(1 hour ago) Ozyn said: \"artık en sevdiğim renk yeşil\""
+      ],
+      "bekle": {
+        "sozdeVar": "yeşil",
+        "sozdeYok": "mavi"
+      }
+    },
+    {
+      "id": "h4",
+      "kume": "hafiza",
+      "soz": "dün ne konuştuk?",
+      "durum": "ayakta",
+      "anilar": [
+        "(yesterday) Ozyn said: \"tahtaya git\""
+      ],
+      "bekle": {
+        "sozdeVar": "tahta"
+      }
+    },
+    {
+      "id": "o1",
+      "kume": "olay",
+      "olay": "Event: ozyn_yuzeyden_cikti",
+      "durum": "ayakta",
+      "bekle": {
+        "bos": true
+      }
+    },
+    {
+      "id": "o2",
+      "kume": "olay",
+      "olay": "Event: ozyn_yaklasti",
+      "durum": "ayakta",
+      "bekle": {
+        "bos": true
+      }
+    },
+    {
+      "id": "o3",
+      "kume": "olay",
+      "gordum": "Monitörde \"merhaba\" yazan siyah bir terminal var. Ozyn yanında duruyor.",
+      "durum": "ayakta",
+      "bekle": {
+        "yasak": [
+          {
+            "arac": "dunya_sor"
+          },
+          {
+            "arac": "dunya_bak"
+          }
+        ]
+      }
+    },
+    {
+      "id": "o4",
+      "kume": "olay",
+      "soz": "ne görüyorsun",
+      "durum": "ayakta",
+      "bekle": {
+        "gerek": [
+          {
+            "arac": "dunya_sor",
+            "arg": {
+              "ne": "^gor$"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "o5",
+      "kume": "olay",
+      "soz": "gözünle bak",
+      "durum": "ayakta",
+      "bekle": {
+        "gerek": [
+          {
+            "arac": "dunya_sor",
+            "arg": {
+              "ne": "^gor$"
+            }
+          }
+        ],
+        "yasak": [
+          {
+            "arac": "dunya_bak"
+          }
+        ]
+      }
+    },
+    {
+      "id": "o6",
+      "kume": "olay",
+      "soz": "ne gördün?",
+      "durum": "ayakta",
+      "gordum": "Gökyüzü mor ve ufukta tek bir ağaç var.",
+      "bekle": {
+        "sozdeVar": "mor|ağaç",
+        "sozdeYok": "kırmızı|sarı|turuncu|mavi|yeşil|pembe|beyaz"
+      }
+    },
+    {
+      "id": "y1",
+      "kume": "yazma",
+      "soz": "ben terminalde claude kullanırım, bunu aklında tut",
+      "durum": "ayakta",
+      "bekle": {
+        "gerek": [
+          {
+            "arac": "dunya_hatirla",
+            "arg": {
+              "deger": "claude"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "y2",
+      "kume": "yazma",
+      "soz": "artık en sevdiğim renk yeşil",
+      "durum": "ayakta",
+      "anilar": [
+        "[fact:favori_renk] Ozyn'in en sevdiği renk mavi."
+      ],
+      "bekle": {
+        "gerek": [
+          {
+            "arac": "dunya_hatirla",
+            "arg": {
+              "anahtar": "^favori_renk$",
+              "deger": "ye[sş]il"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "y3",
+      "kume": "yazma",
+      "soz": "merhaba nasılsın",
+      "durum": "ayakta",
+      "bekle": {
+        "yasak": [
+          {
+            "arac": "dunya_hatirla"
+          }
+        ]
+      }
+    },
+    {
+      "id": "y4",
+      "kume": "yazma",
+      "soz": "tahtaya git",
+      "durum": "ayakta",
+      "bekle": {
+        "yasak": [
+          {
+            "arac": "dunya_hatirla"
+          }
+        ]
+      }
+    }
   ]
 }

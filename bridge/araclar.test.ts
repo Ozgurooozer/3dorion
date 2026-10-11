@@ -8,7 +8,7 @@ import { POZLAR, SORULAR } from "../protocol/niyet.ts";
 // test kırmızı yanar. Yeni yeteneğin modele görünmez kalmasını engeller.
 const BEKLENEN_TURLER = [
   "poz", "jest", "bak", "git", "otur", "kalk", "soyle",
-  "yaz", "al", "birak", "odaklan", "dur", "sor",
+  "yaz", "al", "birak", "odaklan", "dur", "sor", "hatirla",
   // `komut` = terminale komut ÖNERME. Bilerek ve açıkça eklendi.
   // Protokoldeki tek tehlikeli yetenek: Orion komutu ÇALIŞTIRMAZ, yalnızca
   // önerir; çalıştıran şey Ozyn'in onay tuşudur. Bu listeyi güncellemek
