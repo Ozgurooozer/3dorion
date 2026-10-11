@@ -36,6 +36,7 @@ import type { Yer } from "./yer/yer.ts";
 import { ODA_YERI } from "./yer/odaYeri.ts";
 import { levelSahnesiKur, type LevelSahnesi } from "./yer/levelSahnesi.ts";
 import { gecitVarisi } from "./yer/levelYeri.ts";
+import { orionGozuKur } from "./avatar/goz.ts";
 import { carpisiyorMu } from "./level/olculer.ts";
 // `?url`: vite dosyayı pakete kopyalar ve adresini verir (Electron file:// yüklemesinde de çözülür).
 import ovaAdresi from "./level/ova/ova.level.json?url";
@@ -247,6 +248,8 @@ void avatarKur({
 // dönüşte ova yıkılır, oda birebir geri gelir. Ozyn ve Orion birlikte geçer; Orion'un kendi başına çıkması C6.
 let disari: LevelSahnesi | null = null;
 let gecisSuruyor = false;
+// Orion'un gözü (spec 25 V0): bugün yalnız ölçüm yüzeyi (`dunya.orionGozu`); beyne bağlanması deney sonucuna bağlı.
+const orionGozu = orionGozuKur(sahne);
 
 async function ovayaCik(): Promise<boolean> {
   if (disari || gecisSuruyor) return false;
@@ -1270,6 +1273,21 @@ const dunyaKancasi = {
   ovayaCik: () => ovayaCik(),
   odayaDon: () => odayaDon(),
   kapidanGec: () => kapidanGec(),
+  /**
+   * Spec 25 V0: Orion'un gözünden kare + o karenin geometrik gerçeği. x/z/yaw verilirse Orion önce oraya konur.
+   * Ölçüm aracı `tools/goz-olc.mjs` kullanır.
+   */
+  async orionGozu(x?: number, z?: number, yaw?: number, en = 896, boy = 504) {
+    if (!orion) return null;
+    const o = orion;
+    if (x !== undefined && z !== undefined && yaw !== undefined) {
+      o.isinla(x, z, yaw);
+      await new Promise<void>((r) => { let n = 0; const g = sahne.onAfterRenderObservable.add(() => { if (++n >= 2) { sahne.onAfterRenderObservable.remove(g); r(); } }); });
+    }
+    const d = o.durum();
+    const bakisYaw = yaw ?? Math.atan2(d.bakis.x, d.bakis.z);
+    return orionGozu.kare(d.konum, bakisYaw, orionYeri, en, boy, (g) => o.gorunur(g && orionYeri === ozynYeri));
+  },
   yer: () => ({ ozyn: ozynYeri.ad, orion: orionYeri.ad, kurulumMs: disari?.kurulumMs ?? null }),
   tahta: {
     yaz: (m: string, temizle = false) => tahta.yaz(m, temizle),

@@ -1,6 +1,6 @@
 # Spec 25 — Orion gerçekten görsün (yerel görme modeli)
 
-> Durum: **V0 ön kaydı** (2026-10-11) — deney koşulmadan ÖNCE yazıldı; sonuç §3'e, ön kayıt değiştirilmeden eklenir.
+> Durum: **V0 koşuldu** (2026-10-11). Ön kayıt (§1) koşudan önce commit edildi (`fb16533`), değiştirilmedi; sonuç §3.
 
 ## 0. Neden
 Ozyn (2026-10-11, spec 24 C3'ten sonra): "elimizde Google Gemma yerel modeli var, iki adet, biri büyük biri küçük;
@@ -52,5 +52,38 @@ modeli doğru söyleyebiliyor mu, ne kadar sürede, ekran kartı belleğine sı�
 - `world/avatar/goz.ts` — Orion'un gözü: kare çekimi + karenin geometrik gerçeği (`dunya.orionGozu`).
 - `tools/goz-olc.mjs` — sürücü: başsız Chrome (geliştirme sunucusu), pozlar, iki model, skor; ham kayıt `docs/olcum/goz-v0.jsonl`.
 
-## 3. Sonuç
-(deneyden sonra)
+## 3. Sonuç [ÖLÇÜLDÜ] (2026-10-11, `node … tools/goz-olc.ts`, ham kayıt `docs/olcum/goz-v0.jsonl`, 22 kare × 2 model)
+**Ön kayıttan sapma:** ön kayıttan SONRA Ozyn ova'yı editörde düzenledi (07:32 kaydı: 8 bina ve Orion'un ofisi silindi,
+iki kablo demeti eklendi, saat geceye alındı). Pozlar aynı kaldı; ova adayları 2'ye indi (ofis kapısı, boru duvarı;
+kablo demeti "detay", Orion görmez) ve ova kareleri GECE. Ova'da yalnız 5 belirgin örnek var — ova sonucu zayıf kanıttır.
+
+| | e2b (4,6B) | e4b (7,5B) |
+|---|---|---|
+| duyarlılık (belirgin → evet) | **0,44** (16/36) | **0,69** (25/36) |
+| — oda / ova | 0,52 (16/31) / 0,00 (0/5) | 0,77 (24/31) / 0,20 (1/5) |
+| yanlış evet (yok → evet) | 0,03 (5/144) | 0,08 (12/144) |
+| gecikme ortancası (en çok) | 1,14 sn (4,5) | 1,66 sn (2,1) |
+| ekran kartı belleği tepesi (uygulama açık) | 5010 MiB | 6346 MiB |
+| bozuk (JSON dışı) yanıt | 0 | 0 |
+
+- **H1 TUTMADI** — e2b duyarlılığı 0,44 < 0,70 (yanlış evet 0,03 eşiğin altında).
+- **H2 TUTTU** — e2b ortancası 1,14 sn ≤ 2,0.
+- **H3 TUTMADI** — e4b duyarlılığı 0,25 yüksek (eşik 0,10) ama ön kayıttaki ikinci koşul "yanlış evet kötü değil"
+  bozuldu (0,03 → 0,08). Kural gereği tutmadı; büyük model daha çok görüyor, daha çok da uyduruyor.
+- **H4 TUTTU** — ikisi de ≤ 7,6 GB. (Ön yoklamadaki "e4b uygulamayla sığmaz" tahminim yanlıştı: tepe 6,3 GB.)
+
+**Nesne başına (yorum, ölçüt değil):**
+- Görsel adı olan nesneleri iyi tanıyor: pencere (e2b 4/5, e4b 5/5), masa (3/4, 4/4), monitör (3/3, 3/3), kapı (2/2,
+  2/2), berjer, raf.
+- Adı ORION'A ÖZGÜ olan ekranları tanımıyor: beyin şeması (0/2, 1/2), beyin günlüğü (0/2, 1/2), yönetim terminali (0/3,
+  0/3). Bu bir görme sorunu değil AD sorunu: model "ekranda akış şeması" görüyor ama "beyin şeması" adını bağlayamaz.
+- Yanlış evetlerin bir kısmı GERÇEĞİN hatası: "ayaklı lamba" karede açıkça duruyor (oda ortası -Z karesi) ama kayıttaki
+  kutusu yalnız lamba başı (0,3 m) — gerçek onu hep "ara/yok" saydı; modeller 2/11 ve 3/11 "evet" dedi.
+- Gece ova'sında ikisi de neredeyse kör: boru duvarı 0/4 ve 1/4; ofis kapısı (gece simsiyah dikdörtgen) 0/1. Betimler
+  doğru ama genel: "yıldızlı gökyüzü, geniş çayır, ufukta geometrik yapılar".
+
+**Karar önerisi (Ozyn'e):** görme bugün aday listesini DOĞRULAMAK için yeterince güvenilir değil (H1). Ama sınır büyük
+ölçüde modelde değil, sorduğumuz ADLARDA ve gerçeğin kutularında. V1 için seçenekler: (a) e4b + soruya görsel tarif
+("beyin şeması — sağ duvarda akış şeması gösteren ekran"), (b) görmeyi doğrulama değil serbest betim olarak kullanmak
+(Orion "ne görüyorsun" deyince betim; adlar geometriden), (c) gerçeğin kutularını görünen modelle hizalamak (lamba).
+Her biri yeni ön kayıt ister.

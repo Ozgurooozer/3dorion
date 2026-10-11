@@ -113,7 +113,9 @@ function ovaYeri() {
   const k = new Map<string, KutuMinMax>();
   for (const n of OVA.nesneler ?? []) {
     const v = boyut.get(n.varlik)!;
-    const [x, y, z] = n.konum, [g, h, d] = v.boyut;
+    // Ölçek: sayı = eşit, [x, y, z] = eksen başına (Ozyn editörde boru duvarını eksen başına büyüttü).
+    const o = typeof n.olcek === "number" ? [n.olcek, n.olcek, n.olcek] : n.olcek;
+    const [x, y, z] = n.konum, [g, h, d] = [v.boyut[0] * o[0]!, v.boyut[1] * o[1]!, v.boyut[2] * o[2]!];
     k.set(n.id!, kutu([x - g / 2, y, z - d / 2], [x + g / 2, y + h, z + d / 2]));
   }
   return levelYeri({
@@ -142,6 +144,8 @@ test("ova'da uzak bir binanın arkasından ofis kapısına yol var", () => {
   const o = ovaYeri(), c = capaBul("kapi", o.capalar)!;
   assert.notEqual(yolBul({ x: 27.38, z: -6 }, { x: c.durak.x, z: c.durak.z }, AVATAR_YARICAP, o), null);
 });
-test("ova'da ofis binası Orion'un nesnelerinde adıyla", () => {
-  assert.ok(ovaYeri().nesneler.some((n) => n.ad === "Orion'un ofisi"));
+// Level'ın İÇERİĞİ (hangi bina nerede) Ozyn'in; bekçi yalnız yapıyı sınar. İlk sürüm "ofis binası var" diyordu —
+// Ozyn binaları silince (2026-10-11) kırıldı; geçidin işlemesi binaya bağlı değil.
+test("ova'da ofis kapısı Orion'un nesnelerinde, çapası kapi", () => {
+  assert.equal(ovaYeri().nesneler.find((n) => n.id === "kapi")?.capa, "kapi");
 });
