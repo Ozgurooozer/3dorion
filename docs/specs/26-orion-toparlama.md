@@ -101,3 +101,18 @@ F0 → F1 → F2 → F3 → F4. F0 olmadan "neler iyi/kötü" konuşması sezgi 
 1. Sıra uygun mu (özellikle F1'in F2'den önce olması)?
 2. Terminal: "burada kullanabilirsin" deyince Orion onaysız çalıştırsın mı, yoksa her komut onaylı kalsın mı?
 3. Hafıza özetini üretmek için oturum sonunda Haiku çağrısı (~ucuz) kabul mü, yoksa yerelde (Gemma) mi?
+
+## 6. F0 ÖN KAYDI (koşudan ÖNCE yazıldı, 2026-10-11)
+
+**Araç:** `tools/f0-olc.ts` (24 senaryo, `fixtures/f0/senaryolar.json`; puanlama `tools/f0.ts`, testli). Girdi canlı
+köprünün kurduğu gibi (talimat, örnekler, 14 araç şeması). Taban = BUGÜNKÜ harness, hiçbir şey değiştirilmeden.
+**Koşular:** yerel qwen2.5:7b, ornith-32k, gemma4:e2b (n = 3, ücretsiz); Haiku (n = 1, `claude-beyin` 4700).
+**Hipotezler (kayıttan türetildi, eşikler şimdi sabit):**
+- H1 Haiku beden kümesi (6) ≥ 5/6 geçer (kayıtta 0 reddedilen).
+- H2 Haiku terminal kümesi (8) ≤ 5/8 geçer (kayıt: yaz→komut çevirisi hatalı) — çürürse terminal sorunu "model" değil "belirsiz niyet".
+- H3 Haiku olay kümesinde `bos` senaryoları (o1, o2) en az birinde BOŞ KALMAZ (kayıtta 21/32 olay uyanışı boş bitti ama o zaman çağrı yapılıyordu: boş kalamama kanıtı).
+- H4 Haiku `o3` (görme sonrası) tekrar `sor` çağırır (kayıt: gordum→sor 6/19).
+- H5 Haiku hafıza kümesi (4) ≥ 3/4 (anı bağlamda VERİLİRSE kullanır): sorun saklama/getirmede, kullanmada değil.
+- H6 Yerel modeller (qwen2.5:7b, gemma4:e2b) Haiku'nun gerisinde: toplam < Haiku − 6 senaryo.
+**Karar kuralı:** Hiçbir eşik koşudan sonra değiştirilmez. Çürüyen hipotez raporda çürüdü diye yazılır. Haiku koşusu
+1 kez; belirsiz çıkarsa (puan ≤ 1 farkla eşikte) yalnız o senaryo 2 kez daha. Sonuçlar `docs/olcum/f0-taban-*.jsonl`.
