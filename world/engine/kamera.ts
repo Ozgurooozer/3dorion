@@ -347,6 +347,16 @@ export class KameraRig {
    * Render karesi. Yalnızca sunum: kamerayı hedef poza yumuşatır.
    * `dt` render delta'sı (saniye).
    */
+  /**
+   * Hedef ışınlandı (kapıdan geçiş, spec 24): kamerayı yumuşatmadan yeni yerine oturt. Yoksa kamera 40 m'lik
+   * yolu kararmanın ardında değil açılışta süzülerek alırdı.
+   */
+  anindaYerles(): void {
+    this.guncelle(0);
+    this.kamera.position.copyFrom(this._hedefKonum);
+    this.kamera.rotation.set(this._pitch, this._yaw, 0);
+  }
+
   cizimGuncelle(dt: number): void {
     // Kare hızından bağımsız yumuşatma: exp(-k·dt).
     // 1. şahısta kamera göze YAPIŞIR (k=1): gecikme baş sallanması gibi hissedilir.

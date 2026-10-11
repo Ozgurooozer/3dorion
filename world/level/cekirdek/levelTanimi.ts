@@ -122,6 +122,24 @@ export interface KameraYeri {
 /** Yer iminin yuvası: açıkça verilmişse o, yoksa ad tek rakamsa (eski biçim) o, değilse null. */
 export const yerImiYuvasi = (y: KameraYeri): number | null => y.yuva ?? (/^[1-9]$/.test(y.ad) ? Number(y.ad) : null);
 
+/** Bir geçidin öbür yanı. Bugün yalnız Orion'un ofisi (spec 24); level'lar arası ağ sonra. */
+export const GECIT_HEDEFLERI = ["oda"] as const;
+export type GecitHedefi = (typeof GECIT_HEDEFLERI)[number];
+
+/**
+ * Geçit (spec 24): level'dan başka bir YERE açılan kapı — ova'da Orion'un ofisinin kapısı. Kapının ortası
+ * `konum` (x, z; y zeminden okunur), `yon` kapıdan DIŞARI bakış (derece, Babylon yaw: 0 = +Z, 90 = +X).
+ * Orion için çapası `kapi` olur (durak kapının önünde); ofisten çıkan kapının önünde, dışarı bakarak belirir.
+ */
+export interface Gecit {
+  ad: string;
+  konum: [number, number];
+  yon: number;
+  hedef: GecitHedefi;
+  /** Görünen ad (Orion'un ve altyazının kullandığı); yoksa "kapı". */
+  etiket?: string;
+}
+
 export interface LevelTanimi {
   surum: number;
   ad: string;
@@ -138,6 +156,8 @@ export interface LevelTanimi {
   gruplar?: GrupTanimi[];
   /** Kamera yer imleri. Yoksa boş. */
   kameraYerleri?: KameraYeri[];
+  /** Başka yerlere açılan kapılar (spec 24). Yoksa boş. */
+  gecitler?: Gecit[];
   /** Gün/gece (spec 20): varsa güneş yönü ve ışık rengi SAATTEN gelir (isik.gunes.yon yok sayılır). */
   zaman?: ZamanAyari;
   /** Özel shader'lar (spec 20; shader/moduller/): sıra = ekran zinciri sırası. */
@@ -283,6 +303,24 @@ function hataBul(v: unknown): string | null {
     if (new Set(yuvalar).size !== yuvalar.length) return h("kameraYerleri", "aynı yuvaya iki yer imi");
     const adlar = yerler.map((y) => (y as KameraYeri).ad);
     if (new Set(adlar).size !== adlar.length) return h("kameraYerleri", "yinelenen yer imi adı");
+  }
+  const gecitler = v["gecitler"];
+  if (gecitler !== undefined) {
+    if (!Array.isArray(gecitler)) return h("gecitler", "dizi değil");
+    for (const [i, g] of gecitler.entries()) {
+      const yol = `gecitler[${i}]`;
+      if (!nesneMi(g) || !metinMi(g["ad"])) return h(yol, "ad gerekli");
+      const k = g["konum"];
+      if (!Array.isArray(k) || k.length !== 2 || !k.every(sayiMi)) return h(`${yol}.konum`, "[x, z] gerekli (y zeminden)");
+      if (!sayiMi(g["yon"])) return h(`${yol}.yon`, "derece (sayı) gerekli");
+      if (!(GECIT_HEDEFLERI as readonly unknown[]).includes(g["hedef"])) return h(`${yol}.hedef`, `bilinmeyen hedef (bilinenler: ${GECIT_HEDEFLERI.join(", ")})`);
+      if (g["etiket"] !== undefined && !metinMi(g["etiket"])) return h(`${yol}.etiket`, "boş olmayan metin olmalı");
+    }
+    const adlar = gecitler.map((g) => (g as Gecit).ad);
+    if (new Set(adlar).size !== adlar.length) return h("gecitler", "yinelenen geçit adı");
+    // Geçidin Orion için çapası `kapi` (protokolün çapa adı): aynı hedefe iki kapı iki `kapi` olurdu.
+    const hedefler = gecitler.map((g) => (g as Gecit).hedef);
+    if (new Set(hedefler).size !== hedefler.length) return h("gecitler", "aynı hedefe iki geçit");
   }
   const katmanlar = v["katmanlar"];
   if (!Array.isArray(katmanlar)) return h("katmanlar", "dizi değil");

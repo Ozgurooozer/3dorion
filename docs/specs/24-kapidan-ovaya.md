@@ -1,6 +1,7 @@
 # Spec 24 — Ofisin kapısından ovaya
 
-> Durum: **C0 ölçüldü, C1 uygulandı** (2026-10-11). Sırada C2 (ova yeri).
+> Durum: **C0 ölçüldü, C1 ve C2 uygulandı** (2026-10-11). Sırada C3 (kapı geçişi: E → kararma).
+> Deneme: uygulamayı `?yer=ova` ile aç ya da konsolda `dunya.ovayaCik()` / `dunya.odayaDon()`.
 > Plan ve kararlar: aşağıda; ölçüm betiği atıldı (sonuçlar burada).
 
 ## 0. Neden
@@ -61,9 +62,39 @@ oda yüzeyleri YOK (bunlar C2'de uygulamada ölçülür). Eşikler ölçmeden ö
 - C4'e not: `uygulama/niyetYurutucu.ts` `yaklastiMi("tahta", …)` oda listesine bakar — Orion ovadayken tahta
   koordinatına denk gelirse "tahtanın yanında" sanılır; Orion'un yeri verilmeli.
 
-## 4. Sıradakiler
-- **C2 ova yeri:** `levelTanimi`ne `gecitler` (ova'da ofis kapısı + varış noktası), `world/yer/levelYeri.ts`
-  (engeller = nesne kutuları, nesneler = `levelNesneleri`, çapa `kapi`, yükseklik = zemin), ayaklar zemine.
-  → DUR, ovada yürü, göster.
+## 4. C2 — Ova yeri (uygulandı)
+- **Veri:** `LevelTanimi.gecitler?: { ad, konum: [x, z], yon (derece, dışarı), hedef: "oda", etiket? }[]`
+  (doğrulama: konum [x, z], bilinen hedef, yinelenen ad ve aynı hedefe iki geçit yok — ikisi de `kapi` olurdu).
+  ova'ya **Orion'un ofisi** (katalogdaki "ofis binası", 20,5 × 38,75 × 12,55 m; zeminin en alçak köşesine oturtuldu,
+  y = -0,2) ve önüne geçit `ofis` (konum [-2, 15.675], yön 180°, "ofis kapısı").
+- **`world/yer/levelYeri.ts` (saf):** engeller = görünür yerleşimlerin kutuları (gizli / gizli gruptaki / 0,25 m'den
+  alçak olanlar hariç) + göl çanağı; katı yüzeyler = kutular + kapı kanadı (çapa `kapi`); çapa `kapi` (durak kapının
+  1,1 m önünde, yüz kapıya); nesneler = kapı + `levelNesneleri` (spec 23 B anlamı); sınır = zemin dairesinin içindeki
+  kare (−4 m pay); yükseklik TANIMDAN (`levelYuksekligi` → `zeminYuksekligi`: level yıkılınca da geçerli, C6).
+  Varış (`gecitVarisi`): kapıdan 1,8 m dışarı, yüz dışarı.
+- **`world/yer/levelSahnesi.ts` (Babylon):** oda meshleri / ışıkları / parlama katmanı gizlenir, sahne ayarları
+  (sis, arka plan, ton, piksel ölçeği, kamera menzili) saklanır; `levelKur` + nesneler yüklenir; stil oyuncunun
+  kamerasına bağlanır; kapı kanadı çizilir (glb binada kapı yok); oyuncu gövdesi güneşin gölgesine katılır; kutular
+  sahneden BİR KEZ ölçülür; `level.guncelle` her karede. `yokEt` hepsini geri alır.
+- **Zemine basmak:** oyuncu `konum.y = yer.yukseklik` (gövde de); yürütücü her tik ayağı zemine koyar (oturma /
+  kalkma aşamaları hariç; oda düz olduğundan orada eskisi gibi 0). `isinla(x, z, yaw)`: oyuncu (kamera
+  `anindaYerles` ile yumuşatmasız) ve Orion (süren iş `iptal` — beyin beklemede kalmaz; oturuyorsa ayakta belirir).
+- **`giris.ts`:** `ovayaCik()` (ova `?url` ile paketlenir, fetch; ikisi de ova yerine, Ozyn varışta, Orion sağında —
+  kapalıysa solunda / önünde), `odayaDon()` (kapının içinde, odaya dönük); `?yer=ova` açılışta ovaya çıkar;
+  `dunya.ovayaCik/odayaDon/yer` deneme yüzeyi; günlüğe "ovaya çıkıldı (N ms)" / "ofise dönüldü".
+- **Testler:** `world/yer/levelYeri.test.ts` (33: geçit geometrisi, engel kuralları, sınır, göl, doğrulama; GERÇEK ova
+  bekçisi: kapının durağı ve varış yürünebilir, varıştan merkeze ve uzak binanın arkasından kapıya yol var, ofis
+  Orion'un nesnelerinde adıyla); `yer.test.ts` +3 (eğimde ayak zeminde, ışınlanınca iş iptal, ışınlanınca zeminde).
+- **Canlı [ÖLÇÜLDÜ]** (başsız Chrome, `index.html?yer=ova`, 10/10): ova ilk kurulum 1794 ms, ikinci 1003–1018 ms ·
+  engel 10, nesne 10, çapa `kapi` · Orion Ozyn'in 1,2 m yanında belirdi · Ozyn 2,5 sn'de 6,5 m yürüdü (tepede,
+  ayak y 0,58) · Orion ova merkezine (y 0,47) ve ofis kapısına yürüdü (y 0,43) · ovada `git tahta` → "bilinmeyen
+  çapa/nesne" · odaya dönüş: oda görüntüsü yerinde (mor sis, ışık), ikisi de odada · ikinci çıkış-dönüş temiz.
+  Oda davranışı: `3dorion.bat eylemdene` 6/6.
+- **Bilinen:** kurulum sırasında mantık tiki takılıyor (HUD "atlanan 5") — C3'te kararmanın arkasında kalır. Ovada
+  kare hızı uygulamada (avatar + oda yüzeyleri canlı) kare sınırı kapalı ölçülmedi (başsız görüntüde 100 fps
+  sınırındaydı). Orion'un bedeni güneş gölgesine henüz katılmadı (avatar meshleri dışarı açılmıyor). Kaya / dekor
+  katmanı örnekleri engel değil.
+
+## 5. Sıradakiler
 - **C3 kapı geçişi** (E → kararma → ova; ofis kapısından dönüş; Orion yanında) · **C4** Orion ovayı bilir (algıda
   `yer`, sabit bilgi yere göre, 9 "ek bina" ayırt edici ad) · **C6** `gec` niyeti · **C5** paket + `kapi-dene`.

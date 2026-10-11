@@ -106,3 +106,26 @@ test("yer değişince sonraki niyet yeni yeri kullanır (geri çağrı her sefer
   y.niyet({ tur: "git", hedef: { tip: "capa", ad: "kapi" } }, "g1");
   assert.equal(bitis(y, "g1")?.durum, "bitti");
 });
+
+// ── 4. Zemin yüksekliği ve ışınlama (spec 24 C2) ──────────────────────────
+const EGIMLI: Yer = { ...ALAN, ad: "egimli", yukseklik: (x) => 0.1 * x };
+
+test("eğimli yerde Orion yürüyünce ayağı zeminde", () => {
+  const y = new Yurutucu({ spawn: { x: 5, y: 0.5, z: -6 }, yer: () => EGIMLI });
+  y.niyet({ tur: "git", hedef: { tip: "nokta", x: 12, y: 0, z: -6 } }, "g1");
+  bitis(y, "g1");
+  const k = y.durum().konum;
+  assert.ok(Math.abs(k.y - 0.1 * k.x) < 1e-9, `x ${k.x.toFixed(2)} y ${k.y.toFixed(3)}`);
+});
+test("ışınlanınca süren iş iptal (beyin beklemede kalmaz)", () => {
+  const y = new Yurutucu({ spawn: { x: 0, y: 0, z: -6 }, yer: () => ALAN });
+  y.niyet({ tur: "git", hedef: { tip: "capa", ad: "kapi" } }, "g1");
+  y.ilerle(1 / 20);
+  assert.deepEqual(y.isinla(10, 10, 0).map((s) => [s.niyet_id, s.durum]), [["g1", "iptal"]]);
+});
+test("ışınlanınca yeni noktada ve o noktanın zemininde", () => {
+  const y = new Yurutucu({ spawn: { x: 0, y: 0, z: -6 }, yer: () => EGIMLI });
+  y.isinla(8, 3, 0);
+  const k = y.durum().konum;
+  assert.deepEqual([k.x, +k.y.toFixed(9), k.z], [8, 0.8, 3]);
+});

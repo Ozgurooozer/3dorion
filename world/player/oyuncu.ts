@@ -206,12 +206,24 @@ export class Oyuncu implements KameraHedefi {
     const yeniZ = this.konum.z + dz * adim;
     if (!carpisiyorMu(this.konum.x, yeniZ, OYUNCU_YARICAP, yer)) this.konum.z = yeniZ;
 
-    this.konum.y = 0;
+    // Zemin yerin yüksekliği (oda düz: 0; ovada tepeler, spec 24).
+    this.konum.y = yer.yukseklik(this.konum.x, this.konum.z);
     this._govdeyiYerlestir();
   }
 
+  /**
+   * Başka bir noktaya (ve yere) taşı — kapıdan geçiş (spec 24). Yer, `yer` geri çağrısından okunur: çağıran
+   * önce yeri değiştirir, sonra ışınlar. Kamera yumuşatmasız oturur.
+   */
+  isinla(x: number, z: number, yaw: number): void {
+    this.konum.set(x, this._yer().yukseklik(x, z), z);
+    this._rig.bakisAyarla(yaw);
+    this._govdeyiYerlestir();
+    this._rig.anindaYerles();
+  }
+
   private _govdeyiYerlestir(): void {
-    this.govde.position.set(this.konum.x, GOVDE_YUKSEKLIK / 2, this.konum.z);
+    this.govde.position.set(this.konum.x, this.konum.y + GOVDE_YUKSEKLIK / 2, this.konum.z);
     // Gövde bakışın yatay yönüne döner (kamera pitch'i gövdeyi eğmez).
     this.govde.rotation.y = this._rig.yaw;
     // 1. şahısta kamera gövdenin içinde: kendi kafasını görmesin.

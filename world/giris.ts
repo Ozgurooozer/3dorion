@@ -34,6 +34,11 @@ import { odaKur } from "./level/oda.ts";
 import { bulunduguCapa, capaBul } from "./level/capalar.ts";
 import type { Yer } from "./yer/yer.ts";
 import { ODA_YERI } from "./yer/odaYeri.ts";
+import { levelSahnesiKur, type LevelSahnesi } from "./yer/levelSahnesi.ts";
+import { gecitVarisi } from "./yer/levelYeri.ts";
+import { carpisiyorMu } from "./level/olculer.ts";
+// `?url`: vite dosyayı pakete kopyalar ve adresini verir (Electron file:// yüklemesinde de çözülür).
+import ovaAdresi from "./level/ova/ova.level.json?url";
 import { isinTara } from "./player/isinTarama.ts";
 import { sorguYanitla, type Cevap, type Soru } from "../mind/algiHizmeti.ts";
 import { yerelTepki } from "../mind/yerelTepki.ts";
@@ -233,7 +238,59 @@ void avatarKur({
   });
   console.log("[ORION] avatar hazır");
   beyniBagla(a);
+  // `?yer=ova`: doğrudan ovada aç (spec 24 C2 — kapı tetiği gelene kadar deneme yolu; canlı deneme betikleri de).
+  if (new URLSearchParams(location.search).get("yer") === "ova") void oda.hazir.then(() => ovayaCik());
 }).catch((e) => console.error("[ORION] avatar kurulamadı:", e));
+
+// ── KAPIDAN OVAYA (spec 24) ────────────────────────────────────────────────
+// Ofisin kapısının öbür yanı ova level'ı. Geçişte oda gizlenir, ova AYNI sahneye kurulur (world/yer/levelSahnesi.ts);
+// dönüşte ova yıkılır, oda birebir geri gelir. Ozyn ve Orion birlikte geçer; Orion'un kendi başına çıkması C6.
+let disari: LevelSahnesi | null = null;
+let gecisSuruyor = false;
+
+async function ovayaCik(): Promise<boolean> {
+  if (disari || gecisSuruyor) return false;
+  gecisSuruyor = true;
+  try {
+    const tanim: unknown = await (await fetch(ovaAdresi)).json();
+    disari = await levelSahnesiKur({ sahne, tanim, ad: "ova", oda, kamera: rig.kamera, golgeAtanlar: [oyuncu.govde] });
+    const yer = disari.yer;
+    ozynYeri = yer;
+    orionYeri = yer;
+    const v = disari.gecit ? gecitVarisi(disari.gecit, yer.yukseklik) : { konum: { x: 0, y: 0, z: 0 }, yaw: 0 };
+    oyuncu.isinla(v.konum.x, v.konum.z, v.yaw);
+    // Orion Ozyn'in yanında belirir: önce sağı, kapalıysa solu, o da kapalıysa önü.
+    const sag = { x: Math.cos(v.yaw), z: -Math.sin(v.yaw) }, ileri = { x: Math.sin(v.yaw), z: Math.cos(v.yaw) };
+    const adaylar = [1.2, -1.2].map((k) => ({ x: v.konum.x + sag.x * k, z: v.konum.z + sag.z * k }))
+      .concat([{ x: v.konum.x + ileri.x * 1.4, z: v.konum.z + ileri.z * 1.4 }]);
+    const o = adaylar.find((p) => !carpisiyorMu(p.x, p.z, 0.4, yer)) ?? adaylar[0]!;
+    orion?.isinla(o.x, o.z, v.yaw);
+    gunluk.ekle("bilgi", "yer", `ovaya çıkıldı (${disari.kurulumMs} ms)`);
+    console.log(`[YER] ova kuruldu ${disari.kurulumMs} ms · engel ${yer.engeller.length} · nesne ${yer.nesneler.length} · çapa ${yer.capalar.map((c) => c.ad).join(",")}`);
+    return true;
+  } catch (err) {
+    console.error("[YER] ovaya çıkılamadı:", err);
+    altyaziGoster("dışarı çıkılamadı — oda yerinde");
+    return false;
+  } finally {
+    gecisSuruyor = false;
+  }
+}
+
+function odayaDon(): boolean {
+  if (!disari || gecisSuruyor) return false;
+  disari.yokEt();
+  disari = null;
+  ozynYeri = ODA_YERI;
+  orionYeri = ODA_YERI;
+  // Kapının içinde, odaya dönük (çapa `kapi`nın durağı); Orion yanında.
+  const kapi = capaBul("kapi")!;
+  oyuncu.isinla(kapi.durak.x, kapi.durak.z, Math.PI);
+  orion?.isinla(kapi.durak.x - 1.0, kapi.durak.z - 0.4, Math.PI);
+  gunluk.ekle("bilgi", "yer", "ofise dönüldü");
+  console.log("[YER] ofise dönüldü");
+  return true;
+}
 
 // ── MANTIK: 20Hz ───────────────────────────────────────────────────────────
 let mantikTik = 0;
@@ -1163,6 +1220,10 @@ const dunyaKancasi = {
     return id;
   },
   orionDurumu: () => orion?.durum() ?? null,
+  /** Spec 24: ovaya çık / ofise dön (kapı tetiği C3'te; bu deneme yüzeyi). */
+  ovayaCik: () => ovayaCik(),
+  odayaDon: () => odayaDon(),
+  yer: () => ({ ozyn: ozynYeri.ad, orion: orionYeri.ad, kurulumMs: disari?.kurulumMs ?? null }),
   tahta: {
     yaz: (m: string, temizle = false) => tahta.yaz(m, temizle),
     sil: () => tahta.sil(),

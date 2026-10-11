@@ -443,6 +443,21 @@
       ],
       "donus": 0,
       "olcek": 1
+    },
+    {
+      "id": "ofis",
+      "varlik": "CORP_BLD_OfficeBlock_MD",
+      "ad": "Orion'un ofisi",
+      "konum": [
+        -2,
+        -0.2,
+        22
+      ],
+      "donus": 0,
+      "olcek": 1,
+      "anlam": {
+        "not": "Orion'un çalıştığı oda bu binada; kapısı ofise açılır"
+      }
     }
   ],
   "zaman": {
@@ -569,6 +584,18 @@
       ],
       "yuva": 5,
       "zemineGore": true
+    }
+  ],
+  "gecitler": [
+    {
+      "ad": "ofis",
+      "konum": [
+        -2,
+        15.675
+      ],
+      "yon": 180,
+      "hedef": "oda",
+      "etiket": "ofis kapısı"
     }
   ]
 }

@@ -295,6 +295,21 @@ export class Yurutucu {
     this._gelen.push({ n, id: niyetId });
   }
 
+  /**
+   * Başka bir noktaya taşı — kapıdan geçiş (spec 24). Süren iş `iptal` olur (beyin beklemesin), oturuyorsa
+   * ayakta belirir. Yer `yer` geri çağrısından: çağıran önce yeri değiştirir. Kuyruktaki niyetler yeni yerde işlenir.
+   */
+  isinla(x: number, z: number, yaw: number): NiyetSonucu[] {
+    const cikti: NiyetSonucu[] = [];
+    this._aktifIptal(cikti);
+    if (this._oturuyor) { this._oturuyor = false; this._poz.gec("duruyor"); }
+    this._konum = { x, y: this._yer().yukseklik(x, z), z };
+    this._govdeYaw = yaw;
+    this._govdeHedefYaw = yaw;
+    this._hiz = 0;
+    return cikti;
+  }
+
   agizAyarla(aciklik: number): void {
     this._agiz = kis(Number.isFinite(aciklik) ? aciklik : 0, 0, 1);
   }
@@ -366,6 +381,11 @@ export class Yurutucu {
     // takılı kalıyor — ölçüldü: 0.100 m/s'de saplandı, masaya hiç varamadı.
     this._yurudu = false;
     if (this._aktif) this._isIlerle(this._aktif, dt, sonuclar);
+    // Ayak zeminde (spec 24: ovada tepeler). Oturma/kalkma gövde yüksekliğini kendisi sürer — o aşamalarda dokunma.
+    // Oda düz (yükseklik 0): orada bu satır eskiden de doğru olan y = 0'ı yazar.
+    if (!this._oturuyor && !(this._aktif && (this._aktif.asama === "poz" || this._aktif.asama === "kalkiyor" || this._aktif.asama === "sandalyeDon"))) {
+      this._konum.y = this._yer().yukseklik(this._konum.x, this._konum.z);
+    }
     // Yürüme aşaması bu tik koşmadıysa beden YAVAŞLAR. Durmak da bir süreç:
     // dönerken, otururken ya da iş bittiğinde hız aniden kesilmez.
     if (!this._yurudu) this._hiz = Math.max(0, this._hiz - FREN * dt);

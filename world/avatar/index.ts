@@ -58,6 +58,8 @@ export interface Avatar {
   sonucDinle(cb: (s: NiyetSonucu) => void): () => void;
   /** protocol `OrionDurumu` biçiminde anlık durum — T4 algı yayarken okur. */
   durum(): OrionDurumu;
+  /** Başka bir noktaya taşı (kapıdan geçiş, spec 24); süren iş `iptal` sonucu yayar. */
+  isinla(x: number, z: number, yaw: number): void;
   agizAyarla(aciklik: number): void;
   yokEt(): void;
   /** Render karesinden çağrılır: yumuşatma + mikro-hareket. MANTIK YOK. */
@@ -127,6 +129,14 @@ export async function avatarKur(ayar: AvatarAyari): Promise<Avatar> {
     niyet: (n, id) => yurutucu.niyet(n, id),
     sonucDinle(cb) { dinleyiciler.add(cb); return () => { dinleyiciler.delete(cb); }; },
     durum: () => yurutucu.durum(),
+    isinla(x, z, yaw) {
+      const sonuclar = yurutucu.isinla(x, z, yaw);
+      const k = yurutucu.durum().konum;
+      beden.yerlestir(k.x, k.y, k.z, yaw);
+      for (const s of sonuclar) for (const d of dinleyiciler) {
+        try { d(s); } catch (err) { console.error("[avatar] sonuç dinleyicisi hatası:", err); }
+      }
+    },
     agizAyarla: (a) => yurutucu.agizAyarla(a),
     cizimGuncelle: (dt) => beden.cizimGuncelle(dt),
     gorunur: (g) => beden.gorunur(g),
