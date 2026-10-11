@@ -2,7 +2,7 @@
 #
 # Çalıştırma (repo kökünden):
 #   blender --background "C:/Users/ozigo/Desktop/city build test moduler 1.blend" \
-#       --python assets/kaynak/sehir-kiti.py -- --cikti assets/sehir [--onizleme-yok]
+#       --python assets/kaynak/sehir-kiti.py -- --cikti assets/sehir [--onizleme-yok] [--pivot koken]
 #
 # Ne yapar: .blend'deki her MESH/CURVE nesnesi için
 #   <cikti>/<Ad>.glb             — tek nesne, glTF ikili, +Y yukarı, değiştiriciler uygulanmış, malzemeli
@@ -13,6 +13,9 @@
 # Pivot: her nesnenin dönüşü ve ölçeği geometriye işlenir, sonra geometri sınır kutusunun ALT-ORTASI
 # (x, y ortası, z en alt) orijine gelecek biçimde kaydırılır. Kitte çoğu parça orijinde üst üste durur ama
 # bazıları uzakta (ör. DETAIL_Manhole_Cover (198, 840)) — kayma atılır, Babylon'da yerleştirmeyi tarayıcı yapar.
+# `--pivot koken`: kaydırma YAPILMAZ, nesnenin kendi orijini pivot kalır. Izgaralı modüler kitler için
+# (assets/kaynak/orman-kiti.py): dışa taşan panel, yosun, sarmaşık sınır kutusunu büyütüp merkezini kaydırır;
+# kutu ortası pivot olursa 4 m küpler ızgaraya oturmaz. Orada orijin = ızgara noktası (taban ortası, nominal).
 #
 # Eksen: Blender (X, Y, Z yukarı) → glTF (X, Z, -Y). katalog `boyut` = [X genişlik, Y yükseklik, Z derinlik]
 # glTF/Babylon eksenlerinde (metre); yani Blender boyutlarından [dx, dz, dy].
@@ -42,6 +45,7 @@ def arg(ad, varsayilan=None):
 
 CIKTI = arg("--cikti")
 ONIZLEME_YOK = "--onizleme-yok" in argv
+PIVOT_KOKEN = arg("--pivot", "kutu") == "koken"
 if not CIKTI:
     raise SystemExit("kullanım: blender --background <kit.blend> --python sehir-kiti.py -- --cikti <klasör> [--onizleme-yok]")
 
@@ -66,6 +70,14 @@ KATEGORI = (
     ("SIGN_", "tabela"),
     ("PROP_", "esya"),
     ("ROAD_", "yol"),
+    # yeşil harabe kiti (assets/kaynak/orman-kiti.py → assets/orman)
+    ("RUIN_WALL_", "duvar"),
+    ("RUIN_BLK_", "blok"),
+    ("RUIN_FLR_", "zemin"),
+    ("RUIN_POOL_", "havuz"),
+    ("RUIN_BRG_", "kopru"),
+    ("RUIN_DET_", "detay"),
+    ("PLANT_", "bitki"),
 )
 
 
@@ -233,7 +245,7 @@ for ob in kaynaklar:
     xs = [v.co.x for v in me.vertices]
     ys = [v.co.y for v in me.vertices]
     zs = [v.co.z for v in me.vertices]
-    alt_orta = Vector(((min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2, min(zs)))
+    alt_orta = Vector((0, 0, 0)) if PIVOT_KOKEN else Vector(((min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2, min(zs)))
     me.transform(Matrix.Translation(-alt_orta))
     kutu_min = Vector((min(xs), min(ys), min(zs))) - alt_orta
     kutu_max = Vector((max(xs), max(ys), max(zs))) - alt_orta

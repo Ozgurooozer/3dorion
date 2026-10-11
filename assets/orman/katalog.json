@@ -1,0 +1,448 @@
+{
+  "surum": 1,
+  "kaynak": "orman-kiti.blend",
+  "varliklar": [
+    {
+      "ad": "PLANT_BigLeaf_MD",
+      "kategori": "bitki",
+      "dosya": "orman/PLANT_BigLeaf_MD.glb",
+      "onizleme": "orman/onizleme/PLANT_BigLeaf_MD.png",
+      "boyut": [
+        1.778,
+        0.812,
+        1.915
+      ],
+      "ucgen": 364,
+      "bayt": 17392
+    },
+    {
+      "ad": "PLANT_Bush_MD",
+      "kategori": "bitki",
+      "dosya": "orman/PLANT_Bush_MD.glb",
+      "onizleme": "orman/onizleme/PLANT_Bush_MD.png",
+      "boyut": [
+        2.066,
+        1.319,
+        2.075
+      ],
+      "ucgen": 858,
+      "bayt": 37728
+    },
+    {
+      "ad": "PLANT_Fern_LG",
+      "kategori": "bitki",
+      "dosya": "orman/PLANT_Fern_LG.glb",
+      "onizleme": "orman/onizleme/PLANT_Fern_LG.png",
+      "boyut": [
+        2.012,
+        0.308,
+        1.565
+      ],
+      "ucgen": 880,
+      "bayt": 48660
+    },
+    {
+      "ad": "PLANT_Fern_SM",
+      "kategori": "bitki",
+      "dosya": "orman/PLANT_Fern_SM.glb",
+      "onizleme": "orman/onizleme/PLANT_Fern_SM.png",
+      "boyut": [
+        0.805,
+        0.16,
+        1.203
+      ],
+      "ucgen": 720,
+      "bayt": 40024
+    },
+    {
+      "ad": "PLANT_Grass_Strip_2",
+      "kategori": "bitki",
+      "dosya": "orman/PLANT_Grass_Strip_2.glb",
+      "onizleme": "orman/onizleme/PLANT_Grass_Strip_2.png",
+      "boyut": [
+        1.997,
+        0.24,
+        0.201
+      ],
+      "ucgen": 360,
+      "bayt": 15384
+    },
+    {
+      "ad": "PLANT_Grass_Tuft",
+      "kategori": "bitki",
+      "dosya": "orman/PLANT_Grass_Tuft.glb",
+      "onizleme": "orman/onizleme/PLANT_Grass_Tuft.png",
+      "boyut": [
+        0.587,
+        0.38,
+        0.486
+      ],
+      "ucgen": 140,
+      "bayt": 6664
+    },
+    {
+      "ad": "PLANT_Ivy_Hang_4",
+      "kategori": "bitki",
+      "dosya": "orman/PLANT_Ivy_Hang_4.glb",
+      "onizleme": "orman/onizleme/PLANT_Ivy_Hang_4.png",
+      "boyut": [
+        4.304,
+        2.397,
+        0.902
+      ],
+      "ucgen": 4194,
+      "bayt": 194012
+    },
+    {
+      "ad": "PLANT_Moss_Cap_4",
+      "kategori": "bitki",
+      "dosya": "orman/PLANT_Moss_Cap_4.glb",
+      "onizleme": "orman/onizleme/PLANT_Moss_Cap_4.png",
+      "boyut": [
+        4.274,
+        0.265,
+        4.312
+      ],
+      "ucgen": 620,
+      "bayt": 15232
+    },
+    {
+      "ad": "PLANT_Tree_Broadleaf_LG",
+      "kategori": "bitki",
+      "dosya": "orman/PLANT_Tree_Broadleaf_LG.glb",
+      "onizleme": "orman/onizleme/PLANT_Tree_Broadleaf_LG.png",
+      "boyut": [
+        8.134,
+        9.293,
+        8.53
+      ],
+      "ucgen": 8481,
+      "bayt": 340832
+    },
+    {
+      "ad": "PLANT_Tree_Young_MD",
+      "kategori": "bitki",
+      "dosya": "orman/PLANT_Tree_Young_MD.glb",
+      "onizleme": "orman/onizleme/PLANT_Tree_Young_MD.png",
+      "boyut": [
+        4.648,
+        5.498,
+        4.499
+      ],
+      "ucgen": 5757,
+      "bayt": 201428
+    },
+    {
+      "ad": "RUIN_BLK_Cantilever_4x3x2",
+      "kategori": "blok",
+      "dosya": "orman/RUIN_BLK_Cantilever_4x3x2.glb",
+      "onizleme": "orman/onizleme/RUIN_BLK_Cantilever_4x3x2.png",
+      "boyut": [
+        4.631,
+        2.195,
+        3.291
+      ],
+      "ucgen": 2504,
+      "bayt": 121824
+    },
+    {
+      "ad": "RUIN_BLK_CubeLit_4",
+      "kategori": "blok",
+      "dosya": "orman/RUIN_BLK_CubeLit_4.glb",
+      "onizleme": "orman/onizleme/RUIN_BLK_CubeLit_4.png",
+      "boyut": [
+        4.566,
+        4.186,
+        4.422
+      ],
+      "ucgen": 4138,
+      "bayt": 208676
+    },
+    {
+      "ad": "RUIN_BLK_CubeMossy_4",
+      "kategori": "blok",
+      "dosya": "orman/RUIN_BLK_CubeMossy_4.glb",
+      "onizleme": "orman/onizleme/RUIN_BLK_CubeMossy_4.png",
+      "boyut": [
+        4.848,
+        4.986,
+        4.88
+      ],
+      "ucgen": 29692,
+      "bayt": 1076172
+    },
+    {
+      "ad": "RUIN_BLK_CubeOpen_4",
+      "kategori": "blok",
+      "dosya": "orman/RUIN_BLK_CubeOpen_4.glb",
+      "onizleme": "orman/onizleme/RUIN_BLK_CubeOpen_4.png",
+      "boyut": [
+        4.592,
+        4.177,
+        4.499
+      ],
+      "ucgen": 4216,
+      "bayt": 213400
+    },
+    {
+      "ad": "RUIN_BLK_CubeOvergrown_4",
+      "kategori": "blok",
+      "dosya": "orman/RUIN_BLK_CubeOvergrown_4.glb",
+      "onizleme": "orman/onizleme/RUIN_BLK_CubeOvergrown_4.png",
+      "boyut": [
+        4.718,
+        4.867,
+        4.6
+      ],
+      "ucgen": 22658,
+      "bayt": 862036
+    },
+    {
+      "ad": "RUIN_BLK_Cube_4",
+      "kategori": "blok",
+      "dosya": "orman/RUIN_BLK_Cube_4.glb",
+      "onizleme": "orman/onizleme/RUIN_BLK_Cube_4.png",
+      "boyut": [
+        4.653,
+        4.179,
+        4.558
+      ],
+      "ucgen": 3128,
+      "bayt": 165900
+    },
+    {
+      "ad": "RUIN_BLK_Planter_4",
+      "kategori": "blok",
+      "dosya": "orman/RUIN_BLK_Planter_4.glb",
+      "onizleme": "orman/onizleme/RUIN_BLK_Planter_4.png",
+      "boyut": [
+        4.165,
+        2.313,
+        4.401
+      ],
+      "ucgen": 7798,
+      "bayt": 293476
+    },
+    {
+      "ad": "RUIN_BLK_Slab_4",
+      "kategori": "blok",
+      "dosya": "orman/RUIN_BLK_Slab_4.glb",
+      "onizleme": "orman/onizleme/RUIN_BLK_Slab_4.png",
+      "boyut": [
+        4.06,
+        0.5,
+        4.06
+      ],
+      "ucgen": 528,
+      "bayt": 33772
+    },
+    {
+      "ad": "RUIN_DET_LightPanel",
+      "kategori": "detay",
+      "dosya": "orman/RUIN_DET_LightPanel.glb",
+      "onizleme": "orman/onizleme/RUIN_DET_LightPanel.png",
+      "boyut": [
+        0.5,
+        0.5,
+        0.075
+      ],
+      "ucgen": 88,
+      "bayt": 6764
+    },
+    {
+      "ad": "RUIN_DET_Rubble",
+      "kategori": "detay",
+      "dosya": "orman/RUIN_DET_Rubble.glb",
+      "onizleme": "orman/onizleme/RUIN_DET_Rubble.png",
+      "boyut": [
+        1.494,
+        0.44,
+        1.477
+      ],
+      "ucgen": 528,
+      "bayt": 33484
+    },
+    {
+      "ad": "RUIN_WALL_Broken_4x4",
+      "kategori": "duvar",
+      "dosya": "orman/RUIN_WALL_Broken_4x4.glb",
+      "onizleme": "orman/onizleme/RUIN_WALL_Broken_4x4.png",
+      "boyut": [
+        4.007,
+        4.219,
+        1.376
+      ],
+      "ucgen": 3214,
+      "bayt": 168504
+    },
+    {
+      "ad": "RUIN_WALL_Ledge_4",
+      "kategori": "duvar",
+      "dosya": "orman/RUIN_WALL_Ledge_4.glb",
+      "onizleme": "orman/onizleme/RUIN_WALL_Ledge_4.png",
+      "boyut": [
+        4.0,
+        0.3,
+        0.76
+      ],
+      "ucgen": 264,
+      "bayt": 17564
+    },
+    {
+      "ad": "RUIN_WALL_Overgrown_4x4",
+      "kategori": "duvar",
+      "dosya": "orman/RUIN_WALL_Overgrown_4x4.glb",
+      "onizleme": "orman/onizleme/RUIN_WALL_Overgrown_4x4.png",
+      "boyut": [
+        4.29,
+        4.207,
+        0.923
+      ],
+      "ucgen": 9880,
+      "bayt": 375340
+    },
+    {
+      "ad": "RUIN_WALL_PanelLit_4x4",
+      "kategori": "duvar",
+      "dosya": "orman/RUIN_WALL_PanelLit_4x4.glb",
+      "onizleme": "orman/onizleme/RUIN_WALL_PanelLit_4x4.png",
+      "boyut": [
+        4.0,
+        4.0,
+        0.525
+      ],
+      "ucgen": 572,
+      "bayt": 38288
+    },
+    {
+      "ad": "RUIN_WALL_Panel_4x4",
+      "kategori": "duvar",
+      "dosya": "orman/RUIN_WALL_Panel_4x4.glb",
+      "onizleme": "orman/onizleme/RUIN_WALL_Panel_4x4.png",
+      "boyut": [
+        4.0,
+        4.0,
+        0.64
+      ],
+      "ucgen": 1012,
+      "bayt": 56984
+    },
+    {
+      "ad": "RUIN_WALL_Pillar_4",
+      "kategori": "duvar",
+      "dosya": "orman/RUIN_WALL_Pillar_4.glb",
+      "onizleme": "orman/onizleme/RUIN_WALL_Pillar_4.png",
+      "boyut": [
+        0.78,
+        4.0,
+        0.78
+      ],
+      "ucgen": 528,
+      "bayt": 34200
+    },
+    {
+      "ad": "RUIN_WALL_Vent_4x4",
+      "kategori": "duvar",
+      "dosya": "orman/RUIN_WALL_Vent_4x4.glb",
+      "onizleme": "orman/onizleme/RUIN_WALL_Vent_4x4.png",
+      "boyut": [
+        4.0,
+        4.0,
+        0.64
+      ],
+      "ucgen": 1320,
+      "bayt": 81328
+    },
+    {
+      "ad": "RUIN_WALL_Window_4x4",
+      "kategori": "duvar",
+      "dosya": "orman/RUIN_WALL_Window_4x4.glb",
+      "onizleme": "orman/onizleme/RUIN_WALL_Window_4x4.png",
+      "boyut": [
+        4.0,
+        4.0,
+        0.625
+      ],
+      "ucgen": 1408,
+      "bayt": 87968
+    },
+    {
+      "ad": "RUIN_POOL_Corner",
+      "kategori": "havuz",
+      "dosya": "orman/RUIN_POOL_Corner.glb",
+      "onizleme": "orman/onizleme/RUIN_POOL_Corner.png",
+      "boyut": [
+        0.7,
+        0.4,
+        0.7
+      ],
+      "ucgen": 132,
+      "bayt": 9552
+    },
+    {
+      "ad": "RUIN_POOL_Edge_4",
+      "kategori": "havuz",
+      "dosya": "orman/RUIN_POOL_Edge_4.glb",
+      "onizleme": "orman/onizleme/RUIN_POOL_Edge_4.png",
+      "boyut": [
+        4.0,
+        0.4,
+        0.849
+      ],
+      "ucgen": 428,
+      "bayt": 24112
+    },
+    {
+      "ad": "RUIN_POOL_Water_4x4",
+      "kategori": "havuz",
+      "dosya": "orman/RUIN_POOL_Water_4x4.glb",
+      "onizleme": "orman/onizleme/RUIN_POOL_Water_4x4.png",
+      "boyut": [
+        4.0,
+        0.28,
+        4.0
+      ],
+      "ucgen": 24,
+      "bayt": 2824
+    },
+    {
+      "ad": "RUIN_BRG_Span_8",
+      "kategori": "kopru",
+      "dosya": "orman/RUIN_BRG_Span_8.glb",
+      "onizleme": "orman/onizleme/RUIN_BRG_Span_8.png",
+      "boyut": [
+        8.08,
+        1.05,
+        2.76
+      ],
+      "ucgen": 2198,
+      "bayt": 103992
+    },
+    {
+      "ad": "RUIN_FLR_TileCracked_2x2",
+      "kategori": "zemin",
+      "dosya": "orman/RUIN_FLR_TileCracked_2x2.glb",
+      "onizleme": "orman/onizleme/RUIN_FLR_TileCracked_2x2.png",
+      "boyut": [
+        2.0,
+        0.268,
+        2.0
+      ],
+      "ucgen": 358,
+      "bayt": 18892
+    },
+    {
+      "ad": "RUIN_FLR_Tile_2x2",
+      "kategori": "zemin",
+      "dosya": "orman/RUIN_FLR_Tile_2x2.glb",
+      "onizleme": "orman/onizleme/RUIN_FLR_Tile_2x2.png",
+      "boyut": [
+        2.0,
+        0.15,
+        2.0
+      ],
+      "ucgen": 60,
+      "bayt": 5012
+    }
+  ]
+}

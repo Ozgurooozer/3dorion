@@ -33,6 +33,13 @@ yarım iş, beden, davranış) Ozyn yeniden açana kadar BEKLER; önerilmez. Bı
 - **İngilizce cevap kipi** (talimat + İngilizce Piper sesi) — mikrofon İngilizce duyuyor, Orion Türkçe cevaplıyor.
 
 ## Ova (spec 17) — sıradaki adımlar, her biri ayrı onay
+- **Yeşil harabe kiti (2026-10-11, Ozyn'in referans görüntüsü):** `assets/kaynak/orman-kiti.py` (Blender'da kurar,
+  sabit tohum) → `assets/orman/` 34 glb + önizleme + `katalog.json` (`sehir-kiti.py --pivot koken`: pivot = ızgara
+  orijini). Duvar 8, blok 8, zemin 2, havuz 3, köprü 1, detay 2, bitki 10. `.blend`'de `vitrin` sahnesi referans
+  kompozisyonu. **Oyuna bağlı DEĞİL:** editör/nesne sistemi tek katalog okur (`KATALOG_DOSYASI = "sehir/katalog.json"`).
+  **Üçgen bütçesi [ÖLÇÜLDÜ, katalog × vitrin yerleşimi]:** vitrin 1285 yerleşim = 11,6 M üçgen; `CubeMossy_4` tek
+  başına 29,7 k üçgen (205 adet = 6,1 M). Oyunda bu yoğunluk koşmaz → LOD / uzak kuleler için yapraksız sürüm /
+  yaprak sayısı düşürme / ince örnekleme (thin instance) kararı gerek, level kurulmadan önce.
 - **Spec 19 bütçe aşımı (karar):** cel +538, toon +594 MiB ve 158 çizim, anime90 +637 MiB (sınır 500 MiB / 150).
   Seçenekler `specs/19` §4 sonunda.
 - Şehir parçaları dalgalı zemine gömülebiliyor: arazi aracı "Düzle" ile altları düzlenebilir (araç var, ova'da yapılmadı).
