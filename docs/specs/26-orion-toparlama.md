@@ -129,3 +129,59 @@ köprünün kurduğu gibi (talimat, örnekler, 14 araç şeması). Taban = BUGÜ
 **Karar kuralı:** HA2 VE (K3 ≥ K2 + 0,20) tutarsa arşiv aramasında gömme; tutmazsa kelime+çekmece kalır. Her durumda
 "damıtılmış çekirdek blok her zaman bağlamda" (Letta bulgusu) ayrı karar olarak F3-B'de ölçülür. Bu sınav SENTETİK korpustur
 (gerçek hafıza bu özellikleri taşımıyor çünkü ham söz torbası); sonuç "yöntem" içindir, "Orion hatırlıyor" iddiası DEĞİL.
+
+## 8. SONUÇLAR (2026-10-11) — F0 taban → F1/F2/F3-B sonrası
+
+Koşular: `docs/olcum/f0-taban-*.jsonl` (taban, 24 senaryo), `f0-son-*.jsonl` (final, 28 senaryo; Haiku n=2, yerel n=3),
+ara koşular `f0-yapisal*-dis.jsonl`. Hepsi ham çağrılarla saklı. **Önemli düzeltme:** §1'deki "araç şeması bağlamın %66'sı"
+Ollama/MCP beyinleri için doğru; Haiku (`claude -p`) şemayı HİÇ görmüyordu — satır sözleşmesi görüyordu (aşağıda).
+
+### 8.1 F0 ön kayıtlı hipotezler — kader
+| H | iddia | sonuç |
+|---|---|---|
+| H1 | Haiku beden ≥ 5/6 | **ÇÜRÜDÜ** (1/6). Neden model değil: satır sözleşmesi yalnız 4 eylem ifade ediyor |
+| H2 | Haiku terminal ≤ 5/8 | tuttu (5/8) |
+| H3 | Haiku olay (o1,o2) boş kalamıyor | tuttu (iki koşuda da çağırdı) → kural (F1) ile çözüldü |
+| H4 | Haiku görme sonrası yine `sor` | tuttu (o3) → tur kuralı (F1) |
+| H5 | Haiku hafıza ≥ 3/4 | tuttu (4/4): anı VERİLİRSE kullanıyor; sorun saklamada |
+| H6 | yerel modeller Haiku'dan ≥ 6 senaryo geride | **ÇÜRÜDÜ**: yerel %50–56, Haiku %54 (taban). Sorun model değil harness |
+
+### 8.2 Taban → son (ortak 24 senaryo; o1/o2 artık kuralla beyne hiç gitmiyor)
+| beyin | taban | son |
+|---|---|---|
+| Haiku (satır → yapısal kip) | 13/24 %54 | 34/48 %70 (o1,o2 hariç %77) |
+| gemma4:e2b | %56 | %69 |
+| qwen2.5:7b | %52 | %58 |
+| ornith-32k | %50 | %56 |
+Küme (son, Haiku): beden 10/12 · terminal 11/16 · hafıza 7/8 · olay 6/12 · yazma 7/8. **Terminal hâlâ en zayıf küme tüm
+beyinlerde** (yerel 7–10/24). Haiku n=2 tutarsız: t5, h1, o3, o4, y2 (tek koşuya güvenilmez); hâlâ başarısız: b6 (dur), t1, t8.
+Hata payı büyük (senaryo başına 1–2 örnek); bu "iyileşti" değil "yön doğru" kanıtıdır.
+
+### 8.3 Ne yapıldı (commit'ler)
+- **F1** `f640d57`: Ozyn'in hareket olayları beyni uyandırmaz (801 uyanışın 215'i, %54'ü boştu; tek kaynak `protocol/algi.ts`);
+  gordum-yalnız turda `sor` aracı yok (`turIcinAraclar`, tek işlev: köprü + koşucu + dış beyin); yapısal Haiku sözleşmesi
+  (`bridge/yapisalSozlesme.ts`, `claude-beyin --mod=yapisal`, **varsayılan** `2b4cea1`; `ORION_CLAUDE_MOD=satir` geri alır);
+  talimat yer-nötr + GORDUM bölümü; görme istemi İngilizce; zaman cümlesi yer adsız.
+- **GERİ ALINAN deneme:** talimata "otur = dunya_otur…" eşlemesi → qwen2.5:7b aracı çağırmak yerine adını metne yazdı
+  (beden 11/18 → 5/18). Ders: zayıf modele talimatta araç adı sıralama.
+- **F2** `f640d57`: `uygulama/komutKipi.ts` otomatik (varsayılan; yıkıcı sınıf yine onay bekler) | tam | onayli; komut aracı
+  "satırı yazar + Enter, sarma yok" (claude yaz = `claude`). Ozyn: "terminal onaysız çalışsın".
+- **F3-A** `4b15d5f`: getirme sınavı (48 anı, 36 soru): K2 mevcut hit@3 0,83 · K2k kelime 0,86 · K3 gömme 0,67 · K3b birleşik 0,31.
+  HA1–HA3 ÇÜRÜDÜ, HA4 tuttu. **Vektör/graf gerekmedi**; sorun saklanan şey.
+- **F3-B** `80e949e`: olgu çekmecesi + `hatirla {anahtar, deger}` (aynı anahtar günceller); olgular `[fact:anahtar] …` olarak
+  YALNIZ Ozyn konuşan turda bağlamda (≤ 700 kr). Yazma kümesi (y1–y4) Haiku 7/8.
+- **F4** ölçüm (`ovadene`, 6/8): gel ✓, takip ✓, takibi bırak ✓, kapıya git ✓, bak/jest ✓, algı ✓; **otur ✗**, **gec ✗**.
+
+### 8.4 AÇIK (yapılmadı; kanıtlı)
+1. **Ovada oturma:** avatar `otur` tek ofis sandalyesi koordinatına (`OTURMA_NOKTASI`) sabit; ova çapaları yalnız kapı.
+   Gerekenler: oturma noktasını çapadan türet (yürütücü), `levelYeri`'de `otur` eylemli nesne → çapa, ova'da oturulacak nesne.
+2. **`gec` niyeti (C6):** Orion kapıdan tek başına geçemiyor; ova sahnesi kurulu değilken Orion'un yürüyeceği veri (engeller)
+   yok → geçişte arka plan ölçümü (~1,1 sn) gerek.
+3. **F3-C oturum özeti:** olay özeti (oturum/N tur sonunda Haiku, ucuz) yazılmadı; olgular yalnız Orion `hatirla` derse oluşur.
+   Eski 228 ham söz hâlâ duruyor (göç/temizlik yazılmadı).
+4. **Hata/sonuç metinleri hâlâ Türkçe** (`world/avatar/yurutucu.ts` ~25 mesaj, `bilgisayar.ts`…) ve LLM bağlamına giriyor;
+   İngilizceye çevirmek testleri (~40 assert) etkiler, ölçümlü yapılmalı (zayıf modelde karışık dil etkisi ölçülmedi).
+5. **Terminal hâlâ ≤ %70** (Haiku 11/16; yerel 7–10/24): "terminal oku" aracı (`sor terminal`) yok; "git durumuna bak" gibi
+   `bak` kelimeli komutlar `sor`a gidiyor.
+6. Haiku b6 ("dur" → yalnız söz), t1/t8 tutarsız; yapısal kipte `sor gor`/`sor dunya` ayrımı ("ne görüyorsun" → dunya).
+7. İlgisiz bulgu: repo kökünde `calisti`, `tahtaya`, `gunluk.txt` (Orion'un terminale yazdığı komutların artığı, canlı testten).

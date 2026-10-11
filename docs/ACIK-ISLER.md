@@ -3,10 +3,15 @@
 Önceliği Ozyn belirler. Her madde tek satır + nerede. Biten madde SİLİNİR (geçmişi git'te);
 "çözüldü" arşivi tutulmaz. Son güncelleme: 2026-10-11.
 
-## ŞU AN: Orion YENİDEN AÇILDI (Ozyn, 2026-10-11 akşam) — plan `specs/26-orion-toparlama.md`, onay bekliyor
-Ozyn: terminal kullanımı kötü, hafıza kötü, beyin/prompt/harness prototip, promptlar İngilizce olmalı, Orion ovadaki
-her şeyi (oturmak, takip) anlık kullanabilmeli. Sıra önerisi: F0 ölçüm tezgâhı → F1 harness → F2 terminal → F3 hafıza
-→ F4 ova yetenekleri. (Aşağıdaki "arka plan" notu bugün öğleden sonrasının; bırakıldığı yer bilgisi hâlâ geçerli.)
+## ŞU AN: Orion toparlama — F0–F3-B BİTTİ, F4 kısmen; sonuçlar `specs/26` §8 (Ozyn, 2026-10-11)
+Yapılan: ölçüm tezgâhı (`tools/f0-olc.ts`, 28 senaryo) · hareket olayı uyandırmaz · gordum turunda `sor` yok · Haiku yapısal
+çıktı (varsayılan; tam araç yüzeyi) · komut kipi (onaysız; yıkıcı bekler) · olgu hafızası + `hatirla`. Haiku %54 → %70
+(ortak 24 senaryo), terminal hâlâ en zayıf. Kalan işler (hepsi ölçümlü, kanıtı spec 26 §8.4'te):
+- **Ovada oturma** (`otur` tek ofis sandalyesine sabit) ve **`gec`** (Orion kapıdan tek başına, C6): `3dorion.bat ovadene` 6/8.
+- **F3-C oturum özeti** (olay özeti; eski 228 ham söz temizliği) · **terminal oku** aracı · hata metinlerini İngilizceye çevirmek.
+- Haiku tutarsızlıkları: `dur`, `terminale claude yaz` (t1), `terminale merhaba yaz` (t8).
+- `world/level/ova/ova.level.json` Ozyn'in commit dışı düzenlemesi bir bekçi testini kırıyor (`ova bütün yerleşimleri dönüşsüz`: bir
+  nesne 30° dönük) — düzenleme Ozyn'in; test ya level'a ya testin varsayımına uydurulmalı (Ozyn karar).
 
 ## (eski, öğleden sonra) odak OVA, Orion arka planda
 Bırakıldığı yer:
