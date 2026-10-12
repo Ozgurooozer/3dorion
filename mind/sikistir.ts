@@ -27,6 +27,12 @@ export const SIKISTIR_SOZLERI = {
   tamam: (silinen: number, olgu: number) => `Hafızamı topladım: ${silinen} ham kayıt ${olgu ? `${olgu} olguya ve ` : ""}kısa bir özete indi.`,
 } as const;
 
+/**
+ * Sıkıştırma OLGU YAZMAZ (H5, Orion Beyin Ofisi 2026-10-12): canlı hafıza test oturumlarının hata kırıntısıyla dolu; gerçek
+ * modellerde (Haiku, ornith) çıkarılan "olgular" anahtar-kelime ölçütünü %86–90 geçti ama içerikleri kalıcı bilgi değil
+ * geçici hata durumuydu ("Orion adlı yerlere gidemiyor") ve biri uydurma çıkarımdı. Olgu yalnız `hatirla` aracıyla yazılır.
+ * `sikistirmaCoz` FACT satırlarını hâlâ çözer (ölçüm aracı ve gelecek için); köprü yalnız özeti uygular.
+ */
 export const KORU = 30;                 // en yeni bu kadar ham kayda dokunulmaz
 export const TAZE_MS = 3600_000;        // son 1 saatteki kayıt sıkışmaz
 export const EN_AZ_PLAN = 25;           // bundan azı için model çağrılmaz
@@ -34,7 +40,7 @@ export const OTO_ESIK = 100;            // otomatik: ham kayıt sayısı bunu a�
 export const OTO_ARALIK_MS = 15 * 60_000; // otomatik: iki sıkıştırma arası en az
 export const PLAN_AZAMI = 80;           // tek çağrıda modele giden en çok kayıt
 const OLGU_AZAMI_SAYI = 8;
-const OZET_AZAMI = 400;
+const OZET_AZAMI = 500;
 
 const HAM_TURLER: ReadonlySet<string> = new Set(["konusma", "olay", "terminal", "sonuc", "dusunce"]);
 export const hamMi = (a: Pick<Ani, "tur">): boolean => HAM_TURLER.has(a.tur);
@@ -54,11 +60,11 @@ export function otoSikistirmaGerekli(aniler: readonly Ani[], sonSikistirma: numb
 
 export const SIKISTIR_TALIMATI = [
   "You compact the memory of Orion, an assistant living in Ozyn's 3D room.",
-  "Input: numbered raw memory lines (Ozyn's words, terminal results, errors). Output ONLY lines in this exact format:",
-  "FACT <key>: <value>   — a lasting fact about Ozyn or the world (key: lowercase_snake_case ≤ 40 chars; value ≤ 160 chars, English).",
-  "SUMMARY: <≤ 350 chars, English, what happened overall and what is still open>",
-  "Rules: at most 8 FACT lines, exactly one SUMMARY line. Skip greetings, repeats and one-off errors. Never invent: use only what the lines say.",
-  "Existing facts are listed; reuse their key if a line updates them. No other text.",
+  "Input: numbered raw memory lines (Ozyn's words, terminal results, errors). Answer with exactly ONE line:",
+  "SUMMARY: <at most 500 characters, English: what Ozyn asked for, what worked, what failed and why, what is still open>",
+  "The line must start with the exact word SUMMARY and a colon. Do not invent or guess causes: state only what the lines literally say.",
+  "Skip greetings and repeats. No other text. Example of a complete answer:",
+  "SUMMARY: Ozyn tested navigation and git commands; most attempts failed because the places were unknown or the folder was not a git repository; nothing is pending.",
 ].join("\n");
 
 /** Modele giden kullanıcı metni: mevcut olgular + numaralı ham kayıtlar. */

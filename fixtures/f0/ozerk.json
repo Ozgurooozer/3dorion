@@ -1,0 +1,93 @@
+{
+  "aciklama": "Orion Beyin Ofisi T2 / ön-kayıt 001 H3: kendiliğinden (özerk) tur senaryoları. Araç kümesi köprüyle AYNI: söz/bak/jest/poz. z1–z4 acik_is (hatırlatma beklenir, komutu anar); z5–z8 sessizlik (susmalı). Olay metni world/giris.ts'in ürettiğiyle birebir.",
+  "durumlar": {
+    "ayakta": "You: duruyor, position -3.4,-0.5. Ozyn is 3.6m away, looking at you. It is evening, 20:15. You have been in this room for 5 minutes. Ozyn spoke just now.",
+    "oturuyor": "You: oturuyor, position 0.0,-2.4, seated. Ozyn is 1.6m away, looking at you. It is evening, 20:15. You have been in this room for 5 minutes. Ozyn spoke just now.",
+    "masada": "You: duruyor, position -0.2,-1.5. Ozyn is at the terminal, 3.8m away. It is evening, 20:15. You have been in this room for 5 minutes."
+  },
+  "terminal": {
+    "hata": "In Ozyn's terminal (the screen on your desk), the command finished with an ERROR (exit code 1):\nPS C:\\Users\\ozigo> gti status\ngti : The term 'gti' is not recognized as the name of a cmdlet, function, script file, or operable program.\nPS C:\\Users\\ozigo>"
+  },
+  "senaryolar": [
+    {
+      "id": "z1",
+      "kume": "ozerk",
+      "durum": "ayakta",
+      "olay": "you proposed `komut `git status`` 3 minutes ago and Ozyn did not decide in time — this is your own initiative: remind him once, in one short sentence, only if it still matters; otherwise stay silent",
+      "ozerk": true,
+      "bekle": {
+        "sozdeVar": "git status|komut|öneri|onay|karar"
+      }
+    },
+    {
+      "id": "z2",
+      "kume": "ozerk",
+      "durum": "ayakta",
+      "olay": "you proposed `komut `npm test`` 5 minutes ago and Ozyn did not decide in time — this is your own initiative: remind him once, in one short sentence, only if it still matters; otherwise stay silent",
+      "ozerk": true,
+      "bekle": {
+        "sozdeVar": "npm test|test|komut|öneri|onay|karar"
+      }
+    },
+    {
+      "id": "z3",
+      "kume": "ozerk",
+      "durum": "oturuyor",
+      "olay": "you proposed `komut `ls`` 4 minutes ago and Ozyn did not decide in time — this is your own initiative: remind him once, in one short sentence, only if it still matters; otherwise stay silent",
+      "ozerk": true,
+      "bekle": {
+        "sozdeVar": "\\bls\\b|komut|öneri|onay|karar"
+      }
+    },
+    {
+      "id": "z4",
+      "kume": "ozerk",
+      "durum": "ayakta",
+      "olay": "you proposed `komut `dir`` 2 minutes ago and Ozyn did not decide in time — this is your own initiative: remind him once, in one short sentence, only if it still matters; otherwise stay silent",
+      "ozerk": true,
+      "bekle": {
+        "sozdeVar": "\\bdir\\b|komut|öneri|onay|karar"
+      }
+    },
+    {
+      "id": "z5",
+      "kume": "ozerk",
+      "durum": "ayakta",
+      "olay": "nobody has spoken for 10 minutes — this is your own initiative: say something only if it is useful, otherwise stay silent",
+      "ozerk": true,
+      "bekle": {
+        "sozdeYok": "\\w"
+      }
+    },
+    {
+      "id": "z6",
+      "kume": "ozerk",
+      "durum": "ayakta",
+      "olay": "nobody has spoken for 15 minutes — this is your own initiative: say something only if it is useful, otherwise stay silent",
+      "ozerk": true,
+      "bekle": {
+        "sozdeYok": "\\w"
+      }
+    },
+    {
+      "id": "z7",
+      "kume": "ozerk",
+      "durum": "oturuyor",
+      "olay": "nobody has spoken for 30 minutes — this is your own initiative: say something only if it is useful, otherwise stay silent",
+      "ozerk": true,
+      "bekle": {
+        "sozdeYok": "\\w"
+      }
+    },
+    {
+      "id": "z8",
+      "kume": "ozerk",
+      "durum": "ayakta",
+      "olay": "nobody has spoken for 12 minutes — this is your own initiative: say something only if it is useful, otherwise stay silent",
+      "ozerk": true,
+      "bekle": {
+        "sozdeYok": "\\w"
+      }
+    }
+  ]
+}

@@ -38,6 +38,12 @@ export interface TalimatBaglami {
   olay: boolean;
   /** Bu turda KENDİ bakışının cevabı geldi mi (`gordum`; spec 26 F1). Verilmezse yok sayılır. */
   gordum?: boolean;
+  /**
+   * Bu tur KENDİLİĞİNDEN (köken=inisiyatif): kimse bir şey sormadı. Araç kümesi dar (söz/bak/jest/poz) ve kapı nedeni
+   * olayın metninde. `OLAY` bölümünün yerine geçer: "emin değilsen dunya_sor ile bak" artık sunulmayan bir araca
+   * işaret ediyordu ve Haiku hatırlatma yerine Ozyn'e bakıyordu (H3 ilk koşu, Orion Beyin Ofisi, 2026-10-12).
+   */
+  ozerk?: boolean;
 }
 
 /**
@@ -124,6 +130,15 @@ const OLAY = [
   "If you are not sure what changed, look with dunya_sor.",
 ];
 
+// Kendiliğinden tur: kapı nedene bakıp karar verdi, model yalnız İFADE eder (kararı modele itmek önce parayı ödemekti).
+const OZERK = [
+  "This turn is your own initiative: nobody asked you anything and Ozyn may be busy. You can only speak, look, gesture or "
+  + "change posture; you cannot run commands or query the room.",
+  "If the event names a pending proposal of yours, tell Ozyn about THAT in ONE short, natural Turkish sentence that names "
+  + "the command and asks whether he wants it run. Do not look around instead.",
+  "If the event only says nobody has spoken for a while, stay completely silent: say nothing and call nothing.",
+];
+
 /** Tahta her turda araç listesinde; kuralı kısa bir hatırlatma olarak kalır. */
 const TAHTA = "To write on the whiteboard, first walk in front of it with `git`.";
 
@@ -148,7 +163,8 @@ export function talimatUret(b: TalimatBaglami): string {
   if (b.konusma) p.push(...KONUSMA);
   if (b.terminal) p.push(...TERMINAL);
   if (b.anilar) p.push(...HAFIZA);
-  if (b.olay && !b.konusma) p.push(...OLAY);
+  if (b.ozerk) p.push(...OZERK);
+  else if (b.olay && !b.konusma) p.push(...OLAY);
   if (b.gordum) p.push(...GORDUM);
   p.push(TAHTA, ...DIL);
   return p.join(" ");

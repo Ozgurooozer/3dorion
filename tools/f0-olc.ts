@@ -27,6 +27,8 @@ import { f0Puanla, soylenen, type F0Beklenti } from "./f0.ts";
 interface Senaryo {
   id: string; kume: string; durum: string; bekle: F0Beklenti;
   soz?: string; olay?: string; gordum?: string; terminal?: string; anilar?: string[];
+  /** Kendiliğinden (özerk) tur: araç kümesi köprüyle aynı (söz/bak/jest/poz; Orion Beyin Ofisi T2-K4). */
+  ozerk?: boolean;
 }
 interface Fixture { durumlar: Record<string, string>; terminal: Record<string, string>; senaryolar: Senaryo[] }
 
@@ -59,12 +61,12 @@ function girdiKur(s: Senaryo): BeyinGirdisi {
     ...(s.soz ? [`Ozyn said: "${s.soz}"`] : []),
   ];
   return {
-    talimat: talimatUret({ konusma: !!s.soz, terminal: !!s.terminal, anilar: !!s.anilar, olay: !!s.olay, gordum: !!s.gordum }),
+    talimat: talimatUret({ konusma: !!s.soz, terminal: !!s.terminal, anilar: !!s.anilar, olay: !!s.olay, gordum: !!s.gordum, ozerk: !!s.ozerk }),
     ornekler: ornekUret({ terminal: !!s.terminal, konusma: !!s.soz }),
     anilar: s.anilar ?? [],
     // Tur kuralı köprüyle AYNI işlevden (canlıda gordum-yalnız turda `sor` yok).
     ozetler, dunya: f.durumlar[s.durum] ?? "", sabit, gecmis: [],
-    araclar: turIcinAraclar(araclar, new Set([s.soz ? "duydum" : "", s.gordum ? "gordum" : "", s.olay ? "olay" : "", s.terminal ? "terminal" : ""].filter(Boolean))),
+    araclar: turIcinAraclar(araclar, new Set([s.soz ? "duydum" : "", s.gordum ? "gordum" : "", s.olay ? "olay" : "", s.terminal ? "terminal" : ""].filter(Boolean)), !!s.ozerk),
   };
 }
 

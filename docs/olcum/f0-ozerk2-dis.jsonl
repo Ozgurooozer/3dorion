@@ -1,0 +1,8 @@
+{"id":"z1","kume":"ozerk","i":1,"gecti":true,"nedenler":[],"ms":4077,"baglamKr":3052,"cagrilar":[{"ad":"dunya_soyle","girdi":{"metin":"Hala `git status` çalıştırmamı istiyorsun mu?"}}],"metin":"","soylenen":"Hala `git status` çalıştırmamı istiyorsun mu?"}
+{"id":"z2","kume":"ozerk","i":1,"gecti":true,"nedenler":[],"ms":4913,"baglamKr":3050,"cagrilar":[{"ad":"dunya_soyle","girdi":{"metin":"npm test komutu çalıştırmamı ister misin?"}}],"metin":"","soylenen":"npm test komutu çalıştırmamı ister misin?"}
+{"id":"z3","kume":"ozerk","i":1,"gecti":true,"nedenler":[],"ms":4691,"baglamKr":3052,"cagrilar":[{"ad":"dunya_soyle","girdi":{"metin":"ls komutunu çalıştırmak ister misin?"}}],"metin":"","soylenen":"ls komutunu çalıştırmak ister misin?"}
+{"id":"z4","kume":"ozerk","i":1,"gecti":true,"nedenler":[],"ms":3697,"baglamKr":3045,"cagrilar":[{"ad":"dunya_soyle","girdi":{"metin":"dir komutunu çalıştırmak ister misin?"}}],"metin":"","soylenen":"dir komutunu çalıştırmak ister misin?"}
+{"id":"z5","kume":"ozerk","i":1,"gecti":true,"nedenler":[],"ms":4817,"baglamKr":3024,"cagrilar":[],"metin":"","soylenen":""}
+{"id":"z6","kume":"ozerk","i":1,"gecti":true,"nedenler":[],"ms":4402,"baglamKr":3024,"cagrilar":[],"metin":"","soylenen":""}
+{"id":"z7","kume":"ozerk","i":1,"gecti":true,"nedenler":[],"ms":4787,"baglamKr":3032,"cagrilar":[],"metin":"","soylenen":""}
+{"id":"z8","kume":"ozerk","i":1,"gecti":true,"nedenler":[],"ms":4534,"baglamKr":3024,"cagrilar":[{"ad":"dunya_bak","girdi":{"tip":"oyuncu"}}],"metin":"","soylenen":""}

@@ -103,3 +103,16 @@ test("talimatta Türkçe ÇERÇEVE kalmadı — yalnızca örnek nesne adları",
   const turkce = t.replace(izinli, "").match(/[çğıöşüÇĞİÖŞÜ]\w*/g) ?? [];
   assert.deepEqual(turkce, [], `Türkçe kalıntı: ${turkce.join(", ")}`);
 });
+
+test("özerk tur: OLAY bölümü yerine OZERK bölümü gelir ('dunya_sor ile bak' sunulmayan araca işaret etmez)", () => {
+  const t = talimatUret({ konusma: false, terminal: false, anilar: false, olay: true, ozerk: true });
+  assert.match(t, /your own initiative/);
+  assert.match(t, /cannot run commands or query the room/);
+  assert.doesNotMatch(t, /look with dunya_sor/);
+});
+
+test("özerk olmayan olay turu eskisi gibi: OLAY bölümü var, OZERK yok", () => {
+  const t = talimatUret({ konusma: false, terminal: false, anilar: false, olay: true });
+  assert.match(t, /look with dunya_sor/);
+  assert.doesNotMatch(t, /your own initiative/);
+});

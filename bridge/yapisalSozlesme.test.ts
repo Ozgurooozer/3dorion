@@ -58,3 +58,15 @@ test("tur kuralı: Ozyn aynı turda konuştuysa ya da gordum yoksa `sor` yerinde
     assert.ok(turIcinAraclar(araclariUret(), new Set(turler)).some((a) => a.ad === "dunya_sor"), turler.join("+") || "boş");
   }
 });
+
+test("araç listesi BOŞ olan tur (sıkıştırma) geçerli şema üretir: boş enum yok, eylemler maxItems 0", () => {
+  const s = yapisalSema([]) as { required: string[]; properties: { eylemler: { maxItems?: number; items?: unknown } } };
+  assert.deepEqual(s.required, ["soz", "eylemler"]);
+  assert.equal(s.properties.eylemler.maxItems, 0);
+  assert.equal(s.properties.eylemler.items, undefined, "boş enum içeren items geçersiz şemadır");
+  assert.doesNotMatch(JSON.stringify(s), /"enum":\[\]/);
+});
+
+test("araç listesi boşken rehber boş (konuşma/Türkçe cümlesi biçim talimatını ezmez)", () => {
+  assert.equal(aracRehberi([]), "");
+});

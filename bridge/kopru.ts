@@ -782,9 +782,9 @@ export class Kopru {
       });
       const ham = cikti.metin || cikti.cagrilar.map((c) => (c.girdi as { metin?: string } | null)?.metin ?? "").join("\n");
       const sonuc = sikistirmaCoz(ham);
-      if (!sonuc) { console.warn(`[SIKISTIR] cevap cozulemedi, hicbir sey silinmedi: ${ham.slice(0, 120)}`); soyle(SIKISTIR_SOZLERI.basarisiz); return "basarisiz"; }
+      if (!sonuc || !sonuc.ozet) { console.warn(`[SIKISTIR] cevap cozulemedi, hicbir sey silinmedi: ${ham.slice(0, 120)}`); soyle(SIKISTIR_SOZLERI.basarisiz); return "basarisiz"; }
       this._ayar.hafizaYedegi.yaz(this._hafiza.dok());
-      const s = this._hafiza.sikistir(plan, sonuc.ozet, sonuc.olgular);
+      const s = this._hafiza.sikistir(plan, sonuc.ozet, []);   // olgu YAZILMAZ (mind/sikistir.ts, H5)
       this._sonSikistirma = simdi;
       this._hafizaYaz();
       console.log(`[SIKISTIR] ${neden}: ${s.silinen} ham kayit silindi · ${s.olgu} olgu · ozet=${sonuc.ozet ? "var" : "yok"} · atilan satir ${sonuc.atilan}`);
@@ -1098,6 +1098,7 @@ export class Kopru {
       anilar: anilar.length > 0,
       olay: turler.has("olay"),
       gordum: turler.has("gordum"),
+      ozerk: this._zincirKokeni === "inisiyatif" && this._ayar.ozerkTur !== false,
     });
 
     // ŞİMDİ (spec 06 K2/K3): anlık gözlemler dünya durumunun yanında,

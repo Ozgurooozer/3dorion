@@ -31,16 +31,16 @@ function kur(beyin: SahteBeyin, n: number, yedek = true) {
   const soyle = async (metin: string) => { k.algi({ tur: "duydum", metin, kesin: true }); await bekle(60); };
   return { k, soylenen, soyle, yedekler, algilar: () => satirlar.filter((s): s is AlgiSatiri => s.tur === "algi") };
 }
-const IYI: BeyinCikti = { metin: "FACT arac: claude\nSUMMARY: Ozyn çok komut verdi.", cagrilar: [] };
+const IYI: BeyinCikti = { metin: "SUMMARY: Ozyn çok komut verdi.", cagrilar: [] };
 
-test("'/compact': eski ham kayıtlar olgu+özete iner, yedek ÖNCE alınır, Orion sabit cümleyle bildirir", async () => {
+test("'/compact': eski ham kayıtlar tek özete iner, yedek ÖNCE alınır, Orion sabit cümleyle bildirir", async () => {
   const b = new SahteBeyin(IYI);
   const { k, soyle, yedekler, soylenen, algilar } = kur(b, 60);
   await soyle("/compact");
   assert.equal(yedekler.length, 1);
   assert.equal(yedekler[0]!.length, 60, "yedek silmeden ÖNCEKİ tam hafıza");
   assert.equal(k.hafizaGorunumu().derin.filter((a) => a.tur === "konusma").length, 30);
-  assert.deepEqual(soylenen, [SIKISTIR_SOZLERI.tamam(30, 1)]);
+  assert.deepEqual(soylenen, [SIKISTIR_SOZLERI.tamam(30, 0)]);
   assert.equal(algilar().at(-1)?.kapi.kural, "kopru.sikistir");
   assert.equal(b.gordugu.length, 1, "tek model çağrısı (sohbet turu değil)");
 });
@@ -101,4 +101,19 @@ test("otomatik: eşik altında hiç tetiklenmez", async () => {
   await soyle("merhaba nasılsın");
   await bekle(150);
   assert.equal(yedekler.length, 0);
+});
+
+test("model FACT satırları da yazsa olgu YAZILMAZ (H5: olgu kalitesi güvenilir değil); yalnız özet uygulanır", async () => {
+  const b = new SahteBeyin({ metin: "FACT arac: claude\nSUMMARY: Ozyn çok komut verdi.", cagrilar: [] });
+  const { k, soyle } = kur(b, 60);
+  await soyle("/compact");
+  assert.equal(k.hafiza.olgular().length, 0);
+  assert.ok(k.hafizaGorunumu().derin.some((a) => a.metin.startsWith("Summary of earlier chat: Ozyn çok komut verdi.")));
+});
+
+test("model yalnız FACT verip ÖZET vermezse hiçbir şey silinmez (uygulanacak bir şey yok)", async () => {
+  const b = new SahteBeyin({ metin: "FACT arac: claude", cagrilar: [] });
+  const { k, soyle, yedekler, soylenen } = kur(b, 60);
+  await soyle("/compact");
+  assert.deepEqual([k.hafizaGorunumu().derin.length, yedekler.length, soylenen], [60, 0, [SIKISTIR_SOZLERI.basarisiz]]);
 });

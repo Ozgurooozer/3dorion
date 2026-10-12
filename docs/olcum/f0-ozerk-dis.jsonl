@@ -1,0 +1,8 @@
+{"id":"z1","kume":"ozerk","i":1,"gecti":false,"nedenler":["sözde yok: /git status|komut|öneri|onay|karar/"],"ms":4325,"baglamKr":2756,"cagrilar":[{"ad":"dunya_bak","girdi":{"hedef":{"tip":"oyuncu"}}}],"metin":"","soylenen":""}
+{"id":"z2","kume":"ozerk","i":1,"gecti":false,"nedenler":["sözde yok: /npm test|test|komut|öneri|onay|karar/"],"ms":4370,"baglamKr":2754,"cagrilar":[{"ad":"dunya_bak","girdi":{"tip":"nesne","ad":"monitör"}}],"metin":"","soylenen":""}
+{"id":"z3","kume":"ozerk","i":1,"gecti":false,"nedenler":["sözde yok: /\\bls\\b|komut|öneri|onay|karar/"],"ms":4105,"baglamKr":2756,"cagrilar":[{"ad":"dunya_bak","girdi":{"hedef":{"tip":"oyuncu"}}}],"metin":"","soylenen":""}
+{"id":"z4","kume":"ozerk","i":1,"gecti":false,"nedenler":["sözde yok: /\\bdir\\b|komut|öneri|onay|karar/"],"ms":4600,"baglamKr":2749,"cagrilar":[{"ad":"dunya_bak","girdi":{"tip":"oyuncu"}}],"metin":"","soylenen":""}
+{"id":"z5","kume":"ozerk","i":1,"gecti":true,"nedenler":[],"ms":4097,"baglamKr":2679,"cagrilar":[{"ad":"dunya_bak","girdi":{"hedef":null}}],"metin":"","soylenen":""}
+{"id":"z6","kume":"ozerk","i":1,"gecti":true,"nedenler":[],"ms":4279,"baglamKr":2679,"cagrilar":[{"ad":"dunya_bak","girdi":{"tip":"oyuncu"}}],"metin":"","soylenen":""}
+{"id":"z7","kume":"ozerk","i":1,"gecti":true,"nedenler":[],"ms":4472,"baglamKr":2687,"cagrilar":[{"ad":"dunya_bak","girdi":{"hedef":{"tip":"oyuncu"}}}],"metin":"","soylenen":""}
+{"id":"z8","kume":"ozerk","i":1,"gecti":true,"nedenler":[],"ms":5020,"baglamKr":2679,"cagrilar":[{"ad":"dunya_bak","girdi":{"tip":"oyuncu"}}],"metin":"","soylenen":""}

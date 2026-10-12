@@ -897,7 +897,7 @@ saat.dinle((t, dt) => {
           tur: "olay",
           ad: acik
             ? `you proposed \`${acik.ozet}\` ${Math.max(1, Math.round(acik.yasMs / 60_000))} minutes ago and Ozyn did not decide in time — `
-              + "this is your own initiative: remind him once, in one short sentence, only if it still matters; otherwise stay silent"
+              + "this is your own initiative: remind him once, in one short sentence"
             : `nobody has spoken for ${sure} — this is your own initiative: say something only if it is useful, otherwise stay silent`,
           ayrinti: { kaynak: "inisiyatif", neden: k.neden, derinlik: 0 },
         });

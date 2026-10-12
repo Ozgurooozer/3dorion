@@ -24,6 +24,15 @@ export function yapisalAraclar(araclar: readonly AracTanimi[] = araclariUret()):
 
 /** Claude Code `--json-schema` için şema. `girdi` serbest nesne: doğrulama köprüde (protocol/dogrula.ts), şemada değil. */
 export function yapisalSema(araclar?: readonly AracTanimi[]): Record<string, unknown> {
+  // Araç listesi BOŞSA (hafıza sıkıştırma gibi yalnız metin isteyen turlar) `enum: []` geçersiz bir şemadır ve claude
+  // `--json-schema`yı reddeder (H5 ölçümü, Orion Beyin Ofisi: Haiku'da /compact hiç çalışmıyordu). Eylem listesi boş kalmalı.
+  if (yapisalAraclar(araclar).length === 0) {
+    return {
+      type: "object",
+      properties: { soz: { type: "string", description: "Your whole answer, as plain text." }, eylemler: { type: "array", maxItems: 0 } },
+      required: ["soz", "eylemler"],
+    };
+  }
   return {
     type: "object",
     properties: {
@@ -53,6 +62,9 @@ const ilkCumle = (s: string): string => (s.match(/[^.]*\.(?:\s|$)/g) ?? [s]).sli
  * bir kez, en altta. Tablodan ÜRETİLİR: araç eklenince/değişince rehber kendiliğinden güncellenir.
  */
 export function aracRehberi(araclar: readonly AracTanimi[] = araclariUret()): string {
+  // Eylem yoksa (sıkıştırma gibi yalnız metin isteyen tur) rehber YOK: "konuşma soz'de, Türkçe" cümlesi modelin elindeki
+  // biçim talimatını (FACT/SUMMARY) ezip düzyazı özet yazdırıyordu (H5 ölçümü, Haiku 0/3).
+  if (yapisalAraclar(araclar).length === 0) return "";
   const satirlar = araclar.filter((a) => a.ad !== KONUSMA_ARACI).map((a) => {
     const props = a.sema.properties as Record<string, { enum?: string[] }>;
     const gerekli = new Set(a.sema.required ?? []);
