@@ -60,7 +60,11 @@ export function hafizaKelimeleri(g: HafizaGirdisi): HafizaKelimesi[] {
   // DERİN: getirilenler her zaman; kalan yer önem + tazelikle.
   const getirilenMetin = new Set(g.getirilen.map((x) => x.ani.metin));
   const puan = (a: Ani) => a.onem / 10 + Math.max(0, 1 - (g.simdi - a.sonErisim) / (14 * GUN));
+  // Aynı metin bulutta TEK kez (228 ham cümlenin çoğu tekrar: "nasılsın", aynı hata…); önem/tazelik sıralamasında ilki kalır.
+  const gorulen = new Set<string>();
+  const tekil = (a: Ani) => !gorulen.has(a.metin) && !!gorulen.add(a.metin);
   const secilen = [...g.derin].sort((a, b) => (getirilenMetin.has(b.metin) ? 1 : 0) - (getirilenMetin.has(a.metin) ? 1 : 0) || puan(b) - puan(a))
+    .filter(tekil)
     .slice(0, g.enFazlaDerin ?? 60);
   for (const a of secilen) {
     const yas = g.simdi - a.olusma;

@@ -2,7 +2,7 @@
 "use strict";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { bulutYerlesimi, kabukSayilari, KABUK_YARICAPI, type BulutKelimesi } from "./hafizaBulutu.ts";
+import { bulutYerlesimi, etiketleriAyir, kabukSayilari, KABUK_YARICAPI, type BulutKelimesi } from "./hafizaBulutu.ts";
 
 const k = (kabuk: 0 | 1 | 2, metin: string): BulutKelimesi => ({ kabuk, metin, not: "", boyut: 0.5, soluk: 0, sayi: "1" });
 const KELIMELER = [k(0, "kayit"), k(0, "onay.insan"), k(1, "git → tahta"), k(2, "tahtaya git"), k(2, "otur"), k(2, "bana gel")];
@@ -42,4 +42,25 @@ test("başlık: DERİN'de gösterilen ve gerçek toplam birlikte yazılır", () 
 
 test("başlık: toplam verilmezse yalnız gösterilen sayı", () => {
   assert.equal(kabukSayilari([kel(2)]), "SABİT 0 · ANLIK 0 · DERİN 1");
+});
+
+test("etiketleriAyir: üst üste binen iki etiketin yüksek öncelikli olanı yerinde kalır, diğeri kayar ya da gizlenir", () => {
+  const k = etiketleriAyir([{ i: 0, x: 50, y: 50, g: 40, yuk: 10, oncelik: 1 }, { i: 1, x: 52, y: 50, g: 40, yuk: 10, oncelik: 9 }]);
+  assert.deepEqual(k.get(1), { x: 52, y: 50 });
+  assert.notDeepEqual(k.get(0), { x: 50, y: 50 });
+});
+
+test("etiketleriAyir: kabul edilen hiçbir iki etiket çakışmaz (kalabalık girdi)", () => {
+  const ad = Array.from({ length: 60 }, (_, i) => ({ i, x: 100 + (i % 7) * 6, y: 100 + (i % 5) * 3, g: 40, yuk: 10, oncelik: i % 11 }));
+  const k = etiketleriAyir(ad);
+  const l = [...k.entries()].map(([i, p]) => ({ ...p, g: 40, yuk: 10, i }));
+  for (let a = 0; a < l.length; a++) for (let b = a + 1; b < l.length; b++) {
+    assert.ok(Math.abs(l[a]!.x - l[b]!.x) >= 40 || Math.abs(l[a]!.y - l[b]!.y) >= 10, `${l[a]!.i} ile ${l[b]!.i} çakışıyor`);
+  }
+  assert.ok(k.size < 60);
+});
+
+test("etiketleriAyir: belirleyici", () => {
+  const ad = Array.from({ length: 20 }, (_, i) => ({ i, x: 80 + i, y: 80, g: 30, yuk: 10, oncelik: i % 3 }));
+  assert.deepEqual([...etiketleriAyir(ad)], [...etiketleriAyir(ad)]);
 });

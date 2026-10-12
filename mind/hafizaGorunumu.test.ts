@@ -58,3 +58,9 @@ test("uzun metin bulutta kısalır, kutuda tam kalır", () => {
   const k = hafizaKelimeleri(girdi({ derin: [ani(uzun, 5, 1)] })).find((x) => x.kabuk === 2)!;
   assert.ok(k.metin.length <= 26 && k.not.includes(uzun), k.metin);
 });
+
+test("DERİN: aynı metinli anılar bulutta tek kelime olur (tekrarlar yığılmaz)", () => {
+  const derin = [ani("nasılsın", 5, 1), ani("nasılsın", 5, 2), ani("hata: bilinmeyen çapa", 3, 1), ani("hata: bilinmeyen çapa", 3, 3), ani("gel", 4, 1)];
+  const metinler = hafizaKelimeleri(girdi({ derin })).filter((x) => x.kabuk === 2).map((x) => x.metin).sort();
+  assert.deepEqual(metinler, ["gel", "hata: bilinmeyen çapa", "nasılsın"]);
+});
