@@ -1,7 +1,12 @@
 # Açık işler — tek liste
 
 Önceliği Ozyn belirler. Her madde tek satır + nerede. Biten madde SİLİNİR (geçmişi git'te);
-"çözüldü" arşivi tutulmaz. Son güncelleme: 2026-10-11.
+"çözüldü" arşivi tutulmaz. Son güncelleme: 2026-10-12.
+
+## Orion Beyin Ofisi (Ozyn, 2026-10-12): nedenli uyanma + özerk tur + hafıza — `specs/26` §10
+Kod bitti ve ölçüldü (vault: `forum/orion-beyin0fis/`, 3 toplantı). Açık: (1) tuş/fare girdisi **karar kaydına yazılmıyor** (varlığın gerçek ölçümü; H1 şimdilik alt sınır)
+· (2) uyanış defterinde "Ozyn tepkisi" ve panel göstergesi (boşa uyanma oranı) yok · (3) zayıf yerel modeller (qwen, gemma) özerk turda susamıyor: kendiliğinden turlar Haiku/ornith ile
+· (4) sıkıştırma canlı hafızada denenmedi (kopya üzerinde 9/9) · (5) gündem tek kaynaklı (zaman aşımına uğrayan öneri) · (6) hafıza giriş politikası hedefi (%35 eleme) tutmadı, asıl mekanizma sıkıştırma.
 
 ## ŞU AN: Orion toparlama — F0–F3-B BİTTİ, F4 kısmen; sonuçlar `specs/26` §8 (Ozyn, 2026-10-11)
 Yapılan: ölçüm tezgâhı (`tools/f0-olc.ts`, 28 senaryo) · hareket olayı uyandırmaz · gordum turunda `sor` yok · Haiku yapısal

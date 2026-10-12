@@ -204,3 +204,27 @@ yapılmaz · `olgu` anılarına, en yeni 30 ham kayda ve son 1 saatteki kayda do
 
 **Henüz ölçülmedi:** gerçek modelde (Haiku/yerel) çıktının kalitesi ve biçime uyumu. Yalnız sahte beyinle test edildi.
 Eşikler (100 / 25 / 15 dk) tahmin, canlı hafıza dosyasında ölçülüp ayarlanmalı.
+
+## 10. Orion Beyin Ofisi: nedenli uyanma, özerk tur, hafıza (2026-10-12)
+
+Ozyn: "robot mühendisi, yazılım mühendisi, yapay zeka mühendisi, 30 mühendis perspektifinden… beyin ofisi kur… toplantı yap, test et, tekrar toplan." Ofis, forum konusu, kanıt, ön-kayıt ve üç toplantının tamamı **vault**'ta: `forum/orion-beyin0fis/` (Toplantı 1 teşhis, Toplantı 2 tasarım, Toplantı 3 sonuç), `forum/orion-beyin-yeniden-dusunme/`, ön-kayıt `kanit/on-kayit-001.md`, ölçümler `kanit/olcum-001.json`. Bu bölüm yalnızca koda yansıyanı özetler.
+
+**Teşhis (kayıttan, B1–B10).** 12 Ekim'de 8,6 saatte 70 uyanışın 69'u kendiliğinden; 64'ü yalnız `dunya_sor`; her inisiyatif olayı 2 model turu (`ZINCIR_AZAMI = 1`: olay turu + `sor` cevabı) ve 32 görme çağrısı. Süzgeç doğru çalışıyor (1497 algının 1395'i `refleks.sonuc.rutin`). Kapılar (varlık = mesafe, nedensizlik, yanlış bütçe birimi) ve depolama politikası sorunluydu.
+
+**Kod (commit 1a2e9f1, 62ec522, bunu izleyen).**
+- `mind/inisiyatif.ts`: varlık = son girdi yaşı ≤ 10 dk (`girdiYasiMs`, mesafe değil); nedenler `acik_is` (zaman aşımına uğrayan komut önerisi, ≥ 2 dk, aynı iş TEK kez) ve `sessizlik` (ikincil); `UyanisButcesi` (saatlik ≤ 4 uyanma, ≤ 20 model-sn, ≤ 12 bin token; günlük ≤ 60 bin token; üst üste 2 boş uyanış → 30 dk devre kesici; başarısız çağrı da düşer).
+- Köprü: köken=inisiyatif turunda araç kümesi `{söz, bak, jest, poz}` (`OZERK_ARACLAR`), zincir 0, özerk tura özel talimat (`OZERK`); uyanış satırına `neden`, `eylemli`; içgüdü `kopru.ozerk_dar`. `world/giris.ts`: girdi saati (tuş/fare/söz), `?inisiyatif=eski` geri alma.
+- Hafıza: `mind/aniSuzgeci.ts` selam sözü saklanmaz, doğuştan komut düşük önem (3), hata dersi normalleşir (`?anipolitikasi=eski` geri alma); sıkıştırma (`/compact` + otomatik) **yalnız ÖZET** yazar, olgu yazmaz; başarısız otomatik deneme de 15 dk aralığı başlatır.
+- Ölçüm araçları: `tools/sikistir-olc.ts`, `tools/ani-politikasi-olc.ts`, `fixtures/f0/ozerk*.json` (+ `f0-olc.ts --fixture`), ham sonuçlar `docs/olcum/`.
+
+**Sonuçlar (ön-kayıt 001; küçük örneklem = yön göstergesi).**
+| H | Sonuç |
+|---|---|
+| H1 varlık kapısı (replay) | 153 geçmiş inisiyatif olayının **9'u (%5,9)** geçerdi (ALT SINIR: tuş/fare kaydı yok) — geçti |
+| H2 olay başına ≤ 1 tur | sahte beyin `sor`'a ısrar etse de 1 tur; 6 bozma testi yakalandı — geçti |
+| H3 acik_is davranışı | **ilk koşu YANLIŞLANDI** (Haiku 0/4: Ozyn'e bakıp susuyor). Neden: OLAY talimatı "emin değilsen `dunya_sor` ile bak" + olay metninde "only if it still matters". Düzeltme sonrası (post-hoc, n=1): Haiku 4/4 (sessizlik 4/4), ornith 4/4 (4/4), qwen 3/4 (0/4), gemma 3/4 (0/4) |
+| H4 8,6 saat "Ozyn yok" | 0 uyanış (birim testi) — geçti |
+| H5 sıkıştırma gerçek modelde | Haiku'da **hiç çalışmıyordu** (araç listesi boşken `yapisalSema` `enum: []` üretiyor; claude şemayı reddediyor) → düzeltildi. Olgu çıkarımı anahtar-kelime ölçütünü %86–90 geçti ama içerik kalıcı bilgi değil geçici hata durumu (biri uydurma) → **olgu yazılmıyor**, yalnız özet: 9/9 çözülme (Haiku, qwen, ornith) |
+| H6 giriş politikası | **kaldı**: selam yalnız %5,7 elendi (hedef ≥ %35), %15,8 düşük önemle; hata dersi 24 → 14. Asıl mekanizma sıkıştırma |
+
+**Açık.** Uyanış defterinde "Ozyn tepkisi" alanı ve panel göstergesi yok (alanlar `neden`/`eylemli` var); tuş/fare girdisi karar kaydına yazılmıyor (varlığın gerçek ölçümü için gerekli); otomatik sıkıştırma canlıda açık (H5 özet-only geçti) ama canlı hafızada kullanılmadı; "terminal oku" aracı (OB12); gündem tek kaynaklı (zaman aşımına uğrayan öneri). Zayıf yerel modeller (qwen, gemma) özerk turda susamıyor: pratikte kendiliğinden turlar Haiku ya da ornith ile.

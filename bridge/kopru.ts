@@ -772,6 +772,9 @@ export class Kopru {
     const soyle = (m: string) => { if (neden === "istek" && this._konusmaDinleyiciler.size) this._konusmaYay(m, false); };
     try {
       const simdi = this._ayar.simdi?.() ?? Date.now();
+      // DENEME zamanı kaydedilir (başarısız da): zayıf bir model biçime uymazsa otomatik sıkıştırma her uyanışta yeniden
+      // denemez, 15 dk bekler (yoksa token israfı döngüsü).
+      if (neden === "otomatik") this._sonSikistirma = simdi;
       const plan = sikistirmaPlani(this._hafiza.dok(), simdi);
       if (this._gecmis.length > 4) this._gecmis.splice(0, this._gecmis.length - 4);
       if (plan.length < EN_AZ_PLAN) { console.log(`[SIKISTIR] ${neden}: plan ${plan.length} < ${EN_AZ_PLAN}, model cagrilmadi`); soyle(SIKISTIR_SOZLERI.yok); return "yok"; }

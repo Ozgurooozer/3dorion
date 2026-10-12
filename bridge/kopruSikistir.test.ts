@@ -117,3 +117,16 @@ test("model yalnız FACT verip ÖZET vermezse hiçbir şey silinmez (uygulanacak
   await soyle("/compact");
   assert.deepEqual([k.hafizaGorunumu().derin.length, yedekler.length, soylenen], [60, 0, [SIKISTIR_SOZLERI.basarisiz]]);
 });
+
+test("otomatik: BAŞARISIZ deneme de aralığı başlatır — çöp cevap veren model her uyanışta yeniden denenmez", async () => {
+  const cop: BeyinCikti = { metin: "Sure, here is a summary!", cagrilar: [] };
+  const sohbet: BeyinCikti = { metin: "", cagrilar: [] };
+  const b = new SahteBeyin(sohbet, cop, sohbet, cop, sohbet, cop);
+  const { k, soyle } = kur(b, 130);
+  await soyle("merhaba nasılsın"); await bekle(150);
+  await soyle("bugün hava nasıl"); await bekle(150);
+  await soyle("ne yapıyorsun"); await bekle(150);
+  const sikistirmaTurlari = b.gordugu.filter((g) => g.talimat?.includes("compact the memory")).length;
+  assert.equal(sikistirmaTurlari, 1, "başarısız sıkıştırma 15 dk aralığa rağmen tekrar denendi");
+  assert.equal(k.hafizaGorunumu().derin.length >= 130, true, "hiçbir şey silinmemeliydi");
+});
