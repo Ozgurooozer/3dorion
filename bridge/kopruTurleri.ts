@@ -159,6 +159,11 @@ export interface KopruAyari {
    */
   hafizaDeposu?: { oku(): unknown[]; yaz(aniler: unknown[]): void };
   /**
+   * Sıkıştırmadan ÖNCE hafızanın kopyası buraya yazılır (silme geri alınabilsin). Verilmezse sıkıştırma YAPILMAZ:
+   * yedeksiz silme yok. Hata fırlatırsa sıkıştırma durur.
+   */
+  hafizaYedegi?: { yaz(aniler: unknown[]): void };
+  /**
    * Durum defterinin (spec 16 F2, mind/durumDefteri.ts) OTURUMLAR ARASI deposu: konum, son iş,
    * son konuşma… Verilmezse defter yalnız bellekte yaşar. Hatası yutulur.
    */

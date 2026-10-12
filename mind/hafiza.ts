@@ -295,6 +295,25 @@ export class Hafiza {
     return cikti;
   }
 
+  /**
+   * SIKIŞTIR (mind/sikistir.ts): `silinecek` ham anıları çıkarır; `ozet` varsa tek bir özet anısı (tür `olay`, önem 7)
+   * ekler, olgular `olguEkle` ile işlenir. Yalnız VERİLEN kayıtlar silinir (kimlik: metin+oluşma); `olgu` anısına asla
+   * dokunmaz. Dönüş: silinen ve işlenen olgu sayısı.
+   */
+  sikistir(silinecek: readonly Ani[], ozet: string, olgular: readonly { anahtar: string; deger: string }[]): { silinen: number; olgu: number } {
+    const git = new Set(silinecek.filter((a) => a.tur !== "olgu").map((a) => `${a.olusma}|${a.metin}`));
+    const once = this._aniler.length;
+    this._aniler = this._aniler.filter((a) => a.tur === "olgu" || !git.has(`${a.olusma}|${a.metin}`));
+    const silinen = once - this._aniler.length;
+    for (const o of olgular) this.olguEkle(o.anahtar, o.deger);
+    if (ozet) {
+      const t = this._simdi();
+      this._aniler.push({ metin: `Summary of earlier chat: ${ozet}`, tur: "olay", onem: 7, olusma: t, sonErisim: t });
+    }
+    this._budama();
+    return { silinen, olgu: olgular.length };
+  }
+
   /** Anıyı kaydet. Aynı metin tekrar gelirse yenisi eklenmez, tazelenir. */
   ekle(metin: string, tur: AniTuru, onem: number): void {
     const temiz = metin.trim();

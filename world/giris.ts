@@ -468,6 +468,14 @@ function durumDeposuKur(): { oku(): unknown[]; yaz(k: unknown[]): void } {
   };
 }
 
+/** Sıkıştırma yedeği: yalnız host dosyası varken (yoksa boş → köprü sıkıştırmayı REDDEDER, yedeksiz silme yok). */
+function hafizaYedegiKur(): { hafizaYedegi?: { yaz(aniler: unknown[]): void } } {
+  const k = (globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru;
+  const yaz = k?.hafizaYedekYaz?.bind(k);
+  if (!yaz) return {};
+  return { hafizaYedegi: { yaz: (aniler) => { if (!yaz(aniler)) throw new Error("yedek yazılamadı"); } } };
+}
+
 function hafizaDeposuKur(): { oku(): unknown[]; yaz(aniler: unknown[]): void } {
   const k = (globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru;
   const dosya = k?.hafizaOku && k.hafizaYaz && k.hafizaYazSenkron ? k : null;
@@ -1492,6 +1500,8 @@ function beyniBagla(a: Avatar): void {
     // arayüz dar olduğu için değişiklik bu blokla sınırlı (K7). Karar
     // `mind/hafizaGocu.ts` → `depoYukle`de; burada yalnızca G/Ç bağlanır.
     hafizaDeposu: hafizaDeposuKur(),
+    // Sıkıştırma yedeği (spec 26 F3-C): host dosyası yoksa (geliştirme kipi) yedek de yok → sıkıştırma yapılmaz.
+    ...hafizaYedegiKur(),
     hafizaKapasite: PANO_TELLERI.hafiza.kapasite,
     // SPEC 16: bağlama yalnız SORULAN girer (konum, son iş, eski konuşma…), yakın pencere küçük.
     // `?hafiza=otomatik` eski davranışı geri getirir — kıyas ölçüsü için (spec 16 P1).

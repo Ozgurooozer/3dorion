@@ -360,6 +360,21 @@ ipcMain.on(CAGRI.hafizaYazSenkron, (e, kayitlar) => {
   }
 });
 
+// Sıkıştırma yedeği (spec 26 F3-C): hafıza dosyasının yanına tarih damgalı kopya, en son 5'i kalır.
+ipcMain.on(CAGRI.hafizaYedekYaz, (e, kayitlar) => {
+  try {
+    if (!Array.isArray(kayitlar)) throw new Error("dizi degil");
+    const dizin = path.dirname(HAFIZA_YOLU), taban = path.basename(HAFIZA_YOLU, ".json");
+    hafizaDosyasiYaz(path.join(dizin, `${taban}.yedek-${new Date().toISOString().replace(/[:.]/g, "-")}.json`), kayitlar);
+    const eskiler = fs.readdirSync(dizin).filter((f) => f.startsWith(`${taban}.yedek-`)).sort();
+    for (const f of eskiler.slice(0, Math.max(0, eskiler.length - 5))) fs.unlinkSync(path.join(dizin, f));
+    e.returnValue = true;
+  } catch (hata) {
+    console.error(`[hafiza] yedek yazilamadi: ${hata?.message ?? hata}`);
+    e.returnValue = false;
+  }
+});
+
 // ---- durum defteri (spec 16 F2) ---------------------------------------------
 // Konum, son iş, son konuşma: oturumlar arası kalıcı, hafızadan AYRI dosya (durum ≠ anı, spec 06 K2).
 // Göç yok (yeni dosya); bozuksa hafızadaki gibi kenara taşınır ve defter boş başlar.

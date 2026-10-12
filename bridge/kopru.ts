@@ -34,6 +34,7 @@ import { komutCoz, type KomutEslesmesi } from "../mind/komutSozlugu.ts";
 import { AnlikBenlik, eden, niyetOzeti, type Eden } from "../mind/benlik.ts";
 import { DurumDefteri, type DurumKaydi } from "../mind/durumDefteri.ts";
 import { yonlendir, type CekmeceIstegi } from "../mind/hafizaYonlendirici.ts";
+import { sikistirmaCoz, sikistirmaIstegi, sikistirmaPlani, sikistirmaSorusu, otoSikistirmaGerekli, SIKISTIR_SOZLERI, SIKISTIR_TALIMATI, EN_AZ_PLAN } from "../mind/sikistir.ts";
 import { sohbetEylemi, sonrakiKip, SOHBET_ONAYI, type SohbetEylemi, type SohbetKipi } from "../mind/sohbetKipi.ts";
 import { takipEylemi, TAKIP_ONAYI, type TakipEylemi } from "../mind/takipSozu.ts";
 import { terminalAyristir } from "../mind/durumKodu.ts";
@@ -353,6 +354,13 @@ export class Kopru {
     if (a.tur === "duydum" && a.kesin) {
       const e = sohbetEylemi(a.metin);
       if (e) { this._sohbetEylemiYap(a, ozet, e, golge); return; }
+    }
+
+    // SIKIŞTIR (içgüdü `kopru.sikistir`): "/compact", tam eşleşme; LLM'in sohbet turu uyanmaz.
+    if (a.tur === "duydum" && a.kesin && sikistirmaIstegi(a.metin)) {
+      this._kaydet(a, ozet, { gecti: true, kural: "kopru.sikistir" }, golge);
+      void this.sikistir("istek");
+      return;
     }
 
     // TAKİP (içgüdü `kopru.takip`): "beni takip et" / "takibi bırak", tam eşleşme, LLM uyanmaz.
@@ -745,6 +753,53 @@ export class Kopru {
     if (this._konusmaDinleyiciler.size) this._konusmaYay(SOHBET_ONAYI[e], false);
   }
 
+  private _sikistiriyor = false;
+  private _sonSikistirma = 0;
+
+  /**
+   * Hafızayı sıkıştır (mind/sikistir.ts): ham eski anılar → olgular + özet. Tek uçuş; yedek (`hafizaYedegi`) YOKSA
+   * yapılmaz; model cevabı çözülemezse hiçbir şey silinmez. Konuşma penceresi de son 4 kayda iner. Dönüş: sonuç.
+   */
+  async sikistir(neden: "istek" | "otomatik"): Promise<"tamam" | "yok" | "basarisiz"> {
+    if (this._sikistiriyor || this._durduruldu) return "yok";
+    this._sikistiriyor = true;
+    const soyle = (m: string) => { if (neden === "istek" && this._konusmaDinleyiciler.size) this._konusmaYay(m, false); };
+    try {
+      const simdi = this._ayar.simdi?.() ?? Date.now();
+      const plan = sikistirmaPlani(this._hafiza.dok(), simdi);
+      if (this._gecmis.length > 4) this._gecmis.splice(0, this._gecmis.length - 4);
+      if (plan.length < EN_AZ_PLAN) { console.log(`[SIKISTIR] ${neden}: plan ${plan.length} < ${EN_AZ_PLAN}, model cagrilmadi`); soyle(SIKISTIR_SOZLERI.yok); return "yok"; }
+      if (!this._ayar.hafizaYedegi) { console.warn("[SIKISTIR] yedek yok, yapilmadi"); soyle(SIKISTIR_SOZLERI.basarisiz); return "basarisiz"; }
+      this._asama("hafiza", "sıkıştırılıyor");
+      const cikti = await this._ayar.beyin.dusun({
+        ozetler: [sikistirmaSorusu(plan, this._hafiza.olgular(4000))], dunya: "", gecmis: [], araclar: [], talimat: SIKISTIR_TALIMATI,
+      });
+      const ham = cikti.metin || cikti.cagrilar.map((c) => (c.girdi as { metin?: string } | null)?.metin ?? "").join("\n");
+      const sonuc = sikistirmaCoz(ham);
+      if (!sonuc) { console.warn(`[SIKISTIR] cevap cozulemedi, hicbir sey silinmedi: ${ham.slice(0, 120)}`); soyle(SIKISTIR_SOZLERI.basarisiz); return "basarisiz"; }
+      this._ayar.hafizaYedegi.yaz(this._hafiza.dok());
+      const s = this._hafiza.sikistir(plan, sonuc.ozet, sonuc.olgular);
+      this._sonSikistirma = simdi;
+      this._hafizaYaz();
+      console.log(`[SIKISTIR] ${neden}: ${s.silinen} ham kayit silindi · ${s.olgu} olgu · ozet=${sonuc.ozet ? "var" : "yok"} · atilan satir ${sonuc.atilan}`);
+      soyle(SIKISTIR_SOZLERI.tamam(s.silinen, s.olgu));
+      return "tamam";
+    } catch (err) {
+      console.error("[SIKISTIR] hata, hicbir sey silinmedi:", err instanceof Error ? err.message : err);
+      soyle(SIKISTIR_SOZLERI.basarisiz);
+      return "basarisiz";
+    } finally {
+      this._sikistiriyor = false;
+    }
+  }
+
+  /** Otomatik: beyin boşta, ham kayıt eşiği aşıldı, son sıkıştırmadan yeterince zaman geçti. */
+  private _otoSikistir(): void {
+    if (this._sikistiriyor || this._dusunuyor || this._tampon.length > 0 || this._sohbetKipi === "temiz" || !this._ayar.hafizaYedegi) return;
+    const simdi = this._ayar.simdi?.() ?? Date.now();
+    if (otoSikistirmaGerekli(this._hafiza.dok(), this._sonSikistirma, simdi)) void this.sikistir("otomatik");
+  }
+
   /** "Beni takip et" sürüyor mu. */
   get takipte(): boolean { return this._takipte; }
 
@@ -906,6 +961,7 @@ export class Kopru {
       this._kayit.uyanis(uyanis);
       this._dusunuyor = false;
       this._benlik.dusunceBitti();
+      this._otoSikistir();
       if (this._tekrarGerek) {
         this._tekrarGerek = false;
         this._gecikmeliDusun();

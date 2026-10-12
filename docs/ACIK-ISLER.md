@@ -8,7 +8,7 @@ Yapılan: ölçüm tezgâhı (`tools/f0-olc.ts`, 28 senaryo) · hareket olayı u
 çıktı (varsayılan; tam araç yüzeyi) · komut kipi (onaysız; yıkıcı bekler) · olgu hafızası + `hatirla`. Haiku %54 → %70
 (ortak 24 senaryo), terminal hâlâ en zayıf. Kalan işler (hepsi ölçümlü, kanıtı spec 26 §8.4'te):
 - **Ovada oturma** (`otur` tek ofis sandalyesine sabit) ve **`gec`** (Orion kapıdan tek başına, C6): `3dorion.bat ovadene` 6/8.
-- **F3-C oturum özeti** (olay özeti; eski 228 ham söz temizliği) · **terminal oku** aracı · hata metinlerini İngilizceye çevirmek.
+- **F3-C GERÇEK MODELDE ölçüm** (kod+test hazır, spec 26 §9: `/compact`, otomatik; eşikler tahmin) · **terminal oku** aracı · hata metinlerini İngilizceye çevirmek.
 - Haiku tutarsızlıkları: `dur`, `terminale claude yaz` (t1), `terminale merhaba yaz` (t8).
 - `world/level/ova/ova.level.json` Ozyn'in commit dışı düzenlemesi bir bekçi testini kırıyor (`ova bütün yerleşimleri dönüşsüz`: bir
   nesne 30° dönük) — düzenleme Ozyn'in; test ya level'a ya testin varsayımına uydurulmalı (Ozyn karar).

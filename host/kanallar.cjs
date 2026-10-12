@@ -25,6 +25,8 @@ const CAGRI = {
   hafizaYaz:         "hafiza:yaz",
   /** Göç için senkron yazım: göç, sonucu bilmeden "taşındı" diyemez. */
   hafizaYazSenkron:  "hafiza:yaz-senkron",
+  /** Sıkıştırma yedeği (spec 26 F3-C): hafıza dosyasının yanına tarih damgalı kopya; sonuç senkron (yedeksiz silme yok). */
+  hafizaYedekYaz:    "hafiza:yedek-yaz",
   /** MCP rölesi (spec 05 Aşama 1): renderer'ın `tools/*` cevabı main'e. */
   mcpYanit:          "mcp:yanit",
   /**

@@ -1,0 +1,67 @@
+// mind/sikistir.test.ts — Hafıza sıkıştırma: plan, cevap çözme, güvenlik ilkeleri (spec 26 F3-C).
+"use strict";
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { Hafiza, type Ani, type AniTuru } from "./hafiza.ts";
+import { KORU, TAZE_MS, OTO_ESIK, OTO_ARALIK_MS, otoSikistirmaGerekli, sikistirmaCoz, sikistirmaIstegi, sikistirmaPlani } from "./sikistir.ts";
+
+const SIMDI = 10_000_000_000;
+const ani = (i: number, tur: AniTuru = "konusma", yasMs = 24 * 3600_000): Ani => ({ metin: `kayıt ${i}`, tur, onem: 5, olusma: SIMDI - yasMs - i * 1000, sonErisim: SIMDI - yasMs });
+const ham = (n: number, tur: AniTuru = "konusma") => Array.from({ length: n }, (_, i) => ani(i, tur));
+
+test("istek: /compact ve eşdeğerleri TAM eşleşir; cümle içinde geçmesi tetiklemez", () => {
+  for (const s of ["/compact", "Compact", "hafızayı sıkıştır", "Sıkıştır!"]) assert.equal(sikistirmaIstegi(s), true, s);
+  for (const s of ["compact diye bir komut var mı", "hafızayı sıkıştırmak ister misin", "merhaba"]) assert.equal(sikistirmaIstegi(s), false, s);
+});
+
+test("plan: en yeni KORU kayıt ve olgu anıları korunur, en eskiler seçilir", () => {
+  const aniler = [...ham(60), { ...ani(0, "olgu"), anahtar: "k" }];
+  const plan = sikistirmaPlani(aniler, SIMDI);
+  assert.equal(plan.length, 60 - KORU);
+  assert.equal(plan.some((a) => a.tur === "olgu"), false);
+  const korunan = aniler.filter((a) => a.tur !== "olgu" && !plan.includes(a));
+  assert.ok(Math.min(...korunan.map((a) => a.olusma)) > Math.max(...plan.map((a) => a.olusma)), "plan, korunanlardan hep daha eski");
+});
+
+test("plan: son TAZE_MS içindeki kayıt sıkışmaz", () => {
+  const taze = Array.from({ length: 60 }, (_, i) => ani(i, "konusma", TAZE_MS / 2));
+  assert.deepEqual(sikistirmaPlani(taze, SIMDI), []);
+});
+
+test("oto tetik: eşik altı ve aralık dolmadan tetiklemez; eşik üstü + aralık dolunca tetikler", () => {
+  assert.equal(otoSikistirmaGerekli(ham(OTO_ESIK), 0, SIMDI), false);
+  assert.equal(otoSikistirmaGerekli(ham(OTO_ESIK + 1), SIMDI - OTO_ARALIK_MS / 2, SIMDI), false);
+  assert.equal(otoSikistirmaGerekli(ham(OTO_ESIK + 1), 0, SIMDI), true);
+});
+
+test("çöz: FACT ve SUMMARY satırları; geçersiz anahtar ve başıboş satır atılır ve SAYILIR", () => {
+  const r = sikistirmaCoz("FACT arac: claude\nFACT Kötü Anahtar: x\nSUMMARY: Ozyn terminalde çalıştı.\nbaşıboş satır")!;
+  assert.deepEqual(r.olgular, [{ anahtar: "arac", deger: "claude" }]);
+  assert.equal(r.ozet, "Ozyn terminalde çalıştı.");
+  assert.equal(r.atilan, 2);
+});
+
+test("çöz: ne olgu ne özet varsa null (silme yok)", () => {
+  assert.equal(sikistirmaCoz("Sure! Here is the summary of the memory."), null);
+  assert.equal(sikistirmaCoz(""), null);
+});
+
+test("Hafiza.sikistir: yalnız verilen ham kayıtlar gider; olgu ve verilmeyenler kalır; özet + olgu eklenir", () => {
+  const h = new Hafiza({ simdi: () => SIMDI });
+  h.yukle([...ham(40), { ...ani(0, "olgu"), metin: "mavi", anahtar: "renk" }]);
+  const plan = sikistirmaPlani(h.dok(), SIMDI);
+  const s = h.sikistir(plan, "Konuşmalar özetlendi.", [{ anahtar: "arac", deger: "claude" }]);
+  assert.deepEqual(s, { silinen: 10, olgu: 1 });
+  const k = h.dok();
+  assert.equal(k.filter((a) => a.tur === "konusma").length, 30);
+  assert.deepEqual(h.olgular().map((o) => o.anahtar).sort(), ["arac", "renk"]);
+  assert.ok(k.some((a) => a.metin === "Summary of earlier chat: Konuşmalar özetlendi."));
+});
+
+test("Hafiza.sikistir: olgu anısı listede olsa bile silinmez", () => {
+  const h = new Hafiza({ simdi: () => SIMDI });
+  h.olguEkle("renk", "mavi");
+  const olgu = h.dok()[0]!;
+  assert.equal(h.sikistir([olgu], "", []).silinen, 0);
+  assert.equal(h.olgular().length, 1);
+});

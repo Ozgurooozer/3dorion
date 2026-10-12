@@ -185,3 +185,22 @@ Hata payı büyük (senaryo başına 1–2 örnek); bu "iyileşti" değil "yön 
    `bak` kelimeli komutlar `sor`a gidiyor.
 6. Haiku b6 ("dur" → yalnız söz), t1/t8 tutarsız; yapısal kipte `sor gor`/`sor dunya` ayrımı ("ne görüyorsun" → dunya).
 7. İlgisiz bulgu: repo kökünde `calisti`, `tahtaya`, `gunluk.txt` (Orion'un terminale yazdığı komutların artığı, canlı testten).
+
+## 9. F3-C: `/compact` ve otomatik sıkıştırma (2026-10-12)
+
+Ozyn: "/compact ve auto compact özelliği eklemeliyiz Orion'a". §8.4'teki F3-C maddesinin gerçekleşmesi.
+
+**Ne yapar.** Kalıcı hafızadaki ESKİ ham anılar (konuşma, olay, terminal, sonuç) tek bir model çağrısıyla en çok 8 `olgu` +
+tek bir özet anısına iner (`mind/sikistir.ts`, `Hafiza.sikistir`, `Kopru.sikistir`). Konuşma penceresi son 4 kayda iner.
+İçgüdü `kopru.sikistir`: sohbet turu uyanmaz, Orion sabit cümleyle bildirir.
+
+**Tetik.** `/compact` (ya da "hafızayı sıkıştır", TAM eşleşme; "compact diye komut var mı" tetiklemez) · otomatik: ham kayıt
+> 100, plan ≥ 25, son sıkıştırmadan ≥ 15 dk, beyin boşta ve temiz sohbet değil.
+
+**Güvenlik (hepsi testli, 4 mutasyonla doğrulandı: çözülemeyen cevapta silme, yedeği silmeden sonra alma, olgu silme,
+taze kaydı koruma kaldırıldı → her biri tam bir testi kırdı).** Model cevabı çözülemez/boşsa HİÇBİR ŞEY silinmez · yedek
+(`hafizaYedegi`, host: `orion-hafiza.yedek-<tarih>.json`, son 5 kalır) silmeden ÖNCE alınır, yedek yoksa sıkıştırma
+yapılmaz · `olgu` anılarına, en yeni 30 ham kayda ve son 1 saatteki kayda dokunulmaz.
+
+**Henüz ölçülmedi:** gerçek modelde (Haiku/yerel) çıktının kalitesi ve biçime uyumu. Yalnız sahte beyinle test edildi.
+Eşikler (100 / 25 / 15 dk) tahmin, canlı hafıza dosyasında ölçülüp ayarlanmalı.

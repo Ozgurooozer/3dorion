@@ -67,6 +67,8 @@ export const ICGUDULER = {
     aciklama: "Kesin söz TAM olarak bir sohbet eylemiyse (yeni sohbet, temiz sohbet, normal sohbet) LLM uyanmaz: konuşma penceresi sıfırlanır, kip değişir, Orion sabit bir cümleyle onaylar (spec 16 F5b)." },
   "kopru.takip": { katman: "kopru", ezilebilir: false,
     aciklama: "Kesin söz TAM olarak bir takip sözüyse (beni takip et, takibi bırak) LLM uyanmaz: takip açılır/kapanır, Orion sabit cümleyle onaylar; Ozyn uzaklaştıkça dünya onu yanına yürütür. Yeni bir beden emri takibi bitirir (Ozyn, 2026-10-08)." },
+  "kopru.sikistir": { katman: "kopru", ezilebilir: false,
+    aciklama: "Kesin söz TAM olarak /compact (ya da hafızayı sıkıştır) ise ya da ham kayıt eşiği aşılınca LLM'in sohbet turu uyanmaz: eski ham anılar tek bir özet çağrısıyla olgulara + kısa özete iner, ham olanlar silinir; cevap çözülemezse hiçbir şey silinmez, yedek önce alınır (spec 26 F3-C)." },
   "kopru.refleks": { katman: "kopru", ezilebilir: false,
     aciklama: "Beceri refleksinin kendi adımının sonucunu refleks okur, beyne gitmez; refleks başarısız olursa söz notla birlikte beyne döner (spec 10)." },
 
