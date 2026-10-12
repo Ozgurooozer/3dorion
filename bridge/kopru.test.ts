@@ -333,11 +333,12 @@ test("dünya olayı uzun vadeli hafızaya yazılmaz (durumdur)", async () => {
 
 test("mikrofondan söz klavyedekinden düşük önemle yazılır", async () => {
   const { k } = kur(new SahteBeyin(), { toplamaMs: 5 });
-  k.algi({ tur: "duydum", metin: "sit down please", kesin: true, kaynak: "mikrofon" });
-  k.algi({ tur: "duydum", metin: "otur lutfen", kesin: true });
+  // Doğuştan komutlar ("otur") düşük önemle yazıldığı için karşılaştırma bilgi taşıyan cümlelerle yapılır.
+  k.algi({ tur: "duydum", metin: "I use claude in the terminal", kesin: true, kaynak: "mikrofon" });
+  k.algi({ tur: "duydum", metin: "terminalde claude kullanirim", kesin: true });
   await bekle(30);
   const onem = (m: string) => k.hafiza.sonAniler().find((a) => a.metin === m)?.onem ?? 0;
-  assert.ok(onem("sit down please") < onem("otur lutfen"));
+  assert.ok(onem("I use claude in the terminal") < onem("terminalde claude kullanirim"));
 });
 
 test("hafıza kapasitesi ayardan (panonun telinden) okunur", async () => {
@@ -652,12 +653,14 @@ test("SUSMA İLANI: inisiyatif turunda 'Sessiz kalıyorum…' söylenmez ve dün
   assert.equal(k.sayac().yutulanSusma, 1);
 });
 
-test("SUSMA İLANI: bakış sonrası TAKİP turu da inisiyatif zincirine aittir", async () => {
+test("SUSMA İLANI: bakış sonrası TAKİP turu da inisiyatif zincirine aittir (eski kip: ozerkTur=false)", async () => {
+  // Yeni kipte (varsayılan) kendiliğinden turun takip turu YOKTUR (bridge/kopruOzerk.test.ts); köken devralma eski kipte
+  // ve `?inisiyatif=eski` geri alma yolunda geçerli kalır, bu yüzden burada eski kip açıkça seçilir.
   const b = new SahteBeyin(
     { metin: "", cagrilar: [cagri("dunya_sor", { ne: "dunya" })] },
     { metin: "", cagrilar: [cagri("dunya_soyle", { metin: "Sessiz kalıyorum, yapacak bir şey yok." })] },
   );
-  const { k, niyetler } = kur(b);
+  const { k, niyetler } = kur(b, { ozerkTur: false });
   const duyulan: string[] = [];
   k.konusmaDinle((m) => duyulan.push(m));
   k.algi(inisiyatifOlayi());

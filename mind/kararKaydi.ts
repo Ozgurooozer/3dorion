@@ -192,6 +192,10 @@ export interface UyanisSatiri {
   sureMs: number;
   /** Zincirin kökeni: dış tetik mi, kendiliğinden düşünme mi. */
   koken: "dis" | "inisiyatif";
+  /** Kendiliğinden uyanışın NEDENİ (spec: Orion Beyin Ofisi T2-K3); dış tetikte yoktur. */
+  neden?: string;
+  /** Uyanış bir eylem ya da söz üretti mi (boş uyanış oranı için). */
+  eylemli?: boolean;
   /** Yalnızca bakış cevaplarından oluşan takip turu mu. */
   takip: boolean;
   /** Getirilen anı sayısı. */

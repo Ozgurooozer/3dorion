@@ -866,13 +866,15 @@ saat.dinle((t, dt) => {
     // bir bakış onu gölgelemesin. İkisi de senaryo kipinde susar.
     if (!SENARYO_KIPI && kopru) {
       const sessizlikMs = Date.now() - (sonKonusma || ACILIS);
+      inisiyatifSimdi = t * 1000;
       const k = inisiyatif.karar({
-        simdiMs: t * 1000,
+        simdiMs: inisiyatifSimdi,
         mesgul,
         ozynMonitorde: d.etkilesim === "monitor",
         ozynOdada: (d.mesafe ?? Infinity) < 8,
         sessizlikMs,
         guc: gucButcesi.seviye,
+        ...(INISIYATIF_ESKI ? {} : { girdiYasiMs: Date.now() - sonGirdi, acikIs: kopru.acikIs() }),
       });
       if (k) {
         // YENİ YOL YOK: sıradan bir olay algısı. Dikkat süzgecinden ve dakika
@@ -887,11 +889,17 @@ saat.dinle((t, dt) => {
         // uzatmak ölçümde hiçbir şeyi değiştirmedi (3/10 → 3/10), yalnızca
         // bağlamı büyüttü. Susma ilanını köprü yapısal olarak yutuyor.
         const sure = k.dakika >= 1 ? `${k.dakika} minutes` : `${Math.round(sessizlikMs / 1000)} seconds`;
+        // NEDEN yapısal alanda (`ayrinti.neden`, `derinlik`) ve modele açıkça söylenir (T2-K3): "söyleyecek varsa söyle"
+        // demek kararı modele itip önce parayı ödemekti.
+        const acik = k.neden === "acik_is" ? k.acikIs : undefined;
+        if (acik) kopru.acikIsAnildi(acik.anahtar);
         kopru.algi({
           tur: "olay",
-          ad: `nobody has spoken for ${sure} — this is your own initiative: `
-            + "say something only if it is useful, otherwise stay silent",
-          ayrinti: { kaynak: "inisiyatif" },
+          ad: acik
+            ? `you proposed \`${acik.ozet}\` ${Math.max(1, Math.round(acik.yasMs / 60_000))} minutes ago and Ozyn did not decide in time — `
+              + "this is your own initiative: remind him once, in one short sentence, only if it still matters; otherwise stay silent"
+            : `nobody has spoken for ${sure} — this is your own initiative: say something only if it is useful, otherwise stay silent`,
+          ayrinti: { kaynak: "inisiyatif", neden: k.neden, derinlik: 0 },
         });
         console.log(`[INISIYATIF] soze_gir · sessizlik=${k.dakika} dk · fayda=${k.fayda.toFixed(2)} · guc=${gucButcesi.seviye.toFixed(2)}`);
         gunluk.ekle("bilgi", "inisiyatif", `kendiliğinden düşünme fırsatı (${k.dakika} dk sessizlik)`);
@@ -1377,6 +1385,18 @@ let kopru: Kopru | null = null;
 const ACILIS = Date.now();
 /** Ozyn'in en son konuştuğu an. 0 = hiç konuşmadı. */
 let sonKonusma = 0;
+/**
+ * Ozyn'in SON GİRDİSİ (tuş, fare/işaretçi, tekerlek, söz): VARLIK sinyali (Orion Beyin Ofisi T2-K2). Açılış girdi sayılır
+ * (uygulamayı Ozyn başlattı). Kendiliğinden uyanma bu yaş ≤ 10 dk iken mümkün; yoksa Orion kimseye konuşmaz.
+ */
+let sonGirdi = Date.now();
+for (const olay of ["keydown", "pointerdown", "pointermove", "wheel"]) {
+  window.addEventListener(olay, () => { sonGirdi = Date.now(); }, { passive: true, capture: true });
+}
+/** `?inisiyatif=eski`: saat tabanlı eski kapı ve geniş özerk tur (geri alma yolu; T2 'Geri alma'). */
+const INISIYATIF_ESKI = new URLSearchParams(location.search).get("inisiyatif") === "eski";
+/** Kapının son değerlendirdiği zaman (dünya saati, ms): bütçe penceresi kapıyla AYNI saati kullanır. */
+let inisiyatifSimdi = 0;
 
 function dunyaDurumuMetni(): string {
   const o = oyuncu.oyuncuDurumu();
@@ -1502,6 +1522,10 @@ function beyniBagla(a: Avatar): void {
     hafizaDeposu: hafizaDeposuKur(),
     // Sıkıştırma yedeği (spec 26 F3-C): host dosyası yoksa (geliştirme kipi) yedek de yok → sıkıştırma yapılmaz.
     ...hafizaYedegiKur(),
+    // Kendiliğinden uyanışlar: bütçe (model-saniye/token) köprüden beslenir; özerk tur dar araç kümesiyle (T2-K4/K5).
+    inisiyatifButcesi: { sonuc: (_t, sureMs, token, eylemli) => inisiyatif.butce.sonuc(inisiyatifSimdi, sureMs, token, eylemli) },
+    ozerkTur: !INISIYATIF_ESKI,
+    aniPolitikasi: new URLSearchParams(location.search).get("anipolitikasi") === "eski" ? "eski" : "yeni",
     hafizaKapasite: PANO_TELLERI.hafiza.kapasite,
     // SPEC 16: bağlama yalnız SORULAN girer (konum, son iş, eski konuşma…), yakın pencere küçük.
     // `?hafiza=otomatik` eski davranışı geri getirir — kıyas ölçüsü için (spec 16 P1).
@@ -1736,6 +1760,7 @@ function beyniBagla(a: Avatar): void {
     if (!t.kesin) return;
     altyaziGoster(`sen: ${t.metin}`, 2000);
     sonKonusma = Date.now();      // "en son ne zaman konuştuk" bundan
+    sonGirdi = sonKonusma;
     kopru?.algi({ tur: "duydum", metin: t.metin, kesin: true, kaynak });
   };
   girdi.dinle((t) => sozAlindi(t));

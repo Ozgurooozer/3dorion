@@ -139,6 +139,15 @@ export interface KopruAyari {
    * tarafında (uygulama/takip.ts). Verilmezse söz yine tanınır ve kayda yazılır, ama kimse yürümez.
    */
   takipDinle?: (aktif: boolean) => void;
+  /**
+   * Kendiliğinden (köken=inisiyatif) her uyanış BİTİNCE gerçek süre, token ve eylem/söz üretip üretmediğiyle çağrılır:
+   * bütçeyi besler (mind/inisiyatif.ts `UyanisButcesi`). Verilmezse bütçe tutulmaz.
+   */
+  inisiyatifButcesi?: { sonuc(t: number, sureMs: number, token: number | undefined, eylemli: boolean): void };
+  /** Kendiliğinden turda dar araç kümesi (söz/bak/jest/poz) ve zincir bütçesi 0. Varsayılan AÇIK; `false` eski davranışa döner. */
+  ozerkTur?: boolean;
+  /** Hafıza giriş politikası (mind/aniSuzgeci.ts söz/hata kuralları). Varsayılan "yeni"; "eski" geri alma yoludur. */
+  aniPolitikasi?: "yeni" | "eski";
   /** Odadaki yer adları (çapa etiketleri): sözde geçerse yönlendirici konumu ister. */
   yerAdlari?: () => readonly string[];
   /**

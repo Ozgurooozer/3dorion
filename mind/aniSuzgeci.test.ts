@@ -17,11 +17,13 @@ test("inisiyatif dürtüsü hafızaya yazılmaz", () => {
 });
 
 test("klavyeden söz kural önemiyle yazılır", () => {
-  assert.deepEqual(aniKaydi({ tur: "duydum", metin: "otur", kesin: true }, "konusma", "otur"), { icerik: "otur", onem: kuralOnemi("konusma", "otur") });
+  // "otur" gibi doğuştan komutlar düşük önemle yazılır (mind/aniPolitikasi.test.ts); kural önemi bilgi taşıyan söze uygulanır.
+  const m = "ben terminalde claude kullanırım";
+  assert.deepEqual(aniKaydi({ tur: "duydum", metin: m, kesin: true }, "konusma", m), { icerik: m, onem: kuralOnemi("konusma", m) });
 });
 
 test("mikrofondan söz daha düşük önemle yazılır", () => {
-  assert.equal(aniKaydi({ tur: "duydum", metin: "sit down", kesin: true, kaynak: "mikrofon" }, "konusma", "sit down")?.onem, MIKROFON_ONEMI);
+  assert.equal(aniKaydi({ tur: "duydum", metin: "I use claude in the terminal", kesin: true, kaynak: "mikrofon" }, "konusma", "I use claude in the terminal")?.onem, MIKROFON_ONEMI);
 });
 
 test("mikrofon sözü klavye sözünden önemsizdir", () => {

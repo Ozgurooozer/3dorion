@@ -123,6 +123,10 @@ export class Kopru {
   /** Bekleyen turda inisiyatif / dış tetik var mı — tur başında kökeni belirler. */
   private _turInisiyatif = false;
   private _turDis = false;
+  /** Bekleyen kendiliğinden turun nedeni (olayın `ayrinti.neden`i) — uyanış satırına yazılır. */
+  private _turNeden = "";
+  /** Ozyn'in göremediği (zaman aşımına uğrayan) öneriler: Ozyn dönünce BİR kez hatırlatılır. */
+  private _kacirilan: { ozet: string; an: number; anahtar: string; anildi: boolean }[] = [];
   /** Bekleyen turda hareket dışı bir olay var mı (bkz. HAREKET_OLAYLARI). */
   private _turHareketDisi = false;
   /** Şu anki zincir yalnız Ozyn'in hareketiyle mi başladı — söz iç seste kalır. Takip turu devralır. */
@@ -408,6 +412,7 @@ export class Kopru {
       const ozet = this._isler.get(a.sonuc.niyet_id);
       if (ozet !== undefined) {
         this._isler.delete(a.sonuc.niyet_id);
+        if (a.sonuc.durum === "hata" && /zaman asimi/.test(a.sonuc.not ?? "")) this._kacirilan.push({ ozet, an: this._ayar.simdi?.() ?? Date.now(), anahtar: `${a.sonuc.niyet_id}`, anildi: false });
         this._durum.isBitti(ozet, a.sonuc.durum === "bitti" ? "done" : `${a.sonuc.durum}${a.sonuc.not ? `: ${a.sonuc.not}` : ""}`);
       }
     }
@@ -478,8 +483,9 @@ export class Kopru {
   // Bakış cevabı dışındaki her tetik (söz, terminal, olay, inisiyatif)
   // hakkı YENİLER. Tüketim turun başında olur (bkz. `_dusun`).
   if (a.tur !== "gordum") {
-    this._zincirKalan = ZINCIR_AZAMI;
-    if (inisiyatifOlayiMi(a)) this._turInisiyatif = true;
+    // Kendiliğinden uyanışın takip turu YOK (T2-K4): kendi sorgusunun cevabı ikinci bir uyanış doğurmaz.
+    this._zincirKalan = inisiyatifOlayiMi(a) && this._ayar.ozerkTur !== false ? 0 : ZINCIR_AZAMI;
+    if (inisiyatifOlayiMi(a)) { this._turInisiyatif = true; this._turNeden = String(a.tur === "olay" ? a.ayrinti?.["neden"] ?? "sessizlik" : "sessizlik"); }
     else this._turDis = true;
     if (a.tur === "olay" && !HAREKET_OLAYLARI.has(a.ad) && !inisiyatifOlayiMi(a)) this._turHareketDisi = true;
   }
@@ -698,7 +704,7 @@ export class Kopru {
     const { tur, icerik } = this._aniIcerigi(a, ozet);
     // Temiz sohbet hafızaya YAZILMAZ (spec 16 F5b). İçerik yine bu turun sorgusu/bağlamıdır.
     if (this._sohbetKipi === "temiz") return icerik;
-    const k = aniKaydi(a, tur, icerik);
+    const k = aniKaydi(a, tur, icerik, this._ayar.aniPolitikasi);
     if (k) { this._hafiza.ekle(k.icerik, tur, k.onem); this._hafizaYaz(); }
     return icerik;
   }
@@ -798,6 +804,20 @@ export class Kopru {
     if (this._sikistiriyor || this._dusunuyor || this._tampon.length > 0 || this._sohbetKipi === "temiz" || !this._ayar.hafizaYedegi) return;
     const simdi = this._ayar.simdi?.() ?? Date.now();
     if (otoSikistirmaGerekli(this._hafiza.dok(), this._sonSikistirma, simdi)) void this.sikistir("otomatik");
+  }
+
+  /**
+   * Ozyn'in göremediği, hatırlatılmaya değer EN ESKİ iş (zaman aşımına uğrayan komut önerisi; henüz hatırlatılmadı).
+   * Yok ise null. Kapı (`mind/inisiyatif.ts`) bunu `acikIs` olarak okur.
+   */
+  acikIs(): { ozet: string; yasMs: number; anahtar: string } | null {
+    const k = this._kacirilan.find((x) => !x.anildi);
+    return k ? { ozet: k.ozet, yasMs: (this._ayar.simdi?.() ?? Date.now()) - k.an, anahtar: k.anahtar } : null;
+  }
+  /** Açık iş hatırlatma turuna GİRDİ (aynı iş ikinci kez gelmesin). */
+  acikIsAnildi(anahtar: string): void {
+    for (const k of this._kacirilan) if (k.anahtar === anahtar) k.anildi = true;
+    if (this._kacirilan.length > 20) this._kacirilan.splice(0, this._kacirilan.length - 20);
   }
 
   /** "Beni takip et" sürüyor mu. */
@@ -958,7 +978,12 @@ export class Kopru {
       uyanis.hata = m;
       if (beyinT0 !== undefined && uyanis.sureMs === 0) uyanis.sureMs = Date.now() - beyinT0;
     } finally {
+      uyanis.eylemli = uyanis.cagrilar.some((ad) => ad !== "dunya_soyle") || uyanis.cagrilar.filter((ad) => ad === "dunya_soyle").length > uyanis.yutulanSoz || uyanis.konusulanMetin;
       this._kayit.uyanis(uyanis);
+      if (uyanis.koken === "inisiyatif") {
+        try { this._ayar.inisiyatifButcesi?.sonuc(this._ayar.simdi?.() ?? Date.now(), uyanis.sureMs, uyanis.baglam?.token, uyanis.eylemli); }
+        catch (err) { console.error("[kopru] inisiyatif bütçesi beslenemedi:", err); }
+      }
       this._dusunuyor = false;
       this._benlik.dusunceBitti();
       this._otoSikistir();
@@ -1055,6 +1080,8 @@ export class Kopru {
     else if (this._turInisiyatif) this._zincirKokeni = "inisiyatif";
     this._turDis = this._turInisiyatif = false;
     uyanis.koken = this._zincirKokeni;
+    if (this._zincirKokeni === "inisiyatif") uyanis.neden = this._turNeden || "sessizlik";
+    this._turNeden = "";
     this._benlik.dusunceBasladi(this._ayar.beyin.ad, this._zincirKokeni);
     // HAREKET ZİNCİRİ (içgüdü `kopru.hareket_sessiz`): kök tur yalnız Ozyn'in
     // hareketiyse zincir sessizdir; takip turu (bakış cevabı, sonuç) devralır.
@@ -1294,7 +1321,7 @@ export class Kopru {
   private _araclar(turler: ReadonlySet<string>): ReturnType<typeof araclariUret> {
     const c = this._ayar.cikarilanAraclar;
     const hepsi = araclariUret();
-    return turIcinAraclar(c?.length ? hepsi.filter((a) => !c.includes(a.ad)) : hepsi, turler);
+    return turIcinAraclar(c?.length ? hepsi.filter((a) => !c.includes(a.ad)) : hepsi, turler, this._zincirKokeni === "inisiyatif" && this._ayar.ozerkTur !== false);
   }
 
   private _gecmiseEkle(k: BeyinGirdisi["gecmis"][number]): void {

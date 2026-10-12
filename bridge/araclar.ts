@@ -158,9 +158,15 @@ export function araclariUret(): AracTanimi[] {
  * cevabıyla (`gordum`) uyanan turda `dunya_sor` sunulmaz — cevap geldi, söylemek kaldı. Ölçüm: gordum→sor 6/19 Haiku turu.
  * Ozyn aynı turda konuştuysa (`duydum`) araç yerinde: yeni bir şey isteyebilir.
  */
-export function turIcinAraclar(araclar: readonly AracTanimi[], turler: ReadonlySet<string>): AracTanimi[] {
+export function turIcinAraclar(araclar: readonly AracTanimi[], turler: ReadonlySet<string>, ozerk = false): AracTanimi[] {
+  // ÖZERK tur (kendiliğinden uyanış; Orion Beyin Ofisi T2-K4): yalnız söz, bak, jest, poz. `sor` yok (kendi sorgusunun
+  // cevabı ikinci bir uyanış doğuruyordu: 12 Ekim'de 64/69), komut/git/otur yok (Ozyn yokken bir şey çalıştıramaz).
+  if (ozerk) return araclar.filter((a) => OZERK_ARACLAR.has(a.ad));
   return turler.has("gordum") && !turler.has("duydum") ? araclar.filter((a) => a.ad !== "dunya_sor") : [...araclar];
 }
+
+/** Kendiliğinden turda sunulan araçlar. Konuşma (`dunya_soyle`) buna dahildir. */
+export const OZERK_ARACLAR: ReadonlySet<string> = new Set(["dunya_soyle", "dunya_bak", "dunya_jest", "dunya_poz"]);
 
 /** Araç adı → niyet türü. Bilinmeyen ad için null. */
 export function turCoz(aracAdi: string): NiyetTur | null {
