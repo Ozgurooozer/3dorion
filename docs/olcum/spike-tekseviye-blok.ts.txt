@@ -1,0 +1,67 @@
+// Spec 27 aşama A spike'ı (GEÇİCİ kod, commit'e girmedi): world/giris.ts sonuna eklenip `?tekseviye=ham|onlem|taban|kapi` ile koşuldu.
+// Yeniden üretmek için: bu bloğu giris.ts sonuna ekle ve host/main.js'e `if (process.env.ORION_SORGU_EK) parcalar.push(process.env.ORION_SORGU_EK);` satırı koy;
+// ORION_SORGU_EK="tekseviye=onlem&poz=0,-14,0" ORION_SMOKE=1 ORION_SMOKE_MS=36000 npx electron . (VITE_DEV_SERVER_URL ile).
+
+// <SPIKE-TEKSEVIYE> — GEÇİCİ (spec 27 aşama A): commit'e GİRMEZ (tools: giris_wipsiz.mjs bu bloğu siler).
+// `?tekseviye=ham|onlem`: ova ofisle AYNI sahnede, ofis gizlenmeden. `ham` = önlemsiz teşhis; `onlem` = ofis ışıkları yalnız ofis
+// mesh'lerini, ova güneşi/dolgusu ofisi hariç tutar, çim ofis ayak izinde yok. `?poz=x,z,yaw(derece)` oyuncuyu ışınlar.
+{
+  const mod = new URLSearchParams(location.search).get("tekseviye");
+  if (mod === "ham" || mod === "onlem" || mod === "taban" || mod === "kapi") void (async () => {
+    await oda.hazir;
+    await new Promise((r) => setTimeout(r, 4000));
+    const { SceneInstrumentation } = await import("@babylonjs/core/Instrumentation/sceneInstrumentation");
+    if (mod === "kapi") await ovayaCik();   // bugünkü tasarım: ofis gizli, ova kurulu (karşılaştırma tabanı)
+    if (mod === "ham" || mod === "onlem") {
+    const tanim = (await (await fetch(ovaAdresi)).json()) as { katmanlar: { tur: string; ayar?: Record<string, unknown> }[] };
+    if (mod === "onlem") {
+      const { anahtar } = await import("./level/cekirdek/arazi.ts");
+      const maske: number[] = [];
+      for (let i = -4; i <= 4; i++) for (let j = -3; j <= 3; j++) maske.push(anahtar(i, j), 1);
+      const cim = tanim.katmanlar.find((k) => k.tur === "cim");
+      if (cim) cim.ayar = { ...(cim.ayar ?? {}), maske, maskeHucre: 2 };
+    }
+    const { levelKur } = await import("./level/cekirdek/levelKur.ts");
+    const { MODULLER } = await import("./level/moduller/index.ts");
+    const ipOku = () => { const i = sahne.imageProcessingConfiguration; return `poz=${i.exposure} kont=${i.contrast} ton=${i.toneMappingEnabled}/${i.toneMappingType} egri=${i.colorCurvesEnabled} vin=${i.vignetteEnabled} sis=${sahne.fogMode}/${sahne.fogDensity.toFixed(4)} clear=${sahne.clearColor.toHexString()} postIslem=${rig.kamera._postProcesses?.length ?? "?"} piksel=${motor.getHardwareScalingLevel()}`; };
+    console.log(`[SPIKE] önce: ${ipOku()}`);
+    const level = levelKur(sahne, tanim, MODULLER);
+    await level.nesneler.hazir();
+    level.stil.kameraBagla(rig.kamera);
+    const kesin = new Set([...oda.meshler, ...oda.seffaflar]);
+    const odaMeshleri = [...kesin];
+    if (mod === "onlem") {
+      for (const l of sahne.lights) {
+        if (l === level.isik.gunes || l === level.isik.dolgu) l.excludedMeshes.push(...odaMeshleri);
+        else l.includedOnlyMeshes = odaMeshleri;
+      }
+    }
+    sahne.onBeforeRenderObservable.add(() => level.guncelle(motor.getDeltaTime() / 1000));
+    console.log(`[SPIKE] sonra: ${ipOku()}`);
+    console.log(`[SPIKE] mod=${mod} kuruldu: ışık=${sahne.lights.length} mesh=${sahne.meshes.length} katman=${level.sayim().katman}`);
+    }
+    const olcer = new SceneInstrumentation(sahne);
+    const olc = (ad: string) => new Promise<void>((bitti) => {
+      let kare = 0, cizim = 0;
+      const bas = performance.now();
+      const gozlemci = sahne.onAfterRenderObservable.add(() => { kare++; cizim += olcer.drawCallsCounter.current; });
+      setTimeout(() => {
+        sahne.onAfterRenderObservable.remove(gozlemci);
+        const sn = (performance.now() - bas) / 1000;
+        console.log(`[SPIKE] ${ad} mod=${mod} fps=${(kare / sn).toFixed(1)} cizim=${(cizim / Math.max(kare, 1)).toFixed(0)} aktifMesh=${sahne.getActiveMeshes().length}`);
+        bitti();
+      }, 8000);
+    });
+    if (mod !== "kapi") { oyuncu.isinla(1.6, 1.9, 0); }   // AYNI kamera: luma karşılaştırması aynı görüntüden
+    await new Promise((r) => setTimeout(r, 3000));
+    await olc("ofis-ici");
+    const poz = new URLSearchParams(location.search).get("poz");
+    if (poz) {
+      const [x, z, yaw] = poz.split(",").map(Number) as [number, number, number];
+      oyuncu.isinla(x!, z!, (yaw! * Math.PI) / 180);
+      await new Promise((r) => setTimeout(r, 2500));
+      await olc(`poz=${poz}`);
+    }
+  })();
+}
+// </SPIKE-TEKSEVIYE>
