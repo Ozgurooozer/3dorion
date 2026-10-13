@@ -1766,6 +1766,10 @@ function beyniBagla(a: Avatar): void {
     kopru?.algi({ tur: "duydum", metin: t.metin, kesin: true, kaynak });
   };
   girdi.dinle((t) => sozAlindi(t));
+  // Canlı deneme (`ORION_OZYN_SOZU`, OB21): açılıştan sonra Ozyn bunu yazmış gibi — klavyeyle AYNI yol. Beden
+  // senaryosu DEĞİL: kendiliğinden uyanma açık kalır (açık iş hatırlatmasını uçtan uca görmek için).
+  const denemeSozu = new URLSearchParams(location.search).get("ozynsozu");
+  if (denemeSozu) setTimeout(() => sozAlindi({ metin: denemeSozu, kesin: true }), 8000);
 
   // Mikrofon: bas-konuş V, Nemotron Speech İngilizce çözer. Çözülen metin klavyeden yazılmış gibi
   // AYNI yoldan geçer (sozAlindi): kapı, hafıza, komut sözlüğü değişmez.

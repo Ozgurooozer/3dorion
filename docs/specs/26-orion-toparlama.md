@@ -263,7 +263,16 @@ sessizlik uyanışı, ikisinde de sustu (çağrı, sor, takip turu yok); 2 boş 
 yok (`docs/olcum/d1-inisiyatif-canli-haiku.jsonl`). Koşunun gösterdiği iki hata düzeldi: (1) devre kesici doğru susmayı
 cezalandırıp açık iş hatırlatmasını da kesiyordu → yalnız sessizliği keser; (2) `claude-beyin` token sayısını
 `girisToken` adıyla yolluyordu, köprü `girdiToken` okuyor: **Haiku'da token tavanı hiç işlememişti** (şimdi ~4490/tur).
-`otodene` 4/4, `gordene` geçti (gerileme yok). Açık iş yolu canlıda denenmedi.
+`otodene` 4/4, `gordene` geçti (gerileme yok).
+
+**Açık iş hatırlatması canlı uçtan uca [ÖLÇÜLDÜ, n=1, OB21].** `ORION_OZYN_SOZU="git durumuna bak"` (8. sn'de
+klavyeyle aynı yoldan söz; beden senaryosu değil), onaylı komut kipi, Haiku, 5 dk. Koşudan önce konan 4 ölçütün
+4'ü geçti: öneri onay bekledi (12. sn `git status`); 91 sn sonra onaysız düştü; düşüşten tam 2 dk sonra TEK
+`acik_is` uyanışı (koşu sonuna kadar ikincisi yok); Orion tek kısa söz söyledi: "Git status komutu hala bekliyor—
+çalıştırmak istiyor musun?" (sor/komut yok). Arada 2 sessizlik uyanışı sustu, devre kesildi; devre kesici açık
+işi kesmedi. Kusur: "hala bekliyor" yanlış, öneri o an düşmüştü (olay metni "did not decide in time" diyor; model
+bunu bekliyor diye okudu). İlk iki koşu kirliydi: açık pencereye gerçek tuşlar geldi, öneri onaylandı/reddedildi
+(girdi satırı bunu gösterdi: tus=4, tus=5). `docs/olcum/d1-acik-is-canli-haiku.jsonl`.
 
 **Hafıza [ÖLÇÜLDÜ].** İlk canlı otomatik sıkıştırma ZATEN olmuş (12 Ekim 18:33, ornith, Ozyn'in oturumu): 275 → 196
 kayıt, yedek alındı, özetin her iddiası silinen kayıtlarda var. Üç kusur düzeldi: yalnız konsola yazılmıştı (artık

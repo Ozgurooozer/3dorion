@@ -8,7 +8,7 @@ Mimari düzeltme turu bitti (§11; vault `forum/orion-beyin0fis/`, Toplantı 4).
 - **Bir hafta gerçek kullanım** sonra `node --experimental-strip-types tools/karar-ozet.ts` (kendiliğinden uyanış bölümü: boş oran, Ozyn tepkisi, token, varlık kanıtı) → ofis yeniden toplanır (OB19).
 - **Terminal oku (OB12):** `sor terminal` denendi, Haiku terminal kümesini 11/16 → 7/16 düşürdü (komut önermek yerine okuyor) → geri alındı (`docs/olcum/e1-sor-terminal-geri-alindi.patch`). Yeni tasarım gerek: araç yalnız terminal bağlamda YOKKEN sunulsun ya da sonuç algısı zenginleşsin.
 - **ornith-32k** görmediği özerk sette sessizlikte 1/4: sessizlik uyanışı ornith'te kapalı (`bridge/ozerkYetenek.ts`); özerk talimat ornith için yeniden ele alınmalı.
-- Açık iş yolu (`acik_is`) canlıda uçtan uca denenmedi (gerçek Kopru ile entegrasyon testi var); `?inisiyatif=eski` canlıda denenmedi.
+- Açık iş hatırlatması canlıda geçti (§11, n=1), ama Haiku düşmüş öneriye "hala bekliyor" dedi: olay metni öneriyi düşmüş diye açık söylemeli (ölçümle). `?inisiyatif=eski` canlıda denenmedi.
 - Hafıza giriş politikası (H6) hedefi tutmadı: ham sözler çoğu emir ("otur", "bana gel"), selam değil; asıl mekanizma sıkıştırma (canlıda 1 kez çalıştı, doğru).
 
 ## ŞU AN: Orion toparlama — F0–F3-B BİTTİ, F4 kısmen; sonuçlar `specs/26` §8 (Ozyn, 2026-10-11)
