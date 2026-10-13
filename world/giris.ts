@@ -1972,6 +1972,13 @@ const senaryoBaglami: SenaryoBaglami = {
   get zoomPayi() { return zoomPayi; },
   yerler: () => ({ ozyn: ozynYeri, orion: orionYeri }),
   ovayaCik,
+  // `ortamdene`: ova'nın GERÇEK tanımı (ofiste null), hatırlama kipi, öğrenen sözlüğün büyüklüğü, ofise dönüş.
+  ortam: {
+    tanim: () => (disari ? disari.level.tanim() : null),
+    kipAyarla: (kip) => ortamGunlugu.kipAyarla(kip),
+    ogrenilenSayisi: () => ortamSozlugu.liste().length,
+    odayaDon: () => odayaDon(),
+  },
   niyetiYurut, onayKarari, algiSor, monitoreGec, admineGec, panelOdak, panoyuAl, zoomUygula, sonGorme,
   gozModeli: () => gozModeli.model,
 };

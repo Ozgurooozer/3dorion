@@ -10,6 +10,7 @@
 // `gordumGeldi`, `zoomPayi` — senaryo her okuduğunda güncel değeri görür.
 "use strict";
 import type { Engine } from "@babylonjs/core/Engines/engine";
+import type { LevelTanimi } from "../world/level/cekirdek/levelTanimi.ts";
 import type { Scene } from "@babylonjs/core/scene";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import type { Saat } from "../world/engine/tik.ts";
@@ -58,6 +59,16 @@ export interface SenaryoBaglami {
   yerler(): { ozyn: Yer; orion: Yer };
   /** Kapıdan geçmeden ovaya çık (ikisi birlikte; kapı yolu `kapidene`nin işi). Çıkılamazsa false. */
   ovayaCik(): Promise<boolean>;
+  /**
+   * ORTAM aracı (ova'nın ışığı/stili/zamanı; `ortamdene`): ova'nın GERÇEK tanımı (ofiste null), hatırlama kipi, öğrenen
+   * sözlüğün kayıt sayısı ve ofise dönüş (kalıcılık denemesi için).
+   */
+  readonly ortam: {
+    tanim(): LevelTanimi | null;
+    kipAyarla(kip: "oturum" | "kalici"): void;
+    ogrenilenSayisi(): number;
+    odayaDon(): boolean;
+  };
   // ── eylemler ──
   niyetiYurut(n: Niyet, id: string): void;
   onayKarari(onaylandi: boolean): void;
@@ -79,7 +90,7 @@ export const SENARYOLAR = [
   "terminaldene", "otodene", "gorudene", "sessizdene", "davranis", "tezdene", "gordene", "admindene",
   "zoomdene", "zihindene", "onaydene", "tahtabeyin", "becerdene", "bakdene", "acidene", "saglobdene",
   "senaryodene", "eylemdene", "benlikdene", "apidene", "tahtadene", "hafizadene", "yuzdene", "baglamdene", "takipdene",
-  "kapidene", "gozdene", "ovadene",
+  "kapidene", "gozdene", "ovadene", "ortamdene",
 ] as const;
 export type SenaryoAdi = (typeof SENARYOLAR)[number];
 
