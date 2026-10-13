@@ -17,6 +17,7 @@ import type { Niyet, NiyetSonucu } from "../protocol/niyet.ts";
 import { kimlik } from "../protocol/temel.ts";
 import { Dikkat, kanalAcikMi } from "../mind/dikkat.ts";
 import { KararKaydi, niyetKaydi, type AlgiEki, type BeceriGolgesi, type KapiKarari, type NiyetKaydi, type OgretimSatiri, type UyanisBilgisi } from "../mind/kararKaydi.ts";
+import { gorunurEylemMi } from "../mind/kararZinciri.ts";
 import { niyetDogrula } from "../protocol/dogrula.ts";
 import { BeceriDefteri } from "../mind/beceriDefteri.ts";
 import type { BeceriHafizasi } from "../mind/beceriHafizasi.ts";
@@ -981,7 +982,7 @@ export class Kopru {
       uyanis.hata = m;
       if (beyinT0 !== undefined && uyanis.sureMs === 0) uyanis.sureMs = Date.now() - beyinT0;
     } finally {
-      uyanis.eylemli = uyanis.cagrilar.some((ad) => ad !== "dunya_soyle") || uyanis.cagrilar.filter((ad) => ad === "dunya_soyle").length > uyanis.yutulanSoz || uyanis.konusulanMetin;
+      uyanis.eylemli = gorunurEylemMi(uyanis);
       this._kayit.uyanis(uyanis);
       if (uyanis.koken === "inisiyatif") {
         try { this._ayar.inisiyatifButcesi?.sonuc(this._ayar.simdi?.() ?? Date.now(), uyanis.sureMs, uyanis.baglam?.token, uyanis.eylemli); }

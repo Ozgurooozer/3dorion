@@ -131,6 +131,14 @@ test("gövdesiz eski uyanış satırı da okunur; akıbette gövde alanı hiç y
 
 // ── Refleks (spec 10, Faz D) ────────────────────────────────────────────────
 
+test("kayitOku program ve girdi satırlarını tanır (bozuk saymaz)", () => {
+  const { satirlar, bozuk } = kayitOku([
+    '{"tur":"program","o":"x","id":"p1","t":1,"algi":"a1","program":"komut:otur","niyetler":[]}',
+    '{"tur":"girdi","o":"x","t":2,"bas":0,"pencereMs":60000,"tus":1,"fare":0,"soz":0}',
+  ].join("\n"));
+  assert.deepEqual({ satir: satirlar.length, bozuk }, { satir: 2, bozuk: 0 });
+});
+
 test("kayitOku refleks satırını tanır (bozuk saymaz)", () => {
   const { satirlar, bozuk } = kayitOku('{"tur":"refleks","o":"x","id":"r1","t":1,"algi":"a1","beceri":"B1","niyetler":[],"bitis":"basari","sureMs":1}');
   assert.deepEqual({ satir: satirlar.length, bozuk }, { satir: 1, bozuk: 0 });

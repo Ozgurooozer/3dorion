@@ -142,6 +142,17 @@ export class UyanisButcesi {
     if (this._bos >= this._a.devreBosSayisi) { this._kesikBitis = t + this._a.devreMs; this._bos = 0; }
   }
 
+  /** Panel için salt-okur özet: son 60 dk uyanış ve token, son 24 saat token, şu anki izin. */
+  ozet(t: number): { saatlikUyanma: number; saatlikToken: number; gunlukToken: number; izin: ReturnType<UyanisButcesi["izin"]> } {
+    const saat = this._kayit.filter((k) => t - k.t <= 3600_000);
+    return {
+      saatlikUyanma: saat.length,
+      saatlikToken: saat.reduce((s, k) => s + k.token, 0),
+      gunlukToken: this._kayit.filter((k) => t - k.t <= 24 * 3600_000).reduce((s, k) => s + k.token, 0),
+      izin: this.izin(t),
+    };
+  }
+
   /** Şimdi bir kendiliğinden uyanışa izin var mı; yoksa nedeni (günlük/panel için). */
   izin(t: number): { acik: true } | { acik: false; sebep: string } {
     if (t < this._kesikBitis) return { acik: false, sebep: "devre_kesici" };
@@ -152,6 +163,13 @@ export class UyanisButcesi {
     if (this._kayit.reduce((s, k) => s + k.token, 0) >= this._a.gunlukToken) return { acik: false, sebep: "gunluk_token" };
     return { acik: true };
   }
+}
+
+/** Zihin duvarının canlı satırı için kısa metin; son bir saatte uyanış yoksa ve kapı açıksa null (gürültü olmasın). */
+export function butceSatiri(o: ReturnType<UyanisButcesi["ozet"]>): string | null {
+  if (!o.izin.acik) return `kendiliğinden kapalı (${o.izin.sebep.replace(/_/g, " ")})`;
+  if (o.saatlikUyanma === 0) return null;
+  return `kendiliğinden ${o.saatlikUyanma}/sa · ${(o.saatlikToken / 1000).toFixed(1).replace(".", ",")}k token`;
 }
 
 /**

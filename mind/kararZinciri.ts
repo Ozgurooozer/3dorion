@@ -20,7 +20,7 @@
 //
 // Bağımlılık: mind/kararKaydi.ts ve protocol/niyet.ts (tipler). Dosya sistemi yok: metin alır.
 "use strict";
-import type { AlgiSatiri, KararSatiri, NiyetKaydi, OgretimSatiri, RefleksSatiri, UyanisSatiri } from "./kararKaydi.ts";
+import type { AlgiSatiri, GirdiSatiri, KararSatiri, NiyetKaydi, OgretimSatiri, RefleksSatiri, UyanisSatiri } from "./kararKaydi.ts";
 import type { Niyet } from "../protocol/niyet.ts";
 
 /** Uyanıştan sonra Ozyn'in sözü bu süre içinde gelirse tepki sayılır. */
@@ -61,9 +61,18 @@ export interface KararZinciri {
   refleksler: RefleksZinciri[];
   /** Öğretim satırları, kayıttaki sırasıyla. */
   ogretimler: OgretimSatiri[];
+  /** Girdi sayıları (OB13), kayıttaki sırasıyla. */
+  girdiler: GirdiSatiri[];
   /** JSON olmayan ya da tanınmayan satır sayısı. */
   bozuk: number;
 }
+
+/**
+ * Okuyucunun tanıdığı satır türleri. Yeni bir satır türü (`KararSatiri`) eklenince BURAYA da girmeli: `program`
+ * (spec 13) bir aydır girmemişti ve her program satırı "bozuk" sayılıyordu (10 günlük kayıtta 68 satır).
+ */
+export const TANINAN_SATIRLAR: ReadonlySet<string> = new Set<KararSatiri["tur"]>(
+  ["oturum", "algi", "uyanis", "ogretim", "refleks", "program", "girdi"]);
 
 /** JSONL metnini satırlara ayırır; bozuk satırlar atılır ve sayılır. */
 export function kayitOku(metin: string): { satirlar: KararSatiri[]; bozuk: number } {
@@ -73,7 +82,7 @@ export function kayitOku(metin: string): { satirlar: KararSatiri[]; bozuk: numbe
     if (!ham.trim()) continue;
     try {
       const s = JSON.parse(ham) as KararSatiri;
-      if (s && (s.tur === "oturum" || s.tur === "algi" || s.tur === "uyanis" || s.tur === "ogretim" || s.tur === "refleks") && typeof s.o === "string") satirlar.push(s);
+      if (s && TANINAN_SATIRLAR.has(s.tur) && typeof s.o === "string") satirlar.push(s);
       else bozuk++;
     } catch {
       bozuk++;
@@ -89,6 +98,7 @@ export function zincirKur(satirlar: KararSatiri[], bozuk = 0): KararZinciri {
   const uyanislar: UyanisSatiri[] = [];
   const refleksSatirlari: RefleksSatiri[] = [];
   const ogretimler: OgretimSatiri[] = [];
+  const girdiler: GirdiSatiri[] = [];
   for (const s of satirlar) {
     if (s.tur === "oturum") { if (!oturumlar.includes(s.o)) oturumlar.push(s.o); }
     else if (s.tur === "algi") algilar.push(s);
@@ -96,6 +106,7 @@ export function zincirKur(satirlar: KararSatiri[], bozuk = 0): KararZinciri {
     else if (s.tur === "refleks") refleksSatirlari.push(s);
     // Açık tür denetimi: dışarıdan gelen (ör. host'un seçtiği) tanınmayan bir satır öğretim sayılmasın.
     else if (s.tur === "ogretim") ogretimler.push(s);
+    else if (s.tur === "girdi") girdiler.push(s);
   }
 
   const anahtar = (o: string, id: string) => `${o}/${id}`;
@@ -137,7 +148,7 @@ export function zincirKur(satirlar: KararSatiri[], bozuk = 0): KararZinciri {
     return z;
   });
 
-  return { oturumlar, algilar, uyanislar: zincir, refleksler, ogretimler, bozuk };
+  return { oturumlar, algilar, uyanislar: zincir, refleksler, ogretimler, girdiler, bozuk };
 }
 
 /**
@@ -150,4 +161,16 @@ export function zincirKur(satirlar: KararSatiri[], bozuk = 0): KararZinciri {
  */
 export function uyanisEyleme(u: UyanisSatiri): boolean {
   return u.niyetler.length > 0 || u.konusulanMetin;
+}
+
+/**
+ * Uyanış Ozyn'in GÖREBİLECEĞİ bir şey yaptı mı: `sor` dışında GÖNDERİLMİŞ bir niyet ya da konuşulan metin. Satırın
+ * `eylemli` alanı ve kendiliğinden uyanış bütçesinin devre kesicisi bunu kullanır.
+ *
+ * Neden çağrı adlarından değil: `cagrilar` REDDEDİLEN çağrıları da taşır. Özerk turda `dunya_sor` sunulmaz; model yine
+ * de çağırırsa reddedilir ve eski hesap bu uyanışı eylemli sayıyordu, iki boş uyanışta açılması gereken devre kesici
+ * hiç açılmıyordu. Neden `sor` hariç: bakmak Ozyn'e hiçbir şey göstermez (12 Ekim: 69 uyanışın 64'ü yalnız `sor`).
+ */
+export function gorunurEylemMi(u: Pick<UyanisSatiri, "niyetler" | "konusulanMetin">): boolean {
+  return u.niyetler.some((n) => n.tur !== "sor") || u.konusulanMetin;
 }

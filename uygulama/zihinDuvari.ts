@@ -24,6 +24,8 @@ export interface ZihinDuvariBaglami {
   kesikSn(): number;
   /** Panel notu için kısa beyin adı. */
   kisaAd(ad: string): string;
+  /** Kendiliğinden uyanış bütçesinin kısa durumu (mind/inisiyatif.ts `butceSatiri`); söylenecek yoksa null. */
+  inisiyatifDurumu?(): string | null;
 }
 
 /** Köprüye verilecek kayıt ve dinleyiciler (`new Kopru({...})` ayarına yayılır). */
@@ -62,7 +64,8 @@ export function zihinDuvariniBagla(b: ZihinDuvariBaglami): ZihinDuvariKancalari 
     if (!kopru) return;
     const bn = kopru.benlik.oku();
     const d = durumSatiri(bn);
-    gunluk.canli(gunlukBicim.elenen ? `${d.metin}  · elenen algı ${gunlukBicim.elenen}` : d.metin, d.ton);
+    const ini = b.inisiyatifDurumu?.() ?? null;
+    gunluk.canli([d.metin, gunlukBicim.elenen ? `elenen algı ${gunlukBicim.elenen}` : "", ini ?? ""].filter(Boolean).join("  · "), d.ton);
     // ŞEMA (spec 12 §4.5'in sade hâli): DÜŞÜNCE hapında canlı saniye, alt şeritte BENLİK
     // satırı. Devre kesikken alt şerit kesiğin mesajında kalır (o daha önemli).
     if (bn.dusunce.uyanik) {

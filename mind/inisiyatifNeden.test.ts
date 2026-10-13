@@ -5,7 +5,7 @@
 "use strict";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { Inisiyatif, UyanisButcesi, VARLIK_MS, ACIK_IS_BEKLEME_MS, type InisiyatifDurumu } from "./inisiyatif.ts";
+import { Inisiyatif, UyanisButcesi, VARLIK_MS, ACIK_IS_BEKLEME_MS, butceSatiri, type InisiyatifDurumu } from "./inisiyatif.ts";
 
 const DK = 60_000;
 const durum = (ek: Partial<InisiyatifDurumu> = {}): InisiyatifDurumu => ({
@@ -113,4 +113,24 @@ test("KAPI: bütçe tükenince karar null (model çağrılmaz)", () => {
   const i = new Inisiyatif({ butce: { saatlikModelMs: 5000 } });
   i.butce.sonuc(0, 6000, 100, true);
   assert.equal(i.karar(durum({ simdiMs: 30 * DK })), null);
+});
+
+// ── Panel satırı (OB5) ─────────────────────────────────────────
+
+test("PANEL: uyanış yoksa ve kapı açıksa satır yok", () => {
+  assert.equal(butceSatiri(new UyanisButcesi().ozet(0)), null);
+});
+
+test("PANEL: son bir saatin uyanış ve token sayısı gösterilir", () => {
+  const b = new UyanisButcesi();
+  b.sonuc(0, 1000, 1500, true);
+  b.sonuc(60_000, 1000, 1700, true);
+  assert.equal(butceSatiri(b.ozet(120_000)), "kendiliğinden 2/sa · 3,2k token");
+});
+
+test("PANEL: devre kesikken kapalı olduğu ve nedeni söylenir", () => {
+  const b = new UyanisButcesi();
+  b.sonuc(0, 1000, 100, false);
+  b.sonuc(1000, 1000, 100, false);
+  assert.equal(butceSatiri(b.ozet(2000)), "kendiliğinden kapalı (devre kesici)");
 });

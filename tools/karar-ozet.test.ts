@@ -71,3 +71,41 @@ test("refleks turları (spec 10, Faz D) bitişe göre sayılır; refleksi olmaya
     { refleks: { basari: 2, hata: 1, kesildi: 1 }, bos: {} },
   );
 });
+
+/**
+ * Kendiliğinden uyanışlar (OB5/OB14/OB18): biri açık işi hatırlatır (söz, token 900), biri sessizlikte boşa uyanır
+ * (sor çağırır); Ozyn ilkinden sonra konuşur. Girdi satırı yalnız ilk uyanıştan önce var.
+ */
+function inisiyatifKaydi(girdiYaz = true) {
+  let t = 0;
+  const satirlar: string[] = [];
+  const k = new KararKaydi({ oturum: "o1", simdi: () => t, yaz: (s) => satirlar.push(s.slice(KARAR_ONEKI.length + 1)) });
+  k.oturumBasi("sahte");
+  if (girdiYaz) k.girdi({ bas: 0, pencereMs: 60_000, tus: 4, fare: 9, soz: 0 });
+  t = 120_000;
+  k.uyanis({ ...UYANIS, koken: "inisiyatif", neden: "acik_is", sureMs: 1500, cagrilar: ["dunya_soyle", "dunya_hatirla"],
+    niyetler: [{ id: "n_1", tur: "soyle" }], baglam: { token: 900 } as UyanisBilgisi["baglam"] });
+  t = 130_000; k.algi({ tur: "duydum", metin: "tamam", kesin: true }, 'Ozyn said: "tamam"', { gecti: true, kural: "kopru.konusma" });
+  t = 2 * 3600_000;
+  k.uyanis({ ...UYANIS, koken: "inisiyatif", neden: "sessizlik", sureMs: 2500, cagrilar: ["dunya_sor"] });
+  return ozetCikar(zincirKur(kayitOku(satirlar.join("\n")).satirlar));
+}
+
+test("kendiliğinden uyanış: neden, eylem, tepki, maliyet ve sor sayılır", () => {
+  const i = inisiyatifKaydi().inisiyatif;
+  assert.deepEqual(
+    { uyanis: i.uyanis, neden: i.neden, eylemli: i.eylemli, tepkili: i.tepkili, token: i.token, modelMs: i.modelMs, sorlu: i.sorlu },
+    { uyanis: 2, neden: { acik_is: 1, sessizlik: 1 }, eylemli: 1, tepkili: 1, token: 900, modelMs: 4000, sorlu: 1 });
+});
+
+test("varlık kanıtı: önceki 10 dk'da girdi olan uyanış sayılır; 2 saat sonrakinde girdi yok", () => {
+  assert.equal(inisiyatifKaydi().inisiyatif.varlikli, 1);
+});
+
+test("varlık kanıtı: kayıtta hiç girdi satırı yoksa ölçülemez (null), sıfır değil", () => {
+  assert.equal(inisiyatifKaydi(false).inisiyatif.varlikli, null);
+});
+
+test("hatirla çağrısı olan uyanış sayılır (OB18)", () => {
+  assert.deepEqual(inisiyatifKaydi().hatirla, { uyanis: 1, cagri: 1 });
+});

@@ -12,8 +12,9 @@
 "use strict";
 import fs from "node:fs";
 import path from "node:path";
-import { kayitOku, uyanisEyleme, zincirKur, type KararZinciri } from "../mind/kararZinciri.ts";
-import type { KararSatiri } from "../mind/kararKaydi.ts";
+import { gorunurEylemMi, kayitOku, uyanisEyleme, zincirKur, type KararZinciri } from "../mind/kararZinciri.ts";
+import type { KararSatiri, UyanisSatiri } from "../mind/kararKaydi.ts";
+import { VARLIK_MS } from "../mind/inisiyatif.ts";
 
 export interface KuralSatiri { kural: string; adet: number; gecti: number }
 export interface TetikSatiri { kural: string; uyanis: number; eylem: number }
@@ -51,6 +52,48 @@ export interface KararOzeti {
   tepkili: number;
   /** Refleks turları (spec 10, Faz D: LLM'e sormadan yürütülen söz), bitişe göre. */
   refleks: Record<string, number>;
+  /** Kendiliğinden (köken=inisiyatif) uyanışlar — Orion Beyin Ofisi OB5/OB14/OB19'un sayıları. */
+  inisiyatif: InisiyatifOzeti;
+  /** `dunya_hatirla` çağrısı olan uyanış ve toplam çağrı (OB18: Orion olgu yazıyor mu). */
+  hatirla: { uyanis: number; cagri: number };
+}
+
+export interface InisiyatifOzeti {
+  uyanis: number;
+  /** Nedene göre; `yok` = neden alanından önceki satırlar (eski kapı). */
+  neden: Record<string, number>;
+  /** Ozyn'in görebileceği bir şey yapan uyanış (`gorunurEylemMi`: yalnız `sor` eylem sayılmaz). */
+  eylemli: number;
+  /** Ozyn uyanıştan sonraki TEPKI_PENCERESI_MS içinde konuştu. */
+  tepkili: number;
+  token: number;
+  modelMs: number;
+  /** `dunya_sor` çağrılan uyanış (yeni özerk turda 0 olmalı). */
+  sorlu: number;
+  /**
+   * VARLIK KANITI: önceki VARLIK_MS içinde girdi satırı ya da söz olan uyanış sayısı. Kayıtta hiç girdi satırı yoksa
+   * null: ölçülemez (12 Ekim öncesi kayıtlar; H1 orada alt sınırdı).
+   */
+  varlikli: number | null;
+}
+
+/** Kendiliğinden uyanışların özeti. Saf. */
+export function inisiyatifOzeti(z: KararZinciri): InisiyatifOzeti {
+  const ini = z.uyanislar.filter((zu) => zu.uyanis.koken === "inisiyatif");
+  const sozler = z.algilar.filter((a) => a.algi === "duydum");
+  const varlikVar = (u: UyanisSatiri) =>
+    z.girdiler.some((g) => g.o === u.o && g.bas <= u.t && g.bas + g.pencereMs >= u.t - VARLIK_MS)
+    || sozler.some((a) => a.o === u.o && a.t <= u.t && a.t >= u.t - VARLIK_MS);
+  return {
+    uyanis: ini.length,
+    neden: sayim(ini.map((zu) => zu.uyanis.neden ?? "yok")),
+    eylemli: ini.filter((zu) => gorunurEylemMi(zu.uyanis)).length,
+    tepkili: ini.filter((zu) => zu.tepki).length,
+    token: ini.reduce((s, zu) => s + (zu.uyanis.baglam?.token ?? 0), 0),
+    modelMs: ini.reduce((s, zu) => s + zu.uyanis.sureMs, 0),
+    sorlu: ini.filter((zu) => zu.uyanis.cagrilar.includes("dunya_sor")).length,
+    varlikli: z.girdiler.length ? ini.filter((zu) => varlikVar(zu.uyanis)).length : null,
+  };
 }
 
 /** En yakın sıra yöntemiyle yüzdelik: sıralı dizinin ⌈p·n⌉'inci elemanı. */
@@ -119,6 +162,11 @@ export function ozetCikar(z: KararZinciri): KararOzeti {
     tetikleyenler: [...tetik.values()].sort((a, b) => b.uyanis - a.uyanis || a.kural.localeCompare(b.kural)),
     niyetTurleri, akibet, onay, tepkili,
     refleks: sayim(z.refleksler.map((r) => r.refleks.bitis)),
+    inisiyatif: inisiyatifOzeti(z),
+    hatirla: {
+      uyanis: z.uyanislar.filter((zu) => zu.uyanis.cagrilar.includes("dunya_hatirla")).length,
+      cagri: z.uyanislar.reduce((s, zu) => s + zu.uyanis.cagrilar.filter((c) => c === "dunya_hatirla").length, 0),
+    },
   };
 }
 
@@ -180,6 +228,14 @@ function yazdir(o: KararOzeti, dosyalar: string[]): void {
   p(`ONAY (komut önerisi): ${Object.entries(o.onay).map(([k, n]) => `${k} ${n}`).join(", ") || "—"}`);
   p(`TEPKİ: eylemli uyanıştan sonra Ozyn konuştu ${o.tepkili}/${o.eylemliUyanis}`);
   p(`REFLEKS (LLM'siz yürütülen söz, spec 10): ${Object.entries(o.refleks).map(([k, n]) => `${k} ${n}`).join(", ") || "—"}`);
+  const i = o.inisiyatif;
+  p();
+  p("KENDİLİĞİNDEN UYANIŞ (Orion Beyin Ofisi)");
+  p(`- uyanış ${i.uyanis}; neden: ${Object.entries(i.neden).map(([k, n]) => `${k} ${n}`).join(", ") || "—"}`);
+  p(`- eylemli ${i.eylemli}/${i.uyanis} (boşa ${yuzde(i.uyanis - i.eylemli, i.uyanis)}); Ozyn 1 dk içinde konuştu ${i.tepkili}/${i.uyanis}`);
+  p(`- maliyet: ${i.token} token, ${(i.modelMs / 1000).toFixed(1)} model-sn; sor çağıran uyanış ${i.sorlu}`);
+  p(`- varlık kanıtı (önceki 10 dk girdi/söz): ${i.varlikli === null ? "ölçülemez — kayıtta girdi satırı yok" : `${i.varlikli}/${i.uyanis}`}`);
+  p(`HATIRLA: ${o.hatirla.uyanis}/${o.uyanis} uyanışta, toplam ${o.hatirla.cagri} çağrı`);
 }
 
 if (import.meta.main) {

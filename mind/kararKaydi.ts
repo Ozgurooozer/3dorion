@@ -318,7 +318,21 @@ export interface ProgramSatiri {
   niyetler: NiyetKaydi[];
 }
 
-export type KararSatiri = OturumSatiri | AlgiSatiri | UyanisSatiri | OgretimSatiri | RefleksSatiri | ProgramSatiri;
+/**
+ * GİRDİ (Orion Beyin Ofisi OB13): Ozyn'in bir zaman penceresindeki girdi SAYILARI. Varlık kapısı (son girdi ≤ 10 dk)
+ * kayıttan ancak bununla yeniden kurulabilir. 12 Ekim'den önce yalnız söz vardı ve H1 bir alt sınırdı.
+ * İÇERİK YOK: hangi tuşa basıldığı yazılmaz, yalnız sayı. Boş pencere yazılmaz. Eklemeli satır türü.
+ */
+export interface GirdiSatiri {
+  tur: "girdi";
+  o: string; t: number;
+  /** Pencerenin başı (ms, duvar saati) ve uzunluğu. */
+  bas: number; pencereMs: number;
+  tus: number; fare: number; soz: number;
+}
+export type GirdiBilgisi = Omit<GirdiSatiri, "tur" | "o" | "t">;
+
+export type KararSatiri = OturumSatiri | AlgiSatiri | UyanisSatiri | OgretimSatiri | RefleksSatiri | ProgramSatiri | GirdiSatiri;
 
 /** Program satırında köprünün doldurduğu alanlar. */
 export type ProgramBilgisi = Omit<ProgramSatiri, "tur" | "o" | "id" | "t">;
@@ -451,6 +465,11 @@ export class KararKaydi {
     if (icSes) satir.icSes = kisalt(icSes, SINIR.metin).metin;
     this._dus(satir);
     return id;
+  }
+
+  /** Bir girdi penceresinin sayılarını yazar (bkz. `GirdiSatiri`, mind/girdiPenceresi.ts). */
+  girdi(b: GirdiBilgisi): void {
+    this._dus({ tur: "girdi", o: this.oturum, t: this._simdi(), ...b });
   }
 
   /** Bir doğuştan program turunu (spec 13 Faz 2b) yazar. Program kimliğini döner. */

@@ -68,7 +68,7 @@ import type { Niyet } from "../protocol/niyet.ts";
 import { ozetle, type Algi } from "../protocol/algi.ts";
 import { varlik } from "./varlik.ts";
 import { Kopru } from "../bridge/kopru.ts";
-import type { KararSatiri, OgretimSatiri } from "../mind/kararKaydi.ts";
+import type { KararKaydi, KararSatiri, OgretimSatiri } from "../mind/kararKaydi.ts";
 import { GOREV_SATIRLARI } from "../mind/gorev.ts";
 import { modelSeciciKur } from "./arayuz/modelSecici.ts";
 import type { Beyin } from "../bridge/beyin.ts";
@@ -88,8 +88,9 @@ import { zihinDuvariniBagla } from "../uygulama/zihinDuvari.ts";
 import { beyinSeciminiKur, seciciKaynagiKur, modelKancasiKur, kisaAd } from "../uygulama/beyinSecimi.ts";
 import { odadaSure, sessizlikSozu, gununVakti } from "../mind/zaman.ts";
 import { depoYukle } from "../mind/hafizaGocu.ts";
-import { GucButcesi, Inisiyatif } from "../mind/inisiyatif.ts";
+import { GucButcesi, Inisiyatif, butceSatiri } from "../mind/inisiyatif.ts";
 import { inisiyatifTik } from "../uygulama/inisiyatifBaglantisi.ts";
+import { GirdiPenceresi, type GirdiTipi } from "../mind/girdiPenceresi.ts";
 import { McpBeyin } from "../bridge/mcpBeyin.ts";
 import { GozModeli } from "../bridge/goz.ts";
 import { KuralRefleksi, UZUN_ISLEM_MS, refleksGirdisi } from "../mind/refleks.ts";
@@ -865,6 +866,9 @@ saat.dinle((t, dt) => {
 
     // İNİSİYATİF önce, ajanda sonra: durum söze girmeyi gerektiriyorsa rastgele
     // bir bakış onu gölgelemesin. İkisi de senaryo kipinde susar.
+    // Girdi penceresi doldu ama yeni girdi gelmediyse kapanışı tik yazar (Ozyn gittikten sonraki son dakika).
+    const bitenGirdi = girdiPenceresi.tikle(Date.now());
+    if (bitenGirdi) girdiKaydi?.girdi(bitenGirdi);
     if (!SENARYO_KIPI && kopru) {
       const sessizlikMs = Date.now() - (sonKonusma || ACILIS);
       inisiyatifSimdi = t * 1000;
@@ -1371,8 +1375,17 @@ let sonKonusma = 0;
  * (uygulamayı Ozyn başlattı). Kendiliğinden uyanma bu yaş ≤ 10 dk iken mümkün; yoksa Orion kimseye konuşmaz.
  */
 let sonGirdi = Date.now();
-for (const olay of ["keydown", "pointerdown", "pointermove", "wheel"]) {
-  window.addEventListener(olay, () => { sonGirdi = Date.now(); }, { passive: true, capture: true });
+/** Girdi SAYILARI karar kaydına dakikalık yazılır (OB13; içerik yok): varlık kayıttan yeniden kurulabilsin. */
+const girdiPenceresi = new GirdiPenceresi();
+/** Beyin bağlanınca kurulur (`beyniBagla`); öncesindeki girdiler sayılır ama yazılmaz. */
+let girdiKaydi: KararKaydi | null = null;
+function girdiOldu(tip: GirdiTipi): void {
+  sonGirdi = Date.now();
+  const biten = girdiPenceresi.say(tip, sonGirdi);
+  if (biten) girdiKaydi?.girdi(biten);
+}
+for (const [olay, tip] of [["keydown", "tus"], ["pointerdown", "fare"], ["pointermove", "fare"], ["wheel", "fare"]] as const) {
+  window.addEventListener(olay, () => girdiOldu(tip), { passive: true, capture: true });
 }
 /** `?inisiyatif=eski`: saat tabanlı eski kapı ve geniş özerk tur (geri alma yolu; T2 'Geri alma'). */
 const INISIYATIF_ESKI = new URLSearchParams(location.search).get("inisiyatif") === "eski";
@@ -1449,7 +1462,11 @@ function beyniBagla(a: Avatar): void {
 
   // ZİHİN DUVARI (uygulama/zihinDuvari.ts, spec 14 R4): karar kaydı → günlük, anlık benlik →
   // canlı satır, devre kesici → arıza, hafıza → bulut. Yalnız gözlem; kancalar köprüye gider.
-  const duvar = zihinDuvariniBagla({ sema, gunluk, kopru: () => kopru, kesikSn, kisaAd });
+  const duvar = zihinDuvariniBagla({
+    sema, gunluk, kopru: () => kopru, kesikSn, kisaAd,
+    inisiyatifDurumu: () => (INISIYATIF_ESKI ? null : butceSatiri(inisiyatif.butce.ozet(inisiyatifSimdi))),
+  });
+  girdiKaydi = duvar.kararKaydi;
   kopru = new Kopru({
     kararKaydi: duvar.kararKaydi,
     // Dikkat'in yazılabilir ayarları TELDEN gelir: karar yolu ile devre
@@ -1740,8 +1757,8 @@ function beyniBagla(a: Avatar): void {
   const sozAlindi = (t: { metin: string; kesin: boolean }, kaynak: "klavye" | "mikrofon" = "klavye") => {
     if (!t.kesin) return;
     altyaziGoster(`sen: ${t.metin}`, 2000);
-    sonKonusma = Date.now();      // "en son ne zaman konuştuk" bundan
-    sonGirdi = sonKonusma;
+    girdiOldu("soz");
+    sonKonusma = sonGirdi;        // "en son ne zaman konuştuk" bundan
     kopru?.algi({ tur: "duydum", metin: t.metin, kesin: true, kaynak });
   };
   girdi.dinle((t) => sozAlindi(t));

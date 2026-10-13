@@ -91,6 +91,23 @@ test("uyanış satırı: neden yazılır; eylemsiz uyanış eylemli=false ve bü
   assert.deepEqual(butce.map((x) => x.eylemli), [false]);
 });
 
+test("özerk turda REDDEDİLEN sor uyanışı eylemli saymaz: bütçe boş uyanış görür (devre kesici çalışabilsin)", async () => {
+  const b = new SorBeyni();
+  const { k, uyanislar, butce } = kur(b);
+  k.algi(olay());
+  await bekle(60);
+  assert.ok(uyanislar()[0]?.cagrilar.includes("dunya_sor"), "model sor çağırmalıydı");
+  assert.deepEqual([uyanislar()[0]?.eylemli, butce[0]?.eylemli], [false, false]);
+});
+
+test("Ozyn turunda yalnız sor (bakış) da Ozyn'e görünür eylem değildir", async () => {
+  const b = new SorBeyni();
+  const { k, uyanislar } = kur(b);
+  k.algi({ tur: "duydum", metin: "ne görüyorsun", kesin: true });
+  await bekle(60);
+  assert.equal(uyanislar()[0]?.eylemli, false);
+});
+
 test("söz üreten kendiliğinden uyanış eylemli=true sayılır", async () => {
   const b = new SorBeyni({ metin: "", cagrilar: [{ ad: "dunya_soyle", girdi: { metin: "Az önceki komutu onaylamadın." } }] });
   const { k, uyanislar, butce } = kur(b);
