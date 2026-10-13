@@ -228,3 +228,51 @@ Ozyn: "robot mühendisi, yazılım mühendisi, yapay zeka mühendisi, 30 mühend
 | H6 giriş politikası | **kaldı**: selam yalnız %5,7 elendi (hedef ≥ %35), %15,8 düşük önemle; hata dersi 24 → 14. Asıl mekanizma sıkıştırma |
 
 **Açık.** Uyanış defterinde "Ozyn tepkisi" alanı ve panel göstergesi yok (alanlar `neden`/`eylemli` var); tuş/fare girdisi karar kaydına yazılmıyor (varlığın gerçek ölçümü için gerekli); otomatik sıkıştırma canlıda açık (H5 özet-only geçti) ama canlı hafızada kullanılmadı; "terminal oku" aracı (OB12); gündem tek kaynaklı (zaman aşımına uğrayan öneri). Zayıf yerel modeller (qwen, gemma) özerk turda susamıyor: pratikte kendiliğinden turlar Haiku ya da ornith ile.
+
+## 11. Mimari düzeltme turu (2026-10-13)
+
+Ozyn: "plan yap, mimariyi düzeltelim, hepsini planla ve başla". Commit'ler 0e4d2ad → c135b98 (8 commit). Ofis tarafı:
+vault `forum/orion-beyin0fis/` Toplantı 4, `kanit/on-kayit-002.md`, `kanit/olcum-002.json`.
+
+**Mimari kusurlar (koddan) — düzeltildi [TEST + bozma testi].**
+- Köprü düşen öneriyi not METNİNDE "zaman asimi" arayarak tanıyordu → `NiyetSonucu.kod: "onay_dustu"` (yapısal).
+- "Bu iş hatırlatıldı" iki yerdeydi (kapı + köprü; ayrışınca yeni işler aç kalırdı) → tek sahip köprü.
+- Kapı→köprü sırası ve olay metni kompozisyon kökündeydi, testsizdi → `uygulama/inisiyatifBaglantisi.ts` +
+  `mind/inisiyatif.ts inisiyatifOlayi` (ölçüm aracı f0-olc de metni BURADAN türetir; elle kopya yok).
+- **Özerk tur sözleşmesi yalnız modele gösterilen listedeydi:** sunulmayan `dunya_komut`/`dunya_sor` (yapısal ya da
+  metin içinde) dünyaya gidiyordu. Köprü artık turda sunulanı uygular; sunulmayan çağrı sayılır, GERİ BESLENMEZ
+  (geri besleme yeni tur açıp zinciri delerdi — ilk denemede 3 test bunu gösterdi).
+- `eylemli` çağrı adlarından hesaplanıyordu (reddedilen sor da "eylem"): devre kesici hiç açılmazdı → `gorunurEylemMi`
+  (sor dışı GÖNDERİLMİŞ niyet ya da konuşulan metin). 12 Ekim: boşa uyanış %4 değil **%96**.
+- Karar kaydı okuyucusu `program` satırını tanımıyordu (10 günde 68 "bozuk" satır) → `TANINAN_SATIRLAR`.
+
+**Ölçüm altyapısı [TEST].** Karar kaydına `girdi` satırı (tuş/fare/söz SAYISI, dakikalık, içerik yok; OB13) ve
+`sikistirma` satırı. `tools/karar-ozet.ts` kendiliğinden uyanış bölümü: neden, boş oran, Ozyn tepkisi, token, model-sn,
+sor izi, varlık kanıtı, `hatirla` kullanımı (OB5/14/18). Zihin duvarı canlı satırında bütçe durumu.
+
+**Yetenek kapısı (OB15) [ÖLÇÜLDÜ].** "Sessizlik" uyanışı yalnız susabildiği ölçülen beyinde (`bridge/ozerkYetenek.ts`).
+Ön-kayıt 002 (görülmemiş 8 senaryo, koşudan önce donduruldu): **Haiku 8/8 geçti; ornith 2/8 KALDI** (zaman aşımları
+tekrarlanınca 4/8; sessizlik 1/4 — H3 düzeltmesi ornith'te eski sete aşırı uymuş). qwen 4/8, gemma 4/8 (ham).
+**Ölçüm artefaktı:** gemma "konuşmuyor", kendi şablonunda metne `dunya_poz{poz:<|"|>duruyor<|"|>}` yazıyor; f0 bunu söz
+sayıyordu, CANLI köprü de tanımıyor ve çöpü sesli okuyordu (kayıtta gemma'nın 11 böyle uyanışının 9'u). Kurtarıcı
+düzeltildi (biçim 3); `tools/f0-canli-puan.ts` köprünün duyurduğunu puanlar → gemma sessizlik 8/8 (SONRADAN). Tablo:
+Haiku, gemma izinli; ornith, qwen izinsiz.
+
+**Canlı uçtan uca (ilk kez) [ÖLÇÜLDÜ, n=1].** Haiku, duman kipi, `ORION_INISIYATIF_SN=20`, 5 dk: 20. ve 40. sn'de iki
+sessizlik uyanışı, ikisinde de sustu (çağrı, sor, takip turu yok); 2 boş uyanışta devre kesildi, kalan 4 dk uyanış
+yok (`docs/olcum/d1-inisiyatif-canli-haiku.jsonl`). Koşunun gösterdiği iki hata düzeldi: (1) devre kesici doğru susmayı
+cezalandırıp açık iş hatırlatmasını da kesiyordu → yalnız sessizliği keser; (2) `claude-beyin` token sayısını
+`girisToken` adıyla yolluyordu, köprü `girdiToken` okuyor: **Haiku'da token tavanı hiç işlememişti** (şimdi ~4490/tur).
+`otodene` 4/4, `gordene` geçti (gerileme yok). Açık iş yolu canlıda denenmedi.
+
+**Hafıza [ÖLÇÜLDÜ].** İlk canlı otomatik sıkıştırma ZATEN olmuş (12 Ekim 18:33, ornith, Ozyn'in oturumu): 275 → 196
+kayıt, yedek alındı, özetin her iddiası silinen kayıtlarda var. Üç kusur düzeldi: yalnız konsola yazılmıştı (artık
+kayıt + günlük satırı), Ozyn konuşurken konuşma penceresini 4'e kesti (artık yalnız `/compact` isteğinde), özet
+500. karakterde kelime ortasında bitti (`sinirdaKes`). H6: kalan 171 söz çoğu kısa emir ("otur", "bana gel"), selam
+6 tane — hedef (%35 selam) yanlış varsayımdı.
+
+**Bulut (OB10) [görsel doğrulandı].** Olgu ve özet DERİN'de önde ve yeşil; "sığmadı" kabuğa göre
+(`docs/olcum/e2-hafiza-bulutu.png`; deneme sayfası `?yalniz=hafiza`).
+
+**Geri alındı — olumsuz sonuç [ÖLÇÜLDÜ].** `sor terminal` (OB12): önceden konan ölçüt terminal ≥ 10/16; Haiku
+11/16 → **7/16** (komut önermek yerine önce okuyor; bağlamda görünen terminali de yeniden okuyor). Yama saklandı.

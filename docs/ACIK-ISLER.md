@@ -1,12 +1,15 @@
 # Açık işler — tek liste
 
 Önceliği Ozyn belirler. Her madde tek satır + nerede. Biten madde SİLİNİR (geçmişi git'te);
-"çözüldü" arşivi tutulmaz. Son güncelleme: 2026-10-12.
+"çözüldü" arşivi tutulmaz. Son güncelleme: 2026-10-13.
 
-## Orion Beyin Ofisi (Ozyn, 2026-10-12): nedenli uyanma + özerk tur + hafıza — `specs/26` §10
-Kod bitti ve ölçüldü (vault: `forum/orion-beyin0fis/`, 3 toplantı). Açık: (1) tuş/fare girdisi **karar kaydına yazılmıyor** (varlığın gerçek ölçümü; H1 şimdilik alt sınır)
-· (2) uyanış defterinde "Ozyn tepkisi" ve panel göstergesi (boşa uyanma oranı) yok · (3) zayıf yerel modeller (qwen, gemma) özerk turda susamıyor: kendiliğinden turlar Haiku/ornith ile
-· (4) sıkıştırma canlı hafızada denenmedi (kopya üzerinde 9/9) · (5) gündem tek kaynaklı (zaman aşımına uğrayan öneri) · (6) hafıza giriş politikası hedefi (%35 eleme) tutmadı, asıl mekanizma sıkıştırma.
+## Orion Beyin Ofisi (Ozyn, 2026-10-12/13): nedenli uyanma + özerk tur + hafıza — `specs/26` §10–§11
+Mimari düzeltme turu bitti (§11; vault `forum/orion-beyin0fis/`, Toplantı 4). Açık:
+- **Bir hafta gerçek kullanım** sonra `node --experimental-strip-types tools/karar-ozet.ts` (kendiliğinden uyanış bölümü: boş oran, Ozyn tepkisi, token, varlık kanıtı) → ofis yeniden toplanır (OB19).
+- **Terminal oku (OB12):** `sor terminal` denendi, Haiku terminal kümesini 11/16 → 7/16 düşürdü (komut önermek yerine okuyor) → geri alındı (`docs/olcum/e1-sor-terminal-geri-alindi.patch`). Yeni tasarım gerek: araç yalnız terminal bağlamda YOKKEN sunulsun ya da sonuç algısı zenginleşsin.
+- **ornith-32k** görmediği özerk sette sessizlikte 1/4: sessizlik uyanışı ornith'te kapalı (`bridge/ozerkYetenek.ts`); özerk talimat ornith için yeniden ele alınmalı.
+- Açık iş yolu (`acik_is`) canlıda uçtan uca denenmedi (gerçek Kopru ile entegrasyon testi var); `?inisiyatif=eski` canlıda denenmedi.
+- Hafıza giriş politikası (H6) hedefi tutmadı: ham sözler çoğu emir ("otur", "bana gel"), selam değil; asıl mekanizma sıkıştırma (canlıda 1 kez çalıştı, doğru).
 
 ## ŞU AN: Orion toparlama — F0–F3-B BİTTİ, F4 kısmen; sonuçlar `specs/26` §8 (Ozyn, 2026-10-11)
 Yapılan: ölçüm tezgâhı (`tools/f0-olc.ts`, 28 senaryo) · hareket olayı uyandırmaz · gordum turunda `sor` yok · Haiku yapısal
