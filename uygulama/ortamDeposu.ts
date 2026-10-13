@@ -11,6 +11,7 @@
 // bozmaz. Günlük küçük kalır: mutlak komutlar aynı konudaki eskisini ezer, `sifirla` her şeyi siler, üst sınır var.
 "use strict";
 import type { OrtamKomutu } from "../world/level/stil/ortamKomutu.ts";
+import type { OgrenilenDeposu, OgrenilenKayit } from "../mind/ortamSozlugu.ts";
 
 export interface OrtamKaydi {
   surum: 1;
@@ -97,6 +98,7 @@ export class OrtamGunlugu {
   private _bellek: OrtamKomutu[];
   private _yerel: OrtamDeposu;
   private _kipDeposu: DepoYuzeyi | undefined;
+  private _kipDinleyicileri: ((k: KaliciKip) => void)[] = [];
 
   constructor(ayar: { yerel?: OrtamDeposu; depo?: DepoYuzeyi; kip?: KaliciKip } = {}) {
     this._kipDeposu = ayar.depo;
@@ -112,6 +114,9 @@ export class OrtamGunlugu {
   }
 
   get kip(): KaliciKip { return this._kip; }
+
+  /** Kip değişince haber al (öğrenen sözlük deposu kendini yeni kipe göre eşitler). */
+  kipDinle(f: (k: KaliciKip) => void): void { this._kipDinleyicileri.push(f); }
   komutlar(): readonly OrtamKomutu[] { return this._bellek; }
 
   kipAyarla(kip: KaliciKip): void {
@@ -119,6 +124,7 @@ export class OrtamGunlugu {
     try { (this._kipDeposu ?? localStorage).setItem(KIP_ANAHTARI, kip); } catch { /* önemsiz */ }
     if (kip === "kalici") this._yerel.yaz({ surum: 1, komutlar: [...this._bellek] });
     else this._yerel.sil();
+    for (const f of this._kipDinleyicileri) f(kip);
   }
 
   /** Başarıyla uygulanan komutu günlüğe işler. */
@@ -132,4 +138,41 @@ export class OrtamGunlugu {
     this._bellek = [];
     this._yerel.sil();
   }
+}
+
+// ── Öğrenen sözlük deposu (mind/ortamSozlugu.ts) ───────────────────────────────────────────────────────
+
+const OGRENILEN_ANAHTARI = "orion.ortam.ogrenilen";
+
+function ogrenilenCoz(ham: string | null): OgrenilenKayit[] {
+  if (!ham) return [];
+  try {
+    const v = JSON.parse(ham) as unknown;
+    if (!Array.isArray(v)) return [];
+    return v.filter((k): k is OgrenilenKayit => {
+      const x = k as Partial<OgrenilenKayit> | null;
+      return !!x && typeof x.soz === "string" && typeof x.ham === "string" && Array.isArray(x.komutlar)
+        && x.komutlar.every((n) => n && n.tur === "ortam" && TURLER.has(n.ne))
+        && Number.isFinite(x.basari) && Number.isFinite(x.hata) && Number.isFinite(x.t);
+    });
+  } catch { return []; }
+}
+
+/**
+ * Öğrenilen sözlüğün deposu: bellek HER ZAMAN güncel; `kalici()` doğruysa tarayıcı deposuna da yazılır. Günlükle aynı
+ * kip (OrtamGunlugu) belirler; kip değişince `esitle()` çağrılır: kalıcıya geçişte hemen yazar, oturuma dönüşte siler.
+ */
+export function ogrenilenDeposu(kalici: () => boolean, depo?: DepoYuzeyi): OgrenilenDeposu & { esitle(): void } {
+  const d = (): DepoYuzeyi | null => { try { return depo ?? localStorage; } catch { return null; } };
+  const yerelOku = (): OgrenilenKayit[] => { try { return ogrenilenCoz(d()?.getItem(OGRENILEN_ANAHTARI) ?? null); } catch { return []; } };
+  const yerelYaz = (k: readonly OgrenilenKayit[]) => { try { d()?.setItem(OGRENILEN_ANAHTARI, JSON.stringify(k)); } catch { /* önemsiz */ } };
+  let bellek: OgrenilenKayit[] = kalici() ? yerelOku() : [];
+  return {
+    oku: () => structuredClone(bellek),
+    yaz(k) { bellek = structuredClone([...k]); if (kalici()) yerelYaz(bellek); },
+    esitle() {
+      if (kalici()) yerelYaz(bellek);
+      else { try { d()?.removeItem(OGRENILEN_ANAHTARI); } catch { /* önemsiz */ } }
+    },
+  };
 }

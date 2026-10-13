@@ -5,6 +5,7 @@
 import type { Algi } from "../protocol/algi.ts";
 import type { Niyet, NiyetTur } from "../protocol/niyet.ts";
 import type { DikkatAyari } from "../mind/dikkat.ts";
+import type { KomutEslesmesi } from "../mind/komutSozlugu.ts";
 import type { KararKaydi, KararSatiri, OgretimSatiri } from "../mind/kararKaydi.ts";
 import type { IcguduKimligi } from "../mind/icgudu.ts";
 import type { KapiBaglami } from "../mind/durumKodu.ts";
@@ -78,6 +79,13 @@ export interface KopruAyari {
    * Verilmezse KAPALI sayılır: sözlük ortam sözünü sahiplenmez, söz LLM'e gider ("ova'da değilim" diyebilsin).
    */
   ortamKullanilabilir?: () => boolean;
+  /**
+   * ÖĞRENEN ortam sözlüğü (mind/ortamSozlugu.ts). `ortamOgrenilen`: yerleşik sözlük tutmadıysa, söz LLM'in daha önce
+   * doğru yaptığı bir söz mü (varsa program döner; yalnız `ortamKullanilabilir` iken sorulur). `ortamOgren`: LLM tek
+   * kesin sözle yalnız ortam niyetleri gönderdi ve HEPSİ `bitti` oldu → söz+komutlar kaydedilir (sonraki sefer token'sız).
+   */
+  ortamOgrenilen?: (soz: string) => KomutEslesmesi | null;
+  ortamOgren?: (soz: string, komutlar: readonly Extract<Niyet, { tur: "ortam" }>[]) => void;
   /**
    * ANLIK BENLİK için gövdenin anlık okuması (spec 12 §4.2): karar anında ÇEKİLİR,
    * 20 Hz yazılmaz. Verilmezse benliğin `beden` alanı boş kalır.

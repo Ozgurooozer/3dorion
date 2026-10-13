@@ -2,7 +2,8 @@
 "use strict";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { gunluguEkle, bellekDeposu, yerelDepo, OrtamGunlugu, GUNLUK_SINIRI, type DepoYuzeyi } from "./ortamDeposu.ts";
+import { gunluguEkle, bellekDeposu, yerelDepo, ogrenilenDeposu, OrtamGunlugu, GUNLUK_SINIRI, type DepoYuzeyi } from "./ortamDeposu.ts";
+import type { OgrenilenKayit } from "../mind/ortamSozlugu.ts";
 import { ortamBaglantisiKur, type OrtamLevel } from "./ortamBaglantisi.ts";
 import { ornekTanim } from "../world/level/cekirdek/ornekTanim.ts";
 import type { LevelTanimi } from "../world/level/cekirdek/levelTanimi.ts";
@@ -203,4 +204,54 @@ test("uçtan uca: komut → günlük → yeniden açılış → taze level aynı
   b2.ova(l2);
   b2.oynat(g2.komutlar());
   assert.deepEqual(l2.son(), l1.son());
+});
+
+// ── öğrenen sözlük deposu ──
+
+const kayitOrnek = (soz: string): OgrenilenKayit => ({ soz, ham: soz, komutlar: [k("isik", "kis") as OgrenilenKayit["komutlar"][number]], basari: 1, hata: 0, t: 1 });
+
+test("ogrenilenDeposu OTURUM kipinde tarayıcıya yazmaz, bellekte tutar", () => {
+  const s = sahteDepo();
+  const d = ogrenilenDeposu(() => false, s);
+  d.yaz([kayitOrnek("a")]);
+  assert.equal(d.oku().length, 1);
+  assert.equal(s.veri.has("orion.ortam.ogrenilen"), false);
+});
+
+test("ogrenilenDeposu KALICI kipte yazar; yeni örnek (yeniden açılış) okur; oturum kipindeki yeni örnek okumaz", () => {
+  const s = sahteDepo();
+  ogrenilenDeposu(() => true, s).yaz([kayitOrnek("a"), kayitOrnek("b")]);
+  assert.equal(ogrenilenDeposu(() => true, s).oku().length, 2);
+  assert.equal(ogrenilenDeposu(() => false, s).oku().length, 0);
+});
+
+test("esitle: kalıcıya geçince bellektekini yazar, oturuma dönünce yerel kaydı siler", () => {
+  const s = sahteDepo();
+  let kalici = false;
+  const d = ogrenilenDeposu(() => kalici, s);
+  d.yaz([kayitOrnek("a")]);
+  kalici = true; d.esitle();
+  assert.equal(ogrenilenDeposu(() => true, s).oku().length, 1);
+  kalici = false; d.esitle();
+  assert.equal(s.veri.has("orion.ortam.ogrenilen"), false);
+  assert.equal(d.oku().length, 1, "bellekteki oturum kaydı kalır");
+});
+
+test("ogrenilenDeposu: bozuk/tanınmayan kayıtlar süzülür, depo engelliyse fırlatmaz", () => {
+  const s = sahteDepo();
+  s.veri.set("orion.ortam.ogrenilen", JSON.stringify([kayitOrnek("a"), { soz: "x" }, null, { ...kayitOrnek("b"), komutlar: [{ tur: "soyle", metin: "x" }] }]));
+  assert.deepEqual(ogrenilenDeposu(() => true, s).oku().map((x) => x.soz), ["a"]);
+  s.veri.set("orion.ortam.ogrenilen", "{bozuk");
+  assert.deepEqual(ogrenilenDeposu(() => true, s).oku(), []);
+  const bozuk: DepoYuzeyi = { getItem() { throw new Error("e"); }, setItem() { throw new Error("e"); }, removeItem() { throw new Error("e"); } };
+  const d = ogrenilenDeposu(() => true, bozuk);
+  assert.doesNotThrow(() => { d.yaz([kayitOrnek("a")]); d.esitle(); });
+});
+
+test("OrtamGunlugu.kipDinle: kip değişince dinleyici yeni kipi duyar", () => {
+  const g = new OrtamGunlugu({ depo: sahteDepo(), kip: "oturum" });
+  const duyulan: string[] = [];
+  g.kipDinle((x) => duyulan.push(x));
+  g.kipAyarla("kalici"); g.kipAyarla("oturum");
+  assert.deepEqual(duyulan, ["kalici", "oturum"]);
 });

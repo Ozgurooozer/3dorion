@@ -22,6 +22,11 @@ export interface PencereOrtami {
   uygula(k: OrtamKomutu): { ok: boolean; not: string };
   dinle(f: () => void): () => void;
 }
+/** Orion'un LLM'den öğrendiği sözler (mind/ortamSozlugu.ts): Ozyn görür ve siler. */
+export interface PencereOgrenilen {
+  liste(): { soz: string; ham: string; ozet: string; askida: boolean }[];
+  sil(soz: string): void;
+}
 /** Hatırlama kipi (oturum | kalıcı). */
 export interface PencereGunlugu {
   readonly kip: "oturum" | "kalici";
@@ -42,6 +47,11 @@ const CSS = `
 #stil-pencere .not { padding: 6px 8px; color: var(--ed-soluk); font-size: 11px; border-top: 1px solid var(--ed-cizgi); }
 #stil-pencere .alt { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-top: 1px solid var(--ed-cizgi); font-size: 11px; }
 #stil-pencere .alt label { flex: 1; cursor: pointer; }
+#stil-pencere .ogr { padding: 4px 8px; border-top: 1px solid var(--ed-cizgi); font-size: 11px; max-height: 120px; overflow: auto; }
+#stil-pencere .ogr summary { cursor: pointer; color: var(--ed-soluk); }
+#stil-pencere .ogr .s { display: flex; gap: 6px; align-items: center; padding: 2px 0; }
+#stil-pencere .ogr .s span { flex: 1; }
+#stil-pencere .ogr .s.askida span { opacity: .55; text-decoration: line-through; }
 `;
 
 export interface StilPenceresi {
@@ -64,6 +74,8 @@ export interface StilPenceresiAyari {
   ortam?: PencereOrtami;
   /** Hatırlama kipi: verilirse altta "ayarları hatırla" kutusu ve "varsayılana dön" düğmesi çıkar. */
   gunluk?: PencereGunlugu;
+  /** Öğrenilen sözler: verilirse altta "öğrendiklerim" listesi (her biri silinebilir). */
+  ogrenilen?: PencereOgrenilen;
 }
 
 /** Canlı level'ı panelin soyut kaynağına bağlar: geçmiş yok, hata sessiz değil (konsola düşer, eski hâl kalır). */
@@ -123,6 +135,28 @@ export function stilPenceresiKur(ayar: StilPenceresiAyari = {}): StilPenceresi {
     alt.append(kutu, etiket, sifirla);
     kok.append(alt);
   }
+  let ogrenilenCiz: () => void = () => {};
+  let ogrKutu: HTMLDetailsElement | null = null;
+  const ogrCiz = () => {
+    if (!ogrKutu || !ayar.ogrenilen) return;
+    const liste = ayar.ogrenilen.liste();
+    ogrKutu.querySelector("summary")!.textContent = `öğrendiklerim (${liste.length})`;
+    ogrKutu.querySelectorAll(".s").forEach((e) => e.remove());
+    for (const k of liste) {
+      const s = el("div", `s${k.askida ? " askida" : ""}`);
+      const yazi = el("span", "", `"${k.ham}" → ${k.ozet}${k.askida ? " (askıda: yanlış çıktı)" : ""}`);
+      const sil = el("button", "", "sil"); sil.title = "Bu sözü unut: bir dahaki sefere yeniden LLM'e sorulur";
+      sil.onclick = () => { ayar.ogrenilen!.sil(k.soz); ogrCiz(); };
+      s.append(yazi, sil); ogrKutu.append(s);
+    }
+  };
+  if (ayar.ogrenilen) {
+    ogrKutu = document.createElement("details"); ogrKutu.className = "ogr";
+    ogrKutu.append(el("summary", "", "öğrendiklerim"));
+    ogrKutu.addEventListener("toggle", ogrCiz);
+    kok.append(ogrKutu);
+  }
+  ogrenilenCiz = ogrCiz;
   kok.append(not);
   document.body.append(kok);
 
@@ -135,6 +169,7 @@ export function stilPenceresiKur(ayar: StilPenceresiAyari = {}): StilPenceresi {
   const ac = () => {
     if (!kaynak) return;   // ova yokken pencere yok
     goster(true);
+    ogrenilenCiz();   // kapalıyken öğrenilenler değişmiş olabilir
     ayar.acildi?.();
   };
 

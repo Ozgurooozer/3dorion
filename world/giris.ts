@@ -92,7 +92,8 @@ import { depoYukle } from "../mind/hafizaGocu.ts";
 import { GucButcesi, Inisiyatif, butceSatiri } from "../mind/inisiyatif.ts";
 import { inisiyatifTik } from "../uygulama/inisiyatifBaglantisi.ts";
 import { ortamBaglantisiKur } from "../uygulama/ortamBaglantisi.ts";
-import { OrtamGunlugu } from "../uygulama/ortamDeposu.ts";
+import { OrtamGunlugu, ogrenilenDeposu } from "../uygulama/ortamDeposu.ts";
+import { OrtamSozlugu } from "../mind/ortamSozlugu.ts";
 import { sessizlikIzinliMi } from "../bridge/ozerkYetenek.ts";
 import { GirdiPenceresi, type GirdiTipi } from "../mind/girdiPenceresi.ts";
 import { McpBeyin } from "../bridge/mcpBeyin.ts";
@@ -739,6 +740,14 @@ const ortamGunlugu = (() => {
   return new OrtamGunlugu(q === "kalici" || q === "oturum" ? { kip: q } : {});
 })();
 ortamBaglantisi.dinle((k) => ortamGunlugu.kaydet(k));
+/**
+ * ÖĞRENEN ortam sözlüğü (mind/ortamSozlugu.ts): LLM bir sözü bir kez doğru yaparsa sonraki sefer token'sız çalışır. Aynı
+ * hatırlama kipini izler (oturum/kalıcı); "sıfırla" kullanımdan hemen sonra gelirse o kayıt olumsuz sayılır.
+ */
+const ogrenilenDepo = ogrenilenDeposu(() => ortamGunlugu.kip === "kalici");
+ortamGunlugu.kipDinle(() => ogrenilenDepo.esitle());
+const ortamSozlugu = new OrtamSozlugu({ depo: ogrenilenDepo });
+ortamBaglantisi.dinle((k) => { if (k.ne === "sifirla") ortamSozlugu.sifirlandi(); });
 const { niyetiYurut, bedenAdimi, sonGorme } = niyetYurutucusuKur({
   ortam: ortamBaglantisi,
   beden: () => orion,
@@ -1586,6 +1595,11 @@ function beyniBagla(a: Avatar): void {
     },
     // Ortam sözleri ("gece yap") yalnız ova'dayken sözlükten geçer; ofiste LLM'e gider (mind/ortamKomutlari.ts).
     ortamKullanilabilir: () => ortamBaglantisi.kullanilabilirMi(),
+    ortamOgrenilen: (soz) => ortamSozlugu.esle(soz),
+    ortamOgren: (soz, komutlar) => {
+      const r = ortamSozlugu.ogren(soz, komutlar);
+      console.log(`[ORTAM] sözlük: "${soz}" → ${r}${r === "reddedildi" ? "" : ` (${komutlar.map((k) => `${k.ne}${k.deger ? ` ${k.deger}` : ""}${k.sayi !== undefined ? ` ${k.sayi}` : ""}`).join(", ")})`}`);
+    },
     komutYetkisi: (() => {
       const q = new URLSearchParams(location.search);
       return q.has("komut") ? q.get("komut") !== "0" : !q.has("sessiz");
@@ -1690,6 +1704,13 @@ function beyniBagla(a: Avatar): void {
   stilPenceresi = stilPenceresiKur({
     ortam: ortamBaglantisi,
     gunluk: ortamGunlugu,
+    ogrenilen: {
+      liste: () => ortamSozlugu.liste().map((k) => ({
+        soz: k.soz, ham: k.ham, askida: OrtamSozlugu.askidaMi(k),
+        ozet: k.komutlar.map((c) => `${c.ne}${c.deger ? ` ${c.deger}` : ""}${c.sayi !== undefined ? ` ${c.sayi}` : ""}`).join(", "),
+      })),
+      sil: (soz) => { ortamSozlugu.sil(soz); },
+    },
     tusSerbest: () => oyuncu.oyuncuDurumu().etkilesim === null && sohbet.dataset.acik !== "1" && onayKapisi.durum !== "bekliyor",
     acildi: () => rig.fareKilitBirak(),
   });

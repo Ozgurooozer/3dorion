@@ -68,6 +68,12 @@ export class Kopru {
    * algılar tetikledi" sorusunu buradan cevaplar.
    */
   private _tamponIdleri: (string | null)[] = [];
+  /** Tamponda bekleyen KESİN sözler (ham metin): öğrenen ortam sözlüğü, turun TEK tetiği buysa söz+sonucu bağlar. */
+  private _tamponKesinSozler: string[] = [];
+  /** Bu turun öğrenme adayı söz (tek kesin söz, başka algı yok); yoksa null. */
+  private _turOgrenSozu: string | null = null;
+  /** Sonucu beklenen ortam niyetleri: hepsi `bitti` olursa öğrenilir, biri `hata`/`iptal` olursa vazgeçilir. */
+  private _ortamOgrenme: { soz: string; bekleyen: Set<string>; komutlar: Extract<Niyet, { tur: "ortam" }>[] } | null = null;
   /** İÇGÜDÜ `kayit`: her karar ve sonucu (spec 08). */
   private _kayit: KararKaydi;
   /** Öğrenen kapı — gölgede (K3). */
@@ -378,7 +384,9 @@ export class Kopru {
     // DOĞUŞTAN PROGRAM (spec 13 Faz 2b, içgüdü `kopru.komut`): öğrenilmiş beceriden ÖNCE —
     // doğuştan olan kesindir. Beceri gölgesi yine hesaplanır ve satıra yazılır (B9 ölçüsü).
     if (a.tur === "duydum" && a.kesin && this._ayar.komutYetkisi !== false) {
-      const program = komutCoz(a.metin, { ortam: this._ayar.ortamKullanilabilir?.() === true });
+      const ortamVar = this._ayar.ortamKullanilabilir?.() === true;
+      // Sıra: yerleşik sözlük → öğrenen ortam sözlüğü (LLM'in bir kez doğru yaptığı söz) → LLM.
+      const program = komutCoz(a.metin, { ortam: ortamVar }) ?? (ortamVar ? this._ayar.ortamOgrenilen?.(a.metin) ?? null : null);
       if (program) {
         this._programYurut(a, ozet, golge, program);
         return;
@@ -492,6 +500,7 @@ export class Kopru {
   }
 
   this._tampon.push(ozet);
+  if (a.tur === "duydum" && a.kesin) this._tamponKesinSozler.push(a.metin);
   this._tamponIdleri.push(this._kaydet(a, ozet, kapi, golge));
 
   // Beyne giden algı hafızaya da yazılır — süzgeçten geçerse (`_aniyaYaz`). Önem KURALLA belirlenir —
@@ -723,7 +732,37 @@ export class Kopru {
   }
 
   /** Niyet sonucunu algı olarak geri besler — Orion yapamadığını öğrenir. */
-  sonuc(s: NiyetSonucu): void { this.algi({ tur: "sonuc", sonuc: s }); }
+  sonuc(s: NiyetSonucu): void {
+    this._ortamSonucu(s);
+    this.algi({ tur: "sonuc", sonuc: s });
+  }
+
+  /**
+   * ÖĞRENEN ORTAM SÖZLÜĞÜ (mind/ortamSozlugu.ts) için bekleme: turun TEK tetiği tek kesin söz, uyanışın kökü dış, geri besleme
+   * yok, gönderilen bütün beden niyetleri `ortam` (söz eşliği serbest; başka niyet varsa öğrenilmez) ise sonuçlar beklenir.
+   */
+  private _ortamOgrenmeyiHazirla(uyanis: UyanisBilgisi, beden: readonly { niyet: Niyet; id: string }[]): void {
+    this._ortamOgrenme = null;
+    const soz = this._turOgrenSozu;
+    this._turOgrenSozu = null;
+    if (!soz || !this._ayar.ortamOgren || uyanis.koken !== "dis" || uyanis.geriBesleme !== 0 || beden.length === 0) return;
+    // Gönderilen HER niyet (beden ya da söz/sorgu/hatırla) ortam ya da eşlik eden söz olmalı: git/yaz/komut/sor karışırsa öğrenilmez.
+    if (uyanis.niyetler.some((n) => n.tur !== "ortam" && n.tur !== "soyle")) return;
+    const komutlar = beden.map((b) => b.niyet).filter((n): n is Extract<Niyet, { tur: "ortam" }> => n.tur === "ortam");
+    this._ortamOgrenme = { soz, bekleyen: new Set(beden.map((b) => b.id)), komutlar };
+  }
+
+  /** Bekleyen ortam öğrenmesinin sonucu: hepsi `bitti` → kaydet; `hata`/`iptal` → vazgeç. */
+  private _ortamSonucu(s: NiyetSonucu): void {
+    const o = this._ortamOgrenme;
+    if (!o || !o.bekleyen.has(s.niyet_id) || s.durum === "basladi") return;
+    if (s.durum !== "bitti") { this._ortamOgrenme = null; return; }
+    o.bekleyen.delete(s.niyet_id);
+    if (o.bekleyen.size > 0) return;
+    this._ortamOgrenme = null;
+    try { this._ayar.ortamOgren?.(o.soz, o.komutlar); }
+    catch (err) { console.error("[kopru] ortam sözlüğü öğrenemedi:", err); }
+  }
 
   sayac(): KopruSayaci & { dikkat: ReturnType<Dikkat["sayac"]>; hafiza: number; kayitYazilamayan: number } {
     return { ...this._sayac, dikkat: this._dikkat.sayac(), hafiza: this._hafiza.sayi, kayitYazilamayan: this._kayit.yazilamayan };
@@ -750,7 +789,7 @@ export class Kopru {
     this._kaydet(a, ozet, { gecti: true, kural: "kopru.sohbet" }, golge);
     this._dikkat.sifirla();
     this._gecmis.length = 0;
-    this._tampon.length = 0; this._tamponIdleri.length = 0;
+    this._tampon.length = 0; this._tamponIdleri.length = 0; this._tamponKesinSozler.length = 0;
     this._turIcerikleri.length = 0; this._turSozleri.length = 0; this._turTurleri.clear();
     this._sohbetKipi = sonrakiKip(e);
     console.log(`[SOHBET] ${e} → kip=${this._sohbetKipi} (pencere sifirlandi, LLM uyanmadi)`);
@@ -953,6 +992,8 @@ export class Kopru {
     this._benlik.dusunceBasladi(this._ayar.beyin.ad, this._zincirKokeni);
     const ozetler = this._tampon.splice(0);
     const algiIdleri = this._tamponIdleri.splice(0);
+    const kesinSozler = this._tamponKesinSozler.splice(0);
+    this._turOgrenSozu = ozetler.length === 1 && kesinSozler.length === 1 ? kesinSozler[0]! : null;
     this._sayac.dusunme++;
 
     // KARAR KAYDI: bu uyanışın satırı `finally`de yazılır — beyin hatası da
@@ -1269,6 +1310,9 @@ export class Kopru {
         console.warn(`[kopru] arac copu KONUSULMADI: "${cikti.metin.slice(0, 80)}"`);
       }
     }
+
+    // Öğrenen ortam sözlüğü: sonuçlar eylem sırası başlarken SENKRON gelebilir, bu yüzden bekleme ÖNCE kurulur.
+    this._ortamOgrenmeyiHazirla(uyanis, tur.beden);
 
     // Beden niyetleri: tek niyet hemen, birden çoğu sırayla (bkz. EylemSirasi).
     this._sira.baslat(tur.beden);
