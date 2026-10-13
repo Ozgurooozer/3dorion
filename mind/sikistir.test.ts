@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { Hafiza, type Ani, type AniTuru } from "./hafiza.ts";
-import { KORU, TAZE_MS, OTO_ESIK, OTO_ARALIK_MS, otoSikistirmaGerekli, sikistirmaCoz, sikistirmaIstegi, sikistirmaPlani } from "./sikistir.ts";
+import { KORU, TAZE_MS, OTO_ESIK, OTO_ARALIK_MS, otoSikistirmaGerekli, sikistirmaCoz, sikistirmaIstegi, sikistirmaPlani, sinirdaKes } from "./sikistir.ts";
 
 const SIMDI = 10_000_000_000;
 const ani = (i: number, tur: AniTuru = "konusma", yasMs = 24 * 3600_000): Ani => ({ metin: `kayıt ${i}`, tur, onem: 5, olusma: SIMDI - yasMs - i * 1000, sonErisim: SIMDI - yasMs });
@@ -64,4 +64,20 @@ test("Hafiza.sikistir: olgu anısı listede olsa bile silinmez", () => {
   const olgu = h.dok()[0]!;
   assert.equal(h.sikistir([olgu], "", []).silinen, 0);
   assert.equal(h.olgular().length, 1);
+});
+
+// ── Özet sınırı (canlıdaki ilk sıkıştırma kelime ortasında kesilmişti) ──
+
+test("sınırı aşan özet son tam cümlede kesilir", () => {
+  const m = `${"a".repeat(300)}. ${"b".repeat(300)}`;
+  assert.equal(sinirdaKes(m, 500), `${"a".repeat(300)}.`);
+});
+
+test("cümle sonu yoksa son kelimede kesilir ve … eklenir; kelime bölünmez", () => {
+  const m = "Orion is still stuck in the home folder without a git repository and more words";
+  assert.equal(sinirdaKes(m, 70), "Orion is still stuck in the home folder without a git repository and…");
+});
+
+test("sınır içindeki özet aynen kalır", () => {
+  assert.equal(sinirdaKes("kısa özet.", 500), "kısa özet.");
 });

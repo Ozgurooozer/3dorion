@@ -29,7 +29,7 @@ function kur(beyin: SahteBeyin, n: number, yedek = true) {
   const soylenen: string[] = [];
   k.konusmaDinle((m) => soylenen.push(m));
   const soyle = async (metin: string) => { k.algi({ tur: "duydum", metin, kesin: true }); await bekle(60); };
-  return { k, soylenen, soyle, yedekler, algilar: () => satirlar.filter((s): s is AlgiSatiri => s.tur === "algi") };
+  return { k, soylenen, soyle, yedekler, satirlar, algilar: () => satirlar.filter((s): s is AlgiSatiri => s.tur === "algi") };
 }
 const IYI: BeyinCikti = { metin: "SUMMARY: Ozyn çok komut verdi.", cagrilar: [] };
 
@@ -129,4 +129,35 @@ test("otomatik: BAŞARISIZ deneme de aralığı başlatır — çöp cevap veren
   const sikistirmaTurlari = b.gordugu.filter((g) => g.talimat?.includes("compact the memory")).length;
   assert.equal(sikistirmaTurlari, 1, "başarısız sıkıştırma 15 dk aralığa rağmen tekrar denendi");
   assert.equal(k.hafizaGorunumu().derin.length >= 130, true, "hiçbir şey silinmemeliydi");
+});
+
+test("sıkıştırma karar kaydına yazılır (otomatik de görünür olsun): neden, sonuç, silinen, beyin", async () => {
+  const b = new SahteBeyin(IYI);
+  const { soyle, satirlar } = kur(b, 60);
+  await soyle("/compact");
+  const s = satirlar.filter((x) => x.tur === "sikistirma");
+  assert.deepEqual(s.map((x) => ({ ...x, o: "", t: 0 })), [{ tur: "sikistirma", o: "", t: 0, neden: "istek", sonuc: "tamam", silinen: 30, beyin: "sahte" }]);
+});
+
+test("başarısız sıkıştırma da karar kaydına yazılır", async () => {
+  const b = new SahteBeyin({ metin: "Sure, here is a summary!", cagrilar: [] });
+  const { soyle, satirlar } = kur(b, 60);
+  await soyle("/compact");
+  assert.deepEqual(satirlar.filter((x) => x.tur === "sikistirma").map((x) => x.tur === "sikistirma" && x.sonuc), ["basarisiz"]);
+});
+
+/** Üç sohbet turu (konuşma penceresi dolar), sonra verilen nedenle sıkıştırma, sonra bir tur: o turun gördüğü pencere. */
+async function sonrakiPencere(neden: "istek" | "otomatik"): Promise<number> {
+  const S: BeyinCikti = { metin: "", cagrilar: [{ ad: "dunya_soyle", girdi: { metin: "tamam" } }] };
+  const b = new SahteBeyin(S, S, S, IYI, S);
+  const { k, soyle } = kur(b, 60);
+  for (const m of ["bir", "iki", "üç"]) await soyle(m);
+  await k.sikistir(neden);
+  await soyle("dört");
+  return b.gordugu.at(-1)!.gecmis.length;
+}
+
+test("OTOMATİK sıkıştırma konuşma penceresini KESMEZ (Ozyn konuşurken gelebilir); /compact keser", async () => {
+  const [oto, istek] = [await sonrakiPencere("otomatik"), await sonrakiPencere("istek")];
+  assert.ok(oto > istek, `otomatik ${oto}, istek ${istek}`);
 });

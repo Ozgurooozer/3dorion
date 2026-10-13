@@ -72,7 +72,7 @@ export interface KararZinciri {
  * (spec 13) bir aydır girmemişti ve her program satırı "bozuk" sayılıyordu (10 günlük kayıtta 68 satır).
  */
 export const TANINAN_SATIRLAR: ReadonlySet<string> = new Set<KararSatiri["tur"]>(
-  ["oturum", "algi", "uyanis", "ogretim", "refleks", "program", "girdi"]);
+  ["oturum", "algi", "uyanis", "ogretim", "refleks", "program", "girdi", "sikistirma"]);
 
 /** JSONL metnini satırlara ayırır; bozuk satırlar atılır ve sayılır. */
 export function kayitOku(metin: string): { satirlar: KararSatiri[]; bozuk: number } {

@@ -80,6 +80,10 @@ export function gunlukBicimleyiciKur() {
         }
         case "refleks":
           return { seviye: s.bitis === "basari" ? "iyi" : "uyari", kaynak: "beceri", metin: `${s.beceri}: ${s.bitis}` };
+        case "sikistirma":
+          return s.sonuc === "tamam"
+            ? { seviye: "iyi", kaynak: "hafıza", metin: `${s.neden === "otomatik" ? "otomatik " : ""}sıkıştırma: ${s.silinen} eski kayıt tek özete indi (yedek alındı)` }
+            : { seviye: "uyari", kaynak: "hafıza", metin: `${s.neden === "otomatik" ? "otomatik " : ""}sıkıştırma başarısız, hiçbir şey silinmedi` };
         default:
           return null;
       }

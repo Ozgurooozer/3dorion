@@ -332,7 +332,22 @@ export interface GirdiSatiri {
 }
 export type GirdiBilgisi = Omit<GirdiSatiri, "tur" | "o" | "t">;
 
-export type KararSatiri = OturumSatiri | AlgiSatiri | UyanisSatiri | OgretimSatiri | RefleksSatiri | ProgramSatiri | GirdiSatiri;
+/**
+ * SIKIŞTIRMA (spec 26 §9): hafızanın ham kayıtları bir özete indi ya da deneme başarısız oldu. Canlıdaki ilk otomatik
+ * sıkıştırma (2026-10-12 18:33, 80 kayıt silindi) yalnız konsola yazılmıştı; ancak hafıza boyutundan fark edildi.
+ */
+export interface SikistirmaSatiri {
+  tur: "sikistirma";
+  o: string; t: number;
+  neden: "istek" | "otomatik";
+  sonuc: "tamam" | "basarisiz";
+  silinen: number;
+  beyin: string;
+}
+export type SikistirmaBilgisi = Omit<SikistirmaSatiri, "tur" | "o" | "t">;
+
+export type KararSatiri = OturumSatiri | AlgiSatiri | UyanisSatiri | OgretimSatiri | RefleksSatiri | ProgramSatiri | GirdiSatiri
+  | SikistirmaSatiri;
 
 /** Program satırında köprünün doldurduğu alanlar. */
 export type ProgramBilgisi = Omit<ProgramSatiri, "tur" | "o" | "id" | "t">;
@@ -470,6 +485,11 @@ export class KararKaydi {
   /** Bir girdi penceresinin sayılarını yazar (bkz. `GirdiSatiri`, mind/girdiPenceresi.ts). */
   girdi(b: GirdiBilgisi): void {
     this._dus({ tur: "girdi", o: this.oturum, t: this._simdi(), ...b });
+  }
+
+  /** Bir hafıza sıkıştırmasını (başarılı ya da başarısız) yazar. */
+  sikistirma(b: SikistirmaBilgisi): void {
+    this._dus({ tur: "sikistirma", o: this.oturum, t: this._simdi(), ...b });
   }
 
   /** Bir doğuştan program turunu (spec 13 Faz 2b) yazar. Program kimliğini döner. */

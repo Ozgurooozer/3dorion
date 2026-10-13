@@ -771,13 +771,18 @@ export class Kopru {
     if (this._sikistiriyor || this._durduruldu) return "yok";
     this._sikistiriyor = true;
     const soyle = (m: string) => { if (neden === "istek" && this._konusmaDinleyiciler.size) this._konusmaYay(m, false); };
+    // Karar kaydına (ve oradan zihin duvarının günlüğüne): otomatik sıkıştırma da görünür olsun.
+    const kaydet = (sonuc: "tamam" | "basarisiz", silinen: number) =>
+      this._kayit.sikistirma({ neden, sonuc, silinen, beyin: this._ayar.beyin.ad });
     try {
       const simdi = this._ayar.simdi?.() ?? Date.now();
       // DENEME zamanı kaydedilir (başarısız da): zayıf bir model biçime uymazsa otomatik sıkıştırma her uyanışta yeniden
       // denemez, 15 dk bekler (yoksa token israfı döngüsü).
       if (neden === "otomatik") this._sonSikistirma = simdi;
       const plan = sikistirmaPlani(this._hafiza.dok(), simdi);
-      if (this._gecmis.length > 4) this._gecmis.splice(0, this._gecmis.length - 4);
+      // Konuşma penceresi yalnız Ozyn İSTEYİNCE kısalır: otomatik sıkıştırma Ozyn konuşurken de gelebilir
+      // (12 Ekim 18:33: "what is problem"ten 10 sn sonra) ve sohbetin bağlamını sessizce düşürürdü.
+      if (neden === "istek" && this._gecmis.length > 4) this._gecmis.splice(0, this._gecmis.length - 4);
       if (plan.length < EN_AZ_PLAN) { console.log(`[SIKISTIR] ${neden}: plan ${plan.length} < ${EN_AZ_PLAN}, model cagrilmadi`); soyle(SIKISTIR_SOZLERI.yok); return "yok"; }
       if (!this._ayar.hafizaYedegi) { console.warn("[SIKISTIR] yedek yok, yapilmadi"); soyle(SIKISTIR_SOZLERI.basarisiz); return "basarisiz"; }
       this._asama("hafiza", "sıkıştırılıyor");
@@ -786,16 +791,23 @@ export class Kopru {
       });
       const ham = cikti.metin || cikti.cagrilar.map((c) => (c.girdi as { metin?: string } | null)?.metin ?? "").join("\n");
       const sonuc = sikistirmaCoz(ham);
-      if (!sonuc || !sonuc.ozet) { console.warn(`[SIKISTIR] cevap cozulemedi, hicbir sey silinmedi: ${ham.slice(0, 120)}`); soyle(SIKISTIR_SOZLERI.basarisiz); return "basarisiz"; }
+      if (!sonuc || !sonuc.ozet) {
+        console.warn(`[SIKISTIR] cevap cozulemedi, hicbir sey silinmedi: ${ham.slice(0, 120)}`);
+        kaydet("basarisiz", 0);
+        soyle(SIKISTIR_SOZLERI.basarisiz);
+        return "basarisiz";
+      }
       this._ayar.hafizaYedegi.yaz(this._hafiza.dok());
       const s = this._hafiza.sikistir(plan, sonuc.ozet, []);   // olgu YAZILMAZ (mind/sikistir.ts, H5)
       this._sonSikistirma = simdi;
       this._hafizaYaz();
       console.log(`[SIKISTIR] ${neden}: ${s.silinen} ham kayit silindi · ${s.olgu} olgu · ozet=${sonuc.ozet ? "var" : "yok"} · atilan satir ${sonuc.atilan}`);
+      kaydet("tamam", s.silinen);
       soyle(SIKISTIR_SOZLERI.tamam(s.silinen, s.olgu));
       return "tamam";
     } catch (err) {
       console.error("[SIKISTIR] hata, hicbir sey silinmedi:", err instanceof Error ? err.message : err);
+      kaydet("basarisiz", 0);
       soyle(SIKISTIR_SOZLERI.basarisiz);
       return "basarisiz";
     } finally {

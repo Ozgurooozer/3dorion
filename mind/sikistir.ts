@@ -74,6 +74,19 @@ export function sikistirmaSorusu(plan: readonly Ani[], mevcutOlgular: readonly {
   return `Existing facts:\n${olgu}\n\nRaw memory lines:\n${satirlar}`;
 }
 
+/**
+ * Sınırı aşan özeti son TAM cümlede keser; cümle sonu yoksa son kelimede, "…" ile. Canlıdaki ilk sıkıştırmanın
+ * (2026-10-12, ornith) özeti 500. karakterde kelime ortasında bitiyordu: "…without a git ".
+ */
+export function sinirdaKes(metin: string, azami: number): string {
+  if (metin.length <= azami) return metin;
+  const parca = metin.slice(0, azami);
+  const cumle = Math.max(parca.lastIndexOf(". "), parca.lastIndexOf("; "));
+  if (cumle >= azami / 2) return parca.slice(0, cumle + 1);
+  const kelime = parca.lastIndexOf(" ");
+  return `${parca.slice(0, kelime > 0 ? kelime : azami - 1).trimEnd()}…`;
+}
+
 export interface SikistirmaSonucu { olgular: { anahtar: string; deger: string }[]; ozet: string }
 
 /** Model cevabını çözer. Geçersiz satırlar sessizce atılmaz: sayılır (`atilan`). Hiç geçerli içerik yoksa null. */
@@ -86,7 +99,7 @@ export function sikistirmaCoz(ham: string): (SikistirmaSonucu & { atilan: number
     if (f) {
       if (olgular.length >= OLGU_AZAMI_SAYI) { atilan++; continue; }
       olgular.push({ anahtar: f[1]!.toLowerCase(), deger: f[2]!.trim().slice(0, 160) });
-    } else if (s && !ozet) ozet = s[1]!.trim().slice(0, OZET_AZAMI);
+    } else if (s && !ozet) ozet = sinirdaKes(s[1]!.trim(), OZET_AZAMI);
     else atilan++;
   }
   if (!olgular.length && !ozet) return null;
