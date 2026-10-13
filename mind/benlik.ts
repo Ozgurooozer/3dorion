@@ -54,6 +54,7 @@ export function niyetOzeti(n: Niyet): string {
     case "bak": return `bak → ${n.hedef === null ? "serbest" : n.hedef.tip === "oyuncu" ? "Ozyn" : "ad" in n.hedef ? n.hedef.ad : "nokta"}`;
     case "otur": return `otur${n.capa ? ` → ${n.capa}` : ""}`;
     case "yaz": return `yaz "${n.metin.slice(0, 40)}"`;
+    case "ortam": return `ortam ${n.ne}${n.deger ? ` ${n.deger}` : ""}${n.sayi !== undefined ? ` ${n.sayi}` : ""}`;
     case "komut": return `komut \`${n.metin.slice(0, 60)}\``;
     case "odaklan": return `odaklan → ${n.capa}`;
     case "jest": return `jest ${n.jest}`;
@@ -63,7 +64,7 @@ export function niyetOzeti(n: Niyet): string {
 }
 
 /** Sonucu beklenmeyen, anlık niyetler: "yapıyorum"a girmez. */
-const ANLIK: ReadonlySet<NiyetTur> = new Set(["soyle", "sor", "hatirla"]);
+const ANLIK: ReadonlySet<NiyetTur> = new Set(["soyle", "sor", "hatirla", "ortam"]);
 
 export class AnlikBenlik {
   private _simdi: () => number;

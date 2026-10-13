@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { niyetDogrula, METIN_SINIRI } from "./dogrula.ts";
 import { CAPALAR, CAPA_ETIKETLERI, capaCoz } from "./temel.ts";
-import { POZLAR, JESTLER, SURELI_NIYETLER, SORULAR, okunurMu } from "./niyet.ts";
+import { POZLAR, JESTLER, SURELI_NIYETLER, YAZAN_NIYETLER, SORULAR, okunurMu } from "./niyet.ts";
 import { VARSAYILAN_KANAL, ozetle, OZET_ONEKI, SORU_ETIKETI } from "./algi.ts";
 import { zarfla, SURUM } from "./temel.ts";
 
@@ -239,4 +239,27 @@ test("hatirla: boş anahtar, boş değer ve fazla uzun değer reddedilir (ham s�
   assert.equal(niyetDogrula({ tur: "hatirla", anahtar: "k", deger: "" }).ok, false);
   const uzun = niyetDogrula({ tur: "hatirla", anahtar: "k", deger: "x".repeat(201) });
   assert.deepEqual([uzun.ok, !uzun.ok && /çok uzun/.test(uzun.hata)], [false, true]);
+});
+
+// ── ortam (ova'nın ışığı/stili/zamanı): enum + sınırlar ──
+test("ortam niyeti: geçerli konu ve alanlar kabul edilir", () => {
+  const r = niyetDogrula({ tur: "ortam", ne: "saat", sayi: 21 });
+  assert.deepEqual(r, { ok: true, deger: { tur: "ortam", ne: "saat", sayi: 21 } });
+  assert.deepEqual(niyetDogrula({ tur: "ortam", ne: "stil", deger: " toon " }), { ok: true, deger: { tur: "ortam", ne: "stil", deger: "toon" } });
+  assert.deepEqual(niyetDogrula({ tur: "ortam", ne: "sifirla" }), { ok: true, deger: { tur: "ortam", ne: "sifirla" } });
+});
+
+test("ortam niyeti: bilinmeyen konu, boş/uzun deger, sonsuz sayi reddedilir (hata geçerli konuları söyler)", () => {
+  const k = niyetDogrula({ tur: "ortam", ne: "ses" });
+  assert.equal(k.ok, false);
+  if (!k.ok) assert.match(k.hata, /geçerli: stil, renk, saat/);
+  assert.equal(niyetDogrula({ tur: "ortam", ne: "stil", deger: "" }).ok, false);
+  assert.equal(niyetDogrula({ tur: "ortam", ne: "stil", deger: "x".repeat(41) }).ok, false);
+  assert.equal(niyetDogrula({ tur: "ortam", ne: "saat", sayi: Infinity }).ok, false);
+  assert.equal(niyetDogrula({ tur: "ortam", ne: "saat", sayi: "21" }).ok, false);
+});
+
+test("ortam yazan niyettir (yetki kapısı onu dünyayı değiştiren sayar), süreli değildir", () => {
+  assert.ok(YAZAN_NIYETLER.includes("ortam"));
+  assert.ok(!SURELI_NIYETLER.includes("ortam"));
 });

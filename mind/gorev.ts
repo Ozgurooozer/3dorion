@@ -37,7 +37,9 @@ const SINIF: Record<NiyetTur, NiyetSinifi> = {
   git: "bedensel", otur: "bedensel", kalk: "bedensel", bak: "bedensel", al: "bedensel",
   birak: "bedensel", dur: "bedensel", jest: "bedensel", poz: "bedensel", odaklan: "bedensel",
   soyle: "eslik", sor: "eslik", hatirla: "eslik",
-  yaz: "engel", komut: "engel",
+  // `ortam` ENGEL: bir uyanıştan beceri doğarsa refleks `ortam`ı tekrarlamaz, sessizce düşürürdü. Ortamın kendi
+  // öğrenen sözlüğü var (mind/ortamSozlugu.ts).
+  yaz: "engel", komut: "engel", ortam: "engel",
 };
 
 export function niyetSinifi(tur: NiyetTur): NiyetSinifi {

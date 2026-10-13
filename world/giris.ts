@@ -91,6 +91,7 @@ import { odadaSure, sessizlikSozu, gununVakti } from "../mind/zaman.ts";
 import { depoYukle } from "../mind/hafizaGocu.ts";
 import { GucButcesi, Inisiyatif, butceSatiri } from "../mind/inisiyatif.ts";
 import { inisiyatifTik } from "../uygulama/inisiyatifBaglantisi.ts";
+import { ortamBaglantisiKur } from "../uygulama/ortamBaglantisi.ts";
 import { sessizlikIzinliMi } from "../bridge/ozerkYetenek.ts";
 import { GirdiPenceresi, type GirdiTipi } from "../mind/girdiPenceresi.ts";
 import { McpBeyin } from "../bridge/mcpBeyin.ts";
@@ -292,6 +293,7 @@ async function ovayaCik(): Promise<boolean> {
     if (orionGelir) orion?.isinla(o.x, o.z, v.yaw);
     orionGorunurlugu();
     stilPenceresi?.ova(disari.level);
+    ortamBaglantisi.ova(disari.level);
     gunluk.ekle("bilgi", "yer", `ovaya çıkıldı (${disari.kurulumMs} ms)`);
     console.log(`[YER] ova kuruldu ${disari.kurulumMs} ms · engel ${yer.engeller.length} · nesne ${yer.nesneler.length} · çapa ${yer.capalar.map((c) => c.ad).join(",")}`);
     return true;
@@ -309,6 +311,7 @@ function odayaDon(): boolean {
   const orionGelir = orionYeri === ozynYeri;
   // Sahne yıkılır, ova yeri (saf veri) kalır: Orion dışarıda kaldıysa orada yürümeye devam eder (C6).
   stilPenceresi?.ova(null);
+  ortamBaglantisi.ova(null);
   disari.yokEt();
   disari = null;
   ozynYeri = ODA_YERI;
@@ -720,7 +723,10 @@ console.log(`[ONAY] komut kipi: ${komutKipiSecimi.kip}`);
 // TEK niyet yönlendirme noktası: avatar, ses hattı, tahta, onay kapısı ve algı hizmeti
 // uygulama/niyetYurutucu.ts'te ayrılır (spec 14 R4: buradan taşındı, testli). Bu dosya yalnız
 // dünyayı verir; sonradan atananlar (beden, köprü) çağrı anında okunur.
+/** Orion'un `ortam` niyeti (ova'nın ışığı/stili/zamanı): level ova kurulunca bağlanır, ofise dönünce bırakılır. */
+const ortamBaglantisi = ortamBaglantisiKur();
 const { niyetiYurut, bedenAdimi, sonGorme } = niyetYurutucusuKur({
+  ortam: ortamBaglantisi,
   beden: () => orion,
   kopru: () => kopru,
   tahta, monitor, onayKapisi, sema, gunluk, algiSor,

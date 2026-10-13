@@ -44,6 +44,11 @@ export interface YurutucuBaglami {
   otomatikOnay?(): void;
   /** `hatirla` niyeti (spec 26 F3): olguyu kalıcı hafızaya yazar. Verilmezse hafıza kapalı sayılır. */
   olguHatirla?(anahtar: string, deger: string): "yeni" | "guncellendi" | "ayni" | null;
+  /**
+   * `ortam` niyeti (ova'nın ışığı/stili/zamanı): `uygulama/ortamBaglantisi.ts`. Verilmezse dürüstçe "yok" denir
+   * (sessiz yutma yok). Beden işi değil: yürümez, sırada beklemez.
+   */
+  ortam?: { uygula(k: Extract<Niyet, { tur: "ortam" }>): { ok: boolean; not: string } };
   /** `sor` cevabı beyne gitti (`bakdene` yedeği: zincir kendiliğinden işledi mi?). */
   gordumBildir(): void;
   /**
@@ -121,6 +126,15 @@ export function niyetYurutucusuKur(b: YurutucuBaglami): NiyetYurutucu {
       if (!s) { b.kopru()?.sonuc({ niyet_id: id, durum: "hata", not: "memory is not available" }); return; }
       b.gunluk.ekle("bilgi", "hafıza", `hatırladı (${s}): ${n.anahtar} = ${n.deger}`);
       b.kopru()?.sonuc({ niyet_id: id, durum: "bitti", not: `Remembered (${s}).` });
+      return;
+    }
+
+    // `ortam` bedene gitmez: dünyanın görünümü değişir (ışık, stil, zaman). Sonuç köprüye döner; başarı sessizdir
+    // (`bitti` beyni uyandırmaz = token yok), ret `hata`dır ve metni modele gider (ova'da değilse "ova'da değilim").
+    if (n.tur === "ortam") {
+      const r = b.ortam?.uygula(n) ?? { ok: false, not: "world look control is not available" };
+      b.gunluk.ekle("bilgi", "ortam", r.ok ? r.not : `reddedildi: ${r.not}`);
+      b.kopru()?.sonuc({ niyet_id: id, durum: r.ok ? "bitti" : "hata", not: r.not });
       return;
     }
 

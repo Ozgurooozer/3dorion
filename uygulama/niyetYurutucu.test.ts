@@ -29,6 +29,8 @@ function sahneKur(ayar: {
   bedenCevabi?: (n: Niyet) => { durum: NiyetSonucu["durum"]; varis?: Vec3 } | null;
   /** Orion'un bulunduğu yerin çapaları (spec 24); verilmezse yürütücü odayı varsayar. */
   capalar?: readonly Capa[];
+  /** `ortam` (ova'nın ışığı/stili/zamanı): verilirse bağlantı; `uygula` sonucu kontrol eder. */
+  ortam?: (k: Extract<Niyet, { tur: "ortam" }>) => { ok: boolean; not: string };
   /** Görme (spec 25 Faz 2): verilirse göz bağlı; `gor` modelin cevabı ya da fırlattığı. */
   goz?: { kare?: string | null; gor: (png: string, algi: string) => Promise<string> };
 } = {}) {
@@ -42,6 +44,7 @@ function sahneKur(ayar: {
     otomatikOnay: 0,
     gordumBildirildi: 0,
     gozeGiden: [] as { png: string; algi: string }[],
+    ortamGelen: [] as Extract<Niyet, { tur: "ortam" }>[],
   };
   let konum = ayar.konum ?? TAHTA_ONU;
   const dinleyiciler = new Set<(s: NiyetSonucu) => void>();
@@ -79,6 +82,7 @@ function sahneKur(ayar: {
     ...(ayar.olguHatirla ? { olguHatirla: ayar.olguHatirla } : {}),
     ...(ayar.komutKipi ? { komutKipi: () => ayar.komutKipi!, otomatikOnay: () => { kayit.otomatikOnay++; } } : {}),
     gordumBildir: () => { kayit.gordumBildirildi++; },
+    ...(ayar.ortam ? { ortam: { uygula: (k) => { kayit.ortamGelen.push(k); return ayar.ortam!(k); } } } : {}),
     ...(ayar.capalar ? { orionCapalari: () => ayar.capalar! } : {}),
     ...(ayar.goz ? { goz: {
       kare: async () => (ayar.goz!.kare === undefined ? "UE5H" : ayar.goz!.kare),
@@ -315,4 +319,24 @@ test("hatirla: hafıza yoksa 'hatırladım' denmez, hata döner", () => {
   const { kayit, y } = sahneKur();
   y.niyetiYurut({ tur: "hatirla", anahtar: "k", deger: "v" }, "n1");
   assert.deepEqual(kayit.kopruSonuc.map((s) => [s.durum, s.not]), [["hata", "memory is not available"]]);
+});
+
+test("ortam bedene gitmez; başarı 'bitti' döner (beyni uyandırmaz), metin kopruya gider", () => {
+  const { kayit, y } = sahneKur({ ortam: () => ({ ok: true, not: "saat 21:00 yapıldı" }) });
+  y.niyetiYurut({ tur: "ortam", ne: "saat", sayi: 21 }, "n1");
+  assert.deepEqual([kayit.bedeneGiden.length, kayit.ortamGelen.map((k) => k.ne), kayit.kopruSonuc.map((s) => [s.durum, s.not])],
+    [0, ["saat"], [["bitti", "saat 21:00 yapıldı"]]]);
+});
+
+test("ortam reddi 'hata' döner ve metni korur (ova'da değilim modele gider)", () => {
+  const { kayit, y } = sahneKur({ ortam: () => ({ ok: false, not: "I am not outside" }) });
+  y.niyetiYurut({ tur: "ortam", ne: "stil", deger: "toon" }, "n1");
+  assert.deepEqual(kayit.kopruSonuc.map((s) => [s.durum, s.not]), [["hata", "I am not outside"]]);
+});
+
+test("ortam: bağlantı yoksa 'bitti' denmez, hata döner", () => {
+  const { kayit, y } = sahneKur();
+  y.niyetiYurut({ tur: "ortam", ne: "isik", deger: "kis" }, "n1");
+  assert.equal(kayit.kopruSonuc[0]?.durum, "hata");
+  assert.equal(kayit.bedeneGiden.length, 0);
 });

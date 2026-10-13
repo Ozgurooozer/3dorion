@@ -4,7 +4,10 @@
 // sayı NaN gelebilir. Dünya tarafı doğrulanmamış hiçbir niyeti işlemez.
 // Bağımlılık yok — elle yazılmış doğrulayıcı (şema kütüphanesi taşımıyoruz).
 "use strict";
-import { POZLAR, JESTLER, SORULAR, OLGU_ANAHTAR_SINIRI, OLGU_DEGER_SINIRI, type Niyet, type NiyetTur, type SorKonusu } from "./niyet.ts";
+import {
+  POZLAR, JESTLER, SORULAR, ORTAM_KONULARI, ORTAM_DEGER_SINIRI, OLGU_ANAHTAR_SINIRI, OLGU_DEGER_SINIRI,
+  type Niyet, type NiyetTur, type OrtamNe, type SorKonusu,
+} from "./niyet.ts";
 import { capaCoz, type Hedef } from "./temel.ts";
 
 export type Sonuc<T> = { ok: true; deger: T } | { ok: false; hata: string };
@@ -17,6 +20,7 @@ const TURLER: readonly NiyetTur[] = [
   // köprü "bilinmeyen niyet türü: komut" diyip reddediyordu. Canlı ölçümde
   // "model komut önermiyor" sanıldı; oysa öneriyordu, biz düşürüyorduk.
   "komut",
+  "ortam",
 ];
 
 const sayi = (v: unknown): boolean => typeof v === "number" && Number.isFinite(v);
@@ -156,6 +160,19 @@ export function niyetDogrula(ham: unknown): Sonuc<Niyet> {
       if (a.length > OLGU_ANAHTAR_SINIRI) return { ok: false, hata: `anahtar çok uzun (> ${OLGU_ANAHTAR_SINIRI})` };
       if (d.length > OLGU_DEGER_SINIRI) return { ok: false, hata: `deger çok uzun (> ${OLGU_DEGER_SINIRI}): kısa, damıtılmış bir olgu yaz` };
       return { ok: true, deger: { tur: "hatirla", anahtar: a, deger: d } };
+    }
+
+    case "ortam": {
+      if (!ORTAM_KONULARI.includes(o.ne as never))
+        return { ok: false, hata: `ortam.ne geçersiz: ${String(o.ne)} (geçerli: ${ORTAM_KONULARI.join(", ")})` };
+      if (o.deger !== undefined && (typeof o.deger !== "string" || o.deger.trim().length === 0 || o.deger.length > ORTAM_DEGER_SINIRI))
+        return { ok: false, hata: `ortam.deger: kısa (≤ ${ORTAM_DEGER_SINIRI}) boş olmayan metin olmalı` };
+      if (o.sayi !== undefined && !sayi(o.sayi))
+        return { ok: false, hata: "ortam.sayi: sonlu sayı olmalı" };
+      const g: Niyet = { tur: "ortam", ne: o.ne as OrtamNe };
+      if (o.deger !== undefined) g.deger = (o.deger as string).trim();
+      if (o.sayi !== undefined) g.sayi = o.sayi as number;
+      return { ok: true, deger: g };
     }
 
     case "kalk":   return { ok: true, deger: { tur: "kalk" } };

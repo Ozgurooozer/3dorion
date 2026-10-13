@@ -421,6 +421,8 @@ export class Yurutucu {
         return void cikti.push(this._hata(id, "`yaz` avatarın işi değil: tahta yüzeyi (world/surfaces) yürütür."));
       case "odaklan":
         return void cikti.push(this._hata(id, "`odaklan` avatarın işi değil: kamera/köprü yürütür. Avatarı çevirmek için `bak` kullan."));
+      case "ortam":
+        return void cikti.push(this._hata(id, "`ortam` avatarın işi değil: ova'nın görünümünü level değiştirir (uygulama/ortamBaglantisi.ts)."));
       case "sor":
         return void cikti.push(this._hata(id, "`sor` salt-okunur bir sorgudur; köprü yanıtlar. Avatar durumu için `durum()` okunur."));
     }

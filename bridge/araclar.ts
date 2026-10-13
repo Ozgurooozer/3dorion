@@ -11,7 +11,7 @@
 // reddediyor. Açıklamalar Türkçe — model Ozyn'le Türkçe konuşuyor.
 "use strict";
 import { niyetDogrula, type Sonuc } from "../protocol/dogrula.ts";
-import { POZLAR, JESTLER, SORULAR, type Niyet, type NiyetTur } from "../protocol/niyet.ts";
+import { POZLAR, JESTLER, SORULAR, ORTAM_KONULARI, type Niyet, type NiyetTur } from "../protocol/niyet.ts";
 
 /** Sağlayıcıdan bağımsız araç tanımı. Anthropic/OpenAI/Ollama biçimlerine çevrilebilir. */
 export interface AracTanimi {
@@ -143,6 +143,25 @@ export const ARAC_TABLOSU: Record<NiyetTur, Omit<AracTanimi, "ad">> = {
     sema: {
       type: "object",
       properties: { ne: { type: "string", enum: [...SORULAR] } },
+      required: ["ne"],
+    },
+  },
+  ortam: {
+    // Ova'nın görünümü (ışık, renk, stil, zaman). Açıklama KISA: her turun sabit maliyeti; değer adları şemada.
+    aciklama: "Change how the world outside looks: light, colours, style, time of day. Only works outside. Changes nothing else.",
+    sema: {
+      type: "object",
+      properties: {
+        ne: { type: "string", enum: [...ORTAM_KONULARI] },
+        deger: {
+          type: "string",
+          description: "stil: standart|cel|toon|anime90|moebius|piksel; renk: gunduz|pastel; isik: kis|ac|sicak|soguk; "
+            + "sis: ac|kapat|yogun|hafif; efekt: <gi|ao|bloom|huzme|parilti|egri|vinyet|gren|sapma|keskinlik|derinlik>:ac|kapat; "
+            + "shader: <gokZamani|paletHaritasi|zamanKirigi|hataImzasi|debugTarama|firca|elyazmasi|atmosfer>:ac|kapat; "
+            + "akis: ac|kapat; dunya: ova|siberpunk|ortacag|buyu.",
+        },
+        sayi: { type: "number", description: "saat: hour 0-24; saat_kaydir: hours to move (negative = back); isik: steps (default 1)." },
+      },
       required: ["ne"],
     },
   },

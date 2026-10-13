@@ -14,6 +14,9 @@ const BEKLENEN_TURLER = [
   // önerir; çalıştıran şey Ozyn'in onay tuşudur. Bu listeyi güncellemek
   // zorunda kalmak istenen davranıştır — yeni yetenek sessizce eklenemesin.
   "komut",
+  // `ortam` = ova'nın ışığı/rengi/stili/zamanı (Ozyn, 2026-10-13: "tahtaya yazmak gibi bir araç olsun"). Dünyanın
+  // GÖRÜNÜMÜNÜ değiştirir, onay istemez; özerk turda sunulmaz (OZERK_ARACLAR).
+  "ortam",
 ];
 
 test("her niyet türünün bir aracı var — sessizce görünmez yetenek yok", () => {
@@ -77,7 +80,9 @@ test("dizi girdisi nesne sayılmaz", () => {
 test("araç yüzeyi token bütçesi makul", () => {
   const m = yuzeyMaliyeti();
   assert.ok(m > 100, `şüpheli küçük yüzey: ${m}`);
-  assert.ok(m < 1500, `araç yüzeyi çok pahalı: ~${m} token/tur`);
+  // 1500 → 1650: `dunya_ortam` (~190 token; değer adları şemada, kısa tutuldu). Yerel modele zararı Faz 3'te ölçülür
+  // (docs/olcum/on-kayit-ortam.md): mevcut 28 senaryoda ±1; bozarsa o modelden `cikarilanAraclar` ile çıkarılır.
+  assert.ok(m < 1650, `araç yüzeyi çok pahalı: ~${m} token/tur`);
 });
 
 // ── BAK zinciri: sözleşme → araç → protokol ───────────────────────────────

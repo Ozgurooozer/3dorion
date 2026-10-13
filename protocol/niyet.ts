@@ -68,7 +68,22 @@ export type Niyet =
    * Kalıcı bir OLGU hatırla (spec 26 F3): Ozyn'in araçları, tercihleri, kararları. `anahtar` konuyu adlandırır
    * ("favori_renk"); AYNI anahtarla yeni olgu eskisini GÜNCELLER (çelişki çözümü: yenisi kazanır).
    */
-  | { tur: "hatirla";  anahtar: string; deger: string };
+  | { tur: "hatirla";  anahtar: string; deger: string }
+  /**
+   * Dünyanın ORTAMINI değiştir (ova): ışık, renk düzeni, stil, zaman, sis, ışık sonrası efektler. Serbest metin yok:
+   * `ne` bir enum, `deger` o konunun kısa adı ("toon", "kis", "bloom:kapat"), `sayi` saat/adım gibi sayısal girdi.
+   * Değerin geçerliliğini dünya bilir (`world/level/stil/ortamKomutu.ts`); orası bilinmeyen değeri açık hatayla
+   * reddeder ve metin modele döner. Beden niyeti DEĞİL: yürümez, bekleme sırasına girmez.
+   */
+  | { tur: "ortam";    ne: OrtamNe; deger?: string; sayi?: number };
+
+/** `ortam`ın konuları — araç şeması ve doğrulayıcı BURADAN türer (`sor`un SORULAR'ı gibi). */
+export const ORTAM_KONULARI = [
+  "stil", "renk", "saat", "saat_kaydir", "isik", "sis", "efekt", "shader", "akis", "dunya", "sifirla",
+] as const;
+export type OrtamNe = (typeof ORTAM_KONULARI)[number];
+/** `deger` metni sınırı: kısa bir ad ("toon", "bloom:kapat"); roman değil. */
+export const ORTAM_DEGER_SINIRI = 40;
 
 /** Olgu sınırları: kısa ve damıtılmış kalsın (ham söz torbası geri dönmesin). */
 export const OLGU_ANAHTAR_SINIRI = 40;
@@ -87,6 +102,8 @@ export type NiyetTur = Niyet["tur"];
 /** Dünya durumunu DEĞİŞTİREN niyetler. Yetki kapısı bunları ayırt eder. */
 export const YAZAN_NIYETLER: readonly NiyetTur[] = [
   "poz", "jest", "bak", "git", "otur", "kalk", "soyle", "yaz", "al", "birak", "odaklan", "dur",
+  // `ortam` dünyanın görünümünü değiştirir (ışık, stil, zaman): yazan niyettir.
+  "ortam",
   // `komut` BİLEREK BURADA YOK: dünyayı kendisi değiştirmez, yalnızca öneri
   // kuyruğuna girer. Dünyayı değiştiren şey Ozyn'in onayıdır.
 ];
