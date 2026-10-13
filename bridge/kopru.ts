@@ -412,7 +412,7 @@ export class Kopru {
       const ozet = this._isler.get(a.sonuc.niyet_id);
       if (ozet !== undefined) {
         this._isler.delete(a.sonuc.niyet_id);
-        if (a.sonuc.durum === "hata" && /zaman asimi/.test(a.sonuc.not ?? "")) this._kacirilan.push({ ozet, an: this._ayar.simdi?.() ?? Date.now(), anahtar: `${a.sonuc.niyet_id}`, anildi: false });
+        if (a.sonuc.kod === "onay_dustu") this._kacirilan.push({ ozet, an: this._ayar.simdi?.() ?? Date.now(), anahtar: `${a.sonuc.niyet_id}`, anildi: false });
         this._durum.isBitti(ozet, a.sonuc.durum === "bitti" ? "done" : `${a.sonuc.durum}${a.sonuc.not ? `: ${a.sonuc.not}` : ""}`);
       }
     }

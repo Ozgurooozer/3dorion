@@ -109,7 +109,7 @@ const SONUCLAR: { aile: string; algi: Algi }[] = [
   { aile: "llm", algi: { tur: "sonuc", sonuc: { niyet_id: "n_mujtb2k4_1", durum: "hata", not: "bilinmeyen çapa: 'koltuk'. Oturulabilir: sandalye." } } },
   { aile: "llm", algi: { tur: "sonuc", sonuc: { niyet_id: "n_mujtc9d1_2", durum: "hata", not: "zaten oturuyorsun. Önce `kalk` niyeti gönder." } } },
   { aile: "onay", algi: { tur: "sonuc", sonuc: { niyet_id: "n_mujtd0e1_4", durum: "hata", not: "Ozyn komutu reddetti. Israr etme; baska bir yol oner ya da sor." } } },
-  { aile: "onay", algi: { tur: "sonuc", sonuc: { niyet_id: "n_mujte1f2_5", durum: "hata", not: "oneri zaman asimina ugradi; Ozyn karar vermedi" } } },
+  { aile: "onay", algi: { tur: "sonuc", sonuc: { niyet_id: "n_mujte1f2_5", durum: "hata", kod: "onay_dustu", not: "oneri zaman asimina ugradi; Ozyn karar vermedi" } } },
   { aile: "ajanda", algi: { tur: "sonuc", sonuc: { niyet_id: "ajanda_mujtf2g3_2", durum: "hata", not: "zaten oturuyorsun. Önce `kalk` niyeti gönder." } } },
 ];
 

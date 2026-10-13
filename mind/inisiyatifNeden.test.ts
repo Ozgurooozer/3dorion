@@ -48,11 +48,12 @@ test("NEDEN: açık iş çok tazeyse (2 dk'dan az) acik_is değildir", () => {
   assert.equal(new Inisiyatif().karar(durum({ sessizlikMs: 1 * DK, acikIs: is(ACIK_IS_BEKLEME_MS - 1) })), null);
 });
 
-test("NEDEN: aynı açık iş TEK kez hatırlatılır (refrakter geçse de)", () => {
+test("NEDEN: açık iş hatırlatıldıktan hemen sonra refrakter ikinci uyanışı keser", () => {
   const i = new Inisiyatif();
-  assert.equal(i.karar(durum({ simdiMs: 60 * DK, sessizlikMs: 1 * DK, acikIs: is(5 * DK) }))?.neden, "acik_is");
-  assert.equal(i.karar(durum({ simdiMs: 90 * DK, sessizlikMs: 1 * DK, acikIs: is(35 * DK) })), null, "ikinci hatırlatma");
+  assert.equal(i.karar(durum({ simdiMs: 60 * DK, sessizlikMs: 1 * DK, acikIs: is(5 * DK, "n_1") }))?.neden, "acik_is");
+  assert.equal(i.karar(durum({ simdiMs: 61 * DK, sessizlikMs: 1 * DK, acikIs: is(6 * DK, "n_2") })), null);
 });
+// "Aynı iş TEK kez" kapının değil köprünün listesinin işidir: uygulama/inisiyatifBaglantisi.test.ts.
 
 test("NEDEN: farklı açık iş yeniden hatırlatır", () => {
   const i = new Inisiyatif();

@@ -108,27 +108,41 @@ test("Ozyn kökenli uyanış bütçeyi BESLEMEZ (bütçe yalnız kendiliğinden 
   assert.equal(butce.length, 0);
 });
 
-test("açık iş: zaman aşımına uğrayan komut önerisi acikIs olur ve BİR kez hatırlandı işaretlenir", async () => {
+/** Ozyn'e bir komut önerisi yaptırır; önerinin niyet kimliğini döndürür. */
+async function komutOner() {
   const b = new SorBeyni({ metin: "", cagrilar: [{ ad: "dunya_komut", girdi: { metin: "git status", gerekce: "Ozyn depo durumunu sordu" } }] });
-  const { k, gonderilen } = kur(b);
-  assert.equal(k.acikIs(), null);
-  k.algi({ tur: "duydum", metin: "git durumuna bak", kesin: true });
+  const kurulum = kur(b);
+  kurulum.k.algi({ tur: "duydum", metin: "git durumuna bak", kesin: true });
   await bekle(60);
-  const komut = gonderilen.find((g) => g.tur === "komut");
-  assert.ok(komut, "komut önerisi gönderilmedi: " + JSON.stringify(gonderilen));
-  k.algi({ tur: "sonuc", sonuc: { niyet_id: komut.id, durum: "hata", not: "oneri zaman asimina ugradi; Ozyn karar vermedi" } });
+  const komut = kurulum.gonderilen.find((g) => g.tur === "komut");
+  assert.ok(komut, "komut önerisi gönderilmedi: " + JSON.stringify(kurulum.gonderilen));
+  return { k: kurulum.k, id: komut.id };
+}
+
+test("açık iş: onay kapısında düşen öneri (kod=onay_dustu) acikIs olur ve BİR kez hatırlandı işaretlenir", async () => {
+  const { k, id } = await komutOner();
+  assert.equal(k.acikIs(), null);
+  k.algi({ tur: "sonuc", sonuc: { niyet_id: id, durum: "hata", kod: "onay_dustu", not: "oneri zaman asimina ugradi; Ozyn karar vermedi" } });
   const is = k.acikIs();
-  assert.ok(is && /git status/.test(is.ozet), "zaman aşımı açık iş olmadı");
+  assert.ok(is && /git status/.test(is.ozet), "düşen öneri açık iş olmadı");
   k.acikIsAnildi(is.anahtar);
   assert.equal(k.acikIs(), null, "aynı iş ikinci kez açık iş");
 });
 
-test("açık iş: Ozyn'in reddettiği ya da başarıyla biten komut açık iş DEĞİLDİR", async () => {
-  const b = new SorBeyni({ metin: "", cagrilar: [{ ad: "dunya_komut", girdi: { metin: "git status", gerekce: "Ozyn depo durumunu sordu" } }] });
-  const { k, gonderilen } = kur(b);
-  k.algi({ tur: "duydum", metin: "git durumuna bak", kesin: true });
-  await bekle(60);
-  const komut = gonderilen.find((g) => g.tur === "komut")!;
-  k.algi({ tur: "sonuc", sonuc: { niyet_id: komut.id, durum: "hata", not: "Ozyn komutu reddetti." } });
+test("açık iş YAPISAL alandan tanınır: not metni ne derse desin kod=onay_dustu yeter", async () => {
+  const { k, id } = await komutOner();
+  k.algi({ tur: "sonuc", sonuc: { niyet_id: id, durum: "hata", kod: "onay_dustu", not: "proposal expired" } });
+  assert.notEqual(k.acikIs(), null);
+});
+
+test("açık iş: notunda 'zaman asimi' geçse bile kodsuz hata açık iş DEĞİLDİR", async () => {
+  const { k, id } = await komutOner();
+  k.algi({ tur: "sonuc", sonuc: { niyet_id: id, durum: "hata", not: "oneri zaman asimina ugradi; Ozyn karar vermedi" } });
+  assert.equal(k.acikIs(), null);
+});
+
+test("açık iş: Ozyn'in reddettiği komut açık iş DEĞİLDİR", async () => {
+  const { k, id } = await komutOner();
+  k.algi({ tur: "sonuc", sonuc: { niyet_id: id, durum: "hata", not: "Ozyn komutu reddetti." } });
   assert.equal(k.acikIs(), null);
 });

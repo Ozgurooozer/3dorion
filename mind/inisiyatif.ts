@@ -23,6 +23,7 @@
 // SAF: bağımlılık yalnızca protokol künyesi.
 "use strict";
 import { BEDEN } from "../protocol/bedenTanimi.ts";
+import type { Algi } from "../protocol/algi.ts";
 
 /** Hareket de düşünce de aynı bataryadan harcar (künye: `BEDEN.guc`). */
 export class GucButcesi {
@@ -153,12 +154,34 @@ export class UyanisButcesi {
   }
 }
 
+/**
+ * Kararın beyne giden OLAY algısı — metnin TEK kaynağı (ölçüm aracı `tools/f0-olc.ts` de buradan türetir).
+ *
+ * Köken ve neden YAPISAL alanda (`ayrinti.kaynak`, `neden`, `derinlik`): köprü özerk turu ve susma ilanını buna göre
+ * kurar; metinden tahmin etmek önek eşleştirmesinin kaymasıyla aynı hata olurdu. Çerçeve İngilizce (spec 06 §6.8).
+ *
+ * Metinde "emin değilsen bak" ya da "hâlâ önemliyse" gibi KAÇIŞ KAPISI yok: H3'ün ilk koşusunda Haiku bunlarla 0/4
+ * kaldı (vault kanit/h3-ozerk.json). "Susacağını söyleme" diye uzatmak ölçümde bir şey değiştirmedi (3/10 → 3/10).
+ */
+export function inisiyatifOlayi(k: Pick<InisiyatifKarari, "neden" | "dakika" | "acikIs">, sessizlikMs: number): Extract<Algi, { tur: "olay" }> {
+  const sure = k.dakika >= 1 ? `${k.dakika} minutes` : `${Math.round(sessizlikMs / 1000)} seconds`;
+  const is = k.neden === "acik_is" ? k.acikIs : undefined;
+  const ad = is
+    ? `you proposed ${is.ozet} ${Math.max(1, Math.round(is.yasMs / 60_000))} minutes ago and Ozyn did not decide in time — `
+      + "this is your own initiative: remind Ozyn once, in one short sentence"
+    : `nobody has spoken for ${sure} — this is your own initiative: say something only if it is useful, otherwise stay silent`;
+  return { tur: "olay", ad, ayrinti: { kaynak: "inisiyatif", neden: k.neden, derinlik: 0 } };
+}
+
+/**
+ * Kapı. "Bu açık iş hatırlatıldı mı" bilgisini TUTMAZ: listenin sahibi köprü (`Kopru.acikIs/acikIsAnildi`). İki
+ * kopya ayrışınca köprü en eski işi vermeye devam eder, kapı onu reddeder ve daha yeni işler hiç hatırlatılamazdı.
+ */
 export class Inisiyatif {
   private _esik: () => number;
   private _refrakter: () => number;
   private _gucEsigi: number;
   private _sonKararMs = -Infinity;
-  private _anilan = new Set<string>();
   /** Kendiliğinden uyanışların bütçesi: köprü her uyanış bitince `butce.sonuc` ile besler. */
   readonly butce: UyanisButcesi;
 
@@ -182,10 +205,9 @@ export class Inisiyatif {
     if (d.simdiMs - this._sonKararMs < this._refrakter()) return null;
     if (!this.butce.izin(d.simdiMs).acik) return null;   // model-saniye / token / devre kesici
 
-    // NEDEN 1 — açık iş: Ozyn'in göremediği bir öneri; aynı iş TEK kez hatırlatılır.
+    // NEDEN 1 — açık iş: Ozyn'in göremediği bir öneri (bir kez hatırlatılması köprünün listesinde tutulur).
     const is = d.acikIs;
-    if (is && is.yasMs >= ACIK_IS_BEKLEME_MS && !this._anilan.has(is.anahtar)) {
-      this._anilan.add(is.anahtar);
+    if (is && is.yasMs >= ACIK_IS_BEKLEME_MS) {
       this._sonKararMs = d.simdiMs;
       return { tur: "soze_gir", neden: "acik_is", dakika: Math.floor(is.yasMs / 60_000), fayda: d.guc, acikIs: is };
     }

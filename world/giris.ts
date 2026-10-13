@@ -89,6 +89,7 @@ import { beyinSeciminiKur, seciciKaynagiKur, modelKancasiKur, kisaAd } from "../
 import { odadaSure, sessizlikSozu, gununVakti } from "../mind/zaman.ts";
 import { depoYukle } from "../mind/hafizaGocu.ts";
 import { GucButcesi, Inisiyatif } from "../mind/inisiyatif.ts";
+import { inisiyatifTik } from "../uygulama/inisiyatifBaglantisi.ts";
 import { McpBeyin } from "../bridge/mcpBeyin.ts";
 import { GozModeli } from "../bridge/goz.ts";
 import { KuralRefleksi, UZUN_ISLEM_MS, refleksGirdisi } from "../mind/refleks.ts";
@@ -776,7 +777,7 @@ saat.dinle((t, dt) => {
   if (dusen) {
     console.log(`[ONAY] zaman asimi, oneri dustu: ${dusen.komut}`);
     onayPaneliCiz();
-    kopru?.sonuc({ niyet_id: dusen.id, durum: "hata",
+    kopru?.sonuc({ niyet_id: dusen.id, durum: "hata", kod: "onay_dustu",
       not: "oneri zaman asimina ugradi; Ozyn karar vermedi" });
   }
 
@@ -867,42 +868,22 @@ saat.dinle((t, dt) => {
     if (!SENARYO_KIPI && kopru) {
       const sessizlikMs = Date.now() - (sonKonusma || ACILIS);
       inisiyatifSimdi = t * 1000;
-      const k = inisiyatif.karar({
+      // YENİ YOL YOK: kapı sıradan bir olay algısı üretir; dikkat süzgecinden ve tek karar→eylem yolundan
+      // (`niyetiYurut`) geçer. Sıra ve olay metni: uygulama/inisiyatifBaglantisi.ts, mind/inisiyatif.ts.
+      const k = inisiyatifTik(inisiyatif, kopru, {
         simdiMs: inisiyatifSimdi,
         mesgul,
         ozynMonitorde: d.etkilesim === "monitor",
         ozynOdada: (d.mesafe ?? Infinity) < 8,
         sessizlikMs,
         guc: gucButcesi.seviye,
-        ...(INISIYATIF_ESKI ? {} : { girdiYasiMs: Date.now() - sonGirdi, acikIs: kopru.acikIs() }),
-      });
+        ...(INISIYATIF_ESKI ? {} : { girdiYasiMs: Date.now() - sonGirdi }),
+      }, INISIYATIF_ESKI);
       if (k) {
-        // YENİ YOL YOK: sıradan bir olay algısı. Dikkat süzgecinden ve dakika
-        // sınırından geçer, tek karar→eylem yolu (`niyetiYurut`) korunur.
-        // Çerçeve İngilizce (spec 06 §6.8).
-        //
-        // Köken YAPISAL alanda (`ayrinti.kaynak`), metinde değil: köprü susma
-        // ilanını yalnızca inisiyatif zincirinde yutuyor ve bunu metinden
-        // tahmin etmek, bugün önek eşleştirmesinin kaymasıyla aynı hata olurdu.
-        //
-        // İfade KISA tutuldu: "susacağını söyleme, hiçbir araç çağırma" diye
-        // uzatmak ölçümde hiçbir şeyi değiştirmedi (3/10 → 3/10), yalnızca
-        // bağlamı büyüttü. Susma ilanını köprü yapısal olarak yutuyor.
-        const sure = k.dakika >= 1 ? `${k.dakika} minutes` : `${Math.round(sessizlikMs / 1000)} seconds`;
-        // NEDEN yapısal alanda (`ayrinti.neden`, `derinlik`) ve modele açıkça söylenir (T2-K3): "söyleyecek varsa söyle"
-        // demek kararı modele itip önce parayı ödemekti.
-        const acik = k.neden === "acik_is" ? k.acikIs : undefined;
-        if (acik) kopru.acikIsAnildi(acik.anahtar);
-        kopru.algi({
-          tur: "olay",
-          ad: acik
-            ? `you proposed \`${acik.ozet}\` ${Math.max(1, Math.round(acik.yasMs / 60_000))} minutes ago and Ozyn did not decide in time — `
-              + "this is your own initiative: remind him once, in one short sentence"
-            : `nobody has spoken for ${sure} — this is your own initiative: say something only if it is useful, otherwise stay silent`,
-          ayrinti: { kaynak: "inisiyatif", neden: k.neden, derinlik: 0 },
-        });
-        console.log(`[INISIYATIF] soze_gir · sessizlik=${k.dakika} dk · fayda=${k.fayda.toFixed(2)} · guc=${gucButcesi.seviye.toFixed(2)}`);
-        gunluk.ekle("bilgi", "inisiyatif", `kendiliğinden düşünme fırsatı (${k.dakika} dk sessizlik)`);
+        console.log(`[INISIYATIF] soze_gir · neden=${k.neden} · sessizlik=${k.dakika} dk · fayda=${k.fayda.toFixed(2)} · guc=${gucButcesi.seviye.toFixed(2)}`);
+        gunluk.ekle("bilgi", "inisiyatif", k.neden === "acik_is"
+          ? `kendiliğinden: karar bekleyen öneriyi hatırlatma (${k.dakika} dk)`
+          : `kendiliğinden düşünme fırsatı (${k.dakika} dk sessizlik)`);
       }
     }
 

@@ -103,6 +103,11 @@ export interface NiyetSonucu {
   durum: "basladi" | "bitti" | "iptal" | "hata";
   /** durum "hata" ise zorunlu: neden. */
   not?: string;
+  /**
+   * Makinenin okuyacağı neden; `not` insan/model içindir ve metni değişebilir. `onay_dustu`: komut önerisi Ozyn karar
+   * vermeden onay kapısında düştü (Orion bunu bir kez hatırlatabilir). Metinde anahtar kelime aranmaz.
+   */
+  kod?: "onay_dustu";
   /** "git" için varış noktası gibi ek bilgi. */
   veri?: Vec3 | Record<string, unknown>;
 }
