@@ -143,15 +143,14 @@ test("yerel kanaldaki algı dikkat.yerel_kanal ile yazılır", () => {
 test("hakkı biten bakış cevabı kopru.zincir ile yazılır", async () => {
   // Her turda bakan beyin; dünya her `sor`a bir `gordum` ile cevap verir.
   const b = new SahteBeyin(...Array.from({ length: 10 }, () => ({ metin: "", cagrilar: [cagri("dunya_sor", { ne: "dunya" })] })));
-  const { k, niyetler, algilar } = kur(b);
+  const { k, algilar } = kur(b);
   k.algi({ tur: "olay", ad: "kendiliginden" });
-  let islenen = 0;
-  for (let i = 0; i < 12; i++) {
+  await bekle(30);
+  // Takip turunda `sor` sunulmaz ve köprü sunulmayanı uygulamaz (bridge/kopru.ts `_ciktiyiIsle`); yine de dünyadan
+  // geç ya da yinelenen bir bakış cevabı gelirse zincir bekçisi keser — ikinci savunma hattı.
+  for (let i = 0; i <= ZINCIR_AZAMI; i++) {
+    k.algi({ tur: "gordum", ne: "dunya", metin: `nesne ${i}` });
     await bekle(30);
-    for (; islenen < niyetler.length; islenen++) {
-      const n = niyetler[islenen]!.n;
-      if (n.tur === "sor") k.algi({ tur: "gordum", ne: n.ne, metin: `nesne ${islenen}` });
-    }
   }
   const gordumler = algilar().filter((a) => a.algi === "gordum");
   // İlk ZINCIR_AZAMI cevap geçer, sonraki kesilir.

@@ -68,3 +68,32 @@ test("bozuk JSON cokertmez, sessizce atlanir", () => {
   const r = metinKurtar('{"name": "dunya_bak", bozuk', ADLAR);
   assert.deepEqual(r.cagrilar, []);
 });
+
+// ── Biçim 3: gemma4 şablonu (gerçek çıktılar, docs/olcum/f0-ozerk3-ollama_gemma4_e2b.jsonl) ──
+const OZERK = ["dunya_soyle", "dunya_bak", "dunya_jest", "dunya_poz"];
+
+test("gemma şablonu: üç çağrı kurtarılır, hiçbir ayraç konuşulmaz", () => {
+  const ham = 'dunya_poz{poz:<|"|>duruyor<|"|>}\ndunya_bak{hedef:{tip:<|"|>oyuncu<|"|>,ad:<|"|>Ozyn<|"|>}}\n'
+    + 'dunya_soyle{metin:<|"|>Ozyn, npm run build komutunu ne zaman çalıştıralım?<|"|>,ses:true}';
+  const r = metinKurtar(ham, OZERK);
+  assert.deepEqual(r.cagrilar, [
+    { ad: "dunya_poz", girdi: { poz: "duruyor" } },
+    { ad: "dunya_bak", girdi: { hedef: { tip: "oyuncu", ad: "Ozyn" } } },
+    { ad: "dunya_soyle", girdi: { metin: "Ozyn, npm run build komutunu ne zaman çalıştıralım?", ses: true } },
+  ]);
+  assert.equal(r.konusulabilir, "");
+});
+
+test("gemma şablonu: yalnız poz → söz YOK (canlıda 'poz duruyor' sesli okunuyordu)", () => {
+  const r = metinKurtar('dunya_poz{poz:<|"|>duruyor<|"|>}', OZERK);
+  assert.deepEqual([r.cagrilar.length, r.konusulabilir], [1, ""]);
+});
+
+test("gemma şablonu: dizgi içindeki 'anahtar: değer' benzeri metin bozulmaz", () => {
+  const r = metinKurtar('dunya_soyle{metin:<|"|>Saat: 5, plan: hazır<|"|>}', OZERK);
+  assert.deepEqual(r.cagrilar, [{ ad: "dunya_soyle", girdi: { metin: "Saat: 5, plan: hazır" } }]);
+});
+
+test("çözülemeyen şablon ayracı da konuşulmaz", () => {
+  assert.equal(metinKurtar('Tamam <|"|>bozuk<|"|> metin burada', OZERK).konusulabilir.includes("<|"), false);
+});

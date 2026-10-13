@@ -1,0 +1,8 @@
+{"id":"y1","kume":"acik_is","i":1,"gecti":true,"nedenler":[],"ms":3435,"baglamKr":3033,"cagrilar":[{"ad":"dunya_soyle","girdi":{"metin":"npm run build çalıştırayım mı?"}}],"metin":"","soylenen":"npm run build çalıştırayım mı?"}
+{"id":"y2","kume":"acik_is","i":1,"gecti":true,"nedenler":[],"ms":3403,"baglamKr":3036,"cagrilar":[{"ad":"dunya_soyle","girdi":{"metin":"git push'ı çalıştıralım mı?"}}],"metin":"","soylenen":"git push'ı çalıştıralım mı?"}
+{"id":"y3","kume":"acik_is","i":1,"gecti":true,"nedenler":[],"ms":3371,"baglamKr":3047,"cagrilar":[{"ad":"dunya_soyle","girdi":{"metin":"gecici.txt'yi sil komutu çalıştırayım mı?"}}],"metin":"","soylenen":"gecici.txt'yi sil komutu çalıştırayım mı?"}
+{"id":"y4","kume":"acik_is","i":1,"gecti":true,"nedenler":[],"ms":3944,"baglamKr":3040,"cagrilar":[{"ad":"dunya_bak","girdi":{"tip":"oyuncu"}},{"ad":"dunya_soyle","girdi":{"metin":"docker compose up komutunu çalıştırayım mı?"}}],"metin":"","soylenen":"docker compose up komutunu çalıştırayım mı?"}
+{"id":"y5","kume":"sessizlik","i":1,"gecti":true,"nedenler":[],"ms":6253,"baglamKr":3006,"cagrilar":[],"metin":"","soylenen":""}
+{"id":"y6","kume":"sessizlik","i":1,"gecti":true,"nedenler":[],"ms":4615,"baglamKr":3011,"cagrilar":[],"metin":"","soylenen":""}
+{"id":"y7","kume":"sessizlik","i":1,"gecti":true,"nedenler":[],"ms":3594,"baglamKr":3008,"cagrilar":[],"metin":"","soylenen":""}
+{"id":"y8","kume":"sessizlik","i":1,"gecti":true,"nedenler":[],"ms":3841,"baglamKr":3004,"cagrilar":[],"metin":"","soylenen":""}

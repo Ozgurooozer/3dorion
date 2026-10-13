@@ -59,6 +59,29 @@ test("özerk tur: komut, git, otur, sor, odaklan, yaz sunulmaz (Ozyn yokken bir 
   }
 });
 
+// Sözleşme yalnız modele gösterilen listede değil köprüde de uygulanır (2026-10-13 sondası: sunulmayan komut ve sor
+// dünyaya gidiyordu; H2 testi yalnız tur sayısına baktığı için görmemişti).
+for (const [ad, girdi, niyet] of [
+  ["dunya_komut", { metin: "git status", gerekce: "Ozyn yokken" }, "komut"],
+  ["dunya_sor", { ne: "onumde" }, "sor"],
+] as const) {
+  test(`özerk tur: sunulmayan ${ad} YAPISAL çağrılsa da dünyaya gitmez ve reddedilir`, async () => {
+    const { k, gonderilen, uyanislar } = kur(new SorBeyni({ metin: "", cagrilar: [{ ad, girdi }] }));
+    k.algi(olay());
+    await bekle(60);
+    assert.deepEqual([gonderilen.some((g) => g.tur === niyet), uyanislar()[0]?.reddedilen], [false, 1]);
+  });
+
+  test(`özerk tur: sunulmayan ${ad} METİN içinde yazılsa da dünyaya gitmez ve konuşulmaz`, async () => {
+    const konusulan: string[] = [];
+    const { k, gonderilen } = kur(new SorBeyni({ metin: JSON.stringify({ name: ad, arguments: girdi }), cagrilar: [] }));
+    k.konusmaDinle((m) => konusulan.push(m));
+    k.algi(olay());
+    await bekle(60);
+    assert.deepEqual([gonderilen.some((g) => g.tur === niyet), konusulan], [false, []]);
+  });
+}
+
 test("Ozyn'in kendi turu DEĞİŞMEZ: tam araç kümesi ve 1 takip turu (gordum cevabı)", async () => {
   const b = new SorBeyni();
   const { k } = kur(b);

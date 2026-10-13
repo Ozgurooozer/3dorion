@@ -64,6 +64,46 @@ function jsonBloklari(metin: string): string[] {
 }
 
 /**
+ * Biçim 3 (gemma4 kendi şablonu, kayıtta 2026-10): `dunya_soyle{metin:<|"|>Merhaba<|"|>,ses:true}` — ad süslü
+ * parantezin ÖNÜNDE, dizgi ayracı `<|"|>`, anahtarlar tırnaksız. Kurtarıcı tanımıyordu ve kalan
+ * `poz:<| |>duruyor<| |>` sesli söyleniyordu (kayıtta gemma'nın 11 böyle uyanışının 9'u).
+ * JSON'a çevirir: ayraç → `"`, DİZGİ DIŞINDAKİ çıplak anahtar tırnaklanır (cümle içindeki "saat: 5" bozulmasın).
+ */
+function sablonJsonu(blok: string): string {
+  const s = blok.replace(/<\|"\|>/g, '"');
+  let out = "", dizgide = false;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i]!;
+    if (c === '"' && s[i - 1] !== "\\") { dizgide = !dizgide; out += c; continue; }
+    if (!dizgide && /[A-Za-z_]/.test(c) && /[{,]\s*$/.test(out)) {
+      const m = /^[A-Za-z_][A-Za-z0-9_]*(?=\s*:)/.exec(s.slice(i));
+      if (m) { out += `"${m[0]}"`; i += m[0].length - 1; continue; }
+    }
+    out += c;
+  }
+  return out;
+}
+
+/** `ad{...}` biçimindeki çağrılar: adın hemen ardından gelen dengeli blok. */
+function sablonCagrilari(metin: string): { ham: string; ad: string; blok: string }[] {
+  const out: { ham: string; ad: string; blok: string }[] = [];
+  const re = /(\w*dunya_[a-z]+)\s*\{/gi;
+  for (let m = re.exec(metin); m; m = re.exec(metin)) {
+    const bas = m.index + m[0].length - 1;
+    let derinlik = 0;
+    for (let i = bas; i < metin.length; i++) {
+      if (metin[i] === "{") derinlik++;
+      else if (metin[i] === "}" && --derinlik === 0) {
+        out.push({ ham: metin.slice(m.index, i + 1), ad: m[1]!, blok: metin.slice(bas, i + 1) });
+        re.lastIndex = i + 1;
+        break;
+      }
+    }
+  }
+  return out;
+}
+
+/**
  * Modelin düz metninden araç çağrılarını kurtarır ve kalanı temizler.
  *
  * `bilinenAdlar` doğrulama içindir: uydurma bir ada asla dönüşmez.
@@ -72,7 +112,16 @@ export function metinKurtar(metin: string, bilinenAdlar: readonly string[]): Kur
   const cagrilar: KurtarilanCagri[] = [];
   let kalan = metin;
 
-  for (const blok of jsonBloklari(metin)) {
+  for (const c of sablonCagrilari(metin)) {
+    const ad = adOnar(c.ad, bilinenAdlar);
+    try {
+      const arg: unknown = JSON.parse(sablonJsonu(c.blok));
+      if (ad && arg && typeof arg === "object" && !Array.isArray(arg)) cagrilar.push({ ad, girdi: arg as Record<string, unknown> });
+    } catch { /* çözülemeyen blok da konuşulmaz */ }
+    kalan = kalan.replace(c.ham, " ");
+  }
+
+  for (const blok of jsonBloklari(kalan)) {
     let j: unknown;
     try { j = JSON.parse(blok); } catch { continue; }
     if (!j || typeof j !== "object") continue;
@@ -95,6 +144,7 @@ export function metinKurtar(metin: string, bilinenAdlar: readonly string[]): Kur
 
   // Araç adı kırıntıları ve bozuk önekler ("orld", "dunya_bak" gibi) temizlenir.
   let konusulabilir = kalan
+    .replace(/<\|[^|]*\|>/g, " ")
     .replace(/\b\w*dunya_[a-zçğıöşü]+\b/gi, " ")
     .replace(/\borld\b|\bworld\b/gi, " ")
     .replace(/["{}\[\]]/g, " ")

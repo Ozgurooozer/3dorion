@@ -972,7 +972,7 @@ export class Kopru {
       console.log(`[BAGLAM] toplam=${b.toplam}ch${b.token !== undefined ? ` token=${b.token}` : ""} talimat=${b.talimat} araclar=${b.araclar} ornekler=${b.ornekler} gecmis=${b.gecmis}(${b.gecmisKayit}) dunya=${b.dunya} anilar=${b.anilar} ozetler=${b.ozetler}`);
       if (cikti.metin) uyanis.metin = cikti.metin;
 
-      this._ciktiyiIsle(cikti, uyanis, sessiz, istekler);
+      this._ciktiyiIsle(cikti, uyanis, sessiz, istekler, new Set(girdi.araclar.map((a) => a.ad)));
     } catch (err) {
       this._sayac.hata++;
       // Beyin hatası dünyayı durdurmaz ama SESSİZ de kalmaz.
@@ -1155,7 +1155,12 @@ export class Kopru {
    * araç çağrıları, düz metinden kurtarma, beden niyetleri (eylem sırası), iç ses ve
    * "söyledi ama yapmadı" bekçisi.
    */
-  private _ciktiyiIsle(cikti: BeyinCikti, uyanis: UyanisBilgisi, sessiz: boolean, istekler: string[]): void {
+  /**
+   * `sunulan`: bu turda modele SUNULAN araç adları. Sözleşme yalnız listede değil burada da uygulanır: özerk turda
+   * (`OZERK_ARACLAR`) sunulmayan `dunya_komut`/`dunya_sor` yapısal ya da metin içinde çağrılınca dünyaya gidiyordu
+   * (2026-10-13 sondası). Sunulmayan çağrı reddedilir ve modele geri beslenir; metinden yalnız sunulanlar kurtarılır.
+   */
+  private _ciktiyiIsle(cikti: BeyinCikti, uyanis: UyanisBilgisi, sessiz: boolean, istekler: string[], sunulan: ReadonlySet<string>): void {
     // Düz metin DUYULMAZ — protokolde konuşmak bir eylemdir (dunya_soyle).
     //
     // GEÇMİŞE DE YAZILMAZ (spec 13). Eskiden "modelin kendi düşüncesi bağlamda
@@ -1180,6 +1185,14 @@ export class Kopru {
     if (cikti.metin && cikti.cagrilar.length > 0) tur.icSes.push(cikti.metin);
 
     for (const c of cikti.cagrilar) {
+      // Sunulmayan araç: sayılır ama modele GERİ BESLENMEZ — geri besleme yeni bir tur açar ve özerk turun
+      // "zincir 0"ını, gordum turunun "sor yok"unu delip bakış döngüsünü geri getirirdi. Model aracı görmüyordu.
+      if (!sunulan.has(c.ad)) {
+        this._sayac.reddedilenCagri++;
+        uyanis.reddedilen++;
+        console.warn(`[kopru] sunulmayan arac reddedildi: ${c.ad}`);
+        continue;
+      }
       const d = cagriyiNiyete(c.ad, c.girdi);
       if (!d.ok) {
         this._sayac.reddedilenCagri++;
@@ -1213,8 +1226,7 @@ export class Kopru {
       // Artik once ICINDEN ARAC CAGRILARI KURTARILIR (hatayi eyleme
       // cevirmek sesli okumaktan iyidir), sonra yalnizca temiz cumle
       // konusulur. Kurtarilamayan arac copu ASLA duyulmaz.
-      const bilinen = araclariUret().map((a) => a.ad);
-      const { cagrilar: kurtarilan, konusulabilir } = metinKurtar(cikti.metin, bilinen);
+      const { cagrilar: kurtarilan, konusulabilir } = metinKurtar(cikti.metin, [...sunulan]);
 
       for (const c of kurtarilan) {
         const d = cagriyiNiyete(c.ad, c.girdi);
