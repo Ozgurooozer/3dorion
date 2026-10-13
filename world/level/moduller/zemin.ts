@@ -39,6 +39,20 @@ export const ZEMIN_VARSAYILAN = {
   /** Arazi fırçasının yükseklik farkı (seyrek: [anahtar, m, …]; editör yazar) ve hücre aralığı (m). */
   duzenleme: [] as number[],
   duzenlemeHucre: 2,
+  /**
+   * PLATO (spec 27): bir yapının (ofis) oturduğu DÜZ yer. `platoYaricap` > 0 ise (platoX, platoZ) çevresinde bu yarıçapın içi
+   * `platoYukseklik`te TAM düzdür (gürültü yok); `platoGecis` m boyunca doğal araziye yükselir. Plato çevresindeki halka
+   * `platoCukur` m çöker (plato "yüksekte" kalır) ve çukur `platoCukurBas`–`platoCukurSon` arasında doğal araziye döner (uzak
+   * arazi katmanıyla dikiş kalmasın). 0 = plato yok (eski level dosyaları birebir aynı).
+   */
+  platoX: 0,
+  platoZ: 0,
+  platoYaricap: 0,
+  platoGecis: 18,
+  platoYukseklik: 0,
+  platoCukur: 0,
+  platoCukurBas: 140,
+  platoCukurSon: 260,
 };
 export type ZeminAyari = typeof ZEMIN_VARSAYILAN;
 
@@ -51,16 +65,50 @@ export function zeminYuksekligi(a: ZeminAyari): (x: number, z: number) => number
   return d.size ? (x, z) => taban(x, z) + ornekle(d, h, x, z) : taban;
 }
 
+/**
+ * Plato etkisi (SAF): (x, z) → plato yokken olacak yüksekliğe EKLENECEK değişim değil, `harman`: [hedefYukseklik'e ağırlık t1,
+ * çukur m]. Yükseklik = lerp(platoYukseklik, doğal − çukur, t1). Plato kapalıysa null.
+ */
+function platoHarmani(a: ZeminAyari): ((x: number, z: number) => { t1: number; cukur: number }) | null {
+  if (!(a.platoYaricap > 0)) return null;
+  return (x, z) => {
+    const d = Math.hypot(x - a.platoX, z - a.platoZ);
+    const t1 = yumusak(a.platoYaricap, a.platoYaricap + a.platoGecis, d);
+    const cukur = a.platoCukur * t1 * (1 - yumusak(a.platoCukurBas, a.platoCukurSon, d));
+    return { t1, cukur };
+  };
+}
+
+/**
+ * Plato yüzünden (x, z)'de oluşan yükseklik FARKI: `platoYuksekligi(x,z) − platoSuz(x,z)`. Plato üstündeki ya da çevresindeki
+ * yerleşimler (y değeri dosyada mutlak) bununla kaydırılır (`world/level/ofisYeri.ts`). Plato yoksa 0.
+ */
+export function platoFarki(a: ZeminAyari): (x: number, z: number) => number {
+  const h = platoHarmani(a);
+  if (!h) return () => 0;
+  const duz = { ...a, platoYaricap: 0 };
+  const suz = zeminTabanYuksekligi(duz);
+  const il = zeminTabanYuksekligi(a);
+  return (x, z) => il(x, z) - suz(x, z);
+}
+
 /** (x, z) → düzenlemesiz yükseklik (m). İki oktav; merkez düz, dışa doğru dalga (düzle/yumuşat bunu taban alır). */
 export function zeminTabanYuksekligi(a: ZeminAyari): (x: number, z: number) => number {
   const s = a.tepeOlcek;
-  return (x, z) => {
+  const plato = platoHarmani(a);
+  const dogal = (x: number, z: number): number => {
     const g = 0.65 * gurultu(x / s, z / s, a.tohum) + 0.35 * gurultu(x / (s * 0.37), z / (s * 0.37), a.tohum + 7);
     const merkez = Math.min(1, Math.hypot(x, z) / Math.max(1e-6, a.duzYaricap));
     const arazi = (g - 0.5) * 2 * a.tepeYukseklik * (0.25 + 0.75 * merkez);
     if (a.golDerinlik <= 0) return arazi;
     const k = 1 - yumusak(a.golYaricap * 0.35, a.golYaricap * 1.1, Math.hypot(x - a.golX, z - a.golZ));   // çanak: ortası derin
     return arazi * (1 - k) - a.golDerinlik * k;
+  };
+  if (!plato) return dogal;
+  return (x, z) => {
+    const { t1, cukur } = plato(x, z);
+    // Plato içi (t1 = 0): doğal araziye BAKILMAZ, tam düz. Dışı: doğal − çukur.
+    return t1 <= 0 ? a.platoYukseklik : a.platoYukseklik * (1 - t1) + (dogal(x, z) - cukur) * t1;
   };
 }
 
@@ -103,6 +151,9 @@ export const zeminModulu: LevelModulu<ZeminAyari> = {
     duzYaricap: { min: 1, max: 200, adim: 1 }, lekeOlcek: { min: 1, max: 60, adim: 0.5 },
     esikler: { min: 0, max: 1, adim: 0.01 }, tohum: { min: 0, max: 9999, adim: 1 },
     golX: { min: -300, max: 300, adim: 1 }, golZ: { min: -300, max: 300, adim: 1 }, golYaricap: { min: 2, max: 120, adim: 0.5 }, golDerinlik: { min: 0, max: 8, adim: 0.05 },
+    platoX: { min: -300, max: 300, adim: 1 }, platoZ: { min: -300, max: 300, adim: 1 }, platoYaricap: { min: 0, max: 100, adim: 0.5 },
+    platoGecis: { min: 1, max: 100, adim: 0.5 }, platoYukseklik: { min: -5, max: 5, adim: 0.01 }, platoCukur: { min: 0, max: 20, adim: 0.1 },
+    platoCukurBas: { min: 10, max: 300, adim: 5 }, platoCukurSon: { min: 20, max: 400, adim: 5 },
   },
   kur(b, a0) {
     if (a0.renkler.length !== a0.esikler.length + 1) throw new Error("zemin: renkler.length = esikler.length + 1 olmalı");
