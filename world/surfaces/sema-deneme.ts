@@ -15,6 +15,9 @@ import type { Pano, ModulGoruntu, Teyit } from "../../protocol/pano.ts";
 
 const G = 910, Y = 512;
 const donuk = new URLSearchParams(location.search).has("donuk");
+/** ı/İ farkını yok sayan küçük harf: "hafiza" parametresi "HAFIZA" başlığını bulsun (tr büyütmesi "HAFİZA" verir). */
+const katla = (s: string) => s.replace(/[ıİI]/g, "i").toLowerCase();
+const YALNIZ = katla(new URLSearchParams(location.search).get("yalniz") ?? "");
 const durum = semaDurumuKur();
 
 // Gerçekçi bir an: birkaç tur geçmiş, düşünce yerel bir modelde.
@@ -77,7 +80,8 @@ function tuval(baslik: string): CanvasRenderingContext2D {
   const cap = document.createElement("figcaption");
   cap.textContent = baslik;
   f.append(cap, c);
-  kok.append(f);
+  // `?yalniz=hafiza`: yalnız bulut görünür (ekran görüntüsü tek tuvale düşsün).
+  if (!YALNIZ || katla(baslik).includes(YALNIZ)) kok.append(f);
   return c.getContext("2d")!;
 }
 const semaBag = tuval("şema");
@@ -98,6 +102,11 @@ const KELIMELER: BulutKelimesi[] = [
   w(2, "tahtaya adını yaz", 0.8, 0.3, true, "0.66"), w(2, "ozyn_yaklasti", 0.2, 0.7), w(2, "şehri görmek istermisin?", 0.5, 0.2),
   w(2, "python --version", 0.4, 0.3), w(2, "Ozyn komutu reddetti", 0.7, 0.8), w(2, "bilgisayara git", 0.5, 0.4),
   w(2, "serbet düşüncelerini yaz", 0.6, 0.5), w(2, "quantum formülü", 0.5, 0.5), w(2, "kalk", 0.3, 0.2),
+  // Kalıcı kayıtlar (OB10): sıkıştırma özeti ve bir olgu — ham sözlerden önce yer bulur, ayrı renkte.
+  { ...w(2, "özet: Ozyn git status denedi…", 1, 0), kalici: true },
+  { ...w(2, "favori_dil: Türkçe", 1, 0), kalici: true },
+  // Canlı hafıza gibi kalabalık: 40 ham söz daha (çoğu nokta olur; alt şerit kabuklara göre söyler).
+  ...Array.from({ length: 40 }, (_, i) => w(2, `ham söz ${i + 1}`, 0.3 + (i % 5) * 0.1, 0.3)),
 ];
 
 const olcu = { genislik: G, yukseklik: Y };

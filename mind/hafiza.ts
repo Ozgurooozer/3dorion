@@ -65,6 +65,11 @@ export function cekmecesi(a: Pick<Ani, "tur" | "metin">): Cekmece {
 export const CEKMECE_PAYI: Readonly<Record<Cekmece, number>> = { konusma: 0.5, is: 0.15, ders: 0.15, olay: 0.05, olgu: 0.15 };
 
 /** Olgu çekmecesinin tavanı (damıtılmış bilgi: az ve kısa) ve bağlama giren en çok karakter. */
+/** Sıkıştırma özetinin metin öneki (tek kaynak): görünüm özeti buradan tanır. */
+export const OZET_ONEKI = "Summary of earlier chat: ";
+/** Kalıcı (damıtılmış) kayıt mı: olgu ya da sıkıştırma özeti — ham söz/olay değil. */
+export const kaliciMi = (a: Pick<Ani, "tur" | "metin">): boolean => a.tur === "olgu" || a.metin.startsWith(OZET_ONEKI);
+
 export const OLGU_AZAMI = 40;
 export const OLGU_BAGLAM_KARAKTERI = 700;
 
@@ -296,7 +301,7 @@ export class Hafiza {
   }
 
   /**
-   * SIKIŞTIR (mind/sikistir.ts): `silinecek` ham anıları çıkarır; `ozet` varsa tek bir özet anısı (tür `olay`, önem 7)
+   * SIKIŞTIR (mind/sikistir.ts): `silinecek` ham anıları çıkarır (özet önekiyle bkz. `OZET_ONEKI`); `ozet` varsa tek bir özet anısı (tür `olay`, önem 7)
    * ekler, olgular `olguEkle` ile işlenir. Yalnız VERİLEN kayıtlar silinir (kimlik: metin+oluşma); `olgu` anısına asla
    * dokunmaz. Dönüş: silinen ve işlenen olgu sayısı.
    */
@@ -308,7 +313,7 @@ export class Hafiza {
     for (const o of olgular) this.olguEkle(o.anahtar, o.deger);
     if (ozet) {
       const t = this._simdi();
-      this._aniler.push({ metin: `Summary of earlier chat: ${ozet}`, tur: "olay", onem: 7, olusma: t, sonErisim: t });
+      this._aniler.push({ metin: `${OZET_ONEKI}${ozet}`, tur: "olay", onem: 7, olusma: t, sonErisim: t });
     }
     this._budama();
     return { silinen, olgu: olgular.length };

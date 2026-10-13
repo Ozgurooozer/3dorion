@@ -64,3 +64,18 @@ test("DERİN: aynı metinli anılar bulutta tek kelime olur (tekrarlar yığılm
   const metinler = hafizaKelimeleri(girdi({ derin })).filter((x) => x.kabuk === 2).map((x) => x.metin).sort();
   assert.deepEqual(metinler, ["gel", "hata: bilinmeyen çapa", "nasılsın"]);
 });
+
+// ── Kalıcı kayıtlar (OB10) ──────────────────────────────────────
+
+test("DERİN: yer azken bile sıkıştırma özeti ve olgu ham sözlerden önce seçilir, kalıcı işaretlenir", () => {
+  const ham = Array.from({ length: 10 }, (_, i) => ani(`yeni ham söz ${i}`, 9, 0));
+  const ozet: Ani = { ...ani("Summary of earlier chat: Ozyn git denedi.", 7, 5) , tur: "olay" };
+  const olgu: Ani = { ...ani("favori_renk: mavi", 5, 9), tur: "olgu" };
+  const k = hafizaKelimeleri(girdi({ derin: [...ham, ozet, olgu], enFazlaDerin: 2 })).filter((x) => x.kabuk === 2);
+  assert.deepEqual(k.map((x) => [x.metin, x.kalici]), [["özet: Ozyn git denedi.", true], ["favori_renk: mavi", true]]);
+});
+
+test("DERİN: ham söz kalıcı işaretlenmez", () => {
+  const k = hafizaKelimeleri(girdi({ derin: [ani("merhaba", 5, 1)] })).filter((x) => x.kabuk === 2);
+  assert.equal(k[0]?.kalici, undefined);
+});

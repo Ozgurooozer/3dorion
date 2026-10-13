@@ -27,6 +27,8 @@ export interface BulutKelimesi {
   soluk: number;
   /** Bu turda hatırlandı: imleçten kırmızı iplik. */
   kirmizi?: boolean;
+  /** Kalıcı kayıt (olgu, sıkıştırma özeti): ham sözlerden önce yer bulur, ayrı renkte (OB10). */
+  kalici?: boolean;
   /** "Gerçek" kipte kelimenin yerine yazan sayı (skor, önem). */
   sayi: string;
 }
@@ -108,6 +110,18 @@ export function kabukSayilari(kelimeler: readonly BulutKelimesi[], derinToplam?:
 
 const KABUK_ADI = ["SABİT", "ANLIK", "DERİN"] as const;
 const KABUK_RENK = ["#eef1fa", "#ff7aa8", "#9aa5c4"] as const;
+const KALICI_RENK = "#7fd4b0";
+
+/**
+ * Yazısı sığmayıp nokta olan kelimelerin kabuklara göre sözü; hiç yoksa boş. "60 kayıt sığmadı" Ozyn'e hangi
+ * kaydın kaybolduğunu söylemiyordu (OB10): çoğu zaman ANLIK değil DERİN'in ham sözleridir.
+ */
+export function sigmayanSozu(kabukBasina: readonly number[]): string {
+  const toplam = kabukBasina.reduce((s, n) => s + n, 0);
+  if (!toplam) return "";
+  const parca = kabukBasina.map((n, i) => (n ? `${KABUK_ADI[i]!.toLocaleLowerCase("tr")} ${n}` : "")).filter(Boolean).join(", ");
+  return `${toplam} nokta (${parca})`;
+}
 
 /**
  * Bulutu çizer; tıklanabilir bölgeleri döner: alt şeritte [Ayarlar] [Gerçek] düğmeleri ve
@@ -159,17 +173,18 @@ export function cizHafizaBulutu(bag: CanvasRenderingContext2D, o: YuzeyOlcusu, g
     const punto = Math.max(9, Math.round(puntoTaban * p.olcek * (o.yukseklik / 512)));
     bag.font = k.kabuk === 0 ? `italic 300 ${punto}px ${YAZI.duz}` : `${punto}px ${YAZI.tek}`;
     const yazi = g.gercek ? k.sayi : k.metin;
-    const oncelik = (k.kirmizi || g.secili === p.i ? 100 : 0) + (k.kabuk === 1 ? 20 : k.kabuk === 2 ? 10 + 8 * k.boyut : 0) + p.derinlik * 5;
+    const oncelik = (k.kirmizi || g.secili === p.i ? 100 : 0) + (k.kalici ? 60 : 0)
+      + (k.kabuk === 1 ? 20 : k.kabuk === 2 ? 10 + 8 * k.boyut : 0) + p.derinlik * 5;
     return { p, k, punto, yazi, g: bag.measureText(yazi).width, oncelik };
   });
   const kabul = etiketleriAyir(olc.map((e) => ({ i: e.p.i, x: e.p.x, y: e.p.y, g: e.g, yuk: e.punto, oncelik: e.oncelik })));
-  let gizli = 0;
+  const gizli = [0, 0, 0];
   for (const e of olc) {
     const { p, k, punto, yazi } = e;
     const yer2 = kabul.get(p.i);
     const alfa = (0.28 + 0.72 * p.derinlik) * (1 - 0.6 * k.soluk);
     if (!yer2) {
-      gizli++;
+      gizli[k.kabuk]!++;
       bag.globalAlpha = 0.25;
       bag.fillStyle = KABUK_RENK[k.kabuk];
       bag.fillRect(p.x - 1, p.y - 1, 2, 2);
@@ -177,7 +192,7 @@ export function cizHafizaBulutu(bag: CanvasRenderingContext2D, o: YuzeyOlcusu, g
     }
     bag.font = k.kabuk === 0 ? `italic 300 ${punto}px ${YAZI.duz}` : `${punto}px ${YAZI.tek}`;
     bag.globalAlpha = Math.max(0.35, Math.min(1, alfa));
-    bag.fillStyle = k.kirmizi ? "#ff6f5a" : KABUK_RENK[k.kabuk];
+    bag.fillStyle = k.kirmizi ? "#ff6f5a" : k.kalici ? KALICI_RENK : KABUK_RENK[k.kabuk];
     bag.fillText(yazi, yer2.x, yer2.y);
     if (g.secili === p.i) {
       bag.globalAlpha = 1;
@@ -234,7 +249,8 @@ export function cizHafizaBulutu(bag: CanvasRenderingContext2D, o: YuzeyOlcusu, g
   dugme("Ayarlar · Buda", "gorunum", "ayar");
   dugme(g.gercek ? "Gerçek: sayılar" : "Gerçek", "gercek", undefined, g.gercek);
   bag.fillStyle = RENK.soluk;
-  bag.fillText(`kelimeye tıkla: ne olduğu · kırmızı: bu turda hatırlanan${gizli ? ` · ${gizli} kayıt sığmadı (nokta)` : ""}`, x + kenar * 0.4, altY + altYuk / 2);
+  const sigmayan = sigmayanSozu(gizli);
+  bag.fillText(`tıkla: ne olduğu · kırmızı: hatırlanan · yeşil: kalıcı${sigmayan ? ` · ${sigmayan}` : ""}`, x + kenar * 0.4, altY + altYuk / 2);
   return bolgeler;
 }
 

@@ -2,7 +2,7 @@
 "use strict";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { bulutYerlesimi, etiketleriAyir, kabukSayilari, KABUK_YARICAPI, type BulutKelimesi } from "./hafizaBulutu.ts";
+import { bulutYerlesimi, etiketleriAyir, kabukSayilari, sigmayanSozu, KABUK_YARICAPI, type BulutKelimesi } from "./hafizaBulutu.ts";
 
 const k = (kabuk: 0 | 1 | 2, metin: string): BulutKelimesi => ({ kabuk, metin, not: "", boyut: 0.5, soluk: 0, sayi: "1" });
 const KELIMELER = [k(0, "kayit"), k(0, "onay.insan"), k(1, "git → tahta"), k(2, "tahtaya git"), k(2, "otur"), k(2, "bana gel")];
@@ -63,4 +63,8 @@ test("etiketleriAyir: kabul edilen hiçbir iki etiket çakışmaz (kalabalık gi
 test("etiketleriAyir: belirleyici", () => {
   const ad = Array.from({ length: 20 }, (_, i) => ({ i, x: 80 + i, y: 80, g: 30, yuk: 10, oncelik: i % 3 }));
   assert.deepEqual([...etiketleriAyir(ad)], [...etiketleriAyir(ad)]);
+});
+
+test("sığmayan kelimeler kabuklara göre söylenir; hiç yoksa boş", () => {
+  assert.deepEqual([sigmayanSozu([0, 2, 35]), sigmayanSozu([0, 0, 0])], ["37 nokta (anlık 2, derin 35)", ""]);
 });

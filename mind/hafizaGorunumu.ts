@@ -9,13 +9,15 @@
 //
 // Tip, world/ tarafındakiyle YAPISAL olarak aynı (K4: world mind'i import etmez).
 "use strict";
-import type { Ani, GetirSonucu } from "./hafiza.ts";
+import { kaliciMi, OZET_ONEKI, type Ani, type GetirSonucu } from "./hafiza.ts";
 import type { BenlikGoruntusu } from "./benlik.ts";
 import { oncesiSozu } from "./zaman.ts";
 import type { DurumKaydi } from "./durumDefteri.ts";
 
 export interface HafizaKelimesi {
   kabuk: 0 | 1 | 2; metin: string; not: string; boyut: number; soluk: number; kirmizi?: boolean; sayi: string;
+  /** Kalıcı kayıt (olgu, sıkıştırma özeti): bulutta öncelikli ve ayrı renkte. */
+  kalici?: boolean;
 }
 
 export interface HafizaGirdisi {
@@ -63,18 +65,24 @@ export function hafizaKelimeleri(g: HafizaGirdisi): HafizaKelimesi[] {
   // Aynı metin bulutta TEK kez (228 ham cümlenin çoğu tekrar: "nasılsın", aynı hata…); önem/tazelik sıralamasında ilki kalır.
   const gorulen = new Set<string>();
   const tekil = (a: Ani) => !gorulen.has(a.metin) && !!gorulen.add(a.metin);
-  const secilen = [...g.derin].sort((a, b) => (getirilenMetin.has(b.metin) ? 1 : 0) - (getirilenMetin.has(a.metin) ? 1 : 0) || puan(b) - puan(a))
+  // Sıra: bu turda hatırlananlar, sonra KALICI kayıtlar (olgu, sıkıştırma özeti — OB10: ham sözlerin arasında
+  // kayboluyorlardı), sonra önem + tazelik.
+  const oncelik = (a: Ani) => (getirilenMetin.has(a.metin) ? 2 : 0) + (kaliciMi(a) ? 1 : 0);
+  const secilen = [...g.derin].sort((a, b) => oncelik(b) - oncelik(a) || puan(b) - puan(a))
     .filter(tekil)
     .slice(0, g.enFazlaDerin ?? 60);
   for (const a of secilen) {
     const yas = g.simdi - a.olusma;
     const getir = g.getirilen.find((x) => x.ani.metin === a.metin);
+    const kalici = kaliciMi(a);
+    const ozet = a.metin.startsWith(OZET_ONEKI);
     k.push({
-      kabuk: 2, metin: kisa(a.metin),
-      not: `anı · ${a.tur} · önem ${a.onem} · ${oncesiSozu(yas)} · son erişim ${oncesiSozu(g.simdi - a.sonErisim)}${getir ? ` · BU TURDA HATIRLANDI (skor ${getir.skor.toFixed(2)})` : ""} · "${a.metin}"`,
-      boyut: Math.max(0, Math.min(1, a.onem / 10)),
-      soluk: Math.max(0, Math.min(1, Math.log10(1 + yas / 3600_000) / Math.log10(1 + (30 * GUN) / 3600_000))),
+      kabuk: 2, metin: ozet ? `özet: ${kisa(a.metin.slice(OZET_ONEKI.length), 20)}` : kisa(a.metin),
+      not: `${ozet ? "sıkıştırma özeti" : kalici ? "olgu (kalıcı)" : "anı"} · ${a.tur} · önem ${a.onem} · ${oncesiSozu(yas)} · son erişim ${oncesiSozu(g.simdi - a.sonErisim)}${getir ? ` · BU TURDA HATIRLANDI (skor ${getir.skor.toFixed(2)})` : ""} · "${a.metin}"`,
+      boyut: kalici ? 1 : Math.max(0, Math.min(1, a.onem / 10)),
+      soluk: kalici ? 0 : Math.max(0, Math.min(1, Math.log10(1 + yas / 3600_000) / Math.log10(1 + (30 * GUN) / 3600_000))),
       ...(getir ? { kirmizi: true } : {}),
+      ...(kalici ? { kalici: true } : {}),
       sayi: getir ? getir.skor.toFixed(2) : `ö${a.onem}`,
     });
   }
