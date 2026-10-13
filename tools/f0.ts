@@ -5,6 +5,9 @@
 // (fixtures/f0/senaryolar.json) ve her ihlal NEDENİYLE yazılır: "başarısız" tek başına bir şey söylemez.
 "use strict";
 import { eylemPuanla, type EylemBeklentisi, type Cagri } from "./eylem.ts";
+import { cagriyiNiyete } from "../bridge/araclar.ts";
+import { ortamUygula } from "../world/level/stil/ortamKomutu.ts";
+import { ornekTanim } from "../world/level/cekirdek/ornekTanim.ts";
 
 /** Çağrı: araç + (isteğe bağlı) argüman kalıbı. `arg`: nokta yolu → düzenli ifade (değerin metni eşleşmeli). */
 export interface CagriKurali { arac: string; arg?: Record<string, string> }
@@ -21,6 +24,11 @@ export interface F0Beklenti {
   /** Söylenen metin (soyle çağrıları + düz metin) bu kalıpla eşleşmeli / eşleşmemeli. */
   sozdeVar?: string;
   sozdeYok?: string;
+  /**
+   * Her `dunya_ortam` çağrısı GERÇEKTEN uygulanabilir olmalı: protokol doğrulaması geçer ve `ortamUygula` fırlatmaz
+   * (uydurma stil/efekt adı ve sayısız `saat` yakalanır). Yalnız adı doğru çağırmak yetmez.
+   */
+  ortamGecerli?: boolean;
 }
 
 export interface F0Puani { gecti: boolean; nedenler: string[] }
@@ -48,6 +56,15 @@ export function f0Puanla(cagrilar: readonly Cagri[], metin: string, b: F0Beklent
   if (b.eylem && !eylemPuanla(cagrilar, b.eylem).dogru) n.push(`eylem yok: ${b.eylem.arac}${b.eylem.capa ? `(${b.eylem.capa})` : ""}`);
   for (const k of b.gerek ?? []) if (!cagrilar.some((c) => uyar(c, k))) n.push(`eksik: ${adi(k)}`);
   for (const k of b.yasak ?? []) if (cagrilar.some((c) => uyar(c, k))) n.push(`yasak çağrı: ${adi(k)}`);
+  if (b.ortamGecerli) {
+    for (const c of cagrilar.filter((x) => x.ad === "dunya_ortam")) {
+      const d = cagriyiNiyete(c.ad, c.girdi);
+      if (!d.ok) { n.push(`ortam geçersiz: ${d.hata}`); continue; }
+      if (d.deger.tur !== "ortam") continue;
+      try { ortamUygula(ornekTanim(), d.deger, { saat: 12, ilk: ornekTanim() }); }
+      catch (e) { n.push(`ortam uygulanamadı: ${e instanceof Error ? e.message : String(e)}`); }
+    }
+  }
   const soz = soylenen(cagrilar, metin);
   if (b.sozdeVar && !new RegExp(b.sozdeVar, "i").test(soz)) n.push(`sözde yok: /${b.sozdeVar}/`);
   if (b.sozdeYok && new RegExp(b.sozdeYok, "i").test(soz)) n.push(`sözde olmamalı: /${b.sozdeYok}/ → "${soz.slice(0, 80)}"`);

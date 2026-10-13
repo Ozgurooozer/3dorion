@@ -1,0 +1,26 @@
+{
+  "aciklama": "Ortam aracı (dunya_ortam) ölçümü — Ozyn 2026-10-13. Sözlüğün BİLMEDİĞİ serbest ifadeler (komutCoz hiçbirini sahiplenmez: test); LLM yoluna düşen sözde araç doğru çağrılıyor mu? Ön kayıt: docs/olcum/on-kayit-ortam.md. 'ortamGecerli': çağrı GERÇEKTEN uygulanabilir olmalı (uydurma stil/efekt adı ve sayısız saat kalır). Orion ova'da: dünya satırı dışarıda olduğunu söyler.",
+  "durumlar": {
+    "ova": "You: duruyor. Outside, in the ova (you left the room through its door). Ozyn is 3.6m away, looking at you. It is afternoon, 15:30. You have been outside for 5 minutes.",
+    "ovaGece": "You: duruyor. Outside, in the ova (you left the room through its door). Ozyn is 2.4m away, looking at you. It is late at night, 23:40. You have been outside for 20 minutes."
+  },
+  "terminal": {},
+  "senaryolar": [
+    { "id": "o1", "kume": "ortam", "durum": "ova", "soz": "burası çok karanlık",
+      "bekle": { "ortamGecerli": true, "gerek": [{ "arac": "dunya_ortam", "arg": { "ne": "^(isik|saat|efekt|sis)$" } }], "yasak": [{ "arac": "dunya_sor" }, { "arac": "dunya_komut" }, { "arac": "dunya_git" }] } },
+    { "id": "o2", "kume": "ortam", "durum": "ova", "soz": "romantik bir hava ver",
+      "bekle": { "ortamGecerli": true, "gerek": [{ "arac": "dunya_ortam" }], "yasak": [{ "arac": "dunya_sor" }, { "arac": "dunya_komut" }, { "arac": "dunya_git" }] } },
+    { "id": "o3", "kume": "ortam", "durum": "ova", "soz": "akşam havası ver",
+      "bekle": { "ortamGecerli": true, "gerek": [{ "arac": "dunya_ortam", "arg": { "ne": "^(saat|renk|dunya)$" } }], "yasak": [{ "arac": "dunya_sor" }, { "arac": "dunya_komut" }, { "arac": "dunya_git" }] } },
+    { "id": "o4", "kume": "ortam", "durum": "ova", "soz": "daha net görmek istiyorum",
+      "bekle": { "ortamGecerli": true, "gerek": [{ "arac": "dunya_ortam", "arg": { "ne": "^(isik|sis|efekt|shader)$" } }], "yasak": [{ "arac": "dunya_sor" }, { "arac": "dunya_komut" }, { "arac": "dunya_git" }] } },
+    { "id": "o5", "kume": "ortam", "durum": "ova", "soz": "gözüm kamaştı, çok parlak",
+      "bekle": { "ortamGecerli": true, "gerek": [{ "arac": "dunya_ortam", "arg": { "ne": "^(isik|saat|efekt)$" } }], "yasak": [{ "arac": "dunya_sor" }, { "arac": "dunya_komut" }, { "arac": "dunya_git" }] } },
+    { "id": "o6", "kume": "ortam", "durum": "ova", "soz": "gün batımı renkleri görmek isterim",
+      "bekle": { "ortamGecerli": true, "gerek": [{ "arac": "dunya_ortam", "arg": { "ne": "^(saat|renk)$" } }], "yasak": [{ "arac": "dunya_sor" }, { "arac": "dunya_komut" }, { "arac": "dunya_git" }] } },
+    { "id": "o7", "kume": "ortam", "durum": "ova", "soz": "çizgi film gibi görünsün",
+      "bekle": { "ortamGecerli": true, "gerek": [{ "arac": "dunya_ortam", "arg": { "ne": "^stil$", "deger": "^(toon|cel|anime90)$" } }], "yasak": [{ "arac": "dunya_sor" }, { "arac": "dunya_komut" }, { "arac": "dunya_git" }] } },
+    { "id": "o8", "kume": "ortam", "durum": "ovaGece", "soz": "gündüz olsun ama sis kalsın",
+      "bekle": { "ortamGecerli": true, "gerek": [{ "arac": "dunya_ortam", "arg": { "ne": "^saat$" } }], "yasak": [{ "arac": "dunya_sor" }, { "arac": "dunya_komut" }, { "arac": "dunya_git" }] } }
+  ]
+}
