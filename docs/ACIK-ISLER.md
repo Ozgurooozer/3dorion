@@ -3,6 +3,12 @@
 Önceliği Ozyn belirler. Her madde tek satır + nerede. Biten madde SİLİNİR (geçmişi git'te);
 "çözüldü" arşivi tutulmaz. Son güncelleme: 2026-10-13.
 
+## Orion'un ortam aracı + ofis/ova tek level (Ozyn, 2026-10-13/14): spec 26 §12 yok (ölçümler `docs/olcum/on-kayit-ortam*.md`), spec 27
+Yapıldı: `dunya_ortam` niyeti, doğuştan sözlük (token'sız), öğrenen sözlük, modüler kalıcılık, G penceresi komut yolu; canlı `ortamdene` Haiku 16/16.
+- **LLM yolunun serbest cümleyi anlaması zayıf** (f0 tek atış: Haiku 9/24, yerel 2–6/24). Üçüncü düzeltme (eş anlamlı tablosu) Ozyn'e soruldu: "öğrenen sözlük asıl yol" denerek ertelendi.
+- **Ofis → ova tek level (spec 27):** aşama A spike'ı yapıldı (çim maskesi + ışık ayrımı işe yarıyor; sahne geneli sis/ton/son işlem ofisin görünümünü değiştiriyor; çizim 141–160 > 150; ofisin dış yüzü yok). B bekliyor: Ozyn'in kararları spec 27 §6.
+- Ova'dayken arka plan davranışı olmayan 'tahta'ya gitmeye çalışıp hata üretiyor ve LLM'i uyandırıyor (önceden var).
+
 ## Ova stil penceresi (Ozyn, 2026-10-13): G ile açılıp kapanır — `world/arayuz/stilPenceresi.ts`
 Ova'dayken stil önayarı, renk düzeni, ışık sonrası çipleri, shader'lar, saat/dünya düğmeleri oyunun içinde sürüklenebilir pencerede (editörle AYNI panel: `level/editor/arayuz/gorunum.ts`, soyut `GorunumKaynagi`). Yalnız canlı level'a yazar, dosyaya yazmaz. Canlı doğrulandı (G aç, toon, kapat, yeniden aç; ekran görüntüsü). Ofise dönünce sökülür (bu yol canlıda koşulmadı).
 
