@@ -4,6 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { aracRehberi, yapisalAraclar, yapisalSema, yapisaldanCikti, TABLO_ADLARI } from "./yapisalSozlesme.ts";
 import { araclariUret, turIcinAraclar } from "./araclar.ts";
+import { SORULAR } from "../protocol/niyet.ts";
 
 test("şemadaki araç adları araç tablosunun TAMAMI (konuşma hariç): yeni araç modele sessizce görünmez kalmaz", () => {
   assert.deepEqual([...yapisalAraclar()].sort(), [...TABLO_ADLARI].sort());
@@ -25,7 +26,7 @@ test("rehber her araç için tek satır ve tam şemadan KISA (bağlam payı)", (
 
 test("rehber: enum değerleri (poz, sor) satırda ve Ozyn'in hedefi {tip:'oyuncu'} söyleniyor", () => {
   const r = aracRehberi();
-  assert.match(r, /dunya_sor\{ne=onumde\|yakin\|oyuncu\|dunya\|gor\}/);
+  assert.ok(r.includes(`dunya_sor{ne=${SORULAR.join("|")}}`), "sor satırı protokolün bütün sorularını listelemeli");
   assert.match(r, /hedef = \{tip:'oyuncu'\} for Ozyn/);
 });
 

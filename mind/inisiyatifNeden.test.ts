@@ -144,3 +144,25 @@ test("YETENEK: susamayan beyinde uzun sessizlik uyandırmaz", () => {
 test("YETENEK: susamayan beyinde açık iş YİNE hatırlatılır", () => {
   assert.equal(new Inisiyatif().karar(durum({ sessizlikIzinli: false, acikIs: is(5 * DK) }))?.neden, "acik_is");
 });
+
+// ── Devre kesici yalnız sessizlik içindir (canlı koşu 2026-10-13) ──
+
+test("DEVRE KESİCİ: iki boş sessizlik uyanışından sonra açık iş YİNE hatırlatılır", () => {
+  const i = new Inisiyatif();
+  i.butce.sonuc(0, 1000, 100, false);
+  i.butce.sonuc(1000, 1000, 100, false);
+  assert.equal(i.karar(durum({ simdiMs: 2000, sessizlikMs: 1 * DK, acikIs: is(5 * DK) }))?.neden, "acik_is");
+});
+
+test("DEVRE KESİCİ: iki boş uyanıştan sonra sessizlik uyanışı kesilir", () => {
+  const i = new Inisiyatif();
+  i.butce.sonuc(0, 1000, 100, false);
+  i.butce.sonuc(1000, 1000, 100, false);
+  assert.equal(i.karar(durum({ simdiMs: 2000 })), null);
+});
+
+test("HARCAMA TAVANI açık işi de keser (saatlik model-saniye doldu)", () => {
+  const i = new Inisiyatif();
+  i.butce.sonuc(0, 25_000, 0, true);
+  assert.equal(i.karar(durum({ simdiMs: 1000, sessizlikMs: 1 * DK, acikIs: is(5 * DK) })), null);
+});

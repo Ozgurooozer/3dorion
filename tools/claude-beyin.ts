@@ -42,7 +42,20 @@ const EXE = process.env.ORION_CLAUDE_EXE
 // Boş çalışma dizini: bir üst dizindeki CLAUDE.md bağlama sızmasın.
 const BOS = fs.mkdtempSync(path.join(os.tmpdir(), "orion-claude-beyin-"));
 
-interface Sonuc { result?: string; structured_output?: unknown; is_error?: boolean; num_turns?: number; usage?: { input_tokens?: number } }
+interface Sonuc {
+  result?: string; structured_output?: unknown; is_error?: boolean; num_turns?: number;
+  usage?: { input_tokens?: number; cache_creation_input_tokens?: number; cache_read_input_tokens?: number };
+}
+
+/**
+ * Modele giden GİRDİ token sayısı: önbellekten okunan ve önbelleğe yazılan dahil (`input_tokens` yalnız önbelleksiz
+ * kısımdır). Köprü bunu `bilgi.girdiToken` olarak okur; kendiliğinden uyanış bütçesinin token tavanı buna dayanır.
+ * Eskiden `girisToken` adıyla gidiyordu, köprü okumuyordu: Haiku'da token tavanı hiç işlememişti (canlı koşu 2026-10-13).
+ */
+function girdiTokeni(u: Sonuc["usage"]): number | undefined {
+  if (!u || typeof u.input_tokens !== "number") return undefined;
+  return u.input_tokens + (u.cache_creation_input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0);
+}
 
 function tryJson(ham: string | undefined): unknown { try { return ham ? JSON.parse(ham) : undefined; } catch { return undefined; } }
 
@@ -105,9 +118,10 @@ const sunucu = http.createServer(async (istek, yanit) => {
     const sistem = yapisal ? `${m.sistem}
 ${aracRehberi(girdi.araclar)}` : m.sistem;
     const s = await claudeCalistir(sistem, m.kullanici, yapisal ? yapisalSema(girdi.araclar) : undefined);
-    const bilgi = { model: `claude:${MODEL}`, kip: MOD, sureMs: Date.now() - t0, girisToken: s.usage?.input_tokens, tur: s.num_turns };
+    const girdiToken = girdiTokeni(s.usage);
+    const bilgi = { model: `claude:${MODEL}`, kip: MOD, sureMs: Date.now() - t0, ...(girdiToken !== undefined ? { girdiToken } : {}), tur: s.num_turns };
     const c = yapisal ? yapisaldanCikti(s.structured_output ?? tryJson(s.result), bilgi, girdi.araclar) : hamdanCikti(s.result ?? "", bilgi);
-    console.log(`[claude-beyin] ${Date.now() - t0} ms · ${s.usage?.input_tokens} tok · ${c.cagrilar.map((x) => x.ad).join(",") || "-"}`);
+    console.log(`[claude-beyin] ${Date.now() - t0} ms · ${girdiToken ?? "?"} tok · ${c.cagrilar.map((x) => x.ad).join(",") || "-"}`);
     gonder(200, c);
   } catch (e) {
     const m = e instanceof Error ? e.message : String(e);

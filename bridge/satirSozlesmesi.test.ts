@@ -158,6 +158,6 @@ test("BAK çağrı sırasında EN ÖNDE — bilgi eylemden önce gelir", () => {
 });
 
 test("sözleşme talimatı BAK'ı öğretir ve örnekler", () => {
-  assert.match(SOZLESME_TALIMATI, /BAK: <onumde\|yakin\|oyuncu\|dunya\|gor>/);
+  assert.ok(SOZLESME_TALIMATI.includes(`BAK: <${SORULAR.join("|")}>`), "BAK satırı protokolün bütün sorularını listelemeli");
   assert.match(SOZLESME_TALIMATI, /BAK: onumde/, "ornek de olmali");
 });

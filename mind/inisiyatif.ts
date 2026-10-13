@@ -158,9 +158,13 @@ export class UyanisButcesi {
     };
   }
 
-  /** Şimdi bir kendiliğinden uyanışa izin var mı; yoksa nedeni (günlük/panel için). */
-  izin(t: number): { acik: true } | { acik: false; sebep: string } {
-    if (t < this._kesikBitis) return { acik: false, sebep: "devre_kesici" };
+  /**
+   * Şimdi bir kendiliğinden uyanışa izin var mı; yoksa nedeni (günlük/panel için). `devreDahil` false ise yalnız
+   * harcama tavanlarına bakılır: devre kesici "sessizlik" uyanışları içindir. Canlı koşu (2026-10-13, Haiku): iki
+   * sessizlikte DOĞRU sustu, devre 30 dk kapandı ve aradaki zamanı geçen öneri hatırlatılamazdı.
+   */
+  izin(t: number, devreDahil = true): { acik: true } | { acik: false; sebep: string } {
+    if (devreDahil && t < this._kesikBitis) return { acik: false, sebep: "devre_kesici" };
     const saat = this._kayit.filter((k) => t - k.t <= 3600_000);
     if (saat.length >= this._a.saatlikUyanma) return { acik: false, sebep: "saatlik_uyanma" };
     if (saat.reduce((s, k) => s + k.sureMs, 0) >= this._a.saatlikModelMs) return { acik: false, sebep: "saatlik_model_suresi" };
@@ -226,9 +230,10 @@ export class Inisiyatif {
     // VARLIK: son girdi yaşı (T2-K2). Girdi yoksa Ozyn burada değildir: kendiliğinden uyanma YOK (0 token).
     if (d.girdiYasiMs !== undefined && d.girdiYasiMs > VARLIK_MS) return null;
     if (d.simdiMs - this._sonKararMs < this._refrakter()) return null;
-    if (!this.butce.izin(d.simdiMs).acik) return null;   // model-saniye / token / devre kesici
+    if (!this.butce.izin(d.simdiMs, false).acik) return null;   // harcama tavanı: model-saniye / token (her neden)
 
-    // NEDEN 1 — açık iş: Ozyn'in göremediği bir öneri (bir kez hatırlatılması köprünün listesinde tutulur).
+    // NEDEN 1 — açık iş: Ozyn'in göremediği bir öneri (bir kez hatırlatılması köprünün listesinde tutulur). Devre
+    // kesici bunu KESMEZ: boş sessizlik uyanışları bir sebepli hatırlatmayı susturmasın.
     const is = d.acikIs;
     if (is && is.yasMs >= ACIK_IS_BEKLEME_MS) {
       this._sonKararMs = d.simdiMs;
@@ -237,6 +242,7 @@ export class Inisiyatif {
 
     // NEDEN 2 — uzun sessizlik (ikincil; yalnız varlık varken ve beyin susabiliyorsa).
     if (d.sessizlikIzinli === false) return null;
+    if (!this.butce.izin(d.simdiMs).acik) return null;   // devre kesici (üst üste boş uyanış)
     const esik = this._esik();
     if (d.sessizlikMs < esik) return null;
 
