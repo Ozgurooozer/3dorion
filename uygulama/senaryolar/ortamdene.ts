@@ -33,13 +33,12 @@ export async function kos(d: SenaryoBaglami): Promise<void> {
   await bekle(2500);
   if (!d.kopru) { log("köprü yok (beyin kapalı?): senaryo koşamaz"); return; }
 
-  // 0) ofiste (level yok) sözlük sahiplenmez
-  kontrol("ofiste ova yok (ortam bağlı değil)", d.ortam.tanim() === null);
-
-  if (!(await d.ovayaCik())) { log("ovaya çıkılamadı"); return; }
+  // 0) Ofis ova'nın içinde (spec 27): ortam aracı ofiste de çalışır; `ovayaCik` dünyanın hazır olmasını bekler.
+  if (!(await d.ovayaCik())) { log("birleşik dünya kurulamadı"); return; }
+  kontrol("ofiste de ortam bağlı (tek dünya)", d.ortam.tanim() !== null);
   await bekle(1500);
   const ilk = d.ortam.tanim();
-  kontrol("ova'da level bağlı", !!ilk);
+  kontrol("level bağlı", !!ilk);
   if (!ilk) return;
   const pozIlk = pozlama();
   log(`açılış: stil=${onayarAdi(ilk)} saat=${ilk.zaman?.saat ?? "-"} pozlama=${pozIlk} sis=${ilk.ortam.sis.acik}`);
@@ -82,17 +81,14 @@ export async function kos(d: SenaryoBaglami): Promise<void> {
     kontrol("öğrenilen söz ova'yı yine değiştirdi", pozlama() !== p2 || JSON.stringify(d.ortam.tanim()) !== onceki);
   }
 
-  // 4) kalıcılık (kalıcı kip): ofise dön, tekrar çık
+  // 4) kalıcılık: kalıcı kipte günlük tarayıcı deposuna yazılır (yeniden açılışta oynatma: `?ortam=kalici` ile iki koşu, README/spec 27)
   d.ortam.kipAyarla("kalici");
   await soyle("anime 90 yap");
-  const stilKalici = onayarAdi(d.ortam.tanim()!);
-  d.ortam.odayaDon();
-  await bekle(1500);
-  kontrol("ofise dönünce level yok", d.ortam.tanim() === null);
-  await d.ovayaCik();
-  await bekle(2000);
-  kontrol("tekrar çıkınca ayar HATIRLANDI (kalıcı kip)", d.ortam.tanim() !== null && onayarAdi(d.ortam.tanim()!) === stilKalici, `stil=${d.ortam.tanim() ? onayarAdi(d.ortam.tanim()!) : "-"} (beklenen ${stilKalici})`);
+  const depo = (() => { try { return localStorage.getItem("orion.ortam.gunluk") ?? ""; } catch { return ""; } })();
+  kontrol("kalıcı kipte günlük tarayıcı deposuna yazıldı", /anime90/.test(depo), depo.slice(0, 80));
   d.ortam.kipAyarla("oturum");   // temizle: bu koşu tarayıcı deposunda iz bırakmasın
+  const silindi = (() => { try { return localStorage.getItem("orion.ortam.gunluk") === null; } catch { return false; } })();
+  kontrol("oturum kipine dönünce kalıcı kayıt silindi", silindi);
 
   // 5) sıfırla
   await soyle("ortamı sıfırla");

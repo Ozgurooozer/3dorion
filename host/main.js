@@ -182,6 +182,8 @@ function pencereAc() {
   if (process.env.ORION_INISIYATIF_SN) parcalar.push(`inisiyatifsn=${encodeURIComponent(process.env.ORION_INISIYATIF_SN)}`);
   // Açılıştan 8 sn sonra Ozyn bunu yazmış gibi (klavyeyle aynı yol); kendiliğinden uyanma açık kalır.
   if (process.env.ORION_OZYN_SOZU) parcalar.push(`ozynsozu=${encodeURIComponent(process.env.ORION_OZYN_SOZU)}`);
+  // Ham sorgu eki (`poz=2.6,9,180`, deneme parametreleri): senaryoların URL anahtarları env'e gerek duymadan verilebilsin.
+  if (process.env.ORION_SORGU_EK) parcalar.push(process.env.ORION_SORGU_EK);
   // Model karşılaştırması için: aynı ölçüm düzeneği, farklı beyin.
   if (process.env.ORION_MODEL) parcalar.push(`model=${encodeURIComponent(process.env.ORION_MODEL)}`);
   // Sağlayıcı/adres/şifre de dışarıdan: kota dolunca başka bir sağlayıcıya

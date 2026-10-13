@@ -23,7 +23,7 @@ rem    3dorion.bat benlikdene anlik benlik: onerinin yasam dongusu (spec 12)
 rem    3dorion.bat eylemdene  otur / bana gel / bilgisayari ac / tahtaya git (spec 13)
 rem    3dorion.bat baglamdene temiz baglam (spec 16): neredesin / neredeydin / ne konusmustuk
 rem    3dorion.bat takipdene  "beni takip et": Ozyn uzaklasinca Orion yanina geliyor mu
-rem    3dorion.bat kapidene   ofisin kapisindan ovaya ve geri: E, kararma, Orion yaninda (spec 24)
+rem    3dorion.bat kapidene   birlesik dunya: kapi acilir/kapanir, Orion yuruyerek cikar-doner, gorunum gecisi, cizim butcesi (spec 27)
 rem    3dorion.bat ovadene    Orion ovada: gel, takip, kapiya git, otur, bak, jest, algi, gec (spec 26 F4)
 rem    3dorion.bat ortamdene  Orion'un ortam araci: sozluk (token'siz), LLM yolu, ogrenme, kalicilik (ORION_BEYIN=claude:haiku)
 rem    3dorion.bat gozdene    Orion gozuyle bakiyor: gorme algiyla birlesiyor mu (spec 25 V1; ORION_GOZ=model)
@@ -251,7 +251,7 @@ call npx electron .
 goto :son
 
 :kapidene
-echo [kapidene] Ofisin kapisindan ovaya ve geri: E - kararma - ova - Orion yaninda - ofis kapisi - oda
+echo [kapidene] Birlesik dunya: kapi kendiliginden acilir-kapanir - Orion yuruyerek cikar ve doner - gorunum gecisi - cizim butcesi
 call npx vite build
 if errorlevel 1 goto :hata
 set "ORION_KAPIDENE=1"

@@ -1,13 +1,16 @@
-// uygulama/senaryolar/kapidene.ts — `3dorion.bat kapidene` (spec 24 C3): ofisin kapısından ovaya ve geri.
+// uygulama/senaryolar/kapidene.ts — `3dorion.bat kapidene` (spec 27): ofis ova'nın İÇİNDE, kapı gerçek bir kapı.
 //
-// GERÇEK yoldan: oyuncu kapıya bakar, ipucu "geç" çıkar, E tuşu (klavye olayı) basılır — kararma, ova, Orion
-// yanında. Orion ovada kendi yürüyüşüyle ofis kapısına gider; Ozyn ofis kapısına bakıp E'ye basar — oda geri gelir,
-// Orion da. Söz değil sonuç: yer adı, mesafe, kararmanın gerçekten olduğu, odanın mesh sayısı ve sisi.
+// (Eski sürüm spec 24'ün kararma + ışınlanma kapısını sınıyordu; ışınlanma kalktı, kod `world/giris.ts`te köşede duruyor.)
+// Ölçülenler, hepsi SONUÇ olarak (söz değil): tek yer; kapı kendiliğinden açılır ve uzaklaşınca kapanır; Orion kapıdan YÜRÜYEREK dışarı
+// çıkar ve geri döner (yol bulma kapıyı geçer, kapı onun için açılır); görünüm geçişi (sis) ofiste ofisin, dışarıda ova'nın, eşikte
+// ikisinin arasında; pencere ova'ya bakar (sahte manzara gizli). `?poz=x,z,yaw(derece)` sonda oyuncuyu ışınlar (ekran görüntüsü, ORION_SS).
 "use strict";
 import type { SenaryoBaglami } from "../senaryoBaglami.ts";
 import type { Avatar } from "../../world/avatar/index.ts";
-import { capaBul, yaklastiMi } from "../../world/level/capalar.ts";
-import { EtkilesimOlaylari } from "../../world/player/etkilesim.ts";
+import { SceneInstrumentation } from "@babylonjs/core/Instrumentation/sceneInstrumentation";
+
+/** Çizim sayısı bütçesi (Ozyn, 2026-10-14: "çizim sınırında sorun yok, 220 olur"). */
+const CIZIM_BUTCESI = 220;
 
 export async function kos(d: SenaryoBaglami): Promise<void> {
   const { oyuncu, sahne } = d;
@@ -23,75 +26,85 @@ export async function kos(d: SenaryoBaglami): Promise<void> {
     for (const r of sonuc) console.log("[KAPIDENE] " + r);
     console.log("[KAPIDENE] ozet: " + sonuc.filter((r) => r.startsWith("GECTI")).length + "/" + sonuc.length);
   };
-  const eBas = () => {
-    dispatchEvent(new KeyboardEvent("keydown", { code: "KeyE", key: "e" }));
-    dispatchEvent(new KeyboardEvent("keyup", { code: "KeyE", key: "e" }));
-  };
-  const kararmaOpak = () => Number(getComputedStyle(document.getElementById("kararma")!).opacity);
-  /** Geçiş boyunca kararmanın en koyu hâli (geçişin örtüldüğünün kanıtı). */
-  const gecisiIzle = async (hedef: string) => {
-    let enKoyu = 0;
-    const vardi = await olana(() => { enKoyu = Math.max(enKoyu, kararmaOpak()); return d.yerler().ozyn.ad === hedef && kararmaOpak() < 0.05; }, 10_000);
-    return { vardi, enKoyu };
-  };
+  const aci = () => d.dunya.kapiAcisi() ?? NaN;
+  const ACIK = 1.4, KAPALI = 0.05;   // tam açıklık π/2 ≈ 1,57
 
   await bekle(2500);
   const o = d.orion as Avatar | null;
   if (!o) { kontrol("Orion'un bedeni hazır", false); bitir(); return; }
-  const mesafe = () => { const a = o.durum().konum, p = oyuncu.oyuncuDurumu().konum; return Math.hypot(a.x - p.x, a.z - p.z); };
-  const odaMesh = sahne.meshes.length, odaSis = sahne.fogDensity;
 
-  // ── 1. Ofiste kapıya bak: ipucu "geç" ──
-  const kapi = capaBul("kapi")!;
-  oyuncu.isinla(kapi.durak.x, kapi.durak.z, 0);              // yaw 0 → +Z: ön duvardaki kapıya
-  kontrol("ofiste kapıya bakınca ipucu: geç", await olana(() => EtkilesimOlaylari.sonIpucu?.eylem === "gec", 3000),
-    EtkilesimOlaylari.sonIpucu?.metin ?? "ipucu yok");
+  // ── 1. Tek dünya ──
+  const hazir = await d.ovayaCik();
+  kontrol("birleşik dünya kuruldu", hazir);
+  const y = d.yerler();
+  kontrol("tek yer: Ozyn ve Orion AYNI yerde", y.ozyn === y.orion && y.ozyn.ad === "ova", `ozyn=${y.ozyn.ad} orion=${y.orion.ad}`);
+  kontrol("ofisin çapaları ve ova aynı yerde", y.ozyn.capalar.some((c) => c.ad === "tahta") && y.ozyn.capalar.some((c) => c.ad === "kapi"));
+  kontrol("pencere ova'ya bakıyor (sahte şehir resmi gizli)", sahne.getMeshByName("pen_manzara")?.isEnabled() === false);
+  const fogOfis = sahne.fogDensity;
+  kontrol("ofiste ofis havası (mor sis ≈ 0,035)", Math.abs(fogOfis - 0.035) < 0.004, `sis=${fogOfis.toFixed(4)} ic=${d.dunya.ic().toFixed(2)}`);
 
-  // ── 2. E → kararma → ova ──
-  eBas();
-  const cikis = await gecisiIzle("ova");
-  kontrol("E → ovadasın", cikis.vardi, `yer=${d.yerler().ozyn.ad}`);
-  kontrol("geçiş kararmanın arkasında", cikis.enKoyu > 0.9, `en koyu ${cikis.enKoyu.toFixed(2)}`);
-  kontrol("Orion da ovada", d.yerler().orion.ad === "ova");
-  kontrol("Orion Ozyn'in yanında (≤ 2,5 m)", mesafe() <= 2.5, `${mesafe().toFixed(2)} m`);
-  kontrol("ovadayken odanın meshleri kapalı", odaKapali(d));
-  // NPC algısı (spec 25 Faz 1): Orion'un "dunya" algısı bulunduğu yerin nesnelerinden; ofisin eşyası ovaya sızmaz.
-  const ovaAlgisi = d.algiSor("dunya").metin;
-  kontrol("ovada algı ova'nın nesnelerinden, ofis eşyası yok", /ofis kapısı|boru duvarı/.test(ovaAlgisi) && !/beyaz tahta|monitör|çalışma masası/.test(ovaAlgisi), ovaAlgisi);
+  // ── 2. Kapı kendiliğinden açılır / kapanır (Ozyn) ──
+  oyuncu.isinla(-3, 0, 0);
+  kontrol("kimse yakında değilken kapı kapalı", await olana(() => aci() < KAPALI, 3000), `açı=${aci().toFixed(2)}`);
+  oyuncu.isinla(2.6, 2.6, 0);                                  // kapıya 1,4 m, yüz kapıya dönük
+  kontrol("Ozyn kapıya yaklaşınca kapı AÇILIR", await olana(() => aci() > ACIK, 3000), `açı=${aci().toFixed(2)}`);
+  oyuncu.isinla(2.6, 9, Math.PI);                              // eşiğin dışında 5 m
+  kontrol("Ozyn uzaklaşınca kapı KAPANIR (Orion içeride de olsa: o uzakta)", await olana(() => aci() < KAPALI, 5000), `açı=${aci().toFixed(2)}`);
+  const fogDis = await (async () => { await bekle(600); return sahne.fogDensity; })();
+  kontrol("dışarıda ova havası (açık sis ≈ 0,004)", Math.abs(fogDis - 0.0042) < 0.002, `sis=${fogDis.toFixed(4)} ic=${d.dunya.ic().toFixed(2)}`);
+  // Eşik: kameranın konumuna göre (3. şahıs kamera oyuncunun ~3 m arkasında): oyuncuyu kapıdan dışarı doğru yürüt, ic ve sis dizisini oku.
+  const seri: { z: number; ic: number; sis: number }[] = [];
+  for (const z of [0, 2, 3.5, 5, 6.5, 8, 10, 13]) {
+    oyuncu.isinla(2.6, z, Math.PI);                          // yüz ofise dönük: kamera dışarıda, oyuncudan uzakta
+    await bekle(450);
+    seri.push({ z, ic: d.dunya.ic(), sis: sahne.fogDensity });
+  }
+  console.log("[KAPIDENE] geçiş serisi: " + seri.map((s) => `z=${s.z}:ic=${s.ic.toFixed(2)}/sis=${s.sis.toFixed(4)}`).join(" "));
+  const azalan = seri.every((s, i) => i === 0 || s.ic <= seri[i - 1]!.ic + 1e-6);
+  kontrol("görünüm geçişi tek yönlü (ofisten uzaklaştıkça ova'ya)", azalan);
+  kontrol("eşikte görünüm İKİSİNİN ARASINDA", seri.some((s) => s.ic > 0.05 && s.ic < 0.95 && s.sis > fogDis && s.sis < fogOfis), `ic=${seri.map((s) => s.ic.toFixed(2)).join(",")}`);
 
-  // ── 3. Orion ovada ofis kapısına yürür ──
-  // Önce kapıdan ~10 m uzaklaşır: Orion kapının yanında belirdiği için doğrudan "kapıya git" bir şey kanıtlamaz
-  // (ilk koşuda yaklaşma yarıçapının içindeydi, yürümeden "bitti" dedi).
-  const ova = d.yerler().orion;
-  d.niyetiYurut({ tur: "git", hedef: { tip: "nokta", x: -2, y: 0, z: 4 } }, "kapidene_uzaklas");
-  const uzaklasti = await olana(() => !yaklastiMi("kapi", o.durum().konum, ova.capalar) && o.durum().konum.z < 6, 15_000);
-  kontrol("Orion ovada kapıdan uzaklaştı", uzaklasti, `z=${o.durum().konum.z.toFixed(1)}`);
-  d.niyetiYurut({ tur: "git", hedef: { tip: "capa", ad: "kapi" } }, "kapidene_git");
-  kontrol("Orion ovada ofis kapısına yürüdü", await olana(() => yaklastiMi("kapi", o.durum().konum, ova.capalar), 20_000),
-    `konum=${o.durum().konum.x.toFixed(1)},${o.durum().konum.y.toFixed(2)},${o.durum().konum.z.toFixed(1)}`);
+  // ── 3. Orion kapıdan yürüyerek çıkar ve döner ──
+  oyuncu.isinla(10, 14, Math.PI);                              // Ozyn kenarda: Orion'un yolunu kesmesin, kapıdan uzak
+  await olana(() => aci() < KAPALI, 4000);
+  let enAcik = 0;
+  const izle = setInterval(() => { enAcik = Math.max(enAcik, aci()); }, 80);
+  d.niyetiYurut({ tur: "git", hedef: { tip: "nokta", x: 2.6, y: 0, z: 8 } }, "kapidene_cik");
+  const cikti = await olana(() => o.durum().konum.z > 6.5, 20_000);
+  clearInterval(izle);
+  kontrol("Orion kapıdan YÜRÜYEREK dışarı çıktı", cikti, `konum=${o.durum().konum.x.toFixed(1)},${o.durum().konum.z.toFixed(1)}`);
+  kontrol("kapı Orion için açıldı", enAcik > ACIK, `en açık ${enAcik.toFixed(2)}`);
+  kontrol("Orion çıkınca dışarıda algı: ova", d.algiSor("dunya").metin.length > 0);
+  d.niyetiYurut({ tur: "git", hedef: { tip: "capa", ad: "tahta" } }, "kapidene_don");
+  const dondu = await olana(() => o.durum().konum.z < 3.4 && Math.abs(o.durum().konum.x) < 5, 30_000);
+  kontrol("Orion kapıdan geri ofise yürüdü (tahtaya gidiyor)", dondu, `konum=${o.durum().konum.x.toFixed(1)},${o.durum().konum.z.toFixed(1)}`);
 
-  // ── 4. Ozyn ofis kapısına bakar: ipucu → E → oda ──
-  const ovaKapi = capaBul("kapi", ova.capalar)!;
-  const yaw = Math.atan2(ovaKapi.yon.x, ovaKapi.yon.z);
-  // Kapının TAM karşısında, durağın 0,4 m gerisinde (kapı 1 m geniş: ilk sürüm 0,6 m yana koyuyordu, dümdüz bakış
-  // kapının kenarını 10 cm ıskalıyordu). Orion durakta dursa da ışını kesmez (beden katı yüzey değil).
-  oyuncu.isinla(ovaKapi.durak.x - ovaKapi.yon.x * 0.4, ovaKapi.durak.z - ovaKapi.yon.z * 0.4, yaw);
-  kontrol("ovada ofis kapısına bakınca ipucu: geç", await olana(() => EtkilesimOlaylari.sonIpucu?.eylem === "gec", 3000),
-    EtkilesimOlaylari.sonIpucu?.metin ?? "ipucu yok");
-  eBas();
-  const donus = await gecisiIzle("oda");
-  kontrol("E → ofistesin", donus.vardi, `yer=${d.yerler().ozyn.ad}`);
-  kontrol("dönüş kararmanın arkasında", donus.enKoyu > 0.9, `en koyu ${donus.enKoyu.toFixed(2)}`);
-  kontrol("Orion da ofiste, yanında", d.yerler().orion.ad === "oda" && mesafe() <= 2.5, `${mesafe().toFixed(2)} m`);
-  kontrol("oda birebir geri: mesh sayısı", sahne.meshes.length === odaMesh, `${odaMesh} → ${sahne.meshes.length}`);
-  kontrol("oda birebir geri: sis", sahne.fogDensity === odaSis, `${odaSis} → ${sahne.fogDensity}`);
-  const odaAlgisi = d.algiSor("dunya").metin;
-  // "kapı" tek başına yetmez: "ofis kapısı" da onu içerir (ilk sürüm dönüş olmadan geçmişti).
-  kontrol("ofiste algı yine odanın nesnelerinden", /beyaz tahta|monitör|çalışma masası/.test(odaAlgisi) && !/boru duvarı|ofis kapısı/.test(odaAlgisi), odaAlgisi);
+  // ── 4. Çizim bütçesi: ofisin içinde ve dışında, 4 sn ortalaması ──
+  const olcer = new SceneInstrumentation(sahne);
+  const cizimOlc = async (ad: string, x: number, z: number, yaw: number) => {
+    oyuncu.isinla(x, z, yaw);
+    await bekle(1500);
+    let kare = 0, cizim = 0;
+    const g = sahne.onAfterRenderObservable.add(() => { kare++; cizim += olcer.drawCallsCounter.current; });
+    await bekle(4000);
+    sahne.onAfterRenderObservable.remove(g);
+    const ort = cizim / Math.max(kare, 1);
+    kontrol(`çizim bütçesi (${ad}): ≤ ${CIZIM_BUTCESI}`, ort <= CIZIM_BUTCESI, `${ort.toFixed(0)} çizim, ${d.motor.getFps().toFixed(0)} fps`);
+  };
+  await cizimOlc("ofisin içi, cam duvara bakış", 1.6, 1.9, Math.PI);
+  await cizimOlc("ofisin içi, kapıya bakış", 1.6, -1.0, 0);
+  await cizimOlc("dışarıda, ofise bakış", 2.6, 12, Math.PI);
+  await cizimOlc("dışarıda, ova'ya bakış", 2.6, 12, 0);
+
+  // ── 5. Ekran görüntüsü için poz ──
+  const poz = new URLSearchParams(location.search).get("poz");
+  if (poz) {
+    const [x, z, yaw] = poz.split(",").map(Number) as [number, number, number];
+    oyuncu.isinla(x!, z!, (yaw! * Math.PI) / 180);
+  } else {
+    oyuncu.isinla(1.6, 1.9, Math.PI);                          // ofis içinde, cam duvara (ova'ya) bakarak
+  }
+  await bekle(3000);
+  console.log(`[KAPIDENE] fps=${d.motor.getFps().toFixed(0)} aktifMesh=${sahne.getActiveMeshes().length} sis=${sahne.fogDensity.toFixed(4)} ic=${d.dunya.ic().toFixed(2)}`);
   bitir();
-}
-
-/** Ovadayken odanın meshleri kapalı mı (görüntüye sızmıyor). */
-function odaKapali(d: SenaryoBaglami): boolean {
-  return d.oda.meshler.every((m) => !m.isEnabled());
 }

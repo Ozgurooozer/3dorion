@@ -35,6 +35,8 @@ import { bulunduguCapa, capaBul } from "./level/capalar.ts";
 import { yerSabitBilgisi, yerOrtasiSozu, type Yer } from "./yer/yer.ts";
 import { ODA_YERI } from "./yer/odaYeri.ts";
 import { levelSahnesiKur, type LevelSahnesi } from "./yer/levelSahnesi.ts";
+import { birlesikDunyaKur, type BirlesikDunya } from "./yer/birlesikDunya.ts";
+import { konumluSabitBilgi, konumluYerOrtasi } from "./yer/birlesikYer.ts";
 import { gecitVarisi } from "./yer/levelYeri.ts";
 import { orionGozuKur } from "./avatar/goz.ts";
 import { carpisiyorMu } from "./level/olculer.ts";
@@ -249,8 +251,6 @@ void avatarKur({
   });
   console.log("[ORION] avatar hazır");
   beyniBagla(a);
-  // `?yer=ova`: doğrudan ovada aç (spec 24 C2 — kapı tetiği gelene kadar deneme yolu; canlı deneme betikleri de).
-  if (new URLSearchParams(location.search).get("yer") === "ova") void oda.hazir.then(() => ovayaCik());
 }).catch((e) => console.error("[ORION] avatar kurulamadı:", e));
 
 // ── KAPIDAN OVAYA (spec 24) ────────────────────────────────────────────────
@@ -274,7 +274,11 @@ async function orionKaresi(en = 896, boy = 504, yaw?: number) {
   return orionGozu.kare(d.konum, yaw ?? Math.atan2(d.bakis.x, d.bakis.z), orionYeri, en, boy, (g) => o.gorunur(g && orionYeri === ozynYeri));
 }
 
-async function ovayaCik(): Promise<boolean> {
+/**
+ * ISINLANMA (ileride kullanılacak; spec 27'den beri KAPI bunu çağırmaz): ofisi gizleyip ova'yı AYRI kuran eski kapı geçişi.
+ * Ofis ova'nın içinde olduğundan şimdilik hiçbir yol bunu tetiklemez; `window.dunya.kapidanGec` hata ayıklama için bağlı.
+ */
+async function isinlanmaOvayaCik(): Promise<boolean> {
   if (disari || gecisSuruyor) return false;
   gecisSuruyor = true;
   try {
@@ -311,7 +315,7 @@ async function ovayaCik(): Promise<boolean> {
   }
 }
 
-function odayaDon(): boolean {
+function isinlanmaOdayaDon(): boolean {
   if (!disari || gecisSuruyor) return false;
   const orionGelir = orionYeri === ozynYeri;
   // Sahne yıkılır, ova yeri (saf veri) kalır: Orion dışarıda kaldıysa orada yürümeye devam eder (C6).
@@ -330,6 +334,17 @@ function odayaDon(): boolean {
   console.log("[YER] ofise dönüldü");
   return true;
 }
+
+/**
+ * BİRLEŞİK DÜNYA (spec 27): ofis ova'nın İÇİNDE, tek sahne, tek level, tek `Yer`; kapı gerçek bir kapı (kendiliğinden açılır).
+ * `ovayaCik` artık "dünyanın hazır olmasını bekle" demektir (senaryolar ve `dunya.ovayaCik` aynı sözleşmeyle çalışır);
+ * `odayaDon` yok (ofisten ayrılınmıyor) ve false döner.
+ */
+let birlesik: BirlesikDunya | null = null;
+let birlesikBitti!: () => void;
+const birlesikHazir = new Promise<void>((r) => { birlesikBitti = r; });
+async function ovayaCik(): Promise<boolean> { await birlesikHazir; return birlesik !== null; }
+function odayaDon(): boolean { return false; }
 
 /** Orion'un bedeni yalnız Ozyn'le aynı yerdeyse görünür (başka yerin koordinatında hayalet olmasın). */
 function orionGorunurlugu(): void { orion?.gorunur(orionYeri === ozynYeri); }
@@ -353,7 +368,7 @@ async function kapidanGec(): Promise<boolean> {
   try {
     kararma.style.opacity = "1";
     await new Promise((r) => setTimeout(r, KARARMA_MS + 30));
-    const oldu = disari ? odayaDon() : await ovayaCik();
+    const oldu = disari ? isinlanmaOdayaDon() : await isinlanmaOvayaCik();
     await sahne.whenReadyAsync();
     // İki kare: ilk kare yeni yerin gölge haritasını ve kamerayı oturtur.
     await new Promise<void>((r) => { let n = 0; const g = sahne.onAfterRenderObservable.add(() => { if (++n >= 2) { sahne.onAfterRenderObservable.remove(g); r(); } }); });
@@ -1358,7 +1373,7 @@ const dunyaKancasi = {
     }
     return orionKaresi(en, boy, yaw);
   },
-  yer: () => ({ ozyn: ozynYeri.ad, orion: orionYeri.ad, kurulumMs: disari?.kurulumMs ?? null }),
+  yer: () => ({ ozyn: ozynYeri.ad, orion: orionYeri.ad, kurulumMs: birlesik?.kurulumMs ?? disari?.kurulumMs ?? null }),
   tahta: {
     yaz: (m: string, temizle = false) => tahta.yaz(m, temizle),
     sil: () => tahta.sil(),
@@ -1539,7 +1554,7 @@ function beyniBagla(a: Avatar): void {
     // şey anlatmıyordu; algı hizmeti "yönetim terminali" derken sabit liste
     // "admin" diyordu ve model ikisini aynı şey saymıyordu.
     // Çapa ETİKETLERİ Türkçe kalır: onlar odadaki şeylerin ADI, çerçeve değil.
-    sabitBilgi: () => yerSabitBilgisi(orionYeri),
+    sabitBilgi: () => { const k = orion?.durum().konum ?? { x: 0.9, z: -1.2 }; return konumluSabitBilgi(orionYeri, k.x, k.z); },
     toplamaMs: 900,
     // Ölçüm için ayarlanabilir: kısa pencere hipotezi (anı, alakasız sohbetin
     // altında gömülüyor mu?) tek değişkenle sınanabilsin.
@@ -1714,6 +1729,7 @@ function beyniBagla(a: Avatar): void {
     tusSerbest: () => oyuncu.oyuncuDurumu().etkilesim === null && sohbet.dataset.acik !== "1" && onayKapisi.durum !== "bekliyor",
     acildi: () => rig.fareKilitBirak(),
   });
+  if (birlesik) stilPenceresi.ova(birlesik.level);   // dünya pencereden ÖNCE hazırsa burada bağlanır (aksi hâlde dünya kurulunca)
   console.log(`[PANO] ${panoKaydi.moduller().length} modül, ` +
     `${panoKaydi.goruntu().reduce((n, m) => n + m.dugmeler.length, 0)} tel bağlandı`);
 
@@ -1741,7 +1757,7 @@ function beyniBagla(a: Avatar): void {
   setInterval(() => {
     takipci.tik();
     try {
-      durumKopru.durum.konumGozlem(bulunduguCapa(a.durum().konum, durumKopru.durum.oku("konum")?.deger, orionYeri.capalar)?.etiket ?? yerOrtasiSozu(orionYeri));
+      durumKopru.durum.konumGozlem(bulunduguCapa(a.durum().konum, durumKopru.durum.oku("konum")?.deger, orionYeri.capalar)?.etiket ?? konumluYerOrtasi(orionYeri, a.durum().konum.x, a.durum().konum.z));
       durumKopru.durum.monitor(monitor.acikMi());
     } catch (err) { console.warn("[DURUM] gozlem hatasi:", err); }
   }, 500);
@@ -1974,11 +1990,13 @@ const senaryoBaglami: SenaryoBaglami = {
   ovayaCik,
   // `ortamdene`: ova'nın GERÇEK tanımı (ofiste null), hatırlama kipi, öğrenen sözlüğün büyüklüğü, ofise dönüş.
   ortam: {
-    tanim: () => (disari ? disari.level.tanim() : null),
+    tanim: () => (birlesik ? birlesik.level.tanim() : disari ? disari.level.tanim() : null),
     kipAyarla: (kip) => ortamGunlugu.kipAyarla(kip),
     ogrenilenSayisi: () => ortamSozlugu.liste().length,
     odayaDon: () => odayaDon(),
   },
+  // `kapidene`: birleşik dünyanın kapısı ve görünüm geçişi.
+  dunya: { kapiAcisi: () => oda.kapi?.aci() ?? null, ic: () => birlesik?.ic() ?? 0 },
   niyetiYurut, onayKarari, algiSor, monitoreGec, admineGec, panelOdak, panoyuAl, zoomUygula, sonGorme,
   gozModeli: () => gozModeli.model,
 };
@@ -1987,3 +2005,39 @@ for (const ad of istenenSenaryolar(location.search)) {
     .then((m: { kos(d: SenaryoBaglami): Promise<void> }) => m.kos(senaryoBaglami))
     .catch((e) => console.error(`[SENARYO] ${ad} yüklenemedi ya da düştü:`, e));
 }
+
+
+// ── BİRLEŞİK DÜNYA AÇILIŞI (spec 27) ───────────────────────────────────────
+// Ofis ova'nın içinde: açılışta ova level'ı ofisin yanına kurulur (kapıda değil). Hazır olunca tek `Yer` herkese verilir, ortam aracı
+// ve G penceresi bağlanır. Kurulamazsa (hata) ofis tek başına yaşar: sessiz değil, konsola yazılır.
+void (async () => {
+  try {
+    await oda.hazir;
+    const tanim: unknown = await (await fetch(ovaAdresi)).json();
+    const orionKok = () => sahne.getTransformNodeByName("orion_vrm_kok") ?? sahne.getTransformNodeByName("orion_kok");
+    const b = await birlesikDunyaKur({
+      sahne, tanim, oda, kamera: rig.kamera, golgeAtanlar: [oyuncu.govde],
+      aktorler: () => {
+        const o = oyuncu.oyuncuDurumu().konum;
+        const liste = [{ meshler: [oyuncu.govde], x: o.x, z: o.z }];
+        const ok = orionKok(), od = orion?.durum();
+        if (ok && od) liste.push({ meshler: ok.getChildMeshes(false), x: od.konum.x, z: od.konum.z });
+        return liste;
+      },
+    });
+    birlesik = b;
+    ozynYeri = b.yer;
+    orionYeri = b.yer;
+    ortamBaglantisi.ova(b.level);
+    // Kaydedilmiş ortam komutları taze level'ın ÜSTÜNE oynatılır (dosya değişse bile günlük bozulmaz).
+    const oynat = ortamBaglantisi.oynat(ortamGunlugu.komutlar());
+    if (oynat.uygulanan || oynat.atlanan.length) console.log(`[ORTAM] günlük oynatıldı (${ortamGunlugu.kip}): ${oynat.uygulanan} komut${oynat.atlanan.length ? `, atlanan: ${oynat.atlanan.join(" | ")}` : ""}`);
+    (stilPenceresi as ReturnType<typeof stilPenceresiKur> | null)?.ova(b.level);   // pencere dünyadan sonra kurulduysa orada bağlanır
+    gunluk.ekle("bilgi", "yer", `birleşik dünya kuruldu (${b.kurulumMs} ms)`);
+    console.log(`[YER] birleşik dünya kuruldu ${b.kurulumMs} ms · engel ${b.yer.engeller.length} · nesne ${b.yer.nesneler.length} · çapa ${b.yer.capalar.length}`);
+  } catch (e) {
+    console.error("[YER] birleşik dünya kurulamadı, ofis tek başına:", e);
+  } finally {
+    birlesikBitti();
+  }
+})();

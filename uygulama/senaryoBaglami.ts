@@ -69,6 +69,8 @@ export interface SenaryoBaglami {
     ogrenilenSayisi(): number;
     odayaDon(): boolean;
   };
+  /** Birleşik dünya (spec 27; `kapidene`): ofis kapısının açısı (rad; 0 kapalı, π/2 açık; kapı kurulmadıysa null) ve kameranın ofis içi derecesi. */
+  readonly dunya: { kapiAcisi(): number | null; ic(): number };
   // ── eylemler ──
   niyetiYurut(n: Niyet, id: string): void;
   onayKarari(onaylandi: boolean): void;

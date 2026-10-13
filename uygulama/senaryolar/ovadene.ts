@@ -1,22 +1,22 @@
 // uygulama/senaryolar/ovadene.ts — `3dorion.bat ovadene`: Orion'un OVADA ne yapabildiği (spec 26 F4 ölçümü).
 //
-// Ozyn: "Orion ovadaki tüm özellikleri anlık kullanabilmeli: oturmak, takip etmek gibi." Burada tahmin yok: ovaya çıkılır
-// (kapıdan, gerçek yoldan) ve her yetenek GERÇEK bedenle denenir; sonuç ve nedeni satır satır basılır. Kalan her KALDI
-// bir iş maddesidir (ACIK-ISLER). Söz değil sonuç: mesafe, avatarın döndürdüğü hata metni.
+// Ozyn: "Orion ovadaki tüm özellikleri anlık kullanabilmeli: oturmak, takip etmek gibi." Burada tahmin yok: her yetenek GERÇEK
+// bedenle denenir; sonuç ve nedeni satır satır basılır. Kalan her KALDI bir iş maddesidir (ACIK-ISLER). Söz değil sonuç.
 //
-//   1. "bana gel" (sözlük) uzaktan → Orion yanına geldi
-//   2. "beni takip et" → Ozyn uzaklaşınca yine geldi; "takibi bırak" → gelmedi
-//   3. kapıya git (çapa `kapi`) → kapının önünde
-//   4. otur (ovada) → sonuç ve hata metni
+// SPEC 27: ofis ova'nın İÇİNDE (tek dünya); ova'ya "çıkmak" yürümektir. Ozyn ofisin DIŞINA ışınlanır, Orion ofiste kalır ve kapıdan
+// YÜRÜYEREK gelir; sonra uzağa gidilir, geri kapıdan ofise dönmesi istenir.
+//
+//   1. "bana gel" (sözlük) ofisin dışındaki Ozyn'a: Orion kapıdan çıkıp yanına geldi
+//   2. "beni takip et" → Ozyn uzaklaşınca yine geldi (ofisin etrafından dolanarak); "takibi bırak" → gelmedi
+//   3. kapıya git (çapa `kapi`) → kapının önünde (ofisin içinde: dışarıdan kapıdan girerek)
+//   4. otur → ofisin sandalyesine oturabildi
 //   5. bak / jest → bitti
-//   6. sor dunya → ovanın nesneleri algıda
-//   7. gec: Orion kapıdan KENDİ BAŞINA geçebilir mi (C6) → niyet var mı
+//   6. sor dunya → algıda nesneler var
 "use strict";
 import type { SenaryoBaglami } from "../senaryoBaglami.ts";
 import type { Avatar } from "../../world/avatar/index.ts";
 import type { Kopru } from "../../bridge/kopru.ts";
 import type { Niyet, NiyetSonucu } from "../../protocol/niyet.ts";
-import { araclariUret } from "../../bridge/araclar.ts";
 
 export async function kos(d: SenaryoBaglami): Promise<void> {
   const { oyuncu } = d;
@@ -50,9 +50,9 @@ export async function kos(d: SenaryoBaglami): Promise<void> {
   // 1. bana gel
   // Noktalar taş yolun KORİDORUNDA (x ≈ -2, kuleler x ≥ 4, havuz x ≤ -5): ışınlanılan yer engelin içine düşerse Orion'a
   // ulaşılamaz ve test ova'yı değil noktayı ölçer (ilk koşuda böyle oldu: havuzun içine ışınlanmıştı).
-  yere(-2, 3);
+  yere(-2, 12);                                              // ofisin ön tarafı, kapıdan ~5 m (Orion ofiste: kapıdan çıkmak zorunda)
   soyle("bana gel");
-  kontrol("'bana gel' ovada: Orion yanına geldi (< 1,8 m)", await olana(() => mesafe() < 1.8, 20_000), `mesafe=${mesafe().toFixed(2)} m`);
+  kontrol("'bana gel' dışarıda: Orion kapıdan çıkıp yanına geldi (< 1,8 m)", await olana(() => mesafe() < 1.8, 20_000), `mesafe=${mesafe().toFixed(2)} m`);
 
   // 2. takip
   soyle("beni takip et");
@@ -67,13 +67,13 @@ export async function kos(d: SenaryoBaglami): Promise<void> {
 
   // 3. kapıya git
   const kapi = yer.capalar.find((c) => c.ad === "kapi");
-  const g = await niyet({ tur: "git", hedef: { tip: "capa", ad: "kapi" } }, "ova_git_kapi", 60_000);   // ~25 m yürüyüş
+  const g = await niyet({ tur: "git", hedef: { tip: "capa", ad: "kapi" } }, "ova_git_kapi", 60_000);   // ~30 m yürüyüş; durak kapının İÇ yanında
   const kapiMesafe = kapi ? Math.hypot(o.durum().konum.x - kapi.durak.x, o.durum().konum.z - kapi.durak.z) : NaN;
   kontrol("kapıya git: kapının önüne vardı (≤ 1,5 m)", g?.durum === "bitti" && kapiMesafe <= 1.5, `durum=${g?.durum} not=${g?.not ?? "-"} durağa ${kapiMesafe.toFixed(2)} m`);
 
   // 4. otur
   const ot = await niyet({ tur: "otur" }, "ova_otur", 15_000);
-  kontrol("otur: ovada oturabildi", ot?.durum === "bitti", `durum=${ot?.durum} not=${ot?.not ?? "-"}`);
+  kontrol("otur: oturabildi (ofisin sandalyesine)", ot?.durum === "bitti", `durum=${ot?.durum} not=${ot?.not ?? "-"}`);
 
   // 5. bak / jest
   const b = await niyet({ tur: "bak", hedef: { tip: "oyuncu" } }, "ova_bak", 8_000);
@@ -82,10 +82,7 @@ export async function kos(d: SenaryoBaglami): Promise<void> {
 
   // 6. algı
   const dunya = d.algiSor("dunya").metin;
-  kontrol("sor dunya: ovanın nesneleri algıda (boş değil)", dunya.length > 0 && !/çalışma masası|beyaz tahta|monitör/.test(dunya), dunya.slice(0, 140));
-
-  // 7. gec
-  kontrol("gec: Orion kapıdan KENDİ BAŞINA geçebilir (niyet var)", araclariUret().some((a) => a.ad === "dunya_gec"), "araç tablosunda `gec` yok → C6");
+  kontrol("sor dunya: algıda nesneler var (boş değil)", dunya.length > 0, dunya.slice(0, 140));
 
   for (const s of sonuc) log(s);
   log(`ozet: ${sonuc.filter((s) => s.startsWith("GECTI")).length}/${sonuc.length}`);

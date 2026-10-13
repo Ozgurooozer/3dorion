@@ -104,3 +104,34 @@ Tam uygulama, RTX 4060, ekran 100 Hz (fps tavanı 100: "≥ 60" geçildi ama ba�
 3. **Çizim bütçesi:** 150 sınırını koruyalım mı, yoksa (fps 100'de sorun yok) 220'ye mi çıkaralım? 220 olursa K2 geçer; yalnız zayıf ekran kartında
    riske girilir.
 4. Yeşil harabe aynı level'a mı girecek, ayrı mı kalacak?
+
+## 7. KARARLAR VE UYGULAMA (2026-10-14) — ofis ova'nın içinde, tek level
+Ozyn'in cevapları: çizim sınırı **220** (sorun yok); ofis **özel, güzel ve biraz yüksekte bir düzlüğe** (plato); pencereden **gerçek ova**;
+kapıdan ışınlanma YOK, **kapı açılır kapanır** (ışınlanma kodu köşeye, ileride ışınlanma için); yeşil harabe başka arşivde beklesin;
+**ofis olduğu gibi, ova olduğu gibi** (iki görünüm korunur).
+
+| iş | nerede | durum |
+|---|---|---|
+| plato (düz, ofisten 5 cm aşağı; çevresi 3 m çöker; uzakta doğala döner) | `moduller/zemin.ts`, `level/ofisYeri.ts` | [TEST] 11 test + mutasyon |
+| ova DOSYASI değişmez; yerleştirme yüklemede koddan (çim maskesi, kaya/dekor iç yarıçapı, y'li yerleşimler ve su kayar, geçit ve eski bina kalkar) | `level/ofisYeri.ts` | [TEST] |
+| kapı: menteşede dönen kanat, açma 2,2 m / kapama 3,4 m (histerezis), çarpışmada kanat yok | `level/odaKapisi.ts`, glb kanatsız üretildi (`--kapi-kanadi` eski hâl) | [TEST] + [ÖLÇÜLDÜ] canlı |
+| tek `Yer`: ova + ofis duvarları (ön duvarda kapı boşluğu) + ofis mobilyası, tek çapa listesi; ofis içi y=0 | `yer/birlesikYer.ts` | [TEST] 7 test; yol bulma kapıdan geçer |
+| tek sahne, açılışta kurulur; ışık ayrımı (ofis ışıkları yalnız ofis + içerideki aktörler; ova ışıkları ofisi hariç tutar) | `yer/birlesikDunya.ts` | [ÖLÇÜLDÜ] ekran görüntüleri |
+| görünüm geçişi: ofiste ofis (mor sis, koyu), dışarıda ova (açık sis, ton eşleme, 7 efekt), kapı önünde 3 m'de yumuşak karışım; efekt zinciri orta noktada | `yer/birlesikDunya.ts` (`icFaktoru`, `gorunumKaristir`) | [TEST] 6 test; [ÖLÇÜLDÜ] sis dizisi |
+| pencere gerçek ova'ya bakar (sahte şehir resmi ve yağmur gizli) | `oda.pencereyiAc()` | [ÖLÇÜLDÜ] ekran |
+| ışınlanma kodu köşede (`isinlanmaOvayaCik/OdayaDon`, `levelSahnesi.ts`); hiçbir yol çağırmaz | `world/giris.ts` | `window.dunya.kapidanGec` hata ayıklama |
+
+**Canlı doğrulama [ÖLÇÜLDÜ], `3dorion.bat kapidene` (yeniden yazıldı), 19/19:** tek yer; ofiste mor sis (0,035), dışarıda açık (0,0042), eşikte
+ara değer; kapı Ozyn yaklaşınca açılır, uzaklaşınca kapanır; Orion ofisten kapıdan YÜRÜYEREK çıktı ve geri girdi (kapı onun için açıldı);
+**çizim sayısı 77–193 (bütçe 220), fps 100.** `ovadene` 7/7 (Orion dışarıdaki Ozyn'a kapıdan çıkıp geldi, ofisin etrafından dolanıp takip etti,
+kapıdan girip sandalyeye oturdu). `ortamdene` ofiste de çalışır. Ekran görüntüleri: ofisin içinden cam duvardan ova (gün batımı), dışarıdan
+ofis (cam duvar parlıyor), kapı kapalı ön yüz.
+
+**Bilinen sınırlar / açık:**
+- Efekt zincirinin eşiğin ortasında açılıp kapanması ufak bir takılma yapabilir (zincir yeniden kurulur); gerçek yürüyüşte kare kare izlenmedi.
+- Işık üyeliği aktör başına ~5 Hz güncellenir (kapıdan geçerken bir iki karelik yanlış aydınlatma olabilir).
+- Ofisin DIŞ yüzü yalın duvar + parlayan cam (kapı ve neon çizgisi var): "güzel bina" görsel işi (kaplama, saçak, çatı) yok.
+- Işın (görüş hattı) ofisin duvarlarını katı sayar: kapı açıkken bile dışarıdaki nesneler ofisten `gordum` ile görünmez (cam duvar dahil).
+- `gozdene` (görme ölçümü, spec 25) iki ayrı yer (oda/ova) varsayıyordu: tek yer olunca B2 ("öbür yerin adı yok") ve poz üretimi anlamsız;
+  yeniden tasarlanmalı (ACIK-ISLER).
+- Yeşil harabe yükleyicisi (`?level=harabe`) ışınlanma köşesinde; harabe varlıkları commit'siz, Ozyn'in kararıyla ayrı arşivde bekliyor.

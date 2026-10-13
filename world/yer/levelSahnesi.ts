@@ -22,12 +22,11 @@ import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { CreateBox } from "@babylonjs/core/Meshes/Builders/boxBuilder";
 import { levelKur, type Level } from "../level/cekirdek/levelKur.ts";
 import { levelTanimiDogrula, type Gecit } from "../level/cekirdek/levelTanimi.ts";
-import { etkinAnlam } from "../level/cekirdek/anlam.ts";
-import { kisaAd } from "../level/cekirdek/katalog.ts";
 import { MODULLER } from "../level/moduller/index.ts";
 import type { OdaKurulumu } from "../level/oda.ts";
 import type { Yer } from "./yer.ts";
-import { levelYeri, levelYuksekligi, kapiKutusu, type KutuMinMax } from "./levelYeri.ts";
+import { levelYuksekligi, kapiKutusu } from "./levelYeri.ts";
+import { levelYeriniOlc } from "./levelOlcumu.ts";
 
 export interface LevelSahnesiAyari {
   sahne: Scene;
@@ -123,17 +122,8 @@ export async function levelSahnesiKur(a: LevelSahnesiAyari): Promise<LevelSahnes
   }
   for (const m of a.golgeAtanlar ?? []) level.isik.golgeyeKat(m, { atar: true });
 
-  // ── Orion için yer: kutular sahneden BİR KEZ, anlam sözlükten ──
-  const kutular = new Map<string, KutuMinMax>();
-  for (const n of tanim.nesneler ?? []) {
-    const dugum = n.id ? level.nesneler.dugum(n.id) : null;
-    if (!dugum) continue;
-    const s = dugum.getHierarchyBoundingVectors(true);
-    if (Number.isFinite(s.min.x)) kutular.set(n.id!, { min: [s.min.x, s.min.y, s.min.z], max: [s.max.x, s.max.y, s.max.z] });
-  }
-  const [katalog, sozluk] = await Promise.all([level.nesneler.katalog(), level.nesneler.anlamlar().catch(() => null)]);
-  const kategori = new Map(katalog.varliklar.map((v) => [v.ad, v.kategori]));
-  const yer = levelYeri({ ad: a.ad, tanim, kutular, yukseklik, anlamOf: (n) => etkinAnlam(n, kategori.get(n.varlik), sozluk, kisaAd) });
+  // ── Orion için yer: kutular sahneden BİR KEZ, anlam sözlükten (levelOlcumu.ts; birleşik dünya da aynısını kullanır) ──
+  const yer = await levelYeriniOlc(level, a.ad);
 
   await sahne.whenReadyAsync();
   let son = performance.now();

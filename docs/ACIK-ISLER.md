@@ -6,7 +6,7 @@
 ## Orion'un ortam aracı + ofis/ova tek level (Ozyn, 2026-10-13/14): spec 26 §12 yok (ölçümler `docs/olcum/on-kayit-ortam*.md`), spec 27
 Yapıldı: `dunya_ortam` niyeti, doğuştan sözlük (token'sız), öğrenen sözlük, modüler kalıcılık, G penceresi komut yolu; canlı `ortamdene` Haiku 16/16.
 - **LLM yolunun serbest cümleyi anlaması zayıf** (f0 tek atış: Haiku 9/24, yerel 2–6/24). Üçüncü düzeltme (eş anlamlı tablosu) Ozyn'e soruldu: "öğrenen sözlük asıl yol" denerek ertelendi.
-- **Ofis → ova tek level (spec 27):** aşama A spike'ı yapıldı (çim maskesi + ışık ayrımı işe yarıyor; sahne geneli sis/ton/son işlem ofisin görünümünü değiştiriyor; çizim 141–160 > 150; ofisin dış yüzü yok). B bekliyor: Ozyn'in kararları spec 27 §6.
+- **Ofis ova'nın İÇİNDE, tek level (spec 27 §7): YAPILDI.** Plato, gerçek kapı, tek `Yer`, görünüm geçişi, pencereden ova; `kapidene` 19/19, çizim 77–193 (bütçe 220). Açık: efekt zinciri geçişinde takılma gözlenmedi, ofisin dış yüzü yalın, ışın ofis duvarlarını katı sayar, **`gozdene` yeniden tasarlanmalı** (iki yer varsayıyordu), yeşil harabe Ozyn'in kararıyla ayrı arşivde (commit'siz).
 - Ova'dayken arka plan davranışı olmayan 'tahta'ya gitmeye çalışıp hata üretiyor ve LLM'i uyandırıyor (önceden var).
 
 ## Ova stil penceresi (Ozyn, 2026-10-13): G ile açılıp kapanır — `world/arayuz/stilPenceresi.ts`
