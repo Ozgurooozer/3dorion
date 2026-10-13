@@ -378,7 +378,7 @@ export class Kopru {
     // DOĞUŞTAN PROGRAM (spec 13 Faz 2b, içgüdü `kopru.komut`): öğrenilmiş beceriden ÖNCE —
     // doğuştan olan kesindir. Beceri gölgesi yine hesaplanır ve satıra yazılır (B9 ölçüsü).
     if (a.tur === "duydum" && a.kesin && this._ayar.komutYetkisi !== false) {
-      const program = komutCoz(a.metin);
+      const program = komutCoz(a.metin, { ortam: this._ayar.ortamKullanilabilir?.() === true });
       if (program) {
         this._programYurut(a, ozet, golge, program);
         return;

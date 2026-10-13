@@ -28,6 +28,11 @@ export interface OrtamBaglantisi {
   ova(level: OrtamLevel | null): void;
   kullanilabilirMi(): boolean;
   uygula(k: OrtamKomutu): OrtamUygulama;
+  /**
+   * Günlüğü (kaydedilmiş komutlar) taze kurulmuş level'a TEK `ayarla` ile yeniden oynatır; dinleyicileri çağırmaz
+   * (oynatılan komut yeniden günlüğe yazılmasın). Bozuk komut atlanır ve sayılır; level yoksa 0.
+   */
+  oynat(komutlar: readonly OrtamKomutu[]): { uygulanan: number; atlanan: string[] };
   /** Başarıyla uygulanan her komut için çağrılır (kalıcılık günlüğü, öğrenen sözlük, G penceresi). */
   dinle(f: (k: OrtamKomutu, s: OrtamSonucu) => void): () => void;
 }
@@ -56,6 +61,18 @@ export function ortamBaglantisiKur(): OrtamBaglantisi {
       }
       for (const f of dinleyiciler) f(k, s);
       return { ok: true, not: s.not };
+    },
+    oynat(komutlar) {
+      const atlanan: string[] = [];
+      if (!level || komutlar.length === 0) return { uygulanan: 0, atlanan };
+      let t = level.tanim(), uygulanan = 0;
+      for (const k of komutlar) {
+        try { t = ortamUygula(t, k, { ...(ilk ? { ilk } : {}) }).tanim; uygulanan++; }
+        catch (err) { atlanan.push(`${k.ne} ${k.deger ?? k.sayi ?? ""}: ${err instanceof Error ? err.message : String(err)}`); }
+      }
+      if (uygulanan === 0) return { uygulanan, atlanan };
+      try { level.ayarla(t); } catch (err) { return { uygulanan: 0, atlanan: [...atlanan, `ayarla: ${err instanceof Error ? err.message : String(err)}`] }; }
+      return { uygulanan, atlanan };
     },
     dinle(f) {
       dinleyiciler.add(f);

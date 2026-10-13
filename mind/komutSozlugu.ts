@@ -21,6 +21,7 @@
 "use strict";
 import type { Niyet } from "../protocol/niyet.ts";
 import { capaCoz, katla, type CapaAdi } from "../protocol/temel.ts";
+import { ortamCoz } from "./ortamKomutlari.ts";
 
 export interface KomutEslesmesi {
   /** Programın adı, kayıt için: `komut:otur`, `komut:git`, … */
@@ -219,8 +220,16 @@ function komutCozIng(s: string): KomutEslesmesi | null {
   return null;
 }
 
+export interface KomutSecenegi {
+  /**
+   * Ortam komutları ("gece yap", "ışığı kıs") sahiplenilsin mi: yalnız ova'dayken (level varken) anlamlı. Varsayılan
+   * AÇIK (tarama/ölçüm araçları görsün); köprü canlıda `ortamKullanilabilir` ile besler.
+   */
+  ortam?: boolean;
+}
+
 /** Söz bir doğuştan programa TAMAMEN uyuyorsa onu döner; uymuyorsa null (söz LLM'e gider). */
-export function komutCoz(soz: string): KomutEslesmesi | null {
+export function komutCoz(soz: string, secenek: KomutSecenegi = {}): KomutEslesmesi | null {
   const s = sozuNormalle(soz);
   if (!s) return null;
   if (OTUR.test(s)) return otur();
@@ -279,5 +288,6 @@ export function komutCoz(soz: string): KomutEslesmesi | null {
     if (capa) return bakCapa(capa);
   }
   if (PENCEREDEN_BAK.test(s)) return bakCapa("pencere");
-  return komutCozIng(s);
+  // Ortam ailesi (mind/ortamKomutlari.ts) EN SONDA: yer/çapa kalıpları önce denenir, ortam yalnız onlara uymayan sözü alır.
+  return komutCozIng(s) ?? (secenek.ortam === false ? null : ortamCoz(s));
 }

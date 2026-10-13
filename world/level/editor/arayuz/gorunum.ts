@@ -11,6 +11,7 @@ import { ONAYARLAR, ONAYAR_ADLARI, onayarUygula, onayarAdi, PALET_DUZENI_ADLARI,
 import type { ShaderKaydi } from "../../shader/shaderSistemi.ts";
 import { DUNYA_ADLARI } from "../../shader/paletler.ts";
 import { ZAMAN_VARSAYILAN } from "../../shader/dunyaDurumu.ts";
+import type { OrtamKomutu } from "../../stil/ortamKomutu.ts";
 import { el, cssEkle } from "./ortak.ts";
 
 const G_CSS = `
@@ -39,6 +40,11 @@ export interface GorunumKaynagi {
   abone(f: () => void): void;
   /** Dünya saati (0–24), akan zamanda da güncel. */
   saat(): number;
+  /**
+   * VARSA düğmeler tanım yaması yerine bu ortam komutunu çağırır (oyundaki stil penceresi: Orion'un aracıyla AYNI yol,
+   * yani elle yapılan da kalıcılık günlüğüne girer). Editör vermez: geri-al/kirli işareti için `degistir` yolu kalır.
+   */
+  komut?(k: OrtamKomutu): boolean;
 }
 
 /** Editörün durumunu `GorunumKaynagi` olarak sunar (davranış değişmez: geçmiş, kirli işareti). */
@@ -59,6 +65,8 @@ export function gorunumKur(durum: GorunumKaynagi, shaderlar: ShaderKaydi): HTMLE
   const kok = el("div", "ed-gor");
   const dugmeler = new Map<string, HTMLButtonElement>();
   const degistir = (f: (t: LevelTanimi) => void, mesaj: string) => durum.degistir((t) => { const x = structuredClone(t); f(x); return x; }, mesaj);
+  /** Komut yolu varsa onu, yoksa (editör) tanım yamasını çalıştırır. */
+  const komutla = (k: Omit<OrtamKomutu, "tur">, yedek: () => void) => { if (durum.komut) durum.komut({ tur: "ortam", ...k }); else yedek(); };
 
   const grup = (baslik: string) => { const g = el("div", "grup"); g.append(el("span", "", baslik)); kok.append(g); return g; };
   const dugme = (g: HTMLElement, anahtar: string, yazi: string, baslik: string, is: () => void) => {
@@ -67,22 +75,24 @@ export function gorunumKur(durum: GorunumKaynagi, shaderlar: ShaderKaydi): HTMLE
     dugmeler.set(anahtar, d); g.append(d);
   };
   const stilG = grup("stil");
-  for (const ad of ONAYAR_ADLARI) dugme(stilG, `stil:${ad}`, ad, `${ONAYARLAR[ad]?.aciklama ?? ad} (P: sıradaki)`, () => durum.degistir((t) => onayarUygula(t, ad), `stil: ${ad}`));
+  for (const ad of ONAYAR_ADLARI) dugme(stilG, `stil:${ad}`, ad, `${ONAYARLAR[ad]?.aciklama ?? ad} (P: sıradaki)`, () => komutla({ ne: "stil", deger: ad }, () => durum.degistir((t) => onayarUygula(t, ad), `stil: ${ad}`)));
   const renkG = grup("renk");
-  for (const ad of PALET_DUZENI_ADLARI) dugme(renkG, `renk:${ad}`, ad, `renk düzeni: ${ad} (Shift+P: sıradaki)`, () => durum.degistir((t) => paletDuzeniUygula(t, ad), `renk düzeni: ${ad}`));
+  for (const ad of PALET_DUZENI_ADLARI) dugme(renkG, `renk:${ad}`, ad, `renk düzeni: ${ad} (Shift+P: sıradaki)`, () => komutla({ ne: "renk", deger: ad }, () => durum.degistir((t) => paletDuzeniUygula(t, ad), `renk düzeni: ${ad}`)));
   const isikG = grup("ışık (B)");
   for (const [k, ad] of ISIK_CIPLERI) {
-    dugme(isikG, `isik:${k}`, ad, `ışık sonrası: ${ad} aç/kapa — B basılıyken hepsi kapalı (önce/sonra)`, () => degistir((t) => {
-      const g = t.stil?.son?.[k]; if (g) g.acik = !g.acik;
-    }, `${ad} aç/kapa`));
+    dugme(isikG, `isik:${k}`, ad, `ışık sonrası: ${ad} aç/kapa — B basılıyken hepsi kapalı (önce/sonra)`,
+      () => komutla({ ne: "efekt", deger: `${k}:${durum.tanim().stil?.son?.[k]?.acik ? "kapat" : "ac"}` }, () => degistir((t) => {
+        const g = t.stil?.son?.[k]; if (g) g.acik = !g.acik;
+      }, `${ad} aç/kapa`)));
   }
   const shaderG = grup("shader");
   for (const [tur, m] of shaderlar) {
-    dugme(shaderG, `shader:${tur}`, tur, m.aciklama, () => degistir((t) => {
-      const l = t.shaderlar ?? (t.shaderlar = []);
-      const s = l.find((x) => x.tur === tur);
-      if (s) s.acik = !s.acik; else l.push({ tur, acik: true, ayar: {} });
-    }, `shader ${tur}`));
+    dugme(shaderG, `shader:${tur}`, tur, m.aciklama,
+      () => komutla({ ne: "shader", deger: `${tur}:${durum.tanim().shaderlar?.some((x) => x.tur === tur && x.acik) ? "kapat" : "ac"}` }, () => degistir((t) => {
+        const l = t.shaderlar ?? (t.shaderlar = []);
+        const s = l.find((x) => x.tur === tur);
+        if (s) s.acik = !s.acik; else l.push({ tur, acik: true, ayar: {} });
+      }, `shader ${tur}`)));
   }
   const zamanG = grup("zaman");
   const saat = el("b");
@@ -93,15 +103,21 @@ export function gorunumKur(durum: GorunumKaynagi, shaderlar: ShaderKaydi): HTMLE
   kaydirici.oninput = () => { durum.onizle(saatYaz(durum.tanim(), Number(kaydirici.value))); };
   kaydirici.onchange = () => {
     const once = surukleOnce; surukleOnce = null;
-    durum.degistir((t) => saatYaz(t, Number(kaydirici.value)), `saat ${kaydirici.value}`, once);
+    komutla({ ne: "saat", sayi: Number(kaydirici.value) }, () => { durum.degistir((t) => saatYaz(t, Number(kaydirici.value)), `saat ${kaydirici.value}`, once); });
     kaydirici.blur();
   };
   const akis = el("button", "", "zaman aksın"); akis.title = "Saat kendiliğinden ilerlesin";
-  akis.onclick = () => { degistir((t) => { const z = t.zaman ?? { ...ZAMAN_VARSAYILAN }; t.zaman = { ...z, akiyor: !z.akiyor, saat: durum.saat() }; }, "zaman akışı"); akis.blur(); };
+  akis.onclick = () => {
+    komutla({ ne: "akis", deger: durum.tanim().zaman?.akiyor ? "kapat" : "ac" }, () => degistir((t) => { const z = t.zaman ?? { ...ZAMAN_VARSAYILAN }; t.zaman = { ...z, akiyor: !z.akiyor, saat: durum.saat() }; }, "zaman akışı"));
+    akis.blur();
+  };
   dugmeler.set("zaman:akis", akis);
   const dunyaSec = el("select");
   DUNYA_ADLARI.forEach((ad, i) => dunyaSec.add(new Option(ad, String(i))));
-  dunyaSec.onchange = () => { degistir((t) => { t.zaman = { ...(t.zaman ?? ZAMAN_VARSAYILAN), dunya: Number(dunyaSec.value), saat: durum.saat() }; }, `dünya ${dunyaSec.selectedOptions[0]?.text}`); dunyaSec.blur(); };
+  dunyaSec.onchange = () => {
+    komutla({ ne: "dunya", sayi: Number(dunyaSec.value) }, () => degistir((t) => { t.zaman = { ...(t.zaman ?? ZAMAN_VARSAYILAN), dunya: Number(dunyaSec.value), saat: durum.saat() }; }, `dünya ${dunyaSec.selectedOptions[0]?.text}`));
+    dunyaSec.blur();
+  };
   zamanG.append(saat, kaydirici, akis, dunyaSec);
   const aciklama = el("div", "aciklama");
   kok.append(aciklama);

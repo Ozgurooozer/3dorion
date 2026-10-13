@@ -13,6 +13,20 @@
 import type { Level } from "../level/cekirdek/levelKur.ts";
 import { SHADERLAR } from "../level/shader/moduller/index.ts";
 import { gorunumKur, type GorunumKaynagi } from "../level/editor/arayuz/gorunum.ts";
+import type { OrtamKomutu } from "../level/stil/ortamKomutu.ts";
+
+// `world/` uygulama/ katmanını import etmez (K4): pencerenin ihtiyacı olan yüzey burada TANIMLI, uygulama/ortamBaglantisi
+// ve uygulama/ortamDeposu bunu yapısal olarak sağlar (kompozisyon kökü bağlar).
+/** Ortam komutu yolu: düğmeler komutu uygular, değişiklikler (Orion'unkiler dahil) `dinle` ile duyulur. */
+export interface PencereOrtami {
+  uygula(k: OrtamKomutu): { ok: boolean; not: string };
+  dinle(f: () => void): () => void;
+}
+/** Hatırlama kipi (oturum | kalıcı). */
+export interface PencereGunlugu {
+  readonly kip: "oturum" | "kalici";
+  kipAyarla(kip: "oturum" | "kalici"): void;
+}
 import { el, cssKur, cssEkle } from "../level/editor/arayuz/ortak.ts";
 
 const CSS = `
@@ -26,6 +40,8 @@ const CSS = `
 #stil-pencere .bas small { color: var(--ed-soluk); }
 #stil-pencere .govde { overflow: auto; min-height: 0; }
 #stil-pencere .not { padding: 6px 8px; color: var(--ed-soluk); font-size: 11px; border-top: 1px solid var(--ed-cizgi); }
+#stil-pencere .alt { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-top: 1px solid var(--ed-cizgi); font-size: 11px; }
+#stil-pencere .alt label { flex: 1; cursor: pointer; }
 `;
 
 export interface StilPenceresi {
@@ -41,12 +57,21 @@ export interface StilPenceresiAyari {
   tusSerbest?: () => boolean;
   /** Pencere açılınca (fare kilidini bırakmak gibi). */
   acildi?: () => void;
+  /**
+   * Orion'un `ortam` aracıyla AYNI bağlantı: düğmeler komut olarak buradan geçer (elle yapılan da günlüğe girer, Orion'un
+   * yaptığı da düğme durumuna yansır). Verilmezse düğmeler level'ı doğrudan yamar (eski davranış, günlük yok).
+   */
+  ortam?: PencereOrtami;
+  /** Hatırlama kipi: verilirse altta "ayarları hatırla" kutusu ve "varsayılana dön" düğmesi çıkar. */
+  gunluk?: PencereGunlugu;
 }
 
 /** Canlı level'ı panelin soyut kaynağına bağlar: geçmiş yok, hata sessiz değil (konsola düşer, eski hâl kalır). */
-export function levelKaynagi(level: Level): GorunumKaynagi & { dinleyicileriBosalt(): void } {
+export function levelKaynagi(level: Level, baglanti?: PencereOrtami): GorunumKaynagi & { dinleyicileriBosalt(): void } {
   let dinleyiciler: (() => void)[] = [];
   const yay = () => { for (const f of dinleyiciler) f(); };
+  // Orion'un (ya da sözlüğün) yaptığı değişiklik düğme durumuna da yansısın.
+  const birak = baglanti?.dinle(() => yay());
   const uygula = (t: unknown): boolean => {
     try { level.ayarla(t); return true; } catch (err) { console.error("[STIL] uygulanamadı:", err); return false; }
   };
@@ -64,7 +89,13 @@ export function levelKaynagi(level: Level): GorunumKaynagi & { dinleyicileriBosa
     hal: () => null,
     abone: (f) => { dinleyiciler.push(f); },
     saat: () => level.dunya.saat,
-    dinleyicileriBosalt: () => { dinleyiciler = []; },
+    ...(baglanti ? { komut: (k: Parameters<NonNullable<GorunumKaynagi["komut"]>>[0]) => {
+      const r = baglanti.uygula(k);
+      if (!r.ok) console.error(`[STIL] ${k.ne} ${k.deger ?? k.sayi ?? ""}: ${r.not}`);
+      else console.log(`[STIL] ${r.not}`);
+      return r.ok;
+    } } : {}),
+    dinleyicileriBosalt: () => { dinleyiciler = []; birak?.(); },
   };
 }
 
@@ -78,8 +109,21 @@ export function stilPenceresiKur(ayar: StilPenceresiAyari = {}): StilPenceresi {
   const kapatDugme = el("button", "", "×"); kapatDugme.title = "Kapat (G ya da Esc)";
   bas.append(baslik, ipucu, kapatDugme);
   const govde = el("div", "govde");
-  const not = el("div", "not", "Değişiklikler yalnız bu oturumdaki ova'ya uygulanır; dosyaya yazılmaz. Kalıcı stil için editör sayfası (ova-deneme.html).");
-  kok.append(bas, govde, not);
+  const not = el("div", "not", "Değişiklikler ova.level.json'a yazılmaz. Orion da bu ayarları değiştirebilir (\"gece yap\", \"ışığı kıs\"). Dosyaya yazmak için editör sayfası (ova-deneme.html).");
+  kok.append(bas, govde);
+  if (ayar.gunluk) {
+    const g = ayar.gunluk;
+    const alt = el("div", "alt");
+    const kutu = el("input"); kutu.type = "checkbox"; kutu.id = "stil-hatirla"; kutu.checked = g.kip === "kalici";
+    kutu.onchange = () => { g.kipAyarla(kutu.checked ? "kalici" : "oturum"); };
+    const etiket = el("label", "", "ayarları hatırla (sonraki açılışta da)"); etiket.htmlFor = "stil-hatirla";
+    etiket.title = "Kapalıyken ayarlar yalnız bu açılışta kalır; açıkken tarayıcıda saklanır ve ova ayarlarla gelir.";
+    const sifirla = el("button", "", "varsayılana dön"); sifirla.title = "Ova açılıştaki hâline döner, hatırlanan ayarlar silinir";
+    sifirla.onclick = () => { ayar.ortam?.uygula({ tur: "ortam", ne: "sifirla" }); sifirla.blur(); };
+    alt.append(kutu, etiket, sifirla);
+    kok.append(alt);
+  }
+  kok.append(not);
   document.body.append(kok);
 
   let kaynak: ReturnType<typeof levelKaynagi> | null = null;
@@ -99,7 +143,7 @@ export function stilPenceresiKur(ayar: StilPenceresiAyari = {}): StilPenceresi {
     panel?.remove(); panel = null;
     kaynak?.dinleyicileriBosalt(); kaynak = null;
     if (!level) return;
-    kaynak = levelKaynagi(level);
+    kaynak = levelKaynagi(level, ayar.ortam);
     panel = gorunumKur(kaynak, SHADERLAR);
     govde.append(panel);
   };

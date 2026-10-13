@@ -132,3 +132,42 @@ test("sayaç: programla yürüyen söz sayılır", async () => {
   await bekle(60);
   assert.equal(k.sayac().komut, 1);
 });
+
+// ── ORTAM komutları ("gece yap", "ışığı kıs"): ova'dayken sözlükten, değilken LLM'e ──
+
+test("ORTAM: ova'dayken 'gece yap' → LLM uyanmaz, jest + ortam niyeti (saat 0)", async () => {
+  const { k, beyin, niyetler, turler } = kur({ ortamKullanilabilir: () => true });
+  soyle(k, "gece yap");
+  await bekle(60);
+  assert.equal(beyin.gordugu.length, 0);
+  assert.deepEqual(turler(), ["jest", "ortam"]);
+  assert.deepEqual(JSON.parse(JSON.stringify(niyetler[1]?.n)), { tur: "ortam", ne: "saat", sayi: 0 });
+});
+
+test("ORTAM: aynı söz ofiste (level yok) sahiplenilmez, LLM'e gider", async () => {
+  const { k, beyin, turler } = kur({ ortamKullanilabilir: () => false });
+  soyle(k, "gece yap");
+  await bekle(60);
+  assert.deepEqual({ uyanis: beyin.gordugu.length, niyet: turler() }, { uyanis: 1, niyet: [] });
+});
+
+test("ORTAM: kanca hiç verilmezse kapalı sayılır (varsayılan güvenli)", async () => {
+  const { k, beyin } = kur();
+  soyle(k, "ışığı kıs");
+  await bekle(60);
+  assert.equal(beyin.gordugu.length, 1);
+});
+
+test("ORTAM: program satırı kayda yazılır, kural komut:ortam", async () => {
+  const { k, satir } = kur({ ortamKullanilabilir: () => true });
+  soyle(k, "saat 21");
+  await bekle(60);
+  assert.equal((satir("program")[0] as { program?: string } | undefined)?.program, "komut:ortam");
+});
+
+test("ORTAM: komutYetkisi kapalıyken ortam sözü de LLM'e gider", async () => {
+  const { k, beyin } = kur({ ortamKullanilabilir: () => true, komutYetkisi: false });
+  soyle(k, "toon yap");
+  await bekle(60);
+  assert.equal(beyin.gordugu.length, 1);
+});

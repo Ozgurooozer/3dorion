@@ -74,6 +74,11 @@ export interface KopruAyari {
    */
   komutYetkisi?: boolean;
   /**
+   * ORTAM komutları ("gece yap", "ışığı kıs"; mind/ortamKomutlari.ts) şu an yürütülebilir mi: yalnız level (ova) varken.
+   * Verilmezse KAPALI sayılır: sözlük ortam sözünü sahiplenmez, söz LLM'e gider ("ova'da değilim" diyebilsin).
+   */
+  ortamKullanilabilir?: () => boolean;
+  /**
    * ANLIK BENLİK için gövdenin anlık okuması (spec 12 §4.2): karar anında ÇEKİLİR,
    * 20 Hz yazılmaz. Verilmezse benliğin `beden` alanı boş kalır.
    */

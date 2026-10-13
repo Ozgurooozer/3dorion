@@ -92,6 +92,7 @@ import { depoYukle } from "../mind/hafizaGocu.ts";
 import { GucButcesi, Inisiyatif, butceSatiri } from "../mind/inisiyatif.ts";
 import { inisiyatifTik } from "../uygulama/inisiyatifBaglantisi.ts";
 import { ortamBaglantisiKur } from "../uygulama/ortamBaglantisi.ts";
+import { OrtamGunlugu } from "../uygulama/ortamDeposu.ts";
 import { sessizlikIzinliMi } from "../bridge/ozerkYetenek.ts";
 import { GirdiPenceresi, type GirdiTipi } from "../mind/girdiPenceresi.ts";
 import { McpBeyin } from "../bridge/mcpBeyin.ts";
@@ -292,8 +293,11 @@ async function ovayaCik(): Promise<boolean> {
     const o = adaylar.find((p) => !carpisiyorMu(p.x, p.z, 0.4, yer)) ?? adaylar[0]!;
     if (orionGelir) orion?.isinla(o.x, o.z, v.yaw);
     orionGorunurlugu();
-    stilPenceresi?.ova(disari.level);
     ortamBaglantisi.ova(disari.level);
+    // Kaydedilmiş ortam komutları taze ova'nın ÜSTÜNE oynatılır (dosya değişse bile günlük bozulmaz).
+    const oynat = ortamBaglantisi.oynat(ortamGunlugu.komutlar());
+    if (oynat.uygulanan || oynat.atlanan.length) console.log(`[ORTAM] günlük oynatıldı (${ortamGunlugu.kip}): ${oynat.uygulanan} komut${oynat.atlanan.length ? `, atlanan: ${oynat.atlanan.join(" | ")}` : ""}`);
+    stilPenceresi?.ova(disari.level);   // oynatmadan SONRA: düğmeler hatırlanan duruma göre çizilsin
     gunluk.ekle("bilgi", "yer", `ovaya çıkıldı (${disari.kurulumMs} ms)`);
     console.log(`[YER] ova kuruldu ${disari.kurulumMs} ms · engel ${yer.engeller.length} · nesne ${yer.nesneler.length} · çapa ${yer.capalar.map((c) => c.ad).join(",")}`);
     return true;
@@ -725,6 +729,16 @@ console.log(`[ONAY] komut kipi: ${komutKipiSecimi.kip}`);
 // dünyayı verir; sonradan atananlar (beden, köprü) çağrı anında okunur.
 /** Orion'un `ortam` niyeti (ova'nın ışığı/stili/zamanı): level ova kurulunca bağlanır, ofise dönünce bırakılır. */
 const ortamBaglantisi = ortamBaglantisiKur();
+/**
+ * Ortam ayarlarının hatırlanması (uygulama/ortamDeposu.ts): `oturum` (bellek; uygulama kapanınca gider) ya da `kalici`
+ * (tarayıcı deposu; bir sonraki açılışta ova ayarlarla gelir). `?ortam=kalici|oturum` o açılış için kipi ezer; G
+ * penceresindeki "ayarları hatırla" kutusu kalıcı olarak seçer. ova.level.json'a HİÇBİR kipte yazılmaz.
+ */
+const ortamGunlugu = (() => {
+  const q = new URLSearchParams(location.search).get("ortam");
+  return new OrtamGunlugu(q === "kalici" || q === "oturum" ? { kip: q } : {});
+})();
+ortamBaglantisi.dinle((k) => ortamGunlugu.kaydet(k));
 const { niyetiYurut, bedenAdimi, sonGorme } = niyetYurutucusuKur({
   ortam: ortamBaglantisi,
   beden: () => orion,
@@ -1570,6 +1584,8 @@ function beyniBagla(a: Avatar): void {
       const d = orion?.durum();
       return d ? { poz: d.poz, oturuyor: d.oturuyor_mu } : null;
     },
+    // Ortam sözleri ("gece yap") yalnız ova'dayken sözlükten geçer; ofiste LLM'e gider (mind/ortamKomutlari.ts).
+    ortamKullanilabilir: () => ortamBaglantisi.kullanilabilirMi(),
     komutYetkisi: (() => {
       const q = new URLSearchParams(location.search);
       return q.has("komut") ? q.get("komut") !== "0" : !q.has("sessiz");
@@ -1672,6 +1688,8 @@ function beyniBagla(a: Avatar): void {
   window.orionModel = modelKancasiKur(secim, () => modelSecici?.ac());
   // ── STİL PENCERESİ (G): ova'dayken stil/renk/ışık/shader/saat denemeleri; fare kilidi açılınca bırakılır ──
   stilPenceresi = stilPenceresiKur({
+    ortam: ortamBaglantisi,
+    gunluk: ortamGunlugu,
     tusSerbest: () => oyuncu.oyuncuDurumu().etkilesim === null && sohbet.dataset.acik !== "1" && onayKapisi.durum !== "bekliyor",
     acildi: () => rig.fareKilitBirak(),
   });
