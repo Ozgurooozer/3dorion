@@ -37,8 +37,9 @@ import { CreateCylinder } from "@babylonjs/core/Meshes/Builders/cylinderBuilder"
 import { ODA, MASA, MONITOR, SANDALYE, TAHTA, PENCERE, KAPI, SEMA, GUNLUK, ADMIN, LAMBA } from "./olculer.ts";
 import { varlik } from "../varlik.ts";
 import { odaKipi, type OdaKipi } from "./odaKipi.ts";
-import { esyalariYukle, ODA_ISIK_SAYISI } from "./odaEsyalari.ts";
+import { esyalariYukle, malzemeAdi, ODA_ISIK_SAYISI } from "./odaEsyalari.ts";
 import { yagmurKur } from "./yagmur.ts";
+import { odaKapisiKur, type KapiDenetimi } from "./odaKapisi.ts";
 
 /** Odanın kurulumundan dönen tutamaçlar. T3 monitör ekranını, T2 zemini ister. */
 export interface OdaKurulumu {
@@ -61,6 +62,17 @@ export interface OdaKurulumu {
   /** İstenen kip ve görünüş kurulunca GERÇEKTE kurulan kip (glb yüklenemezse "klasik"). */
   kip: OdaKipi;
   hazir: Promise<OdaKipi>;
+  /**
+   * Ofisin kapısı: menteşede dönen kanat (spec 27). Yalnız "yeni" kipte ve glb yüklendikten sonra (`hazir`); klasik kutu odada
+   * kanat sabit kalır (null).
+   */
+  kapi: KapiDenetimi | null;
+  /**
+   * Pencerenin ardındaki sahte manzarayı (siberpunk şehir resmi) ve yağmuru gizler: ofis ova'nın içinde, pencereden GERÇEK ova
+   * görünür (spec 27). Geri alınabilir (`pencereyiKapat`); varsayılan eski hâl (resim açık).
+   */
+  pencereyiAc(): void;
+  pencereyiKapat(): void;
 }
 
 /** Odanın kaç mesh'ten oluştuğunu HUD'a basmak için son kurulum. */
@@ -161,6 +173,8 @@ export function odaKur(
   // gölge maliyeti 0. Klasik: pencere boşluğundan biraz büyük. Yeni: arka duvarın
   // tamamı eğik cam; düzlem camın en dış noktasının da (üstte ~0.3 m dışarı) ötesinde.
   const seffaflar: Mesh[] = [];
+  let manzaraMesh: Mesh | null = null;
+  const yagmurMeshleri: Mesh[] = [];
   {
     const genis = kip === "klasik" ? PENCERE.genislik + 0.5 : G + 1.0;
     const yuksek = kip === "klasik" ? PENCERE.yukseklik + 0.5 : Y + 0.8;
@@ -181,6 +195,7 @@ export function odaKur(
     manzara.metadata = { capa: "pencere" };
     meshler.push(manzara);
     seffaflar.push(manzara);
+    manzaraMesh = manzara;
   }
 
   // ── [4] Klavye ──────────────────────────────────────────────────────────
@@ -453,12 +468,18 @@ export function odaKur(
     hazir = esyalariYukle(sahne).then(
       (esya) => {
         meshler.push(...(esya.meshler as Mesh[]));
+        // Kapı kanadı kodla, glb'nin kendi malzemeleriyle (ahşap/çerçeve/pirinç): görünüş Blender'dakiyle aynı kalır.
+        const malz = (ad: string) => esya.meshler.find((m) => malzemeAdi(m.name) === ad)?.material ?? null;
+        kurulum.kapi = odaKapisiKur(sahne, { kanat: malz("maun"), panel: malz("lambri"), tokmak: malz("pirinc") });
+        meshler.push(...kurulum.kapi.meshler);
         const parlama = new GlowLayer("oda_parlama", sahne, { blurKernelSize: 48 });
         parlama.intensity = 0.45;
         for (const m of esya.isikli) parlama.addIncludedOnlyMesh(m as Mesh);
         seffaflar.push(...(esya.isinDisi as Mesh[]));
         // Yağmur: dondurulmaz (doku ofseti her karede değişir), ışın dışı.
-        seffaflar.push(...yagmurKur(sahne));
+        const yagmur = yagmurKur(sahne);
+        yagmurMeshleri.push(...yagmur);
+        seffaflar.push(...yagmur);
         kurulum.kip = "yeni";
         return "yeni" as const;
       },
@@ -476,7 +497,9 @@ export function odaKur(
 
   const kurulum: OdaKurulumu = {
     meshler, monitorEkran, tahtaYuzey, semaYuzey, gunlukYuzey, adminEkran, zemin, seffaflar,
-    kip, hazir: Promise.resolve(kip),
+    kip, hazir: Promise.resolve(kip), kapi: null,
+    pencereyiAc() { manzaraMesh?.setEnabled(false); for (const m of yagmurMeshleri) m.setEnabled(false); },
+    pencereyiKapat() { manzaraMesh?.setEnabled(true); for (const m of yagmurMeshleri) m.setEnabled(true); },
   };
   kurulum.hazir = hazir;
   _sonKurulum = kurulum;

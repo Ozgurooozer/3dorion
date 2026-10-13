@@ -304,15 +304,20 @@ kutu("duvar_on_lambri2", "lambri", (kx1 + G / 2) / 2, LAMBRI_Y / 2, D / 2 + 0.00
 kutu("duvar_on_pervaz", "maun", 0, Y - 0.08, D / 2 - 0.06, G, 0.16, 0.12, pah=0.02)
 
 # Kapı: panelli ahşap kanat, kasa, pirinç tokmak.
-kutu("kapi_kanat", "maun", KAPI["x"], KAPI["y"], D / 2 - 0.03, KAPI["genislik"], KAPI["yukseklik"], 0.05)
-for py, ph in ((0.55, 0.75), (1.55, 0.85)):
-    for px in (-0.22, 0.22):
-        kutu("kapi_panel", "lambri", KAPI["x"] + px, py, D / 2 - 0.06, 0.34, ph, 0.02, pah=0.01)
+# KANAT glb'ye YALNIZ `--kapi-kanadi` ile girer. Varsayılan (kanatsız): kanat çalışma zamanında KODLA kurulur ve menteşede döner
+# (world/level/odaKapisi.ts; spec 27: kapı açılıp kapanır). Kasa, tokmak değil, kanat da bu betikteki ölçülerle aynı.
+KANAT_GLB = "--kapi-kanadi" in argv
+if KANAT_GLB:
+    kutu("kapi_kanat", "maun", KAPI["x"], KAPI["y"], D / 2 - 0.03, KAPI["genislik"], KAPI["yukseklik"], 0.05)
+    for py, ph in ((0.55, 0.75), (1.55, 0.85)):
+        for px in (-0.22, 0.22):
+            kutu("kapi_panel", "lambri", KAPI["x"] + px, py, D / 2 - 0.06, 0.34, ph, 0.02, pah=0.01)
 for sx in (-1, 1):
     kutu("kapi_kasa", "maun", KAPI["x"] + sx * (KAPI["genislik"] / 2 + 0.04), KAPI["yukseklik"] / 2 + 0.02,
          D / 2 - 0.04, 0.08, KAPI["yukseklik"] + 0.06, 0.09, pah=0.01)
 kutu("kapi_kasa_ust", "maun", KAPI["x"], KAPI["yukseklik"] + 0.06, D / 2 - 0.04, KAPI["genislik"] + 0.16, 0.09, 0.09, pah=0.01)
-kure("kapi_tokmak", "pirinc", KAPI["x"] - KAPI["genislik"] / 2 + 0.12, 1.02, D / 2 - 0.09, 0.07)
+if KANAT_GLB:
+    kure("kapi_tokmak", "pirinc", KAPI["x"] - KAPI["genislik"] / 2 + 0.12, 1.02, D / 2 - 0.09, 0.07)
 
 # Arka duvar: cam duvar boşluğunun çevresi (pervaz altı, başlık, yan kolonlar).
 zArka = -D / 2 - K / 2
