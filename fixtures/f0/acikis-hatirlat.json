@@ -1,0 +1,47 @@
+{
+  "aciklama": "OB21 sonrası: açık iş hatırlatmasının DOĞRULUĞU. Canlı koşuda (docs/olcum/d1-acik-is-canli-haiku.jsonl) Haiku, düşmüş öneri için 'hala bekliyor' dedi. Bu set canlı bağlamı taklit eder: geçmişte Ozyn'in sözü ve önerinin kendisi (köprünün yazdığı biçimde `dunya_komut` çağrısı). Olay metni canlı işlevden türer (inisiyatifOlayi). Ön kayıt: docs/olcum/on-kayit-acikis-hatirlat.md.",
+  "durumlar": {
+    "ayakta": "You: duruyor. Ozyn is 4.6m away. It is evening, 19:43. You have been here for 4 minutes. You and Ozyn have not spoken for 2 minutes."
+  },
+  "terminal": {},
+  "senaryolar": [
+    {
+      "id": "h1", "kume": "acik_is", "durum": "ayakta", "ozerk": true,
+      "inisiyatif": { "neden": "acik_is", "dakika": 2, "ozet": "komut `git status`" },
+      "gecmis": [
+        { "rol": "kullanici", "metin": "git durumuna bak" },
+        { "rol": "orion", "metin": "", "arac": true, "cagri": { "ad": "dunya_komut", "girdi": { "metin": "git status", "gerekce": "Ozyn git durumunu soruyor" } } }
+      ],
+      "bekle": { "sozdeVar": "git|status|komut|öneri|onay|karar", "yasak": [{ "arac": "dunya_sor" }, { "arac": "dunya_komut" }] }
+    },
+    {
+      "id": "h2", "kume": "acik_is", "durum": "ayakta", "ozerk": true,
+      "inisiyatif": { "neden": "acik_is", "dakika": 3, "ozet": "komut `npm test`" },
+      "gecmis": [
+        { "rol": "kullanici", "metin": "testleri çalıştır" },
+        { "rol": "orion", "metin": "", "arac": true, "cagri": { "ad": "dunya_komut", "girdi": { "metin": "npm test", "gerekce": "Ozyn testleri istedi" } } }
+      ],
+      "bekle": { "sozdeVar": "npm|test|komut|öneri|onay|karar", "yasak": [{ "arac": "dunya_sor" }, { "arac": "dunya_komut" }] }
+    },
+    {
+      "id": "h3", "kume": "acik_is", "durum": "ayakta", "ozerk": true,
+      "inisiyatif": { "neden": "acik_is", "dakika": 2, "ozet": "komut `ls`" },
+      "gecmis": [
+        { "rol": "kullanici", "metin": "klasörde ne var" },
+        { "rol": "orion", "metin": "", "arac": true, "cagri": { "ad": "dunya_komut", "girdi": { "metin": "ls", "gerekce": "Ozyn klasörü görmek istiyor" } } },
+        { "rol": "orion", "metin": "Bakıyorum.", "arac": true }
+      ],
+      "bekle": { "sozdeVar": "ls|klasör|komut|öneri|onay|karar", "yasak": [{ "arac": "dunya_sor" }, { "arac": "dunya_komut" }] }
+    },
+    {
+      "id": "h4", "kume": "acik_is", "durum": "ayakta", "ozerk": true,
+      "inisiyatif": { "neden": "acik_is", "dakika": 4, "ozet": "komut `git pull`" },
+      "gecmis": [
+        { "rol": "kullanici", "metin": "son değişiklikleri çek" },
+        { "rol": "orion", "metin": "", "arac": true, "cagri": { "ad": "dunya_komut", "girdi": { "metin": "git pull", "gerekce": "Ozyn güncel kodu istiyor" } } },
+        { "rol": "orion", "metin": "Onayını bekliyorum.", "arac": true }
+      ],
+      "bekle": { "sozdeVar": "git|pull|komut|öneri|onay|karar", "yasak": [{ "arac": "dunya_sor" }, { "arac": "dunya_komut" }] }
+    }
+  ]
+}

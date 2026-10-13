@@ -35,6 +35,8 @@ interface Senaryo {
    * `ozet` köprünün açık iş özeti biçimindedir (ör. "komut `git push`").
    */
   inisiyatif?: { neden: UyanmaNedeni; dakika: number; ozet?: string };
+  /** Konuşma geçmişi, köprünün yazdığı biçimde (ör. önerinin kendisi `dunya_komut` çağrısı olarak). Varsayılan boş. */
+  gecmis?: BeyinGirdisi["gecmis"];
 }
 interface Fixture { durumlar: Record<string, string>; terminal: Record<string, string>; senaryolar: Senaryo[] }
 
@@ -81,7 +83,7 @@ function girdiKur(senaryo: Senaryo): BeyinGirdisi {
     ornekler: ornekUret({ terminal: !!s.terminal, konusma: !!s.soz }),
     anilar: s.anilar ?? [],
     // Tur kuralı köprüyle AYNI işlevden (canlıda gordum-yalnız turda `sor` yok).
-    ozetler, dunya: f.durumlar[s.durum] ?? "", sabit, gecmis: [],
+    ozetler, dunya: f.durumlar[s.durum] ?? "", sabit, gecmis: s.gecmis ?? [],
     araclar: turIcinAraclar(araclar, new Set([s.soz ? "duydum" : "", s.gordum ? "gordum" : "", s.olay ? "olay" : "", s.terminal ? "terminal" : ""].filter(Boolean)), !!s.ozerk),
   };
 }
