@@ -3,6 +3,9 @@
 Önceliği Ozyn belirler. Her madde tek satır + nerede. Biten madde SİLİNİR (geçmişi git'te);
 "çözüldü" arşivi tutulmaz. Son güncelleme: 2026-10-13.
 
+## Ova stil penceresi (Ozyn, 2026-10-13): G ile açılıp kapanır — `world/arayuz/stilPenceresi.ts`
+Ova'dayken stil önayarı, renk düzeni, ışık sonrası çipleri, shader'lar, saat/dünya düğmeleri oyunun içinde sürüklenebilir pencerede (editörle AYNI panel: `level/editor/arayuz/gorunum.ts`, soyut `GorunumKaynagi`). Yalnız canlı level'a yazar, dosyaya yazmaz. Canlı doğrulandı (G aç, toon, kapat, yeniden aç; ekran görüntüsü). Ofise dönünce sökülür (bu yol canlıda koşulmadı).
+
 ## Orion Beyin Ofisi (Ozyn, 2026-10-12/13): nedenli uyanma + özerk tur + hafıza — `specs/26` §10–§11
 Mimari düzeltme turu bitti (§11; vault `forum/orion-beyin0fis/`, Toplantı 4). Açık:
 - **Bir hafta gerçek kullanım** sonra `node --experimental-strip-types tools/karar-ozet.ts` (kendiliğinden uyanış bölümü: boş oran, Ozyn tepkisi, token, varlık kanıtı) → ofis yeniden toplanır (OB19).

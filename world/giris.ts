@@ -71,6 +71,7 @@ import { Kopru } from "../bridge/kopru.ts";
 import type { KararKaydi, KararSatiri, OgretimSatiri } from "../mind/kararKaydi.ts";
 import { GOREV_SATIRLARI } from "../mind/gorev.ts";
 import { modelSeciciKur } from "./arayuz/modelSecici.ts";
+import { stilPenceresiKur } from "./arayuz/stilPenceresi.ts";
 import type { Beyin } from "../bridge/beyin.ts";
 import { MetinGirdi } from "../voice/metin-girdi.ts";
 import { NemotronGirdi } from "../voice/nemotron.ts";
@@ -290,6 +291,7 @@ async function ovayaCik(): Promise<boolean> {
     const o = adaylar.find((p) => !carpisiyorMu(p.x, p.z, 0.4, yer)) ?? adaylar[0]!;
     if (orionGelir) orion?.isinla(o.x, o.z, v.yaw);
     orionGorunurlugu();
+    stilPenceresi?.ova(disari.level);
     gunluk.ekle("bilgi", "yer", `ovaya çıkıldı (${disari.kurulumMs} ms)`);
     console.log(`[YER] ova kuruldu ${disari.kurulumMs} ms · engel ${yer.engeller.length} · nesne ${yer.nesneler.length} · çapa ${yer.capalar.map((c) => c.ad).join(",")}`);
     return true;
@@ -306,6 +308,7 @@ function odayaDon(): boolean {
   if (!disari || gecisSuruyor) return false;
   const orionGelir = orionYeri === ozynYeri;
   // Sahne yıkılır, ova yeri (saf veri) kalır: Orion dışarıda kaldıysa orada yürümeye devam eder (C6).
+  stilPenceresi?.ova(null);
   disari.yokEt();
   disari = null;
   ozynYeri = ODA_YERI;
@@ -1438,6 +1441,8 @@ const HAFIZA_KIPI: "otomatik" | "yonlendirici" =
 
 /** Model seçici penceresi — beyin bağlanınca kurulur (seçiciye ihtiyaç duyar). */
 let modelSecici: ReturnType<typeof modelSeciciKur> | null = null;
+/** Ova stil deneme araçları (G): yalnız ova kuruluyken açılır; ofise dönünce kapanır. */
+let stilPenceresi: ReturnType<typeof stilPenceresiKur> | null = null;
 
 function beyniBagla(a: Avatar): void {
   // Takip: Ozyn uzaklaştıkça Orion yanına yürür (uygulama/takip.ts). Mevcut beden yolu (`bedenAdimi`).
@@ -1659,6 +1664,11 @@ function beyniBagla(a: Avatar): void {
       && sohbet.dataset.acik !== "1" && onayKapisi.durum !== "bekliyor",
   });
   window.orionModel = modelKancasiKur(secim, () => modelSecici?.ac());
+  // ── STİL PENCERESİ (G): ova'dayken stil/renk/ışık/shader/saat denemeleri; fare kilidi açılınca bırakılır ──
+  stilPenceresi = stilPenceresiKur({
+    tusSerbest: () => oyuncu.oyuncuDurumu().etkilesim === null && sohbet.dataset.acik !== "1" && onayKapisi.durum !== "bekliyor",
+    acildi: () => rig.fareKilitBirak(),
+  });
   console.log(`[PANO] ${panoKaydi.moduller().length} modül, ` +
     `${panoKaydi.goruntu().reduce((n, m) => n + m.dugmeler.length, 0)} tel bağlandı`);
 

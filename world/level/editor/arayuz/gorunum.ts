@@ -1,6 +1,8 @@
 // world/level/editor/arayuz/gorunum.ts — Hızlı görünüm (Dünya sekmesinin başı, spec 22): stil önayarları, renk
 // düzeni, ışık sonrası çipleri, özel shader çipleri, zaman (saat kaydırıcısı, akış, dünya paleti).
 // Eskiden ova-deneme'nin sağ üst çubuğuydu; artık her tıklama `durum.degistir`den geçer (geri alınır, kirli yapar).
+// Kaynak soyut (`GorunumKaynagi`): editör kendi durumunu (`editorKaynagi`), oyundaki stil penceresi
+// (world/arayuz/stilPenceresi.ts) canlı level'ı verir; iki yerde aynı düğmeler, tek kod.
 "use strict";
 import type { Editor } from "../editor.ts";
 import type { LevelTanimi } from "../../cekirdek/levelTanimi.ts";
@@ -24,9 +26,36 @@ const G_CSS = `
 const ISIK_CIPLERI: [Exclude<keyof SonStili, "tonlama">, string][] = [["gi", "GI"], ["ao", "AO"], ["huzme", "huzme"], ["parilti", "parıltı"], ["bloom", "bloom"],
   ["egri", "eğri"], ["vinyet", "vinyet"], ["gren", "gren"], ["sapma", "sapma"], ["keskinlik", "keskinlik"], ["derinlik", "derinlik"]];
 
-export function gorunumKur(ed: Editor, shaderlar: ShaderKaydi): HTMLElement {
-  cssEkle("edGorStil", G_CSS);
+/** Görünüm panelinin ihtiyacı olan en küçük yüzey: tanımı oku, değiştir, canlı önizle, değişince haber al. */
+export interface GorunumKaynagi {
+  tanim(): LevelTanimi;
+  /** Kalıcı değişiklik (editörde geri alınır). `onceki`: `hal()`in sürükleme başında verdiği değer. */
+  degistir(f: (t: LevelTanimi) => LevelTanimi, mesaj: string, onceki?: unknown): boolean;
+  /** Geçmişe girmeyen canlı uygulama (saat sürgüsü). */
+  onizle(t: LevelTanimi): void;
+  /** Sürükleme başlarken saklanan hâl. */
+  hal(): unknown;
+  /** Tanım değişince `f` çağrılır. */
+  abone(f: () => void): void;
+  /** Dünya saati (0–24), akan zamanda da güncel. */
+  saat(): number;
+}
+
+/** Editörün durumunu `GorunumKaynagi` olarak sunar (davranış değişmez: geçmiş, kirli işareti). */
+export function editorKaynagi(ed: Editor): GorunumKaynagi {
   const { durum } = ed;
+  return {
+    tanim: () => durum.tanim(),
+    degistir: (f, mesaj, onceki) => durum.degistir(f, mesaj, onceki ? { onceki: onceki as ReturnType<typeof durum.hal> } : {}),
+    onizle: (t) => { durum.onizle(t); },
+    hal: () => durum.hal(),
+    abone: (f) => { durum.abone("tanim", f); },
+    saat: () => ed.level.dunya.saat,
+  };
+}
+
+export function gorunumKur(durum: GorunumKaynagi, shaderlar: ShaderKaydi): HTMLElement {
+  cssEkle("edGorStil", G_CSS);
   const kok = el("div", "ed-gor");
   const dugmeler = new Map<string, HTMLButtonElement>();
   const degistir = (f: (t: LevelTanimi) => void, mesaj: string) => durum.degistir((t) => { const x = structuredClone(t); f(x); return x; }, mesaj);
@@ -58,21 +87,21 @@ export function gorunumKur(ed: Editor, shaderlar: ShaderKaydi): HTMLElement {
   const zamanG = grup("zaman");
   const saat = el("b");
   const kaydirici = el("input"); kaydirici.type = "range"; kaydirici.min = "0"; kaydirici.max = "24"; kaydirici.step = "0.25";
-  let surukleOnce: ReturnType<typeof durum.hal> | null = null;
+  let surukleOnce: unknown = null;
   kaydirici.onpointerdown = () => { surukleOnce = durum.hal(); };
   const saatYaz = (t: LevelTanimi, v: number): LevelTanimi => ({ ...t, zaman: { ...(t.zaman ?? ZAMAN_VARSAYILAN), saat: v } });
   kaydirici.oninput = () => { durum.onizle(saatYaz(durum.tanim(), Number(kaydirici.value))); };
   kaydirici.onchange = () => {
     const once = surukleOnce; surukleOnce = null;
-    durum.degistir((t) => saatYaz(t, Number(kaydirici.value)), `saat ${kaydirici.value}`, once ? { onceki: once } : {});
+    durum.degistir((t) => saatYaz(t, Number(kaydirici.value)), `saat ${kaydirici.value}`, once);
     kaydirici.blur();
   };
   const akis = el("button", "", "zaman aksın"); akis.title = "Saat kendiliğinden ilerlesin";
-  akis.onclick = () => { degistir((t) => { const z = t.zaman ?? { ...ZAMAN_VARSAYILAN }; t.zaman = { ...z, akiyor: !z.akiyor, saat: ed.level.dunya.saat }; }, "zaman akışı"); akis.blur(); };
+  akis.onclick = () => { degistir((t) => { const z = t.zaman ?? { ...ZAMAN_VARSAYILAN }; t.zaman = { ...z, akiyor: !z.akiyor, saat: durum.saat() }; }, "zaman akışı"); akis.blur(); };
   dugmeler.set("zaman:akis", akis);
   const dunyaSec = el("select");
   DUNYA_ADLARI.forEach((ad, i) => dunyaSec.add(new Option(ad, String(i))));
-  dunyaSec.onchange = () => { degistir((t) => { t.zaman = { ...(t.zaman ?? ZAMAN_VARSAYILAN), dunya: Number(dunyaSec.value), saat: ed.level.dunya.saat }; }, `dünya ${dunyaSec.selectedOptions[0]?.text}`); dunyaSec.blur(); };
+  dunyaSec.onchange = () => { degistir((t) => { t.zaman = { ...(t.zaman ?? ZAMAN_VARSAYILAN), dunya: Number(dunyaSec.value), saat: durum.saat() }; }, `dünya ${dunyaSec.selectedOptions[0]?.text}`); dunyaSec.blur(); };
   zamanG.append(saat, kaydirici, akis, dunyaSec);
   const aciklama = el("div", "aciklama");
   kok.append(aciklama);
@@ -92,9 +121,12 @@ export function gorunumKur(ed: Editor, shaderlar: ShaderKaydi): HTMLElement {
     dunyaSec.value = String(t.zaman?.dunya ?? 0);
     aciklama.textContent = ONAYARLAR[s]?.aciklama ?? "Stil elle değiştirildi (aşağıdaki Stil bölümünden).";
   };
-  durum.abone("tanim", ciz);
-  setInterval(() => {
-    const st = ed.level.dunya.saat;
+  durum.abone(ciz);
+  // Panel sökülünce (oyundaki stil penceresi ova'dan çıkınca) zamanlayıcı da biter.
+  const saatDongusu = setInterval(() => {
+    if (!kok.isConnected) { if (kok.dataset.baglandi) clearInterval(saatDongusu); return; }
+    kok.dataset.baglandi = "1";
+    const st = durum.saat();
     saat.textContent = `${String(Math.floor(st)).padStart(2, "0")}:${String(Math.floor((st % 1) * 60)).padStart(2, "0")}`;
   }, 250);
   ciz();

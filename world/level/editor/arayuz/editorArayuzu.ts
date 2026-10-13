@@ -29,7 +29,7 @@ import { ozelliklerKur } from "./ozellikler.ts";
 import { varlikTarayicisiKur, type HazirKaynagi } from "./varlikTarayici.ts";
 import { durumCubuguKur } from "./durumCubugu.ts";
 import { yardimKur } from "./yardim.ts";
-import { gorunumKur } from "./gorunum.ts";
+import { gorunumKur, editorKaynagi } from "./gorunum.ts";
 
 const AYAR_ANAHTARI = "orion.editor.ayarlar";
 const YUVA_ANAHTARI = "orion.editor.yuvalar";
@@ -94,7 +94,7 @@ export function editorArayuzuKur(ed: Editor, a: ArayuzAyari): void {
   const agac = sahneAgaciKur(ed, (katman) => { sekmeSec("Dünya"); panel.bolumAc(`katman:${katman}`); });
   const panel = levelPaneliKur({ durum, moduller: a.moduller, shaderlar: a.shaderlar });
   const dunya = el("div"); dunya.style.cssText = "display:flex;flex-direction:column;flex:1;min-height:0;overflow:auto";
-  dunya.append(gorunumKur(ed, a.shaderlar), panel.kok);
+  dunya.append(gorunumKur(editorKaynagi(ed), a.shaderlar), panel.kok);
   const gecmis = el("div", "ed-gecmis");
   const sekmeIcerik = { Sahne: agac.kok, Dünya: dunya, Geçmiş: gecmis };
   let etkinSekme = oku<{ s: (typeof sekmeler)[number] }>("orion.editor.sekme", { s: "Sahne" }).s;
