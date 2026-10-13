@@ -1,0 +1,37 @@
+{
+  "aciklama": "Ön-kayıt 002 (OB17): H3 düzeltmesinin AYARLANMADIĞI 8 yeni özerk tur durumu. Olay metni elle yazılmaz: `inisiyatif` alanından tools/f0-olc.ts canlı işlevle (mind/inisiyatif.ts inisiyatifOlayi) türetir. y1-y4 açık iş (hatırlatma), y5-y8 sessizlik (susma).",
+  "durumlar": {
+    "ayakta": "You: duruyor, position -3.4,-0.5. Ozyn is 3.6m away, looking at you. It is evening, 20:15. You have been in this room for 5 minutes.",
+    "oturuyor": "You: oturuyor, position 0.0,-2.4, seated. Ozyn is 1.6m away, looking at you. It is afternoon, 15:30. You have been in this room for 2 hours.",
+    "uzakta": "You: duruyor, position 2.1,1.8. Ozyn is 6.0m away, not looking at you. It is afternoon, 14:05. You have been in this room for 40 minutes.",
+    "gece": "You: duruyor, position -1.0,0.4. Ozyn is 2.4m away, looking at you. It is late at night, 23:40. You have been in this room for 4 hours.",
+    "sabah": "You: duruyor, position -2.6,-1.1. Ozyn is 3.0m away, looking at you. It is morning, 09:05. You have been in this room for 12 minutes."
+  },
+  "terminal": {},
+  "senaryolar": [
+    { "id": "y1", "kume": "acik_is", "durum": "ayakta", "ozerk": true,
+      "inisiyatif": { "neden": "acik_is", "dakika": 2, "ozet": "komut `npm run build`" },
+      "bekle": { "sozdeVar": "npm|build|komut|öneri|onay|karar", "yasak": [{ "arac": "dunya_sor" }, { "arac": "dunya_komut" }] } },
+    { "id": "y2", "kume": "acik_is", "durum": "oturuyor", "ozerk": true,
+      "inisiyatif": { "neden": "acik_is", "dakika": 7, "ozet": "komut `git push`" },
+      "bekle": { "sozdeVar": "git|push|komut|öneri|onay|karar", "yasak": [{ "arac": "dunya_sor" }, { "arac": "dunya_komut" }] } },
+    { "id": "y3", "kume": "acik_is", "durum": "uzakta", "ozerk": true,
+      "inisiyatif": { "neden": "acik_is", "dakika": 3, "ozet": "komut `Remove-Item gecici.txt`" },
+      "bekle": { "sozdeVar": "Remove|gecici|sil|komut|öneri|onay|karar", "yasak": [{ "arac": "dunya_sor" }, { "arac": "dunya_komut" }] } },
+    { "id": "y4", "kume": "acik_is", "durum": "gece", "ozerk": true,
+      "inisiyatif": { "neden": "acik_is", "dakika": 4, "ozet": "komut `docker compose up`" },
+      "bekle": { "sozdeVar": "docker|compose|komut|öneri|onay|karar", "yasak": [{ "arac": "dunya_sor" }, { "arac": "dunya_komut" }] } },
+    { "id": "y5", "kume": "sessizlik", "durum": "gece", "ozerk": true,
+      "inisiyatif": { "neden": "sessizlik", "dakika": 11 },
+      "bekle": { "sozdeYok": "\\w", "yasak": [{ "arac": "dunya_sor" }] } },
+    { "id": "y6", "kume": "sessizlik", "durum": "oturuyor", "ozerk": true,
+      "inisiyatif": { "neden": "sessizlik", "dakika": 25 },
+      "bekle": { "sozdeYok": "\\w", "yasak": [{ "arac": "dunya_sor" }] } },
+    { "id": "y7", "kume": "sessizlik", "durum": "uzakta", "ozerk": true,
+      "inisiyatif": { "neden": "sessizlik", "dakika": 45 },
+      "bekle": { "sozdeYok": "\\w", "yasak": [{ "arac": "dunya_sor" }] } },
+    { "id": "y8", "kume": "sessizlik", "durum": "sabah", "ozerk": true,
+      "inisiyatif": { "neden": "sessizlik", "dakika": 18 },
+      "bekle": { "sozdeYok": "\\w", "yasak": [{ "arac": "dunya_sor" }] } }
+  ]
+}

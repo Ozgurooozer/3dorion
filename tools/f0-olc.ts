@@ -23,12 +23,18 @@ import { baglamMetni } from "../bridge/baglam.ts";
 import type { Beyin, BeyinGirdisi } from "../bridge/beyin.ts";
 import { CAPALAR, CAPA_ETIKETLERI } from "../protocol/temel.ts";
 import { f0Puanla, soylenen, type F0Beklenti } from "./f0.ts";
+import { inisiyatifOlayi, type UyanmaNedeni } from "../mind/inisiyatif.ts";
 
 interface Senaryo {
   id: string; kume: string; durum: string; bekle: F0Beklenti;
   soz?: string; olay?: string; gordum?: string; terminal?: string; anilar?: string[];
   /** Kendiliğinden (özerk) tur: araç kümesi köprüyle aynı (söz/bak/jest/poz; Orion Beyin Ofisi T2-K4). */
   ozerk?: boolean;
+  /**
+   * Kapı kararı: olay metni CANLI işlevden türer (`inisiyatifOlayi`), elle kopya yok. `olay` ile birlikte verilmez.
+   * `ozet` köprünün açık iş özeti biçimindedir (ör. "komut `git push`").
+   */
+  inisiyatif?: { neden: UyanmaNedeni; dakika: number; ozet?: string };
 }
 interface Fixture { durumlar: Record<string, string>; terminal: Record<string, string>; senaryolar: Senaryo[] }
 
@@ -53,7 +59,17 @@ async function beyinKur(): Promise<Beyin> {
 
 const sabit = `In the room: ${CAPALAR.map((c) => CAPA_ETIKETLERI[c]).join(", ")}.`;
 
-function girdiKur(s: Senaryo): BeyinGirdisi {
+/** Senaryonun olay metni: kapı kararından (canlı işlev) ya da tarihsel fixture'daki sabit metinden. */
+function olayMetni(s: Pick<Senaryo, "olay" | "inisiyatif">): string | undefined {
+  if (!s.inisiyatif) return s.olay;
+  const { neden, dakika, ozet } = s.inisiyatif;
+  const acikIs = neden === "acik_is" ? { ozet: ozet ?? "", yasMs: dakika * 60_000, anahtar: "f0" } : undefined;
+  return inisiyatifOlayi({ neden, dakika, ...(acikIs ? { acikIs } : {}) }, dakika * 60_000).ad;
+}
+
+function girdiKur(senaryo: Senaryo): BeyinGirdisi {
+  const olay = olayMetni(senaryo);
+  const s = { ...senaryo, ...(olay ? { olay } : {}) };
   const ozetler = [
     ...(s.terminal ? [f.terminal[s.terminal]!] : []),
     ...(s.gordum ? [`You looked (with your eyes): ${s.gordum}`] : []),
