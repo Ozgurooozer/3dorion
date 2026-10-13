@@ -90,6 +90,7 @@ import { odadaSure, sessizlikSozu, gununVakti } from "../mind/zaman.ts";
 import { depoYukle } from "../mind/hafizaGocu.ts";
 import { GucButcesi, Inisiyatif, butceSatiri } from "../mind/inisiyatif.ts";
 import { inisiyatifTik } from "../uygulama/inisiyatifBaglantisi.ts";
+import { sessizlikIzinliMi } from "../bridge/ozerkYetenek.ts";
 import { GirdiPenceresi, type GirdiTipi } from "../mind/girdiPenceresi.ts";
 import { McpBeyin } from "../bridge/mcpBeyin.ts";
 import { GozModeli } from "../bridge/goz.ts";
@@ -881,7 +882,7 @@ saat.dinle((t, dt) => {
         ozynOdada: (d.mesafe ?? Infinity) < 8,
         sessizlikMs,
         guc: gucButcesi.seviye,
-        ...(INISIYATIF_ESKI ? {} : { girdiYasiMs: Date.now() - sonGirdi }),
+        ...(INISIYATIF_ESKI ? {} : { girdiYasiMs: Date.now() - sonGirdi, sessizlikIzinli: sessizlikIzinliMi(kopruBeyinAdi()) }),
       }, INISIYATIF_ESKI);
       if (k) {
         console.log(`[INISIYATIF] soze_gir · neden=${k.neden} · sessizlik=${k.dakika} dk · fayda=${k.fayda.toFixed(2)} · guc=${gucButcesi.seviye.toFixed(2)}`);
@@ -1389,6 +1390,8 @@ for (const [olay, tip] of [["keydown", "tus"], ["pointerdown", "fare"], ["pointe
 }
 /** `?inisiyatif=eski`: saat tabanlı eski kapı ve geniş özerk tur (geri alma yolu; T2 'Geri alma'). */
 const INISIYATIF_ESKI = new URLSearchParams(location.search).get("inisiyatif") === "eski";
+/** Köprünün o anki beyninin adı (M tuşuyla değişir); kapı "sessizlik" uyanışını buna göre açar (OB15). */
+let kopruBeyinAdi: () => string = () => "";
 /** Kapının son değerlendirdiği zaman (dünya saati, ms): bütçe penceresi kapıyla AYNI saati kullanır. */
 let inisiyatifSimdi = 0;
 
@@ -1467,6 +1470,7 @@ function beyniBagla(a: Avatar): void {
     inisiyatifDurumu: () => (INISIYATIF_ESKI ? null : butceSatiri(inisiyatif.butce.ozet(inisiyatifSimdi))),
   });
   girdiKaydi = duvar.kararKaydi;
+  kopruBeyinAdi = () => secim.kopruBeyni.ad;
   kopru = new Kopru({
     kararKaydi: duvar.kararKaydi,
     // Dikkat'in yazılabilir ayarları TELDEN gelir: karar yolu ile devre

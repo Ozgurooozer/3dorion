@@ -73,6 +73,11 @@ export interface InisiyatifDurumu {
   girdiYasiMs?: number;
   /** Ozyn'in göremediği, hatırlatılmaya değer bir iş (zaman aşımına uğrayan öneri). Yoksa null. */
   acikIs?: { ozet: string; yasMs: number; anahtar: string } | null;
+  /**
+   * Beyin kendiliğinden turda susabiliyor mu (ölçülmüş; bridge/ozerkYetenek.ts). false ise yalnız açık iş uyandırır:
+   * susamayan model sessizlikte her seferinde boş bir söz üretir (H3: qwen/gemma 0/4). Verilmezse denetlenmez.
+   */
+  sessizlikIzinli?: boolean;
 }
 
 /** Varlık penceresi: son girdi bundan eskiyse Ozyn "burada" sayılmaz ve kendiliğinden uyanılmaz. */
@@ -230,7 +235,8 @@ export class Inisiyatif {
       return { tur: "soze_gir", neden: "acik_is", dakika: Math.floor(is.yasMs / 60_000), fayda: d.guc, acikIs: is };
     }
 
-    // NEDEN 2 — uzun sessizlik (ikincil; yalnız varlık varken).
+    // NEDEN 2 — uzun sessizlik (ikincil; yalnız varlık varken ve beyin susabiliyorsa).
+    if (d.sessizlikIzinli === false) return null;
     const esik = this._esik();
     if (d.sessizlikMs < esik) return null;
 

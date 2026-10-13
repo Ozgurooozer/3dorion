@@ -134,3 +134,13 @@ test("PANEL: devre kesikken kapalı olduğu ve nedeni söylenir", () => {
   b.sonuc(1000, 1000, 100, false);
   assert.equal(butceSatiri(b.ozet(2000)), "kendiliğinden kapalı (devre kesici)");
 });
+
+// ── Beyin yeteneği (OB15) ──────────────────────────────────────
+
+test("YETENEK: susamayan beyinde uzun sessizlik uyandırmaz", () => {
+  assert.equal(new Inisiyatif().karar(durum({ sessizlikIzinli: false })), null);
+});
+
+test("YETENEK: susamayan beyinde açık iş YİNE hatırlatılır", () => {
+  assert.equal(new Inisiyatif().karar(durum({ sessizlikIzinli: false, acikIs: is(5 * DK) }))?.neden, "acik_is");
+});
