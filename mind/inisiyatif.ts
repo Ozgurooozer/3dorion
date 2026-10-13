@@ -194,7 +194,10 @@ export function inisiyatifOlayi(k: Pick<InisiyatifKarari, "neden" | "dakika" | "
   const sure = k.dakika >= 1 ? `${k.dakika} minutes` : `${Math.round(sessizlikMs / 1000)} seconds`;
   const is = k.neden === "acik_is" ? k.acikIs : undefined;
   const ad = is
-    ? `you proposed ${is.ozet} ${Math.max(1, Math.round(is.yasMs / 60_000))} minutes ago and Ozyn did not decide in time — `
+    // "Düştü, artık beklemiyor" açıkça: yalnız "did not decide in time" deyince Haiku canlıda "hala bekliyor" dedi
+    // (Ozyn Y'ye bassa bir şey olmazdı). Ölçüm: docs/olcum/on-kayit-acikis-hatirlat.md.
+    ? `your proposal ${is.ozet} from ${Math.max(1, Math.round(is.yasMs / 60_000))} minutes ago has expired: Ozyn did not `
+      + "approve it in time and it is no longer waiting for approval — "
       + "this is your own initiative: remind Ozyn once, in one short sentence"
     : `nobody has spoken for ${sure} — this is your own initiative: say something only if it is useful, otherwise stay silent`;
   return { tur: "olay", ad, ayrinti: { kaynak: "inisiyatif", neden: k.neden, derinlik: 0 } };

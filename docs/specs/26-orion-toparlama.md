@@ -274,6 +274,8 @@ işi kesmedi. Kusur: "hala bekliyor" yanlış, öneri o an düşmüştü (olay m
 bunu bekliyor diye okudu). İlk iki koşu kirliydi: açık pencereye gerçek tuşlar geldi, öneri onaylandı/reddedildi
 (girdi satırı bunu gösterdi: tus=4, tus=5). `docs/olcum/d1-acik-is-canli-haiku.jsonl`.
 
+**Hatırlatma ifadesi düzeltmesi [ÖLÇÜLDÜ, n=12/kol].** Ön kayıt `docs/olcum/on-kayit-acikis-hatirlat.md` (koşudan önce, 6645146). Olay metni artık önerinin DÜŞTÜĞÜNÜ söyler (`inisiyatifOlayi`). Haiku, canlı bağlamı taklit eden 4 senaryo × 3: yanlış iddia (önerinin hâlâ beklediğini söyleme) taban 2/12 → yeni 0/12; f0 geçme 12/12 → 12/12; `ozerk3` y1–y4 4/4 (gerileme yok); qwen 9/12 → 9/12. Üç ölçüt de tuttu. Sınırlar: yargıyı etiketsiz karıştırıp ben verdim (bağımsız göz yok); yeni metinde başka tür yanlışlar çıktı ("onayı iptal ettim", "reddedildi": iptal eden/reddeden yok) ve tanım bunları yakalamıyor. Ham sonuç `docs/olcum/f0-acikis-*.jsonl`.
+
 **Hafıza [ÖLÇÜLDÜ].** İlk canlı otomatik sıkıştırma ZATEN olmuş (12 Ekim 18:33, ornith, Ozyn'in oturumu): 275 → 196
 kayıt, yedek alındı, özetin her iddiası silinen kayıtlarda var. Üç kusur düzeldi: yalnız konsola yazılmıştı (artık
 kayıt + günlük satırı), Ozyn konuşurken konuşma penceresini 4'e kesti (artık yalnız `/compact` isteğinde), özet
