@@ -148,19 +148,20 @@ export const ARAC_TABLOSU: Record<NiyetTur, Omit<AracTanimi, "ad">> = {
   },
   ortam: {
     // Ova'nın görünümü (ışık, renk, stil, zaman). Açıklama KISA: her turun sabit maliyeti; değer adları şemada.
-    aciklama: "Change how the world outside looks: light, colours, style, time of day. Only works outside. Changes nothing else.",
+    aciklama: "Change how the world outside looks. too dark -> isik ac; too bright -> isik kis; evening/night/day or an hour -> saat; "
+      + "cartoon/anime look -> stil; fog -> sis. Only works outside.",
     sema: {
       type: "object",
       properties: {
         ne: { type: "string", enum: [...ORTAM_KONULARI] },
         deger: {
           type: "string",
-          description: "stil: standart|cel|toon|anime90|moebius|piksel; renk: gunduz|pastel; isik: kis|ac|sicak|soguk; "
+          description: "A short NAME, never a number. stil: standart|cel|toon|anime90|moebius|piksel; renk: gunduz|pastel; isik: kis|ac|sicak|soguk; "
             + "sis: ac|kapat|yogun|hafif; efekt: <gi|ao|bloom|huzme|parilti|egri|vinyet|gren|sapma|keskinlik|derinlik>:ac|kapat; "
             + "shader: <gokZamani|paletHaritasi|zamanKirigi|hataImzasi|debugTarama|firca|elyazmasi|atmosfer>:ac|kapat; "
             + "akis: ac|kapat; dunya: ova|siberpunk|ortacag|buyu.",
         },
-        sayi: { type: "number", description: "saat: hour 0-24; saat_kaydir: hours to move (negative = back); isik: steps (default 1)." },
+        sayi: { type: "number", description: "A NUMBER. saat: the hour 0-24 (e.g. 21); saat_kaydir: hours to move (negative = back); isik: steps (default 1)." },
       },
       required: ["ne"],
     },

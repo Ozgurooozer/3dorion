@@ -80,8 +80,8 @@ const KONUSMA = [
   // Ortak canlı testten (2026-10-02) ve taban ölçüsünden (spec 13 Faz 0): "otur",
   // "bana gel", "bilgisayarı aç" denince model yalnız "Oturuyorum" / "Geliyorum" /
   // "Açıyorum" dedi ve hiçbir beden aracı çağırmadı (ornith, "bilgisayarı aç" 8/10).
-  "If he asks you to DO something (come, sit, stand up, go, look, write, use the computer), "
-  + "CALL that body tool. Saying you do it is not doing it.",
+  "If he asks you to DO something (come, sit, stand up, go, look, write, use the computer, change the light or time of day "
+  + "outside), CALL that tool. Saying you do it is not doing it.",
   // Taban ölçüsü: "bana gel" bazen masaya yürüdü. Hedefin adı yok; biçimi söylenmeli.
   "'Come to me' means dunya_git with hedef {tip:'oyuncu'} and mesafe 1.2. "
   + "To use the computer: dunya_odaklan with capa 'monitor'.",

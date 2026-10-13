@@ -256,10 +256,27 @@ test("ortam niyeti: bilinmeyen konu, boş/uzun deger, sonsuz sayi reddedilir (ha
   assert.equal(niyetDogrula({ tur: "ortam", ne: "stil", deger: "" }).ok, false);
   assert.equal(niyetDogrula({ tur: "ortam", ne: "stil", deger: "x".repeat(41) }).ok, false);
   assert.equal(niyetDogrula({ tur: "ortam", ne: "saat", sayi: Infinity }).ok, false);
-  assert.equal(niyetDogrula({ tur: "ortam", ne: "saat", sayi: "21" }).ok, false);
+  assert.equal(niyetDogrula({ tur: "ortam", ne: "saat", sayi: "yirmi bir" }).ok, false);   // sayıya çevrilemeyen metin ("21" artık çevrilir, aşağıda)
 });
 
 test("ortam yazan niyettir (yetki kapısı onu dünyayı değiştiren sayar), süreli değildir", () => {
   assert.ok(YAZAN_NIYETLER.includes("ortam"));
   assert.ok(!SURELI_NIYETLER.includes("ortam"));
+});
+
+// ── hoşgörü: sayı `deger`de ya da `sayi` metin olarak gelirse düzeltilir (ölçümden: Haiku saati deger:18 yolladı) ──
+test("ortam: sayı `deger`de gelirse `sayi`ya taşınır, metin sayı sayıya çevrilir", () => {
+  assert.deepEqual(niyetDogrula({ tur: "ortam", ne: "saat", deger: 18 }), { ok: true, deger: { tur: "ortam", ne: "saat", sayi: 18 } });
+  assert.deepEqual(niyetDogrula({ tur: "ortam", ne: "saat", sayi: "21" }), { ok: true, deger: { tur: "ortam", ne: "saat", sayi: 21 } });
+  assert.deepEqual(niyetDogrula({ tur: "ortam", ne: "saat_kaydir", deger: -2 }), { ok: true, deger: { tur: "ortam", ne: "saat_kaydir", sayi: -2 } });
+  // açık `sayi` varsa `deger` sayısı ona EZİLMEZ (belirsizlik hatadır)
+  assert.equal(niyetDogrula({ tur: "ortam", ne: "saat", deger: 18, sayi: 20 }).ok, false);
+});
+
+test("ortam: hoşgörü yalnız sayılar içindir — boş/bozuk değerler hâlâ reddedilir", () => {
+  assert.equal(niyetDogrula({ tur: "ortam", ne: "saat", sayi: "yirmi bir" }).ok, false);
+  assert.equal(niyetDogrula({ tur: "ortam", ne: "saat", sayi: "" }).ok, false);
+  assert.equal(niyetDogrula({ tur: "ortam", ne: "saat", deger: Infinity }).ok, false);
+  assert.equal(niyetDogrula({ tur: "ortam", ne: "stil", deger: true }).ok, false);
+  assert.equal(niyetDogrula({ tur: "ortam", ne: "stil", deger: {} }).ok, false);
 });

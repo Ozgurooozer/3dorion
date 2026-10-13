@@ -165,13 +165,19 @@ export function niyetDogrula(ham: unknown): Sonuc<Niyet> {
     case "ortam": {
       if (!ORTAM_KONULARI.includes(o.ne as never))
         return { ok: false, hata: `ortam.ne geçersiz: ${String(o.ne)} (geçerli: ${ORTAM_KONULARI.join(", ")})` };
-      if (o.deger !== undefined && (typeof o.deger !== "string" || o.deger.trim().length === 0 || o.deger.length > ORTAM_DEGER_SINIRI))
-        return { ok: false, hata: `ortam.deger: kısa (≤ ${ORTAM_DEGER_SINIRI}) boş olmayan metin olmalı` };
-      if (o.sayi !== undefined && !sayi(o.sayi))
+      // HOŞGÖRÜ (ölçümden, on-kayit-ortam.md ilk koşu): Haiku saati `deger: 18` (sayı) olarak yolladı, `sayi`ya değil;
+      // 24 denemenin 12'si yalnız bu yüzden düştü. Niyet açık: sayı `deger`de geldiyse `sayi`ya taşınır; `sayi` sayı
+      // gibi bir metinse ("21") sayıya çevrilir. Yanlış adlar (uydurma stil) bu hoşgörüye GİRMEZ: açık hata döner.
+      let deger = o.deger, sayiHam = o.sayi;
+      if (typeof deger === "number" && sayiHam === undefined) { sayiHam = deger; deger = undefined; }
+      if (typeof sayiHam === "string" && sayiHam.trim() !== "" && Number.isFinite(Number(sayiHam))) sayiHam = Number(sayiHam);
+      if (deger !== undefined && (typeof deger !== "string" || deger.trim().length === 0 || deger.length > ORTAM_DEGER_SINIRI))
+        return { ok: false, hata: `ortam.deger: kısa (≤ ${ORTAM_DEGER_SINIRI}) boş olmayan metin olmalı (sayılar \`sayi\`ya)` };
+      if (sayiHam !== undefined && !sayi(sayiHam))
         return { ok: false, hata: "ortam.sayi: sonlu sayı olmalı" };
       const g: Niyet = { tur: "ortam", ne: o.ne as OrtamNe };
-      if (o.deger !== undefined) g.deger = (o.deger as string).trim();
-      if (o.sayi !== undefined) g.sayi = o.sayi as number;
+      if (deger !== undefined) g.deger = (deger as string).trim();
+      if (sayiHam !== undefined) g.sayi = sayiHam as number;
       return { ok: true, deger: g };
     }
 

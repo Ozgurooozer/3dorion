@@ -1,0 +1,25 @@
+{
+  "aciklama": "Ortam aracı ölçümü 2 (düzeltme sonrası, YENİ set): ilk setin (ortam.json) kusuru ayarlamada görülmüştü; bu 8 ifade ayarlamada KULLANILMADI. Ön kayıt: docs/olcum/on-kayit-ortam-2.md.",
+  "durumlar": {
+    "ova": "You: duruyor. Outside, in the ova (you left the room through its door). Ozyn is 3.6m away, looking at you. It is afternoon, 15:30. You have been outside for 5 minutes."
+  },
+  "terminal": {},
+  "senaryolar": [
+    { "id": "p1", "kume": "ortam", "durum": "ova", "soz": "çok loş olmuş",
+      "bekle": { "ortamGecerli": true, "gerek": [{ "arac": "dunya_ortam", "arg": { "ne": "^(isik|saat|efekt|sis)$" } }], "yasak": [{ "arac": "dunya_sor" }, { "arac": "dunya_komut" }, { "arac": "dunya_git" }] } },
+    { "id": "p2", "kume": "ortam", "durum": "ova", "soz": "ortamı biraz serinlet",
+      "bekle": { "ortamGecerli": true, "gerek": [{ "arac": "dunya_ortam", "arg": { "ne": "^(isik|renk|stil)$" } }], "yasak": [{ "arac": "dunya_sor" }, { "arac": "dunya_komut" }, { "arac": "dunya_git" }] } },
+    { "id": "p3", "kume": "ortam", "durum": "ova", "soz": "gökyüzü pembe olsun",
+      "bekle": { "ortamGecerli": true, "gerek": [{ "arac": "dunya_ortam", "arg": { "ne": "^(renk|saat|dunya)$" } }], "yasak": [{ "arac": "dunya_sor" }, { "arac": "dunya_komut" }, { "arac": "dunya_git" }] } },
+    { "id": "p4", "kume": "ortam", "durum": "ova", "soz": "yağmurlu bir hava gibi sisli yap",
+      "bekle": { "ortamGecerli": true, "gerek": [{ "arac": "dunya_ortam", "arg": { "ne": "^sis$" } }], "yasak": [{ "arac": "dunya_sor" }, { "arac": "dunya_komut" }, { "arac": "dunya_git" }] } },
+    { "id": "p5", "kume": "ortam", "durum": "ova", "soz": "saat öğleden sonra dört olsun",
+      "bekle": { "ortamGecerli": true, "gerek": [{ "arac": "dunya_ortam", "arg": { "ne": "^saat$", "sayi": "^16(\\.0+)?$" } }], "yasak": [{ "arac": "dunya_sor" }, { "arac": "dunya_komut" }, { "arac": "dunya_git" }] } },
+    { "id": "p6", "kume": "ortam", "durum": "ova", "soz": "kenarlardaki kararmayı kaldır",
+      "bekle": { "ortamGecerli": true, "gerek": [{ "arac": "dunya_ortam", "arg": { "ne": "^efekt$", "deger": "^vinyet:kapat$" } }], "yasak": [{ "arac": "dunya_sor" }, { "arac": "dunya_komut" }, { "arac": "dunya_git" }] } },
+    { "id": "p7", "kume": "ortam", "durum": "ova", "soz": "eski bir anime gibi görünsün",
+      "bekle": { "ortamGecerli": true, "gerek": [{ "arac": "dunya_ortam", "arg": { "ne": "^stil$", "deger": "^(anime90|cel|toon)$" } }], "yasak": [{ "arac": "dunya_sor" }, { "arac": "dunya_komut" }, { "arac": "dunya_git" }] } },
+    { "id": "p8", "kume": "ortam", "durum": "ova", "soz": "zaman biraz ileri gitsin",
+      "bekle": { "ortamGecerli": true, "gerek": [{ "arac": "dunya_ortam", "arg": { "ne": "^(saat_kaydir|akis)$" } }], "yasak": [{ "arac": "dunya_sor" }, { "arac": "dunya_komut" }, { "arac": "dunya_git" }] } }
+  ]
+}
