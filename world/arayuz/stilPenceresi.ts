@@ -126,19 +126,20 @@ export function stilPenceresiKur(ayar: StilPenceresiAyari = {}): StilPenceresi {
     addEventListener("pointermove", tasi); addEventListener("pointerup", birak);
   });
 
+  // TEK dinleyici: aç/kapat aynı olayda iki kez işlenirse pencere açılır açılmaz kapanır (canlıda böyle bozulmuştu).
   addEventListener("keydown", (e) => {
     if (e.code !== "KeyG" || e.repeat || e.ctrlKey || e.altKey || e.metaKey) return;
     const h = e.target as HTMLElement | null;
     if (h && (h.tagName === "INPUT" || h.tagName === "TEXTAREA" || h.tagName === "SELECT")) return;
-    if (acik) return;   // açıkken kapatmayı pencerenin kendi dinleyicisi yapar (odaktaysa); odak dışındaysa aşağıda
+    if (acik) {
+      // Odak pencerenin içindeyse pencerenin kendi dinleyicisi kapatır (olayı durdurur, buraya gelmez); dışındaysa burada.
+      if (!(e.target instanceof Node && kok.contains(e.target))) { e.preventDefault(); kapat(); }
+      return;
+    }
     if (ayar.tusSerbest && !ayar.tusSerbest()) return;
     if (!kaynak) return;
     e.preventDefault();
     ac();
-  });
-  // Odak pencerede değilken (sahneye tıklanmış) G ile kapatma: açıkken ikinci basış kapatır.
-  addEventListener("keydown", (e) => {
-    if (acik && e.code === "KeyG" && !e.repeat && !(e.target instanceof Node && kok.contains(e.target))) { e.preventDefault(); kapat(); }
   });
 
   return { ova, ac, kapat, acikMi: () => acik };
