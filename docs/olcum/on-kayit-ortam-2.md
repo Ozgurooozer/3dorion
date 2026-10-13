@@ -33,3 +33,15 @@ H-O2/H-O3 bu yapılandırmada ÖLÇÜLMEDİ (araç açıklaması değişeceği i
   geçmezse DURUR, olumsuz sonuç yazılır (üçüncü bir düzeltme için yeni Ozyn onayı).
 
 **Sınırlar (önceden).** n küçük; setleri ben yazdım; yerel modeller bilgi amaçlı; f0 tek atış (canlıdaki kendini düzeltme yok).
+
+## SONUÇLAR (koşudan sonra eklendi)
+- **H-O1b KALDI:** Haiku `ortam2` **9/24** (ölçüt ≥ 18). Nedenler: uydurma ad ("pembe", "anime", "none", "kısık") ~14/24;
+  p5'te sayı hâlâ `deger`de (2/3) — f0 puanı HAM çağrıya baktığı için hoşgörüden sonra doğru çalışan çağrıyı da kaldırıyor
+  (normalleştirilmiş puanla ~11/24; yine ölçütün çok altında, sonuç değişmez). Yerel (BİLGİ): gemma4:e2b 6/24, qwen2.5:7b 2/24, ornith-32k 2/24.
+- **H-O2 GEÇTİ (hepsi):** araç VAR / YOK — Haiku 40/39 · gemma4:e2b 36/39 (düşüş 3 = izin sınırı, kenarda) · qwen2.5:7b 36/31 ·
+  ornith-32k 18/16 (n=1). Not: "YOK" kolu aracı çıkarır, talimat değişikliğini (R3) ayırmaz.
+- **H-O3 GEÇTİ:** gerileme setinde `dunya_ortam` çağrısı: Haiku 0/56, gemma 0/56, ornith 0/28, qwen 1/56 (%1,8; ölçüt ≤ %3).
+- **Karar kuralı gereği DURULDU:** üçüncü düzeltme (eş anlamlı değer tablosu: "anime"→anime90, "kısık"→kıs, "pembe"→pastel…) Ozyn'in onayını bekliyor.
+- **Canlı (`ortamdene`, Haiku, dist) 16/16:** aynı Haiku, tek atış, serbest ifade "burası çok karanlık" → `isik ac`, söz öğrenildi, ikinci sefer
+  token'sız (`docs/olcum/ortamdene-canli-haiku.jsonl`). f0 tek atış (canlıda hata sonucu modeli düzeltmeye çağırır) ve n çok küçük:
+  ikisi çelişmiyor, ama "LLM yolu güvenilir" DENEMEZ.
