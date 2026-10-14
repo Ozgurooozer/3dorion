@@ -8,7 +8,9 @@
 import type { Scene } from "@babylonjs/core/scene";
 import type { Camera } from "@babylonjs/core/Cameras/camera";
 import type { LevelTanimi } from "../cekirdek/levelTanimi.ts";
-import type { Renk } from "../cekirdek/renk.ts";
+import { karistir, type Renk } from "../cekirdek/renk.ts";
+import { paletZamanda } from "../shader/dunyaDurumu.ts";
+import { dunyaPaleti } from "../shader/paletler.ts";
 import { isikStiliDurumuYap, type IsikStiliDurumu } from "./isikEklentisi.ts";
 import { VARSAYILAN_STIL, stilTamamla } from "./stilTanimi.ts";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
@@ -21,13 +23,16 @@ import { cizgiEfektiKur, renkEfektiKur, paletListesi, type CizgiDegerleri, type 
 export interface StilSistemi {
   /** Işıklı malzemelerin eklentisinin okuduğu ortak değerler (malzeme fabrikasına verilir). */
   readonly isikDurumu: IsikStiliDurumu;
-  uygula(t: LevelTanimi, renk: (ad: string) => Renk): void;
+  /** `saat`: dünyanın canlı saati (gölge tonu paletin o saatinden; yoksa tanımdaki saat). */
+  uygula(t: LevelTanimi, renk: (ad: string) => Renk, saat?: number): void;
   /** Ekran efektleri bu kameraya kurulur (level kamerayı bilmez; sayfa bağlar). */
   kameraBagla(k: Camera): void;
   /** Katmanlar/nesneler yeniden kurulunca (güneş diski değişmiş olabilir: huzme ve parıltı ona bağlı). */
   sahneDegisti(): void;
   /** Işık yönü değişti (gün/gece akarken her kare). */
   isikYonu(yon: Vec3): void;
+  /** Saat değişti (zaman akarken her kare): yalnız gölge tonu yeniden yazılır (`golgeDolgudan` 0 ise palete bakılmaz). */
+  saatDegisti(saat: number): void;
   /** B tuşu: basılıyken bütün ışık sonrası kapalı (önce/sonra). */
   sonrasiAtla(atla: boolean): void;
   yokEt(): void;
@@ -35,8 +40,24 @@ export interface StilSistemi {
 
 const parlaklik = (r: Renk) => 0.2126 * r[0] + 0.7152 * r[1] + 0.0722 * r[2];
 
-/** Tanımdan ışık eklentisinin değerlerini yazar. Saf (durum nesnesini doldurur): test edilir. */
-export function isikDurumunuYaz(d: IsikStiliDurumu, t: LevelTanimi, renk: (ad: string) => Renk): void {
+/**
+ * Gölge tonu: `golgeRengi`, `golgeDolgudan` oranında dünya paletinin `saat`teki `dolgu` rengine karışır (ışık dili: gölge
+ * tarafı gökten gelen dolgunun rengini alır, saatle ve dünyayla akar; ön kayıt docs/olcum/on-kayit-isik-dili-1.md). Oran 0
+ * ya da zaman tanımsızsa `golgeRengi` BİREBİR (eski davranış). Palet ara değeri dünya durumunun kullandığı AYNI saf işlev.
+ */
+export function golgeTonu(t: LevelTanimi, renk: (ad: string) => Renk, saat = t.zaman?.saat): Renk {
+  const s = (t.stil ?? VARSAYILAN_STIL).isik, sabit = renk(s.golgeRengi);
+  const oran = s.golgeDolgudan ?? 0;   // stilTamamla'dan geçmemiş eski nesne: alan yok
+  if (!(oran > 0) || !t.zaman || saat === undefined) return sabit;
+  const dolgu = paletZamanda(dunyaPaleti(t.zaman.dunya).kareler, saat)["dolgu"];
+  return dolgu ? karistir(sabit, dolgu, oran) : sabit;
+}
+
+/**
+ * Tanımdan ışık eklentisinin değerlerini yazar. Saf (durum nesnesini doldurur): test edilir. `saat` = dünyanın CANLI saati
+ * (akan zamanda tanımdaki saat bayatlar); verilmezse tanımdaki.
+ */
+export function isikDurumunuYaz(d: IsikStiliDurumu, t: LevelTanimi, renk: (ad: string) => Renk, saat?: number): void {
   const s = (t.stil ?? VARSAYILAN_STIL).isik, g = t.isik.gunes, f = t.isik.dolgu;
   const l = Math.hypot(...g.yon) || 1;
   d.a = [s.acik ? 1 : 0, Math.max(1, Math.round(s.bant)), s.yumusaklik, s.enKoyu];
@@ -46,7 +67,7 @@ export function isikDurumunuYaz(d: IsikStiliDurumu, t: LevelTanimi, renk: (ad: s
   // çıkmadı, ova ortası koyu banda düştü (görüntüde yakalandı). Level bir arazi: ölçü zemindir.
   const zemineGunes = Math.max(g.yon[1] / l, 0.2);
   d.c = [s.kenarEsik, s.tarama, g.siddet * parlaklik(renk(g.renk)) * zemineGunes + f.siddet * parlaklik(renk(f.ust)), 1];
-  d.golge = [...renk(s.golgeRengi)];
+  d.golge = [...golgeTonu(t, renk, saat)];
   d.gunes = [g.yon[0] / l, g.yon[1] / l, g.yon[2] / l];
 }
 
@@ -94,9 +115,9 @@ export function stilSistemiKur(sahne: Scene, shaderlar: ShaderSistemi | null = n
 
   return {
     isikDurumu,
-    uygula(t, renk) {
+    uygula(t, renk, saat) {
       son = { t, renk };
-      isikDurumunuYaz(isikDurumu, t, renk);
+      isikDurumunuYaz(isikDurumu, t, renk, saat);
       const s = t.stil ?? VARSAYILAN_STIL;
       cizgi.a = [s.cizgi.kalinlik, s.cizgi.derinlikEsik, s.cizgi.normalEsik, s.cizgi.guc];
       cizgi.b = [s.cizgi.vurgu, s.cizgi.titreme, s.cizgi.kip, s.cizgi.uzaklik];
@@ -113,6 +134,7 @@ export function stilSistemiKur(sahne: Scene, shaderlar: ShaderSistemi | null = n
       isikDurumu.gunes = [...yon];
       if (sonGuncelle) { sonGuncelle.yon = yon; sonKurulum?.guncelle(sonGuncelle.e, yon, sonGuncelle.renk, sonGuncelle.siddet); }
     },
+    saatDegisti(saat) { if (son) isikDurumu.golge = [...golgeTonu(son.t, son.renk, saat)]; },
     sonrasiAtla(b) { if (atla !== b) { atla = b; efektleriUydur(); } },
     yokEt() { for (const e of kurulu) e.yokEt(); kurulu = []; sonKurulum?.yokEt(); sonKurulum = null; },
   };

@@ -50,5 +50,8 @@ Hepsi geçti. Çizgi efekti FPS'i ~yarıya indiriyor (gbuffer geçişi), yine 10
 - Shader derlemesi Node'da yok → her önayar tarayıcıda derlendi, `hata=0` (sayfa Babylon hata kaydını sayar).
 
 ## 5. Açık / sonraki
+- **Işık dili adım 1 (2026-10-14):** `isik.golgeDolgudan` (0..1) — gölge tonu dünya paletinin o saatteki `dolgu` rengine
+  karışır (`stilSistemi.golgeTonu`, akan zamanda `saatDegisti`); toon'da 1, diğerlerinde 0. Eklenti yalnız `malzemeKur`
+  malzemelerinde (ova): ofis (`oda.ts` Standard + glTF PBR) etkilenmez. Ölçüm: `docs/olcum/on-kayit-isik-dili-1.md`.
 - Ozyn'in seçimi → kendi stilimiz (ör. piksel + toon gölge tonu + pastel). Rim ışığı düz zeminde dik bakışta
   yanabiliyor (toon'da düşük tutuldu). Çim çizgisiz (gbuffer'da rüzgâr yok). Perspektif kamerada piksel sabitleme yok.

@@ -112,7 +112,7 @@ export function levelKur(sahne: Scene, tanimHam: unknown, kayit: ModulKaydi, sha
     isik.uygula(tanim.isik, tanim.ortam, renk);
     zamanaGore();
     shaderlar.uygula(tanim.shaderlar ?? [], renk);
-    stil.uygula(tanim, renk);
+    stil.uygula(tanim, renk, tanim.zaman ? dunya.saat : undefined);
     stil.isikYonu(isik.isikYonu());
   };
   const baglam: ModulBaglami = {
@@ -222,6 +222,7 @@ export function levelKur(sahne: Scene, tanimHam: unknown, kayit: ModulKaydi, sha
         zamanIlerle(dunya, tanim.zaman, dt, dunyaPaleti(tanim.zaman.dunya).kareler);
         isik.zamanUygula(dunya);
         stil.isikYonu(isik.isikYonu());
+        stil.saatDegisti(dunya.saat);
       } else {
         dunya.sure += dt;
         dunya.gunesYonu = isik.gunesYonu();

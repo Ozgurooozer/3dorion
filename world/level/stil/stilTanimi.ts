@@ -28,6 +28,12 @@ export interface IsikStili {
   kenarEsik: number;
   /** Moebius taraması: gölgede ekran uzayı çizgileri (0 = yok). */
   tarama: number;
+  /**
+   * Gölge tonu ne kadar dünya paletinin O SAATTEKİ `dolgu` renginden gelsin (0 = yalnız `golgeRengi`, 1 = yalnız dolgu).
+   * Işık dili (docs/arastirma/isik-dili-kararlari-2026-10-14.md): gölge tarafı gökten gelen soğuk dolgunun rengidir ve saatle
+   * akar. Zaman tanımsızsa etkisiz. Sonradan eklendi: eski dosyalarda yok → 0 (`stilTamamla`); bu yüzden alan SONDA durur.
+   */
+  golgeDolgudan: number;
 }
 
 export interface CizgiStili {
@@ -100,7 +106,7 @@ export interface SonStili {
 export interface StilAyari { isik: IsikStili; cizgi: CizgiStili; renk: RenkStili; son: SonStili }
 
 const KAPALI: StilAyari = {
-  isik: { acik: false, bant: 3, yumusaklik: 0.02, enKoyu: 0.35, golgeRengi: "#4b4f8f", golgeKarisim: 0, parlama: 0, parlamaBoyu: 32, kenarIsik: 0, kenarEsik: 0.72, tarama: 0 },
+  isik: { acik: false, bant: 3, yumusaklik: 0.02, enKoyu: 0.35, golgeRengi: "#4b4f8f", golgeKarisim: 0, parlama: 0, parlamaBoyu: 32, kenarIsik: 0, kenarEsik: 0.72, tarama: 0, golgeDolgudan: 0 },
   cizgi: { acik: false, kip: 0, kalinlik: 1, derinlikEsik: 0.08, normalEsik: 0.4, renk: "#1d1a2e", guc: 0.8, vurgu: 0, titreme: 0, uzaklik: 220 },
   renk: { acik: false, palet: 0, titreme: 0, posterize: 0, doygunluk: 1, gren: 0 },
   son: {
@@ -148,9 +154,11 @@ export const ONAYARLAR: Readonly<Record<string, Onayar>> = {
     }),
   },
   toon: {
-    aciklama: "Toon (Roystan / BotW): iki ton, renkli gölge, eşikli parlama ve kenar ışığı, ince çizgi.", piksel: 1,
+    aciklama: "Toon (Roystan / BotW): iki ton, gölge saatin gök dolgusu renginde, eşikli parlama ve kenar ışığı, ince çizgi.", piksel: 1,
     stil: ile({
-      isik: { acik: true, bant: 2, yumusaklik: 0.03, enKoyu: 0.5, golgeRengi: "#6b72c4", golgeKarisim: 0.45, parlama: 0.35, parlamaBoyu: 24, kenarIsik: 0.3, kenarEsik: 0.72 },
+      // golgeDolgudan 1: gölge tonu paletin saatteki dolgusu (ışık dili adım 1, docs/olcum/on-kayit-isik-dili-1.md); zaman
+      // tanımsız level'da `golgeRengi` kalır.
+      isik: { acik: true, bant: 2, yumusaklik: 0.03, enKoyu: 0.5, golgeRengi: "#6b72c4", golgeKarisim: 0.45, parlama: 0.35, parlamaBoyu: 24, kenarIsik: 0.3, kenarEsik: 0.72, golgeDolgudan: 1 },
       cizgi: { acik: true, kip: 0, kalinlik: 1, guc: 0.45, renk: "#2a2f45" },
       son: {
         tonlama: { tur: 3 }, bloom: { acik: true, esik: 0.75, guc: 0.35 }, huzme: { acik: true }, parilti: { acik: true }, gi: { acik: true },
@@ -203,9 +211,17 @@ function sonTamamla(son: unknown): SonStili {
   const v = (nesneMi(son) ? son : {}) as Partial<SonStili>;
   return { ...structuredClone(KAPALI.son), ...v };
 }
+/**
+ * Sonradan eklenen ışık alanını (`golgeDolgudan`) kapalı değerle tamamlar: eski dosyalar açılır ve aynı görünür. Alan SONA
+ * eklenir (KAPALI'daki sırayla): `onayarAdi` JSON metnini karşılaştırır, sıra kayarsa "standart" bile "özel" görünürdü.
+ */
+function isikTamamla(isik: unknown): unknown {
+  if (!nesneMi(isik) || "golgeDolgudan" in isik) return isik;
+  return { ...isik, golgeDolgudan: KAPALI.isik.golgeDolgudan };
+}
 export function stilTamamla(s: StilAyari | undefined): StilAyari {
   if (!s) return structuredClone(KAPALI);
-  return { ...s, son: sonTamamla(s.son) };
+  return { ...s, isik: isikTamamla(s.isik) as IsikStili, son: sonTamamla(s.son) };
 }
 
 /** Önayarı tanıma uygular (stil + piksel boyu); tanımın kopyasını döndürür. */
@@ -259,9 +275,10 @@ function bicimHatasi(yol: string, sablon: unknown, v: unknown, renkMi: (r: unkno
 
 /**
  * Stil bölümünün ilk hatası (yoksa null). Biçim KAPALI ile aynı olmalı: eksik/fazla alan ya da yanlış tür hata
- * (yazım hatası sessiz geçmesin). Renk alanları `renkMi` ile denetlenir. `son` (spec 19) eski dosyalarda olmayabilir.
+ * (yazım hatası sessiz geçmesin). Renk alanları `renkMi` ile denetlenir. `son` (spec 19) ve `isik.golgeDolgudan` eski
+ * dosyalarda olmayabilir.
  */
 export function stilHatasi(v: unknown, renkMi: (r: unknown) => boolean): string | null {
   if (!nesneMi(v)) return "stil: nesne değil";
-  return bicimHatasi("stil", KAPALI, { ...v, son: sonTamamla(v["son"]) }, renkMi);
+  return bicimHatasi("stil", KAPALI, { ...v, isik: isikTamamla(v["isik"]), son: sonTamamla(v["son"]) }, renkMi);
 }

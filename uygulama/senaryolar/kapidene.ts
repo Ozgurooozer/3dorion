@@ -7,6 +7,7 @@
 "use strict";
 import type { SenaryoBaglami } from "../senaryoBaglami.ts";
 import type { Avatar } from "../../world/avatar/index.ts";
+import type { OrtamNe } from "../../protocol/niyet.ts";
 import { SceneInstrumentation } from "@babylonjs/core/Instrumentation/sceneInstrumentation";
 
 /** Çizim sayısı bütçesi (Ozyn, 2026-10-14: "çizim sınırında sorun yok, 220 olur"). */
@@ -36,6 +37,19 @@ export async function kos(d: SenaryoBaglami): Promise<void> {
   // ── 1. Tek dünya ──
   const hazir = await d.ovayaCik();
   kontrol("birleşik dünya kuruldu", hazir);
+  // `?ortam=ne:deger,…` (ör. `dunya:siberpunk,saat:22,stil:toon`): ölçüm koşuları (ışık dili ön kaydı) bütün senaryoyu bu ortamda
+  // koşar — bütçe de ekran görüntüsü de aynı ortamda. Orion'un yolundan (`niyetiYurut`), sayı değer `sayi`ya gider. Kontrol değil.
+  const ortam = new URLSearchParams(location.search).get("ortam");
+  if (ortam) {
+    for (const p of ortam.split(",")) {
+      const [ne, deger = ""] = p.split(":") as [string, string?];
+      const sayi = Number(deger);
+      d.niyetiYurut({ tur: "ortam", ne: ne as OrtamNe, ...(deger !== "" && Number.isFinite(sayi) ? { sayi } : { deger }) }, "kapidene_ortam");
+    }
+    await bekle(1500);
+    const t = d.ortam.tanim();
+    console.log(`[KAPIDENE] ortam: ${ortam} → saat=${t?.zaman?.saat} dunya=${t?.zaman?.dunya} isik.acik=${t?.stil?.isik.acik} golgeRengi=${t?.stil?.isik.golgeRengi} golgeDolgudan=${t?.stil?.isik.golgeDolgudan}`);
+  }
   const y = d.yerler();
   kontrol("tek yer: Ozyn ve Orion AYNI yerde", y.ozyn === y.orion && y.ozyn.ad === "ova", `ozyn=${y.ozyn.ad} orion=${y.orion.ad}`);
   kontrol("ofisin çapaları ve ova aynı yerde", y.ozyn.capalar.some((c) => c.ad === "tahta") && y.ozyn.capalar.some((c) => c.ad === "kapi"));

@@ -19,6 +19,8 @@ import { isikStiliDurumuYap, ISIK_STILI_GLSL } from "./isikEklentisi.ts";
 import { etkinSon, sonImzasi } from "./isikSonrasi.ts";
 import { stilTamamla } from "./stilTanimi.ts";
 import { levelKur } from "../cekirdek/levelKur.ts";
+import { paletZamanda, ZAMAN_VARSAYILAN } from "../shader/dunyaDurumu.ts";
+import { dunyaPaleti } from "../shader/paletler.ts";
 
 const renkMi = (r: unknown) => typeof r === "string" && /^#[0-9a-f]{6}$/i.test(r);
 
@@ -93,6 +95,58 @@ test("stil kapalıyken eklenti kapalı bayrağı alır", () => {
   const d = isikStiliDurumuYap();
   isikDurumunuYaz(d, { ...t, stil: VARSAYILAN_STIL }, (ad) => (ad.startsWith("#") ? hex(ad) : hex(t.palet[ad]!)));
   assert.equal(d.a[0], 0);
+});
+
+// ── gölge tonu = saatin dolgusu (ışık dili adım 1, docs/olcum/on-kayit-isik-dili-1.md) ──
+const geceTanimi = (golgeDolgudan: number, dunya = 0) => {
+  const t = onayarUygula(ornekTanim(), "toon");
+  t.stil!.isik.golgeDolgudan = golgeDolgudan;
+  t.zaman = { ...ZAMAN_VARSAYILAN, saat: 22, dunya };
+  return t;
+};
+const golgeYaz = (t: ReturnType<typeof ornekTanim>, saat?: number) => {
+  const d = isikStiliDurumuYap();
+  isikDurumunuYaz(d, t, (ad) => (ad.startsWith("#") ? hex(ad) : hex(t.palet[ad]!)), saat);
+  return d.golge;
+};
+const dolgu22 = (dunya: number) => paletZamanda(dunyaPaleti(dunya).kareler, 22)["dolgu"]!;
+const yakin = (a: readonly number[], b: readonly number[]) => a.every((v, i) => Math.abs(v - b[i]!) < 1e-9);
+
+test("golgeDolgudan 1, saat 22: gölge tonu ova paletinin 22'deki dolgusu", () => {
+  assert.ok(yakin(golgeYaz(geceTanimi(1)), dolgu22(0)), `${golgeYaz(geceTanimi(1))} ≠ ${dolgu22(0)}`);
+});
+test("golgeDolgudan 1 başka dünyada o dünyanın dolgusunu alır (siberpunk)", () => {
+  assert.ok(yakin(golgeYaz(geceTanimi(1, 1)), dolgu22(1)));
+});
+test("golgeDolgudan 0,5: gölge tonu golgeRengi ile dolgunun tam ortası", () => {
+  const orta = hex("#6b72c4").map((v, i) => (v + dolgu22(0)[i]!) / 2);
+  assert.ok(yakin(golgeYaz(geceTanimi(0.5)), orta));
+});
+test("golgeDolgudan 0: gölge tonu golgeRengi, BİREBİR (eski davranış)", () => {
+  assert.deepEqual(golgeYaz(geceTanimi(0)), hex("#6b72c4"));
+});
+test("zaman tanımsız level'da golgeDolgudan etkisiz: gölge tonu golgeRengi", () => {
+  const t = geceTanimi(1);
+  delete t.zaman;
+  assert.deepEqual(golgeYaz(t), hex("#6b72c4"));
+});
+test("canlı saat verilince tanımdaki saat değil o saatin dolgusu kullanılır (akan zaman)", () => {
+  const t = geceTanimi(1);
+  t.zaman!.saat = 12;
+  assert.ok(yakin(golgeYaz(t, 22), dolgu22(0)));
+});
+test("toon önayarı gölge tonunu dolgudan alır", () => {
+  assert.equal(ONAYARLAR["toon"]!.stil.isik.golgeDolgudan, 1);
+});
+test("golgeDolgudan alanı olmayan eski stil geçerli", () => {
+  const eski = structuredClone(VARSAYILAN_STIL) as unknown as { isik: Record<string, unknown> };
+  delete eski.isik["golgeDolgudan"];
+  assert.equal(stilHatasi(eski, renkMi), null);
+});
+test("golgeDolgudan alanı olmayan eski 'standart' stil hâlâ 'standart' okunur (alan sona eklenir)", () => {
+  const eski = structuredClone(VARSAYILAN_STIL) as unknown as { isik: Record<string, unknown> };
+  delete eski.isik["golgeDolgudan"];
+  assert.equal(onayarAdi({ ...ornekTanim(), stil: eski as unknown as typeof VARSAYILAN_STIL }), "standart");
 });
 
 // ── malzeme ──
