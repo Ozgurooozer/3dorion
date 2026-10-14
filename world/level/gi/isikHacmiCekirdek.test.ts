@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   HACIM, ISIK_TURU, YONLER, atlasDuzeni, atlasTekseli, birikimKur, birikimiBitir, dogrudanIsik, enjekte, giOrnekle, hucreye,
-  indeks, isikGecerliMi, isikPaketle, izgaraKur, koniIzle, meshVoxelle, mipKucult, mipZinciri, ornekle, statikAtlaslar,
+  indeks, isikGecerliMi, isikPaketle, izgaraKur, koniIzle, koniSeti, meshVoxelle, mipKucult, mipZinciri, ornekle, statikAtlaslar,
   tekseldenVoxele, topla, ucgenVoxelle, voxelSayisi, vramTahmini, yakinlikMaskesi,
   type IsikVerisi, type Izgara, type UcgenMalzemesi, type Vec3, type VoxelBirikimi,
 } from "./isikHacmiCekirdek.ts";
@@ -292,6 +292,35 @@ test("RENKLİ SEKME (uçtan uca): beyaz ışık + kırmızı duvar → yanındak
   assert.ok(k[0] > 2 * k[2], `kırmızı duvar: R ${k[0].toFixed(4)} B ${k[2].toFixed(4)}`);
   assert.ok(Math.abs(w[0] - w[2]) < 1e-6 * Math.max(1, w[0]), "beyaz duvar: renk yok");
   assert.ok(w[0] > 0.01, `beyaz duvarda da sekme var: ${w[0]}`);
+});
+
+test("koniSeti: 1 → eksenin kendisi; 6 → ağırlık toplamı 1, birim yönler, merkez eksende, halka eksenden 60°", () => {
+  for (const e of YONLER) {
+    assert.deepEqual(koniSeti(e, 1), [{ yon: e, agirlik: 1 }]);
+    const s6 = koniSeti(e, 6);
+    assert.equal(s6.length, 6);
+    assert.ok(Math.abs(s6.reduce((t, k) => t + k.agirlik, 0) - 1) < 1e-12);
+    assert.deepEqual(s6[0]!.yon, e);
+    for (const k of s6) assert.ok(Math.abs(Math.hypot(...k.yon) - 1) < 1e-9);
+    for (const k of s6.slice(1)) assert.ok(Math.abs(k.yon[0] * e[0] + k.yon[1] * e[1] + k.yon[2] * e[2] - 0.5) < 1e-9);
+  }
+});
+
+test("koni seti (teşhis): normalden ~50° yandaki ışıyan levhayı tek koni GÖRMEZ, 6'lı set görür", () => {
+  const iz = izgaraKur([0, 0, 0], [3.2, 3.2, 3.2], 0.1, 0);
+  const b = birikimKur(iz);
+  // Zemin noktası (1,0; 0,1; 1,6); ışıyan dikey levha x = 2,25 m, y 0,6–2,0 → noktadan bakınca dikeyden ~40–65° yanda.
+  dortgen(b, [2.25, 0.6, 1.1], [0, 1.4, 0], [0, 0, 1.0], [-1, 0, 0], { indeks: 3, albedo: [0, 0, 0], oncelik: 1 });
+  dortgen(b, [0.02, 0.05, 0.02], [3.16, 0, 0], [0, 0, 3.16], [0, 1, 0], { indeks: 4, albedo: [0, 0, 0], oncelik: 0 });   // siyah zemin
+  const v = birikimiBitir(b);
+  const sv = mipZinciri({ veri: enjekte(v, [], (m) => (m === 3 ? [1, 1, 1] : [0, 0, 0])), n: iz.n });
+  const p: Vec3 = [1.0, 0.1, 1.6];
+  const tek = giOrnekle(iz, topla(v, sv, 1), p, [0, 1, 0])[0];
+  const alti = giOrnekle(iz, topla(v, sv, 6), p, [0, 1, 0])[0];
+  // Ölçülen (2026-10-14): tek 0, 6'lı 0,0103 (3 voxel kalın levhada 0,0179). Analitik beklenti (izdüşen katı açı / π) ≈ 0,07:
+  // koni izleme kaba mip'te (0,4–0,8 m hücre) ince levhayı boşlukla ortalayıp 4–7× EKSİK görür — bilinen sınır (sonuç belgesi).
+  assert.ok(tek < 1e-4, `tek koni ${tek}`);
+  assert.ok(alti > 0.005, `6'lı set ${alti}`);
 });
 
 test("vramTahmini: ofis boyunda (0,1 m) ≈ 20–40 MiB, bileşenlerin toplamı", () => {

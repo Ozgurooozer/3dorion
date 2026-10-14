@@ -44,12 +44,13 @@ export function giAcikMi(sorgu: string): boolean {
 
 /**
  * Hata ayıklama/ölçüm düğmeleri (URL; yalnız GI açıkken anlamlı): `gikip=1` yalnız GI görünümü, `giguc=<sayı>`,
- * `gisekme=<sayı>`. Geçersiz değer → varsayılan (kip 0, güç 1, sekme 1). Saf: test edilir.
+ * `gisekme=<sayı>`, `gikoni=6` (eksen başına 6 konili yarıküre seti; varsayılan 1 = ön kayıttaki tek koni). Geçersiz değer →
+ * varsayılan (kip 0, güç 1, sekme 1, koni 1). Saf: test edilir.
  */
-export function giSorguAyari(sorgu: string): { kip: 0 | 1; guc: number; sekme: number } {
+export function giSorguAyari(sorgu: string): { kip: 0 | 1; guc: number; sekme: number; koni: 1 | 6 } {
   const q = new URLSearchParams(sorgu);
   const sayi = (ad: string, v: number) => { const x = Number(q.get(ad)); return q.has(ad) && Number.isFinite(x) && x >= 0 ? x : v; };
-  return { kip: q.get("gikip") === "1" ? 1 : 0, guc: sayi("giguc", 1), sekme: sayi("gisekme", 1) };
+  return { kip: q.get("gikip") === "1" ? 1 : 0, guc: sayi("giguc", 1), sekme: sayi("gisekme", 1), koni: q.get("gikoni") === "6" ? 6 : 1 };
 }
 
 export interface IsikHacmiAyari {
@@ -80,6 +81,8 @@ export interface GpuOlcumu {
   sorguMs: number | null;
   sorguNotu: string;
   tekrar: number;
+  /** Geçiş başına sorgu süreleri (ms/tekrar; teşhis). */
+  gecisMs: { enjeksiyon: number; mip: number; toplama: number } | null;
 }
 
 export interface IsikHacmi {
@@ -91,6 +94,8 @@ export interface IsikHacmi {
   sekme: number;
   /** 0 = normal, 1 = "yalnız GI" (hata ayıklama görünümü). */
   kip: 0 | 1;
+  /** Eksen başına koni: 1 (ön kayıt) ya da 6 (yarıküre seti, `koniSeti`; toplama ~6× pahalı). */
+  koni: 1 | 6;
   /** Son karede GI'ye giren ışıklar. */
   sonIsik(): { sayi: number; atlanan: number; adlar: string[] };
   /** Kare başı güncellemenin CPU süresi (ms, üstel ortalama): ışık okuma + ışıma tablosu + 5 geçişin gönderimi. */
@@ -258,12 +263,12 @@ export async function isikHacmiKur(a: IsikHacmiAyari): Promise<IsikHacmi> {
     new EffectWrapper({ engine: motor, name: ad, fragmentShader: kaynak, uniformNames, samplerNames });
   const enj = sarici("gi_enjeksiyon", ENJEKSIYON_GLSL, ["hN", "hAt", "hKoken", "hAyar", "isikA", "isikB", "isikC", "isikD"], ["statik0", "statik1", "isimaTablo", "oncekiIrr"]);
   const mip = sarici("gi_mip", MIP_GLSL, ["kN", "hN"], ["kaynak"]);
-  const top = sarici("gi_toplama", TOPLAMA_GLSL, ["mipN", "mipBoyut"], ["statik0", "statik1", "seviye0", "seviye1", "seviye2", "seviye3"]);
+  const top = sarici("gi_toplama", TOPLAMA_GLSL, ["mipN", "mipBoyut", "hKoni"], ["statik0", "statik1", "seviye0", "seviye1", "seviye2", "seviye3"]);
 
   const n4 = (n: Vec3, at: Atlas): [number, number, number, number] => [n[0], n[1], n[2], at.sutun];
   const hN = n4(izgara.n, atlas);
   let paket = isikPaketle([]);
-  let sekmeDegeri = 1, mipHedef = 1;
+  let sekmeDegeri = 1, mipHedef = 1, koniDegeri = 1;
   enj.onApplyObservable.add(() => {
     const e = enj.effect;
     e.setTexture("statik0", statik0); e.setTexture("statik1", statik1); e.setTexture("isimaTablo", tablo); e.setTexture("oncekiIrr", irr);
@@ -289,6 +294,7 @@ export async function isikHacmiKur(a: IsikHacmiAyari): Promise<IsikHacmi> {
     e.setTexture("statik0", statik0); e.setTexture("statik1", statik1);
     for (let L = 0; L < HACIM.mipSayisi; L++) e.setTexture(`seviye${L}`, seviyeler[L]!);
     e.setFloatArray4("mipN", mipNDizi); e.setFloatArray4("mipBoyut", mipBoyDizi);
+    e.setFloat4("hKoni", koniDegeri, 0, 0, 0);
   });
 
   // 6. Malzeme eklentisi: voxellenen VE (saydam bile olsa) ışık alan bütün ofis malzemeleri.
@@ -338,34 +344,43 @@ export async function isikHacmiKur(a: IsikHacmiAyari): Promise<IsikHacmi> {
       n: izgara.n, atlas, kurulumMs: 0, vramMiB: vramTahmini(izgara).toplam / 2 ** 20,
     },
     izgara,
-    guc: 1, sekme: 1, kip: 0,
+    guc: 1, sekme: 1, kip: 0, koni: 1,
     sonIsik: () => ({ sayi: paket.sayi, atlanan: sonAtlanan, adlar: sonAdlar }),
     cpuMs: () => cpuOrt,
     async gpuOlc(tekrar = 200) {
       const gl = motor.getRenderingCanvas()?.getContext("webgl2") ?? null;
-      if (!gl) return { finishMs: NaN, sorguMs: null, sorguNotu: "webgl2 bağlamı yok", tekrar };
+      if (!gl) return { finishMs: NaN, sorguMs: null, sorguNotu: "webgl2 bağlamı yok", tekrar, gecisMs: null };
       gl.finish();
       const t0 = performance.now();
       for (let i = 0; i < tekrar; i++) gecisler();
       gl.finish();
       const finishMs = (performance.now() - t0) / tekrar;
       const ext = gl.getExtension("EXT_disjoint_timer_query_webgl2") as { TIME_ELAPSED_EXT: number; GPU_DISJOINT_EXT: number } | null;
-      if (!ext) return { finishMs, sorguMs: null, sorguNotu: "EXT_disjoint_timer_query_webgl2 yok", tekrar };
-      const q = gl.createQuery();
-      if (!q) return { finishMs, sorguMs: null, sorguNotu: "sorgu kurulamadı", tekrar };
-      gl.beginQuery(ext.TIME_ELAPSED_EXT, q);
-      for (let i = 0; i < tekrar; i++) gecisler();
-      gl.endQuery(ext.TIME_ELAPSED_EXT);
-      for (let k = 0; k < 120; k++) {
-        await new Promise((r) => requestAnimationFrame(r));
-        if (gl.getQueryParameter(q, gl.QUERY_RESULT_AVAILABLE)) break;
-      }
-      const hazir = gl.getQueryParameter(q, gl.QUERY_RESULT_AVAILABLE) as boolean;
-      const kesik = gl.getParameter(ext.GPU_DISJOINT_EXT) as boolean;
-      const ns = hazir ? (gl.getQueryParameter(q, gl.QUERY_RESULT) as number) : NaN;
-      gl.deleteQuery(q);
-      if (!hazir || kesik) return { finishMs, sorguMs: null, sorguNotu: !hazir ? "sonuç gelmedi" : "kesinti (disjoint)", tekrar };
-      return { finishMs, sorguMs: ns / 1e6 / tekrar, sorguNotu: "EXT_disjoint_timer_query_webgl2", tekrar };
+      if (!ext) return { finishMs, sorguMs: null, sorguNotu: "EXT_disjoint_timer_query_webgl2 yok", tekrar, gecisMs: null };
+      /** Tek sorgu: `is`in N tekrarının GPU süresi (ms/tekrar); sonuç gelmez ya da kesinti olursa null. */
+      const sorgula = async (is: () => void): Promise<number | null> => {
+        const q = gl.createQuery();
+        if (!q) return null;
+        gl.beginQuery(ext.TIME_ELAPSED_EXT, q);
+        for (let i = 0; i < tekrar; i++) is();
+        gl.endQuery(ext.TIME_ELAPSED_EXT);
+        for (let k = 0; k < 120; k++) {
+          await new Promise((r) => requestAnimationFrame(r));
+          if (gl.getQueryParameter(q, gl.QUERY_RESULT_AVAILABLE)) break;
+        }
+        const hazir = gl.getQueryParameter(q, gl.QUERY_RESULT_AVAILABLE) as boolean;
+        const kesik = gl.getParameter(ext.GPU_DISJOINT_EXT) as boolean;
+        const ns = hazir ? (gl.getQueryParameter(q, gl.QUERY_RESULT) as number) : NaN;
+        gl.deleteQuery(q);
+        return hazir && !kesik ? ns / 1e6 / tekrar : null;
+      };
+      const sorguMs = await sorgula(gecisler);
+      // Geçiş başına (teşhis): enjeksiyon, 3 mip, toplama ayrı ayrı.
+      const enjMs = await sorgula(() => isleyici.render(enj, seviyeler[0]!));
+      const mipMs = await sorgula(() => { for (let L = 1; L < HACIM.mipSayisi; L++) { mipHedef = L; isleyici.render(mip, seviyeler[L]!); } });
+      const topMs = await sorgula(() => isleyici.render(top, irr));
+      const gecisMs = enjMs !== null && mipMs !== null && topMs !== null ? { enjeksiyon: enjMs, mip: mipMs, toplama: topMs } : null;
+      return { finishMs, sorguMs, sorguNotu: sorguMs === null ? "sonuç gelmedi ya da kesinti (disjoint)" : "EXT_disjoint_timer_query_webgl2", tekrar, gecisMs };
     },
     yokEt() {
       sahne.onBeforeRenderTargetsRenderObservable.remove(gozlemci);
@@ -376,11 +391,18 @@ export async function isikHacmiKur(a: IsikHacmiAyari): Promise<IsikHacmi> {
       for (const t of [statik0, statik1, tablo, irr, ...seviyeler]) t.dispose();
     },
   };
+  // DİKKAT: Babylon bu olayı kare başına İKİ kez yayınlar (`scene.render` ve `_renderForCamera` içinde). İlk ölçüm koşusunda
+  // geçişler iki kez koştu (+10 çizim, beklenen +5; ön kayıt SAPMALAR 1) → kare kimliğiyle tek sefer.
+  let sonKare = -1;
   const gozlemci = sahne.onBeforeRenderTargetsRenderObservable.add(() => {
+    const kareNo = sahne.getFrameId();   // getRenderId DEĞİL: o `_renderForCamera` içinde de artar
+    if (kareNo === sonKare) return;
+    sonKare = kareNo;
     const t = performance.now();
     durum.at[2] = api.guc;
     durum.at[3] = api.kip;
     sekmeDegeri = api.sekme;
+    koniDegeri = api.koni;
     const isik = isiklariTopla(sahne);
     paket = isikPaketle(isik.veri);
     sonAdlar = isik.adlar.slice(0, paket.sayi);

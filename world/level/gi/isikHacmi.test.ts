@@ -9,7 +9,7 @@ import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { PBRMaterial } from "@babylonjs/core/Materials/PBR/pbrMaterial";
 import { MaterialDefines } from "@babylonjs/core/Materials/materialDefines";
 import { giAcikMi, giSorguAyari } from "./isikHacmi.ts";
-import { HACIM } from "./isikHacmiCekirdek.ts";
+import { HACIM, KONI_SETI } from "./isikHacmiCekirdek.ts";
 import { ENJEKSIYON_GLSL, MIP_GLSL, TOPLAMA_GLSL, MALZEME_GLSL, ORTAK_GLSL, f } from "./isikHacmiGlsl.ts";
 import { GiHacmiEklentisi, giDurumuYap, STANDARD_EK, PBR_EK } from "./giEklentisi.ts";
 
@@ -23,9 +23,9 @@ test("giAcikMi: yalnız `?gi=hacim` açar; yokken ve başka değerde KAPALI (var
 });
 
 test("giSorguAyari: varsayılan kip 0 / güç 1 / sekme 1; gikip=1, sayılar; geçersiz/negatif → varsayılan", () => {
-  assert.deepEqual(giSorguAyari(""), { kip: 0, guc: 1, sekme: 1 });
-  assert.deepEqual(giSorguAyari("?gikip=1&giguc=2.5&gisekme=0"), { kip: 1, guc: 2.5, sekme: 0 });
-  assert.deepEqual(giSorguAyari("?gikip=evet&giguc=abc&gisekme=-1"), { kip: 0, guc: 1, sekme: 1 });
+  assert.deepEqual(giSorguAyari(""), { kip: 0, guc: 1, sekme: 1, koni: 1 });
+  assert.deepEqual(giSorguAyari("?gikip=1&giguc=2.5&gisekme=0&gikoni=6"), { kip: 1, guc: 2.5, sekme: 0, koni: 6 });
+  assert.deepEqual(giSorguAyari("?gikip=evet&giguc=abc&gisekme=-1&gikoni=5"), { kip: 0, guc: 1, sekme: 1, koni: 1 });
 });
 
 test("GLSL tek kaynak: gölge ışını sabitleri enjeksiyon şablonunda (CPU referansıyla aynı)", () => {
@@ -39,7 +39,8 @@ test("GLSL tek kaynak: gölge ışını sabitleri enjeksiyon şablonunda (CPU re
 test("GLSL tek kaynak: koni sabitleri ve doluluk düzeltmesi toplama şablonunda", () => {
   for (const s of [`2.0 * t * ${f(HACIM.koniTan)}`, `cap * ${f(HACIM.koniAdimOrani)}`, `t >= ${f(HACIM.koniMaks)}`,
     `a >= ${f(HACIM.koniDoyma)}`, `< ${f(HACIM.arkaEsik)}`, `dolu ? ${f(HACIM.koniDoluBaslangic)} : ${f(HACIM.koniBaslangic)}`,
-    "pow(1.0 - min(o.a, 0.999), exp2(lvl))", `mipN[${HACIM.mipSayisi}]`]) {
+    "pow(1.0 - min(o.a, 0.999), exp2(lvl))", `mipN[${HACIM.mipSayisi}]`,
+    `${f(KONI_SETI.merkez)}) * koniIzle`, `${f(KONI_SETI.halka)} * koniIzle`, `${f(Math.cos(KONI_SETI.egim))} * yon`]) {
     assert.ok(TOPLAMA_GLSL.includes(s), s);
   }
   assert.ok(MALZEME_GLSL.includes(`${f(HACIM.ornekOfset)} * giKoken.w`));

@@ -4,6 +4,7 @@
 //   `gikesif=1`  yalnız keşif: ofis mesh'lerinin dünya kutuları, malzemeleri, sahnenin ışıkları (ölçüm değil).
 //   `gison=bos|isik|isima`  ölçümden sonra ekran görüntüsü için bırakılacak durum (K2a ışığı / K2b ışıyan karton).
 //   `giolcme=1`  ölçümü atla, yalnız pozu ve `gison` durumunu kur (GI kapalı karşılaştırma görüntüleri için).
+//   `gipoz=cam`  son poz tahta yerine cam duvara bakış (kapidene son pozu, 1. şahıs).
 // Ölçüm KARE-HASSAS: `onAfterRender` içinde çizim tamponundan okunur (preserveDrawingBuffer kapalıyken tampon o anda geçerli),
 // eylem okumadan HEMEN sonra yapılır → bir sonraki çizilen kare N+1. GI yoksa (bayraksız) GI'ye özgü adımlar atlanır.
 "use strict";
@@ -21,6 +22,8 @@ const s2 = (x: number) => x.toFixed(2);
 /** Ön kayıttaki sayılar (değiştirilirse SAPMALAR'a yazılır). */
 const POZ_TAHTA = { x: -2.2, z: -0.4, yaw: -Math.PI / 2 };
 const POZ_KAPI = { x: 1.6, z: -1.0, yaw: 0 };
+/** `gipoz=cam`: kapidene'nin son pozu (ofis içi, cam duvara bakış) — yalnız ekran görüntüsü. */
+const POZ_CAM = { x: 1.6, z: 1.9, yaw: Math.PI };
 const ORION_YERI = { x: 3.5, z: 2.5 };
 const K2A_ISIK = { konum: new Vector3(-3.0, 0.9, -1.8), renk: new Color3(1.0, 0.3, 0.05), siddet: 4, menzil: 1.6 };
 const K2B_ISIMA = { renk: new Color3(1.0, 0.45, 0.1), guc: 2.2 };
@@ -122,7 +125,7 @@ export async function kos(d: SenaryoBaglami): Promise<void> {
   }
 
   // ── ekran görüntüsü durumu ──
-  await pozla(POZ_TAHTA);
+  await pozla(q.get("gipoz") === "cam" ? POZ_CAM : POZ_TAHTA);
   const son = q.get("gison") ?? "bos";
   if (son === "isik") isikEkle();
   if (son === "isima") isimaAc();
@@ -194,7 +197,7 @@ export async function kos(d: SenaryoBaglami): Promise<void> {
     log(`SONUÇ K3 kare başı CPU (GI güncellemesi, üstel ort.) ${g.cpuMs().toFixed(3)} ms · fps ${motor.getFps().toFixed(1)}`);
     for (const tekrar of [50, 200]) {
       const o = await g.gpuOlc(tekrar);
-      log(`SONUÇ K3 GPU (${tekrar} tekrar): finish ${o.finishMs.toFixed(3)} ms/kare · sorgu ${o.sorguMs === null ? "YOK" : o.sorguMs.toFixed(3) + " ms"} (${o.sorguNotu})`);
+      log(`SONUÇ K3 GPU (${tekrar} tekrar): finish ${o.finishMs.toFixed(3)} ms/kare · sorgu ${o.sorguMs === null ? "YOK" : o.sorguMs.toFixed(3) + " ms"} (${o.sorguNotu})${o.gecisMs ? ` · geçiş başına: enjeksiyon ${o.gecisMs.enjeksiyon.toFixed(3)} mip ${o.gecisMs.mip.toFixed(3)} toplama ${o.gecisMs.toplama.toFixed(3)} ms` : ""}`);
       await kareler(roiT, 30);
     }
     const sy = g.sayim;

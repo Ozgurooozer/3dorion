@@ -8,7 +8,7 @@
 //   MALZEME     (giEklentisi.ts) pikselde ortam küpü: 3 yön × 2 okuma
 // Not: GLSL dizgelerinde ters eğik çizgi YOK (proje kuralı: Windows'ta kaçış kazası).
 "use strict";
-import { HACIM, IRR_BLOK } from "./isikHacmiCekirdek.ts";
+import { HACIM, IRR_BLOK, KONI_SETI } from "./isikHacmiCekirdek.ts";
 
 /** GLSL float yazımı (1 → "1.0"). */
 export const f = (x: number) => (Number.isInteger(x) ? x.toFixed(1) : String(x));
@@ -181,6 +181,7 @@ uniform sampler2D seviye2;
 uniform sampler2D seviye3;
 uniform vec4 mipN[${HACIM.mipSayisi}];
 uniform vec4 mipBoyut[${HACIM.mipSayisi}];
+uniform vec4 hKoni;
 ${ORTAK_GLSL}
 
 vec4 seviyeUc(int L, vec3 q0) {
@@ -244,11 +245,24 @@ void main(void) {
   if (!dolu && s1.r < 0.5) { gl_FragColor = vec4(0.0); return; }
   vec3 yon = b == 0 ? vec3(1.0, 0.0, 0.0) : b == 1 ? vec3(-1.0, 0.0, 0.0) : b == 2 ? vec3(0.0, 1.0, 0.0)
     : b == 3 ? vec3(0.0, -1.0, 0.0) : b == 4 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 0.0, -1.0);
-  if (dolu) {
-    vec3 N = s1.xyz * 2.0 - 1.0;
-    if (length(N) > 0.3 && dot(normalize(N), yon) < ${f(HACIM.arkaEsik)}) { gl_FragColor = vec4(0.0); return; }
+  vec3 N = s1.xyz * 2.0 - 1.0;
+  bool nVar = dolu && length(N) > 0.3;
+  N = nVar ? normalize(N) : vec3(0.0);
+  vec3 p = vec3(c) + 0.5;
+  float bas = dolu ? ${f(HACIM.koniDoluBaslangic)} : ${f(HACIM.koniBaslangic)};
+  vec3 r = vec3(0.0);
+  if (!(nVar && dot(N, yon) < ${f(HACIM.arkaEsik)})) r += (hKoni.x < 1.5 ? 1.0 : ${f(KONI_SETI.merkez)}) * koniIzle(p, yon, bas);
+  if (hKoni.x > 1.5) {
+    vec3 yard = abs(yon.y) < 0.9 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
+    vec3 t1 = normalize(cross(yon, yard));
+    vec3 t2 = cross(yon, t1);
+    for (int k = 0; k < 5; k++) {
+      float fi = float(k) * ${f((2 * Math.PI) / 5)};
+      vec3 d = ${f(Math.cos(KONI_SETI.egim))} * yon + ${f(Math.sin(KONI_SETI.egim))} * (cos(fi) * t1 + sin(fi) * t2);
+      if (nVar && dot(N, d) < ${f(HACIM.arkaEsik)}) continue;
+      r += ${f(KONI_SETI.halka)} * koniIzle(p, d, bas);
+    }
   }
-  vec3 r = koniIzle(vec3(c) + 0.5, yon, dolu ? ${f(HACIM.koniDoluBaslangic)} : ${f(HACIM.koniBaslangic)});
   gl_FragColor = vec4(r, 1.0);
 }
 `;

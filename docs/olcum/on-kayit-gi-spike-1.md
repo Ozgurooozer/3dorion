@@ -127,7 +127,37 @@ GI kapalı/açık koşular ARDIŞIK ve dönüşümlü alınır ki ortam ikisine 
 (sürücünün sistem belleğine kaydırması) fps'i bozabilir — olursa yazılır. Tasarım sayıları ölçüm koşularından önce değişirse SAPMALAR bölümüne yazılır.
 
 ## SAPMALAR
-(henüz yok)
+1. **Geçişler kare başına İKİ kez koşuyordu (hata, K3'ün ilk `gi=hacim` kapidene koşusunda yakalandı).** Çizim artışı her noktada
+   +10 çıktı (tahmin +5). Neden (Babylon kaynağı): `onBeforeRenderTargetsRenderObservable` kare başına iki kez yayınlanır
+   (`scene.render` içinde ve `_renderForCamera` içinde). Düzeltme: gözlemci `scene.getFrameId()` ile karede bir kez çalışır
+   (`getRenderId` olmaz: o `_renderForCamera` içinde de artar). Bu koşunun sayıları SONUÇLAR'da "düzeltme öncesi" diye ayrıca
+   yazılır; K3 düzeltmeden sonra yeniden koşuldu. K2 ölçüm koşusu düzeltmeden SONRA yapıldı (K2'ye henüz hiç bakılmamıştı).
 
 ## SONUÇLAR
-(koşudan sonra eklenecek)
+Koşu: `gidene=1&gi=hacim`, tek koşu (n = 1), ajansız (GI ajanı kota hatasıyla düştü; bu sayılar ayrı bir son koşudan, 2026-10-14 akşam). Ham çıktı satırları
+aşağıda olduğu gibi. Ortam uyarısı geçerli: League of Legends, llama-server ve groma açıkken ölçüldü (VRAM 7238/8188 MiB dolu), yani fps ve GPU süresi şişmiş olabilir.
+
+**Önceden yazılı karar kuralına göre hüküm: K2a ve K2b İKİSİ DE KALDI → kural "teşhis" diyor; K3 (GPU) da kaldı → "koşullu". YOL AÇIK DEĞİL, YOL KAPALI DA DEĞİL: kanıtlanmadı.**
+
+| Ölçüt | Eşik (önceden) | Sonuç | Durum |
+|---|---|---|---|
+| K2a: kırmızı/turuncu nokta ışık → bir sonraki karede beyaz yüzeyde Δ(R−B) | ≥ 8 ve ≥ 5 × gürültü (gürültü 0,00) | N+1 Δ = **0,31** (N+15: 0,31; N+1/N+15 = 0,99) | **KALDI** |
+| K2b: eşya ışıması turuncuya → çevresinin boyanması Δ(R−B) | ≥ 8 ve ≥ 5 × gürültü | N+1 Δ = **4,01** (N+15: 4,24; N+1/N+15 = 0,94) | **KALDI** |
+| C1: GI 0 iken doğrudan ışık kontrolü | ≤ gürültü + 1,5 | 0,00 | geçerli |
+| K3 fps | ≥ 60 | 63,7 (ortam yükü altında; son durumda 80) | geçti |
+| K3 GI geçişi GPU | ≤ 2,5 ms | **4,85 ms** (zamanlayıcı sorgusu; enjeksiyon 0,661 + mip 0,035 + **toplama 4,172** ms; 200 tekrar: 4,853 ms) | **KALDI** |
+| K3 CPU (GI güncellemesi) | bilgi | 0,176 ms/kare | — |
+| K3 VRAM | ≤ +100 MiB | **30,8 MiB (HESAPLANDI, ölçülmedi)**; ölçüm gürültüsü ±100 MiB | belirsiz/hesap |
+| K3 çizim artışı | ≤ +20 | **bu son koşuda kaydedilmedi** (ajanın önceki koşuları ve görüntüleri `gi-spike-1/` altında, sayıları yazılı DEĞİL) | **kayıt yok** |
+| K4 sızma (gözlem) | ölçüt değil | kapı açıkken (1,57 rad) dış lamba 0'a çekilince iç zeminde N+1 ΔR −14,01, ΔB +7,69 (N+15: −13,32 / +13,68) | dış ışık içeri geçiyor (kapı açık) |
+
+**Mekanizma sinyal üretiyor, ama eşiğin altında.** GI açık/kapalı aynı durumda: K2a'da GI payı R−B **+5,47**, K2b'de **+9,40** (GI kapalıyken R−B 21,28; açıkken 26,75 / 30,45). Etki ilk karede
+oturuyor (N+1/N+15 ≈ 0,94–0,99): "ışık verince bir sonraki karede" kısmı doğru. Ama eşik, ışık eklenmeden ÖNCEKİ kareye göre Δ(R−B) ölçüyor ve ROI (beyaz yüzey) zaten
+doğrudan ışıkla sıcak (R−B 26,44); ışığın kendi katkısı GI'nın payını gölgeliyor. Ofis albedoları koyu/sıcak; eşik bu sahne için fazla katı olabilir, ama bunu kanıtlamadım.
+
+**Yalnız-GI koşuları (doğrudan ışığı kapatan teşhis) YORUMLANAMADI.** K2b yalnız-GI Δ = 14,75 çıkıyor ama aynı satırda "GI'siz (aynı durum)" de neredeyse aynı (137,78 vs 136,94) ve "GI payı 0,00" diyor.
+Bu, ölçüm düzeneğinde (yalnız-GI kipinde GI'siz kontrolün neyi kapattığı) bir belirsizlik: bu sayıyla "enjeksiyon mu toplama mı" teşhisi YAPILMADI. Önce düzenek açıklığa kavuşturulmalı.
+
+**Hüküm (dürüst):** Işık Hacmi, ofiste kare-hassas ve otomatik (ışıklar `scene.lights`'tan kendiliğinden algılanıyor: 11 ışık, elle kayıt yok), ama (1) renkli sekme ön kayıttaki eşiği geçmedi, (2) toplama geçişi 4,17 ms ile bütçenin
+(2,5 ms) neredeyse iki katı. Karar kuralındaki seçenekler: toplamayı yarım hızda yap (≈2,1 ms), ışınım hacmini 0,2 m yap ya da WebGPU compute. Spike 2/3'e GEÇİLMEDİ; önce K2 ölçüm düzeneği (yalnız-GI kontrolü, ROI'nin doğrudan ışıktan arındırılması)
+ve GPU bütçesi çözülmeli. Kaynak commit'ler: 969bb54 (saf çekirdek), 2d75d98 (Babylon bağlaması), bu commit (düzeltmeler + sonuçlar). Görüntüler: `docs/olcum/gi-spike-1/` (önce/sonra çiftleri, Ozyn'in gözü için).

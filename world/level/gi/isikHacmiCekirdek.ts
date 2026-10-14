@@ -493,10 +493,36 @@ export function koniIzle(sv: readonly Seviye[], p: Vec3, yon: Vec3, baslangic: n
 }
 
 /**
- * Işınım hacmi (6 yön × 3 kanal × voxel; blok b, voxel v → (b·N + v)·3): dolu ve yüzey-yakını voxellerde her yönde bir koni;
- * dolu voxelde yüzeyin içine bakan yön atlanır. Diğer voxeller 0 (malzeme onları okumaz).
+ * Eksen başına koni seti. `1`: eksen boyunca TEK 30°'lik koni (ön kayıttaki yapılandırma). `6`: yarıküreyi kosinüs ağırlıklı
+ * örten klasik dağınık set (Crassin 2011): eksen boyunca 1 koni (ağırlık 1/4) + eksenden 60° eğik 5 koni (her biri 0,15);
+ * ağırlıklar kosinüs ağırlıklı katı açı payıdır (toplam 1) → ortam küpünün tanımına uyar: C_eksen = o yöne bakan yüzeyin E/π'si.
+ * NEDEN (GI spike 1 teşhisi, ön kayıttan SONRA): tek dar koni normalden 30°'den uzaktaki ışığı hiç görmez — kosinüs ağırlıklı
+ * yarıkürenin yalnız sin²30° = %25'i; tahtadan ~35° yanda duran ışıyan kutu ölçümde böyle kaçtı.
  */
-export function topla(v: VoxelVerisi, sv: readonly Seviye[]): Float32Array {
+export function koniSeti(eksen: Vec3, sayi: 1 | 6): { yon: Vec3; agirlik: number }[] {
+  if (sayi === 1) return [{ yon: eksen, agirlik: 1 }];
+  const a = eksen;
+  const yard: Vec3 = Math.abs(a[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0];
+  const c = (x: Vec3, y: Vec3): Vec3 => [x[1] * y[2] - x[2] * y[1], x[2] * y[0] - x[0] * y[2], x[0] * y[1] - x[1] * y[0]];
+  const t1n = c(a, yard), l = Math.hypot(...t1n);
+  const t1: Vec3 = [t1n[0] / l, t1n[1] / l, t1n[2] / l], t2 = c(a, t1);
+  const out: { yon: Vec3; agirlik: number }[] = [{ yon: a, agirlik: KONI_SETI.merkez }];
+  const ce = Math.cos(KONI_SETI.egim), se = Math.sin(KONI_SETI.egim);
+  for (let k = 0; k < 5; k++) {
+    const f = (k * 2 * Math.PI) / 5, cf = Math.cos(f), sf = Math.sin(f);
+    out.push({ yon: [ce * a[0] + se * (cf * t1[0] + sf * t2[0]), ce * a[1] + se * (cf * t1[1] + sf * t2[1]), ce * a[2] + se * (cf * t1[2] + sf * t2[2])], agirlik: KONI_SETI.halka });
+  }
+  return out;
+}
+
+/** 6'lı setin sayıları (GLSL de buradan alır). */
+export const KONI_SETI = { merkez: 0.25, halka: 0.15, egim: Math.PI / 3 } as const;
+
+/**
+ * Işınım hacmi (6 yön × 3 kanal × voxel; blok b, voxel v → (b·N + v)·3): dolu ve yüzey-yakını voxellerde her yönde koni seti;
+ * dolu voxelde yüzeyin içine bakan koni atlanır. Diğer voxeller 0 (malzeme onları okumaz).
+ */
+export function topla(v: VoxelVerisi, sv: readonly Seviye[], koni: 1 | 6 = 1): Float32Array {
   const n = v.izgara.n, N = voxelSayisi(n);
   const out = new Float32Array(6 * 3 * N);
   for (let j = 0; j < n[1]; j++) for (let k = 0; k < n[2]; k++) for (let i = 0; i < n[0]; i++) {
@@ -505,10 +531,13 @@ export function topla(v: VoxelVerisi, sv: readonly Seviye[]): Float32Array {
     if (!dolu && !v.yakin[vi]) continue;
     const Nv: Vec3 = [v.normal[3 * vi]!, v.normal[3 * vi + 1]!, v.normal[3 * vi + 2]!];
     for (let b = 0; b < 6; b++) {
-      const d = YONLER[b]!;
-      if (dolu && nokta3(Nv, d) < HACIM.arkaEsik) continue;
-      const c = koniIzle(sv, [i + 0.5, j + 0.5, k + 0.5], d, dolu ? HACIM.koniDoluBaslangic : HACIM.koniBaslangic);
-      out.set(c, (b * N + vi) * 3);
+      const t: Vec3 = [0, 0, 0];
+      for (const { yon: d, agirlik: w } of koniSeti(YONLER[b]!, koni)) {
+        if (dolu && nokta3(Nv, d) < HACIM.arkaEsik) continue;
+        const c = koniIzle(sv, [i + 0.5, j + 0.5, k + 0.5], d, dolu ? HACIM.koniDoluBaslangic : HACIM.koniBaslangic);
+        t[0] += w * c[0]; t[1] += w * c[1]; t[2] += w * c[2];
+      }
+      out.set(t, (b * N + vi) * 3);
     }
   }
   return out;
