@@ -91,7 +91,7 @@ Geride `.tmp` ya da bozuk dosya yok. Dosya:
   arayüzünde **silme yeteneği yok** (K5 yapısal garanti).
 - `host/kanallar.cjs` — üç kanal; okuma senkron (`sendSync`) çünkü köprü
   depoyu kurucuda senkron okuyor (K7).
-- `world/giris.ts` → `hafizaDeposuKur` — Electron yoksa (`npm run dev`)
+- `uygulama/giris.ts` → `hafizaDeposuKur` — Electron yoksa (`npm run dev`)
   eskisi gibi `localStorage`.
 
 **Düşman testleri önce yazıldı, mutasyonla kanıtlandı** (18 test):

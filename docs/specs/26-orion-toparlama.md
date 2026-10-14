@@ -213,7 +213,7 @@ Ozyn: "robot mühendisi, yazılım mühendisi, yapay zeka mühendisi, 30 mühend
 
 **Kod (commit 1a2e9f1, 62ec522, bunu izleyen).**
 - `mind/inisiyatif.ts`: varlık = son girdi yaşı ≤ 10 dk (`girdiYasiMs`, mesafe değil); nedenler `acik_is` (zaman aşımına uğrayan komut önerisi, ≥ 2 dk, aynı iş TEK kez) ve `sessizlik` (ikincil); `UyanisButcesi` (saatlik ≤ 4 uyanma, ≤ 20 model-sn, ≤ 12 bin token; günlük ≤ 60 bin token; üst üste 2 boş uyanış → 30 dk devre kesici; başarısız çağrı da düşer).
-- Köprü: köken=inisiyatif turunda araç kümesi `{söz, bak, jest, poz}` (`OZERK_ARACLAR`), zincir 0, özerk tura özel talimat (`OZERK`); uyanış satırına `neden`, `eylemli`; içgüdü `kopru.ozerk_dar`. `world/giris.ts`: girdi saati (tuş/fare/söz), `?inisiyatif=eski` geri alma.
+- Köprü: köken=inisiyatif turunda araç kümesi `{söz, bak, jest, poz}` (`OZERK_ARACLAR`), zincir 0, özerk tura özel talimat (`OZERK`); uyanış satırına `neden`, `eylemli`; içgüdü `kopru.ozerk_dar`. `uygulama/giris.ts`: girdi saati (tuş/fare/söz), `?inisiyatif=eski` geri alma.
 - Hafıza: `mind/aniSuzgeci.ts` selam sözü saklanmaz, doğuştan komut düşük önem (3), hata dersi normalleşir (`?anipolitikasi=eski` geri alma); sıkıştırma (`/compact` + otomatik) **yalnız ÖZET** yazar, olgu yazmaz; başarısız otomatik deneme de 15 dk aralığı başlatır.
 - Ölçüm araçları: `tools/sikistir-olc.ts`, `tools/ani-politikasi-olc.ts`, `fixtures/f0/ozerk*.json` (+ `f0-olc.ts --fixture`), ham sonuçlar `docs/olcum/`.
 

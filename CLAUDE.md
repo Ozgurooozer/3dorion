@@ -36,7 +36,7 @@ mind/      ARKA  — dikkat, refleks, hafıza, benlik, karar kaydı, içgüdüle
 bridge/    ARKA  — protocol ↔ beyinler (ollama, apiBeyni, opencode, disBeyin, mcpBeyin); köprü `kopru.ts`
 host/      KABUK — Electron ana süreç: pty, IPC (kanal adları TEK kaynak `host/kanallar.cjs`), dosyalar
 uygulama/  UYGULAMA — kompozisyon: niyet yürütücü, zihin duvarı, beyin seçimi, senaryolar
-world/giris.ts — kompozisyon kökü (tek istisna: beyni bedene bağlar)
+uygulama/giris.ts — kompozisyon kökü (Vite giriş noktası; beyni bedene bağlar)
 ```
 Bağımlılık tek yönlü; `world/` asla `bridge/`/`mind/` import etmez (K4). Bekçiler: `tools/mimari.test.ts`
 (katman başına izinli importlar), `world/bagimlilik.test.ts`, `tools/tipKacisi.test.ts` (`as unknown as` izin listesi),
@@ -52,7 +52,7 @@ Editör    world/level/editor/ + editorSayfasi.ts      level editörü (ayrı sa
 Avatar    world/avatar/                               Orion'un bedeni; dışarıya yalnız index.ts
 Yüzeyler  world/surfaces/{terminal,tahta,duvar}/,    monitör terminali, tahta, zihin duvarı, model seçici, stil penceresi
           world/arayuz/                               (ortak yuzey.ts, yuzeyStil.ts surfaces/ kökünde)
-Zihin mind/ · Köprü bridge/ · Ses voice/ · Kabuk host/ · Uygulama world/giris.ts + uygulama/ (kök: herkesi alır)
+Zihin mind/ · Köprü bridge/ · Ses voice/ · Kabuk host/ · Uygulama uygulama/ (giris.ts dahil; kök: herkesi alır)
 ürün dışı: Araçlar tools/, Beyin-Lab brain-lab/ — üretim kodu ikisini de import etmez
 ```
 Bekçi: izinli yön, başka alt-sistemden yalnız kamu dosyası, her göreli import diskte çözülür. Bugünkü ihlaller

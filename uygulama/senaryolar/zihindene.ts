@@ -1,4 +1,4 @@
-// uygulama/senaryolar/zihindene.ts — `3dorion.bat zihindene` (spec 14 R3: world/giris.ts'ten taşındı,
+// uygulama/senaryolar/zihindene.ts — `3dorion.bat zihindene` (spec 14 R3: uygulama/giris.ts'ten taşındı,
 // gövde aynı; giris.ts'in modül değişkenleri `d` bağlamından okunur).
 // ── ZİHİN DUVARI denemesi (?zihindene=1) ──────────────────────────────────
 // İki paneli beyin olmadan sürer: çizim, yerleşim ve okunabilirlik gözle

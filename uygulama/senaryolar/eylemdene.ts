@@ -1,4 +1,4 @@
-// uygulama/senaryolar/eylemdene.ts — `3dorion.bat eylemdene` (spec 14 R3: world/giris.ts'ten taşındı,
+// uygulama/senaryolar/eylemdene.ts — `3dorion.bat eylemdene` (spec 14 R3: uygulama/giris.ts'ten taşındı,
 // gövde aynı; giris.ts'in modül değişkenleri `d` bağlamından okunur).
 // ── EYLEM denemesi (?eylemdene=1, spec 13 Faz 7) ──────────────────────────
 // Ortak testlerde Ozyn'in söylediği komutlar, GERÇEK köprü yolundan (`kopru.algi`, kesin

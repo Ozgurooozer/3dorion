@@ -5,7 +5,7 @@
 // zaman etkiler. Bu dosya o sorulara verilen cevabın biçimidir.
 //
 // SIFIR BAĞIMLILIK — `protocol/`un kuralı. `world/` bundan yalnızca TİP
-// alır; kayıt defterini kompozisyon kökü (`world/giris.ts`) kurar.
+// alır; kayıt defterini kompozisyon kökü (`uygulama/giris.ts`) kurar.
 //
 // ── İKİ EKSEN, BİRLEŞTİRİLMEZ ────────────────────────────────────────────
 //

@@ -1,4 +1,4 @@
-// uygulama/senaryolar/terminaldene.ts — `3dorion.bat terminaldene` (spec 14 R3: world/giris.ts'ten taşındı,
+// uygulama/senaryolar/terminaldene.ts — `3dorion.bat terminaldene` (spec 14 R3: uygulama/giris.ts'ten taşındı,
 // gövde aynı; giris.ts'in modül değişkenleri `d` bağlamından okunur).
 // ── Entegrasyon duman testi: terminal gerçekten açılıyor mu? ───────────────
 // Kullanıcı E'ye bastığında çalışacağını ELDEN ÖNCE kanıtlar.

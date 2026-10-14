@@ -101,7 +101,7 @@ const yap = (yol: string): string => path.join(KOK, ...yol.split("/"));
 
 test("kalibrasyon: dosya en uzun eşleşen kalıbın alt-sistemine aittir", () => {
   assert.deepEqual(
-    ["world/giris.ts", "world/varlik.ts", "world/level/oda.ts", "world/level/cekirdek/x.ts",
+    ["uygulama/giris.ts", "world/varlik.ts", "world/level/oda.ts", "world/level/cekirdek/x.ts",
       "world/level/editorSayfasi.ts", "world/level/editor/cekirdek/x.ts", "world/arayuz/x.ts", "vite.config.ts"]
       .map((d) => altSistemi(d)?.ad ?? null),
     ["Uygulama", "Level", "Sahne", "Level", "Editör", "Editör", "Yüzeyler", null]);
@@ -130,16 +130,16 @@ test("kalibrasyon TİP: yalnız tip izinli alt-sistemden değer almak yakalanır
 
 test("kalibrasyon ÜRÜN: kompozisyon kökü bile tools/ ya da brain-lab/'ı alamaz; tools/ taranmaz", () => {
   assert.deepEqual([
-    ihlaller(yap("world/giris.ts"), 'import { f0 } from "../tools/f0.ts";').map(satir),
+    ihlaller(yap("uygulama/giris.ts"), 'import { f0 } from "../tools/f0.ts";').map(satir),
     ihlaller(yap("uygulama/x.ts"), 'const m = await import("../brain-lab/brain-ir/orion.ts");').map(satir),
     ihlaller(yap("tools/x.ts"), 'import { Yurutucu } from "../world/avatar/yurutucu.ts";').length,
-  ], [["world/giris.ts → tools/f0.ts (ürün dışı)"], ["uygulama/x.ts → brain-lab/brain-ir/orion.ts (ürün dışı)"], 0]);
+  ], [["uygulama/giris.ts → tools/f0.ts (ürün dışı)"], ["uygulama/x.ts → brain-lab/brain-ir/orion.ts (ürün dışı)"], 0]);
 });
 
 test("kalibrasyon ÇÖZÜLÜR: var olmayan hedef yakalanır, `?url` soneki ayıklanır", () => {
-  const d = yap("world/giris.ts");
+  const d = yap("uygulama/giris.ts");
   assert.deepEqual([
-    cozulmeyenler(d, 'import ovaAdresi from "./level/ova/ova.level.json?url";'),
+    cozulmeyenler(d, 'import ovaAdresi from "../world/level/ova/ova.level.json?url";'),
     cozulmeyenler(d, 'import "./yok.ts";\nconst k = require("../host/yok.cjs");'),
   ], [[], ["./yok.ts", "../host/yok.cjs"]]);
 });

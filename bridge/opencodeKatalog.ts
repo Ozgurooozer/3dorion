@@ -1,7 +1,7 @@
 // bridge/opencodeKatalog.ts — OpenCode sunucusuna BAĞLI sağlayıcıların kataloğu.
 //
 // NEDEN VAR: `opencode` seçeneği elle yazılan TEK bir sağlayıcı/model çiftiydi
-// (`?saglayici=` `?model=`, `world/giris.ts`). Yeni bir sağlayıcı denemek
+// (`?saglayici=` `?model=`, `uygulama/giris.ts`). Yeni bir sağlayıcı denemek
 // (NVIDIA gibi) ya da OpenRouter'daki yüzlerce modelden birini seçmek kod
 // değiştirmek demekti. Liste artık TEK KAYNAKTAN gelir: OpenCode sunucusunun
 // kendi `/config/providers` ucundan — kim BAĞLIYSA (kimlik bilgisi girilmişse,
@@ -13,7 +13,7 @@
 // seçiciyi kullanılamaz kılardı. Araçsız model satır sözleşmesiyle zar zor
 // konuşur (aynı gerekçe `ollamaKatalog.ts`te). Ücretli modeli açılışta
 // otomatik seçenek yapmak sürpriz faturaya yol açardı — o zaman elle
-// `?saglayici=` `?model=` kullanılır (bkz. `world/giris.ts` sabit `opencode`
+// `?saglayici=` `?model=` kullanılır (bkz. `uygulama/giris.ts` sabit `opencode`
 // seçeneği), bu tarama onu DEĞİŞTİRMEZ, tamamlar.
 //
 // Bağımlılık: yalnızca fetch. Babylon yok, Electron yok; testte sahte fetch.

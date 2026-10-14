@@ -338,7 +338,7 @@ düzeliyor hem 2,3 kat hızlanıyor (Türkçe token olarak pahalı).
 
 Kazancın **yarısı durum satırlarından** geliyor: yalnız talimatı çevirmek
 4/10'da kalıyor. Bu yüzden `protocol/algi.ts`, `mind/calismaBellegi.ts`,
-`mind/zaman.ts`, `world/giris.ts` → `dunyaDurumuMetni` de çevrildi.
+`mind/zaman.ts`, `uygulama/giris.ts` → `dunyaDurumuMetni` de çevrildi.
 
 **Haiku'da da iyileşti:** aynı fixture'da %90 → **%100** sadık, uydurma 1 → 0.
 

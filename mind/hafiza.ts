@@ -95,7 +95,7 @@ export const BOZULMA = 0.995;
  * Bu kayıt, eski sürümde yanlışlıkla kalıcı hafızaya yazılmış bir ANLIK
  * GÖZLEM mi? (spec 06 K2)
  *
- * Geçmiş kayıtları temizlemek için — `world/giris.ts` yüklerken kullanır.
+ * Geçmiş kayıtları temizlemek için — `uygulama/giris.ts` yüklerken kullanır.
  * Desen bilerek DAR: yalnızca `sonuc` türü ve algı sorgusu öneki. Bir kaydı
  * yanlışlıkla silmek geri alınamaz; fazladan bırakmak yalnızca gürültüdür.
  */

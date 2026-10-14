@@ -1,4 +1,4 @@
-// uygulama/senaryolar/gorudene.ts — `3dorion.bat gorudene` (spec 14 R3: world/giris.ts'ten taşındı,
+// uygulama/senaryolar/gorudene.ts — `3dorion.bat gorudene` (spec 14 R3: uygulama/giris.ts'ten taşındı,
 // gövde aynı; giris.ts'in modül değişkenleri `d` bağlamından okunur).
 // ── "Orion görüyor mu?" canlı kanıtı (?gorudene=1) ────────────────────────
 // T6b'nin asıl iddiasını kilitler: Orion masasındaki terminali GÖRÜYOR ve

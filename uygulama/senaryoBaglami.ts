@@ -1,7 +1,7 @@
 // uygulama/senaryoBaglami.ts — Canlı deneme senaryolarının (`3dorion.bat <ad>dene`) dünyaya erişimi
 // (spec 14 R3).
 //
-// Senaryolar eskiden world/giris.ts'in içinde, 23 blok ve ~1000 satırdı (ACIK-ISLER "sıradaki 1"):
+// Senaryolar eskiden uygulama/giris.ts'in içinde, 23 blok ve ~1000 satırdı (ACIK-ISLER "sıradaki 1"):
 // test kodu üretim dosyasında ve pakette. Artık her biri `uygulama/senaryolar/<ad>.ts`, yalnız URL'de
 // istendiğinde dinamik olarak yüklenir. Kompozisyon kökü (giris.ts) bu bağlamı kurar: senaryo
 // odanın nesnelerini buradan görür, giris.ts'in modül değişkenlerine doğrudan dokunmaz.

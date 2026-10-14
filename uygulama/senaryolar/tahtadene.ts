@@ -1,4 +1,4 @@
-// uygulama/senaryolar/tahtadene.ts — `3dorion.bat tahtadene` (spec 14 R3: world/giris.ts'ten taşındı,
+// uygulama/senaryolar/tahtadene.ts — `3dorion.bat tahtadene` (spec 14 R3: uygulama/giris.ts'ten taşındı,
 // gövde aynı; giris.ts'in modül değişkenleri `d` bağlamından okunur).
 // ── TAHTA denemesi (?tahtadene=1) ─────────────────────────────────────────
 // Iki iddiayi kanitlar: (1) Orion tahtanin ONUNDEYKEN gercekten yaziyor,

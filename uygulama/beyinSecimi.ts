@@ -1,5 +1,5 @@
 // uygulama/beyinSecimi.ts — Düşünce beyninin seçimi: seçenekler, açılış beyni, kataloglar, hatırlanan
-// seçim ve M seçicinin kaynağı (spec 14 R6: world/giris.ts `beyniBagla`dan taşındı; gövde aynı).
+// seçim ve M seçicinin kaynağı (spec 14 R6: uygulama/giris.ts `beyniBagla`dan taşındı; gövde aynı).
 //
 // ── SOL LOB: düşünce beyni ────────────────────────────────────────────────────
 //

@@ -1,4 +1,4 @@
-// uygulama/senaryolar/otodene.ts — `3dorion.bat otodene` (spec 14 R3: world/giris.ts'ten taşındı,
+// uygulama/senaryolar/otodene.ts — `3dorion.bat otodene` (spec 14 R3: uygulama/giris.ts'ten taşındı,
 // gövde aynı; giris.ts'in modül değişkenleri `d` bağlamından okunur).
 // ── Otomatik entegrasyon denemesi (?otodene=1) ─────────────────────────────
 // Ozyn'in elle bulduğu üç hatayı bir daha geri gelmesinler diye kilitler.

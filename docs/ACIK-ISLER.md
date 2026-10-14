@@ -7,7 +7,7 @@
 Yapıldı: `dunya_ortam` niyeti, doğuştan sözlük (token'sız), öğrenen sözlük, modüler kalıcılık, G penceresi komut yolu; canlı `ortamdene` Haiku 16/16.
 - **LLM yolunun serbest cümleyi anlaması zayıf** (f0 tek atış: Haiku 9/24, yerel 2–6/24). Üçüncü düzeltme (eş anlamlı tablosu) Ozyn'e soruldu: "öğrenen sözlük asıl yol" denerek ertelendi.
 - **Ofis ova'nın İÇİNDE, tek level (spec 27 §7): YAPILDI.** Plato, gerçek kapı, tek `Yer`, görünüm geçişi, pencereden ova; `kapidene` 19/19, çizim 77–193 (bütçe 220). Açık: efekt zinciri geçişinde takılma gözlenmedi, ofisin dış yüzü yalın, ışın ofis duvarlarını katı sayar, **`gozdene` yeniden tasarlanmalı** (iki yer varsayıyordu), yeşil harabe Ozyn'in kararıyla ayrı arşivde (commit'siz).
-- Ajanda gürültüsü giderildi (`kopru.ajanda`, `docs/olcum/on-kayit-ajanda.md`: kayıtta ajanda satırı 12/11 → 0). Kalan: eski ışınlanma yolunda (`dunya.kapidanGec`, `?level=harabe`) yer ofis çapalarını taşımaz, ajanda orada `tahta` hatası üretir (artık LLM'i uyandırmaz, kayda iz düşer); `world/giris.ts` ajanda kimliğini `AJANDA_ONEKI` yerine düz "ajanda" ile kuruyor (WIP yüzünden dokunulmadı); duman koşuları `ORION_KARAR_DOSYASI` verilmezse gerçek karar kaydına yazıyor (2026-10-14 kaydında `kapidene` oturumları dahil 13 "beyin yok" oturumu).
+- Ajanda gürültüsü giderildi (`kopru.ajanda`, `docs/olcum/on-kayit-ajanda.md`: kayıtta ajanda satırı 12/11 → 0). Kalan: eski ışınlanma yolunda (`dunya.kapidanGec`, `?level=harabe`) yer ofis çapalarını taşımaz, ajanda orada `tahta` hatası üretir (artık LLM'i uyandırmaz, kayda iz düşer); `uygulama/giris.ts` ajanda kimliğini `AJANDA_ONEKI` yerine düz "ajanda" ile kuruyor (WIP yüzünden dokunulmadı); duman koşuları `ORION_KARAR_DOSYASI` verilmezse gerçek karar kaydına yazıyor (2026-10-14 kaydında `kapidene` oturumları dahil 13 "beyin yok" oturumu).
 
 ## Ova stil penceresi (Ozyn, 2026-10-13): G ile açılıp kapanır — `world/arayuz/stilPenceresi.ts`
 Ova'dayken stil önayarı, renk düzeni, ışık sonrası çipleri, shader'lar, saat/dünya düğmeleri oyunun içinde sürüklenebilir pencerede (editörle AYNI panel: `level/editor/arayuz/gorunum.ts`, soyut `GorunumKaynagi`). Yalnız canlı level'a yazar, dosyaya yazmaz. Canlı doğrulandı (G aç, toon, kapat, yeniden aç; ekran görüntüsü). Ofise dönünce sökülür (bu yol canlıda koşulmadı).
@@ -90,7 +90,7 @@ Bırakıldığı yer:
 
 ## Beden / görünüm
 - **Avatarın yüzü yok** — varsayılan beden low-poly `assets/orion-lowpoly.glb` (kaynak `tools/avatar-blender/`).
-  Ağız/göz blend shape'i yok → ağız senkronu ve göz kırpma görünmez, `jest` klibi yok; `world/giris.ts`
+  Ağız/göz blend shape'i yok → ağız senkronu ve göz kırpma görünmez, `jest` klibi yok; `uygulama/giris.ts`
   `vrmZorla: true`, `?yuzdene` KALDI raporlar. Sıradaki: yüz + jest klipleri, sonra saç/kıyafet.
 - Oyuncu gövdesi kapsül (omuz kamerasında belirgin).
 - Zoom hapı şema panelinin başlık şeridine biniyor (işlevsel etkisi yok).

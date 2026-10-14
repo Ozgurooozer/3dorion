@@ -109,7 +109,7 @@ ulaşmıyordu. Spec 24 C4 ("Orion ovayı bilir") bu fazla birleşti.
   alan içi + görüş hattı; yön sözü `yonSozu` (önünde ±35° / arkanda ±45° / sağında / solunda — Babylon sol-elli);
   aynı adlılar gruplanır ("3 ek bina (en yakını solunda)"); alan içi ama görünmeyenler SAYILIR, alan dışı hiç anılmaz;
   Ozyn'in yanındaki şey nesnelerden. `nesneler` verilmezse eski davranış (çapalar + ışın) — eski 14 test aynen geçer.
-- **`world/giris.ts` `algiSor`:** `orionYeri.nesneler`; görüş hattını DÜNYA hesaplar (`gorunurluk.ts` gorunenNesneler, 9
+- **`uygulama/giris.ts` `algiSor`:** `orionYeri.nesneler`; görüş hattını DÜNYA hesaplar (`gorunurluk.ts` gorunenNesneler, 9
   nokta — tek ışın büyük nesnede kendi duvarına çarpıyordu); mind yalnız seçer ve söze döker (K4 korunur).
 - **Yer bilgisi:** `yerSabitBilgisi(yer)` (oda metni ESKİSİNİN AYNISI — "In the room: …", istem ölçümleri ona dayanır;
   dışarıda "Outside, in the ova (you left the room through its door): ofis kapısı."); `tools/ogretmen.ts` SABIT aynı

@@ -1,5 +1,5 @@
 // uygulama/zihinDuvari.ts — Zihin duvarının (günlük + akış şeması) beyne bağlanması
-// (spec 14 R4: world/giris.ts `beyniBagla`dan taşındı; gövde aynı).
+// (spec 14 R4: uygulama/giris.ts `beyniBagla`dan taşındı; gövde aynı).
 //
 // Duvar `world/surfaces/` içinde ve beyni GÖRMEZ (K4). Beynin ne yaptığını ona taşıyan kablolar
 // burada: karar kaydı → günlük satırları, anlık benlik → canlı satır ve DÜŞÜNCE hapı, devre

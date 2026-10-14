@@ -38,7 +38,7 @@ Statusline önerisi bayrak dosyasıyla **bir kez** yapılıyor, her oturumda de�
 | `mind/` kod / test | 2.061 / 1.508 (oran 0,73) |
 | `bridge/` kod / test | 1.882 / 1.352 (oran 0,72) |
 | `protocol/` kod / test | 1.011 / 574 (oran 0,57) |
-| En büyük dosya | `world/giris.ts` — 2.312 satır (%56'sı senaryo) |
+| En büyük dosya | `uygulama/giris.ts` — 2.312 satır (%56'sı senaryo) |
 | Testsiz dosya (`world/`) | 24 |
 | Test sayısı | 539 |
 | Bilinen kopya kod | `mind/` içinde 4 kopya ayar normalizasyonu |

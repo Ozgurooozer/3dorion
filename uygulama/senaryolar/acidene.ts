@@ -1,4 +1,4 @@
-// uygulama/senaryolar/acidene.ts — `3dorion.bat acidene` (spec 14 R3: world/giris.ts'ten taşındı,
+// uygulama/senaryolar/acidene.ts — `3dorion.bat acidene` (spec 14 R3: uygulama/giris.ts'ten taşındı,
 // gövde aynı; giris.ts'in modül değişkenleri `d` bağlamından okunur).
 // ── TERMİNAL AÇISI denemesi (?acidene=1) ──────────────────────────────────
 // Ozyn'in bildirdiği asıl şikayet: "1. şahıstayken terminale düzgün açıyla

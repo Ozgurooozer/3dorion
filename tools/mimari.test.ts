@@ -7,7 +7,7 @@
 //   ÖN      world/ voice/    görünen — yalnız protocol/ (+ host/'tan YALNIZ tip: IPC)
 //   ARKA    mind/ bridge/    beyin — protocol/; bridge/ ayrıca mind/
 //   KABUK   host/            Electron ana süreç — kendisi (+ mind/'den YALNIZ tip)
-//   UYGULAMA world/giris.ts, uygulama/  — ön ile arkayı bağlayan kök: herkesi
+//   UYGULAMA uygulama/  (giris.ts kompozisyon kökü dahil) — ön ile arkayı bağlayan kök: herkesi
 //
 // Kural belgede unutulur, bekçide unutulmaz (CLAUDE.md "kural değil, bekçi"). world/ için
 // eski bekçi (world/bagimlilik.test.ts) duruyor; bu, aynı ilkeyi bütün depoya yayar.
@@ -29,8 +29,7 @@ export const KURALLAR: Readonly<Record<string, { deger: readonly string[]; tip?:
   bridge: { deger: ["protocol", "mind"] },
   host: { deger: [], tip: ["mind"] },
 };
-/** Kompozisyon kökü: her katmanı görebilir. */
-const KOKLER = [path.join("world", "giris.ts")];
+/** Kompozisyon kökü (`uygulama/`, `giris.ts` dahil): her katmanı görebilir. */
 const KOK_KLASORLERI = ["uygulama"];
 
 /** Bir dosyanın katman ihlalleri: "dosya → hedef (tip?)". */
@@ -38,7 +37,7 @@ export function ihlaller(dosya: string, metin: string): string[] {
   const goreli = path.relative(KOK, dosya);
   const katman = goreli.split(path.sep)[0]!;
   const kural = KURALLAR[katman];
-  if (!kural || KOKLER.includes(goreli)) return [];
+  if (!kural) return [];
   const cikti: string[] = [];
   for (const i of ithaller(metin)) {
     const hedef = path.relative(KOK, path.resolve(path.dirname(dosya), i.yol)).split(path.sep)[0]!;
@@ -72,7 +71,7 @@ test("bekçi kalibrasyonu: ön katman beyni değer olarak alırsa yakalanır, ho
 
 test("bekçi kalibrasyonu: sözleşme (protocol) hiçbir katmanı alamaz; kompozisyon kökü herkesi alır", () => {
   assert.equal(ihlaller(path.join(KOK, "protocol", "x.ts"), 'import { a } from "../mind/y.ts";').length, 1);
-  assert.deepEqual(ihlaller(path.join(KOK, "world", "giris.ts"), 'import { Kopru } from "../bridge/kopru.ts";'), []);
+  assert.deepEqual(ihlaller(path.join(KOK, "uygulama", "giris.ts"), 'import { Kopru } from "../bridge/kopru.ts";'), []);
 });
 
 test("bekçi kalibrasyonu: dinamik import da sayılır, yorumdaki örnek sayılmaz", () => {

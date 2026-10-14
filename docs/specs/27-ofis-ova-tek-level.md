@@ -119,7 +119,7 @@ kapıdan ışınlanma YOK, **kapı açılır kapanır** (ışınlanma kodu köş
 | tek sahne, açılışta kurulur; ışık ayrımı (ofis ışıkları yalnız ofis + içerideki aktörler; ova ışıkları ofisi hariç tutar) | `yer/birlesikDunya.ts` | [ÖLÇÜLDÜ] ekran görüntüleri |
 | görünüm geçişi: ofiste ofis (mor sis, koyu), dışarıda ova (açık sis, ton eşleme, 7 efekt), kapı önünde 3 m'de yumuşak karışım; efekt zinciri orta noktada | `yer/birlesikDunya.ts` (`icFaktoru`, `gorunumKaristir`) | [TEST] 6 test; [ÖLÇÜLDÜ] sis dizisi |
 | pencere gerçek ova'ya bakar (sahte şehir resmi ve yağmur gizli) | `oda.pencereyiAc()` | [ÖLÇÜLDÜ] ekran |
-| ışınlanma kodu köşede (`isinlanmaOvayaCik/OdayaDon`, `levelSahnesi.ts`); hiçbir yol çağırmaz | `world/giris.ts` | `window.dunya.kapidanGec` hata ayıklama |
+| ışınlanma kodu köşede (`isinlanmaOvayaCik/OdayaDon`, `levelSahnesi.ts`); hiçbir yol çağırmaz | `uygulama/giris.ts` | `window.dunya.kapidanGec` hata ayıklama |
 
 **Canlı doğrulama [ÖLÇÜLDÜ], `3dorion.bat kapidene` (yeniden yazıldı), 19/19:** tek yer; ofiste mor sis (0,035), dışarıda açık (0,0042), eşikte
 ara değer; kapı Ozyn yaklaşınca açılır, uzaklaşınca kapanır; Orion ofisten kapıdan YÜRÜYEREK çıktı ve geri girdi (kapı onun için açıldı);

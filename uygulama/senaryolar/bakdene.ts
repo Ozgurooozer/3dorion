@@ -1,4 +1,4 @@
-// uygulama/senaryolar/bakdene.ts — `3dorion.bat bakdene` (spec 14 R3: world/giris.ts'ten taşındı,
+// uygulama/senaryolar/bakdene.ts — `3dorion.bat bakdene` (spec 14 R3: uygulama/giris.ts'ten taşındı,
 // gövde aynı; giris.ts'in modül değişkenleri `d` bağlamından okunur).
 // ── BAK denemesi (?bakdene=1) ─────────────────────────────────────────────
 // Algı hizmeti canlıda ULAŞILABİLİR mi? Araç ve hizmet yazılmıştı ama satır

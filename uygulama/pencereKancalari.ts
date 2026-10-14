@@ -1,7 +1,7 @@
 // uygulama/pencereKancalari.ts — `window` üzerindeki deneme ve ölçüm kancalarının TEK tip tanımı
 // (spec 14 R5).
 //
-// Kompozisyon kökü (world/giris.ts) bazı nesneleri pencereye açar: konsol ve MCP için `dunya`,
+// Kompozisyon kökü (uygulama/giris.ts) bazı nesneleri pencereye açar: konsol ve MCP için `dunya`,
 // `orionModel`, `orionPano`, `orionSes`; senaryolar için `_davranisKayit`, `_goruKanca`. Eskiden her
 // yazan ve okuyan kendi `as unknown as { … }` kalıbını yazıyordu: 11 kopya tip, biri değişince
 // diğerleri sessizce eski kalıyordu. Artık tip burada; yazan ve okuyan aynı tanımı görür.

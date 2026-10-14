@@ -13,7 +13,7 @@
 //
 // Yol kalıpları (depo köküne göre, POSIX): "a/b/" = klasör ve altı; "a/b/*" = yalnız klasörün
 // doğrudan dosyaları; başka her şey tam dosya yolu. Bir dosya EN UZUN eşleşen kalıbın alt-sistemine
-// aittir (ör. "world/giris.ts" tam yolu "world/*" kalıbını yener).
+// aittir (ör. "world/varlik.ts" tam yolu "world/*" kalıbını yener).
 "use strict";
 
 export interface AltSistem {
@@ -125,7 +125,7 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
   },
   {
     ad: "Uygulama", sorumluluk: "Ön ile arkayı bağlayan kompozisyon kökü: oda döngüsü, niyet yürütücü, onay, beyin seçimi, senaryolar.",
-    yollar: ["world/giris.ts", "uygulama/"],
+    yollar: ["uygulama/"],
     kamu: [], izinli: ["*"], urun: true,
   },
   {
@@ -202,19 +202,19 @@ export const ISTISNALAR: Readonly<Record<string, string>> = {
   "uygulama/senaryolar/ortamdene.ts → world/level/stil/stilTanimi.ts": KOK,
   "uygulama/senaryolar/otodene.ts → world/player/etkilesim.ts": KOK,
   "uygulama/senaryolar/zihindene.ts → world/surfaces/duvar/semaCekirdek.ts": KOK,
-  "world/giris.ts → voice/metin-girdi.ts": KOK,
-  "world/giris.ts → world/davranisDenemesi.ts": KOK,
-  "world/giris.ts → world/level/capaGeometri.ts": KOK,
-  "world/giris.ts → world/level/ova/ova.level.json": KOK,
-  "world/giris.ts → world/olayUretici.ts": KOK,
-  "world/giris.ts → world/player/etkilesim.ts": KOK,
-  "world/giris.ts → world/player/gorunurluk.ts": KOK,
-  "world/giris.ts → world/player/isinTarama.ts": KOK,
-  "world/giris.ts → world/surfaces/terminal/ciktiFarki.ts": KOK,
-  "world/giris.ts → world/surfaces/terminal/ciktiToplayici.ts": KOK,
-  "world/giris.ts → world/yer/levelSahnesi.ts": KOK,
-  "world/giris.ts → world/yer/levelYeri.ts": KOK,
-  "world/giris.ts → world/yer/odaYeri.ts": KOK,
+  "uygulama/giris.ts → voice/metin-girdi.ts": KOK,
+  "uygulama/giris.ts → world/davranisDenemesi.ts": KOK,
+  "uygulama/giris.ts → world/level/capaGeometri.ts": KOK,
+  "uygulama/giris.ts → world/level/ova/ova.level.json": KOK,
+  "uygulama/giris.ts → world/olayUretici.ts": KOK,
+  "uygulama/giris.ts → world/player/etkilesim.ts": KOK,
+  "uygulama/giris.ts → world/player/gorunurluk.ts": KOK,
+  "uygulama/giris.ts → world/player/isinTarama.ts": KOK,
+  "uygulama/giris.ts → world/surfaces/terminal/ciktiFarki.ts": KOK,
+  "uygulama/giris.ts → world/surfaces/terminal/ciktiToplayici.ts": KOK,
+  "uygulama/giris.ts → world/yer/levelSahnesi.ts": KOK,
+  "uygulama/giris.ts → world/yer/levelYeri.ts": KOK,
+  "uygulama/giris.ts → world/yer/odaYeri.ts": KOK,
   "world/level/cekirdek/anlam.ts → world/level/nesneKaydi.ts": NESNE_TIPI,
   "world/level/editor/arayuz/orionGozu.ts → world/player/gorunurluk.ts": ORION_GOZU,
   "world/level/ofisYeri.ts → world/level/cekirdek/arazi.ts": SAHNE_LEVEL,

@@ -13,7 +13,7 @@
 // ÇERÇEVESİ, Orion'un sesi değil. Türkçe çerçevede yerel model 1. turda
 // 10 denemenin 10'unda yanlış araç seçiyordu; İngilizce çerçevede 9/10 doğru.
 //
-// `world/giris.ts` içindeydi; testi mantığın KOPYASINI tutmak zorunda
+// `uygulama/giris.ts` içindeydi; testi mantığın KOPYASINI tutmak zorunda
 // kalıyordu çünkü giris.ts sahneye bağlı. Buraya taşındı: tek kaynak.
 //
 // SAF: bağımlılık yok.
@@ -45,7 +45,7 @@ export function oncesiSozu(ms: number): string {
   return saat < 24 ? `${saat} hours ago` : `${Math.floor(saat / 24)} days ago`;
 }
 
-// Aşağıdaki üçü `world/giris.ts` içindeydi ve `mind/zaman.test.ts` onların
+// Aşağıdaki üçü `uygulama/giris.ts` içindeydi ve `mind/zaman.test.ts` onların
 // KOPYASINI tutuyordu — çünkü giris.ts sahneye bağlı, testten çağrılamıyor.
 // `sureSozu` için bu bir kez çözülmüştü; kalan üçü geride kalmış ve dil
 // değişiminde sessizce ayrışmıştı (test eski Türkçeyi doğruluyor, üretim

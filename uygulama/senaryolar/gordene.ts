@@ -1,4 +1,4 @@
-// uygulama/senaryolar/gordene.ts — `3dorion.bat gordene` (spec 14 R3: world/giris.ts'ten taşındı,
+// uygulama/senaryolar/gordene.ts — `3dorion.bat gordene` (spec 14 R3: uygulama/giris.ts'ten taşındı,
 // gövde aynı; giris.ts'in modül değişkenleri `d` bağlamından okunur).
 // ── ONAY KAPISI denemesi (?onaydene=1) ────────────────────────────────────
 // Dort iddiayi kanitlar:

@@ -91,7 +91,7 @@ cevabın `niyet sonucu` olarak geri beslenip BİR SONRAKİ turda kullanıldığ�
 varsayımını YANLIŞ çıkardı (`sonuc` beyne hiç ulaşmıyordu, bkz.
 `docs/ACIK-ISLER.md`). Düzeltme: `protocol/algi.ts`'e ayrı bir `gordum`
 varyantı eklendi (`ne`, `metin`), `mind/refleks.ts` bunu HER ZAMAN terfi
-ettirir, `world/giris.ts` sorgu sonucunu bu kanaldan geri besler. Önce bak,
+ettirir, `uygulama/giris.ts` sorgu sonucunu bu kanaldan geri besler. Önce bak,
 sonra konuş — ama taşıyıcı `sonuc` değil `gordum`.
 
 ### Yan kazanç: algı bir ölçüm aracı oldu

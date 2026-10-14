@@ -1,4 +1,4 @@
-// uygulama/senaryolar/tahtabeyin.ts — `3dorion.bat tahtabeyin` (spec 14 R3: world/giris.ts'ten taşındı,
+// uygulama/senaryolar/tahtabeyin.ts — `3dorion.bat tahtabeyin` (spec 14 R3: uygulama/giris.ts'ten taşındı,
 // gövde aynı; giris.ts'in modül değişkenleri `d` bağlamından okunur).
 // ── UCTAN UCA tahta denemesi (?tahtabeyin=1) ──────────────────────────────
 // Zincirin tamami: Ozyn soyluyor -> beyin karar veriyor -> Orion yuruyor ->

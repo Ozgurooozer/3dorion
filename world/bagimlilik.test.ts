@@ -4,9 +4,8 @@
 // kadar yalnızca bir kuraldı ("grep denetimi"). Kural unutulur, bekçi unutulmaz
 // (CLAUDE.md, "Kopya kod — kural değil, bekçi").
 //
-// TEK İSTİSNA kompozisyon kökü `world/giris.ts`: beyni bedene o bağlar (köprüyü,
-// refleksi, sesi kurar). Kök, Vite'ın giriş noktası olduğu için world/ içinde
-// duruyor. Başka hiçbir world/ dosyası bridge/ ya da mind/'dan bir şey alamaz —
+// İSTİSNA YOK: kompozisyon kökü (`uygulama/giris.ts`, eskiden `uygulama/giris.ts`) beyni bedene bağlar, ama artık
+// world/ DIŞINDA durur. Hiçbir world/ dosyası bridge/ ya da mind/'dan bir şey alamaz —
 // yalnız tip bile: tip bağımlılığı da bedeni beynin şekline bağlar.
 //
 // Kapsam dışı: `host/` (Electron IPC tipleri, terminal-cekirdek.ts alıyor) ve
@@ -20,7 +19,6 @@ import path from "node:path";
 // Bu bekçinin farkı korunur: world/'ün TEST dosyalarını da tarar.
 import { KOK, ithaller, kaynaklar as tumKaynaklar } from "../tools/ithaller.ts";
 
-const KOMPOZISYON_KOKU = path.join(KOK, "world", "giris.ts");
 // Bu dosya tarayıcının örneklerini METİN olarak taşır. Bugünkü örnekler bu
 // dosyanın yerine göre depo dışına çözülür (bozma denemesinde dışlama eşdeğer
 // çıktı); dışlama, ileride yazılacak tek seviyeli (`../mind/…`) örnekleri korur.
@@ -79,9 +77,9 @@ test("tarayıcı: protokol, host tipi ve world içindeki klasörler serbest", ()
 
 // ── Gerçek tarama ────────────────────────────────────────────────────────────
 
-test("K4: kompozisyon kökü dışında hiçbir world/ dosyası bridge/ ya da mind/'dan almaz", () => {
+test("K4: hiçbir world/ dosyası bridge/ ya da mind/'dan almaz", () => {
   const ihlal = kaynaklar(path.join(KOK, "world"))
-    .filter((d) => d !== KOMPOZISYON_KOKU && d !== BU_DOSYA)
+    .filter((d) => d !== BU_DOSYA)
     .flatMap((d) => beyinImportlari(d, fs.readFileSync(d, "utf8")).map((y) => `${path.relative(KOK, d)} → ${y}`));
   assert.deepEqual(ihlal, []);
 });

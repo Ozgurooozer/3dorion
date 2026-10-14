@@ -1,4 +1,4 @@
-// uygulama/niyetYurutucu.ts — TEK niyet yönlendirme noktası (spec 14 R4: world/giris.ts'ten taşındı).
+// uygulama/niyetYurutucu.ts — TEK niyet yönlendirme noktası (spec 14 R4: uygulama/giris.ts'ten taşındı).
 //
 // Neden tek: yönlendirme önce yalnızca köprünün `niyetGonder` yolundaydı. Sonuç olarak `yaz` niyeti
 // GELDİĞİ YOLA GÖRE farklı davranıyordu — köprüden gelince tahtaya, `window.dunya.niyet()` ya da 1-6

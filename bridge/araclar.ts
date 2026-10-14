@@ -101,7 +101,7 @@ export const ARAC_TABLOSU: Record<NiyetTur, Omit<AracTanimi, "ad">> = {
   },
 
   yaz: {
-    // Spec 13: uzaktaysa beden önce tahtaya kendisi yürür (world/giris.ts `yaz`).
+    // Spec 13: uzaktaysa beden önce tahtaya kendisi yürür (uygulama/giris.ts `yaz`).
     aciklama: "Write on the whiteboard. If you are not in front of it, you walk there first, then write.",
     sema: {
       type: "object",

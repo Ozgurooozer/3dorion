@@ -54,7 +54,7 @@ const yetenekler = goster.ok ? yetenekleriCoz(await goster.json()) : null;
 const beyin = new OllamaBeyni({ model, yetenekler, zamanAsimiMs: 120_000 });
 if (!(await beyin.hazirMi())) { console.error(`model yok: ${model}`); process.exit(1); }
 
-// Canlıdaki `sabitBilgi` ile aynı biçim (world/giris.ts).
+// Canlıdaki `sabitBilgi` ile aynı biçim (uygulama/giris.ts).
 const sabit = `In the room: ${CAPALAR.map((c) => CAPA_ETIKETLERI[c]).join(", ")}.`;
 console.log(`model: ${model} · yetenekler: ${yetenekler?.join(",") ?? "?"} · n=${n}\n`);
 

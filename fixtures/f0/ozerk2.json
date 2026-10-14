@@ -1,5 +1,5 @@
 {
-  "aciklama": "Orion Beyin Ofisi T2 / ön-kayıt 001 H3: kendiliğinden (özerk) tur senaryoları. Araç kümesi köprüyle AYNI: söz/bak/jest/poz. z1–z4 acik_is (hatırlatma beklenir, komutu anar); z5–z8 sessizlik (susmalı). Olay metni world/giris.ts'in ürettiğiyle birebir.",
+  "aciklama": "Orion Beyin Ofisi T2 / ön-kayıt 001 H3: kendiliğinden (özerk) tur senaryoları. Araç kümesi köprüyle AYNI: söz/bak/jest/poz. z1–z4 acik_is (hatırlatma beklenir, komutu anar); z5–z8 sessizlik (susmalı). Olay metni uygulama/giris.ts'in ürettiğiyle birebir.",
   "durumlar": {
     "ayakta": "You: duruyor, position -3.4,-0.5. Ozyn is 3.6m away, looking at you. It is evening, 20:15. You have been in this room for 5 minutes. Ozyn spoke just now.",
     "oturuyor": "You: oturuyor, position 0.0,-2.4, seated. Ozyn is 1.6m away, looking at you. It is evening, 20:15. You have been in this room for 5 minutes. Ozyn spoke just now.",

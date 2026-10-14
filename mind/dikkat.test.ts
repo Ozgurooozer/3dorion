@@ -64,7 +64,7 @@ test("farklı içerik tekrar sayılmaz", () => {
 });
 
 test("aynı turda farklı `gordum` sorguları birbirini tekrar saymaz", () => {
-  // Orion aynı düşünce turunda iki `sor` çağırabilir (world/giris.ts). İkisi de
+  // Orion aynı düşünce turunda iki `sor` çağırabilir (uygulama/giris.ts). İkisi de
   // aynı 4sn penceresine düşer; anahtar yalnızca türe bakarsa ikincisi "tekrar"
   // sanılıp düşer — gordum'un HER ZAMAN terfi etmesi kuralı bozulur.
   const s = saatli();

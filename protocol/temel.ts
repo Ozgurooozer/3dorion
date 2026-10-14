@@ -55,7 +55,7 @@ export type CapaAdi = (typeof CAPALAR)[number];
 
 /**
  * Çapaların görünen (insan-okur) adları. Dünya HUD'da gösterir; LLM odayı bunlarla görür
- * (world/giris.ts `sabitBilgi`). TEK KAYNAK: world/level/capalar.ts etiketini buradan alır,
+ * (uygulama/giris.ts `sabitBilgi`). TEK KAYNAK: world/level/capalar.ts etiketini buradan alır,
  * eşitliğini world/level/capalar.test.ts bekler. LLM çoğu zaman etiketi ad diye verir
  * ("beyaz tahta"); `capaCoz` onu iç ada çevirir (BY39-2d).
  */

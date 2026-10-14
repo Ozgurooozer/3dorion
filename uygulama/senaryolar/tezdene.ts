@@ -1,4 +1,4 @@
-// uygulama/senaryolar/tezdene.ts — `3dorion.bat tezdene` (spec 14 R3: world/giris.ts'ten taşındı,
+// uygulama/senaryolar/tezdene.ts — `3dorion.bat tezdene` (spec 14 R3: uygulama/giris.ts'ten taşındı,
 // gövde aynı; giris.ts'in modül değişkenleri `d` bağlamından okunur).
 // ── TEZ denemesi (?tezdene=1) ─────────────────────────────────────────────
 // Projenin tezi: "AI'in oturdugu oda - terminalini onun masasinda aciyorsun."

@@ -1,4 +1,4 @@
-// world/giris.ts — Renderer giriş noktası ve BİRLEŞTİRME NOKTASI.
+// uygulama/giris.ts — Renderer giriş noktası ve BİRLEŞTİRME NOKTASI.
 //
 // Burada iş mantığı yoktur; parçalar birbirine bağlanır:
 //   motor + sahne + saat (20Hz) + oda + kamera rig'i + oyuncu + HUD.
@@ -28,32 +28,32 @@ import "@babylonjs/core/Materials/standardMaterial";
 // yan etkisi olarak tanımlanıyor; yoksa `pick` hata vermeden `hit:false` döner.
 // Sözleşme `world/engine/secim.test.ts` ile sabitlendi.
 import "@babylonjs/core/Culling/ray";
-import { Saat, TIK_HZ } from "./engine/tik.ts";
-import { KameraRig } from "./engine/kamera.ts";
-import { odaKur } from "./level/oda.ts";
-import { bulunduguCapa, capaBul } from "./level/capalar.ts";
-import { yerSabitBilgisi, yerOrtasiSozu, type Yer } from "./yer/yer.ts";
-import { ODA_YERI } from "./yer/odaYeri.ts";
-import { levelSahnesiKur, type LevelSahnesi } from "./yer/levelSahnesi.ts";
-import { birlesikDunyaKur, ufukAcikMi, type BirlesikDunya } from "./yer/birlesikDunya.ts";
-import { konumluSabitBilgi, konumluYerOrtasi } from "./yer/birlesikYer.ts";
-import { gecitVarisi } from "./yer/levelYeri.ts";
-import { carpisiyorMu } from "./level/olculer.ts";
+import { Saat, TIK_HZ } from "../world/engine/tik.ts";
+import { KameraRig } from "../world/engine/kamera.ts";
+import { odaKur } from "../world/level/oda.ts";
+import { bulunduguCapa, capaBul } from "../world/level/capalar.ts";
+import { yerSabitBilgisi, yerOrtasiSozu, type Yer } from "../world/yer/yer.ts";
+import { ODA_YERI } from "../world/yer/odaYeri.ts";
+import { levelSahnesiKur, type LevelSahnesi } from "../world/yer/levelSahnesi.ts";
+import { birlesikDunyaKur, ufukAcikMi, type BirlesikDunya } from "../world/yer/birlesikDunya.ts";
+import { konumluSabitBilgi, konumluYerOrtasi } from "../world/yer/birlesikYer.ts";
+import { gecitVarisi } from "../world/yer/levelYeri.ts";
+import { carpisiyorMu } from "../world/level/olculer.ts";
 // `?url`: vite dosyayı pakete kopyalar ve adresini verir (Electron file:// yüklemesinde de çözülür).
-import ovaAdresi from "./level/ova/ova.level.json?url";
-import { isinTara } from "./player/isinTarama.ts";
-import { gorunenNesneler } from "./player/gorunurluk.ts";
+import ovaAdresi from "../world/level/ova/ova.level.json?url";
+import { isinTara } from "../world/player/isinTarama.ts";
+import { gorunenNesneler } from "../world/player/gorunurluk.ts";
 import { sorguYanitla, type Cevap, type Soru } from "../mind/algiHizmeti.ts";
 import { yerelTepki } from "../mind/yerelTepki.ts";
-import { capaKonumu } from "./level/capaGeometri.ts";
-import { Oyuncu } from "./player/oyuncu.ts";
-import { EtkilesimOlaylari } from "./player/etkilesim.ts";
+import { capaKonumu } from "../world/level/capaGeometri.ts";
+import { Oyuncu } from "../world/player/oyuncu.ts";
+import { EtkilesimOlaylari } from "../world/player/etkilesim.ts";
 import { PiperCikisi } from "../voice/cikis.ts";
-import { avatarKur, orionGozuKur, VARSAYILAN_VRM, type Avatar } from "./avatar/index.ts";
-import { monitorKur, type Monitor } from "./surfaces/terminal/monitor.ts";
-import { tahtaKur, type Tahta } from "./surfaces/tahta/tahta.ts";
-import { gunlukKur, type GunlukEkrani } from "./surfaces/duvar/gunluk.ts";
-import { semaKur, type SemaPaneli } from "./surfaces/duvar/sema.ts";
+import { avatarKur, orionGozuKur, VARSAYILAN_VRM, type Avatar } from "../world/avatar/index.ts";
+import { monitorKur, type Monitor } from "../world/surfaces/terminal/monitor.ts";
+import { tahtaKur, type Tahta } from "../world/surfaces/tahta/tahta.ts";
+import { gunlukKur, type GunlukEkrani } from "../world/surfaces/duvar/gunluk.ts";
+import { semaKur, type SemaPaneli } from "../world/surfaces/duvar/sema.ts";
 // Devre panosu: sözleşme `protocol/`ta, tanımlar `mind/tanim/`da. Bu iki
 // import K4'ün belgelenmiş istisnası olan kompozisyon kökünde, burada.
 import { panoKur, tel } from "../protocol/pano.ts";
@@ -63,37 +63,37 @@ import {
 } from "../mind/tanim/index.ts";
 // Yalnızca `zihindene` ayna kontrolü için: şemanın sütun sırasıyla ekrandaki
 // sırayı karşılaştırmak gerek. Saf veri, K4 sınırını ihlal etmez.
-import { TAHTA, GUNLUK, SEMA, GOZ_YUKSEKLIK } from "./level/olculer.ts";
+import { TAHTA, GUNLUK, SEMA, GOZ_YUKSEKLIK } from "../world/level/olculer.ts";
 import { niyetDogrula } from "../protocol/dogrula.ts";
 import type { Niyet } from "../protocol/niyet.ts";
 import { ozetle, type Algi } from "../protocol/algi.ts";
-import { varlik } from "./varlik.ts";
+import { varlik } from "../world/varlik.ts";
 import { Kopru } from "../bridge/kopru.ts";
 import type { KararKaydi, KararSatiri, OgretimSatiri } from "../mind/kararKaydi.ts";
 import { GOREV_SATIRLARI } from "../mind/gorev.ts";
-import { modelSeciciKur } from "./arayuz/modelSecici.ts";
-import { stilPenceresiKur } from "./arayuz/stilPenceresi.ts";
+import { modelSeciciKur } from "../world/arayuz/modelSecici.ts";
+import { stilPenceresiKur } from "../world/arayuz/stilPenceresi.ts";
 import type { Beyin } from "../bridge/beyin.ts";
 import { MetinGirdi } from "../voice/metin-girdi.ts";
 import { NemotronGirdi } from "../voice/nemotron.ts";
-import { komutuTerminaleYaz } from "../uygulama/terminalYazici.ts";
-import { komutKipiCoz } from "../uygulama/komutKipi.ts";
-import { Takipci } from "../uygulama/takip.ts";
+import { komutuTerminaleYaz } from "./terminalYazici.ts";
+import { komutKipiCoz } from "./komutKipi.ts";
+import { Takipci } from "./takip.ts";
 import { ikiCumleyeKisalt } from "../voice/kisalt.ts";
 import { Ajanda } from "../mind/ajanda.ts";
 import { gozlemAnisiMi } from "../mind/hafiza.ts";
 import { eskiHafizayiTemizle } from "../mind/aniSuzgeci.ts";
 import { mesgulMu } from "../mind/benlik.ts";
-import { istenenSenaryolar, type SenaryoBaglami } from "../uygulama/senaryoBaglami.ts";
-import { niyetYurutucusuKur } from "../uygulama/niyetYurutucu.ts";
-import { zihinDuvariniBagla } from "../uygulama/zihinDuvari.ts";
-import { beyinSeciminiKur, seciciKaynagiKur, modelKancasiKur, kisaAd } from "../uygulama/beyinSecimi.ts";
+import { istenenSenaryolar, type SenaryoBaglami } from "./senaryoBaglami.ts";
+import { niyetYurutucusuKur } from "./niyetYurutucu.ts";
+import { zihinDuvariniBagla } from "./zihinDuvari.ts";
+import { beyinSeciminiKur, seciciKaynagiKur, modelKancasiKur, kisaAd } from "./beyinSecimi.ts";
 import { odadaSure, sessizlikSozu, gununVakti } from "../mind/zaman.ts";
 import { depoYukle } from "../mind/hafizaGocu.ts";
 import { GucButcesi, Inisiyatif, butceSatiri } from "../mind/inisiyatif.ts";
-import { inisiyatifTik } from "../uygulama/inisiyatifBaglantisi.ts";
-import { ortamBaglantisiKur } from "../uygulama/ortamBaglantisi.ts";
-import { OrtamGunlugu, ogrenilenDeposu } from "../uygulama/ortamDeposu.ts";
+import { inisiyatifTik } from "./inisiyatifBaglantisi.ts";
+import { ortamBaglantisiKur } from "./ortamBaglantisi.ts";
+import { OrtamGunlugu, ogrenilenDeposu } from "./ortamDeposu.ts";
 import { OrtamSozlugu } from "../mind/ortamSozlugu.ts";
 import { sessizlikIzinliMi } from "../bridge/ozerkYetenek.ts";
 import { GirdiPenceresi, type GirdiTipi } from "../mind/girdiPenceresi.ts";
@@ -102,11 +102,11 @@ import { GozModeli } from "../bridge/goz.ts";
 import { KuralRefleksi, UZUN_ISLEM_MS, refleksGirdisi } from "../mind/refleks.ts";
 import { OnayKapisi } from "../mind/onayKapisi.ts";
 import { riskEtiketi } from "../mind/komutRiski.ts";
-import { OlayUretici } from "./olayUretici.ts";
-import { ciktiFarki, kesildiMi } from "./surfaces/terminal/ciktiFarki.ts";
-import { CiktiToplayici } from "./surfaces/terminal/ciktiToplayici.ts";
+import { OlayUretici } from "../world/olayUretici.ts";
+import { ciktiFarki, kesildiMi } from "../world/surfaces/terminal/ciktiFarki.ts";
+import { CiktiToplayici } from "../world/surfaces/terminal/ciktiToplayici.ts";
 import { kimlik } from "../protocol/temel.ts";
-import type { DavranisDefteri } from "./davranisDenemesi.ts";
+import type { DavranisDefteri } from "../world/davranisDenemesi.ts";
 
 const tuval = document.getElementById("tuval") as HTMLCanvasElement;
 const hud = document.getElementById("hud") as HTMLDivElement;
@@ -2000,7 +2000,7 @@ const senaryoBaglami: SenaryoBaglami = {
   gozModeli: () => gozModeli.model,
 };
 for (const ad of istenenSenaryolar(location.search)) {
-  void import(`../uygulama/senaryolar/${ad}.ts`)
+  void import(`./senaryolar/${ad}.ts`)
     .then((m: { kos(d: SenaryoBaglami): Promise<void> }) => m.kos(senaryoBaglami))
     .catch((e) => console.error(`[SENARYO] ${ad} yüklenemedi ya da düştü:`, e));
 }

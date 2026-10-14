@@ -34,7 +34,7 @@ function sapma(n: number, tohum: number): number {
 const JEST_HAVUZU = ["gülümsüyor", "bekliyor", "kaş_çatıyor", "el_açıyor"] as const;
 
 /**
- * Ajanda niyetlerinin kimlik öneki (`kimlik("ajanda")`, world/giris.ts). Köprü sonucu bununla tanır ve beyne vermez
+ * Ajanda niyetlerinin kimlik öneki (`kimlik("ajanda")`, uygulama/giris.ts). Köprü sonucu bununla tanır ve beyne vermez
  * (içgüdü `kopru.ajanda`): bu niyetleri LLM vermedi.
  */
 export const AJANDA_ONEKI = "ajanda";

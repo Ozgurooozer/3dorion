@@ -79,7 +79,7 @@ P7 tutarsa T1 canlıya girer (`KopruAyari.cikarilanAraclar`); tutmazsa kalmaz, s
   eklemeli). Köprünün üç yazma yolu tek `_aniyaYaz`dan geçer.
 - `Hafiza.ekle`: tekrar yalnız söz ve sonuçta önem artırır; terminal ve olay yalnız tazelenir.
 - Panodaki kapasite teli köprüye bağlandı (`KopruAyari.hafizaKapasite`).
-- Göç `eskiHafizayiTemizle` (`world/giris.ts` `gurultuyuAyikla`, localStorage yedeği bir kez). Gerçek dosyanın
+- Göç `eskiHafizayiTemizle` (`uygulama/giris.ts` `gurultuyuAyikla`, localStorage yedeği bir kez). Gerçek dosyanın
   kopyasında [ÖLÇÜLDÜ, kuru koşu]: 239 → 174 anı, 65 olay atıldı, 11 terminal kırpıldı, 3 terminal önemi
   indirildi; 42 183 → 26 937 bayt (−%36). Söz (138) ve sonuç (17) aynen.
 - Bozma denemesi (yedekli, taban yeşil): 6/6 mutant yakalandı.
@@ -89,7 +89,7 @@ P7 tutarsa T1 canlıya girer (`KopruAyari.cikarilanAraclar`); tutmazsa kalmaz, s
   `yapiyor`, `son_is`, `son_ozyn`, `son_orion`, `monitor`; + yüklemeden türeyen `onceki_oturum`.
   Yanından geçmek konum değildir (`KONUM_OTURMA_MS` 2 sn); süren iş oturumdan oturuma taşınmaz.
 - Konum adı çapadan: `world/level/capalar.ts` `bulunduguCapa` (durağa en yakın, ≥ 1,2 m içinde; yoksa
-  "odanın ortası"). `world/giris.ts` 500 ms'de bir gözler; defter yalnız değişimi yazar.
+  "odanın ortası"). `uygulama/giris.ts` 500 ms'de bir gözler; defter yalnız değişimi yazar.
 - Köprü besler: iş niyeti (`IS_NIYETLERI`: git/otur/kalk/yaz/komut/odaklan) → yapıyor; sonucu → son iş;
   Ozyn'in kesin sözü, Orion'un sözü. Kalıcılık ayrı dosya `orion-durum.json` (IPC `durum:oku/yaz`,
   hafızayla aynı senaryo yalıtımı, `ORION_DURUM_DOSYASI`).
@@ -113,7 +113,7 @@ P7 tutarsa T1 canlıya girer (`KopruAyari.cikarilanAraclar`); tutmazsa kalmaz, s
 
 ### F5 — bağlam montajı `[TEST]`, canlı kanıt bekliyor
 - `KopruAyari.hafizaKipi`: "otomatik" (varsayılan, eski davranış — kıyas kolu) | "yonlendirici" (canlı,
-  `world/giris.ts`; `?hafiza=otomatik` / `ORION_HAFIZA_KIPI=otomatik` eskiye döner).
+  `uygulama/giris.ts`; `?hafiza=otomatik` / `ORION_HAFIZA_KIPI=otomatik` eskiye döner).
 - Yönlendirici kipinde: anılar yalnız istenen çekmecelerden; istenen durum satırları ŞİMDİ'de (dünya
   metninde, yaşıyla); yakın pencere son 4 kayıt / 10 dk (`yakinPencere`); dünya satırında ham koordinat yok.
   Karar kaydı `uyanis.hafizaIstegi` (tetiklenen kurallar).

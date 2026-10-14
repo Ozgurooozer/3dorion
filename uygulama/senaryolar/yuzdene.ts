@@ -1,4 +1,4 @@
-// uygulama/senaryolar/yuzdene.ts — `3dorion.bat yuzdene` (spec 14 R3: world/giris.ts'ten taşındı,
+// uygulama/senaryolar/yuzdene.ts — `3dorion.bat yuzdene` (spec 14 R3: uygulama/giris.ts'ten taşındı,
 // gövde aynı; giris.ts'in modül değişkenleri `d` bağlamından okunur).
 // ── YÜZ denemesi (?yuzdene=1) ─────────────────────────────────────────────
 // "Ağız senkronu çalışıyor" iddiasını MESH ÜZERİNDEN kanıtlar. Ölçülmüş

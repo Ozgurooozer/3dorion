@@ -1,6 +1,6 @@
 // uygulama/senaryolar/kapidene.ts — `3dorion.bat kapidene` (spec 27): ofis ova'nın İÇİNDE, kapı gerçek bir kapı.
 //
-// (Eski sürüm spec 24'ün kararma + ışınlanma kapısını sınıyordu; ışınlanma kalktı, kod `world/giris.ts`te köşede duruyor.)
+// (Eski sürüm spec 24'ün kararma + ışınlanma kapısını sınıyordu; ışınlanma kalktı, kod `uygulama/giris.ts`te köşede duruyor.)
 // Ölçülenler, hepsi SONUÇ olarak (söz değil): tek yer; kapı kendiliğinden açılır ve uzaklaşınca kapanır; Orion kapıdan YÜRÜYEREK dışarı
 // çıkar ve geri döner (yol bulma kapıyı geçer, kapı onun için açılır); görünüm geçişi (sis) ofiste ofisin, dışarıda ova'nın, eşikte
 // ikisinin arasında; pencere ova'ya bakar (sahte manzara gizli). `?poz=x,z,yaw(derece)` sonda oyuncuyu ışınlar (ekran görüntüsü, ORION_SS).

@@ -134,7 +134,7 @@ export function bulutKart(m: OpenCodeModeli): ModelKarti {
 
 /**
  * Sabit (Ollama/OpenCode-katalog dışı) seçeneklerin tanıtımı. Sayılar
- * ÖLÇÜLMÜŞ olanlardır; kaynakları `world/giris.ts`teki seçenek yorumlarında.
+ * ÖLÇÜLMÜŞ olanlardır; kaynakları `uygulama/giris.ts`teki seçenek yorumlarında.
  */
 const SABIT: Record<string, Omit<ModelKarti, "ad" | "uygun">> = {
   "claude:haiku": {

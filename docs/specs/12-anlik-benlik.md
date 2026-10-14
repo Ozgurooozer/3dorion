@@ -59,7 +59,7 @@ Orion `git status` önerir → Ozyn onaylar → komut 240 ms'de kod 0 ile biter:
 | `sonuc: bitti` — "Ozyn onayladı, sonucu ekrandan göreceğin" | `refleks.sonuc.rutin` → süzülür (kanal zaten `yerel`) |
 | terminal bloğu (kod 0, 240 ms, "nothing to commit") | `refleks.terminal.kod_rutin` → süzülür |
 
-Köprü modele "sonucu ekrandan göreceğin" diyor (`world/giris.ts` → `onayKarari`), ama görmüyor. Süzülen algı
+Köprü modele "sonucu ekrandan göreceğin" diyor (`uygulama/giris.ts` → `onayKarari`), ama görmüyor. Süzülen algı
 hafızaya da yazılmaz: Ozyn "işe yaradı mı?" derse Orion bilmiyor. Kök: süzgeç
 bu algının **Orion'un kendi beklediği şey** olduğunu bilmiyor. Uçtan uca zincir
 `[KOD]` — canlıda koşulmadı.
@@ -80,7 +80,7 @@ yamalı.
 (spec 06 §6.9). Çare `kopru.zincir` — o da bir öz-bilgi: "bu cevap BENİM
 sorumun cevabı". Bugün köprünün özel alanında, görünmez.
 
-**B5 — "Meşgul müyüm" dört yerde.** `[KOD]` `world/giris.ts` (`mesgul` = Ozyn
+**B5 — "Meşgul müyüm" dört yerde.** `[KOD]` `uygulama/giris.ts` (`mesgul` = Ozyn
 monitörde ∨ köprü düşünüyor ∨ yürüyor/koşuyor) → `ajanda.tikle` ve
 `inisiyatif.karar`; köprüde `_dusunuyor`, süren beceri refleksi, zincir.
 Onay bekleyen öneri ve süren beceri refleksi hiçbirinde "meşgul" sayılmıyor
@@ -248,7 +248,7 @@ Türetilmiş, saf, **tek kaynak** fonksiyonlar:
 - `niyetGonder` çağrısı → `yapiyorum`a ekle. `komut` niyeti → `bekliyorum: onay`.
 - `sonuc` algısı (süzgeçten **önce**, süzülse bile) → `yapiyorum`dan çıkar, `son.bitenNiyet`.
   Onay kapısının üç ucu zaten köprüye `sonuc` olarak geliyor `[KOD]`:
-  onay → `bitti`, ret → `hata`, zaman aşımı → `hata` (`world/giris.ts`).
+  onay → `bitti`, ret → `hata`, zaman aşımı → `hata` (`uygulama/giris.ts`).
   Onaylanınca `bekliyorum: komut_sonucu` açılır.
 - Terminal algısı → komut satırı `terminalAyristir` (mind/durumKodu.ts, **tek kaynak**)
   ile ayrıştırılır; bekleyen komutla eşleşirse `komut_sonucu` kapanır.

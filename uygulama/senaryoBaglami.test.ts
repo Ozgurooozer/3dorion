@@ -1,6 +1,6 @@
 // uygulama/senaryoBaglami.test.ts — Senaryo listesi tek kaynak: SENARYOLAR ↔ dosyalar ↔ 3dorion.bat.
 //
-// Yükleyici (world/giris.ts) yalnız SENARYOLAR'daki adları `import()` eder. Listeye eklenip dosyası
+// Yükleyici (uygulama/giris.ts) yalnız SENARYOLAR'daki adları `import()` eder. Listeye eklenip dosyası
 // unutulan bir senaryo canlıda sessizce "yüklenemedi" olur; dosyası olup listede olmayan hiç koşmaz.
 // Bu test ikisini de derlemede yakalar.
 import { test } from "node:test";

@@ -1,7 +1,7 @@
 // uygulama/inisiyatifBaglantisi.ts — Kapıyı (mind/inisiyatif.ts) köprüye bağlayan TEK yer.
 //
 // Kapı karar verir, köprü açık işlerin listesini tutar; ikisinin arasındaki sıra burada: açık işi oku → karar →
-// hatırlatılan işi köprüde işaretle → olayı algı olarak ver. Bu sıra eskiden kompozisyon kökündeydi (world/giris.ts)
+// hatırlatılan işi köprüde işaretle → olayı algı olarak ver. Bu sıra eskiden kompozisyon kökündeydi (uygulama/giris.ts)
 // ve test edilmiyordu.
 "use strict";
 import type { Algi } from "../protocol/algi.ts";

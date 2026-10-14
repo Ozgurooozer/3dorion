@@ -1,4 +1,4 @@
-// uygulama/senaryolar/hafizadene.ts — `3dorion.bat hafizadene` (spec 14 R3: world/giris.ts'ten taşındı,
+// uygulama/senaryolar/hafizadene.ts — `3dorion.bat hafizadene` (spec 14 R3: uygulama/giris.ts'ten taşındı,
 // gövde aynı; giris.ts'in modül değişkenleri `d` bağlamından okunur).
 // ── HAFIZA denemesi (?hafizadene=1) ───────────────────────────────────────
 // Asil soru "hafiza modulu calisiyor mu" degil (birim testi var):

@@ -101,7 +101,7 @@ const OLAYLAR: { aile: string; algi: Algi }[] = [
   { aile: "inisiyatif", algi: { tur: "olay", ad: "nobody has spoken for 30 minutes — this is your own initiative: say something only if it is useful, otherwise stay silent", ayrinti: { kaynak: "inisiyatif" } } },
 ];
 
-/** Gerçek niyet sonucu metinleri: world/avatar/yurutucu.ts, world/giris.ts (onay kapısı), gerçek kayıt. */
+/** Gerçek niyet sonucu metinleri: world/avatar/yurutucu.ts, uygulama/giris.ts (onay kapısı), gerçek kayıt. */
 const SONUCLAR: { aile: string; algi: Algi }[] = [
   { aile: "elle", algi: { tur: "sonuc", sonuc: { niyet_id: "elle_mujgw1q1", durum: "hata", not: "zaten ayaktasın; `kalk` yapacak bir şey yok" } } },
   { aile: "elle", algi: { tur: "sonuc", sonuc: { niyet_id: "elle_mujgx7a2", durum: "hata", not: "zaten oturuyorsun. Önce `kalk` niyeti gönder." } } },

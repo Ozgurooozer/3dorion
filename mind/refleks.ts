@@ -60,7 +60,7 @@ export interface RefleksGirdi {
 
 /**
  * Bir algıdan refleks girdisi. Köprünün süzgeci ve giriş noktasının günlüğü
- * (world/giris.ts) ile çevrimdışı düzenek (tools/kapi-deney.ts) AYNI eşlemeyi
+ * (uygulama/giris.ts) ile çevrimdışı düzenek (tools/kapi-deney.ts) AYNI eşlemeyi
  * buradan alır.
  *
  * Neden tek kaynak: eşleme bu üç yerde ayrı ayrı yazılıyordu. Giriş noktası

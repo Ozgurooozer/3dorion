@@ -10,7 +10,7 @@
 //   npx electron world/avatar/deneme-main.cjs
 //   npx electron world/avatar/deneme-main.cjs --vrm=/yok.vrm   (düşüş kanıtı)
 //
-// `world/giris.ts`e DOKUNULMAZ: birleştirmeyi koordinatör yapar. Bu sahne
+// `uygulama/giris.ts`e DOKUNULMAZ: birleştirmeyi koordinatör yapar. Bu sahne
 // yalnızca avatar + oda + sabit kamera içerir.
 "use strict";
 import { Engine } from "@babylonjs/core/Engines/engine";

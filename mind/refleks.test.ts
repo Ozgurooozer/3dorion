@@ -318,7 +318,7 @@ test("refleksGirdisi yalnız ilgili türe ekler: konuşmada kod, süre, kaynak y
 
 test("TEK KAYNAK: giriş noktası ve düzenek süzgeç girdisini elle kurmaz", () => {
   const kok = path.resolve(import.meta.dirname, "..");
-  const elleKuran = ["world/giris.ts", "tools/kapi-deney.ts"].flatMap((d) => {
+  const elleKuran = ["uygulama/giris.ts", "tools/kapi-deney.ts"].flatMap((d) => {
     const metin = fs.readFileSync(path.join(kok, d), "utf8");
     const kurulan = metin.match(/\brefleks\.karar\(\s*\{/g)?.length ?? 0;
     const cagri = metin.match(/\brefleksGirdisi\(/g)?.length ?? 0;
