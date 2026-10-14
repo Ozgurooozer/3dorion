@@ -261,7 +261,8 @@ ipcMain.handle(CAGRI.varlik, (_e, ad) => {
 // `ORION_KARAR_DOSYASI` ile tek dosyaya yönlendirilir: deneme koşuları kendi
 // kaydını gerçek kullanımın kaydına karıştırmasın.
 const KARAR_AYARI = {
-  kok: path.join(app.getPath("userData"), "karar-kaydi"),
+  // Duman/senaryo koşusu (ORION_SMOKE) gerçek kullanımın kaydına yazmaz: ayrı klasör.
+  kok: path.join(app.getPath("userData"), process.env.ORION_SMOKE === "1" ? "karar-kaydi-deneme" : "karar-kaydi"),
   sabitDosya: process.env.ORION_KARAR_DOSYASI || undefined,
 };
 const kararYazici = kararYaziciKur(KARAR_AYARI);
