@@ -12,6 +12,8 @@
 //   5. Pencereden GERÇEK ova görünür: sahte şehir resmi ve yağmur gizlenir.
 //   6. Gece ufuk katmanı (ışık dili adım 2, `level/ufuk/`): ufukta şehir + terasta iki sokak lambası; level tanımına girmez, burada
 //      kurulur (`?ufuk=0` → kurulmaz). Lamba ışıkları OVA ışık grubundadır: ofisi ve içerideki aktörleri aydınlatmaz.
+//   7. Işık Hacmi (GI spike 1, `?gi=hacim`, varsayılan KAPALI; `level/gi/`): ofisin dolaylı ışığı. Efekt zincirinden bağımsız
+//      (malzeme eklentisi): ofisin içinde zincir kapanınca da çalışır.
 // Tek `Yer` (`birlesikYer.ts`): her aktör aynı yeri görür.
 //
 // Bilinen sınırlar: ışık ayrımı aktör üyeliğini ~5 Hz günceller; efekt zincirinin orta noktada açılıp kapanması ufak bir takılma
@@ -31,9 +33,12 @@ import type { Yer } from "./yer.ts";
 import { birlesikYerKur, ofisIcindeMi } from "./birlesikYer.ts";
 import { levelYeriniOlc } from "./levelOlcumu.ts";
 import { ufukKur, ufukTanimi, type Ufuk } from "../level/ufuk/ufuk.ts";
+import { isikHacmiKur, giSorguAyari, type IsikHacmi } from "../level/gi/isikHacmi.ts";
 
 /** `?ufuk=0` okuması (kompozisyon kökü bunu verir; giris.ts level'in iç klasörüne uzanmasın diye buradan). */
 export { ufukAcikMi } from "../level/ufuk/ufuk.ts";
+/** `?gi=hacim` okuması (GI spike 1; varsayılan kapalı). */
+export { giAcikMi } from "../level/gi/isikHacmi.ts";
 
 // ── Görünüm geçişi (SAF kısım) ─────────────────────────────────────────────
 
@@ -106,6 +111,11 @@ export interface BirlesikDunyaAyari {
   aktorler(): readonly Aktor[];
   /** Gece ufuk katmanı (şehir + sokak lambaları) kurulsun mu (varsayılan evet; `?ufuk=0` → hayır, `ufukAcikMi`). */
   ufuk?: boolean;
+  /**
+   * Işık Hacmi (otomatik dinamik GI, spike 1: yalnız ofis) kurulsun mu. Varsayılan HAYIR (`?gi=hacim` → evet, `giAcikMi`):
+   * kapalıyken hiçbir doku, geçiş ya da malzeme eklentisi kurulmaz.
+   */
+  gi?: boolean;
 }
 
 export interface BirlesikDunya {
@@ -115,6 +125,8 @@ export interface BirlesikDunya {
   readonly kurulumMs: number;
   /** Kameranın şu anki "ofis içi" derecesi (0–1). */
   ic(): number;
+  /** Işık Hacmi (yalnız `gi: true` iken; yoksa null). */
+  readonly gi: IsikHacmi | null;
   yokEt(): void;
 }
 
@@ -208,6 +220,19 @@ export async function birlesikDunyaKur(a: BirlesikDunyaAyari): Promise<BirlesikD
   const yer = birlesikYerKur(await levelYeriniOlc(level, "ova"));
 
   await sahne.whenReadyAsync();
+  // Işık Hacmi (spike 1): ofis mesh'leri BİR KEZ voxellenir; ışıklar her kare `scene.lights`'tan (ufuk lambaları, ova güneşi
+  // dahil — görünürlük voxelde, üyelik listesi değil). Kurulamazsa dünya GI'siz yaşar (sessiz değil).
+  let gi: IsikHacmi | null = null;
+  if (a.gi === true) {
+    try {
+      gi = await isikHacmiKur({ sahne, meshler: oda.meshler });
+      if (typeof location !== "undefined") Object.assign(gi, giSorguAyari(location.search));
+      const s = gi.sayim;
+      console.log(`[GI] ışık hacmi kuruldu ${s.kurulumMs} ms · ${s.mesh} mesh ${s.ucgen} üçgen · ızgara ${s.n.join("×")} (${s.dolu} dolu, ${s.yakin} yakın) · ${s.malzeme} malzeme, ${s.eklenti} eklenti · doku ${s.atlas.en}×${s.atlas.boy} · VRAM hesabı ${s.vramMiB.toFixed(1)} MiB`);
+    } catch (e) {
+      console.error("[GI] ışık hacmi kurulamadı:", e);
+    }
+  }
   let sonAnMs = performance.now(), uyelikSayaci = 0;
   const gozlemci = sahne.onBeforeRenderObservable.add(() => {
     const simdi = performance.now();
@@ -229,8 +254,10 @@ export async function birlesikDunyaKur(a: BirlesikDunyaAyari): Promise<BirlesikD
   return {
     level, yer, kurulumMs: Math.round(performance.now() - bas),
     ic: () => (sonIc < 0 ? 0 : sonIc),
+    gi,
     yokEt() {
       sahne.onBeforeRenderObservable.remove(gozlemci);
+      gi?.yokEt();
       ufuk?.yokEt();
       level.yokEt();
       oda.pencereyiKapat();

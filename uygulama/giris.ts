@@ -35,7 +35,7 @@ import { bulunduguCapa, capaBul } from "../world/level/capalar.ts";
 import { yerSabitBilgisi, yerOrtasiSozu, type Yer } from "../world/yer/yer.ts";
 import { ODA_YERI } from "../world/yer/odaYeri.ts";
 import { levelSahnesiKur, type LevelSahnesi } from "../world/yer/levelSahnesi.ts";
-import { birlesikDunyaKur, ufukAcikMi, type BirlesikDunya } from "../world/yer/birlesikDunya.ts";
+import { birlesikDunyaKur, ufukAcikMi, giAcikMi, type BirlesikDunya } from "../world/yer/birlesikDunya.ts";
 import { konumluSabitBilgi, konumluYerOrtasi } from "../world/yer/birlesikYer.ts";
 import { gecitVarisi } from "../world/yer/levelYeri.ts";
 import { carpisiyorMu } from "../world/level/olculer.ts";
@@ -1995,7 +1995,7 @@ const senaryoBaglami: SenaryoBaglami = {
     odayaDon: () => odayaDon(),
   },
   // `kapidene`: birleşik dünyanın kapısı ve görünüm geçişi.
-  dunya: { kapiAcisi: () => oda.kapi?.aci() ?? null, ic: () => birlesik?.ic() ?? 0 },
+  dunya: { kapiAcisi: () => oda.kapi?.aci() ?? null, ic: () => birlesik?.ic() ?? 0, gi: () => birlesik?.gi ?? null },
   niyetiYurut, onayKarari, algiSor, monitoreGec, admineGec, panelOdak, panoyuAl, zoomUygula, sonGorme,
   gozModeli: () => gozModeli.model,
 };
@@ -2016,6 +2016,7 @@ void (async () => {
     const orionKok = () => sahne.getTransformNodeByName("orion_vrm_kok") ?? sahne.getTransformNodeByName("orion_kok");
     const b = await birlesikDunyaKur({
       sahne, tanim, oda, kamera: rig.kamera, golgeAtanlar: [oyuncu.govde], ufuk: ufukAcikMi(location.search),
+      gi: giAcikMi(location.search),
       aktorler: () => {
         const o = oyuncu.oyuncuDurumu().konum;
         const liste = [{ meshler: [oyuncu.govde], x: o.x, z: o.z }];

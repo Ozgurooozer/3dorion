@@ -70,7 +70,9 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
       "world/level/moduller/index.ts", "world/level/shader/moduller/index.ts",
       "world/level/stil/stilSistemi.ts", "world/level/depo/levelDeposu.ts",
       // Gece ufuk katmanı (ışık dili adım 2): level tanımından bağımsız, birleşik dünya (Sahne) kurar.
-      "world/level/ufuk/ufuk.ts"],
+      "world/level/ufuk/ufuk.ts",
+      // Işık Hacmi (GI spike 1, `?gi=hacim`): birleşik dünya (Sahne) kurar, senaryo (Uygulama) tipini okur.
+      "world/level/gi/isikHacmi.ts"],
     izinli: ["Protokol"], urun: true,
   },
   {

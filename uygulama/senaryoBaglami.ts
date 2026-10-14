@@ -30,6 +30,7 @@ import type { Cevap, Soru } from "../mind/algiHizmeti.ts";
 import type { KuralRefleksi } from "../mind/refleks.ts";
 import type { OnayKapisi } from "../mind/onayKapisi.ts";
 import type { GormeKaydi } from "./niyetYurutucu.ts";
+import type { IsikHacmi } from "../world/level/gi/isikHacmi.ts";
 
 export interface SenaryoBaglami {
   // ── sahne ve oda ──
@@ -70,7 +71,11 @@ export interface SenaryoBaglami {
     odayaDon(): boolean;
   };
   /** Birleşik dünya (spec 27; `kapidene`): ofis kapısının açısı (rad; 0 kapalı, π/2 açık; kapı kurulmadıysa null) ve kameranın ofis içi derecesi. */
-  readonly dunya: { kapiAcisi(): number | null; ic(): number };
+  readonly dunya: {
+    kapiAcisi(): number | null; ic(): number;
+    /** Işık Hacmi (GI spike 1; `gidene`): yalnız `?gi=hacim` ile ve birleşik dünya kurulduysa, yoksa null. */
+    gi(): IsikHacmi | null;
+  };
   // ── eylemler ──
   niyetiYurut(n: Niyet, id: string): void;
   onayKarari(onaylandi: boolean): void;
@@ -92,7 +97,7 @@ export const SENARYOLAR = [
   "terminaldene", "otodene", "gorudene", "sessizdene", "davranis", "tezdene", "gordene", "admindene",
   "zihindene", "onaydene", "tahtabeyin", "becerdene", "bakdene", "acidene", "saglobdene",
   "senaryodene", "eylemdene", "benlikdene", "apidene", "tahtadene", "hafizadene", "yuzdene", "baglamdene", "takipdene",
-  "kapidene", "gozdene", "ovadene", "ortamdene",
+  "kapidene", "gozdene", "ovadene", "ortamdene", "gidene",
 ] as const;
 export type SenaryoAdi = (typeof SENARYOLAR)[number];
 
