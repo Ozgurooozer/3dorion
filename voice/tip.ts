@@ -3,8 +3,9 @@
 // TASARIM GEREKÇESİ: bu makinede (2026-09-11 ölçümü) mikrofon YOK — yalnızca
 // çıkış aygıtları var, Electron'da Web Speech `not-allowed` dönüyor. Donanım
 // gelene kadar konuşma girdisi yazılamaz. Bu yüzden girdi bir ARAYÜZ:
-// bugün metin ve sahte-mikrofon uygulamaları çalışır, mikrofon takıldığında
-// üçüncü bir uygulama eklenir ve hattın geri kalanı değişmez.
+// o gün metin ve sahte-mikrofon uygulamaları çalışıyordu, mikrofon takıldığında
+// üçüncü bir uygulama eklenir ve hattın geri kalanı değişmez. Bugün: metin-girdi ve
+// nemotron (sahte-mikrofon 2026-10-14'te silindi: hiçbir şey import etmiyor, hiçbir test koşmuyordu).
 //
 // Ölçülmemiş bir şeyi yazmıyoruz: `web-speech.ts` mikrofon gelince, canlı
 // doğrulanabilir olduğunda yazılacak.

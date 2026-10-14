@@ -106,7 +106,7 @@ export interface Refleks {
 // olduğunu bilmek gerekir — yoksa modelin katkısı ölçülemez, yalnızca
 // varsayılır. Bu sınıf o taban çizgisi; ölçümde kazanırsa üretim kodudur.
 //
-// Ölçüm: mind/refleks-olcum.ts
+// Ölçüm: tools/refleks-olcum.ts
 
 /**
  * Terminal çıktısında "bu önemli" diyen desenler.

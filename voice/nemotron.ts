@@ -1,6 +1,6 @@
 // voice/nemotron.ts — Orion'un kulağı: bas-konuş mikrofon, Nemotron Speech (İngilizce) ile.
 //
-// `KonusmaKaynagi` arayüzünün (voice/tip.ts) üçüncü uygulaması: metin ve sahte-mikrofonla aynı
+// `KonusmaKaynagi` arayüzünün (voice/tip.ts) üçüncü uygulaması: metin girdisiyle aynı
 // hatta bağlanır, hattın geri kalanı değişmez. Ses burada işlenmez — mikrofonu ve modeli ana
 // süreçteki kalıcı Python süreci (host/dinleme.js) tutar; buraya yalnız çözülmüş METİN gelir.
 //

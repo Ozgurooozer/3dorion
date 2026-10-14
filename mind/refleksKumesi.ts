@@ -1,6 +1,6 @@
 // mind/refleksKumesi.ts — Refleks ölçümünün ETİKETLİ KÜMESİ: tek kaynak.
 //
-// mind/refleks-olcum.ts'ten taşındı (2026-09-27), kelimesi kelimesine. O dosya
+// refleks-olcum.ts'ten (bugün tools/'ta) taşındı (2026-09-27), kelimesi kelimesine. O dosya
 // ölçümü içe aktarıldığı anda koşturuyor; kümeyi başka bir ölçüm (öğretmen
 // kalibrasyonu, tools/ogretmen.ts) kopyalamadan kullanabilsin diye burada.
 //

@@ -352,7 +352,7 @@ test("SABİT düğme için teyit de açılmaz", () => {
 function olculmusPano() {
   const t = tel(1000);
   const p = panoKur([modul("d", [
-    dugme({ ad: "esik", sinif: "olculmus", kaynak: "mind/refleks-olcum.ts",
+    dugme({ ad: "esik", sinif: "olculmus", kaynak: "tools/refleks-olcum.ts",
             aralik: { en: 100, cok: 10000 }, oku: t, yaz: t.yaz,
             uyari: (y) => `ölçümle seçilen 1000 ms, ${y} ms ile değiştirilecek` }),
   ])]);

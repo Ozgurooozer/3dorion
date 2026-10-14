@@ -55,7 +55,8 @@ function pencereAc() {
   setTimeout(async () => {
     try {
       const kare = await pencere.webContents.capturePage();
-      const dosya = path.join(KOK, "world", "avatar", `t2-${ETIKET}.png`);
+      // Ölçüm görüntüsü kaynak klasörüne değil ölçüm arşivine (mimari raporu A2, 2026-10-14).
+      const dosya = path.join(KOK, "docs", "olcum", `t2-${ETIKET}.png`);
       fs.writeFileSync(dosya, kare.toPNG());
       console.log(`[kosucu] ekran görüntüsü: ${dosya}`);
     } catch (err) {

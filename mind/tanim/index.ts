@@ -198,7 +198,7 @@ export function refleksTanimi(): Modul {
   const dugmeler: Dugme[] = [
     { ad: "refleks.uzun_islem", etiket: "uzun işlem eşiği", sinif: "olculmus", etki: "aninda",
       birim: "ms", oku: () => UZUN_ISLEM_MS,
-      kaynak: "mind/refleks-olcum.ts — komut süre dağılımı",
+      kaynak: "tools/refleks-olcum.ts — komut süre dağılımı",
       aciklama: "Bu süreyi aşan komut uzun sürmüş sayılır ve tepkisi değişir." },
     { ad: "refleks.kanal", etiket: "yerel kanalda kalır", sinif: "sabit", etki: "aninda",
       oku: () => true,

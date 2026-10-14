@@ -106,7 +106,7 @@ kuruldu (`voice/tip.ts` → `KonusmaKaynagi`):
 | Uygulama | Durum |
 |---|---|
 | `voice/metin-girdi.ts` | ✓ çalışıyor — hattın tamamı bugün uçtan uca test edilebilir |
-| `voice/sahte-mikrofon.ts` | ✓ çalışıyor — senaryolu konuşma, ara sonuçlar dahil; mikrofon gelince regresyon testi olarak kalır |
+| `voice/sahte-mikrofon.ts` | ~~✓ çalışıyor — senaryolu konuşma, ara sonuçlar dahil; mikrofon gelince regresyon testi olarak kalır~~ **silindi (2026-10-14):** hiçbir şey import etmiyor, hiçbir test koşmuyordu; git geçmişinde (`6d81eeb`) |
 | `voice/web-speech.ts` | **yazılmadı** — canlı doğrulanamayacak kod yazmıyoruz |
 | yerel whisper | Faz 2 adayı; mikrofon geldiğinde Web Speech ile karşılaştırmalı ölçülür |
 
@@ -131,7 +131,7 @@ CSS bindirme WebGL tuvalinin üstünde bir DOM katmanıdır, derinlik testi yokt
 Bu projede oyuncu odada dolaşıyor ve Orion monitörün önünden geçiyor — terminalin
 onun üstüne binmesi kabul edilemez. **Aday A seçildi.**
 
-Kanıt: `world/surfaces/t3-derinlik-{A,B}.png` (aynı engel, A'da kapatıyor,
+Kanıt: `docs/olcum/t3-derinlik-{A,B}.png` (aynı engel, A'da kapatıyor,
 B'de yok sayılıyor), `t3-{A,B}-{1.5m,30deg}.png`.
 
 Uygulama notu: brifte varsayılan "xterm'in canvas'ını dokuya kopyala" yolu
@@ -149,7 +149,7 @@ Agents / PIANO bulguları ışığında T6 iki ayrı sorumluluğa bölündü:
   katmanı. Saf, determinist (bosta.ts'teki `sapma()` tekniğiyle aynı), beyin
   meşgulken asla araya girmez. **[TEST] canlı**: `ORION_SMOKE=1` koşusunda
   `[NIYET] ajanda_...→ bitti` gerçek logda görüldü (2026-09-12).
-- `mind/refleks.ts` — **terfi kararı.** İki aday ölçüldü (`mind/refleks-olcum.ts`).
+- `mind/refleks.ts` — **terfi kararı.** İki aday ölçüldü (`tools/refleks-olcum.ts`; 2026-10-14'e kadar `mind/`'deydi).
 
 Kasıtlı olarak yapılMADI: uzun-vadeli hafıza (Generative Agents'ın
 recency/importance/relevance skorlaması). Spec'in T6 tanımı yalnızca

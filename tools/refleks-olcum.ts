@@ -1,4 +1,5 @@
-// mind/refleks-olcum.ts — İKİ ADAY ÖLÇÜMÜ: kural mı, 270M model mi?
+// tools/refleks-olcum.ts — İKİ ADAY ÖLÇÜMÜ: kural mı, 270M model mi?
+// (2026-10-14'e kadar mind/'deydi; ölçüm betiği üretim katmanında durmasın diye taşındı.)
 //
 // NEDEN BU DOSYA VAR
 // Spec (docs/specs/01-sanal-alan.md sat. 58) "refleks = functiongemma:270m"
@@ -11,12 +12,12 @@
 // GÖRÜLMEDEN yazıldı. Sonradan "model böyle dedi, demek doğruydu" diye
 // düzeltilmedi. Anlaşmazlık çıkan durumlar raporda ayrıca listeleniyor.
 //
-// Koşum:  node --experimental-strip-types mind/refleks-olcum.ts
+// Koşum:  node --experimental-strip-types tools/refleks-olcum.ts
 "use strict";
-import { KuralRefleksi, OllamaRefleks, type Refleks } from "./refleks.ts";
+import { KuralRefleksi, OllamaRefleks, type Refleks } from "../mind/refleks.ts";
 // Etiketli küme ayrı modülde: bu dosya içe aktarılınca ölçümü koşturur, küme
 // başka ölçümlerce de (tools/ogretmen.ts) kopyalanmadan kullanılsın diye.
-import { KUME } from "./refleksKumesi.ts";
+import { KUME } from "../mind/refleksKumesi.ts";
 
 interface Rapor {
   ad: string;
