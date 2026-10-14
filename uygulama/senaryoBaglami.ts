@@ -90,7 +90,7 @@ export interface SenaryoBaglami {
 /** Senaryo adları — `3dorion.bat` modları ve URL anahtarları. Yükleyici yalnız bunları yükler. */
 export const SENARYOLAR = [
   "terminaldene", "otodene", "gorudene", "sessizdene", "davranis", "tezdene", "gordene", "admindene",
-  "zoomdene", "zihindene", "onaydene", "tahtabeyin", "becerdene", "bakdene", "acidene", "saglobdene",
+  "zihindene", "onaydene", "tahtabeyin", "becerdene", "bakdene", "acidene", "saglobdene",
   "senaryodene", "eylemdene", "benlikdene", "apidene", "tahtadene", "hafizadene", "yuzdene", "baglamdene", "takipdene",
   "kapidene", "gozdene", "ovadene", "ortamdene",
 ] as const;

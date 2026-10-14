@@ -93,6 +93,8 @@ function sahneKur(ayar: {
 }
 
 const bekleBiraz = () => new Promise((r) => setTimeout(r, 0));
+/** Algı birleşiminin her varyantında `metin` yok: olan varyantlardan oku. */
+const algiMetni = (a: Algi | undefined): string | undefined => (a && "metin" in a ? a.metin : undefined);
 
 test("soyle bedene gitmez (ses hattının işi)", () => {
   const { kayit, y } = sahneKur();
@@ -190,13 +192,13 @@ test("kapının reddettiği komut köprüye sebebiyle hata döner", () => {
 
 test("sor cevabı beyne `gordum` olarak ulaşır", () => {
   const { kayit, y } = sahneKur();
-  y.niyetiYurut({ tur: "sor", ne: "etrafim" }, "n1");
-  assert.deepEqual(kayit.kopruAlgi, [{ tur: "gordum", ne: "etrafim", metin: "tahta görünüyor" }]);
+  y.niyetiYurut({ tur: "sor", ne: "dunya" }, "n1");
+  assert.deepEqual(kayit.kopruAlgi, [{ tur: "gordum", ne: "dunya", metin: "tahta görünüyor" }]);
 });
 
 test("sor `gordum` geldiğini bildirir", () => {
   const { kayit, y } = sahneKur();
-  y.niyetiYurut({ tur: "sor", ne: "etrafim" }, "n1");
+  y.niyetiYurut({ tur: "sor", ne: "dunya" }, "n1");
   assert.equal(kayit.gordumBildirildi, 1);
 });
 
@@ -235,7 +237,7 @@ test("model çalışmazsa `gordum` dürüst: gözlerin çalışmıyor + algı", 
   const { kayit, y } = sahneKur({ goz: { gor: async () => { throw new Error("model yok"); } } });
   y.niyetiYurut({ tur: "sor", ne: "gor" }, "n1");
   await bekleBiraz();
-  assert.equal(kayit.kopruAlgi[0]?.metin, "Your eyes are not working right now (model yok). Your perception: tahta görünüyor. Ozyn: Ozyn yanında");
+  assert.equal(algiMetni(kayit.kopruAlgi[0]), "Your eyes are not working right now (model yok). Your perception: tahta görünüyor. Ozyn: Ozyn yanında");
 });
 
 test("model çalışmazsa niyet sebebiyle `hata` kapanır", async () => {
@@ -249,7 +251,7 @@ test("göz bağlı değilse `gordum` bunu söyler", async () => {
   const { kayit, y } = sahneKur();
   y.niyetiYurut({ tur: "sor", ne: "gor" }, "n1");
   await bekleBiraz();
-  assert.match(kayit.kopruAlgi[0]?.metin ?? "", /^Your eyes are not working right now \(gözün bağlı değil\)/);
+  assert.match(algiMetni(kayit.kopruAlgi[0]) ?? "", /^Your eyes are not working right now \(gözün bağlı değil\)/);
 });
 
 test("kare yoksa (beden hazır değil) modele gidilmez", async () => {

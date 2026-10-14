@@ -56,7 +56,7 @@ test("TEK DENEME: bir dersten sonra kural, anı ve mantar gövdesi aynı durumu 
 
 test("lojistik tek dersle emin olmaz (payı 0,75'i geçmez) — tek denemede öğrenmez", () => {
   const m = new LojistikMotor();
-  m.ogren(HAVUZ[1]!.isaret, "sus", "d1");
+  m.ogren(HAVUZ[1]!.isaret, "sus");
   assert.equal(m.karar(HAVUZ[1]!.isaret), null);
 });
 
