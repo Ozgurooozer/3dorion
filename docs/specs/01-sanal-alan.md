@@ -184,7 +184,7 @@ koşusu beyni **11 kez** uyandırdı, çünkü testlerin ADLARI içinde "hata"
 kelimesi geçiyor. Süzgeç, hata *anlatan* bir başlığı hata *olan* bir olaydan
 ayıramıyordu.
 
-Çözüm sözcüksel değil yapısal oldu: `world/surfaces/ciktiToplayici.ts` —
+Çözüm sözcüksel değil yapısal oldu: `world/surfaces/terminal/ciktiToplayici.ts` —
 çıktı akarken sus, akış ~800 ms durunca **tek blok** gönder. Bir test başlığı
 bunu kandıramaz; sessizlik metinden bağımsızdır.
 
@@ -382,8 +382,8 @@ Orion kendi ofisinde hiçbir şey yazamıyordu; beyaz tahta dekordu.
 
 | Parça | İş |
 |---|---|
-| `world/surfaces/tahtaYazisi.ts` | SAF metin yerleşimi: kelime sınırından bölme, sığmayan kelimeyi zorla kırma, taşınca en eski satırı düşürme (ve kaç satır düştüğünü SAYMA) |
-| `world/surfaces/tahta.ts` | DynamicTexture yüzeyi; monitörle aynı kirli-bayrak deseni, ama hücre ızgarası değil orantılı yazı — tahta insan okuması içindir |
+| `world/surfaces/tahta/tahtaYazisi.ts` | SAF metin yerleşimi: kelime sınırından bölme, sığmayan kelimeyi zorla kırma, taşınca en eski satırı düşürme (ve kaç satır düştüğünü SAYMA) |
+| `world/surfaces/tahta/tahta.ts` | DynamicTexture yüzeyi; monitörle aynı kirli-bayrak deseni, ama hücre ızgarası değil orantılı yazı — tahta insan okuması içindir |
 
 **Yakınlık kuralı gerçekten uygulanıyor.** Talimatta zaten yazılıydı ("tahtaya
 yazmak için önce tahtanın önüne git"); artık `yaklastiMi("tahta", konum)` ile
@@ -533,7 +533,7 @@ D;0  A  B   D;0  A  B   D;1  A     ← echo basarili, bilinmeyen komut D;1
 
 | Parça | İş |
 |---|---|
-| `world/surfaces/kabukIsaret.ts` | OSC 133 ayrıştırıcı — SAF, durumlu. pty verisi dizinin ortasından bölünebilir; yarım parça saklanır. İşaretler xterm'e ULAŞMADAN ayıklanır, ekrana çöp yazılmaz. |
+| `world/surfaces/terminal/kabukIsaret.ts` | OSC 133 ayrıştırıcı — SAF, durumlu. pty verisi dizinin ortasından bölünebilir; yarım parça saklanır. İşaretler xterm'e ULAŞMADAN ayıklanır, ekrana çöp yazılmaz. |
 | `host/main.js` | PowerShell'e `prompt` fonksiyonu enjekte eder |
 | `protocol/algi.ts` | `terminal` algısına EK alan: `kod?: number` (ek alan = kırıcı değil) |
 | `mind/refleks.ts` | Kod varsa metin desenlerini **ezer** |

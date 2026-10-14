@@ -103,8 +103,9 @@ Bırakıldığı yer:
 
 ## Teknik borç
 - Ayar normalizasyonu (`sayı | () => sayı`) 5 kopya: `mind/dikkat.ts`, `ajanda.ts`, `hafiza.ts`, `onayKapisi.ts`, `inisiyatif.ts`.
-- `world/surfaces/semaCizim.ts` birim testsiz (deneme sayfası var: `/world/surfaces/sema-deneme.html`).
+- `world/surfaces/duvar/semaCizim.ts` birim testsiz (deneme sayfası var: `/world/surfaces/duvar/sema-deneme.html`).
 - `zihindene` tarama kapıları ağır (senkron `pick`, FPS 100 → 8–19).
+- **Mimari düzenleme (2026-10-14, `docs/arastirma/kod-mimarisi-konteyner-onerisi-2026-10-14.md`):** A1–A4, B3 (`giris.ts` → `uygulama/`) ve B4 (`surfaces/` alt klasörleri) YAPILDI. KALAN: **B5** ofis dosyalarını `world/level/` kökünden `world/oda/`'ya taşımak — `cekirdek/anlam.ts`'in `Nesne` tip bağının yön değiştirmesi gerekiyor (önce tipi `level/cekirdek` ya da `protocol/temel.ts`'e al); bu dosya Ozyn'in commit dışı düzenlemesi olduğu için atlandı, çözülünce yapılır. **B1–B2** `uygulama/giris.ts` (~2040 satır, 27 bölüm, 33 üst düzey `let`) bölme: ayrı karar (GI işi de aynı dosyaya dokunacak). `tools/altSistemler.ts` `ISTISNALAR` listesi (60 kenar) yalnız küçülür.
 - Sözleşme cilası: model fazladan `TAHTA:` satırı üretiyor; `ornekler.ts` OpenCode yolunda kullanılmıyor (iki örnek kaynağı).
 
 ## Güvenlik

@@ -318,7 +318,7 @@ birimin okuduğu ortak veri, bir devrede **veri yoludur**.
 - **DÜŞÜNCE girişinde** modele giden tek satır yazılı: "modele: You are …". Ozyn
   modelin kendisi hakkında ne bildiğini duvardan okuyabilir.
 
-Görünüm önce `world/surfaces/sema-deneme.html`'de (sahnesiz) kurulur;
+Görünüm önce `world/surfaces/duvar/sema-deneme.html`'de (sahnesiz) kurulur;
 `semaCekirdek` saf kalır, yerleşim testli. Eskizi: bu spec'in görsel sayfası.
 
 ### 4.6 Sabit teller — değişmez, testle kilitli
