@@ -17,9 +17,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-
-const KOK = path.resolve(import.meta.dirname, "..");
-const UZANTILAR = new Set([".ts", ".js", ".cjs", ".mjs"]);
+// Import ayrıştırıcı ve klasör yürüyücü TEK kopya (K4 ve alt-sistem bekçisiyle ortak).
+import { KOK, ithaller, kaynaklar } from "./ithaller.ts";
 
 /** Katman → izinli katmanlar (değer import) ve yalnız tip olarak izinliler. */
 export const KURALLAR: Readonly<Record<string, { deger: readonly string[]; tip?: readonly string[] }>> = {
@@ -33,33 +32,6 @@ export const KURALLAR: Readonly<Record<string, { deger: readonly string[]; tip?:
 /** Kompozisyon kökü: her katmanı görebilir. */
 const KOKLER = [path.join("world", "giris.ts")];
 const KOK_KLASORLERI = ["uygulama"];
-
-const STATIK = /^\s*(import|export)\b([^;]*?)\bfrom\s*["']([^"']+)["']/gm;
-const YAN_ETKI = /^\s*import\s*["']([^"']+)["']/gm;
-const DINAMIK = /\b(?:import|require)\s*\(\s*["']([^"']+)["']\s*\)/g;
-
-interface Ithal { yol: string; tipMi: boolean }
-
-/** Kaynağın göreli importları; `import type` / `export type` tip sayılır. */
-export function ithaller(metin: string): Ithal[] {
-  const c: Ithal[] = [];
-  for (const m of metin.matchAll(STATIK)) c.push({ yol: m[3]!, tipMi: /^\s*type\b/.test(m[2]!) });
-  for (const m of metin.matchAll(YAN_ETKI)) c.push({ yol: m[1]!, tipMi: false });
-  for (const m of metin.matchAll(DINAMIK)) {
-    const satir = metin.slice(metin.lastIndexOf("\n", m.index) + 1, m.index).trimStart();
-    if (!satir.startsWith("//") && !satir.startsWith("*")) c.push({ yol: m[1]!, tipMi: false });
-  }
-  return c.filter((i) => i.yol.startsWith("."));
-}
-
-function kaynaklar(klasor: string): string[] {
-  if (!fs.existsSync(klasor)) return [];
-  return fs.readdirSync(klasor, { withFileTypes: true }).flatMap((g) => {
-    const tam = path.join(klasor, g.name);
-    if (g.isDirectory()) return g.name === "node_modules" ? [] : kaynaklar(tam);
-    return UZANTILAR.has(path.extname(g.name)) && !/\.test\./.test(g.name) && !g.name.endsWith(".d.ts") ? [tam] : [];
-  });
-}
 
 /** Bir dosyanın katman ihlalleri: "dosya → hedef (tip?)". */
 export function ihlaller(dosya: string, metin: string): string[] {
@@ -79,7 +51,7 @@ export function ihlaller(dosya: string, metin: string): string[] {
 }
 
 test("KATMAN BEKÇİSİ: her katman yalnız izinli katmanları import eder (spec 14)", () => {
-  const hepsi = Object.keys(KURALLAR).flatMap((k) => kaynaklar(path.join(KOK, k)))
+  const hepsi = Object.keys(KURALLAR).flatMap((k) => kaynaklar(path.join(KOK, k), { testler: false }))
     .flatMap((d) => ihlaller(d, fs.readFileSync(d, "utf8")));
   assert.deepEqual(hepsi, []);
 });

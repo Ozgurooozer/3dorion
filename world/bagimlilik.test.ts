@@ -16,49 +16,26 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+// Import ayrıştırıcı ve klasör yürüyücü TEK kopya (katman ve alt-sistem bekçisiyle ortak).
+// Bu bekçinin farkı korunur: world/'ün TEST dosyalarını da tarar.
+import { KOK, ithaller, kaynaklar as tumKaynaklar } from "../tools/ithaller.ts";
 
-const KOK = path.resolve(import.meta.dirname, "..");
 const KOMPOZISYON_KOKU = path.join(KOK, "world", "giris.ts");
 // Bu dosya tarayıcının örneklerini METİN olarak taşır. Bugünkü örnekler bu
 // dosyanın yerine göre depo dışına çözülür (bozma denemesinde dışlama eşdeğer
 // çıktı); dışlama, ileride yazılacak tek seviyeli (`../mind/…`) örnekleri korur.
 const BU_DOSYA = path.join(KOK, "world", "bagimlilik.test.ts");
 const BEYIN = ["bridge", "mind"];
-const UZANTILAR = new Set([".ts", ".js", ".cjs", ".mjs"]);
-
-// Satır başındaki `import … from` / `export … from` (çok satırlı da), yan etki
-// importu ve her yerde `import()` / `require()`. Yorum satırındaki örnek kod
-// sayılmaz: statik desen satır başına bağlı, dinamikte satırın yorum olup
-// olmadığına bakılır.
-const STATIK = /^\s*(?:import|export)\b[^;]*?\bfrom\s*["']([^"']+)["']/gm;
-const YAN_ETKI = /^\s*import\s*["']([^"']+)["']/gm;
-const DINAMIK = /\b(?:import|require)\s*\(\s*["']([^"']+)["']\s*\)/g;
 
 /** Bir kaynağın beyinden (bridge/, mind/) aldığı yollar. Göreli yollar dosyanın klasörüne göre ÇÖZÜLÜR. */
 function beyinImportlari(dosya: string, metin: string): string[] {
-  const yollar: string[] = [];
-  for (const m of metin.matchAll(STATIK)) yollar.push(m[1]!);
-  for (const m of metin.matchAll(YAN_ETKI)) yollar.push(m[1]!);
-  for (const m of metin.matchAll(DINAMIK)) {
-    const satirBasi = metin.lastIndexOf("\n", m.index) + 1;
-    const satir = metin.slice(satirBasi, m.index).trimStart();
-    if (satir.startsWith("//") || satir.startsWith("*")) continue;
-    yollar.push(m[1]!);
-  }
-  return yollar.filter((y) => {
-    if (!y.startsWith(".")) return false;
+  return ithaller(metin).map((i) => i.yol).filter((y) => {
     const [ilk] = path.relative(KOK, path.resolve(path.dirname(dosya), y)).split(path.sep);
     return BEYIN.includes(ilk!);
   });
 }
 
-function kaynaklar(klasor: string): string[] {
-  return fs.readdirSync(klasor, { withFileTypes: true }).flatMap((g) => {
-    const tam = path.join(klasor, g.name);
-    if (g.isDirectory()) return kaynaklar(tam);
-    return UZANTILAR.has(path.extname(g.name)) ? [tam] : [];
-  });
-}
+const kaynaklar = (klasor: string): string[] => tumKaynaklar(klasor, { testler: true });
 
 // ── Tarayıcının kendisi (sentetik kaynaklar) ─────────────────────────────────
 
