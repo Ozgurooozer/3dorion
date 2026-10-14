@@ -38,6 +38,7 @@ import { yonlendir, type CekmeceIstegi } from "../mind/hafizaYonlendirici.ts";
 import { sikistirmaCoz, sikistirmaIstegi, sikistirmaPlani, sikistirmaSorusu, otoSikistirmaGerekli, SIKISTIR_SOZLERI, SIKISTIR_TALIMATI, EN_AZ_PLAN } from "../mind/sikistir.ts";
 import { sohbetEylemi, sonrakiKip, SOHBET_ONAYI, type SohbetEylemi, type SohbetKipi } from "../mind/sohbetKipi.ts";
 import { takipEylemi, TAKIP_ONAYI, type TakipEylemi } from "../mind/takipSozu.ts";
+import { AJANDA_ONEKI } from "../mind/ajanda.ts";
 import { terminalAyristir } from "../mind/durumKodu.ts";
 import { suzgecMercegi, type MercekOnerisi } from "../mind/mercekSuzgec.ts";
 import { araclariUret, cagriyiNiyete, turIcinAraclar } from "./araclar.ts";
@@ -110,7 +111,7 @@ export class Kopru {
   private _dusunuyor = false;
   /** Düşünme sürerken yeni girdi geldiyse, bitince bir tur daha dön. */
   private _tekrarGerek = false;
-  private _sayac: KopruSayaci = { dusunme: 0, niyet: 0, reddedilenCagri: 0, hata: 0, suzulen: 0, kurtarilanMetin: 0, kurtarilanCagri: 0, yutulanCop: 0, zincirKesilen: 0, yutulanSusma: 0, refleks: 0, komut: 0 };
+  private _sayac: KopruSayaci = { dusunme: 0, niyet: 0, reddedilenCagri: 0, hata: 0, suzulen: 0, kurtarilanMetin: 0, kurtarilanCagri: 0, yutulanCop: 0, zincirKesilen: 0, yutulanSusma: 0, refleks: 0, komut: 0, ajanda: 0 };
   /** Süren refleks turu (spec 10, Faz D); yoksa null. */
   // YETKİLİ BECERİ REFLEKSİ (spec 10, Faz D; spec 14 R7: bridge/beceriRefleksi.ts). Her gönderim
   // niyet sayacına girer; hata/zaman aşımında söz LLM'e döner (`_refleksiGeriAl`).
@@ -324,6 +325,17 @@ export class Kopru {
     if (a.tur === "sonuc" && niyetKaynagi(a.sonuc.niyet_id) === REFLEKS_ONEKI) {
       this._kaydet(a, ozet, { gecti: false, kural: "kopru.refleks" });
       this._refleks.sonuc(a.sonuc);
+      return;
+    }
+
+    // AJANDANIN KIPIRTISI (mind/ajanda.ts; içgüdü `kopru.ajanda`): boşta bak/jest bedenin kendi işidir — LLM vermedi,
+    // hiçbir uyanışa ya da programa bağlı değil, öğrenen kapının öğreteceği bir karar da değil. Sonucu beyne gitmez.
+    // Başarısı kayda YAZILMAZ (yalnız sayaç): 15–30 sn'de bir satır kaydın üçte birini dolduruyordu (2026-10-14: 84/256,
+    // 2026-10-12: 1333/1599). Hatası iz olarak yazılır ama uyandırmaz: iki-yer döneminde ova'da `tahta` yoktu ve her
+    // "bilinmeyen çapa" Orion'u yapmadığı bir niyet için uyandırdı (2026-10-11: 54 kez). Ölçüm: docs/olcum/on-kayit-ajanda.md.
+    if (a.tur === "sonuc" && niyetKaynagi(a.sonuc.niyet_id) === AJANDA_ONEKI) {
+      this._sayac.ajanda++;
+      if (a.sonuc.durum === "hata") this._kaydet(a, ozet, { gecti: false, kural: "kopru.ajanda" });
       return;
     }
 

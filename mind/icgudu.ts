@@ -73,6 +73,8 @@ export const ICGUDULER = {
     aciklama: "Kesin söz TAM olarak /compact (ya da hafızayı sıkıştır) ise ya da ham kayıt eşiği aşılınca LLM'in sohbet turu uyanmaz: eski ham anılar tek bir özet çağrısıyla olgulara + kısa özete iner, ham olanlar silinir; cevap çözülemezse hiçbir şey silinmez, yedek önce alınır (spec 26 F3-C)." },
   "kopru.refleks": { katman: "kopru", ezilebilir: false,
     aciklama: "Beceri refleksinin kendi adımının sonucunu refleks okur, beyne gitmez; refleks başarısız olursa söz notla birlikte beyne döner (spec 10)." },
+  "kopru.ajanda": { katman: "kopru", ezilebilir: false,
+    aciklama: "Ajandanın (boşta bak/jest, mind/ajanda.ts) niyet sonucu beyne gitmez: o niyeti LLM vermedi. Başarısı kayda yazılmaz (yalnız sayaç), hatası iz olarak yazılır ama LLM'i uyandırmaz (docs/olcum/on-kayit-ajanda.md)." },
 
   // ── Dikkat (mekanik sınırlar, mind/dikkat.ts) ─────────────────────────────
   "dikkat.tik_yasak": { katman: "dikkat", ezilebilir: false,

@@ -33,6 +33,19 @@ function sapma(n: number, tohum: number): number {
 
 const JEST_HAVUZU = ["gülümsüyor", "bekliyor", "kaş_çatıyor", "el_açıyor"] as const;
 
+/**
+ * Ajanda niyetlerinin kimlik öneki (`kimlik("ajanda")`, world/giris.ts). Köprü sonucu bununla tanır ve beyne vermez
+ * (içgüdü `kopru.ajanda`): bu niyetleri LLM vermedi.
+ */
+export const AJANDA_ONEKI = "ajanda";
+
+/**
+ * Varsayılan bakılacak çapalar: ofisin çapaları. Canlı yer (birleşik dünya, spec 27) ofisi taşıdığı için hepsi her yerde
+ * vardır — bekçi: mind/ajanda.test.ts "her çapa birleşik yerde var". İki-yer döneminde ova'da `tahta`/`pencere` yoktu ve
+ * her bakış "bilinmeyen çapa" hatasıyla bitiyordu (karar kaydı 2026-10-11: 54 kez).
+ */
+export const AJANDA_CAPALARI: readonly string[] = ["masa", "tahta", "pencere", "kapi"];
+
 export class Ajanda {
   private _asgariMs: () => number;
   private _sapmaMs: () => number;
@@ -48,7 +61,7 @@ export class Ajanda {
       a === undefined ? () => v : (typeof a === "function" ? a : () => a);
     this._asgariMs = tel(ayar.asgariAralikMs, 15_000);
     this._sapmaMs = tel(ayar.azamiSapmaMs, 15_000);
-    this._capalar = ayar.bakilacakCapalar ?? ["masa", "tahta", "pencere", "kapi"];
+    this._capalar = ayar.bakilacakCapalar ?? AJANDA_CAPALARI;
     this._tohum = ayar.tohum ?? 0;
   }
 

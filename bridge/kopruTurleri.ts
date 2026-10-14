@@ -235,6 +235,8 @@ export interface KopruSayaci {
   refleks: number;
   /** Doğuştan komut programıyla, LLM'e sormadan yürütülen söz (spec 13 Faz 2b). */
   komut: number;
+  /** Beyne verilmeyen ajanda sonucu (içgüdü `kopru.ajanda`): başarısı kayda satır olarak değil, burada sayı olarak görünür. */
+  ajanda: number;
 }
 
 /** Refleks niyetlerinin kimlik öneki (`kimlik(REFLEKS_ONEKI)`); sonuçları `niyetKaynagi` ile tanınır. */
