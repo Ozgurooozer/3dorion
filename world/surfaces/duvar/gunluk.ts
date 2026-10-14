@@ -1,4 +1,4 @@
-// world/surfaces/gunluk.ts — Zihin duvarındaki OLAY GÜNLÜĞÜ ekranı.
+// world/surfaces/duvar/gunluk.ts — Zihin duvarındaki OLAY GÜNLÜĞÜ ekranı.
 //
 // Orion'un iç işleyişi odada görünür olsun diye. Karar mantığı yok: ne
 // tutulacağı ve nasıl sarılacağı `gunlukCekirdek.ts`'te (saf, testli); burası
@@ -9,8 +9,8 @@
 "use strict";
 import type { Scene } from "@babylonjs/core/scene";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
-import { yuzeyKur, RENK, YAZI, zeminDoldur } from "./yuzey.ts";
-import type { Yuzey, YuzeyOlcusu } from "./yuzey.ts";
+import { yuzeyKur, RENK, YAZI, zeminDoldur } from "../yuzey.ts";
+import type { Yuzey, YuzeyOlcusu } from "../yuzey.ts";
 import { gunlukCekirdegiKur, saatBicimle } from "./gunlukCekirdek.ts";
 import type { Seviye } from "./gunlukCekirdek.ts";
 

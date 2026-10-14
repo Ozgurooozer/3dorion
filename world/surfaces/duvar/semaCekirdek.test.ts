@@ -1,4 +1,4 @@
-// world/surfaces/semaCekirdek.test.ts
+// world/surfaces/duvar/semaCekirdek.test.ts
 "use strict";
 import { test } from "node:test";
 import assert from "node:assert/strict";

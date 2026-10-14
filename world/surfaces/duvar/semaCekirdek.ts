@@ -1,4 +1,4 @@
-// world/surfaces/semaCekirdek.ts — Beyin şemasının SAF çekirdeği.
+// world/surfaces/duvar/semaCekirdek.ts — Beyin şemasının SAF çekirdeği.
 //
 // Şema, Orion'un algıdan eyleme giden yolunu odada gösterir. Bu dosya o yolun
 // VERİSİ ve YERLEŞİM aritmetiğidir; Babylon yok, canvas yok, test edilebilir.

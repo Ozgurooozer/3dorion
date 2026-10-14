@@ -1,4 +1,4 @@
-// world/surfaces/terminal-cekirdek.ts — xterm + pty ortak çekirdeği.
+// world/surfaces/terminal/terminal-cekirdek.ts — xterm + pty ortak çekirdeği.
 //
 // Neden ayrı dosya: iki aday (doku kopyalama / CSS bindirme) aynı VT
 // durum makinesini ve aynı pty bağlantısını paylaşır. Aday farkı yalnızca
@@ -11,7 +11,7 @@ import { Terminal } from "@xterm/xterm";
 import { KabukIsaretAyiklayici, type KabukIsareti } from "./kabukIsaret.ts";
 import type { IDisposable, ITerminalOptions } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
-import type { PtyBitti, PtyCikti } from "../../host/kopru.ts";
+import type { PtyBitti, PtyCikti } from "../../../host/kopru.ts";
 
 /** Terminal yazı tipi yığını — monospace garantisi olmadan hücre ızgarası kayar. */
 export const YAZI_TIPI = "'Cascadia Mono', 'Cascadia Code', Consolas, 'Courier New', monospace";

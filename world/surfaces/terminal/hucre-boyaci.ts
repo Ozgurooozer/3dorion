@@ -1,4 +1,4 @@
-// world/surfaces/hucre-boyaci.ts — xterm hücre ızgarasını 2D bağlama boyar.
+// world/surfaces/terminal/hucre-boyaci.ts — xterm hücre ızgarasını 2D bağlama boyar.
 //
 // Neden kendi boyayıcı: @xterm/xterm 6 çekirdeği DOM renderer ile gelir,
 // içinde kopyalanacak bir canvas YOKTUR (webgl/canvas renderer ayrı eklenti,

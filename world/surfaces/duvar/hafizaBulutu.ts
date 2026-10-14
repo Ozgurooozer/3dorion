@@ -1,4 +1,4 @@
-// world/surfaces/hafizaBulutu.ts — Zihin duvarında HAFIZA görünümü: üç kabuklu kelime bulutu
+// world/surfaces/duvar/hafizaBulutu.ts — Zihin duvarında HAFIZA görünümü: üç kabuklu kelime bulutu
 // (spec 13 Faz 5, Ozyn: "hafıza bölümünün içine girince Orion için böyle görebilelim").
 //
 // Model: Ozyn'in gösterdiği "Artık benlik imgesi" sayfası — üç kabuk halinde dönen kelimeler,
@@ -12,7 +12,7 @@
 // Saf çekirdek + canvas çizimi; Babylon yok (semaCizim.ts deseni). Kelimeleri kompozisyon
 // kökü verir (mind/hafizaGorunumu.ts kurar): burası `mind/`i görmez (K4).
 "use strict";
-import { RENK, YAZI, zeminDoldur, type YuzeyOlcusu } from "./yuzeyStil.ts";
+import { RENK, YAZI, zeminDoldur, type YuzeyOlcusu } from "../yuzeyStil.ts";
 import type { Bolge } from "./semaCizim.ts";
 
 export interface BulutKelimesi {

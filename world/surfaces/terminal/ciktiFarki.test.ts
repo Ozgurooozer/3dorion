@@ -1,4 +1,4 @@
-// world/surfaces/ciktiFarki.test.ts
+// world/surfaces/terminal/ciktiFarki.test.ts
 "use strict";
 import { test } from "node:test";
 import assert from "node:assert/strict";

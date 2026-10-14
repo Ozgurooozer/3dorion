@@ -1,4 +1,4 @@
-// world/surfaces/deneme.ts — T3 izole deneme sahnesi + ölçüm koşucusu.
+// world/surfaces/terminal/deneme.ts — T3 izole deneme sahnesi + ölçüm koşucusu.
 //
 // Amaç: "DOM terminali 3D yüzeye nasıl konur" sorusunun iki adayını AYNI
 // sahnede, AYNI pty'yle, AYNI kamerayla ölçmek. Karar bu dosyanın bastığı
@@ -6,7 +6,7 @@
 //
 // Çalıştırma:
 //   npx vite
-//   VITE_DEV_SERVER_URL=http://localhost:5273/world/surfaces/deneme.html \
+//   VITE_DEV_SERVER_URL=http://localhost:5273/world/surfaces/terminal/deneme.html \
 //     ORION_OLCUM=1 electron .
 //
 // Ölçüm sonucu tek satır JSON olarak konsola basılır (`[OLCUM] {...}`),
@@ -22,7 +22,7 @@ import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import { CreateBox } from "@babylonjs/core/Meshes/Builders/boxBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
-import { tuval2d } from "./yuzey.ts";
+import { tuval2d } from "../yuzey.ts";
 import { Texture } from "@babylonjs/core/Materials/Textures/texture";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import { TerminalCekirdek, TEMA } from "./terminal-cekirdek.ts";

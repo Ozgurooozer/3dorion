@@ -1,4 +1,4 @@
-// world/surfaces/ciktiFarki.ts — Terminal kuyruğundan YALNIZCA yeni satırlar.
+// world/surfaces/terminal/ciktiFarki.ts — Terminal kuyruğundan YALNIZCA yeni satırlar.
 //
 // `Monitor.kuyruk()` kayan bir pencere döndürür: her çağrıda son N satır.
 // İki çağrı arasındaki farkı almadan beyne yollamak, aynı 24 satırı saniyede

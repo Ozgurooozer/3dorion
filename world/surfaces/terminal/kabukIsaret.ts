@@ -1,4 +1,4 @@
-// world/surfaces/kabukIsaret.ts — OSC 133 kabuk entegrasyonu ayrıştırıcısı.
+// world/surfaces/terminal/kabukIsaret.ts — OSC 133 kabuk entegrasyonu ayrıştırıcısı.
 //
 // NEDEN VAR (üç ayrı ölçüm aynı yere işaret etti):
 //   1. `tsc --noEmit` temiz geçince HİÇBİR ŞEY yazmıyor — "başarıyla bitti"

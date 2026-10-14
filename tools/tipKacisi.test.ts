@@ -17,7 +17,7 @@ const KATMANLAR = ["protocol", "world", "voice", "mind", "bridge", "host", "uygu
 /** İzinli kaçışlar: dosya → gerekçe. */
 const IZINLI: Record<string, string> = {
   "world/surfaces/yuzey.ts": "tuval2d: Babylon ICanvasRenderingContext → tarayıcının CanvasRenderingContext2D (tek sınır)",
-  "world/surfaces/sema-deneme.ts": "tarayıcı deneme sayfası: sahte Pano (yalnız `npm run dev`)",
+  "world/surfaces/duvar/sema-deneme.ts":"tarayıcı deneme sayfası: sahte Pano (yalnız `npm run dev`)",
   "mind/beceriHafizasi.ts": "yerlestir: yuva yolu çalışma anında bulunur, birleşik Niyet tipine indeks yazılır",
 };
 

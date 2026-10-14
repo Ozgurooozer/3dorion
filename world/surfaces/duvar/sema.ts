@@ -1,4 +1,4 @@
-// world/surfaces/sema.ts — Zihin duvarındaki BEYİN ŞEMASI paneli.
+// world/surfaces/duvar/sema.ts — Zihin duvarındaki BEYİN ŞEMASI paneli.
 //
 // Orion'un algıdan eyleme giden yolu, canlı. Hangi durak çalıştı, kaç kez,
 // ne kadar sürdü, nerede arıza var — hepsi odada görünür.
@@ -13,12 +13,12 @@
 "use strict";
 import type { Scene } from "@babylonjs/core/scene";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
-import { yuzeyKur } from "./yuzey.ts";
-import type { Yuzey, YuzeyOlcusu } from "./yuzey.ts";
+import { yuzeyKur } from "../yuzey.ts";
+import type { Yuzey, YuzeyOlcusu } from "../yuzey.ts";
 // K4: `protocol/` sıfır bağımlılıklı, `world/` ondan TİP alabilir. Kayıt
 // defterinin KENDİSİ burada kurulmaz — onu kompozisyon kökü (`giris.ts`)
 // kurar ve `panoBagla` ile takar. Böylece yüzey `mind/`i hiç görmez.
-import type { Pano, DugmeGoruntu } from "../../protocol/pano.ts";
+import type { Pano, DugmeGoruntu } from "../../../protocol/pano.ts";
 import { semaDurumuKur, semaAlani, dugumBulUv, dugumTanim, uvdenPiksel } from "./semaCekirdek.ts";
 import type { Dugum, DugumDurumu, SemaDurumu } from "./semaCekirdek.ts";
 import { cizSema, cizDetay, cizTeyit, type Bolge } from "./semaCizim.ts";

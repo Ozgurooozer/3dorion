@@ -50,10 +50,10 @@ import { Oyuncu } from "./player/oyuncu.ts";
 import { EtkilesimOlaylari } from "./player/etkilesim.ts";
 import { PiperCikisi } from "../voice/cikis.ts";
 import { avatarKur, orionGozuKur, VARSAYILAN_VRM, type Avatar } from "./avatar/index.ts";
-import { monitorKur, type Monitor } from "./surfaces/monitor.ts";
-import { tahtaKur, type Tahta } from "./surfaces/tahta.ts";
-import { gunlukKur, type GunlukEkrani } from "./surfaces/gunluk.ts";
-import { semaKur, type SemaPaneli } from "./surfaces/sema.ts";
+import { monitorKur, type Monitor } from "./surfaces/terminal/monitor.ts";
+import { tahtaKur, type Tahta } from "./surfaces/tahta/tahta.ts";
+import { gunlukKur, type GunlukEkrani } from "./surfaces/duvar/gunluk.ts";
+import { semaKur, type SemaPaneli } from "./surfaces/duvar/sema.ts";
 // Devre panosu: sözleşme `protocol/`ta, tanımlar `mind/tanim/`da. Bu iki
 // import K4'ün belgelenmiş istisnası olan kompozisyon kökünde, burada.
 import { panoKur, tel } from "../protocol/pano.ts";
@@ -103,8 +103,8 @@ import { KuralRefleksi, UZUN_ISLEM_MS, refleksGirdisi } from "../mind/refleks.ts
 import { OnayKapisi } from "../mind/onayKapisi.ts";
 import { riskEtiketi } from "../mind/komutRiski.ts";
 import { OlayUretici } from "./olayUretici.ts";
-import { ciktiFarki, kesildiMi } from "./surfaces/ciktiFarki.ts";
-import { CiktiToplayici } from "./surfaces/ciktiToplayici.ts";
+import { ciktiFarki, kesildiMi } from "./surfaces/terminal/ciktiFarki.ts";
+import { CiktiToplayici } from "./surfaces/terminal/ciktiToplayici.ts";
 import { kimlik } from "../protocol/temel.ts";
 import type { DavranisDefteri } from "./davranisDenemesi.ts";
 

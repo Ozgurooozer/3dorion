@@ -1,4 +1,4 @@
-// world/surfaces/semaCizim.ts — ZİHİN AKIŞI panelinin ÇİZİMİ.
+// world/surfaces/duvar/semaCizim.ts — ZİHİN AKIŞI panelinin ÇİZİMİ.
 //
 // `sema.ts` durumu ve tıklamayı tutar; burası yalnızca boyar ve boyadığı
 // tıklama bölgelerini döndürür. Ayrılma sebebi: çizim artık Babylon'suz
@@ -21,8 +21,8 @@
 //
 // Bağımlılık sınırı (K4): kardeş yüzey modülleri + `protocol/` tipleri.
 "use strict";
-import { RENK, YAZI, zeminDoldur, yuvarlakKutu, type YuzeyOlcusu } from "./yuzeyStil.ts";
-import type { Pano, DugmeGoruntu, Sinif, Etki, Teyit } from "../../protocol/pano.ts";
+import { RENK, YAZI, zeminDoldur, yuvarlakKutu, type YuzeyOlcusu } from "../yuzeyStil.ts";
+import type { Pano, DugmeGoruntu, Sinif, Etki, Teyit } from "../../../protocol/pano.ts";
 import {
   DUGUMLER, OKLAR, SUTUN_ADLARI, PARILTI_MS, semaAlani, semaYerlesimi, sutunSeritleri,
   dugumTanim, etkinLob,

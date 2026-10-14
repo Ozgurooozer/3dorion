@@ -1,4 +1,4 @@
-// world/surfaces/gunlukCekirdek.ts — Zihin duvarı günlüğünün SAF çekirdeği.
+// world/surfaces/duvar/gunlukCekirdek.ts — Zihin duvarı günlüğünün SAF çekirdeği.
 //
 // Neden ayrı dosya: Babylon'suz test edilebilsin. Çizim (gunluk.ts) yalnızca
 // buradaki satırları boyar; hangi satırın tutulduğu, nasıl sarıldığı ve neyin
@@ -10,7 +10,7 @@
 //
 // SAF: bağımlılık yok (satır sarma dışında), yan etki yok.
 "use strict";
-import { satirlaraBol } from "./tahtaYazisi.ts";
+import { satirlaraBol } from "../tahta/tahtaYazisi.ts";
 
 export type Seviye = "bilgi" | "iyi" | "uyari" | "hata";
 

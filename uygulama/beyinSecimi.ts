@@ -34,8 +34,8 @@ import type { ApiIstemcisi, ApiSonucu } from "../bridge/apiBeyni.ts";
 import { yerelSecenekler, yerelAd, yereldenModel, bulutSecenekler, kartlariKur } from "../bridge/beyinKatalogu.ts";
 import type { Kopru as KabukKoprusu } from "../host/kopru.ts";
 import type { Pano } from "../protocol/pano.ts";
-import type { GunlukEkrani } from "../world/surfaces/gunluk.ts";
-import type { SemaPaneli } from "../world/surfaces/sema.ts";
+import type { GunlukEkrani } from "../world/surfaces/duvar/gunluk.ts";
+import type { SemaPaneli } from "../world/surfaces/duvar/sema.ts";
 import type { ModelSeciciKaynagi } from "../world/arayuz/modelSeciciCekirdek.ts";
 import type { OrionModelKancasi } from "./pencereKancalari.ts";
 

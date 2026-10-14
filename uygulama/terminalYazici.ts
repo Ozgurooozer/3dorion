@@ -10,7 +10,7 @@
 // ONAY KAPISI DEĞİŞMEZ: buraya yalnız Ozyn'in onayladığı komut gelir.
 "use strict";
 
-/** Monitörün bu iş için gereken yüzü (world/surfaces/monitor.ts). */
+/** Monitörün bu iş için gereken yüzü (world/surfaces/terminal/monitor.ts). */
 export interface YazilacakTerminal {
   acikMi(): boolean;
   ac(): Promise<void>;

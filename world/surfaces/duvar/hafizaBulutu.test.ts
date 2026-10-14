@@ -1,4 +1,4 @@
-// world/surfaces/hafizaBulutu.test.ts — Hafıza bulutunun yerleşimi (spec 13 Faz 5). Babylon'suz.
+// world/surfaces/duvar/hafizaBulutu.test.ts — Hafıza bulutunun yerleşimi (spec 13 Faz 5). Babylon'suz.
 "use strict";
 import { test } from "node:test";
 import assert from "node:assert/strict";

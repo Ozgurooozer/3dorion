@@ -1,6 +1,6 @@
 // mind/hafizaGorunumu.ts — Hafıza bulutunun kelimeleri GERÇEK kayıtlardan (spec 13 Faz 5).
 //
-// Zihin duvarındaki HAFIZA görünümü (world/surfaces/hafizaBulutu.ts) yalnız çizer; neyin
+// Zihin duvarındaki HAFIZA görünümü (world/surfaces/duvar/hafizaBulutu.ts) yalnız çizer; neyin
 // görüneceği burada, saf ve testli. Spec 05 "panel süs eklemiyor": her kelime bir kayıt.
 //   SABİT (0): içgüdüler (mind/icgudu.ts) — kimliği ve açıklamasıyla
 //   ANLIK (1): benliğin yaptıkları ve bekledikleri, çalışma belleği, konuşma penceresi

@@ -1,4 +1,4 @@
-// world/surfaces/tahtaYazisi.ts — Beyaz tahtanın METİN mantığı. SAF.
+// world/surfaces/tahta/tahtaYazisi.ts — Beyaz tahtanın METİN mantığı. SAF.
 //
 // NEDEN VAR: `yaz` niyeti protokolde tanımlı ve LLM'e araç olarak sunuluyor,
 // ama çağrıldığında HER SEFERİNDE hata dönüyordu:

@@ -7,7 +7,7 @@
 "use strict";
 import type { SenaryoBaglami } from "../senaryoBaglami.ts";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
-import { DUGUMLER } from "../../world/surfaces/semaCekirdek.ts";
+import { DUGUMLER } from "../../world/surfaces/duvar/semaCekirdek.ts";
 
 export async function kos(d: SenaryoBaglami): Promise<void> {
   const { motor, sahne, rig, oda, gunluk, sema, panelOdak, panoyuAl } = d;

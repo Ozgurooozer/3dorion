@@ -6,8 +6,8 @@
 // kesici → arıza işareti, köprünün aşama/iç ses/söz-eylem bildirimleri → şema ve günlük, hafıza
 // görünümü → HAFIZA bulutu. Hepsi YALNIZ GÖZLEM: köprünün kararını değiştirmez.
 "use strict";
-import type { GunlukEkrani } from "../world/surfaces/gunluk.ts";
-import type { SemaPaneli } from "../world/surfaces/sema.ts";
+import type { GunlukEkrani } from "../world/surfaces/duvar/gunluk.ts";
+import type { SemaPaneli } from "../world/surfaces/duvar/sema.ts";
 import type { Kopru, KopruAyari } from "../bridge/kopru.ts";
 import { KararKaydi } from "../mind/kararKaydi.ts";
 import { gunlukBicimleyiciKur } from "../mind/gunlukSatirlari.ts";

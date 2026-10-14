@@ -1,17 +1,17 @@
-// world/surfaces/sema-deneme.ts — ZİHİN AKIŞI panelini SAHNESİZ çizer.
+// world/surfaces/duvar/sema-deneme.ts — ZİHİN AKIŞI panelini SAHNESİZ çizer.
 //
 // Neden: panelin tasarımını görmek için Electron'u açıp odada duvara yürümek
 // gerekiyordu. Çizim artık Babylon'suz (`semaCizim.ts`); bu sayfa üç
 // görünümü (şema, DÜŞÜNCE detayı, teyit) gerçek boyutta (910×512, odadaki
 // dokuyla aynı) yan yana çizer ve sahte bir canlı akış oynatır.
 //
-//   npm run dev → http://localhost:5173/world/surfaces/sema-deneme.html
+//   npm run dev → http://localhost:5173/world/surfaces/duvar/sema-deneme.html
 //   ?donuk=1  : akışı durdur (ekran görüntüsü kararlı olsun)
 "use strict";
 import { semaDurumuKur } from "./semaCekirdek.ts";
 import { cizSema, cizDetay, cizTeyit } from "./semaCizim.ts";
 import { cizHafizaBulutu, type BulutKelimesi } from "./hafizaBulutu.ts";
-import type { Pano, ModulGoruntu, Teyit } from "../../protocol/pano.ts";
+import type { Pano, ModulGoruntu, Teyit } from "../../../protocol/pano.ts";
 
 const G = 910, Y = 512;
 const donuk = new URLSearchParams(location.search).has("donuk");

@@ -1,4 +1,4 @@
-// world/surfaces/css-bindirme.ts — Aday B: gerçek DOM'u 3D düzlemin üstüne oturt.
+// world/surfaces/terminal/css-bindirme.ts — Aday B: gerçek DOM'u 3D düzlemin üstüne oturt.
 //
 // Yaklaşım: kameranın iç yapısını taklit etmeye çalışmıyoruz. Düzlemin dört
 // köşesini Babylon'un kendi projeksiyonuyla ekran koordinatına indiriyor,

@@ -50,7 +50,8 @@ Sahne     world/{engine,player,yer}, world/ ve        motor, oyuncu, Yer soyutla
 Level     world/level/<alt klasörler>, world/varlik.ts veri güdümlü level: tanım, modüller, shader, stil, depo
 Editör    world/level/editor/ + editorSayfasi.ts      level editörü (ayrı sayfa); panel kiti stil penceresiyle ortak
 Avatar    world/avatar/                               Orion'un bedeni; dışarıya yalnız index.ts
-Yüzeyler  world/surfaces/, world/arayuz/              monitör terminali, tahta, zihin duvarı, model seçici, stil penceresi
+Yüzeyler  world/surfaces/{terminal,tahta,duvar}/,    monitör terminali, tahta, zihin duvarı, model seçici, stil penceresi
+          world/arayuz/                               (ortak yuzey.ts, yuzeyStil.ts surfaces/ kökünde)
 Zihin mind/ · Köprü bridge/ · Ses voice/ · Kabuk host/ · Uygulama world/giris.ts + uygulama/ (kök: herkesi alır)
 ürün dışı: Araçlar tools/, Beyin-Lab brain-lab/ — üretim kodu ikisini de import etmez
 ```

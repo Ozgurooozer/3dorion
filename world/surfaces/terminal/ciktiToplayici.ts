@@ -1,4 +1,4 @@
-// world/surfaces/ciktiToplayici.ts — Akan çıktıyı KOMUT birimine toplar.
+// world/surfaces/terminal/ciktiToplayici.ts — Akan çıktıyı KOMUT birimine toplar.
 //
 // ÖLÇÜMDEN DOĞDU (mind/akis-olcum.ts, gerçek çıktıyla):
 // Süzgeç parça başına karar verdiğinde tek bir `npm test` koşusu beyni

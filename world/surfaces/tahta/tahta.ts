@@ -1,4 +1,4 @@
-// world/surfaces/tahta.ts — Beyaz tahta yüzeyi: Orion odada iz bırakabilsin.
+// world/surfaces/tahta/tahta.ts — Beyaz tahta yüzeyi: Orion odada iz bırakabilsin.
 //
 // Odadaki `tahta_yuzey` mesh'i bugüne kadar YER TUTUCUYDU (oda.ts'in kendi
 // yorumu öyle diyordu) ve `yaz` niyeti her çağrıldığında hata dönüyordu.
@@ -13,7 +13,7 @@
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import type { Scene } from "@babylonjs/core/scene";
 import { TahtaMetni, tahtaOlcusu, type YazmaSonucu } from "./tahtaYazisi.ts";
-import { yuzeyKur, zeminDoldur, type Yuzey, type YuzeyOlcusu } from "./yuzey.ts";
+import { yuzeyKur, zeminDoldur, type Yuzey, type YuzeyOlcusu } from "../yuzey.ts";
 
 export interface TahtaAyari {
   sahne: Scene;

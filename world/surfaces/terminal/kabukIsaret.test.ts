@@ -1,4 +1,4 @@
-// world/surfaces/kabukIsaret.test.ts
+// world/surfaces/terminal/kabukIsaret.test.ts
 "use strict";
 import { test } from "node:test";
 import assert from "node:assert/strict";

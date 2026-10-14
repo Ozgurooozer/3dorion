@@ -15,11 +15,11 @@
 "use strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { ciktiFarki } from "../world/surfaces/ciktiFarki.ts";
-import { CiktiToplayici } from "../world/surfaces/ciktiToplayici.ts";
+import { ciktiFarki } from "../world/surfaces/terminal/ciktiFarki.ts";
+import { CiktiToplayici } from "../world/surfaces/terminal/ciktiToplayici.ts";
 import { KuralRefleksi } from "../mind/refleks.ts";
 
-/** Monitörün satır sayısı (world/surfaces/monitor.ts ROWS ile aynı). */
+/** Monitörün satır sayısı (world/surfaces/terminal/monitor.ts ROWS ile aynı). */
 const ROWS = 24;
 /** Kaç satırda bir örnekleme yapıldığını taklit eder (~1 Hz akan çıktı). */
 const ORNEK_ARALIK_SATIR = 6;

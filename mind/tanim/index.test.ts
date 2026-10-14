@@ -15,7 +15,7 @@ import { OnayKapisi } from "../onayKapisi.ts";
 import {
   dikkatTanimi, hafizaTanimi, onayTanimi, ajandaTanimi, refleksTanimi, beyinTanimi,
 } from "./index.ts";
-import { DUGUMLER } from "../../world/surfaces/semaCekirdek.ts";
+import { DUGUMLER } from "../../world/surfaces/duvar/semaCekirdek.ts";
 
 function tamPano() {
   const dikkat = new Dikkat();

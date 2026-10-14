@@ -1,4 +1,4 @@
-// world/surfaces/tahtaYazisi.test.ts
+// world/surfaces/tahta/tahtaYazisi.test.ts
 "use strict";
 import { test } from "node:test";
 import assert from "node:assert/strict";

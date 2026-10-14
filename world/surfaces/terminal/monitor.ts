@@ -1,4 +1,4 @@
-// world/surfaces/monitor.ts — Orion'un masasındaki monitör: 3D yüzeyde canlı terminal.
+// world/surfaces/terminal/monitor.ts — Orion'un masasındaki monitör: 3D yüzeyde canlı terminal.
 //
 // KARAR (ölçümle, bkz. deneme.ts): "aday A — doku" kazandı.
 // Ölçümde iki aday okunabilirlik, gecikme ve FPS'te AYIRT EDİLEMEZ çıktı
@@ -19,7 +19,7 @@
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
-import { tuval2d } from "./yuzey.ts";
+import { tuval2d } from "../yuzey.ts";
 import { Texture } from "@babylonjs/core/Materials/Textures/texture";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import type { Scene } from "@babylonjs/core/scene";

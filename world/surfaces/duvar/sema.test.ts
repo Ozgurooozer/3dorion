@@ -1,9 +1,9 @@
-// world/surfaces/sema.test.ts — panelin canvas gerektirmeyen saf kısımları.
+// world/surfaces/duvar/sema.test.ts — panelin canvas gerektirmeyen saf kısımları.
 "use strict";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { sonrakiDeger } from "./sema.ts";
-import type { DugmeGoruntu } from "../../protocol/pano.ts";
+import type { DugmeGoruntu } from "../../../protocol/pano.ts";
 
 const d = (u: Partial<DugmeGoruntu>): DugmeGoruntu => ({
   ad: "x", etiket: "x", sinif: "guvenli", etki: "aninda", birim: "", kaynak: "",
