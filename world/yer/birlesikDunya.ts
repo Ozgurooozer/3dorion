@@ -10,6 +10,8 @@
 //      sarmalanır, yazılan değer ova görünümü olarak saklanır, karışım yeniden uygulanır.
 //   4. Kapı kanadı kişi yaklaşınca kendiliğinden açılır/kapanır (level/odaKapisi.ts); boşluk çarpışmada hep yürünür.
 //   5. Pencereden GERÇEK ova görünür: sahte şehir resmi ve yağmur gizlenir.
+//   6. Gece ufuk katmanı (ışık dili adım 2, `level/ufuk/`): ufukta şehir + terasta iki sokak lambası; level tanımına girmez, burada
+//      kurulur (`?ufuk=0` → kurulmaz). Lamba ışıkları OVA ışık grubundadır: ofisi ve içerideki aktörleri aydınlatmaz.
 // Tek `Yer` (`birlesikYer.ts`): her aktör aynı yeri görür.
 //
 // Bilinen sınırlar: ışık ayrımı aktör üyeliğini ~5 Hz günceller; efekt zincirinin orta noktada açılıp kapanması ufak bir takılma
@@ -28,6 +30,10 @@ import { KAPI_MERKEZI, kapiYakinMi } from "../level/odaKapisi.ts";
 import type { Yer } from "./yer.ts";
 import { birlesikYerKur, ofisIcindeMi } from "./birlesikYer.ts";
 import { levelYeriniOlc } from "./levelOlcumu.ts";
+import { ufukKur, ufukTanimi, type Ufuk } from "../level/ufuk/ufuk.ts";
+
+/** `?ufuk=0` okuması (kompozisyon kökü bunu verir; giris.ts level'in iç klasörüne uzanmasın diye buradan). */
+export { ufukAcikMi } from "../level/ufuk/ufuk.ts";
 
 // ── Görünüm geçişi (SAF kısım) ─────────────────────────────────────────────
 
@@ -74,6 +80,20 @@ export function gorunumKaristir(ofis: Gorunum, ova: Gorunum, ic: number): Gorunu
 /** Işık ayrımında izlenen aktör (oyuncu gövdesi, Orion): mesh'leri ve XZ konumu. */
 export interface Aktor { meshler: readonly AbstractMesh[]; x: number; z: number }
 
+/** OVA ışık grubu: güneş/ay, gök dolgusu ve (kuruluysa) ufuk katmanının sokak lambaları. Ofisi aydınlatmayacak her ışık BURADA. */
+export function ovaIsiklari(level: { isik: { gunes: Light; dolgu: Light } }, ufuk: Pick<Ufuk, "isiklar"> | null): Light[] {
+  return [level.isik.gunes, level.isik.dolgu, ...(ufuk?.isiklar ?? [])];
+}
+
+/**
+ * Işık ayrımını yazar: ofis ışıkları YALNIZ ofis mesh'lerini + içerideki aktörleri, ova ışıkları bunlar DIŞINDAKİ her şeyi aydınlatır.
+ * (Babylon: `includedOnlyMeshes` / `excludedMeshes`; ayarlayıcılar mesh'lerin ışık listesini yeniden eşler.)
+ */
+export function isikAyriminiYaz(odaIsiklari: readonly Light[], ova: readonly Light[], odaMeshleri: readonly AbstractMesh[], iceridekiler: readonly AbstractMesh[]): void {
+  for (const l of odaIsiklari) l.includedOnlyMeshes = [...odaMeshleri, ...iceridekiler];
+  for (const l of ova) l.excludedMeshes = [...odaMeshleri, ...iceridekiler];
+}
+
 export interface BirlesikDunyaAyari {
   sahne: Scene;
   /** Ova level tanımı (ham JSON; doğrulanır, ofis için düzenlenir). */
@@ -84,6 +104,8 @@ export interface BirlesikDunyaAyari {
   golgeAtanlar?: readonly AbstractMesh[];
   /** Şu an var olan aktörler (Orion avatarı asenkron yüklenir: her çağrıda güncel liste). */
   aktorler(): readonly Aktor[];
+  /** Gece ufuk katmanı (şehir + sokak lambaları) kurulsun mu (varsayılan evet; `?ufuk=0` → hayır, `ufukAcikMi`). */
+  ufuk?: boolean;
 }
 
 export interface BirlesikDunya {
@@ -115,7 +137,8 @@ export async function birlesikDunyaKur(a: BirlesikDunyaAyari): Promise<BirlesikD
   const { sahne, oda, kamera } = a;
   const d = levelTanimiDogrula(a.tanim);
   if (!d.ok) throw new Error(`ova: level tanımı bozuk — ${d.hata}`);
-  const tanim = ofisiOvayaKur(d.deger);
+  // Ofisin yeri (plato, çim maskesi…) ve ufuk katmanı açıksa onun TEK tanım düzenlemesi (palet haritası sıcak koruması): yükleme anında.
+  const tanim = a.ufuk === false ? ofisiOvayaKur(d.deger) : ufukTanimi(ofisiOvayaKur(d.deger));
 
   // Ofisin görünümü: level kurulmadan ÖNCE sahnede duran (ofis ışığı: mor sis, koyu arka plan, ton eşleme yok).
   const ofisGorunumu = gorunumuOku(sahne);
@@ -162,8 +185,14 @@ export async function birlesikDunyaKur(a: BirlesikDunyaAyari): Promise<BirlesikD
     gorunumuYaz(sahne, gorunumKaristir(ofisGorunumu, ovaGorunumu, ic));
   };
 
+  // Gece ufuk katmanı (level'dan bağımsız): ışıkları aşağıdaki ayrımdan ÖNCE var olmalı (ilk karede ofisi aydınlatmasın).
+  const ufuk = a.ufuk === false ? null : ufukKur({
+    sahne, yukseklik: (x, z) => level.yukseklik(x, z), stil: level.stil.isikDurumu, dunya: level.shaderlar.uniform,
+  });
+  if (ufuk) console.log(`[UFUK] kuruldu: ${ufuk.sayim.bina} bina, ${ufuk.sayim.pencere} pencere, ${ufuk.sayim.kose} köşe, ${ufuk.isiklar.length} lamba`);
+
   // Işık ayrımı: ofis ışıkları yalnız ofis mesh'lerini (+ içerideki aktörleri), ova ışıkları ofisi (+ içerideki aktörleri) aydınlatmaz.
-  const ovaIsiklari: Light[] = [level.isik.gunes, level.isik.dolgu];
+  const ovaGrubu = ovaIsiklari(level, ufuk);
   let uyelikImzasi = "";
   const isikUyeliginiGuncelle = () => {
     const iceridekiler: AbstractMesh[] = [];
@@ -171,8 +200,7 @@ export async function birlesikDunyaKur(a: BirlesikDunyaAyari): Promise<BirlesikD
     const imza = iceridekiler.map((m) => m.uniqueId).sort().join(",");
     if (imza === uyelikImzasi) return;
     uyelikImzasi = imza;
-    for (const l of odaIsiklari) l.includedOnlyMeshes = [...odaMeshleri, ...iceridekiler];
-    for (const l of ovaIsiklari) l.excludedMeshes = [...odaMeshleri, ...iceridekiler];
+    isikAyriminiYaz(odaIsiklari, ovaGrubu, odaMeshleri, iceridekiler);
   };
   isikUyeliginiGuncelle();
 
@@ -193,14 +221,17 @@ export async function birlesikDunyaKur(a: BirlesikDunyaAyari): Promise<BirlesikD
     if (oda.kapi) { oda.kapi.hedef(kapiYakinMi(oda.kapi.acikMi(), kisiler)); oda.kapi.guncelle(dt); }
     if (++uyelikSayaci >= 12) { uyelikSayaci = 0; isikUyeliginiGuncelle(); }
     gorunumuUygula();   // kameranın ofis içi derecesine göre; level.guncelle'DEN SONRA (o sis/arka planı ezmişti)
+    ufuk?.guncelle(level.dunya, zamanVar, [sahne.fogColor.r, sahne.fogColor.g, sahne.fogColor.b]);   // sis karışımdan SONRA: o anki görünüm
   });
   gorunumuUygula();     // ilk kare ova görünümüyle başlamasın (ofisin içinde bir kare pembe sis)
+  ufuk?.guncelle(level.dunya, zamanVar, [sahne.fogColor.r, sahne.fogColor.g, sahne.fogColor.b]);
 
   return {
     level, yer, kurulumMs: Math.round(performance.now() - bas),
     ic: () => (sonIc < 0 ? 0 : sonIc),
     yokEt() {
       sahne.onBeforeRenderObservable.remove(gozlemci);
+      ufuk?.yokEt();
       level.yokEt();
       oda.pencereyiKapat();
       gorunumuYaz(sahne, ofisGorunumu);

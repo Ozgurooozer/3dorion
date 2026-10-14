@@ -2,9 +2,19 @@
 "use strict";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { icFaktoru, gorunumKaristir, GECIS_UZAKLIGI, type Gorunum } from "./birlesikDunya.ts";
+import { NullEngine } from "@babylonjs/core/Engines/nullEngine";
+import { Scene } from "@babylonjs/core/scene";
+import { Mesh } from "@babylonjs/core/Meshes/mesh";
+import { Vector3 } from "@babylonjs/core/Maths/math.vector";
+import { DirectionalLight } from "@babylonjs/core/Lights/directionalLight";
+import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
+import { icFaktoru, gorunumKaristir, GECIS_UZAKLIGI, isikAyriminiYaz, ovaIsiklari, type Gorunum } from "./birlesikDunya.ts";
+import { ofisIcindeMi } from "./birlesikYer.ts";
 import { KAPI_MERKEZI } from "../level/odaKapisi.ts";
 import { ODA } from "../level/olculer.ts";
+import { PLATO } from "../level/ofisYeri.ts";
+import { ufukKur } from "../level/ufuk/ufuk.ts";
+import { SOKAK_LAMBALARI } from "../level/ufuk/ufukSehri.ts";
 
 const OFIS: Gorunum = { sisYogunluk: 0.035, sisRenk: [0.05, 0.025, 0.09], arkaPlan: [0.012, 0.008, 0.025, 1], pozlama: 1, kontrast: 1 };
 const OVA: Gorunum = { sisYogunluk: 0.0042, sisRenk: [0.8, 0.6, 0.7], arkaPlan: [0.8, 0.58, 0.63, 1], pozlama: 1.2, kontrast: 1.1 };
@@ -58,4 +68,46 @@ test("gorunumKaristir: uçlar birebir, orta nokta ortalama, alfa 1, girdi deği�
 test("gorunumKaristir: ic sınırın dışındaysa sıkışır", () => {
   assert.deepEqual(gorunumKaristir(OFIS, OVA, 7), gorunumKaristir(OFIS, OVA, 1));
   assert.deepEqual(gorunumKaristir(OFIS, OVA, -3), gorunumKaristir(OFIS, OVA, 0));
+});
+
+// ── Işık ayrımı + gece ufuk katmanı (ışık dili adım 2, ön kayıt docs/olcum/on-kayit-isik-dili-2.md K1-d) ──
+// Sokak lambaları ofisin hemen önünde: ışıkları OVA grubunda olmalı, yoksa cam duvardan/kapıdan ofisin içini (zemin, masa, içerideki
+// Orion) sarıya boyardı. Gerçek ufuk katmanı (NullEngine) + gerçek ayrım fonksiyonları.
+
+function ayrimSahnesi() {
+  const sahne = new Scene(new NullEngine());
+  const gunes = new DirectionalLight("g", new Vector3(0, -1, 0), sahne);
+  const dolgu = new HemisphericLight("d", new Vector3(0, 1, 0), sahne);
+  const ofisIsigi = new HemisphericLight("ofis", new Vector3(0, 1, 0), sahne);
+  const ofisMesh = new Mesh("ofis_zemin", sahne), ovaMesh = new Mesh("ova_zemin", sahne), iceride = new Mesh("orion_govde", sahne);
+  const ufuk = ufukKur({ sahne });
+  isikAyriminiYaz([ofisIsigi], ovaIsiklari({ isik: { gunes, dolgu } }, ufuk), [ofisMesh], [iceride]);
+  return { ufuk, ofisIsigi, ofisMesh, ovaMesh, iceride, gunes };
+}
+
+test("ışık ayrımı: sokak lambaları ofisi ve içerideki aktörü AYDINLATMAZ", () => {
+  const { ufuk, ofisMesh, iceride } = ayrimSahnesi();
+  assert.ok(ufuk.isiklar.length > 0);
+  for (const l of ufuk.isiklar) {
+    assert.equal(l.canAffectMesh(ofisMesh), false, `${l.name} ofis`);
+    assert.equal(l.canAffectMesh(iceride), false, `${l.name} içerideki`);
+  }
+});
+
+test("ışık ayrımı: sokak lambaları ova'yı aydınlatır", () => {
+  const { ufuk, ovaMesh } = ayrimSahnesi();
+  for (const l of ufuk.isiklar) assert.equal(l.canAffectMesh(ovaMesh), true, l.name);
+});
+
+test("ışık ayrımı: ofis ışığı yalnız ofis (+ içerideki), güneş ofisi değil ova'yı", () => {
+  const { ofisIsigi, ofisMesh, ovaMesh, iceride, gunes } = ayrimSahnesi();
+  assert.deepEqual([ofisIsigi.canAffectMesh(ofisMesh), ofisIsigi.canAffectMesh(iceride), ofisIsigi.canAffectMesh(ovaMesh)], [true, true, false]);
+  assert.deepEqual([gunes.canAffectMesh(ofisMesh), gunes.canAffectMesh(ovaMesh)], [false, true]);
+});
+
+test("sokak lambaları ofisin DIŞINDA ve düz terasta (plato)", () => {
+  for (const l of SOKAK_LAMBALARI) {
+    assert.equal(ofisIcindeMi(l.x, l.z, 1), false, `${l.x},${l.z}`);
+    assert.ok(Math.hypot(l.x, l.z) < PLATO.yaricap, `${l.x},${l.z}`);
+  }
 });

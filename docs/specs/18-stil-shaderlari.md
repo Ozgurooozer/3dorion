@@ -53,5 +53,8 @@ Hepsi geçti. Çizgi efekti FPS'i ~yarıya indiriyor (gbuffer geçişi), yine 10
 - **Işık dili adım 1 (2026-10-14):** `isik.golgeDolgudan` (0..1) — gölge tonu dünya paletinin o saatteki `dolgu` rengine
   karışır (`stilSistemi.golgeTonu`, akan zamanda `saatDegisti`); toon'da 1, diğerlerinde 0. Eklenti yalnız `malzemeKur`
   malzemelerinde (ova): ofis (`oda.ts` Standard + glTF PBR) etkilenmez. Ölçüm: `docs/olcum/on-kayit-isik-dili-1.md`.
+- **Işık dili adım 2 (2026-10-14):** gece ufuk katmanı (şehir + sokak lambaları, spec 27 §8). Toon bandı lamba ışığının rengini
+  korudu (lamba altı R−B −65 → +97); asıl söndüren ova'nın palet haritasıydı (`sicakKoru` ile çözüldü). Toon bütçesi +10 çizim.
+  Ölçüm: `docs/olcum/on-kayit-isik-dili-2.md`.
 - Ozyn'in seçimi → kendi stilimiz (ör. piksel + toon gölge tonu + pastel). Rim ışığı düz zeminde dik bakışta
   yanabiliyor (toon'da düşük tutuldu). Çim çizgisiz (gbuffer'da rüzgâr yok). Perspektif kamerada piksel sabitleme yok.

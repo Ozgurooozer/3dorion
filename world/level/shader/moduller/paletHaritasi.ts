@@ -1,6 +1,10 @@
 // world/level/shader/moduller/paletHaritasi.ts — Palet haritası: kareyi parlaklığına göre etkin dünyanın O SAATTEKİ
 // 5 renklik rampasına boyar (gradyan haritası). Gün/akşam/gece rampaları saatle karışır: gece paleti burada yaşar.
 // Ton koruma: orijinal rengin kromasının bir payı geri eklenir (gök mavisi tamamen rampaya ezilmesin).
+// Sıcak koruma (ışık dili adım 2, docs/olcum/on-kayit-isik-dili-2.md): gece rampası mavi; yerel SICAK ışık (sokak lambası, pencere)
+// rampaya boyanınca pembe-griye döndü (sağlık koşusunda görüldü: pencereler somon, lamba altı zeytin-gri). `sicakKoru` > 0 iken
+// GECE (gece oranıyla) sıcak kromalı pikseller (R − B > ~0,04) haritadan korunur. Varsayılan 0: bugünkü görünüş değişmez; ova'da
+// gece ufuk katmanı açıkken birleşik dünya yükleme anında 1 yapar (`level/ufuk/ufukSehri.ts ufukTanimi`; dosya değişmez).
 "use strict";
 import type { ShaderModulu } from "../modul.ts";
 import type { Renk } from "../../cekirdek/renk.ts";
@@ -15,12 +19,15 @@ export const PALET_HARITASI_VARSAYILAN = {
   tonKoru: 0.6,
   /** Parlaklık eğrisi (>1 koyular uzar). */
   egri: 1,
+  /** Gece sıcak kromalı pikselleri haritadan koruma gücü (0 = kapalı; gündüz etkisiz). */
+  sicakKoru: 0,
 };
 export type PaletHaritasiAyari = typeof PALET_HARITASI_VARSAYILAN;
 
 const GLSL = `
 uniform vec3 r0; uniform vec3 r1; uniform vec3 r2; uniform vec3 r3; uniform vec3 r4;
 uniform vec4 ph;   // güç, ton koruma, eğri, gece
+uniform vec4 ph2;  // sıcak koruma × gece, -, -, -
 void main(void) {
   vec3 c = texture2D(textureSampler, vUV).rgb;
   float l = clamp(parlaklik(c), 0.0, 1.0);
@@ -29,7 +36,8 @@ void main(void) {
   vec3 a = x < 1.0 ? r0 : (x < 2.0 ? r1 : (x < 3.0 ? r2 : r3));
   vec3 b = x < 1.0 ? r1 : (x < 2.0 ? r2 : (x < 3.0 ? r3 : r4));
   vec3 eslem = mix(a, b, f) + (c - vec3(l)) * ph.y;
-  gl_FragColor = vec4(mix(c, clamp(eslem, 0.0, 1.0), ph.x), 1.0);
+  float sicak = smoothstep(0.04, 0.18, c.r - c.b) * ph2.x;
+  gl_FragColor = vec4(mix(c, clamp(eslem, 0.0, 1.0), ph.x * (1.0 - sicak)), 1.0);
 }
 `;
 
@@ -37,7 +45,7 @@ export const paletHaritasiModulu: ShaderModulu<PaletHaritasiAyari> = {
   tur: "paletHaritasi",
   aciklama: "Kareyi etkin dünyanın o saatteki rampasına boyar (gündüz/akşam/gece paleti shader'da).",
   varsayilan: PALET_HARITASI_VARSAYILAN,
-  aralik: { gunduz: { min: 0, max: 1, adim: 0.01 }, gece: { min: 0, max: 1, adim: 0.01 }, tonKoru: { min: 0, max: 1.5, adim: 0.01 }, egri: { min: 0.3, max: 3, adim: 0.05 } },
+  aralik: { gunduz: { min: 0, max: 1, adim: 0.01 }, gece: { min: 0, max: 1, adim: 0.01 }, tonKoru: { min: 0, max: 1.5, adim: 0.01 }, egri: { min: 0.3, max: 3, adim: 0.05 }, sicakKoru: { min: 0, max: 1, adim: 0.05 } },
   ekranMi: true,
   kur(_b, a) {
     let ayar = a;
@@ -51,10 +59,11 @@ export const paletHaritasiModulu: ShaderModulu<PaletHaritasiAyari> = {
         gece = d.gece;
       },
       ekran: (kamera) => ekranKur(kamera, {
-        ad: "PaletHaritasi", glsl: GLSL, uniformlar: ["r0", "r1", "r2", "r3", "r4", "ph"],
+        ad: "PaletHaritasi", glsl: GLSL, uniformlar: ["r0", "r1", "r2", "r3", "r4", "ph", "ph2"],
         uygula(e) {
           rampa.forEach((r, i) => e.setFloat3(`r${i}`, ...r));
           e.setFloat4("ph", guc, ayar.tonKoru, ayar.egri, gece);
+          e.setFloat4("ph2", (ayar.sicakKoru ?? 0) * gece, 0, 0, 0);
         },
       }),
       yokEt() { /* ekran efekti zincirle birlikte yıkılır */ },

@@ -135,3 +135,12 @@ ofis (cam duvar parlıyor), kapı kapalı ön yüz.
 - `gozdene` (görme ölçümü, spec 25) iki ayrı yer (oda/ova) varsayıyordu: tek yer olunca B2 ("öbür yerin adı yok") ve poz üretimi anlamsız;
   yeniden tasarlanmalı (ACIK-ISLER).
 - Yeşil harabe yükleyicisi (`?level=harabe`) ışınlanma köşesinde; harabe varlıkları commit'siz, Ozyn'in kararıyla ayrı arşivde bekliyor.
+
+## 8. Işık dili adım 2 (2026-10-14): gece ufuk katmanı
+Ozyn'in ışık dili kararı 6 ("ufukta şehir, ova'ya dokunulmaz"): `world/level/ufuk/` (saf çekirdek `ufukSehri.ts`, Babylon `ufuk.ts`),
+level tanımına GİRMEZ; `birlesikDunya.ts` kurar (`?ufuk=0` → kurulmaz). Ufukta tek mesh şehir (3 halka 433–447 m, kameraya yapışık,
+pişmiş, sis yerine renkle atmosfer; pencereler geometri) + terasta 2 sokak lambası (sıcak `#ffb347` nokta ışık, menzil 12 m). Lamba
+ışıkları OVA ışık grubunda (`ovaIsiklari`, `isikAyriminiYaz`): ofisi ve içerideki aktörleri aydınlatmaz [TEST + bozma]. Gece ağırlığı
+(gece / alacakaranlık) altında kapanır. Ova'nın palet haritası gece sıcağı maviye boyuyordu → `paletHaritasi.sicakKoru` (varsayılan 0;
+katman açıkken yükleme anında 1, dosya değişmez). Ölçüm: `docs/olcum/on-kayit-isik-dili-2.md` (düz kapidene 19/19, çizim +5, ovadene 7/7;
+toon'da +10 ve "ova'ya bakış" 224 > 220).

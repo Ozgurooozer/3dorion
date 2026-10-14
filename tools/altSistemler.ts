@@ -68,7 +68,9 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
       "world/level/cekirdek/nesneSistemi.ts", "world/level/cekirdek/katalog.ts",
       "world/level/cekirdek/anlam.ts", "world/level/cekirdek/modul.ts", "world/level/cekirdek/renk.ts",
       "world/level/moduller/index.ts", "world/level/shader/moduller/index.ts",
-      "world/level/stil/stilSistemi.ts", "world/level/depo/levelDeposu.ts"],
+      "world/level/stil/stilSistemi.ts", "world/level/depo/levelDeposu.ts",
+      // Gece ufuk katmanı (ışık dili adım 2): level tanımından bağımsız, birleşik dünya (Sahne) kurar.
+      "world/level/ufuk/ufuk.ts"],
     izinli: ["Protokol"], urun: true,
   },
   {
