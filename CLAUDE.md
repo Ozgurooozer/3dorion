@@ -39,7 +39,23 @@ uygulama/  UYGULAMA — kompozisyon: niyet yürütücü, zihin duvarı, beyin se
 world/giris.ts — kompozisyon kökü (tek istisna: beyni bedene bağlar)
 ```
 Bağımlılık tek yönlü; `world/` asla `bridge/`/`mind/` import etmez (K4). Bekçiler: `tools/mimari.test.ts`
-(katman başına izinli importlar), `world/bagimlilik.test.ts`, `tools/tipKacisi.test.ts` (`as unknown as` izin listesi).
+(katman başına izinli importlar), `world/bagimlilik.test.ts`, `tools/tipKacisi.test.ts` (`as unknown as` izin listesi),
+`tools/altSistem.test.ts` (aşağıdaki alt-sistemler). Import bekçilerinin ayrıştırıcısı tek kopya: `tools/ithaller.ts`.
+
+**Alt-sistemler** (klasörler yerinde; tablo `tools/altSistemler.ts`: yollar, kamu dosyaları, izinli bağımlılıklar):
+```
+Protokol  protocol/                                   beyin ile beden arasındaki tek sözleşme
+Sahne     world/{engine,player,yer}, world/ ve        motor, oyuncu, Yer soyutlaması, kodla kurulan ofis
+          world/level/ kök dosyaları
+Level     world/level/<alt klasörler>, world/varlik.ts veri güdümlü level: tanım, modüller, shader, stil, depo
+Editör    world/level/editor/ + editorSayfasi.ts      level editörü (ayrı sayfa); panel kiti stil penceresiyle ortak
+Avatar    world/avatar/                               Orion'un bedeni; dışarıya yalnız index.ts
+Yüzeyler  world/surfaces/, world/arayuz/              monitör terminali, tahta, zihin duvarı, model seçici, stil penceresi
+Zihin mind/ · Köprü bridge/ · Ses voice/ · Kabuk host/ · Uygulama world/giris.ts + uygulama/ (kök: herkesi alır)
+ürün dışı: Araçlar tools/, Beyin-Lab brain-lab/ — üretim kodu ikisini de import etmez
+```
+Bekçi: izinli yön, başka alt-sistemden yalnız kamu dosyası, her göreli import diskte çözülür. Bugünkü ihlaller
+`ISTISNALAR`'da gerekçeli; liste yalnız küçülür (düzelen kenarı listeden sil, yoksa bekçi kırmızı).
 
 - **protocol/:** `niyet.ts` Orion'un her eylemi (araç yüzeyi buradan türer, `bridge/araclar.ts`); `algi.ts` dünyanın
   söyledikleri; `dogrula.ts` her niyeti dünyadan önce doğrular, reddi sessiz değil. **`tik` algısı asla `beyin`

@@ -152,3 +152,4 @@ export type { AvatarGorunumu } from "./yurutucu.ts";
 export { prosedurelIskelet } from "./prosedurel.ts";
 export { vrmIskeletYukle } from "./vrm.ts";
 export type { AvatarIskeleti, IskeletBilgisi } from "./iskelet.ts";
+export { orionGozuKur } from "./goz.ts";

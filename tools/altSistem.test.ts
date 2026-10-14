@@ -104,7 +104,7 @@ test("kalibrasyon: dosya en uzun eşleşen kalıbın alt-sistemine aittir", () =
     ["world/giris.ts", "world/varlik.ts", "world/level/oda.ts", "world/level/cekirdek/x.ts",
       "world/level/editorSayfasi.ts", "world/level/editor/cekirdek/x.ts", "world/arayuz/x.ts", "vite.config.ts"]
       .map((d) => altSistemi(d)?.ad ?? null),
-    ["Uygulama", "Sahne", "Sahne", "Level", "Editör", "Editör", "Yüzeyler", null]);
+    ["Uygulama", "Level", "Sahne", "Level", "Editör", "Editör", "Yüzeyler", null]);
 });
 
 test("kalibrasyon YÖN: izinsiz alt-sisteme bağlanmak yakalanır (kamu dosyası bile olsa)", () => {

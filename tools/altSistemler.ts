@@ -60,8 +60,11 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
   },
   {
     ad: "Level", sorumluluk: "Veri güdümlü level: tanım → sahne, modüller, shader, stil, depo.",
-    yollar: ["world/level/"],
-    kamu: ["world/level/cekirdek/levelTanimi.ts", "world/level/cekirdek/levelKur.ts",
+    // world/varlik.ts (ortama göre varlık yolu çözücü; bağımlılıksız) fiziksel olarak world/ kökünde
+    // ama Level'e ait: nesne sistemi ve uzak arazi onu kullanır, Sahne/Editör/Uygulama da Level
+    // üzerinden alır (A4, 2026-10-14; önce Sahne sayılıyordu ve Level/Editör'den 3 ters kenar vardı).
+    yollar: ["world/level/", "world/varlik.ts"],
+    kamu: ["world/varlik.ts", "world/level/cekirdek/levelTanimi.ts", "world/level/cekirdek/levelKur.ts",
       "world/level/cekirdek/nesneSistemi.ts", "world/level/cekirdek/katalog.ts",
       "world/level/cekirdek/anlam.ts", "world/level/cekirdek/modul.ts", "world/level/cekirdek/renk.ts",
       "world/level/moduller/index.ts", "world/level/shader/moduller/index.ts",
@@ -71,7 +74,10 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
   {
     ad: "Editör", sorumluluk: "Level'i düzenleyen araç: saf çekirdek, Babylon sahnesi, DOM arayüzü (ayrı sayfa).",
     yollar: ["world/level/editor/", "world/level/editorSayfasi.ts"],
-    kamu: ["world/level/editor/editor.ts", "world/level/editor/arayuz/editorArayuzu.ts"],
+    // Paylaşılan panel kiti (gorunum, ortak) editörün arayuz/'unda kalır ama kamudur: oyun içi stil
+    // penceresi (Yüzeyler) aynı paneli kullanır (A4, 2026-10-14; taşımak 2 import satırına değmez).
+    kamu: ["world/level/editor/editor.ts", "world/level/editor/arayuz/editorArayuzu.ts",
+      "world/level/editor/arayuz/gorunum.ts", "world/level/editor/arayuz/ortak.ts"],
     izinli: ["Level", "Protokol"], urun: true,
   },
   {
@@ -131,7 +137,7 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
   },
 ];
 
-// ── İstisna gerekçeleri (2026-10-14 ölçümü: 67 kenar) ───────────────────────────────────────────
+// ── İstisna gerekçeleri (2026-10-14 ölçümü: 67 kenar; A4 ilk turundan sonra 60) ─────────────────
 const KOK =
   "kompozisyon kökü dünyanın iç dosyasına uzanıyor; dünyanın uygulamaya yüzeyi yok (rapor §1e) — giris bölme (B1–B3) daraltır";
 const EDITOR_LEVEL =
@@ -141,10 +147,11 @@ const SAHNE_LEVEL = "ofis/yer level modüllerinin iç dosyalarını kullanıyor 
 const AVATAR_SAHNE = "avatar Sahne'nin kamu listesinde olmayan dosyasını kullanıyor (görünürlük ışını, ofis Yer'i)";
 const NESNE_TIPI =
   "level çekirdeği ofisin nesne kaydından tip alıyor (yanlış yön); B5'te `Nesne` tipi level/cekirdek ya da protocol/temel.ts'e alınır";
+// A4'te gerekçelendi, düzeltilmedi: gorunurluk.ts saf (Babylon yok) ve tasarımcının gördüğü etiket
+// Orion'un odada gördüğüyle AYNI olmalı — ikinci bir kopya bu sözü bozar. Doğru çözüm dosyayı
+// Sahne ile Editör'ün ikisinin de alabileceği bir yere (Protokol değil; ortak saf algı) almak: B5'le.
 const ORION_GOZU =
-  "editörün 'Orion'un gözü' katmanı odadaki görünürlük kodunun AYNISINI kullanır (spec 23 B); kopyası yazılmaz";
-const VARLIK = "varlık yolu çözücü (world/varlik.ts) world/ kökünde, Level ve Editör de kullanıyor";
-const PANEL_KITI = "paylaşılan panel kiti (gorunum, ortak) editörün arayuz/'unda kalmış";
+  "editörün 'Orion'un gözü' katmanı (spec 23 B) odadaki görünürlük kodunun AYNISINI kullanır; kopyası yazılmaz";
 const YUZEY_LEVEL = "stil penceresi ortam komutu tipini level stilinin iç dosyasından alıyor";
 
 /**
@@ -192,7 +199,6 @@ export const ISTISNALAR: Readonly<Record<string, string>> = {
   "uygulama/senaryolar/otodene.ts → world/player/etkilesim.ts": KOK,
   "uygulama/senaryolar/zihindene.ts → world/surfaces/semaCekirdek.ts": KOK,
   "world/giris.ts → voice/metin-girdi.ts": KOK,
-  "world/giris.ts → world/avatar/goz.ts": KOK,
   "world/giris.ts → world/davranisDenemesi.ts": KOK,
   "world/giris.ts → world/level/capaGeometri.ts": KOK,
   "world/giris.ts → world/level/ova/ova.level.json": KOK,
@@ -202,22 +208,16 @@ export const ISTISNALAR: Readonly<Record<string, string>> = {
   "world/giris.ts → world/player/isinTarama.ts": KOK,
   "world/giris.ts → world/surfaces/ciktiFarki.ts": KOK,
   "world/giris.ts → world/surfaces/ciktiToplayici.ts": KOK,
-  "world/giris.ts → world/varlik.ts": KOK,
   "world/giris.ts → world/yer/levelSahnesi.ts": KOK,
   "world/giris.ts → world/yer/levelYeri.ts": KOK,
   "world/giris.ts → world/yer/odaYeri.ts": KOK,
   "world/level/cekirdek/anlam.ts → world/level/nesneKaydi.ts": NESNE_TIPI,
   "world/level/editor/arayuz/orionGozu.ts → world/player/gorunurluk.ts": ORION_GOZU,
-  "world/arayuz/stilPenceresi.ts → world/level/editor/arayuz/gorunum.ts": PANEL_KITI,
-  "world/arayuz/stilPenceresi.ts → world/level/editor/arayuz/ortak.ts": PANEL_KITI,
   "world/level/ofisYeri.ts → world/level/cekirdek/arazi.ts": SAHNE_LEVEL,
   "world/level/ofisYeri.ts → world/level/moduller/su.ts": SAHNE_LEVEL,
   "world/level/ofisYeri.ts → world/level/moduller/zemin.ts": SAHNE_LEVEL,
   "world/yer/levelYeri.ts → world/level/cekirdek/grup.ts": SAHNE_LEVEL,
   "world/yer/levelYeri.ts → world/level/moduller/zemin.ts": SAHNE_LEVEL,
-  "world/level/cekirdek/nesneSistemi.ts → world/varlik.ts": VARLIK,
-  "world/level/editor/arayuz/varlikTarayici.ts → world/varlik.ts": VARLIK,
-  "world/level/moduller/uzakArazi.ts → world/varlik.ts": VARLIK,
   "world/arayuz/stilPenceresi.ts → world/level/stil/ortamKomutu.ts": YUZEY_LEVEL,
 };
 

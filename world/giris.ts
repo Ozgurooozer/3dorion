@@ -38,7 +38,6 @@ import { levelSahnesiKur, type LevelSahnesi } from "./yer/levelSahnesi.ts";
 import { birlesikDunyaKur, type BirlesikDunya } from "./yer/birlesikDunya.ts";
 import { konumluSabitBilgi, konumluYerOrtasi } from "./yer/birlesikYer.ts";
 import { gecitVarisi } from "./yer/levelYeri.ts";
-import { orionGozuKur } from "./avatar/goz.ts";
 import { carpisiyorMu } from "./level/olculer.ts";
 // `?url`: vite dosyayı pakete kopyalar ve adresini verir (Electron file:// yüklemesinde de çözülür).
 import ovaAdresi from "./level/ova/ova.level.json?url";
@@ -50,7 +49,7 @@ import { capaKonumu } from "./level/capaGeometri.ts";
 import { Oyuncu } from "./player/oyuncu.ts";
 import { EtkilesimOlaylari } from "./player/etkilesim.ts";
 import { PiperCikisi } from "../voice/cikis.ts";
-import { avatarKur, VARSAYILAN_VRM, type Avatar } from "./avatar/index.ts";
+import { avatarKur, orionGozuKur, VARSAYILAN_VRM, type Avatar } from "./avatar/index.ts";
 import { monitorKur, type Monitor } from "./surfaces/monitor.ts";
 import { tahtaKur, type Tahta } from "./surfaces/tahta.ts";
 import { gunlukKur, type GunlukEkrani } from "./surfaces/gunluk.ts";
