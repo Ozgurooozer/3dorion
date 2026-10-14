@@ -118,6 +118,10 @@ const ESLESEN: [soz: string, beklenen: Beklenen][] = [
   ["atmosfer kapat", ["shader", "atmosfer:kapat"]],
   ["gök zamanı kapat", ["shader", "gokZamani:kapat"]],
   ["fırça aç", ["shader", "firca:ac"]],
+  ["shader değiştir", ["shader", "sonraki"]],
+  ["rastgele shader", ["shader", "sonraki"]],
+  ["başka bir shader yap", ["shader", "sonraki"]],
+  ["change the shader", ["shader", "sonraki"]],
   ["el yazmasını aç".replace("ını", "i"), ["shader", "elyazmasi:ac"]],
   // dünya
   ["dünyayı siberpunk yap", ["dunya", "siberpunk"]],

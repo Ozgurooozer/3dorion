@@ -130,6 +130,16 @@ test("shader: aç/kapat; yoksa eklenir, varsa değişir; bilinmeyen ad fırlatı
   assert.throws(() => ortamUygula(t, komut("shader", "sepya:ac")), /geçerli: gokZamani/);
 });
 
+test("shader 'sonraki': açık olanı kapatır, listedeki bir sonrakini açar; sondan başa döner", () => {
+  const t = ornekTanim();
+  const bir = ortamUygula(t, komut("shader", "sonraki")).tanim;
+  assert.deepEqual(bir.shaderlar?.filter((s) => s.acik).map((s) => s.tur), [SHADER_ADLARI[0]]);
+  const iki = ortamUygula(bir, komut("shader", "rastgele")).tanim;
+  assert.deepEqual(iki.shaderlar?.filter((s) => s.acik).map((s) => s.tur), [SHADER_ADLARI[1]]);
+  const son = ortamUygula(t, komut("shader", `${SHADER_ADLARI[SHADER_ADLARI.length - 1]}:ac`)).tanim;
+  assert.deepEqual(ortamUygula(son, komut("shader", "sonraki")).tanim.shaderlar?.filter((s) => s.acik).map((s) => s.tur), [SHADER_ADLARI[0]]);
+});
+
 test("SHADER_ADLARI gerçek shader kaydıyla aynı (ayrışırsa kırılır)", async () => {
   const { SHADERLAR } = await import("../shader/moduller/index.ts");
   assert.deepEqual([...SHADER_ADLARI].sort(), [...SHADERLAR.keys()].sort());

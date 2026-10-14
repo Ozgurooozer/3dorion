@@ -35,6 +35,12 @@ test("sonuç (hata) anısı değişmeden yazılır", () => {
   assert.deepEqual(a, { icerik: "hata: tahtaya oturulmaz", onem: kuralOnemi("sonuc", "") });
 });
 
+test("ortam parametre hatası hafızaya yazılmaz; başka hata yazılır", () => {
+  const hata = (not: string) => aniKaydi({ tur: "sonuc", sonuc: { niyet_id: "n1", durum: "hata", not } }, "sonuc", `hata: ${not}`);
+  assert.equal(hata('ortam efekt: "ac" geçersiz (geçerli: bloom, vinyet)'), null);
+  assert.notEqual(hata("tahtaya oturulmaz"), null);
+});
+
 test("kısa terminal çıktısı olduğu gibi kalır", () => {
   assert.equal(terminalKirp(satirlar(TERMINAL_BAS + TERMINAL_SON + 1)), satirlar(TERMINAL_BAS + TERMINAL_SON + 1));
 });

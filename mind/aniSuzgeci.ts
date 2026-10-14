@@ -81,6 +81,9 @@ export function aniKaydi(a: Algi, tur: AniTuru, icerik: string, politika: "yeni"
     if (a.tur === "duydum" && (komutCoz(a.metin) || takipEylemi(a.metin) || sohbetEylemi(a.metin))) {
       return { icerik, onem: KOMUT_ONEMI };
     }
+    // 7. ORTAM parametre hatası ("ortam efekt: \"ac\" geçersiz …") uzun vadeye YAZILMAZ: geçerli değer listesi hata metninde,
+    //    model aynı turda geri bildirimle düzeltir; anı olarak kalırsa sonraki turlara yanlış ipucu olur (canlı: 2026-10-14).
+    if (a.tur === "sonuc" && a.sonuc.durum === "hata" && (a.sonuc.not ?? "").startsWith("ortam ")) return null;
     if (a.tur === "sonuc") { const d = dersiNormallestir(icerik); return { icerik: d, onem: kuralOnemi(tur, d) }; }
   }
   if (a.tur === "terminal") {

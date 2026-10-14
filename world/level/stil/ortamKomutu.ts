@@ -41,6 +41,9 @@ export interface OrtamSonucu {
 /** Işık sonrası efekt grupları (`SonStili` anahtarları; ton eşleme sayısal, açılıp kapanmaz). */
 export const EFEKT_GRUPLARI = Object.keys(VARSAYILAN_STIL.son).filter((k) => k !== "tonlama") as Exclude<keyof SonStili, "tonlama">[];
 
+/** `shader` komutunda ad yerine "bir sonrakine geç" anlamına gelen değerler (katlanmış). */
+const SIRADAKI_SOZLERI: readonly string[] = ["sonraki", "rastgele", "degistir", "baska", "next", "random", "change"];
+
 /** Özel shader'lar (`shader/moduller/index.ts SHADERLAR` anahtarları; test ikisinin ayrışmasını yakalar). */
 export const SHADER_ADLARI = ["gokZamani", "paletHaritasi", "zamanKirigi", "hataImzasi", "debugTarama", "firca", "elyazmasi", "atmosfer"] as const;
 
@@ -154,6 +157,18 @@ export function ortamUygula(t: LevelTanimi, k: OrtamKomutu, b: OrtamBaglami = {}
     }
     case "shader": {
       const ham = (k.deger ?? "").split(":");
+      if (SIRADAKI_SOZLERI.includes(katla((ham[0] ?? "").trim()))) {
+        // "shader değiştir / rastgele": açık olanlar kapanır, listede bir sonraki (ya da hiç yoksa ilk) açılır. Rastgelelik
+        // yok: aynı girdi aynı sonucu verir (günlük yeniden oynatılabilir kalır).
+        const liste = yeni.shaderlar ?? (yeni.shaderlar = []);
+        const acikAdlar = liste.filter((s) => s.acik).map((s) => s.tur);
+        const son = Math.max(-1, ...acikAdlar.map((a) => SHADER_ADLARI.findIndex((x) => x === a)));
+        const sonraki = SHADER_ADLARI[(son + 1) % SHADER_ADLARI.length]!;
+        for (const s of liste) s.acik = false;
+        const var_ = liste.find((s) => s.tur === sonraki);
+        if (var_) var_.acik = true; else liste.push({ tur: sonraki, acik: true, ayar: {} });
+        return sonuc(`${sonraki} shader'ı açıldı`);
+      }
       const ad = SHADER_ADLARI.find((s) => katla(s) === katla((ham[0] ?? "").trim()));
       if (!ad) throw new Error(`ortam shader: "${k.deger ?? ""}" geçersiz (geçerli: ${SHADER_ADLARI.join(", ")}, ör. "atmosfer:ac")`);
       const acik = ham[1] === undefined ? true : deger({ ...k, deger: ham[1] }, ACIK_KAPALI, "shader") === "ac";

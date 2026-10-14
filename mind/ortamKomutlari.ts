@@ -149,6 +149,9 @@ const EN_EFEKT = (harita: Readonly<Record<string, readonly string[]>>): [string,
 const EN_EFEKT_DESENLERI = EN_EFEKT(EFEKTLER);
 const EN_SHADER_DESENLERI = EN_EFEKT(SHADERLAR);
 
+const SHADER_SIRADAKI = /^(?:shader(?:i)? (?:degistir|degistirsene)|(?:rastgele|baska|sonraki|farkli) (?:bir )?shader(?: yap| sec| ac)?|shader(?:i)? (?:rastgele|sonraki)(?: yap| sec)?)$/;
+const EN_SHADER_SIRADAKI = /^(?:change (?:the )?shader|(?:random|next|another) shader|shader (?:random|next))$/;
+
 // ── Dünya (palet seti) ─────────────────────────────────────────────────────
 
 const DUNYA_ADLARI: Readonly<Record<string, string>> = { ova: "ova", siberpunk: "siberpunk", cyberpunk: "siberpunk", ortacag: "ortacag", buyu: "buyu", "buyulu": "buyu" };
@@ -234,6 +237,10 @@ export function ortamCoz(s: string): KomutEslesmesi | null {
     const m = d.exec(s);
     if (m) return ortam("shader", `${ad}:${(m[1] ?? "").startsWith("turn on") || m[1] === "enable" || m[2] === "on" ? "ac" : "kapat"}`);
   }
+
+  // Yalın ad ("bloom", "vinyet") bilerek YOK: ortamKomutlari.test.ts yanlış-eşleşme listesinde; LLM çözer, öğrenen sözlük saklar.
+  // ── shader değiştir / rastgele: bir sonrakine geç (ortamKomutu.ts SIRADAKI_SOZLERI) ──
+  if (SHADER_SIRADAKI.test(s) || EN_SHADER_SIRADAKI.test(s)) return ortam("shader", "sonraki");
 
   // ── dünya ──
   const dunya = DUNYA_A.exec(s) ?? DUNYA_B.exec(s) ?? EN_DUNYA.exec(s);
