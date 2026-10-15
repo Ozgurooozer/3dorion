@@ -132,3 +132,41 @@ export function eskiHafizayiTemizle(aniler: readonly unknown[]): TemizlikSonucu 
   }
   return { aniler: sonuc, atilan, kirpilan, indirilen };
 }
+
+export interface SozTemizligiSonucu {
+  aniler: unknown[];
+  /** Atılan: selam/sohbet sözü ve ortam parametre hatası (bugünkü `aniKaydi` bunları yazmazdı). */
+  atilan: number;
+  /** Önemi `KOMUT_ONEMI`ye inen doğuştan komut sözü. */
+  indirilen: number;
+  /** Ayrıntısı atılıp tek derse inen hata anısı. */
+  normallesen: number;
+}
+
+/**
+ * Söz ve sonuç anıları için eski hafıza göçü: süzgeçten (2026-10-12/14) ÖNCE yazılmış kayıtları bugünkü yazma
+ * kurallarına getirir. `eskiHafizayiTemizle` bunlara bilerek dokunmuyordu ("yanlışlıkla silmek geri alınamaz");
+ * bu yüzden desen DAR: yalnız `aniKaydi`nin kendi kararlarını yeniden uygular, yeni hüküm koymaz.
+ *   - konusma: selam/sohbet sözü atılır; doğuştan komut sözü önemi KOMUT_ONEMI'ne iner.
+ *   - sonuc:   "hata: ortam …" atılır (kural 7); diğer hata dersleri normalleşir (kural 6).
+ * Yazım hatalı kısa sözlere, normal sözlere, tanınmayan kayıtlara DOKUNULMAZ. İdempotent. Silmeden önce yedek çağıranın işi.
+ */
+export function eskiSozleriTemizle(aniler: readonly unknown[]): SozTemizligiSonucu {
+  let atilan = 0, indirilen = 0, normallesen = 0;
+  const sonuc: unknown[] = [];
+  for (const a of aniler) {
+    const o = a as { tur?: unknown; metin?: unknown; onem?: unknown };
+    if (typeof o?.metin !== "string") { sonuc.push(a); continue; }
+    if (o.tur === "konusma") {
+      if (sohbetGurultusuMu(o.metin)) { atilan++; continue; }
+      const komut = komutCoz(o.metin) || takipEylemi(o.metin) || sohbetEylemi(o.metin);
+      if (komut && typeof o.onem === "number" && o.onem > KOMUT_ONEMI) { indirilen++; sonuc.push({ ...o, onem: KOMUT_ONEMI }); continue; }
+    } else if (o.tur === "sonuc") {
+      if (/^hata: ortam /.test(o.metin)) { atilan++; continue; }
+      const d = dersiNormallestir(o.metin);
+      if (d !== o.metin) { normallesen++; sonuc.push({ ...o, metin: d }); continue; }
+    }
+    sonuc.push(a);
+  }
+  return { aniler: sonuc, atilan, indirilen, normallesen };
+}

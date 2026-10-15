@@ -2,7 +2,7 @@
 "use strict";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { aniKaydi, eskiHafizayiTemizle, terminalKirp, MIKROFON_ONEMI, TERMINAL_BAS, TERMINAL_SON, TERMINAL_TAVANI } from "./aniSuzgeci.ts";
+import { aniKaydi, eskiHafizayiTemizle, eskiSozleriTemizle, KOMUT_ONEMI, terminalKirp, MIKROFON_ONEMI, TERMINAL_BAS, TERMINAL_SON, TERMINAL_TAVANI } from "./aniSuzgeci.ts";
 import { kuralOnemi } from "./hafiza.ts";
 
 const satirlar = (n: number) => Array.from({ length: n }, (_, i) => `satir ${i + 1}`).join("\n");
@@ -90,4 +90,41 @@ test("göç iki kez koşunca ikincisi hiçbir şey değiştirmez", () => {
 
 test("göç tanımadığı kaydı olduğu gibi bırakır", () => {
   assert.deepEqual(eskiHafizayiTemizle([null, 42]).aniler, [null, 42]);
+});
+
+// ── Söz ve sonuç göçü (gerçek hafıza 2026-10-15: 86 anının 13'ü süzgeçten önce yazılmıştı) ──
+test("söz göçü: selam sözü atılır", () => {
+  const r = eskiSozleriTemizle([ani("konusma", "hey", 8)]);
+  assert.deepEqual([r.aniler.length, r.atilan], [0, 1]);
+});
+
+test("söz göçü: ortam parametre hatası atılır", () => {
+  const r = eskiSozleriTemizle([ani("sonuc", "hata: ortam shader: geçersiz", 6)]);
+  assert.deepEqual([r.aniler.length, r.atilan], [0, 1]);
+});
+
+test("söz göçü: doğuştan komut sözünün önemi KOMUT_ONEMI'ne iner, metni değişmez", () => {
+  const r = eskiSozleriTemizle([ani("konusma", "otursana", 8)]);
+  assert.deepEqual([r.aniler[0], r.indirilen], [{ ...ani("konusma", "otursana"), onem: KOMUT_ONEMI }, 1]);
+});
+
+test("söz göçü: zaten düşük önemli komut sözüne dokunulmaz", () => {
+  const eski = [ani("konusma", "gece yap", KOMUT_ONEMI)];
+  assert.deepEqual(eskiSozleriTemizle(eski).aniler, eski);
+});
+
+test("söz göçü: hata dersinin ayrıntısı atılır", () => {
+  const r = eskiSozleriTemizle([ani("sonuc", "hata: masaya oturamadım: 'otur' kesildi", 6)]);
+  assert.deepEqual([(r.aniler[0] as { metin: string }).metin, r.normallesen], ["hata: masaya oturamadım: kesildi", 1]);
+});
+
+test("söz göçü: bilgi taşıyan söze, yazım hatalı söze, ortam dışı hataya ve tanınmayan kayda dokunulmaz", () => {
+  const eski = [ani("konusma", "ben terminalde claude kullanırım", 8), ani("konusma", "gçz", 8), ani("sonuc", "hata: zaten bakıyorum", 6), null, 42];
+  assert.deepEqual(eskiSozleriTemizle(eski).aniler, eski);
+});
+
+test("söz göçü iki kez koşunca ikincisi hiçbir şey değiştirmez", () => {
+  const bir = eskiSozleriTemizle([ani("konusma", "hey", 8), ani("konusma", "otursana", 8), ani("sonuc", "hata: ortam efekt: geçersiz", 6), ani("sonuc", "hata: a 'x' b", 6)]);
+  const iki = eskiSozleriTemizle(bir.aniler);
+  assert.deepEqual([bir.atilan, bir.indirilen, bir.normallesen, iki.atilan, iki.indirilen, iki.normallesen], [2, 1, 1, 0, 0, 0]);
 });

@@ -82,7 +82,7 @@ import { Takipci } from "./takip.ts";
 import { ikiCumleyeKisalt } from "../voice/kisalt.ts";
 import { Ajanda } from "../mind/ajanda.ts";
 import { gozlemAnisiMi } from "../mind/hafiza.ts";
-import { eskiHafizayiTemizle } from "../mind/aniSuzgeci.ts";
+import { eskiHafizayiTemizle, eskiSozleriTemizle } from "../mind/aniSuzgeci.ts";
 import { mesgulMu } from "../mind/benlik.ts";
 import { istenenSenaryolar, type SenaryoBaglami } from "./senaryoBaglami.ts";
 import { niyetYurutucusuKur } from "./niyetYurutucu.ts";
@@ -438,6 +438,29 @@ function gurultuyuAyikla(aniler: unknown[]): unknown[] {
   return r.aniler;
 }
 
+const HAFIZA_SOZ_YEDEK = "orion.hafiza.v1.yedek-soz-temizligi";
+
+/**
+ * Söz/sonuç anıları için süzgeç öncesi göç (`eskiSozleriTemizle`): selam ve ortam hatası atılır, komut sözü
+ * önemi iner, hata dersi normalleşir. Yedek ÖNCE: host dosyası varsa tarih damgalı kopya (son 5 kalır), yoksa
+ * kendi anahtarı (bir kez; `gurultuyuAyikla`nın anahtarı önceki göçte dolmuş olabilir, onu kullanmak yedeksiz silme olurdu).
+ * Yedeklenemezse DOKUNMA.
+ */
+function sozleriAyikla(aniler: unknown[]): unknown[] {
+  const r = eskiSozleriTemizle(aniler);
+  if (!r.atilan && !r.indirilen && !r.normallesen) return aniler;
+  try {
+    const k = (globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru;
+    if (k?.hafizaYedekYaz) { if (!k.hafizaYedekYaz(aniler)) throw new Error("dosya yedeği yazılamadı"); }
+    else if (!localStorage.getItem(HAFIZA_SOZ_YEDEK)) localStorage.setItem(HAFIZA_SOZ_YEDEK, JSON.stringify(aniler));
+  } catch (err) {
+    console.warn("[hafiza] yedek yazilamadi, soz temizligi ATLANDI:", err);
+    return aniler;
+  }
+  console.warn(`[hafiza] soz temizligi: ${r.atilan} atildi (selam/ortam hatasi), ${r.indirilen} komut onemi indirildi, ${r.normallesen} ders normallesti (yedek alindi)`);
+  return r.aniler;
+}
+
 /** `localStorage`'daki eski hafıza — göç kaynağı ve geri dönüş yolu (K5). */
 function eskiHafizayiOku(): unknown[] {
   const ham = localStorage.getItem(HAFIZA_ANAHTARI);
@@ -511,7 +534,7 @@ function hafizaDeposuKur(): { oku(): unknown[]; yaz(aniler: unknown[]): void } {
 
   return {
     oku() {
-      if (!dosya) return gurultuyuAyikla(gozlemleriAyikla(eskiHafizayiOku()));
+      if (!dosya) return sozleriAyikla(gurultuyuAyikla(gozlemleriAyikla(eskiHafizayiOku())));
       const s = depoYukle({
         dosyaOku: () => dosya.hafizaOku!(),
         dosyaYazSenkron: (x) => dosya.hafizaYazSenkron!(x),
@@ -520,7 +543,7 @@ function hafizaDeposuKur(): { oku(): unknown[]; yaz(aniler: unknown[]): void } {
       dosyayaYaz = s.kaynak !== "eski-yedek";
       const satir = `[hafiza] ${s.kayitlar.length} kayit · kaynak=${s.kaynak}${s.not ? ` · ${s.not}` : ""}`;
       if (s.kaynak === "eski-yedek") console.warn(satir); else console.log(satir);
-      return gurultuyuAyikla(gozlemleriAyikla(s.kayitlar));
+      return sozleriAyikla(gurultuyuAyikla(gozlemleriAyikla(s.kayitlar)));
     },
     yaz(aniler) {
       if (dosya && dosyayaYaz) dosya.hafizaYaz!(aniler);
