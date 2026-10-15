@@ -14,13 +14,19 @@
 // K4 VE BU DOSYA: `world/` ALTINDAKİ MODÜLLER `bridge/`, `mind/`, `voice/`
 // import edemez — kural onlar için. Burası birleştirme noktasıdır (composition
 // root): katmanları BİRBİRİNE BAĞLAYAN tek yer burasıdır, bu yüzden voice/ ve
-// avatar/ buradan görülür. Kural gevşetilmedi; bağlama işi tek dosyaya hapsedildi.
+// avatar/ buradan görülür. Kural gevşetilmedi; bağlama işi uygulama/ katmanına hapsedildi.
+//
+// BÖLME (mimari düzenleme B1–B2, 2026-10-15): giris.ts kompozisyon kökü KALDI (Vite giriş noktası, kurulum SIRASI
+// burada); bölümler uygulama/ altına taşındı. Her fabrika eski yerinde çağrılır; sonradan atananlar (orion, kopru …)
+// getter ile okunur (bkz. senaryoBaglami.ts'teki desen). Taşınanlar:
+//   hafizaDeposu.ts · devrePanosu.ts · terminalAlgisi.ts · odak.ts · yerGecisi.ts · onayBaglantisi.ts
+//   algiBaglantisi.ts · varlikSinyali.ts · dunyaDurumu.ts · hud.ts · dunyaKancasi.ts · kopruKur.ts
+//   kopruDinleyicileri.ts · mikrofon.ts · mcpBaglantisi.ts · sohbetKutusu.ts · orionSesi.ts · altyazi.ts · dumanTesti.ts
 "use strict";
 import { Engine } from "@babylonjs/core/Engines/engine";
 import { Scene } from "@babylonjs/core/scene";
 import { Color4 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
-import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import "@babylonjs/core/Materials/standardMaterial";
 // YAN ETKİ — iki ayrı kullanıcısı var, ikisi de bu satır olmadan SESSİZCE bozulur:
 //   `Scene.pickWithRay` (kamera duvar testi) ve `Scene.pick` (odakta tıklama).
@@ -28,89 +34,69 @@ import "@babylonjs/core/Materials/standardMaterial";
 // yan etkisi olarak tanımlanıyor; yoksa `pick` hata vermeden `hit:false` döner.
 // Sözleşme `world/engine/secim.test.ts` ile sabitlendi.
 import "@babylonjs/core/Culling/ray";
-import { Saat, TIK_HZ } from "../world/engine/tik.ts";
+import { Saat } from "../world/engine/tik.ts";
 import { KameraRig } from "../world/engine/kamera.ts";
 import { odaKur } from "../world/level/oda.ts";
-import { bulunduguCapa, capaBul } from "../world/level/capalar.ts";
-import { yerSabitBilgisi, yerOrtasiSozu, type Yer } from "../world/yer/yer.ts";
-import { ODA_YERI } from "../world/yer/odaYeri.ts";
-import { levelSahnesiKur, type LevelSahnesi } from "../world/yer/levelSahnesi.ts";
-import { birlesikDunyaKur, ufukAcikMi, giAcikMi, type BirlesikDunya } from "../world/yer/birlesikDunya.ts";
-import { konumluSabitBilgi, konumluYerOrtasi } from "../world/yer/birlesikYer.ts";
-import { gecitVarisi } from "../world/yer/levelYeri.ts";
-import { carpisiyorMu } from "../world/level/olculer.ts";
-// `?url`: vite dosyayı pakete kopyalar ve adresini verir (Electron file:// yüklemesinde de çözülür).
-import ovaAdresi from "../world/level/ova/ova.level.json?url";
-import { isinTara } from "../world/player/isinTarama.ts";
-import { gorunenNesneler } from "../world/player/gorunurluk.ts";
-import { sorguYanitla, type Cevap, type Soru } from "../mind/algiHizmeti.ts";
-import { yerelTepki } from "../mind/yerelTepki.ts";
-import { capaKonumu } from "../world/level/capaGeometri.ts";
+import type { Yer } from "../world/yer/yer.ts";
 import { Oyuncu } from "../world/player/oyuncu.ts";
 import { EtkilesimOlaylari } from "../world/player/etkilesim.ts";
-import { PiperCikisi } from "../voice/cikis.ts";
 import { avatarKur, orionGozuKur, VARSAYILAN_VRM, type Avatar } from "../world/avatar/index.ts";
 import { monitorKur, type Monitor } from "../world/surfaces/terminal/monitor.ts";
 import { tahtaKur, type Tahta } from "../world/surfaces/tahta/tahta.ts";
 import { gunlukKur, type GunlukEkrani } from "../world/surfaces/duvar/gunluk.ts";
 import { semaKur, type SemaPaneli } from "../world/surfaces/duvar/sema.ts";
-// Devre panosu: sözleşme `protocol/`ta, tanımlar `mind/tanim/`da. Bu iki
-// import K4'ün belgelenmiş istisnası olan kompozisyon kökünde, burada.
-import { panoKur, tel } from "../protocol/pano.ts";
 import type { Pano } from "../protocol/pano.ts";
-import {
-  dikkatTanimi, hafizaTanimi, onayTanimi, ajandaTanimi, refleksTanimi, beyinTanimi,
-} from "../mind/tanim/index.ts";
+import { PANO_TELLERI, devrePanosuKur, olcumKilidiKancasiKur } from "./devrePanosu.ts";
 // Yalnızca `zihindene` ayna kontrolü için: şemanın sütun sırasıyla ekrandaki
 // sırayı karşılaştırmak gerek. Saf veri, K4 sınırını ihlal etmez.
-import { TAHTA, GUNLUK, SEMA, GOZ_YUKSEKLIK } from "../world/level/olculer.ts";
-import { niyetDogrula } from "../protocol/dogrula.ts";
+import { TAHTA, GUNLUK, SEMA } from "../world/level/olculer.ts";
 import type { Niyet } from "../protocol/niyet.ts";
-import { ozetle, type Algi } from "../protocol/algi.ts";
 import { varlik } from "../world/varlik.ts";
 import { Kopru } from "../bridge/kopru.ts";
-import type { KararKaydi, KararSatiri, OgretimSatiri } from "../mind/kararKaydi.ts";
-import { GOREV_SATIRLARI } from "../mind/gorev.ts";
 import { modelSeciciKur } from "../world/arayuz/modelSecici.ts";
 import { stilPenceresiKur } from "../world/arayuz/stilPenceresi.ts";
 import type { Beyin } from "../bridge/beyin.ts";
 import { MetinGirdi } from "../voice/metin-girdi.ts";
-import { NemotronGirdi } from "../voice/nemotron.ts";
-import { komutuTerminaleYaz } from "./terminalYazici.ts";
 import { komutKipiCoz } from "./komutKipi.ts";
 import { Takipci } from "./takip.ts";
-import { ikiCumleyeKisalt } from "../voice/kisalt.ts";
 import { Ajanda } from "../mind/ajanda.ts";
-import { gozlemAnisiMi } from "../mind/hafiza.ts";
-import { eskiHafizayiTemizle, eskiSozleriTemizle } from "../mind/aniSuzgeci.ts";
 import { mesgulMu } from "../mind/benlik.ts";
 import { istenenSenaryolar, type SenaryoBaglami } from "./senaryoBaglami.ts";
 import { niyetYurutucusuKur } from "./niyetYurutucu.ts";
+import { altyaziKur } from "./altyazi.ts";
+import { terminalAlgisiKur } from "./terminalAlgisi.ts";
+import { odakKur } from "./odak.ts";
+import { yerlerKur, yerGecisiKur } from "./yerGecisi.ts";
+import { mcpBaglantisiKur } from "./mcpBaglantisi.ts";
+import { sohbetKutusuKur } from "./sohbetKutusu.ts";
+import { dumanTestiKur } from "./dumanTesti.ts";
+import { orionSesiKur } from "./orionSesi.ts";
+import { kopruKur } from "./kopruKur.ts";
+import { mikrofonKur } from "./mikrofon.ts";
+import { durumGozlemiKur, sohbetKipiIsaretiKur, arizaGostergesiKur, konusmayiBagla } from "./kopruDinleyicileri.ts";
+import { onayBaglantisiKur } from "./onayBaglantisi.ts";
+import { varlikSinyaliKur } from "./varlikSinyali.ts";
+import { dunyaDurumuKur } from "./dunyaDurumu.ts";
+import { hudKur } from "./hud.ts";
+import { dunyaKancasiKur } from "./dunyaKancasi.ts";
+import { algiSorKur } from "./algiBaglantisi.ts";
 import { zihinDuvariniBagla } from "./zihinDuvari.ts";
 import { beyinSeciminiKur, seciciKaynagiKur, modelKancasiKur, kisaAd } from "./beyinSecimi.ts";
-import { odadaSure, sessizlikSozu, gununVakti } from "../mind/zaman.ts";
-import { depoYukle } from "../mind/hafizaGocu.ts";
 import { GucButcesi, Inisiyatif, butceSatiri } from "../mind/inisiyatif.ts";
 import { inisiyatifTik } from "./inisiyatifBaglantisi.ts";
 import { ortamBaglantisiKur } from "./ortamBaglantisi.ts";
 import { OrtamGunlugu, ogrenilenDeposu } from "./ortamDeposu.ts";
 import { OrtamSozlugu } from "../mind/ortamSozlugu.ts";
 import { sessizlikIzinliMi } from "../bridge/ozerkYetenek.ts";
-import { GirdiPenceresi, type GirdiTipi } from "../mind/girdiPenceresi.ts";
-import { McpBeyin } from "../bridge/mcpBeyin.ts";
 import { GozModeli } from "../bridge/goz.ts";
-import { KuralRefleksi, UZUN_ISLEM_MS, refleksGirdisi } from "../mind/refleks.ts";
-import { OnayKapisi } from "../mind/onayKapisi.ts";
-import { riskEtiketi } from "../mind/komutRiski.ts";
-import { OlayUretici } from "../world/olayUretici.ts";
-import { ciktiFarki, kesildiMi } from "../world/surfaces/terminal/ciktiFarki.ts";
-import { CiktiToplayici } from "../world/surfaces/terminal/ciktiToplayici.ts";
+import { KuralRefleksi } from "../mind/refleks.ts";
 import { kimlik } from "../protocol/temel.ts";
 import type { DavranisDefteri } from "../world/davranisDenemesi.ts";
 
 const tuval = document.getElementById("tuval") as HTMLCanvasElement;
 const hud = document.getElementById("hud") as HTMLDivElement;
 const altyazi = document.getElementById("altyazi") as HTMLDivElement;
+const altyaziGoster = altyaziKur(altyazi);
 
 // ── Motor + sahne ──────────────────────────────────────────────────────────
 const motor = new Engine(tuval, true, { preserveDrawingBuffer: false, stencil: true }, true);
@@ -127,14 +113,13 @@ sahne.autoClear = true;
 const oda = odaKur(sahne);
 // YER (spec 24): Ozyn ve Orion AYRI yerde olabilir (Orion kendi kararıyla kapıdan çıkar, C6). Çarpışma, bakış
 // ışını, çapalar ve algı her aktörün kendi yerinden okunur. Bugün ikisi de ofiste; kapı geçişi (C3) bunları değiştirir.
-let ozynYeri: Yer = ODA_YERI;
-let orionYeri: Yer = ODA_YERI;
+const yerler = yerlerKur();
 const rig = new KameraRig(sahne, tuval);
 // Doğum yeri köşeden İÇERİ: (2.6, 2.6) kapı köşesiydi ve omuz kamerası iki
 // duvara birden sıkışıp oyuncunun gövdesine yapışıyordu (ölçüm: 1.44 m).
 const oyuncu = new Oyuncu(sahne, oda, rig, {
   dogumYeri: new Vector3(1.6, 0, 1.9),
-  yer: () => ozynYeri,
+  yer: () => yerler.ozyn,
   // Esc yığınının 0. aşaması: panel içindeki alt görünüm önce kapanır.
   // `sema` aşağıda kuruluyor; kapanış çağrı ANINDA okunduğu için sorun yok.
   // Esc yığını sırayla daralır: teyit → detay → (oyuncu.ts: etkileşim →
@@ -198,32 +183,6 @@ const sema: SemaPaneli = semaKur({
 });
 sema.durumYaz("dünya kuruldu, beyin bekleniyor");
 
-// Kabuk entegrasyonu (OSC 133): komut bitişi + çıkış kodu. Bu sinyal olmadan
-// "başarıyla bitti" bilgisi metinde GÖRÜNMEZ (tsc temiz geçince 0 satır yazar)
-// ve başarısızlık metinden TAHMİN edilmek zorunda kalır.
-monitor.isaretDinle((i) => {
-  if (i.tur !== "bitti") return;
-  // İlk `D` işareti entegrasyonun canlı olduğunu kanıtlar; bundan sonra
-  // sınırı kabuk belirler, zamanlayıcı değil.
-  if (!kabukEntegrasyonu) {
-    kabukEntegrasyonu = true;
-    console.log("[KABUK] entegrasyon canli — komut siniri artik kabuktan geliyor");
-  }
-  // Açılıştaki ilk istem de `D` yayar ama ortada komut yoktur; boş tamponu
-  // raporlamak anlamsız. Kod yine de saklanır ki sonraki blok onu taşısın.
-  bekleyenKod = i.kod ?? null;
-  bekleyenSure = i.sureMs;
-  if (ciktiToplayici.bekleyenSatir === 0) {
-    // SESSİZ BAŞARI: çıktı yok ama komut çalıştı. `tsc --noEmit` temiz
-    // geçtiğinde tam olarak budur — kod+süre olmadan bu bilgi GÖRÜNMEZDİ.
-    // Yalnızca gerçekten beklenmiş işler için algı üretilir.
-    sessizBitisBekliyor = i.sureMs !== undefined && i.sureMs >= UZUN_ISLEM_MS;
-    return;
-  }
-  komutBittiIsareti = true;
-  console.log(`[KABUK] komut bitti, kod=${i.kod ?? "yok"} sure=${i.sureMs ?? "?"}ms`);
-});
-
 // ── Orion: avatar asenkron yüklenir, sahne onsuz da ayakta kalır ───────────
 let orion: Avatar | null = null;
 void avatarKur({
@@ -236,7 +195,7 @@ void avatarKur({
   // göz kırpma görünmez, `jest` klibi yok (el sallama görünmez) — `?yuzdene`
   // bunu dürüstçe KALDI diye raporlar. Yüz eklenince bu satır kalkmalı.
   vrmZorla: true,
-  yer: () => orionYeri,
+  yer: () => yerler.orion,
   // bak {tip:"oyuncu"} için: avatar oyuncunun yerini buradan öğrenir.
   oyuncuKonumu: () => oyuncu.oyuncuDurumu().konum,
 }).then((a) => {
@@ -252,11 +211,7 @@ void avatarKur({
   beyniBagla(a);
 }).catch((e) => console.error("[ORION] avatar kurulamadı:", e));
 
-// ── KAPIDAN OVAYA (spec 24) ────────────────────────────────────────────────
-// Ofisin kapısının öbür yanı ova level'ı. Geçişte oda gizlenir, ova AYNI sahneye kurulur (world/yer/levelSahnesi.ts);
-// dönüşte ova yıkılır, oda birebir geri gelir. Ozyn ve Orion birlikte geçer; Orion'un kendi başına çıkması C6.
-let disari: LevelSahnesi | null = null;
-let gecisSuruyor = false;
+// ── Orion'un gözü (kapı/yer geçişi: uygulama/yerGecisi.ts) ──
 // Orion'un gözü (spec 25): `sor gor` (GÖRME, Faz 2) ve ölçüm yüzeyi `dunya.orionGozu` aynı kareyi çeker.
 const orionGozu = orionGozuKur(sahne);
 // Görme modeli: `?goz=<ollama modeli>` (varsayılan gemma4:e4b), `?ollama=` beyinle aynı adres. Yalnız istenince bakar.
@@ -270,312 +225,23 @@ async function orionKaresi(en = 896, boy = 504, yaw?: number) {
   if (!orion) return null;
   const o = orion;
   const d = o.durum();
-  return orionGozu.kare(d.konum, yaw ?? Math.atan2(d.bakis.x, d.bakis.z), orionYeri, en, boy, (g) => o.gorunur(g && orionYeri === ozynYeri));
+  return orionGozu.kare(d.konum, yaw ?? Math.atan2(d.bakis.x, d.bakis.z), yerler.orion, en, boy, (g) => o.gorunur(g && yerler.orion === yerler.ozyn));
 }
 
-/**
- * ISINLANMA (ileride kullanılacak; spec 27'den beri KAPI bunu çağırmaz): ofisi gizleyip ova'yı AYRI kuran eski kapı geçişi.
- * Ofis ova'nın içinde olduğundan şimdilik hiçbir yol bunu tetiklemez; `window.dunya.kapidanGec` hata ayıklama için bağlı.
- */
-async function isinlanmaOvayaCik(): Promise<boolean> {
-  if (disari || gecisSuruyor) return false;
-  gecisSuruyor = true;
-  try {
-    const tanim: unknown = await (await fetch(ovaAdresi)).json();
-    disari = await levelSahnesiKur({ sahne, tanim, ad: "ova", oda, kamera: rig.kamera, golgeAtanlar: [oyuncu.govde] });
-    const yer = disari.yer;
-    // Orion, Ozyn'le AYNI yerdeyse beraber çıkar (Ozyn'in kararı, 2026-10-11); kendi başına başka yerdeyse kalır (C6).
-    const orionGelir = orionYeri === ozynYeri;
-    ozynYeri = yer;
-    if (orionGelir) orionYeri = yer;
-    const v = disari.gecit ? gecitVarisi(disari.gecit, yer.yukseklik) : { konum: { x: 0, y: 0, z: 0 }, yaw: 0 };
-    oyuncu.isinla(v.konum.x, v.konum.z, v.yaw);
-    // Orion Ozyn'in yanında belirir: önce sağı, kapalıysa solu, o da kapalıysa önü.
-    const sag = { x: Math.cos(v.yaw), z: -Math.sin(v.yaw) }, ileri = { x: Math.sin(v.yaw), z: Math.cos(v.yaw) };
-    const adaylar = [1.2, -1.2].map((k) => ({ x: v.konum.x + sag.x * k, z: v.konum.z + sag.z * k }))
-      .concat([{ x: v.konum.x + ileri.x * 1.4, z: v.konum.z + ileri.z * 1.4 }]);
-    const o = adaylar.find((p) => !carpisiyorMu(p.x, p.z, 0.4, yer)) ?? adaylar[0]!;
-    if (orionGelir) orion?.isinla(o.x, o.z, v.yaw);
-    orionGorunurlugu();
-    ortamBaglantisi.ova(disari.level);
-    // Kaydedilmiş ortam komutları taze ova'nın ÜSTÜNE oynatılır (dosya değişse bile günlük bozulmaz).
-    const oynat = ortamBaglantisi.oynat(ortamGunlugu.komutlar());
-    if (oynat.uygulanan || oynat.atlanan.length) console.log(`[ORTAM] günlük oynatıldı (${ortamGunlugu.kip}): ${oynat.uygulanan} komut${oynat.atlanan.length ? `, atlanan: ${oynat.atlanan.join(" | ")}` : ""}`);
-    stilPenceresi?.ova(disari.level);   // oynatmadan SONRA: düğmeler hatırlanan duruma göre çizilsin
-    gunluk.ekle("bilgi", "yer", `ovaya çıkıldı (${disari.kurulumMs} ms)`);
-    console.log(`[YER] ova kuruldu ${disari.kurulumMs} ms · engel ${yer.engeller.length} · nesne ${yer.nesneler.length} · çapa ${yer.capalar.map((c) => c.ad).join(",")}`);
-    return true;
-  } catch (err) {
-    console.error("[YER] ovaya çıkılamadı:", err);
-    altyaziGoster("dışarı çıkılamadı — oda yerinde");
-    return false;
-  } finally {
-    gecisSuruyor = false;
-  }
-}
-
-function isinlanmaOdayaDon(): boolean {
-  if (!disari || gecisSuruyor) return false;
-  const orionGelir = orionYeri === ozynYeri;
-  // Sahne yıkılır, ova yeri (saf veri) kalır: Orion dışarıda kaldıysa orada yürümeye devam eder (C6).
-  stilPenceresi?.ova(null);
-  ortamBaglantisi.ova(null);
-  disari.yokEt();
-  disari = null;
-  ozynYeri = ODA_YERI;
-  if (orionGelir) orionYeri = ODA_YERI;
-  // Kapının içinde, odaya dönük (çapa `kapi`nın durağı); Orion yanında.
-  const kapi = capaBul("kapi")!;
-  oyuncu.isinla(kapi.durak.x, kapi.durak.z, Math.PI);
-  if (orionGelir) orion?.isinla(kapi.durak.x - 1.0, kapi.durak.z - 0.4, Math.PI);
-  orionGorunurlugu();
-  gunluk.ekle("bilgi", "yer", "ofise dönüldü");
-  console.log("[YER] ofise dönüldü");
-  return true;
-}
-
-/**
- * BİRLEŞİK DÜNYA (spec 27): ofis ova'nın İÇİNDE, tek sahne, tek level, tek `Yer`; kapı gerçek bir kapı (kendiliğinden açılır).
- * `ovayaCik` artık "dünyanın hazır olmasını bekle" demektir (senaryolar ve `dunya.ovayaCik` aynı sözleşmeyle çalışır);
- * `odayaDon` yok (ofisten ayrılınmıyor) ve false döner.
- */
-let birlesik: BirlesikDunya | null = null;
-let birlesikBitti!: () => void;
-const birlesikHazir = new Promise<void>((r) => { birlesikBitti = r; });
-async function ovayaCik(): Promise<boolean> { await birlesikHazir; return birlesik !== null; }
-function odayaDon(): boolean { return false; }
-
-/** Orion'un bedeni yalnız Ozyn'le aynı yerdeyse görünür (başka yerin koordinatında hayalet olmasın). */
-function orionGorunurlugu(): void { orion?.gorunur(orionYeri === ozynYeri); }
-
-// ── KAPIDAN GEÇİŞ: kısa kararma (Ozyn'in kararı) ──
-// Kararma, ovanın kurulumunu (~1 sn, tik takılır) ve kameranın ışınlanmasını örter. Süre CSS geçişiyle aynı.
-const KARARMA_MS = 320;
-const kararma = document.createElement("div");
-kararma.id = "kararma";
-Object.assign(kararma.style, {
-  position: "fixed", inset: "0", background: "#000", opacity: "0", pointerEvents: "none", zIndex: "60",
-  transition: `opacity ${KARARMA_MS}ms ease`,
+// Yer geçişi, kapı ve birleşik dünya (uygulama/yerGecisi.ts).
+const gecis = yerGecisiKur({
+  yerler, sahne, oda, rig, oyuncu, gunluk, altyaziGoster,
+  orion: () => orion,
+  ortamBaglantisi: () => ortamBaglantisi,
+  ortamGunlugu: () => ortamGunlugu,
+  stilPenceresi: () => stilPenceresi,
 });
-document.body.append(kararma);
-let kapiGecisi = false;
-
-/** Kapıdan geç: odadaysa ovaya, ovadaysa ofise. Kararma → geçiş → sahne hazır → aydınlanma. */
-async function kapidanGec(): Promise<boolean> {
-  if (kapiGecisi) return false;
-  kapiGecisi = true;
-  try {
-    kararma.style.opacity = "1";
-    await new Promise((r) => setTimeout(r, KARARMA_MS + 30));
-    const oldu = disari ? isinlanmaOdayaDon() : await isinlanmaOvayaCik();
-    await sahne.whenReadyAsync();
-    // İki kare: ilk kare yeni yerin gölge haritasını ve kamerayı oturtur.
-    await new Promise<void>((r) => { let n = 0; const g = sahne.onAfterRenderObservable.add(() => { if (++n >= 2) { sahne.onAfterRenderObservable.remove(g); r(); } }); });
-    return oldu;
-  } finally {
-    kararma.style.opacity = "0";
-    kapiGecisi = false;
-  }
-}
 
 // ── MANTIK: 20Hz ───────────────────────────────────────────────────────────
 let mantikTik = 0;
 // T6: beyin konuşmuyorken Orion'un masasında heykel gibi durmaması için
 // düşük maliyetli öneriler (bak/jest). Beyin/kullanıcı meşgulse asla araya
 // girmez — bkz. mind/ajanda.ts başındaki KATI KURAL.
-/** Orion'un anılarının localStorage anahtarı. Sürüm ekli: biçim değişirse
- *  eski kayıt sessizce yanlış yorumlanmak yerine görmezden gelinir. */
-const HAFIZA_ANAHTARI = "orion.hafiza.v1";
-const HAFIZA_YEDEK = "orion.hafiza.v1.yedek-gozlem-temizligi";
-
-/**
- * TEK SEFERLİK temizlik (spec 06 K2): eski sürümde anlık gözlemler kalıcı
- * hafızaya yazılıyordu ("onumde: beyaz tahta (birkaç adım ötede)"). O
- * kayıtlar bugün getirilip Orion'a dünkü gözlemini anlattırıyor.
- *
- * ÖNCE YEDEK: silme geri alınamaz. Yedek anahtarı bir kez yazılır (varsa
- * dokunulmaz — ikinci koşu temizlenmiş hâli yedeğe basıp aslını ezmesin).
- * Geri dönüş: yedek anahtarı asıl anahtara kopyalamak.
- *
- * Desen dar tutuldu: yalnızca `sonuc` türü VE `onumde|yakin|oyuncu|dunya: `
- * önekiyle başlayanlar. Diğer `sonuc` anıları ("hata: ...") kalır.
- */
-function gozlemleriAyikla(aniler: unknown[]): unknown[] {
-  const temiz = aniler.filter((a) => !gozlemAnisiMi(a));
-  const silinen = aniler.length - temiz.length;
-  if (!silinen) return aniler;
-
-  try {
-    if (!localStorage.getItem(HAFIZA_YEDEK)) {
-      localStorage.setItem(HAFIZA_YEDEK, JSON.stringify(aniler));
-    }
-  } catch (err) {
-    // Yedek yazılamadıysa SİLME. Veri kaybı, kirli hafızadan beterdir.
-    console.warn("[hafiza] yedek yazilamadi, temizlik ATLANDI:", err);
-    return aniler;
-  }
-  console.warn(`[hafiza] ${silinen} anlik gozlem anisi temizlendi (yedek: ${HAFIZA_YEDEK})`);
-  return temiz;
-}
-
-const HAFIZA_GURULTU_YEDEK = "orion.hafiza.v1.yedek-gurultu-temizligi";
-
-/**
- * Yazma süzgecinden (spec 16 F1, mind/aniSuzgeci.ts) ÖNCE yazılmış gürültüyü ayıklar: olay anıları
- * atılır, terminal anıları kırpılır. Desen `gozlemleriAyikla` ile aynı: önce yedek (bir kez),
- * yedeklenemezse DOKUNMA. İkinci açılışta değişecek bir şey kalmaz.
- */
-function gurultuyuAyikla(aniler: unknown[]): unknown[] {
-  const r = eskiHafizayiTemizle(aniler);
-  if (!r.atilan && !r.kirpilan && !r.indirilen) return aniler;
-  try {
-    if (!localStorage.getItem(HAFIZA_GURULTU_YEDEK)) localStorage.setItem(HAFIZA_GURULTU_YEDEK, JSON.stringify(aniler));
-  } catch (err) {
-    console.warn("[hafiza] yedek yazilamadi, gurultu temizligi ATLANDI:", err);
-    return aniler;
-  }
-  console.warn(`[hafiza] gurultu temizligi: ${r.atilan} olay atildi, ${r.kirpilan} terminal kirpildi, ${r.indirilen} terminal onemi indirildi (yedek: ${HAFIZA_GURULTU_YEDEK})`);
-  return r.aniler;
-}
-
-const HAFIZA_SOZ_YEDEK = "orion.hafiza.v1.yedek-soz-temizligi";
-
-/**
- * Söz/sonuç anıları için süzgeç öncesi göç (`eskiSozleriTemizle`): selam ve ortam hatası atılır, komut sözü
- * önemi iner, hata dersi normalleşir. Yedek ÖNCE: host dosyası varsa tarih damgalı kopya (son 5 kalır), yoksa
- * kendi anahtarı (bir kez; `gurultuyuAyikla`nın anahtarı önceki göçte dolmuş olabilir, onu kullanmak yedeksiz silme olurdu).
- * Yedeklenemezse DOKUNMA.
- */
-function sozleriAyikla(aniler: unknown[]): unknown[] {
-  const r = eskiSozleriTemizle(aniler);
-  if (!r.atilan && !r.indirilen && !r.normallesen) return aniler;
-  try {
-    const k = (globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru;
-    if (k?.hafizaYedekYaz) { if (!k.hafizaYedekYaz(aniler)) throw new Error("dosya yedeği yazılamadı"); }
-    else if (!localStorage.getItem(HAFIZA_SOZ_YEDEK)) localStorage.setItem(HAFIZA_SOZ_YEDEK, JSON.stringify(aniler));
-  } catch (err) {
-    console.warn("[hafiza] yedek yazilamadi, soz temizligi ATLANDI:", err);
-    return aniler;
-  }
-  console.warn(`[hafiza] soz temizligi: ${r.atilan} atildi (selam/ortam hatasi), ${r.indirilen} komut onemi indirildi, ${r.normallesen} ders normallesti (yedek alindi)`);
-  return r.aniler;
-}
-
-/** `localStorage`'daki eski hafıza — göç kaynağı ve geri dönüş yolu (K5). */
-function eskiHafizayiOku(): unknown[] {
-  const ham = localStorage.getItem(HAFIZA_ANAHTARI);
-  if (!ham) return [];
-  try {
-    const j = JSON.parse(ham);
-    return Array.isArray(j) ? j : [];
-  } catch { return []; }
-}
-
-/**
- * Hafıza deposu (spec 07 K4, K5, K7).
- *
- * Electron varsa hafıza host'un JSON dosyasında yaşar; yoksa (`npm run dev`,
- * yalnız Vite) eskisi gibi `localStorage`da — geliştirme kipi kırılmasın.
- *
- * TEK KURAL, veri güvenliği için: yükleme `eski-yedek` döndüyse (göç
- * başarısız, doğrulanamadı ya da dosya okunamadı) o oturumun YAZIMLARI da
- * `localStorage`a gider, dosyaya DOKUNULMAZ. Aksi hâlde okunamayan ama
- * sağlam olan dosya, oturum boyunca eski veriyle ezilirdi.
- */
-/**
- * ÖĞRENEN KAPI (spec 08, toplantı 2026-09-27 K5): kural hafızası kayıttaki
- * öğretim satırlarından kurulur. Host yoksa (tarayıcıda geliştirme) boş doğar;
- * okuma hatası Orion'u durdurmaz ama görünür olur.
- */
-function ogretimleriYukle(): OgretimSatiri[] {
-  const k = (globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru;
-  try { return (k?.ogretimOku?.() ?? []) as OgretimSatiri[]; }
-  catch (err) { console.warn("[KAPI] ogretimler okunamadi, bos hafizayla basliyor:", err); return []; }
-}
-
-/**
- * BECERİ REFLEKSİ (spec 10): beceri defteri geçmiş oturumların görev satırlarından
- * kurulur. Seçim tek kaynaktan (mind/gorev.ts `GOREV_SATIRLARI`), süzme host'ta. Host
- * yoksa ya da okuyamazsa defter geçmişsiz başlar, bu oturumdan öğrenir.
- */
-function gorevSatirlariniYukle(): KararSatiri[] {
-  const k = (globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru;
-  try { return (k?.kayitSatirlariOku?.(GOREV_SATIRLARI) ?? []) as KararSatiri[]; }
-  catch (err) { console.warn("[BECERI] gorev satirlari okunamadi, gecmissiz basliyor:", err); return []; }
-}
-
-/**
- * Durum defterinin deposu (spec 16 F2): host varsa `orion-durum.json`, yoksa (`npm run dev`)
- * localStorage. Hafızadaki göç ve yedek inceliği burada yok: defter küçük ve her an yeniden
- * kurulabilir bilgi tutar; kaybı yalnız "nerede olduğunu bir süre bilmemek"tir.
- */
-function durumDeposuKur(): { oku(): unknown[]; yaz(k: unknown[]): void } {
-  const k = (globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru;
-  if (k?.durumOku && k.durumYaz) return { oku: () => k.durumOku!(), yaz: (x) => k.durumYaz!(x) };
-  const ANAHTAR = "orion.durum.v1";
-  return {
-    oku: () => { try { const j = JSON.parse(localStorage.getItem(ANAHTAR) ?? "[]"); return Array.isArray(j) ? j : []; } catch { return []; } },
-    yaz: (x) => { try { localStorage.setItem(ANAHTAR, JSON.stringify(x)); } catch { /* geliştirme kipi: önemsiz */ } },
-  };
-}
-
-/** Sıkıştırma yedeği: yalnız host dosyası varken (yoksa boş → köprü sıkıştırmayı REDDEDER, yedeksiz silme yok). */
-function hafizaYedegiKur(): { hafizaYedegi?: { yaz(aniler: unknown[]): void } } {
-  const k = (globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru;
-  const yaz = k?.hafizaYedekYaz?.bind(k);
-  if (!yaz) return {};
-  return { hafizaYedegi: { yaz: (aniler) => { if (!yaz(aniler)) throw new Error("yedek yazılamadı"); } } };
-}
-
-/** Elle unutma teli (duvardaki "Unut…"): host dosya yedeği yoksa HİÇ verilmez, düğme kurulmaz (yedeksiz silme yok). */
-function hafizaUnutTeli(kopru: { hafizaKaydetHemen(): void }): { unut?: { yedekle(aniler: unknown[]): void; kaydet(): void } } {
-  const k = (globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru;
-  const yaz = k?.hafizaYedekYaz?.bind(k);
-  if (!yaz) return {};
-  // "unut" türü: ayrı önek ve 100 yedek sınırı; arka arkaya silmeler sıkıştırma yedeklerini (son 5) döndürüp atmasın.
-  return { unut: { yedekle: (aniler) => { if (!yaz(aniler, "unut")) throw new Error("unut yedeği yazılamadı"); }, kaydet: () => kopru.hafizaKaydetHemen() } };
-}
-
-function hafizaDeposuKur(): { oku(): unknown[]; yaz(aniler: unknown[]): void } {
-  const k = (globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru;
-  const dosya = k?.hafizaOku && k.hafizaYaz && k.hafizaYazSenkron ? k : null;
-  let dosyayaYaz = false;
-
-  return {
-    oku() {
-      if (!dosya) return sozleriAyikla(gurultuyuAyikla(gozlemleriAyikla(eskiHafizayiOku())));
-      const s = depoYukle({
-        dosyaOku: () => dosya.hafizaOku!(),
-        dosyaYazSenkron: (x) => dosya.hafizaYazSenkron!(x),
-        eskiOku: eskiHafizayiOku,
-      });
-      dosyayaYaz = s.kaynak !== "eski-yedek";
-      const satir = `[hafiza] ${s.kayitlar.length} kayit · kaynak=${s.kaynak}${s.not ? ` · ${s.not}` : ""}`;
-      if (s.kaynak === "eski-yedek") console.warn(satir); else console.log(satir);
-      return sozleriAyikla(gurultuyuAyikla(gozlemleriAyikla(s.kayitlar)));
-    },
-    yaz(aniler) {
-      if (dosya && dosyayaYaz) dosya.hafizaYaz!(aniler);
-      else localStorage.setItem(HAFIZA_ANAHTARI, JSON.stringify(aniler));
-    },
-  };
-}
-
-/**
- * DEVRE PANOSU TELLERİ — yazılabilir ayarların tek doğruluk kaynağı.
- *
- * Değer modülün içinde değil BURADA duruyor. Modül teli okur, pano aynı
- * teli okur ve yazar; ikisinin ayrışması yapısal olarak imkânsız.
- *
- * Başlangıç değerleri modüllerin kendi varsayılanlarıyla AYNI — telin
- * takılması davranışı değiştirmemeli, yalnızca değiştirilebilir kılmalı.
- */
-const PANO_TELLERI = {
-  dikkat: { tekrar: tel(4000), terminalKis: tel(2500), azami: tel(20) },
-  ajanda: { asgari: tel(15_000), sapma: tel(15_000) },
-  hafiza: { kapasite: tel(300) },
-  onay: { zamanAsimi: tel(90_000) },
-} as const;
 
 const ajanda = new Ajanda({
   asgariAralikMs: PANO_TELLERI.ajanda.asgari,
@@ -595,42 +261,8 @@ const inisiyatif = new Inisiyatif(inisiyatifSn > 0
 /** Güç bütçesine düşülen son beyin turu sayısı — fark kadar `dusundu()`. */
 let gucDusunmeSayaci = 0;
 
-// ── MCP AJANI (spec 05 Aşama 1-2) ─────────────────────────────────────────
-// Tek örnek: seçicideki "mcp" girdisi ve main'deki HTTP ucunun rölesi AYNI
-// nesneyle konuşur. Beyin seçili değilken ajanın `dunya_bekle`si yalnızca
-// "sessiz" döner ve araç çağrıları reddedilir (açık tur yok) — uç etkisizdir.
-const mcpBeyin = new McpBeyin();
-(globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru?.mcpDinle?.(async ({ id, yontem, param }) => {
-  const k = (globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru!;
-  // Yeni ajan oturumu (MCP initialize): talimat yeniden gitsin. Cevap yok (id 0).
-  if (yontem === "oturum") { mcpBeyin.oturumBasladi(); return; }
-  // Ajanın bağlantısı koptu: YALNIZCA o isteğin beklemesini iptal et.
-  if (yontem === "iptal") {
-    mcpBeyin.bekleIptal((param as { id?: number })?.id);
-    // Gözlemlenebilir olsun: R1 kapısı bu satırı arar.
-    console.log(`[mcp] ajan baglantisi koptu → temas kesildi (hazir=${mcpBeyin.kesikSaniye === 0})`);
-    return;
-  }
-  try {
-    if (yontem === "tools/list") {
-      return k.mcpYanitla!(id, {
-        tools: mcpBeyin.araclar().map((a) => ({ name: a.ad, description: a.aciklama, inputSchema: a.sema })),
-      });
-    }
-    const p = param as { name?: string; arguments?: Record<string, unknown> };
-    if (p?.name === "dunya_bekle") {
-      // Tavan 120 sn: main'deki röle sınırı (130 sn) bunun üstünde. Ajan ne
-      // isterse istesin en az 60 sn: kısa bekleme = her "quiet" bir model turu.
-      const sn = Math.min(120, Math.max(60, Number(p.arguments?.azami_sn ?? 120) || 120));
-      const s = await mcpBeyin.bekle(sn * 1000, id);
-      return k.mcpYanitla!(id, { content: [{ type: "text", text: "sessiz" in s ? "quiet — nothing happened. Call dunya_bekle again." : s.metin }] });
-    }
-    const r = mcpBeyin.cagri(String(p?.name ?? ""), p?.arguments ?? {});
-    return k.mcpYanitla!(id, { content: [{ type: "text", text: r.mesaj }], isError: !r.ok });
-  } catch (hata) {
-    k.mcpYanitla!(id, undefined, String((hata as Error)?.message ?? hata));
-  }
-});
+// ── MCP AJANI (spec 05 Aşama 1-2): uygulama/mcpBaglantisi.ts ──────────────
+const mcpBeyin = mcpBaglantisiKur();
 
 // ── SENARYO KİPİ: kendiliğinden davranışları sustur ───────────────────────
 //
@@ -658,113 +290,14 @@ function bedenSenaryosuMu(): boolean {
 const SENARYO_KIPI = bedenSenaryosuMu();
 if (SENARYO_KIPI) console.log("[SENARYO] kendiliğinden davranışlar susturuldu (ajanda + beyin)");
 const refleks = new KuralRefleksi();
+// T6b "Orion görsün": kabuk işareti dinleyicisi + dünya olayları + terminal örnekleme. `refleks`ten SONRA kurulur.
+const terminalAlgisi = terminalAlgisiKur({ monitor, refleks, oyuncu, orion: () => orion, kopru: () => kopru });
 
-// ── ONAY KAPISI: projedeki tek tehlikeli yetenegin tek gecidi ─────────────
-// Orion komut ONERIR, CALISTIRAMAZ. Calistiran sey Ozyn'in tusudur.
-// Zaman asimiyla "evet" yoktur; suresi dolan oneri DUSER.
-const onayKapisi = new OnayKapisi({
-  // Süre TELDEN okunur: panel bunu (teyitle) değiştirebilir. Bekleyen
-  // önerinin son tarihi öneri anında dondurulduğu için değişiklik ona
-  // geriye dönük uygulanmaz — S0'da onarılan gizli hata buydu.
-  zamanAsimiMs: PANO_TELLERI.onay.zamanAsimi,
-});
-const onayPanel = document.getElementById("onay") as HTMLDivElement;
-const onayKomutEl = document.getElementById("onayKomut") as HTMLDivElement;
-const onayRiskEl = document.getElementById("onayRisk") as HTMLDivElement;
-const onayGerekceEl = document.getElementById("onayGerekce") as HTMLDivElement;
+// Onay kapısı + paneli + Y/N/Esc bağı (uygulama/onayBaglantisi.ts).
+const { onayKapisi, onayPaneliCiz, onayKarari } = onayBaglantisiKur({ monitor, sema, gunluk, altyaziGoster, kopru: () => kopru });
 
-function onayPaneliCiz(): void {
-  const b = onayKapisi.bekleyen;
-  if (!b) { onayPanel.dataset.acik = "0"; return; }
-  onayPanel.dataset.acik = "1";
-  onayPanel.dataset.risk = b.risk.seviye;
-  onayKomutEl.textContent = b.komut;
-  onayRiskEl.textContent = riskEtiketi(b.risk);
-  onayGerekceEl.textContent = `Orion: ${b.gerekce}`;
-}
-
-/** Onaylanan komut terminale YAZILIR. `otomatik`: Ozyn'in tuşu değil komut kipi onayladı (spec 26 F2). */
-function onayKarari(onaylandi: boolean, otomatik = false): void {
-  const o = onaylandi ? onayKapisi.onayla() : onayKapisi.reddet();
-  onayPaneliCiz();
-  if (!o) return;
-
-  if (!onaylandi) {
-    console.log(`[ONAY] REDDEDILDI: ${o.komut}`);
-    gunluk.ekle("uyari", "onay", `reddedildi: ${o.komut}`);
-    sema.vur("onay", "reddedildi");
-    kopru?.sonuc({ niyet_id: o.id, durum: "hata",
-      not: "Ozyn komutu reddetti. Israr etme; baska bir yol oner ya da sor." });
-    altyaziGoster("komut reddedildi", 1800);
-    return;
-  }
-
-  console.log(`[ONAY] ${otomatik ? "OTOMATIK ONAYLANDI" : "ONAYLANDI"} (${o.risk.seviye}): ${o.komut}`);
-  gunluk.ekle("iyi", "onay", `${otomatik ? "otomatik çalıştı" : "onaylandı"} (${o.risk.seviye}): ${o.komut}`);
-  sema.vur("onay", otomatik ? "otomatik" : "onaylandı");
-  // UZAKTAN TERMİNAL (Ozyn, 2026-10-08): Orion nerede olursa olsun. Kapalı terminal ARKA PLANDA
-  // açılır; Ozyn'in kamerası ve klavye odağı kaçırılmaz (eskiden `monitoreGec()` ikisini de alıyordu).
-  void komutuTerminaleYaz(monitor, o.komut).then(() => {
-    kopru?.sonuc({ niyet_id: o.id, durum: "bitti",
-      not: otomatik ? "The line was typed into the terminal and ran; its result will appear on screen."
-        : "Ozyn approved; the line was typed into the terminal. You will see the result on screen." });
-    altyaziGoster("komut calistiriliyor", 1800);
-  }, (e: unknown) => {
-    console.error("[monitor] açılamadı:", e);
-    kopru?.sonuc({ niyet_id: o.id, durum: "hata", not: "terminal acilamadi; komut calismadi" });
-    altyaziGoster("terminal açılamadı — komut çalışmadı", 2600);
-  });
-}
-
-// Onay tuslari. Panel acikken Y/N/Esc; kapaliyken hicbir sey yapmaz.
-addEventListener("keydown", (e) => {
-  if (onayKapisi.durum !== "bekliyor") return;
-  const t = e.key.toLowerCase();
-  if (t === "y") { e.preventDefault(); e.stopPropagation(); onayKarari(true); }
-  else if (t === "n" || e.key === "Escape") { e.preventDefault(); e.stopPropagation(); onayKarari(false); }
-}, true);
-
-/**
- * Algı hizmetine dünya görüşünü verir.
- *
- * Görünürlük GERÇEK ışınla sınanır (`isinTara`, `KATI_YUZEYLER`): duvar,
- * kapı, raf ışını durdurur. Orion'un cevabı bu yüzden bulunduğu yere bağlıdır
- * — tahtanın önündeyken gördüğü ile kapıdayken gördüğü aynı değildir.
- */
-function algiSor(ne: Soru): Cevap {
-  const d = orion?.durum();
-  const konum = d?.konum ?? { x: 0, y: 0, z: 0 };
-  // Avatarın baktığı yön; yoksa odanın içine doğru makul bir varsayılan.
-  const bakis = d?.bakis ?? { x: 0, y: 0, z: -1 };
-
-  // NPC ALGISI (Ozyn 2026-10-11): Orion'un yerindeki algılanır nesneler; görüş hattı nesnenin 9 noktasından
-  // (gorunurluk.ts — tek ışın büyük nesnede kendi duvarına çarpıyordu). Menzil ve seçim algı hizmetinde (mind/).
-  const gorunum = new Map(gorunenNesneler(konum, bakis, GOZ_YUKSEKLIK, orionYeri.nesneler, orionYeri.katiYuzeyler).map((g) => [g.id, g]));
-  const nesneler = orionYeri.nesneler.map((n) => ({
-    ad: n.ad, konum: { x: n.kutu.x, y: n.kutu.y, z: n.kutu.z }, gorunur: gorunum.get(n.id)?.gorunur ?? false,
-  }));
-  return sorguYanitla(ne, {
-    konum, bakis,
-    gozYuksekligi: GOZ_YUKSEKLIK,
-    nesneler,
-    ...(orionYeri.algiMenzil !== undefined ? { menzil: orionYeri.algiMenzil } : {}),
-    // Sanal çapalar (oda_ortasi) elenir: gidilebilir hedeftirler ama
-    // görülebilir nesne değildirler.
-    capalar: orionYeri.capalar
-      .filter((c) => !c.sanal)
-      .map((c) => ({ ad: c.ad, konum: c.konum, etiket: c.etiket })),
-    oyuncu: oyuncu.oyuncuDurumu().konum,
-    gorunurMu: (kaynak, hedef) => {
-      const dx = hedef.x - kaynak.x, dy = hedef.y - kaynak.y, dz = hedef.z - kaynak.z;
-      const u = Math.hypot(dx, dy, dz);
-      if (u < 1e-4) return true;
-      const isabet = isinTara(kaynak, { x: dx / u, y: dy / u, z: dz / u }, u, orionYeri.katiYuzeyler);
-      // Işın hedefe VARMADAN bir şeye çarptıysa engel var demektir.
-      // 0.25 m pay: hedefin kendi yüzeyi ışını durdurur, bu engel sayılmaz.
-      return !isabet || isabet.mesafe >= u - 0.25;
-    },
-  });
-}
+// Algı hizmetine dünya görüşü (uygulama/algiBaglantisi.ts).
+const algiSor = algiSorKur({ yerler, oyuncu, orion: () => orion });
 
 // Komut kipi (spec 26 F2): Orion'un terminal komutu onaysız çalışsın mı. `?komutkipi=otomatik|tam|onayli`; varsayılan otomatik.
 const komutKipiSecimi = komutKipiCoz(new URLSearchParams(location.search).get("komutkipi"));
@@ -805,7 +338,7 @@ const { niyetiYurut, bedenAdimi, sonGorme } = niyetYurutucusuKur({
   komutKipi: () => komutKipiSecimi.kip,
   otomatikOnay: () => onayKarari(true, true),
   gordumBildir: () => { gordumGeldi = true; },
-  orionCapalari: () => orionYeri.capalar,
+  orionCapalari: () => yerler.orion.capalar,
   goz: {
     kare: async () => (await orionKaresi())?.png ?? null,
     gor: (png, algi) => gozModeli.gor(png, algi),
@@ -816,34 +349,6 @@ const { niyetiYurut, bedenAdimi, sonGorme } = niyetYurutucusuKur({
 function davranisKayit(): ReturnType<DavranisDefteri["kayit"]> | null {
   return window._davranisKayit ?? null;
 }
-
-// T6b "Orion görsün": bugüne kadar Orion yalnızca Ozyn'in yazdığı metni
-// algılıyordu — odada olanı da, masasındaki terminali de görmüyordu.
-// Aşağıdaki üçlü o boruyu bağlar; süzgeç (mind/refleks) beyni boğulmaktan korur.
-const olayUretici = new OlayUretici();
-const ciktiToplayici = new CiktiToplayici();
-let sonKuyruk = "";
-/**
- * Kabuk "komut bitti" dediğinde dolan çıkış kodu (OSC 133 ; D ; kod).
- * Sessizlik tahmini yerine GERÇEK sınır: komutun bittiğini kabuk söyler.
- */
-let bekleyenKod: number | null = null;
-let bekleyenSure: number | undefined;
-let komutBittiIsareti = false;
-/**
- * Kabuk entegrasyonu CANLI mı? İlk `D` işareti gelince true olur.
- *
- * Önemli: entegrasyon varken sessizlik zamanlayıcısı DEVRE DIŞI kalır.
- * Yoksa yarış oluşuyordu — 800 ms sessizlik, kabuğun "komut bitti"
- * işaretinden önce tamponu boşaltıyor ve çıkış kodu algıya hiç girmiyordu
- * (canlı koşuda gözlendi: bir koşuda kod geldi, diğerinde hiç gelmedi).
- * Zamanlayıcı zaten sınır sinyali YOKKEN kullanılan bir yedekti.
- */
-let kabukEntegrasyonu = false;
-/** Çıktısız ama uzun süren başarılı komut: algı üretilmeyi bekliyor. */
-let sessizBitisBekliyor = false;
-/** Terminal örnekleme sıklığı: 20Hz'de her 8 tik = ~400 ms. */
-const TERMINAL_TIK = 8;
 
 saat.dinle((t, dt) => {
   mantikTik++;
@@ -861,72 +366,8 @@ saat.dinle((t, dt) => {
       not: "oneri zaman asimina ugradi; Ozyn karar vermedi" });
   }
 
-  // ── Dünya olayları: sürekli durumdan ayrık olaylar ──────────────────────
-  if (orion && kopru) {
-    for (const o of olayUretici.ornekle(msSimdi, orion.durum(), oyuncu.oyuncuDurumu())) {
-      console.log(`[ALGI] olay: ${o.ad}${o.ayrinti ? " " + JSON.stringify(o.ayrinti) : ""}`);
-      kopru.algi({ tur: "olay", ad: o.ad, ayrinti: o.ayrinti });
-    }
-  }
-
-  // ── Terminal: Orion masasındaki ekrana göz atar ─────────────────────────
-  // Akarken susar, akış durunca tek blok gönderir (ölçüm: mind/akis-olcum.ts,
-  // parça başına karar 18 uyandırma → sessizlikte toplama 8, ideal 8).
-  if (kopru && monitor.acikMi()) {
-    // Kabuk "komut bitti" dediyse örnekleme sırasını BEKLEME: çıktı ekranda
-    // hazır ama tamponda olmayabilir (örnekleme 400 ms'de bir). Bu yarış
-    // canlı koşuda görüldü — işaret boş tampona düşüyor, blok 8 sn'lik
-    // güvenlik frenine kalıyor ve Orion geç kalıyordu.
-    if (mantikTik % TERMINAL_TIK === 0 || komutBittiIsareti || bekleyenKod !== null) {
-      const kuyruk = monitor.kuyruk(24);
-      const fark = ciktiFarki(sonKuyruk, kuyruk);
-      sonKuyruk = kuyruk;
-      if (fark) ciktiToplayici.ekle(fark, msSimdi);
-      // İşaret boş tampona düşmüştü ama örnekleme şimdi içerik getirdiyse,
-      // bu bloğu o komutun kodu ile raporla.
-      if (bekleyenKod !== null && ciktiToplayici.bekleyenSatir > 0) komutBittiIsareti = true;
-    }
-    // Kabuk komutun bittiğini bildirdiyse sessizlik penceresini BEKLEME:
-    // gerçek sınır bu. Tahmini zamanlayıcı yalnızca entegrasyon yoksa çalışır.
-    // Entegrasyon canlıysa YALNIZCA kabuk işaretiyle boşalt (azami bekleyiş
-    // güvenlik freni hâlâ geçerli: hiç bitmeyen bir süreç Orion'u kör bırakmaz).
-    const blok = komutBittiIsareti
-      ? ciktiToplayici.zorlaTopla()
-      : kabukEntegrasyonu
-        ? ciktiToplayici.azamiBekleyistenTopla(msSimdi)
-        : ciktiToplayici.topla(msSimdi);
-    if (komutBittiIsareti) komutBittiIsareti = false;
-
-    // Sessiz başarı: blok yok ama haber var.
-    if (sessizBitisBekliyor && !blok) {
-      sessizBitisBekliyor = false;
-      const sure = bekleyenSure;
-      const kodu = bekleyenKod ?? undefined;
-      bekleyenKod = null; bekleyenSure = undefined;
-      console.log(`[KABUK] sessiz basari: kod=${kodu ?? "?"} sure=${sure ?? "?"}ms`);
-      kopru.algi({ tur: "terminal", kuyruk: "(komut çıktı üretmedi)", kesildi: false, kod: kodu, sureMs: sure });
-    }
-
-    if (blok) {
-      const kod = bekleyenKod ?? undefined;
-      const sure = bekleyenSure;
-      bekleyenKod = null;
-      bekleyenSure = undefined;
-      sessizBitisBekliyor = false;
-
-      // Günlük ve görü kancası köprünün süzgeciyle AYNI kararı görür: beyne
-      // giden algının kendisi, köprünün özeti (`ozetle`) ve tek kaynaklı girdi
-      // (`refleksGirdisi`). Eskiden burada elle kurulan girdi süreyi taşıyor,
-      // köprününki taşımıyordu: `kod_uzun` canlıda ölüydü ama `sessizdene` bu
-      // kopyayı ölçtüğü için "geçti" diyordu (karar kaydı, 2026-09-27).
-      const algi: Algi = { tur: "terminal", kuyruk: blok, kesildi: kesildiMi(blok), kod, sureMs: sure };
-      const gecti = refleks.karar(refleksGirdisi(algi, ozetle(algi)));
-      console.log(`[ALGI] terminal blok (${blok.split("\n").length} satir) -> terfi=${gecti.terfi} (${gecti.gerekce})`);
-      const kanca = window._goruKanca;
-      if (kanca) kanca(blok, gecti.terfi);
-      kopru.algi(algi);
-    }
-  }
+  // Dünya olayları + masadaki terminal → algı (uygulama/terminalAlgisi.ts).
+  terminalAlgisi.tikle(mantikTik, msSimdi);
 
   if (orion) {
     const d = oyuncu.oyuncuDurumu();
@@ -946,10 +387,9 @@ saat.dinle((t, dt) => {
     // İNİSİYATİF önce, ajanda sonra: durum söze girmeyi gerektiriyorsa rastgele
     // bir bakış onu gölgelemesin. İkisi de senaryo kipinde susar.
     // Girdi penceresi doldu ama yeni girdi gelmediyse kapanışı tik yazar (Ozyn gittikten sonraki son dakika).
-    const bitenGirdi = girdiPenceresi.tikle(Date.now());
-    if (bitenGirdi) girdiKaydi?.girdi(bitenGirdi);
+    varlikSinyali.tikle(Date.now());
     if (!SENARYO_KIPI && kopru) {
-      const sessizlikMs = Date.now() - (sonKonusma || ACILIS);
+      const sessizlikMs = Date.now() - (varlikSinyali.sonKonusma() || varlikSinyali.acilis);
       inisiyatifSimdi = t * 1000;
       // YENİ YOL YOK: kapı sıradan bir olay algısı üretir; dikkat süzgecinden ve tek karar→eylem yolundan
       // (`niyetiYurut`) geçer. Sıra ve olay metni: uygulama/inisiyatifBaglantisi.ts, mind/inisiyatif.ts.
@@ -960,7 +400,7 @@ saat.dinle((t, dt) => {
         ozynOdada: (d.mesafe ?? Infinity) < 8,
         sessizlikMs,
         guc: gucButcesi.seviye,
-        ...(INISIYATIF_ESKI ? {} : { girdiYasiMs: Date.now() - sonGirdi, sessizlikIzinli: sessizlikIzinliMi(kopruBeyinAdi()) }),
+        ...(INISIYATIF_ESKI ? {} : { girdiYasiMs: Date.now() - varlikSinyali.sonGirdi(), sessizlikIzinli: sessizlikIzinliMi(kopruBeyinAdi()) }),
       }, INISIYATIF_ESKI);
       if (k) {
         console.log(`[INISIYATIF] soze_gir · neden=${k.neden} · sessizlik=${k.dakika} dk · fayda=${k.fayda.toFixed(2)} · guc=${gucButcesi.seviye.toFixed(2)}`);
@@ -998,22 +438,12 @@ addEventListener("resize", () => motor.resize());
 // ── Etkileşim → altyazı/HUD ────────────────────────────────────────────────
 // T3 (monitör) ve T4 (köprü) aynı yayıcıya abone olacak. Burada yalnızca
 // kullanıcıya geri bildirim var; protokol mesajı ÜRETİLMEZ.
-let ipucuMetin = "";
-EtkilesimOlaylari.dinle("ipucu", (i) => { ipucuMetin = i?.metin ?? ""; });
-
-function altyaziGoster(metin: string, ms = 2200): void {
-  altyazi.textContent = metin;
-  altyazi.dataset.gorunur = "1";
-  clearTimeout(altyaziZaman);
-  altyaziZaman = setTimeout(() => { altyazi.dataset.gorunur = "0"; }, ms);
-}
-let altyaziZaman: ReturnType<typeof setTimeout>;
 
 EtkilesimOlaylari.dinle("basladi", (o) => {
   // Kapı (spec 24): "geç" anlık bir eylem — etkileşim açık kalmaz, geçiş başlar.
   if (o.eylem === "gec") {
     EtkilesimOlaylari.bitir();
-    void kapidanGec();
+    void gecis.kapidanGec();
     return;
   }
   altyaziGoster(`${o.capa} · ${o.eylem} — çıkmak için Esc`);
@@ -1024,160 +454,18 @@ EtkilesimOlaylari.dinle("basladi", (o) => {
   //
   // Eskiden yalnızca monitor ve admin bağlıydı: zihin duvarındaki panellere
   // `E` basmak etkileşim başlatıyor ama EKRANDA HİÇBİR ŞEY OLMUYORDU.
-  void YUZEY_GECISI[o.capa]?.();
+  void odak.yuzeyGecisi[o.capa]?.();
 });
 EtkilesimOlaylari.dinle("bitti", (o) => {
   if (o.eylem === "gec") return;
   altyaziGoster("etkileşim kapandı");
   console.log(`[etkilesim] bitti capa=${o.capa}`);
   // Terminaller klavye odağını da bırakmalı; paneller için kamera yeter.
-  if (o.capa === "monitor") monitordenCik();
-  else if (o.capa === "admin") admindenCik();
-  else if (o.capa in YUZEY_GECISI) rig.odakBirak();
+  if (o.capa === "monitor") odak.monitordenCik();
+  else if (o.capa === "admin") odak.admindenCik();
+  else if (o.capa in odak.yuzeyGecisi) rig.odakBirak();
 });
 
-/**
- * Monitöre geçiş.
- *
- * Kamerayı ekrana YAKLAŞTIRIYORUZ çünkü ölçüldü: 1.5 m'den 80×24 terminal
- * hücre başına 4.4 piksel düşüyor ve okunmuyor — bu fiziksel bir sınır,
- * gerçek hayatta da okunmaz. ~0.6 m'de hücre başına ~11 piksel, rahat okunur.
- */
-async function monitoreGec(): Promise<void> {
-  adminTerminal.odaklan(false);   // iki terminale birden yazılmaz
-  // Terminallerde zoom YOK: 0.95 m okunabilirlik için ÖLÇÜLDÜ (1.5 m'de
-  // hücre başına 4.4 piksel, okunmuyor; 0.6 m'de ~11 piksel). Genel
-  // çerçeveleme hesabıyla ezmek o ölçümü çöpe atardı.
-  odakMesh = null; odakliYuzey = "monitor"; zoomUygula(false);
-  const ekranNoktasi = oda.monitorEkran.getAbsolutePosition();
-  // Odak kipi (sinematik DEĞİL): fare oynayınca bozulmaz, yalnızca Esc çözer.
-  // 0.95 m: 0.62'de ekran çerçeveyi taşıyordu, bütün ekran görünsün.
-  rig.odakKilitle(ekranNoktasi, 0.95, 0.05);
-  if (!monitor.acikMi()) {
-    try { await monitor.ac(); }
-    catch (e) { console.error("[monitor] açılamadı:", e); altyaziGoster("terminal açılamadı"); return; }
-  }
-  monitor.odaklan(true);
-  altyaziGoster("terminal açık — `claude` yazabilirsin · Esc ile çık", 3200);
-}
-
-/**
- * Yönetim terminaline geçiş.
- *
- * Monitörle aynı desen ama AYRI: ikisi farklı pty, farklı kamera hedefi ve
- * farklı amaç. Aynı anda ikisine birden odaklanmak anlamsız olurdu, bu yüzden
- * biri açılırken diğerinin odağı bırakılır.
- */
-async function admineGec(): Promise<void> {
-  monitor.odaklan(false);
-  odakMesh = null; odakliYuzey = "admin"; zoomUygula(false);   // bkz. monitoreGec: mesafe ölçülmüş
-  // Ekranın KENDİ normali boyunca konumlan: admin monitörü masada açılı.
-  // CreatePlane'in varsayılan normali -Z olduğu için yön oradan türetilir.
-  const yon = oda.adminEkran.getDirection(new Vector3(0, 0, -1));
-  // 0.85 m: 0.62'de ekran çerçeveyi taşıyordu (ölçüm: ekran görüntüsü).
-  rig.odakKilitle(oda.adminEkran.getAbsolutePosition(), 0.85, 0.04, yon);
-  if (!adminTerminal.acikMi()) {
-    try { await adminTerminal.ac(); }
-    catch (e) {
-      console.error("[admin] açılamadı:", e);
-      altyaziGoster("yönetim terminali açılamadı");
-      gunluk.ekle("hata", "admin", `terminal açılamadı: ${e instanceof Error ? e.message : e}`);
-      return;
-    }
-    gunluk.ekle("bilgi", "admin", "yönetim terminali açıldı");
-  }
-  adminTerminal.odaklan(true);
-  altyaziGoster("yönetim terminali — Orion burayı GÖRMÜYOR · Esc ile çık", 3200);
-}
-
-function admindenCik(): void {
-  adminTerminal.odaklan(false);
-  rig.odakBirak();
-}
-
-// ── ODAKTA TIKLAMA: yüzeyler arası geçiş ──────────────────────────────────
-//
-// İstek: "terminale veya ofisteki bir panele gelince mouse kullanılabilir,
-// objeleri seçebilir, düzgün bir kullanıma dönüşecek."
-//
-// Odaktayken imleç zaten serbest (bkz. kamera.ts fare kipi). Burada o imlece
-// işlev veriliyor: bir yüzeye tıklamak oraya geçirir — masaüstünde pencereler
-// arasında tıklamak gibi. Odaktan çıkmadan ekranlar arasında dolaşabilirsin.
-//
-// GEZİNİRKEN bu çalışmaz: orada tıklamanın işi kamerayı ele almak ve yüzeye
-// `E` ile yaklaşılır. İki kipte tek tuşa iki anlam yüklemek karışıklık olurdu.
-
-/** Tıklanabilir yüzeyler ve oraya nasıl geçileceği. */
-const YUZEY_GECISI: Record<string, () => void | Promise<void>> = {
-  monitor: () => monitoreGec(),
-  admin: () => admineGec(),
-  sema: () => panelOdak(oda.semaYuzey, "beyin şeması"),
-  gunluk: () => panelOdak(oda.gunlukYuzey, "beyin günlüğü"),
-  tahta: () => panelOdak(oda.tahtaYuzey, "beyaz tahta"),
-};
-
-/**
- * Salt-okunur bir panele odaklan (şema, günlük, tahta).
- *
- * Terminallerden farklı: klavye girişi yok, yalnızca kamera. Yüzeyin KENDİ
- * normali kullanılır — duvara asılı paneller için "oda ortasına doğru"
- * varsayımı yanlış çerçeveliyordu (yönetim terminalinde ölçülmüştü).
- */
-/**
- * Yüzeyin TAMAMININ çerçeveye sığacağı kamera mesafesi.
- *
- * Sabit mesafe yanlıştı: 1.15 m'de görünen dikey alan 1.11 m, oysa zihin
- * duvarı panelleri 1.35 m — tablo çerçeveyi taşıyordu ve alt/üstü kesiliyordu
- * (Ozyn bildirdi, hesapla doğrulandı).
- *
- * Artık mesafe geometriden türüyor: dikey görüş alanı `2·d·tan(fov/2)`, bunu
- * yüzey yüksekliğine eşitleyip %15 pay bırakıyoruz. Böylece kural her panel
- * boyutunda kendiliğinden doğru — yeni bir yüzey eklendiğinde sayı ayarlamak
- * gerekmiyor.
- */
-function cerceveMesafesi(mesh: AbstractMesh, pay = 1.15): number {
-  const k = mesh.getBoundingInfo().boundingBox.extendSize;
-  const o = mesh.absoluteScaling;
-  const yukseklik = Math.max(0.1, k.y * 2 * Math.abs(o.y));
-  const genislik = Math.max(0.1, k.x * 2 * Math.abs(o.x));
-
-  const dikeyFov = rig.kamera.fov;
-  const enBoy = Math.max(0.5, motor.getRenderWidth() / Math.max(1, motor.getRenderHeight()));
-
-  // İki kısıt: yükseklik dikey FOV'a, genişlik yatay FOV'a sığmalı.
-  // Hangisi daha uzak mesafe istiyorsa o kazanır.
-  const dikeyIcin = (yukseklik * pay) / (2 * Math.tan(dikeyFov / 2));
-  const yatayIcin = (genislik * pay) / (2 * Math.tan(dikeyFov / 2) * enBoy);
-  return Math.max(dikeyIcin, yatayIcin);
-}
-
-// ── ZOOM — odaktaki yüzeyi ne kadar yakından çerçeveliyoruz ───────────────
-//
-// `cerceveMesafesi`'nin `pay` çarpanı zaten "yüzeyin etrafında ne kadar boşluk
-// kalsın" demek: 1.0 = tam sığar, büyüdükçe uzaklaşır. Zoom bu tek sayıyı
-// oynatıyor — FOV'a dokunmuyoruz çünkü FOV değiştirmek perspektifi bozar
-// (dolly ile zoom farkı), oysa burada istenen şey kameranın geri çekilmesi.
-//
-// Aralık ölçümle değil geometriyle seçildi: 0.70'te panel çerçeveyi taşar
-// (kırpma kasıtlı, detaya bakmak için), 3.0'da oda bağlamıyla birlikte görünür.
-const ZOOM_EN_YAKIN = 0.70;
-const ZOOM_EN_UZAK = 3.00;
-const ZOOM_ADIM = 0.15;
-const ZOOM_VARSAYILAN = 1.15;
-
-let zoomPayi = ZOOM_VARSAYILAN;
-/** Odaklanılan mesh — zoom değişince yeniden çerçevelemek için saklanır. */
-let odakMesh: AbstractMesh | null = null;
-/**
- * ODAKTAKİ yüzeyin çapa adı. Tıklamanın anlamını belirler:
- *
- *   uzaktaki yüzeye tıkla  → o yüzeye GEÇ
- *   odaktaki yüzeye tıkla  → o yüzeyin İÇİNE tıkla
- *
- * Bu ayrım olmadan odaktaki panele her tıklayış `panelOdak`u yeniden
- * çağırıyordu: zoom sıfırlanıyor ve tıklama hiçbir şey seçmiyordu.
- */
-let odakliYuzey: string | null = null;
 /** Senaryoların panoyu sorgulayabilmesi için. Üretimde yalnızca okunur. */
 let panoKaydiGlobal: Pano | null = null;
 /** `bakdene` icin: algi cevabi beyne ulasti mi (senaryo yedegi buna bakar). */
@@ -1191,253 +479,18 @@ function panoyuAl(): Pano | null { return panoKaydiGlobal; }
 
 const zoomKutu = document.getElementById("zoom") as HTMLElement;
 const zoomOran = document.getElementById("zoomOran") as HTMLElement;
-const zoomYakinDugme = document.getElementById("zoomYakin") as HTMLButtonElement;
-const zoomUzakDugme = document.getElementById("zoomUzak") as HTMLButtonElement;
 
-/** Kumandayı ve kamerayı güncel zoom'a göre tazeler. */
-function zoomUygula(yenidenCerceveleme = true): void {
-  const acik = odakMesh !== null;
-  zoomKutu.dataset.acik = acik ? "1" : "0";
-  if (!acik) return;
-
-  // %100 = varsayılan çerçeveleme. Kullanıcı "1.15 pay" değil "%100" görür.
-  zoomOran.textContent = `%${Math.round((ZOOM_VARSAYILAN / zoomPayi) * 100)}`;
-  zoomYakinDugme.disabled = zoomPayi <= ZOOM_EN_YAKIN + 1e-6;
-  zoomUzakDugme.disabled = zoomPayi >= ZOOM_EN_UZAK - 1e-6;
-
-  if (!yenidenCerceveleme || !odakMesh) return;
-  // `odakKilitle` mutlak konum saklıyor; yeniden çağırmak dolly'yi başlatır
-  // ve kamera zaten hedefe lerp'lediği için geçiş bedavaya yumuşak olur.
-  const yon = odakMesh.getDirection(new Vector3(0, 0, -1));
-  rig.odakKilitle(odakMesh.getAbsolutePosition(), cerceveMesafesi(odakMesh, zoomPayi), 0.02, yon);
-}
-
-function zoomDegistir(delta: number): void {
-  if (!odakMesh) return;
-  const yeni = Math.max(ZOOM_EN_YAKIN, Math.min(ZOOM_EN_UZAK, zoomPayi + delta));
-  if (Math.abs(yeni - zoomPayi) < 1e-6) return;   // uçta: sessizce hiçbir şey yapma
-  zoomPayi = yeni;
-  zoomUygula();
-}
-
-zoomYakinDugme.addEventListener("click", () => zoomDegistir(-ZOOM_ADIM));
-zoomUzakDugme.addEventListener("click", () => zoomDegistir(+ZOOM_ADIM));
-
-// Tekerlek: düğmeler keşfedilebilirlik için, tekerlek hız için.
-// Yalnızca odakta çalışır — gezinirken tekerleğin başka bir anlamı yok.
-tuval.addEventListener("wheel", (e) => {
-  if (!odakMesh) return;
-  e.preventDefault();
-  zoomDegistir(e.deltaY > 0 ? +ZOOM_ADIM : -ZOOM_ADIM);
-}, { passive: false });
-
-function panelOdak(mesh: AbstractMesh, etiket: string): void {
-  monitor.odaklan(false);
-  adminTerminal.odaklan(false);
-  // CreatePlane'in yüzey normali -Z; mesh döndürülmüş olsa da bu doğru yönü verir.
-  odakMesh = mesh;
-  odakliYuzey = (mesh.metadata as { capa?: string } | undefined)?.capa ?? null;
-  zoomPayi = ZOOM_VARSAYILAN;        // her yeni panelde temiz başla
-  zoomUygula();                      // kamerayı da kurar
-  altyaziGoster(`${etiket} — fare serbest, tıklayabilirsin · Esc ile çık`, 3000);
-}
-
-// Tıklanabilirlik GÖRÜNÜR olmalı: gizli davranış "düzgün kullanım" değildir.
-// Odaktayken imlecin altındaki yüzey tıklanabilirse imleç `pointer` olur ve
-// hangi yüzey olduğu altyazıda yazar. Gezinirken bu hiç çalışmaz — orada
-// imleç zaten kilitli ve tıklamanın işi kamerayı ele almak.
-let sonVurgu: string | null = null;
-let vurguSaat = 0;
-
-/** Odaktaki yüzeyin İÇİNDE imlecin altında tıklanacak ne var — yüzey söyler. */
-const YUZEY_HEDEF: Record<string, (u: number, v: number) => string | null> = {
-  sema: (u, v) => sema.hedef(u, v),
-};
-
-tuval.addEventListener("mousemove", (e) => {
-  if (!rig.odakta) {
-    if (sonVurgu) { tuval.style.cursor = ""; sonVurgu = null; }
-    return;
-  }
-  // Işın testi her fare olayında değil, ~60 ms'de bir: fare olayları 100+ Hz
-  // gelebiliyor ve her birinde 60 mesh taramak boşa iş.
-  const simdi = performance.now();
-  if (simdi - vurguSaat < 60) return;
-  vurguSaat = simdi;
-
-  const p = sahne.pick(e.offsetX, e.offsetY);
-  const capa = (p?.pickedMesh?.metadata as { capa?: string } | undefined)?.capa;
-
-  // ODAKTAKİ yüzeyin içi: imleç kutunun üstündeyken `pointer`, boşlukta değil.
-  // Devre panosunda "neresi tıklanabilir" denemeyle öğrenilmemeli.
-  if (capa && capa === odakliYuzey) {
-    const uv = p?.getTextureCoordinates?.();
-    const hedef = uv ? (YUZEY_HEDEF[capa]?.(uv.x, uv.y) ?? null) : null;
-    const anahtar = hedef ? `${capa}:${hedef}` : null;
-    if (anahtar === sonVurgu) return;
-    sonVurgu = anahtar;
-    tuval.style.cursor = hedef ? "pointer" : "";
-    return;
-  }
-
-  const tiklanabilir = capa && capa in YUZEY_GECISI ? capa : null;
-  if (tiklanabilir === sonVurgu) return;
-
-  sonVurgu = tiklanabilir;
-  tuval.style.cursor = tiklanabilir ? "pointer" : "";
-  if (tiklanabilir) {
-    const c = capaBul(tiklanabilir, ozynYeri.capalar);
-    altyaziGoster(`${c?.etiket ?? tiklanabilir} — tıkla`, 1600);
-  }
+// Odak/zoom kipi: monitöre ve panellere geçiş, zoom, odakta tıklama (uygulama/odak.ts).
+const odak = odakKur({
+  motor, sahne, rig, oda, monitor, adminTerminal, sema, gunluk, tuval, altyaziGoster,
+  ozynCapalari: () => yerler.ozyn.capalar,
 });
 
-/**
- * Odaktaki yüzeyin İÇİNE tıklama. Dönüş: tıklama tüketildi mi.
- *
- * UV doğrudan yüzeye geçirilir; piksele çevirmek burada YAPILMAZ. Çözünürlük
- * (`dikeyPiksel`) yüzeyin kendi bilgisi — dışarı sızsaydı değiştiği gün
- * tıklamalar sessizce kayardı.
- */
-const YUZEY_TIKLAMA: Record<string, (u: number, v: number) => boolean> = {
-  sema: (u, v) => sema.tikla(u, v),
-};
+// HUD + odak gözetimi (uygulama/hud.ts).
+hudKur({ hud, motor, saat, rig, oda, oyuncu, odak, yerler, mantikTik: () => mantikTik });
 
-tuval.addEventListener("click", (e) => {
-  // Gezinirken tıklama kamerayı ele alır (kamera.ts); burası yalnızca odak kipi.
-  if (!rig.odakta) return;
-  const p = sahne.pick(e.offsetX, e.offsetY);
-  const capa = (p?.pickedMesh?.metadata as { capa?: string } | undefined)?.capa;
-  if (!capa) return;
-
-  // ZATEN odaktaki yüzey: tıklama geçiş değil, içerik tıklamasıdır.
-  if (capa === odakliYuzey) {
-    const uv = p?.getTextureCoordinates?.();
-    if (!uv) return;
-    const ele = YUZEY_TIKLAMA[capa];
-    if (!ele) return;                       // içi tıklanabilir değil: sessiz
-    const tuketildi = ele(uv.x, uv.y);
-    console.log(`[TIKLAMA] ${capa} içi uv=${uv.x.toFixed(3)},${uv.y.toFixed(3)} tüketildi=${tuketildi}`);
-    return;                                 // geçişi TEKRAR çalıştırma: zoom sıfırlanırdı
-  }
-
-  const gec = YUZEY_GECISI[capa];
-  if (!gec) return;
-  console.log(`[TIKLAMA] ${capa} yuzeyine geciliyor`);
-  void gec();
-});
-
-/** Esc: klavye dünyaya döner, kamera serbest kalır. Terminal AÇIK kalır —
- *  çalışan bir claude oturumu masadan kalkınca ölmemeli. */
-function monitordenCik(): void {
-  monitor.odaklan(false);
-  rig.odakBirak();
-}
-
-// ── HUD: K1 ve K2 ölçümleri ekranda. "Sanırım hızlı" yerine sayı. ─────────
-setInterval(() => {
-  // Odaktan çıkışın birden çok yolu var (Esc, panel değişimi, terminale
-  // geçiş). Her birine ayrı temizlik kancası asmak yerine tek gözetim
-  // noktası: odak düştüyse zoom kumandası da kapanır.
-  if (!rig.odakta && (odakMesh || odakliYuzey)) {
-    odakMesh = null; odakliYuzey = null;
-    // Panelden çıkarken detay da kapanır: geri dönüldüğünde şema karşılar.
-    // Açık bırakmak "panel bozulmuş" gibi okunurdu — kullanıcı o detayı
-    // seçtiğini çoktan unutmuş olur.
-    sema.sec(null);
-    zoomUygula(false);
-  }
-
-  const hz = saat.olculenHz;
-  const d = oyuncu.oyuncuDurumu();
-  hud.textContent =
-    `FPS ${motor.getFps().toFixed(0)}  |  tik ${hz.toFixed(2)} Hz (hedef ${TIK_HZ})  ` +
-    `|  tik# ${mantikTik}  |  atlanan ${saat.atlanan}\n` +
-    `kamera ${rig.mod === "omuz" ? "3.şahıs (F: 1.şahıs)" : "1.şahıs (F: 3.şahıs)"}  ` +
-    `|  fare ${rig.odakta ? (rig.fareKamerada ? "KAMERA (Ctrl)" : "imleç serbest") : (rig.fareKamerada ? "kamera" : "kamera — tuvale tıkla")}  ` +
-    `|  gövde ${oyuncu.govdeUzakligi.toFixed(2)}m ${oyuncu.govde.isVisible ? "görünür" : "GİZLİ"}  ` +
-    `|  konum ${d.konum.x.toFixed(1)},${d.konum.z.toFixed(1)}  ` +
-    `|  mesh ${oda.meshler.length}  |  çapa ${ozynYeri.capalar.length}\n` +
-    (ipucuMetin ? ipucuMetin : "WASD yürü · Shift koş · fare bak · F kamera · E terminal (orada: imleç serbest, Ctrl+fare bak) · T Orion'a yaz · Esc çık");
-}, 250);
-
-// ── Demo kancası (T7): sinematik çekim konsoldan tetiklenebilsin ───────────
-// `window.dunya.sinematik("tahta")` → kamera tahtayı çerçeveler.
-// Bu bir DEBUG yüzeyi; protokol değil, köprü değil.
-const dunyaKancasi = {
-  sinematik(capa: string, sure = 4): boolean {
-    const k = capaKonumu(capa, ozynYeri.capalar);
-    if (!k) { console.warn(`[dunya] bilinmeyen çapa: ${capa}. Geçerli: ${ozynYeri.capalar.map((c) => c.ad).join(", ")}`); return false; }
-    rig.sinematikBak(k, 2.6, 0.7, sure);
-    return true;
-  },
-  oyuncuDurumu: () => oyuncu.oyuncuDurumu(),
-  capalar: () => ozynYeri.capalar.map((c) => c.ad),
-
-  /**
-   * Orion'a elle niyet gönder — T4 (köprü) gelene kadar deneme yüzeyi.
-   * Örnek: dunya.niyet("git", { hedef: { tip: "capa", ad: "tahta" } })
-   * Doğrulama ATLANMAZ: protokolün kendi doğrulayıcısından geçer.
-   */
-  niyet(tur: string, govde: Record<string, unknown> = {}): string {
-    if (!orion) return "avatar henüz hazır değil";
-    const d = niyetDogrula({ ...govde, tur });
-    if (!d.ok) { console.warn(`[niyet] reddedildi: ${d.hata}`); return d.hata; }
-    const id = `elle_${Date.now().toString(36)}`;
-    niyetiYurut(d.deger, id);
-    return id;
-  },
-  orionDurumu: () => orion?.durum() ?? null,
-  /** Spec 24: ovaya çık / ofise dön (kapı tetiği C3'te; bu deneme yüzeyi). */
-  ovayaCik: () => ovayaCik(),
-  odayaDon: () => odayaDon(),
-  kapidanGec: () => kapidanGec(),
-  /**
-   * Spec 25 V0: Orion'un gözünden kare + o karenin geometrik gerçeği. x/z/yaw verilirse Orion önce oraya konur.
-   * Ölçüm aracı `tools/goz-olc.mjs` kullanır.
-   */
-  async orionGozu(x?: number, z?: number, yaw?: number, en = 896, boy = 504) {
-    if (!orion) return null;
-    const o = orion;
-    if (x !== undefined && z !== undefined && yaw !== undefined) {
-      o.isinla(x, z, yaw);
-      await new Promise<void>((r) => { let n = 0; const g = sahne.onAfterRenderObservable.add(() => { if (++n >= 2) { sahne.onAfterRenderObservable.remove(g); r(); } }); });
-    }
-    return orionKaresi(en, boy, yaw);
-  },
-  yer: () => ({ ozyn: ozynYeri.ad, orion: orionYeri.ad, kurulumMs: birlesik?.kurulumMs ?? disari?.kurulumMs ?? null }),
-  tahta: {
-    yaz: (m: string, temizle = false) => tahta.yaz(m, temizle),
-    sil: () => tahta.sil(),
-    satirlar: () => tahta.satirlar(),
-    olcu: () => tahta.olcu(),
-  },
-  terminal: {
-    ac: () => monitoreGec(),
-    kapat: () => { monitor.kapat(); rig.odakBirak(); },
-    kuyruk: (n?: number) => monitor.kuyruk(n),
-  },
-};
-window.dunya = dunyaKancasi;
-
-// ── Hızlı deneme tuşları (1-6) ────────────────────────────────────────────
-// Terminal odaktayken devre dışı: orada rakamlar kabuğa gitmeli.
-const HIZLI_NIYETLER: Record<string, [string, Record<string, unknown>]> = {
-  "1": ["git",  { hedef: { tip: "capa", ad: "tahta" } }],
-  "2": ["git",  { hedef: { tip: "capa", ad: "pencere" } }],
-  "3": ["otur", {}],
-  "4": ["kalk", {}],
-  "5": ["bak",  { hedef: { tip: "oyuncu" } }],
-  "6": ["jest", { jest: "el_salliyor" }],
-};
-addEventListener("keydown", (e) => {
-  const d = oyuncu.oyuncuDurumu();
-  if (d.etkilesim === "monitor") return;  // terminal odakta
-  const n = HIZLI_NIYETLER[e.key];
-  if (!n || !orion) return;
-  const sonuc = dunyaKancasi.niyet(n[0], n[1]);
-  altyaziGoster(`Orion: ${n[0]} ${JSON.stringify(n[1]).slice(0, 40)}`, 1600);
-  console.log(`[hizli] ${e.key} → ${n[0]} (${sonuc})`);
-});
+// Konsol/MCP deneme yüzeyi (window.dunya) + hızlı deneme tuşları (uygulama/dunyaKancasi.ts).
+dunyaKancasiKur({ sahne, rig, oyuncu, tahta, monitor, odak, yerler, gecis, altyaziGoster, niyetiYurut, orionKaresi, orion: () => orion });
 
 // ── BEYİN: Orion kendi kararıyla dünyada eylemde bulunur ──────────────────
 // Köprü dünyayı da beyni de import etmez; ikisini burada bağlıyoruz.
@@ -1445,27 +498,8 @@ addEventListener("keydown", (e) => {
 const girdi = new MetinGirdi();
 let kopru: Kopru | null = null;
 
-/** Dünyanın açıldığı an — "ne kadardır buradayım" bundan hesaplanır. */
-const ACILIS = Date.now();
-/** Ozyn'in en son konuştuğu an. 0 = hiç konuşmadı. */
-let sonKonusma = 0;
-/**
- * Ozyn'in SON GİRDİSİ (tuş, fare/işaretçi, tekerlek, söz): VARLIK sinyali (Orion Beyin Ofisi T2-K2). Açılış girdi sayılır
- * (uygulamayı Ozyn başlattı). Kendiliğinden uyanma bu yaş ≤ 10 dk iken mümkün; yoksa Orion kimseye konuşmaz.
- */
-let sonGirdi = Date.now();
-/** Girdi SAYILARI karar kaydına dakikalık yazılır (OB13; içerik yok): varlık kayıttan yeniden kurulabilsin. */
-const girdiPenceresi = new GirdiPenceresi();
-/** Beyin bağlanınca kurulur (`beyniBagla`); öncesindeki girdiler sayılır ama yazılmaz. */
-let girdiKaydi: KararKaydi | null = null;
-function girdiOldu(tip: GirdiTipi): void {
-  sonGirdi = Date.now();
-  const biten = girdiPenceresi.say(tip, sonGirdi);
-  if (biten) girdiKaydi?.girdi(biten);
-}
-for (const [olay, tip] of [["keydown", "tus"], ["pointerdown", "fare"], ["pointermove", "fare"], ["wheel", "fare"]] as const) {
-  window.addEventListener(olay, () => girdiOldu(tip), { passive: true, capture: true });
-}
+// Ozyn'in varlık sinyali: son girdi, son konuşma, girdi sayacı (uygulama/varlikSinyali.ts).
+const varlikSinyali = varlikSinyaliKur();
 /** `?inisiyatif=eski`: saat tabanlı eski kapı ve geniş özerk tur (geri alma yolu; T2 'Geri alma'). */
 const INISIYATIF_ESKI = new URLSearchParams(location.search).get("inisiyatif") === "eski";
 /** Köprünün o anki beyninin adı (M tuşuyla değişir); kapı "sessizlik" uyanışını buna göre açar (OB15). */
@@ -1473,39 +507,6 @@ let kopruBeyinAdi: () => string = () => "";
 /** Kapının son değerlendirdiği zaman (dünya saati, ms): bütçe penceresi kapıyla AYNI saati kullanır. */
 let inisiyatifSimdi = 0;
 
-function dunyaDurumuMetni(): string {
-  const o = oyuncu.oyuncuDurumu();
-  const a = orion?.durum();
-  const simdi = Date.now();
-  const d = new Date(simdi);
-  return [
-    // Ham koordinat modele bir şey anlatmıyordu ("position 0.9,-1.2"); yönlendirici kipinde yer adı
-    // durum defterinden ve YALNIZ sorulunca gelir (spec 16 F5).
-    a ? `You: ${a.poz}${HAFIZA_KIPI === "otomatik" ? `, position ${a.konum.x.toFixed(1)},${a.konum.z.toFixed(1)}` : ""}${a.oturuyor_mu ? ", seated" : ""}.` : "",
-    // PROPRİYOSEPSİYON. Yalnızca HAREKET HÂLİNDEYKEN yazılır — duruyorken
-    // "hızın 0" demek her tura bir satır ekleyip hiçbir şey söylemez, bağlam
-    // ise sadakatin en pahalı kaynağı (spec 06: bağlama giren her satır
-    // ölçülür). Aktüatör doyuma girdiği için bu sayı artık gerçek: komut
-    // edilen değil, gerçekleşen.
-    a && a.hiz !== undefined && a.hiz > 0.05
-      ? `You are moving at ${a.hiz.toFixed(1)} m/s${
-          a.hedefeKalan !== undefined ? `, ${a.hedefeKalan.toFixed(1)}m left to your target` : ""
-        }.`
-      : "",
-    `Ozyn is ${o.mesafe?.toFixed?.(1) ?? "?"}m away${o.bakiyor ? ", looking at you" : ""}.`,
-    o.etkilesim === "monitor" ? "Ozyn is working on your monitor." : "",
-    // Spec 13 Faz 2a: terminal açıksa Orion bunu BİLSİN — yoksa "bilgisayarı aç" sonrası komut
-    // önermek yerine yeniden açmaya çalışır. UZAKTAN TERMİNAL (2026-10-08): oturmak şart değil —
-    // eskiden yalnız masada otururken söyleniyordu ve model önce masaya gitmesi gerektiğini sanıyordu.
-    monitor.acikMi() ? "Your desk terminal is open (PowerShell); you can use it from anywhere." : "",
-    // ZAMAN — bir varlığın olmazsa olmazı. Bunlar olmadan Orion her turu
-    // zamansız bir "şimdi" içinde yaşıyor: ne gün ilerliyor, ne sessizlik
-    // birikiyor, ne de "sabahtan beri buradayım" diyebiliyor.
-    `It is ${gununVakti(d.getHours())}, ${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}.`,
-    odadaSure(simdi - ACILIS),
-    sonKonusma ? sessizlikSozu(simdi - sonKonusma) : "",
-  ].filter(Boolean).join(" ");
-}
 
 /**
  * Hafıza kipi (spec 16): "yonlendirici" (varsayılan) ya da `?hafiza=otomatik` (eski, kıyas için).
@@ -1513,6 +514,12 @@ function dunyaDurumuMetni(): string {
  */
 const HAFIZA_KIPI: "otomatik" | "yonlendirici" =
   new URLSearchParams(location.search).get("hafiza") === "otomatik" ? "otomatik" : "yonlendirici";
+
+/** Beyne her turda giden dünya durumu satırı (uygulama/dunyaDurumu.ts). */
+const dunyaDurumuMetni = dunyaDurumuKur({
+  oyuncu, monitor, acilis: varlikSinyali.acilis, hafizaKipi: HAFIZA_KIPI,
+  orion: () => orion, sonKonusma: () => varlikSinyali.sonKonusma(),
+});
 
 /** Model seçici penceresi — beyin bağlanınca kurulur (seçiciye ihtiyaç duyar). */
 let modelSecici: ReturnType<typeof modelSeciciKur> | null = null;
@@ -1549,190 +556,17 @@ function beyniBagla(a: Avatar): void {
     sema, gunluk, kopru: () => kopru, kesikSn, kisaAd,
     inisiyatifDurumu: () => (INISIYATIF_ESKI ? null : butceSatiri(inisiyatif.butce.ozet(inisiyatifSimdi))),
   });
-  girdiKaydi = duvar.kararKaydi;
+  varlikSinyali.kararKaydiBagla(duvar.kararKaydi);
   kopruBeyinAdi = () => secim.kopruBeyni.ad;
-  kopru = new Kopru({
-    kararKaydi: duvar.kararKaydi,
-    // Dikkat'in yazılabilir ayarları TELDEN gelir: karar yolu ile devre
-    // panosu artık aynı nesneyi okur.
-    dikkat: {
-      tekrarPenceresiMs: PANO_TELLERI.dikkat.tekrar,
-      terminalKisMs: PANO_TELLERI.dikkat.terminalKis,
-      dakikaBasinaAzami: PANO_TELLERI.dikkat.azami,
-    },
-    beyin: secim.kopruBeyni,
-    niyetGonder: (n, id) => {
-      // Davranış ölçümü için: hangi niyet üretildi, yalnızca kimliği değil.
-      // Kimlik tek başına "Orion ne yaptı" sorusuna cevap vermiyordu.
-      const govde = JSON.stringify(n).slice(0, 120);
-      console.log(`[BEYIN→NIYET] ${id} ${govde}`);
-      gunluk.ekle("bilgi", "niyet", `${n.tur} ${govde.slice(0, 90)}`);
-      sema.vur("niyet", n.tur);
-      davranisKayit()?.niyet(n.tur);
-
-      // YÖNLENDİRME (kompozisyon kökünün işi): `soyle` avatarın değil ses
-      // hattının niyetidir. Köprü onu zaten `konusmaDinle` üzerinden TTS'e
-      // verdi; bir de avatara göndermek avatarın onu HATA ile reddetmesine
-      // yol açıyordu ve bu sahte başarısızlık beyne geri besleniyordu —
-      // yani Orion doğru konuşurken "konuşamadım" diye öğreniyordu.
-      // Ağız senkronu ayrı yoldan (orionSesi → agizAyarla) zaten yürüyor.
-      niyetiYurut(n, id);
-    },
-    dunyaDurumu: dunyaDurumuMetni,
-    // Çapa adları DEĞİŞMEZ: sistem mesajında bir kez söylenir. Her turun
-    // sonuna eklendiğinde model onları son algı sanıp geri okuyordu.
-    // GÖRÜNEN adlar (spec 06 K3): iç kimlik (`admin`, `sema`) modele hiçbir
-    // şey anlatmıyordu; algı hizmeti "yönetim terminali" derken sabit liste
-    // "admin" diyordu ve model ikisini aynı şey saymıyordu.
-    // Çapa ETİKETLERİ Türkçe kalır: onlar odadaki şeylerin ADI, çerçeve değil.
-    sabitBilgi: () => { const k = orion?.durum().konum ?? { x: 0.9, z: -1.2 }; return konumluSabitBilgi(orionYeri, k.x, k.z); },
-    toplamaMs: 900,
-    // Ölçüm için ayarlanabilir: kısa pencere hipotezi (anı, alakasız sohbetin
-    // altında gömülüyor mu?) tek değişkenle sınanabilsin.
-    gecmisSiniri: Number(new URLSearchParams(location.search).get("gecmis") ?? 12) || 12,
-    // HAFIZA OTURUMLAR ARASI KALICI.
-    //
-    // Önceden yalnızca bellekteydi: her açılışta Orion sizi ilk kez
-    // görüyordu. "Odada yaşayan biri" iddiası, dünü hatırlamayan biriyle
-    // tutmuyor. localStorage yeterli — Electron renderer'ında kalıcı, IPC
-    // gerektirmiyor ve depo arayüzü dar olduğu için ileride dosyaya
-    // taşımak tek fonksiyon değişikliği.
-    //
-    // DOSYAYA TAŞINDI (spec 07 K4, 2026-09-19). Yukarıdaki not doğru çıktı:
-    // arayüz dar olduğu için değişiklik bu blokla sınırlı (K7). Karar
-    // `mind/hafizaGocu.ts` → `depoYukle`de; burada yalnızca G/Ç bağlanır.
-    hafizaDeposu: hafizaDeposuKur(),
-    // Sıkıştırma yedeği (spec 26 F3-C): host dosyası yoksa (geliştirme kipi) yedek de yok → sıkıştırma yapılmaz.
-    ...hafizaYedegiKur(),
-    // Kendiliğinden uyanışlar: bütçe (model-saniye/token) köprüden beslenir; özerk tur dar araç kümesiyle (T2-K4/K5).
-    inisiyatifButcesi: { sonuc: (_t, sureMs, token, eylemli) => inisiyatif.butce.sonuc(inisiyatifSimdi, sureMs, token, eylemli) },
-    ozerkTur: !INISIYATIF_ESKI,
-    aniPolitikasi: new URLSearchParams(location.search).get("anipolitikasi") === "eski" ? "eski" : "yeni",
-    hafizaKapasite: PANO_TELLERI.hafiza.kapasite,
-    // SPEC 16: bağlama yalnız SORULAN girer (konum, son iş, eski konuşma…), yakın pencere küçük.
-    // `?hafiza=otomatik` eski davranışı geri getirir — kıyas ölçüsü için (spec 16 P1).
-    hafizaKipi: HAFIZA_KIPI,
-    ...(HAFIZA_KIPI === "yonlendirici" ? { yakinPencere: { kayit: 4, yasMs: 10 * 60_000 } } : {}),
-    yerAdlari: () => orionYeri.capalar.map((c) => c.etiket),
-    // "BENİ TAKİP ET" (içgüdü `kopru.takip`): köprü sözü tanır, dünya (Takipci) yürütür.
-    takipDinle: (aktif) => {
-      if (aktif) takipci.baslat(); else takipci.birak();
-      gunluk.ekle("bilgi", "takip", aktif ? "Ozyn'i takip ediyor" : "takip bitti");
-    },
-    durumDeposu: durumDeposuKur(),
-    // ÖĞRENEN KAPI (K3, K5): gölgede — kapının kararını değiştirmez, kayda yazar.
-    ogretimler: ogretimleriYukle(),
-    // BECERİ REFLEKSİ (spec 10, Faz C): gölgede — kesin sözde hafızanın ne yapacağını
-    // söz satırına yazar; kapı, uyanış ve niyetler değişmez.
-    gorevSatirlari: gorevSatirlariniYukle(),
-    // BECERİ YETKİSİ (Faz D): ANAHTAR, varsayılan KAPALI. Yalnız `?beceri=1` (ORION_BECERI=1)
-    // ile açılır; açılması ön-kayıtlı barı geçmeye bağlı (spec 10).
-    beceriYetkisi: new URLSearchParams(location.search).has("beceri"),
-    // DOĞUŞTAN KOMUT PROGRAMLARI (spec 13 Faz 2b): elle açılışta AÇIK (Ozyn: "ölçüm geçince
-    // açık"; gerçek sözlerde yanlış eşleşme 0). Senaryolarda (`sessiz=1`) KAPALI: `tahtadene`,
-    // `becerdene` LLM'in ve becerinin yolunu ölçer, program onları değiştirmesin. `?komut=0|1` zorlar.
-    // SÜZGEÇ MERCEĞİNİN YETKİSİ (spec 12 Faz 5): ANAHTAR, varsayılan KAPALI (gölgede yazar).
-    // `?benliksuzgec=1` açar; gerçek kullanımda açılması gölge ölçüsüne bağlı (Ozyn).
-    benlikSuzgecYetkisi: new URLSearchParams(location.search).has("benliksuzgec"),
-    // ANLIK BENLİK (spec 12): gövde karar anında ÇEKİLİR.
-    bedenDurumu: () => {
-      const d = orion?.durum();
-      return d ? { poz: d.poz, oturuyor: d.oturuyor_mu } : null;
-    },
-    // Ortam sözleri ("gece yap") yalnız ova'dayken sözlükten geçer; ofiste LLM'e gider (mind/ortamKomutlari.ts).
-    ortamKullanilabilir: () => ortamBaglantisi.kullanilabilirMi(),
-    ortamOgrenilen: (soz) => ortamSozlugu.esle(soz),
-    ortamOgren: (soz, komutlar) => {
-      const r = ortamSozlugu.ogren(soz, komutlar);
-      console.log(`[ORTAM] sözlük: "${soz}" → ${r}${r === "reddedildi" ? "" : ` (${komutlar.map((k) => `${k.ne}${k.deger ? ` ${k.deger}` : ""}${k.sayi !== undefined ? ` ${k.sayi}` : ""}`).join(", ")})`}`);
-    },
-    komutYetkisi: (() => {
-      const q = new URLSearchParams(location.search);
-      return q.has("komut") ? q.get("komut") !== "0" : !q.has("sessiz");
-    })(),
-    // BAĞLAM (K4): algı anında Ozyn nerede, Orion'a bakıyor mu, hangi yüzeyde.
-    // Yapısal — dünya metni ayrıştırılmaz. Öğrenen kapının durum koduna girer.
-    baglam: () => {
-      const o = oyuncu.oyuncuDurumu();
-      return { mesafe: o.mesafe, bakiyor: o.bakiyor, yuzey: o.etkilesim };
-    },
-    // İçerik süzgeci: hangi algının beyne değeceğine karar verir.
-    // Kural tabanlı; ÖLÇÜLDÜ (mind/akis-olcum.ts, 12 gerçek komut çıktısı,
-    // 12/12 ideal uyandırma). Spec'in önerdiği 270M model ölçümde elendi:
-    // 31/31 geçersiz JSON, 13.8 sn azami gecikme, sıfır bilgi katkısı.
-    suzgec: (a, ozet) => {
-        // ── SAĞ LOB ─────────────────────────────────────────────────────────
-      // Sol lob (OpenCode) kapalıysa Orion tamamen ölmez: yerel, kuralcı ve
-      // anlık bir tepki üretir. `dürüst bozulma` vaadi ancak böyle gerçek olur.
-      //
-      // KOŞUL ŞART: ikisi birden çalışırsa niyetler çakışır ve beynin `git`i
-      // sağ lobun `bak`ı tarafından kesilir — aynı sınıf hata bu oturumda bir
-      // kez yaşandı (bkz. senaryo kipi).
-      if (kesikSn() > 0 && a.tur !== "olay") {
-        const n = yerelTepki({
-          tur: a.tur === "duydum" ? "duydum" : a.tur === "terminal" ? "terminal" : "olay",
-          ozet, kod: a.tur === "terminal" ? a.kod : undefined,
-        });
-        if (n) {
-          const id = kimlik("saglob");
-          console.log(`[SAGLOB] ${n.tur} ← ${ozet.slice(0, 70)}`);
-          sema.vur("refleks", "sağ lob");
-          gunluk.ekle("uyari", "sağ lob", `${n.tur}: ${ozet.slice(0, 60)}`);
-          niyetiYurut(n, id);
-        }
-      }
-
-    // Şema besleme noktası: her algı buradan geçiyor, dallanma da burada.
-      // Köprünün içine kanca koymak yerine buradan okunuyor çünkü bu geri
-      // çağrı ZATEN her algıda ve tam karar anında çalışıyor.
-      sema.vur("algi", a.tur);
-      sema.vur("suzgec");
-      // Girdi tek kaynaktan (mind/refleks.ts `refleksGirdisi`): süre, çıkış kodu
-      // ve niyetin kaynağı algıdan gelir, burada elle kurulmaz.
-      const k = refleks.karar(refleksGirdisi(a, ozet));
-      sema.vur(k.terfi ? "dikkat" : "refleks", k.terfi ? "" : "süzüldü");
-      // Kimlik de döner: karar kaydı hangi içgüdünün karar verdiğini yazar (spec 08).
-      return { gecsin: k.terfi, kural: k.kural, gerekce: k.gerekce };
-    },
-    metinDinle: (metin, aracVarMi) => { if (!aracVarMi) davranisKayit()?.duyulmayan(metin); },
-    icSesDinle: duvar.icSesDinle,
-    sozEylemDinle: duvar.sozEylemDinle,
-    asamaDinle: duvar.asamaDinle,
+  kopru = kopruKur({
+    duvar, secim, sema, gunluk, oyuncu, yerler, refleks, takipci, inisiyatif, ortamBaglantisi, ortamSozlugu,
+    niyetiYurut, davranisKayit, dunyaDurumu: dunyaDurumuMetni,
+    hafizaKipi: HAFIZA_KIPI, inisiyatifEski: INISIYATIF_ESKI,
+    orion: () => orion, inisiyatifSimdi: () => inisiyatifSimdi,
   });
 
-  // ── DEVRE PANOSU kayıt defteri ───────────────────────────────────────
-  //
-  // Kompozisyon kökü kurar (K4'ün belgelenmiş tek istisnası): `world/`
-  // içindeki hiçbir dosya `mind/`i görmez, yalnızca `protocol/pano.ts`
-  // tipini bilir. Kayıt defteri burada doğar ve panele TAKILIR.
-  //
-  // Beyin tanımı bir sınıf örneği değil üç okuyucu alıyor: koşan beynin
-  // durumu (ad, devre kesici) tek bir nesnede toplanmış değil ve sahte bir
-  // nesne uydurmak, panonun tam da kaçındığı kopya-durum olurdu.
-  const panoKaydi = panoKur([
-    dikkatTanimi(kopru.dikkat, PANO_TELLERI.dikkat),
-    hafizaTanimi(kopru.hafiza, { ...PANO_TELLERI.hafiza, ...hafizaUnutTeli(kopru) }),
-    onayTanimi(onayKapisi, PANO_TELLERI.onay),
-    ajandaTanimi(ajanda, PANO_TELLERI.ajanda),
-    refleksTanimi(),
-    beyinTanimi({
-      ad: () => beyin.ad,
-      kesikSaniye: () => kesikSn(),
-      yakinlikKurali: () => true,
-      secim: {
-        istenen: () => secici.istenen,
-        iste: (ad) => secici.iste(ad),
-        secenekler: () => secici.secenekAdlari(),
-        durum: () => {
-          const g = secici.gecis;
-          if (g.tur === "kontrol") return `${secici.aktif} → ${g.hedef} (kontrol)`;
-          if (g.tur === "reddedildi") return `${secici.aktif} (${g.hedef} reddedildi)`;
-          return beyin.ad;
-        },
-      },
-    }),
-  ]);
-  sema.panoBagla(panoKaydi);
+  // DEVRE PANOSU kayıt defteri: uygulama/devrePanosu.ts (kurulum + şemaya takma).
+  const panoKaydi = devrePanosuKur({ kopru, onayKapisi, ajanda, beyin, secici, kesikSn, sema });
   panoKaydiGlobal = panoKaydi;
 
   // ── MODEL SEÇİCİ (M) ─────────────────────────────────────────────────
@@ -1743,7 +577,7 @@ function beyniBagla(a: Avatar): void {
     rozet: document.getElementById("beyinRozet") as HTMLElement,
     // M bir harftir: terminal/panel odaktayken, sohbet ya da onay açıkken değil.
     tusSerbest: () => oyuncu.oyuncuDurumu().etkilesim === null
-      && sohbet.dataset.acik !== "1" && onayKapisi.durum !== "bekliyor",
+      && !sohbet.acikMi() && onayKapisi.durum !== "bekliyor",
   });
   window.orionModel = modelKancasiKur(secim, () => modelSecici?.ac());
   // ── STİL PENCERESİ (G): ova'dayken stil/renk/ışık/shader/saat denemeleri; fare kilidi açılınca bırakılır ──
@@ -1757,54 +591,20 @@ function beyniBagla(a: Avatar): void {
       })),
       sil: (soz) => { ortamSozlugu.sil(soz); },
     },
-    tusSerbest: () => oyuncu.oyuncuDurumu().etkilesim === null && sohbet.dataset.acik !== "1" && onayKapisi.durum !== "bekliyor",
+    tusSerbest: () => oyuncu.oyuncuDurumu().etkilesim === null && !sohbet.acikMi() && onayKapisi.durum !== "bekliyor",
     acildi: () => rig.fareKilitBirak(),
   });
+  const birlesik = gecis.birlesik();
   if (birlesik) stilPenceresi.ova(birlesik.level);   // dünya pencereden ÖNCE hazırsa burada bağlanır (aksi hâlde dünya kurulunca)
   console.log(`[PANO] ${panoKaydi.moduller().length} modül, ` +
     `${panoKaydi.goruntu().reduce((n, m) => n + m.dugmeler.length, 0)} tel bağlandı`);
 
-  // ── ÖLÇÜM KİLİDİ: panelden AÇILMAZ, bilerek ─────────────────────────
-  //
-  // Kilidi açmak GEREKÇE ister ve gerekçe yazmak metin girişi gerektirir;
-  // odadaki panelin klavyesi yok. Panele "aç" düğmesi koyup gerekçeyi
-  // uydurmak, kilidin tek işlevini — sürtünmeyi — ortadan kaldırırdı.
-  // Bu yüzden açma yolu yönetim terminalinden geçer ve yazılı bir cümle
-  // ister. Kapatmak damgayı KALDIRMAZ.
-  window.orionPano = {
-    kilitAc: (gerekce: string) => panoKaydi.kilitAc(gerekce),
-    kilitKapat: () => panoKaydi.kilitKapat(),
-    durum: () => ({
-      kilitAcik: panoKaydi.kilitAcikMi(),
-      olcumDisi: panoKaydi.olcumDisi(),
-      gerekce: panoKaydi.kilitGerekcesi(),
-    }),
-  };
+  // ÖLÇÜM KİLİDİ: panelden AÇILMAZ, bilerek (gerekçe: uygulama/devrePanosu.ts).
+  olcumKilidiKancasiKur(panoKaydi);
 
-  // DURUM DEFTERİ (spec 16 F2): Orion'un bulunduğu yer (çapa adı, ham koordinat değil) ve monitör
-  // yarım saniyede bir gözlenir. Defter yalnız DEĞİŞİMİ yazar ve yanından geçmeyi konum saymaz.
-  // Model uyanmaz; bilgi bağlama yalnız sorulunca girer (yönlendirici).
-  const durumKopru = kopru;
-  setInterval(() => {
-    takipci.tik();
-    try {
-      durumKopru.durum.konumGozlem(bulunduguCapa(a.durum().konum, durumKopru.durum.oku("konum")?.deger, orionYeri.capalar)?.etiket ?? konumluYerOrtasi(orionYeri, a.durum().konum.x, a.durum().konum.z));
-      durumKopru.durum.monitor(monitor.acikMi());
-    } catch (err) { console.warn("[DURUM] gozlem hatasi:", err); }
-  }, 500);
+  durumGozlemiKur({ kopru, takipci, avatar: a, monitor, yerler });
 
-  // SOHBET KİPİ (spec 16 F5b): "yeni sohbet" / "temiz sohbet" / "normal sohbet" sözle değişir (köprü,
-  // LLM uyanmaz). Temizdeyken ekranın üstünde HEP görünür: hafızanın kapalı olduğu unutulmasın.
-  const sohbetIsareti = document.createElement("div");
-  sohbetIsareti.style.cssText = "position:fixed;top:10px;left:50%;transform:translateX(-50%);padding:4px 12px;"
-    + "border-radius:6px;background:#14202e;color:#ffd38a;font:600 13px system-ui,sans-serif;z-index:50;display:none;pointer-events:none";
-  sohbetIsareti.textContent = "TEMİZ SOHBET · hafıza kapalı · çıkmak için: normal sohbet";
-  document.body.appendChild(sohbetIsareti);
-  kopru.sohbetKipiDinle((kip, e) => {
-    sohbetIsareti.style.display = kip === "temiz" ? "block" : "none";
-    gunluk.ekle("bilgi", "sohbet", e === "yeni" ? "yeni sohbet: konuşma penceresi sıfırlandı (hafıza duruyor)"
-      : e === "temiz" ? "temiz sohbet: hafıza ve durum bağlama girmiyor, hiçbir şey yazılmıyor" : "normal sohbete dönüldü");
-  });
+  sohbetKipiIsaretiKur({ kopru, gunluk });
 
   // Senaryo kipinde beyin susar: elle gönderilen niyetler kesilmesin.
   // (Köprü kurulduktan SONRA — `durdur()` örneğin üstünde çalışır.)
@@ -1813,47 +613,9 @@ function beyniBagla(a: Avatar): void {
     console.log("[SENARYO] beyin durduruldu — senaryonun niyetleri kesilmesin");
   }
 
-  // ARIZA: beyin düşünemiyorsa odada GÖRÜNÜR olsun.
-  //
-  // Ölçümle bulundu: OpenRouter `free-models-per-day` kotası dolunca OpenCode
-  // HTTP 200 içinde 429 döndürüyor ve 75 sn sonra pes ediyor. Orion sessizce
-  // susuyordu; ne Ozyn ne günlük sebebi söylüyordu. Bu Orion'un sözü DEĞİL —
-  // sistem bildirimi olarak altyazıya düşer, TTS'e gitmez.
-  let sonAriza = 0;
-  // Öğretim dosyasına düşen yeni ders (tools/ogret.ts) yeniden başlatmadan uygulanır.
-  (globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru?.ogretimDinle?.((s) => {
-    if (kopru?.ogretimUygula(s as OgretimSatiri)) console.log("[KAPI] yeni ogretim uygulandi");
-  });
-  kopru.arizaDinle((m) => {
-    // Aynı arıza saniyede bir tekrar etmesin; ekranı doldurur.
-    const simdi = Date.now();
-    if (simdi - sonAriza < 8000) return;
-    sonAriza = simdi;
-    const kota = /429|rate limit|free-models-per-day/i.test(m);
-    altyaziGoster(kota
-      ? "⚠ Düşünce kapalı: model sağlayıcı kotası doldu. Orion kurallı kipte."
-      : `⚠ Düşünce hatası: ${m.slice(0, 90)}`, 6000);
-    gunluk.ekle("hata", "beyin", kota ? `sağlayıcı kotası doldu — ${m}` : m);
-    sema.ariza("beyin", true, kota ? "kota doldu" : "hata");
-    sema.durumYaz(kota
-      ? "düşünce kapalı — sağlayıcı kotası doldu, kurallı kipte"
-      : `düşünce hatası: ${m.slice(0, 70)}`);
-  });
+  arizaGostergesiKur({ kopru, altyaziGoster, gunluk, sema });
 
-  // Orion konuşunca: altyazı + gerçek ses.
-  kopru.konusmaDinle((ham) => {
-    // Gevezelik freni: talimat "iki cümle" diyor, model 2/3 koşuda uymuyordu.
-    // Kural burada BELİRLEYİCİ biçimde uygulanır (ölçüm: 3dorion.bat davranis).
-    const metin = ikiCumleyeKisalt(ham);
-    if (!metin) return;
-    if (metin !== ham.trim().replace(/\s+/g, " ")) {
-      console.log(`[SOZ] kisaltildi ${ham.length} -> ${metin.length} karakter`);
-    }
-    altyaziGoster(metin, Math.max(2600, metin.length * 70));
-    gunluk.ekle("iyi", "orion", metin);
-    davranisKayit()?.soyle(metin);
-    void orionSesi.soyle(metin);
-  });
+  konusmayiBagla({ kopru, altyaziGoster, gunluk, davranisKayit, orionSesi });
 
   // Niyet sonuçları beyne geri döner (yalnızca hatalar terfi eder).
   a.sonucDinle((s) => kopru?.sonuc(s));
@@ -1863,8 +625,8 @@ function beyniBagla(a: Avatar): void {
   const sozAlindi = (t: { metin: string; kesin: boolean }, kaynak: "klavye" | "mikrofon" = "klavye") => {
     if (!t.kesin) return;
     altyaziGoster(`sen: ${t.metin}`, 2000);
-    girdiOldu("soz");
-    sonKonusma = sonGirdi;        // "en son ne zaman konuştuk" bundan
+    varlikSinyali.girdiOldu("soz");
+    varlikSinyali.sozVerildi();   // "en son ne zaman konuştuk" bundan
     kopru?.algi({ tur: "duydum", metin: t.metin, kesin: true, kaynak });
   };
   girdi.dinle((t) => sozAlindi(t));
@@ -1873,42 +635,8 @@ function beyniBagla(a: Avatar): void {
   const denemeSozu = new URLSearchParams(location.search).get("ozynsozu");
   if (denemeSozu) setTimeout(() => sozAlindi({ metin: denemeSozu, kesin: true }), 8000);
 
-  // Mikrofon: bas-konuş V, Nemotron Speech İngilizce çözer. Çözülen metin klavyeden yazılmış gibi
-  // AYNI yoldan geçer (sozAlindi): kapı, hafıza, komut sözlüğü değişmez.
-  // AÇIK/KAPALI: K tuşu. Seçim hatırlanır (localStorage "orion.mikrofon"); ?mikrofon=1 (ORION_MIKROFON=1)
-  // o oturum için açar. Kapalıyken Python süreci YOKTUR (RAM/CPU yok). Senaryolarda (`sessiz=1`)
-  // hiçbir zaman kendiliğinden açılmaz.
-  if (typeof window.kopru?.dinleKomut === "function") {
-    const sorgu = new URLSearchParams(location.search);
-    const hatirla = (v?: "1" | "0"): string | null => {
-      try { if (v) localStorage.setItem("orion.mikrofon", v); return localStorage.getItem("orion.mikrofon"); } catch { return null; }
-    };
-    const kulak = new NemotronGirdi(window.kopru);
-    kulak.dinle((t) => sozAlindi(t, "mikrofon"));
-    kulak.hataDinle((h) => { gunluk.ekle("hata", "kulak", h); altyaziGoster(`kulak: ${h}`, 4000); });
-    kulak.durumDinle((d) => {
-      if (d.d === "yukleniyor") altyaziGoster("kulak yükleniyor (~15 sn)…", 4000);
-      else if (d.d === "hazir" && d.mikrofon) { gunluk.ekle("iyi", "kulak", `hazır: ${d.mikrofon} (bas-konuş: V)`); altyaziGoster("kulak hazır: V tuşunu basılı tutup İngilizce konuş", 3500); }
-      else if (d.d === "dinliyor") altyaziGoster("dinliyorum… (V basılı)", 30000);
-      else if (d.d === "cozuyor") altyaziGoster("çözüyorum…", 3000);
-      else if (d.d === "bos") altyaziGoster(d.neden === "sessiz" ? "ses gelmedi (mikrofon seviyesi çok düşük?)" : d.neden === "cok kisa" ? "çok kısa, V'yi basılı tut" : "anlaşılmadı", 2500);
-    });
-    const yaziAlaniMi = (h: EventTarget | null) => h instanceof HTMLElement && (h.tagName === "INPUT" || h.tagName === "TEXTAREA" || h.isContentEditable);
-    let acik = false;
-    const kulagiAc = (ac: boolean) => {
-      acik = ac;
-      hatirla(ac ? "1" : "0");
-      if (ac) void kulak.baslat();
-      else { kulak.durdur(); altyaziGoster("kulak kapalı (K ile aç)", 2500); gunluk.ekle("bilgi", "kulak", "kapatıldı"); }
-    };
-    addEventListener("keydown", (e) => {
-      if (e.repeat || yaziAlaniMi(e.target)) return;
-      if (e.code === "KeyK") kulagiAc(!acik);
-      else if (e.code === "KeyV" && acik) kulak.kayitBasla();
-    });
-    addEventListener("keyup", (e) => { if (e.code === "KeyV") kulak.kayitBitir(); });
-    if (!sorgu.has("sessiz") && (sorgu.has("mikrofon") || hatirla() === "1")) kulagiAc(true);
-  }
+  // Mikrofon (V bas-konuş, K aç/kapat): uygulama/mikrofon.ts.
+  mikrofonKur({ gunluk, altyaziGoster, sozAlindi });
 
   void beyin.hazirMi().then((h) => {
     console.log(`[BEYIN] ${beyin.ad} hazir=${h}`);
@@ -1926,83 +654,14 @@ function beyniBagla(a: Avatar): void {
   });
 }
 
-// ── Sohbet kutusu: T aç, Enter gönder, Esc kapat ──────────────────────────
-const sohbet = document.getElementById("sohbet") as HTMLDivElement;
-const sohbetGirdi = document.getElementById("sohbetGirdi") as HTMLInputElement;
+// ── Sohbet kutusu: T aç, Enter gönder, Esc kapat (uygulama/sohbetKutusu.ts) ──
+const sohbet = sohbetKutusuKur({ oyuncu, girdi });
 
-function sohbetAc(acik: boolean): void {
-  sohbet.dataset.acik = acik ? "1" : "0";
-  if (acik) sohbetGirdi.focus();
-  else { sohbetGirdi.blur(); sohbetGirdi.value = ""; }
-}
+// ── Duman testi kanıtı (uygulama/dumanTesti.ts) ────────────────────────────
+dumanTestiKur({ motor, saat, rig, oda, oyuncu, monitor, yerler, orion: () => orion, kopru: () => kopru });
 
-addEventListener("keydown", (e) => {
-  const acikMi = sohbet.dataset.acik === "1";
-  if (!acikMi && (e.key === "t" || e.key === "T")) {
-    if (oyuncu.oyuncuDurumu().etkilesim === "monitor") return;  // terminaldeyken T yazıdır
-    e.preventDefault();
-    sohbetAc(true);
-    return;
-  }
-  if (!acikMi) return;
-  if (e.key === "Escape") { sohbetAc(false); return; }
-  if (e.key === "Enter") {
-    const m = sohbetGirdi.value.trim();
-    sohbetGirdi.value = "";
-    if (m) girdi.gonder(m);
-    sohbetAc(false);
-  }
-});
-
-// ── Duman testi kanıtı ─────────────────────────────────────────────────────
-setTimeout(() => {
-  const d = oyuncu.oyuncuDurumu();
-  console.log(
-    `[DUMAN] fps=${motor.getFps().toFixed(1)} hz=${saat.olculenHz.toFixed(2)} ` +
-    `tik=${saat.tikSayisi} atlanan=${saat.atlanan} ` +
-    `kamera=${rig.mod} mesh=${oda.meshler.length} capa=${ozynYeri.capalar.length} ` +
-    `kopru=${JSON.stringify(kopru?.sayac() ?? null)} ` +
-    `oyuncu=${d.konum.x.toFixed(2)},${d.konum.y.toFixed(2)},${d.konum.z.toFixed(2)} ` +
-    `etkilesim=${d.etkilesim ?? "-"} kopru=${typeof window.kopru} ` +
-    `orion=${orion ? `${orion.durum().poz}@${orion.durum().konum.x.toFixed(2)},${orion.durum().konum.z.toFixed(2)}` : "yok"} ` +
-    `monitor=${monitor.acikMi() ? "acik" : "kapali"}`
-  );
-}, 4000);
-
-// ---- Orion'un sesi --------------------------------------------------------
-// Birleştirme noktası burası: voice/ ile world/ birbirini import etmez (K4),
-// ikisini giris.ts bağlar. Avatar geldiğinde (T2) agizAcikligi() buradan
-// avatar.agizAyarla()'ya beslenecek.
-const orionSesi = new PiperCikisi();
-window.orionSes = orionSesi;
-
-void (async () => {
-  const kurulu = await orionSesi.kurulumKontrol();
-  console.log(`[SES] piper kurulu=${kurulu}`);
-  if (!kurulu) return;
-
-  const sorgu = new URLSearchParams(location.search);
-  if (sorgu.has("sessiz")) return;
-
-  // ORION_SOZ verilmişse yalnızca onu söyle — elle deneme için.
-  const istenen = sorgu.get("soz");
-  if (istenen) {
-    const oldu = await orionSesi.soyle(istenen);
-    console.log(`[SES] istenen soyle=${oldu} baslama_gecikmesi=${orionSesi.baslamaGecikmesi.toFixed(0)}ms ses_uzunlugu=${orionSesi.sonSure.toFixed(2)}sn`);
-    return;
-  }
-
-  // Açılışta tek selam. (Ölçüm koşumu ORION_SOZ ile ayrıca yapılabiliyor.)
-  const cumleler = ["Merhaba Ozyn. Odama hoş geldin. Terminal masamda, istediğin zaman aç."];
-  for (let i = 0; i < cumleler.length; i++) {
-    const oldu = await orionSesi.soyle(cumleler[i]!);
-    console.log(
-      `[SES] cumle${i + 1} soyle=${oldu} ` +
-      `baslama_gecikmesi=${orionSesi.baslamaGecikmesi.toFixed(0)}ms ` +
-      `ses_uzunlugu=${orionSesi.sonSure.toFixed(2)}sn tepe_agiz=${orionSesi.tepeAgiz.toFixed(3)}`
-    );
-  }
-})();
+// ---- Orion'un sesi (uygulama/orionSesi.ts) --------------------------------
+const orionSesi = orionSesiKur();
 
 // ── CANLI DENEME SENARYOLARI (spec 14 R3) ─────────────────────────────────────
 //
@@ -2016,19 +675,19 @@ const senaryoBaglami: SenaryoBaglami = {
   get orion() { return orion; },
   get kopru() { return kopru; },
   get gordumGeldi() { return gordumGeldi; },
-  get zoomPayi() { return zoomPayi; },
-  yerler: () => ({ ozyn: ozynYeri, orion: orionYeri }),
-  ovayaCik,
+  get zoomPayi() { return odak.zoomPayi(); },
+  yerler: () => ({ ozyn: yerler.ozyn, orion: yerler.orion }),
+  ovayaCik: () => gecis.ovayaCik(),
   // `ortamdene`: ova'nın GERÇEK tanımı (ofiste null), hatırlama kipi, öğrenen sözlüğün büyüklüğü, ofise dönüş.
   ortam: {
-    tanim: () => (birlesik ? birlesik.level.tanim() : disari ? disari.level.tanim() : null),
+    tanim: () => { const b = gecis.birlesik(), o = gecis.disari(); return b ? b.level.tanim() : o ? o.level.tanim() : null; },
     kipAyarla: (kip) => ortamGunlugu.kipAyarla(kip),
     ogrenilenSayisi: () => ortamSozlugu.liste().length,
-    odayaDon: () => odayaDon(),
+    odayaDon: () => gecis.odayaDon(),
   },
   // `kapidene`: birleşik dünyanın kapısı ve görünüm geçişi.
-  dunya: { kapiAcisi: () => oda.kapi?.aci() ?? null, ic: () => birlesik?.ic() ?? 0, gi: () => birlesik?.gi ?? null },
-  niyetiYurut, onayKarari, algiSor, monitoreGec, admineGec, panelOdak, panoyuAl, zoomUygula, sonGorme,
+  dunya: { kapiAcisi: () => oda.kapi?.aci() ?? null, ic: () => gecis.birlesik()?.ic() ?? 0, gi: () => gecis.birlesik()?.gi ?? null },
+  niyetiYurut, onayKarari, algiSor, monitoreGec: odak.monitoreGec, admineGec: odak.admineGec, panelOdak: odak.panelOdak, panoyuAl, zoomUygula: odak.zoomUygula, sonGorme,
   gozModeli: () => gozModeli.model,
 };
 for (const ad of istenenSenaryolar(location.search)) {
@@ -2037,39 +696,5 @@ for (const ad of istenenSenaryolar(location.search)) {
     .catch((e) => console.error(`[SENARYO] ${ad} yüklenemedi ya da düştü:`, e));
 }
 
-
-// ── BİRLEŞİK DÜNYA AÇILIŞI (spec 27) ───────────────────────────────────────
-// Ofis ova'nın içinde: açılışta ova level'ı ofisin yanına kurulur (kapıda değil). Hazır olunca tek `Yer` herkese verilir, ortam aracı
-// ve G penceresi bağlanır. Kurulamazsa (hata) ofis tek başına yaşar: sessiz değil, konsola yazılır.
-void (async () => {
-  try {
-    await oda.hazir;
-    const tanim: unknown = await (await fetch(ovaAdresi)).json();
-    const orionKok = () => sahne.getTransformNodeByName("orion_vrm_kok") ?? sahne.getTransformNodeByName("orion_kok");
-    const b = await birlesikDunyaKur({
-      sahne, tanim, oda, kamera: rig.kamera, golgeAtanlar: [oyuncu.govde], ufuk: ufukAcikMi(location.search),
-      gi: giAcikMi(location.search),
-      aktorler: () => {
-        const o = oyuncu.oyuncuDurumu().konum;
-        const liste = [{ meshler: [oyuncu.govde], x: o.x, z: o.z }];
-        const ok = orionKok(), od = orion?.durum();
-        if (ok && od) liste.push({ meshler: ok.getChildMeshes(false), x: od.konum.x, z: od.konum.z });
-        return liste;
-      },
-    });
-    birlesik = b;
-    ozynYeri = b.yer;
-    orionYeri = b.yer;
-    ortamBaglantisi.ova(b.level);
-    // Kaydedilmiş ortam komutları taze level'ın ÜSTÜNE oynatılır (dosya değişse bile günlük bozulmaz).
-    const oynat = ortamBaglantisi.oynat(ortamGunlugu.komutlar());
-    if (oynat.uygulanan || oynat.atlanan.length) console.log(`[ORTAM] günlük oynatıldı (${ortamGunlugu.kip}): ${oynat.uygulanan} komut${oynat.atlanan.length ? `, atlanan: ${oynat.atlanan.join(" | ")}` : ""}`);
-    (stilPenceresi as ReturnType<typeof stilPenceresiKur> | null)?.ova(b.level);   // pencere dünyadan sonra kurulduysa orada bağlanır
-    gunluk.ekle("bilgi", "yer", `birleşik dünya kuruldu (${b.kurulumMs} ms)`);
-    console.log(`[YER] birleşik dünya kuruldu ${b.kurulumMs} ms · engel ${b.yer.engeller.length} · nesne ${b.yer.nesneler.length} · çapa ${b.yer.capalar.length}`);
-  } catch (e) {
-    console.error("[YER] birleşik dünya kurulamadı, ofis tek başına:", e);
-  } finally {
-    birlesikBitti();
-  }
-})();
+// Birleşik dünya açılışı (spec 27): uygulama/yerGecisi.ts. Ofis ova'nın içinde; kurulamazsa ofis tek başına yaşar.
+gecis.birlesikDunyayiAc();
