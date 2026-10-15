@@ -29,6 +29,8 @@ export interface BulutKelimesi {
   kirmizi?: boolean;
   /** Kalıcı kayıt (olgu, sıkıştırma özeti): ham sözlerden önce yer bulur, ayrı renkte (OB10). */
   kalici?: boolean;
+  /** Yalnız derin anılarda: unutma kimliği (anının tam metni). Varsa seçili kutuda "Unut" düğmesi çıkar. */
+  unutId?: string;
   /** "Gerçek" kipte kelimenin yerine yazan sayı (skor, önem). */
   sayi: string;
 }
@@ -98,6 +100,8 @@ export interface BulutGirdisi {
   simdi: number;
   /** Kalıcı hafızadaki gerçek anı sayısı; verilirse DERİN "gösterilen / toplam" yazılır. */
   derinToplam?: number;
+  /** Son işlemin sonucu ("anıyı unut = …", "reddedildi: …"); verilirse alt şeritteki ipucunun yerine yazılır. */
+  mesaj?: string;
 }
 
 /** Başlıktaki kabuk sayıları: "SABİT 36 · ANLIK 8 · DERİN 60 / 174". Saf, testli. */
@@ -217,7 +221,8 @@ export function cizHafizaBulutu(bag: CanvasRenderingContext2D, o: YuzeyOlcusu, g
     const kutuG = Math.round(o.genislik * 0.36), satir = Math.round(o.yukseklik * 0.035);
     bag.font = `${satir}px ${YAZI.duz}`;
     const satirlar = sar(bag, `${k.metin} — ${k.not}`, kutuG - kenar * 2).slice(0, 6);
-    const kutuH = satirlar.length * satir * 1.35 + kenar * 1.5;
+    const unutH = k.unutId ? satir * 1.9 : 0;
+    const kutuH = satirlar.length * satir * 1.35 + kenar * 1.5 + unutH;
     const kx = o.genislik - kutuG - kenar, ky = alanY + kenar;
     bag.fillStyle = "rgba(10,14,24,0.92)";
     bag.fillRect(kx, ky, kutuG, kutuH);
@@ -226,6 +231,19 @@ export function cizHafizaBulutu(bag: CanvasRenderingContext2D, o: YuzeyOlcusu, g
     bag.textAlign = "left";
     bag.fillStyle = KABUK_RENK[k.kabuk];
     satirlar.forEach((s, i) => bag.fillText(s, kx + kenar, ky + kenar + satir * 0.6 + i * satir * 1.35));
+    // "Unut": silmez, teyit ekranını açar (devre panosu `hafiza.unut`, iki aşamalı). Yalnız derin anılarda.
+    if (k.unutId) {
+      const yazi = "Unut…", w = bag.measureText(yazi).width + kenar * 1.4, h = satir * 1.5;
+      const bx = kx + kenar, by = ky + kutuH - h - kenar * 0.4;
+      bag.fillStyle = "#2a1216";
+      bag.fillRect(bx, by, w, h);
+      bag.strokeStyle = "#d85b45";
+      bag.strokeRect(bx, by, w, h);
+      bag.fillStyle = "#ff8a76";
+      bag.textBaseline = "middle";
+      bag.fillText(yazi, bx + kenar * 0.7, by + h / 2);
+      bolgeler.push({ x: bx, y: by, g: w, yuk: h, ad: "hafiza", islem: "unut", deger: String(g.secili) });
+    }
   }
 
   // Alt şerit: düğmeler.
@@ -250,7 +268,7 @@ export function cizHafizaBulutu(bag: CanvasRenderingContext2D, o: YuzeyOlcusu, g
   dugme(g.gercek ? "Gerçek: sayılar" : "Gerçek", "gercek", undefined, g.gercek);
   bag.fillStyle = RENK.soluk;
   const sigmayan = sigmayanSozu(gizli);
-  bag.fillText(`tıkla: ne olduğu · kırmızı: hatırlanan · yeşil: kalıcı${sigmayan ? ` · ${sigmayan}` : ""}`, x + kenar * 0.4, altY + altYuk / 2);
+  bag.fillText(g.mesaj || `tıkla: ne olduğu · kırmızı: hatırlanan · yeşil: kalıcı${sigmayan ? ` · ${sigmayan}` : ""}`, x + kenar * 0.4, altY + altYuk / 2);
   return bolgeler;
 }
 

@@ -251,5 +251,68 @@ export async function kos(d: SenaryoBaglami): Promise<void> {
     await bekle(900);
   }
 
+  // ── UNUT KAPISI (canlı): duvarda bir anıya tıkla → "Unut…" → teyit → onay ──────────
+  //
+  // Birim testleri silmenin ve yedeğin doğru olduğunu kanıtlıyor; kanıtlamadıkları: ekranda GÖRÜNEN
+  // kelimeye ve "Unut…" düğmesine gerçekten basınca teyit ekranının açılıp açılmadığı ve onayın anıyı silip
+  // silmediği. Yalıtım: ORION_SMOKE=1 + ORION_HAFIZA_DOSYASI (geçici tohum hafıza; gerçek dosyaya DOKUNMAZ).
+  // Tohum yoksa (dosya boş) kapı "ATLANDI" der, geçmiş sayılmaz.
+  {
+    const G3 = motor.getRenderWidth(), Y3 = motor.getRenderHeight();
+    const pn = panoyuAl();
+    const sayi = () => Number(pn?.goruntu("hafiza").flatMap((m) => m.dugmeler).find((x) => x.ad === "hafiza.sayi")?.deger ?? NaN);
+    /** Ekranda "sema" yüzeyindeki bölgeleri tarar; anahtarı `ara`yı içerenlerin UV'lerini döner. */
+    const tara = (ara: string, ilk = false): { h: string; u: number; v: number }[] => {
+      const bulunan = new Map<string, { h: string; u: number; v: number }>();
+      for (let ex = 0; ex < G3; ex += 3) {
+        for (let ey = 0; ey < Y3; ey += 3) {
+          const p = sahne.pick(ex, ey);
+          if ((p?.pickedMesh?.metadata as { capa?: string } | undefined)?.capa !== "sema") continue;
+          const uv = p?.getTextureCoordinates?.();
+          if (!uv) continue;
+          const h = sema.hedef(uv.x, uv.y);
+          if (h && h.includes(ara) && !bulunan.has(h)) {
+            bulunan.set(h, { h, u: uv.x, v: uv.y });
+            if (ilk) return [...bulunan.values()];     // teyit 30 sn ömürlü: tam tarama süreyi aşar
+          }
+        }
+      }
+      return [...bulunan.values()];
+    };
+
+    pn?.teyitIptal();
+    sema.sec("hafiza");
+    await bekle(900);
+    const once = sayi();
+    if (!(once > 0)) {
+      console.log(`[ZIHINDENE] UNUT ATLANDI — hafiza bos (sayi=${once}); ORION_HAFIZA_DOSYASI ile tohum ver`);
+    } else {
+      let unutBasildi = false;
+      for (const k of tara("hafiza\u0000kelime\u0000").slice(0, 40)) {
+        sema.tikla(k.u, k.v);
+        await bekle(120);
+        const unut = tara("hafiza\u0000unut\u0000", true)[0];     // yalnız DERİN anıda çıkar
+        if (!unut) continue;
+        sema.tikla(unut.u, unut.v);
+        unutBasildi = true;
+        break;
+      }
+      await bekle(300);
+      const t = pn?.bekleyenTeyit() ?? null;
+      const teyitDogru = t?.dugmeAdi === "hafiza.unut";
+      const silindiMiOnce = sayi() !== once;                 // teyit AÇIKKEN silinmemiş olmalı
+      if (t) console.log(`[ZIHINDENE] UNUT uyari: ${t.uyari}`);
+      const onay = teyitDogru ? tara("teyitOnay", true)[0] : undefined;
+      if (onay) sema.tikla(onay.u, onay.v);
+      await bekle(500);
+      const sonra = sayi();
+      const bitti = unutBasildi && teyitDogru && !silindiMiOnce && !!onay && sonra === once - 1 && !pn?.bekleyenTeyit();
+      console.log(`[ZIHINDENE] UNUT ${bitti ? "GECTI" : "KALDI"} — unut_basildi=${unutBasildi} teyit=${t?.dugmeAdi ?? "yok"} ` +
+        `teyitte_silinmedi=${!silindiMiOnce} onay_bulundu=${!!onay} anilar: ${once} -> ${sonra}`);
+      pn?.teyitIptal();
+      await bekle(600);
+    }
+  }
+
   console.log("[ZIHINDENE] bitti — panelleri gozle dogrula");
 }

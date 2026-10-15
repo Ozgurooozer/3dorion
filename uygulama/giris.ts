@@ -527,6 +527,13 @@ function hafizaYedegiKur(): { hafizaYedegi?: { yaz(aniler: unknown[]): void } } 
   return { hafizaYedegi: { yaz: (aniler) => { if (!yaz(aniler)) throw new Error("yedek yazılamadı"); } } };
 }
 
+/** Elle unutma teli (duvardaki "Unut…"): host dosya yedeği yoksa HİÇ verilmez, düğme kurulmaz (yedeksiz silme yok). */
+function hafizaUnutTeli(kopru: { hafizaKaydetHemen(): void }): { unut?: { yedekle(aniler: unknown[]): void; kaydet(): void } } {
+  const yedek = hafizaYedegiKur().hafizaYedegi;
+  if (!yedek) return {};
+  return { unut: { yedekle: (aniler) => yedek.yaz(aniler), kaydet: () => kopru.hafizaKaydetHemen() } };
+}
+
 function hafizaDeposuKur(): { oku(): unknown[]; yaz(aniler: unknown[]): void } {
   const k = (globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru;
   const dosya = k?.hafizaOku && k.hafizaYaz && k.hafizaYazSenkron ? k : null;
@@ -1702,7 +1709,7 @@ function beyniBagla(a: Avatar): void {
   // nesne uydurmak, panonun tam da kaçındığı kopya-durum olurdu.
   const panoKaydi = panoKur([
     dikkatTanimi(kopru.dikkat, PANO_TELLERI.dikkat),
-    hafizaTanimi(kopru.hafiza, PANO_TELLERI.hafiza),
+    hafizaTanimi(kopru.hafiza, { ...PANO_TELLERI.hafiza, ...hafizaUnutTeli(kopru) }),
     onayTanimi(onayKapisi, PANO_TELLERI.onay),
     ajandaTanimi(ajanda, PANO_TELLERI.ajanda),
     refleksTanimi(),

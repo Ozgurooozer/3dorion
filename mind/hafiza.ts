@@ -319,6 +319,17 @@ export class Hafiza {
     return { silinen, olgu: olgular.length };
   }
 
+  /**
+   * ELLE UNUT (duvardan, devre panosu `hafiza.unut`): tam bu metni taşıyan anıyı siler. Anının kimliği metindir
+   * (`ekle` ve `yukle` aynı metni tekilleştirir). Yedek ve teyit çağıranın işi; burası yalnız siler. Dönüş: silinen
+   * anı, yoksa `null`.
+   */
+  unut(metin: string): Ani | null {
+    const i = this._aniler.findIndex((a) => a.metin === metin);
+    if (i < 0) return null;
+    return this._aniler.splice(i, 1)[0] ?? null;
+  }
+
   /** Anıyı kaydet. Aynı metin tekrar gelirse yenisi eklenmez, tazelenir. */
   ekle(metin: string, tur: AniTuru, onem: number): void {
     const temiz = metin.trim();

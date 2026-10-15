@@ -398,3 +398,11 @@ test("olgu çekmecesi kendi payıyla budanır: konuşma yağmuru olguları atmaz
   for (let i = 0; i < 300; i++) h.ekle(`söz numara ${i}`, "konusma", 8);
   assert.deepEqual(h.olgular().map((x) => x.metin), ["yeşil"]);
 });
+
+test("unut: tam metni taşıyan tek anıyı siler ve döner; olmayana null", () => {
+  const h = new Hafiza();
+  h.ekle("gçz", "konusma", 8); h.ekle("başka söz", "konusma", 8);
+  assert.equal(h.unut("gçz")?.metin, "gçz");
+  assert.deepEqual(h.dok().map((a) => a.metin), ["başka söz"]);
+  assert.equal(h.unut("gçz"), null);
+});

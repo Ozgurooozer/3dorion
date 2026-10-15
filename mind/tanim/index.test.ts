@@ -377,3 +377,57 @@ test("SEÇİCİSİZ kurulumda beyin.model salt okunur kalır (eski davranış)",
   assert.equal(d.yazilabilir, false);
   assert.match(p.teyitIste("beyin.model", "x").sebep, /yazıcısı yok/);
 });
+
+// ── hafiza.unut: duvardan elle anı silme (iki aşamalı teyit + zorunlu yedek) ──
+function unutKur(yedekHatasi = false) {
+  const h = new Hafiza();
+  h.ekle("gçz", "konusma", 8); h.ekle("ben terminalde claude kullanırım", "konusma", 8);
+  const olaylar: string[] = [];
+  const yedekler: string[][] = [];
+  const pano = panoKur([hafizaTanimi(h, { unut: {
+    yedekle: (aniler) => { olaylar.push("yedek"); if (yedekHatasi) throw new Error("disk dolu"); yedekler.push(aniler.map((a) => a.metin)); },
+    kaydet: () => { olaylar.push("kaydet"); },
+  } })]);
+  return { h, pano, olaylar, yedekler };
+}
+
+test("unut: teller.unut yoksa düğme HİÇ kurulmaz (yedeksiz silme yok)", () => {
+  const pano = panoKur([hafizaTanimi(new Hafiza())]);
+  assert.equal(pano.goruntu()[0]!.dugmeler.some((d) => d.ad === "hafiza.unut"), false);
+});
+
+test("unut: teyitsiz yazma reddedilir, anı yerinde kalır", () => {
+  const { h, pano } = unutKur();
+  assert.equal(pano.yaz("hafiza.unut", "gçz").oldu, false);
+  assert.equal(h.sayi, 2);
+});
+
+test("unut: uyarı anının kendisini söyler (metin, tür, önem)", () => {
+  const { pano } = unutKur();
+  pano.teyitIste("hafiza.unut", "gçz");
+  assert.match(pano.bekleyenTeyit()!.uyari, /"gçz" \(konusma, önem 8\) KALICI olarak silinir/);
+});
+
+test("unut: teyitle yalnız o anı silinir; yedek silmeden ÖNCE, tam listeyle; sonra diske hemen yazılır", () => {
+  const { h, pano, olaylar, yedekler } = unutKur();
+  pano.teyitIste("hafiza.unut", "gçz");
+  assert.equal(pano.teyitliYaz(pano.bekleyenTeyit()!.jeton).oldu, true);
+  assert.deepEqual(h.dok().map((a) => a.metin), ["ben terminalde claude kullanırım"]);
+  assert.deepEqual(yedekler, [["gçz", "ben terminalde claude kullanırım"]], "yedek silmeden önceki TAM liste olmalı");
+  assert.deepEqual(olaylar, ["yedek", "kaydet"]);
+});
+
+test("unut: yedek alınamazsa anı SİLİNMEZ ve neden söylenir", () => {
+  const { h, pano, olaylar } = unutKur(true);
+  pano.teyitIste("hafiza.unut", "gçz");
+  const s = pano.teyitliYaz(pano.bekleyenTeyit()!.jeton);
+  assert.deepEqual([s.oldu, h.sayi, olaylar], [false, 2, ["yedek"]]);
+  assert.match(s.sebep, /disk dolu/);
+});
+
+test("unut: olmayan anı için teyit istenebilir ama uyarı 'silinecek bir şey yok' der, onayda silme hatası döner", () => {
+  const { pano } = unutKur();
+  pano.teyitIste("hafiza.unut", "yok böyle");
+  assert.match(pano.bekleyenTeyit()!.uyari, /silinecek bir şey kalmadı/);
+  assert.match(pano.teyitliYaz(pano.bekleyenTeyit()!.jeton).sebep, /böyle bir anı yok/);
+});

@@ -11,7 +11,7 @@
 "use strict";
 import type { Modul, Dugme, Tel } from "../../protocol/pano.ts";
 import type { Dikkat } from "../dikkat.ts";
-import type { Hafiza } from "../hafiza.ts";
+import type { Ani, Hafiza } from "../hafiza.ts";
 import type { Ajanda } from "../ajanda.ts";
 import type { OnayKapisi } from "../onayKapisi.ts";
 import { BOZULMA } from "../hafiza.ts";
@@ -33,6 +33,11 @@ export interface DikkatTelleri {
 }
 export interface HafizaTelleri {
   kapasite?: Tel<number>;
+  /**
+   * Elle unutma (duvardan). Verilmezse `hafiza.unut` düğmesi HİÇ kurulmaz: yedeksiz silme yok.
+   * `yedekle` fırlatırsa anı silinmez; `kaydet` silmeden sonra diske hemen yazar (3 sn'lik kısma beklenmez).
+   */
+  unut?: { yedekle(aniler: Ani[]): void; kaydet(): void };
 }
 export interface OnayTelleri {
   zamanAsimi?: Tel<number>;
@@ -110,6 +115,37 @@ export function dikkatTanimi(d: Dikkat, teller: DikkatTelleri = {}): Modul {
   return { ad: "dikkat", etiket: "DİKKAT", dugum: "dikkat", dugmeler };
 }
 
+/**
+ * ANIYI UNUT: duvarda seçili anıyı elle silmek. Değer = anının tam metni (kimlik). `tehlikeli` olduğundan her silme iki
+ * aşamalı teyitten geçer; uyarı İSTEK ANINDA anının kendisini söyler. Silmeden ÖNCE yedek (fırlatırsa silinmez), sonra
+ * diske hemen yazılır. Okuma değeri "son unutulan": `teyitliYaz` yazdığı değerin geri okunmasını ister.
+ */
+function unutDugmesi(h: Hafiza, u: NonNullable<HafizaTelleri["unut"]>): Dugme {
+  let son = "—";
+  const bul = (metin: string) => h.dok().find((a) => a.metin === metin);
+  return {
+    ad: "hafiza.unut", etiket: "anıyı unut", sinif: "tehlikeli", etki: "aninda",
+    oku: () => son,
+    yaz: (deger) => {
+      const metin = String(deger);
+      const ani = bul(metin);
+      if (!ani) throw new Error("böyle bir anı yok (zaten silinmiş olabilir)");
+      u.yedekle(h.dok());
+      h.unut(metin);
+      son = metin;
+      u.kaydet();
+      console.log(`[PANO] anı unutuldu: "${metin}" (${ani.tur}, önem ${ani.onem})`);
+    },
+    aciklama: "Duvarda seçtiğin tek anıyı siler. Geri alınamaz; silmeden önce hafıza yedeği alınır (son 5 yedek tutulur).",
+    uyari: (yeni) => {
+      const ani = bul(String(yeni));
+      if (!ani) return "böyle bir anı yok; silinecek bir şey kalmadı.";
+      const olgu = ani.tur === "olgu" ? " Bu bir OLGU (damıtılmış kalıcı bilgi)." : "";
+      return `"${ani.metin}" (${ani.tur}, önem ${ani.onem}) KALICI olarak silinir.${olgu} Önce yedek alınır.`;
+    },
+  };
+}
+
 /** HAFIZA — Generative Agents skorlaması. Sabitleri ÖLÇÜMLE seçildi. */
 export function hafizaTanimi(h: Hafiza, teller: HafizaTelleri = {}): Modul {
   const dugmeler: Dugme[] = [
@@ -136,6 +172,7 @@ export function hafizaTanimi(h: Hafiza, teller: HafizaTelleri = {}): Modul {
         calistir: () => { const n = h.buda(); console.log(`[PANO] ${n} anı budandı`); },
       }] },
       () => h.kapasite, teller.kapasite),
+    ...(teller.unut ? [unutDugmesi(h, teller.unut)] : []),
     { ad: "hafiza.sayi", etiket: "şu anki anı", sinif: "sabit", etki: "aninda",
       birim: "anı", oku: () => h.sayi,
       aciklama: "Ölçüm: kapasiteyi düşürmenin kaç anıyı sileceğini bu sayıyla karşılaştır." },

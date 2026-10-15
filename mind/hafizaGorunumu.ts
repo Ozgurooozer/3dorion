@@ -18,6 +18,8 @@ export interface HafizaKelimesi {
   kabuk: 0 | 1 | 2; metin: string; not: string; boyut: number; soluk: number; kirmizi?: boolean; sayi: string;
   /** Kalıcı kayıt (olgu, sıkıştırma özeti): bulutta öncelikli ve ayrı renkte. */
   kalici?: boolean;
+  /** Yalnız DERİN anılarda: tam metin (anının kimliği). Duvardaki "Unut" bununla `hafiza.unut` teyidini ister. */
+  unutId?: string;
 }
 
 export interface HafizaGirdisi {
@@ -83,6 +85,7 @@ export function hafizaKelimeleri(g: HafizaGirdisi): HafizaKelimesi[] {
       soluk: kalici ? 0 : Math.max(0, Math.min(1, Math.log10(1 + yas / 3600_000) / Math.log10(1 + (30 * GUN) / 3600_000))),
       ...(getir ? { kirmizi: true } : {}),
       ...(kalici ? { kalici: true } : {}),
+      unutId: a.metin,
       sayi: getir ? getir.skor.toFixed(2) : `ö${a.onem}`,
     });
   }

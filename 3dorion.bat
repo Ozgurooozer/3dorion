@@ -185,8 +185,8 @@ rem dis'in varsayilani da 4700: adres bos birakilirsa dis = Haiku, kapi bayat se
 rem Kapali bir porta isaret ederek "dis yok" kosulunu belirlenimli yap.
 set "ORION_BEYIN_ADRES=http://127.0.0.1:9"
 set "ORION_SMOKE=1"
-rem 120 sn: S5/S6 ekrani her 3 pikselde tarar, 30 sn senaryoyu yarida kesiyordu.
-set "ORION_SMOKE_MS=120000"
+rem 240 sn: S5/S6 + UNUT kapilari ekrani her 3 pikselde tarar; 120 sn UNUT a varmadan senaryoyu yarida kesti.
+set "ORION_SMOKE_MS=240000"
 call npx electron .
 goto :son
 

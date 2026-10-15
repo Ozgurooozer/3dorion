@@ -259,6 +259,18 @@ export class Kopru {
     }, 3000);
   }
 
+  /**
+   * Hafızayı BEKLETMEDEN diske yaz (elle unutma gibi geri alınamaz işlemden sonra; 3 sn'lik kısmayı beklemez).
+   * Bekleyen kısılmış yazma varsa iptal edilir, çünkü bu yazma zaten en güncel hâli taşır. Yazılamazsa FIRLATIR:
+   * çağıran (devre panosu) "yazılmadı" diye gösterir.
+   */
+  hafizaKaydetHemen(): void {
+    const depo = this._ayar.hafizaDeposu;
+    if (!depo) throw new Error("hafıza deposu yok");
+    if (this._hafizaSaat) { clearTimeout(this._hafizaSaat); this._hafizaSaat = null; }
+    depo.yaz(this._hafiza.dok());
+  }
+
   /** Kalıcı bir olgu kaydet (spec 26 F3; `hatirla` niyeti). Aynı anahtar eskisini günceller. Disk yazımı kısılmış planlanır. */
   olguHatirla(anahtar: string, deger: string): "yeni" | "guncellendi" | "ayni" {
     const s = this._hafiza.olguEkle(anahtar, deger);

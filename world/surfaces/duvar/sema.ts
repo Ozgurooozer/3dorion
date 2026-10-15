@@ -196,7 +196,7 @@ export function semaKur(ayar: SemaAyari): SemaPaneli {
         try { kelimeler = hafizaKaynagi(); derinToplam = hafizaToplami?.(); } catch (err) { console.error("[SEMA] hafiza kelimeleri okunamadi:", err); kelimeler = []; }
         kelimeAn = simdi;
       }
-      bolgeler = cizHafizaBulutu(bag, o, { kelimeler, secili: seciliKelime, gercek: gercekKip, simdi, ...(derinToplam !== undefined ? { derinToplam } : {}) });
+      bolgeler = cizHafizaBulutu(bag, o, { kelimeler, secili: seciliKelime, gercek: gercekKip, simdi, ...(derinToplam !== undefined ? { derinToplam } : {}), ...(sonYazma && simdi - sonYazmaAn < 6000 ? { mesaj: sonYazma } : {}) });
     }
     else if (secim !== null) bolgeler = cizDetay(bag, o, secim, { durum, pano, simdi, sonYazma, sonYazmaAn });
     else bolgeler = cizSema(bag, o, { durum, altDurum, simdi });
@@ -255,6 +255,17 @@ export function semaKur(ayar: SemaAyari): SemaPaneli {
       }
       if (!pano) return false;
 
+      if (islem === "unut") {
+        // Kimlik TIKLAMA ANINDA alınır (kelime listesi yarım saniyede bir tazelenir; indeks bayatlayabilir).
+        // Silme burada DEĞİL: teyit ekranı açılır, karar panoda (hafiza.unut, tehlikeli, iki aşamalı).
+        const k = kelimeler[Number(secilen)];
+        if (!k?.unutId) return false;
+        const s = pano.teyitIste("hafiza.unut", k.unutId);
+        if (!s.oldu && s.sebep !== "teyit bekleniyor") { sonYazma = `reddedildi: ${s.sebep}`; sonYazmaAn = Date.now(); }
+        yuzey.kirlet();
+        return true;
+      }
+
       if (islem === "eylem") {
         // Bağlı eylem SEÇİMİ — çalıştırma değil. Onayla'ya basılana kadar
         // hiçbir şey olmaz.
@@ -278,6 +289,8 @@ export function semaKur(ayar: SemaAyari): SemaPaneli {
         secilenEylemler.clear();
         sonYazma = s.oldu ? `${t.etiket} = ${String(s.deger)}` : `reddedildi: ${s.sebep}`;
         sonYazmaAn = Date.now();
+        // Anı silindiyse bulut hemen tazelensin; seçili indeks artık başka kelimeyi gösterebilir.
+        if (s.oldu && t.dugmeAdi === "hafiza.unut") { seciliKelime = null; kelimeAn = 0; }
         yuzey.kirlet();
         return true;
       }

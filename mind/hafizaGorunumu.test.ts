@@ -79,3 +79,9 @@ test("DERİN: ham söz kalıcı işaretlenmez", () => {
   const k = hafizaKelimeleri(girdi({ derin: [ani("merhaba", 5, 1)] })).filter((x) => x.kabuk === 2);
   assert.equal(k[0]?.kalici, undefined);
 });
+
+test("DERİN: her anı tam metnini unutId olarak taşır; içgüdü ve benlik kelimesi taşımaz", () => {
+  const k = hafizaKelimeleri(girdi({ derin: [ani("çok uzun bir söz ama tam metni unutId'de durmalı yoksa silinemez", 5, 1)] }));
+  assert.deepEqual(k.filter((x) => x.unutId !== undefined).map((x) => [x.kabuk, x.unutId]),
+    [[2, "çok uzun bir söz ama tam metni unutId'de durmalı yoksa silinemez"]]);
+});
