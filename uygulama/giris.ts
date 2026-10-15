@@ -30,7 +30,6 @@ import "@babylonjs/core/Culling/ray";
 import { Saat } from "../world/engine/tik.ts";
 import { KameraRig } from "../world/engine/kamera.ts";
 import { odaKur } from "../world/level/oda.ts";
-import { bulunduguCapa } from "../world/level/capalar.ts";
 import type { Yer } from "../world/yer/yer.ts";
 import { Oyuncu } from "../world/player/oyuncu.ts";
 import { EtkilesimOlaylari } from "../world/player/etkilesim.ts";
@@ -47,15 +46,12 @@ import { TAHTA, GUNLUK, SEMA } from "../world/level/olculer.ts";
 import type { Niyet } from "../protocol/niyet.ts";
 import { varlik } from "../world/varlik.ts";
 import { Kopru } from "../bridge/kopru.ts";
-import type { OgretimSatiri } from "../mind/kararKaydi.ts";
 import { modelSeciciKur } from "../world/arayuz/modelSecici.ts";
 import { stilPenceresiKur } from "../world/arayuz/stilPenceresi.ts";
 import type { Beyin } from "../bridge/beyin.ts";
 import { MetinGirdi } from "../voice/metin-girdi.ts";
-import { NemotronGirdi } from "../voice/nemotron.ts";
 import { komutKipiCoz } from "./komutKipi.ts";
 import { Takipci } from "./takip.ts";
-import { ikiCumleyeKisalt } from "../voice/kisalt.ts";
 import { Ajanda } from "../mind/ajanda.ts";
 import { mesgulMu } from "../mind/benlik.ts";
 import { istenenSenaryolar, type SenaryoBaglami } from "./senaryoBaglami.ts";
@@ -69,7 +65,8 @@ import { sohbetKutusuKur } from "./sohbetKutusu.ts";
 import { dumanTestiKur } from "./dumanTesti.ts";
 import { orionSesiKur } from "./orionSesi.ts";
 import { kopruKur } from "./kopruKur.ts";
-import { konumluYerOrtasi } from "../world/yer/birlesikYer.ts";
+import { mikrofonKur } from "./mikrofon.ts";
+import { durumGozlemiKur, sohbetKipiIsaretiKur, arizaGostergesiKur, konusmayiBagla } from "./kopruDinleyicileri.ts";
 import { onayBaglantisiKur } from "./onayBaglantisi.ts";
 import { varlikSinyaliKur } from "./varlikSinyali.ts";
 import { dunyaDurumuKur } from "./dunyaDurumu.ts";
@@ -600,30 +597,9 @@ function beyniBagla(a: Avatar): void {
   // ÖLÇÜM KİLİDİ: panelden AÇILMAZ, bilerek (gerekçe: uygulama/devrePanosu.ts).
   olcumKilidiKancasiKur(panoKaydi);
 
-  // DURUM DEFTERİ (spec 16 F2): Orion'un bulunduğu yer (çapa adı, ham koordinat değil) ve monitör
-  // yarım saniyede bir gözlenir. Defter yalnız DEĞİŞİMİ yazar ve yanından geçmeyi konum saymaz.
-  // Model uyanmaz; bilgi bağlama yalnız sorulunca girer (yönlendirici).
-  const durumKopru = kopru;
-  setInterval(() => {
-    takipci.tik();
-    try {
-      durumKopru.durum.konumGozlem(bulunduguCapa(a.durum().konum, durumKopru.durum.oku("konum")?.deger, yerler.orion.capalar)?.etiket ?? konumluYerOrtasi(yerler.orion, a.durum().konum.x, a.durum().konum.z));
-      durumKopru.durum.monitor(monitor.acikMi());
-    } catch (err) { console.warn("[DURUM] gozlem hatasi:", err); }
-  }, 500);
+  durumGozlemiKur({ kopru, takipci, avatar: a, monitor, yerler });
 
-  // SOHBET KİPİ (spec 16 F5b): "yeni sohbet" / "temiz sohbet" / "normal sohbet" sözle değişir (köprü,
-  // LLM uyanmaz). Temizdeyken ekranın üstünde HEP görünür: hafızanın kapalı olduğu unutulmasın.
-  const sohbetIsareti = document.createElement("div");
-  sohbetIsareti.style.cssText = "position:fixed;top:10px;left:50%;transform:translateX(-50%);padding:4px 12px;"
-    + "border-radius:6px;background:#14202e;color:#ffd38a;font:600 13px system-ui,sans-serif;z-index:50;display:none;pointer-events:none";
-  sohbetIsareti.textContent = "TEMİZ SOHBET · hafıza kapalı · çıkmak için: normal sohbet";
-  document.body.appendChild(sohbetIsareti);
-  kopru.sohbetKipiDinle((kip, e) => {
-    sohbetIsareti.style.display = kip === "temiz" ? "block" : "none";
-    gunluk.ekle("bilgi", "sohbet", e === "yeni" ? "yeni sohbet: konuşma penceresi sıfırlandı (hafıza duruyor)"
-      : e === "temiz" ? "temiz sohbet: hafıza ve durum bağlama girmiyor, hiçbir şey yazılmıyor" : "normal sohbete dönüldü");
-  });
+  sohbetKipiIsaretiKur({ kopru, gunluk });
 
   // Senaryo kipinde beyin susar: elle gönderilen niyetler kesilmesin.
   // (Köprü kurulduktan SONRA — `durdur()` örneğin üstünde çalışır.)
@@ -632,47 +608,9 @@ function beyniBagla(a: Avatar): void {
     console.log("[SENARYO] beyin durduruldu — senaryonun niyetleri kesilmesin");
   }
 
-  // ARIZA: beyin düşünemiyorsa odada GÖRÜNÜR olsun.
-  //
-  // Ölçümle bulundu: OpenRouter `free-models-per-day` kotası dolunca OpenCode
-  // HTTP 200 içinde 429 döndürüyor ve 75 sn sonra pes ediyor. Orion sessizce
-  // susuyordu; ne Ozyn ne günlük sebebi söylüyordu. Bu Orion'un sözü DEĞİL —
-  // sistem bildirimi olarak altyazıya düşer, TTS'e gitmez.
-  let sonAriza = 0;
-  // Öğretim dosyasına düşen yeni ders (tools/ogret.ts) yeniden başlatmadan uygulanır.
-  (globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru?.ogretimDinle?.((s) => {
-    if (kopru?.ogretimUygula(s as OgretimSatiri)) console.log("[KAPI] yeni ogretim uygulandi");
-  });
-  kopru.arizaDinle((m) => {
-    // Aynı arıza saniyede bir tekrar etmesin; ekranı doldurur.
-    const simdi = Date.now();
-    if (simdi - sonAriza < 8000) return;
-    sonAriza = simdi;
-    const kota = /429|rate limit|free-models-per-day/i.test(m);
-    altyaziGoster(kota
-      ? "⚠ Düşünce kapalı: model sağlayıcı kotası doldu. Orion kurallı kipte."
-      : `⚠ Düşünce hatası: ${m.slice(0, 90)}`, 6000);
-    gunluk.ekle("hata", "beyin", kota ? `sağlayıcı kotası doldu — ${m}` : m);
-    sema.ariza("beyin", true, kota ? "kota doldu" : "hata");
-    sema.durumYaz(kota
-      ? "düşünce kapalı — sağlayıcı kotası doldu, kurallı kipte"
-      : `düşünce hatası: ${m.slice(0, 70)}`);
-  });
+  arizaGostergesiKur({ kopru, altyaziGoster, gunluk, sema });
 
-  // Orion konuşunca: altyazı + gerçek ses.
-  kopru.konusmaDinle((ham) => {
-    // Gevezelik freni: talimat "iki cümle" diyor, model 2/3 koşuda uymuyordu.
-    // Kural burada BELİRLEYİCİ biçimde uygulanır (ölçüm: 3dorion.bat davranis).
-    const metin = ikiCumleyeKisalt(ham);
-    if (!metin) return;
-    if (metin !== ham.trim().replace(/\s+/g, " ")) {
-      console.log(`[SOZ] kisaltildi ${ham.length} -> ${metin.length} karakter`);
-    }
-    altyaziGoster(metin, Math.max(2600, metin.length * 70));
-    gunluk.ekle("iyi", "orion", metin);
-    davranisKayit()?.soyle(metin);
-    void orionSesi.soyle(metin);
-  });
+  konusmayiBagla({ kopru, altyaziGoster, gunluk, davranisKayit, orionSesi });
 
   // Niyet sonuçları beyne geri döner (yalnızca hatalar terfi eder).
   a.sonucDinle((s) => kopru?.sonuc(s));
@@ -692,42 +630,8 @@ function beyniBagla(a: Avatar): void {
   const denemeSozu = new URLSearchParams(location.search).get("ozynsozu");
   if (denemeSozu) setTimeout(() => sozAlindi({ metin: denemeSozu, kesin: true }), 8000);
 
-  // Mikrofon: bas-konuş V, Nemotron Speech İngilizce çözer. Çözülen metin klavyeden yazılmış gibi
-  // AYNI yoldan geçer (sozAlindi): kapı, hafıza, komut sözlüğü değişmez.
-  // AÇIK/KAPALI: K tuşu. Seçim hatırlanır (localStorage "orion.mikrofon"); ?mikrofon=1 (ORION_MIKROFON=1)
-  // o oturum için açar. Kapalıyken Python süreci YOKTUR (RAM/CPU yok). Senaryolarda (`sessiz=1`)
-  // hiçbir zaman kendiliğinden açılmaz.
-  if (typeof window.kopru?.dinleKomut === "function") {
-    const sorgu = new URLSearchParams(location.search);
-    const hatirla = (v?: "1" | "0"): string | null => {
-      try { if (v) localStorage.setItem("orion.mikrofon", v); return localStorage.getItem("orion.mikrofon"); } catch { return null; }
-    };
-    const kulak = new NemotronGirdi(window.kopru);
-    kulak.dinle((t) => sozAlindi(t, "mikrofon"));
-    kulak.hataDinle((h) => { gunluk.ekle("hata", "kulak", h); altyaziGoster(`kulak: ${h}`, 4000); });
-    kulak.durumDinle((d) => {
-      if (d.d === "yukleniyor") altyaziGoster("kulak yükleniyor (~15 sn)…", 4000);
-      else if (d.d === "hazir" && d.mikrofon) { gunluk.ekle("iyi", "kulak", `hazır: ${d.mikrofon} (bas-konuş: V)`); altyaziGoster("kulak hazır: V tuşunu basılı tutup İngilizce konuş", 3500); }
-      else if (d.d === "dinliyor") altyaziGoster("dinliyorum… (V basılı)", 30000);
-      else if (d.d === "cozuyor") altyaziGoster("çözüyorum…", 3000);
-      else if (d.d === "bos") altyaziGoster(d.neden === "sessiz" ? "ses gelmedi (mikrofon seviyesi çok düşük?)" : d.neden === "cok kisa" ? "çok kısa, V'yi basılı tut" : "anlaşılmadı", 2500);
-    });
-    const yaziAlaniMi = (h: EventTarget | null) => h instanceof HTMLElement && (h.tagName === "INPUT" || h.tagName === "TEXTAREA" || h.isContentEditable);
-    let acik = false;
-    const kulagiAc = (ac: boolean) => {
-      acik = ac;
-      hatirla(ac ? "1" : "0");
-      if (ac) void kulak.baslat();
-      else { kulak.durdur(); altyaziGoster("kulak kapalı (K ile aç)", 2500); gunluk.ekle("bilgi", "kulak", "kapatıldı"); }
-    };
-    addEventListener("keydown", (e) => {
-      if (e.repeat || yaziAlaniMi(e.target)) return;
-      if (e.code === "KeyK") kulagiAc(!acik);
-      else if (e.code === "KeyV" && acik) kulak.kayitBasla();
-    });
-    addEventListener("keyup", (e) => { if (e.code === "KeyV") kulak.kayitBitir(); });
-    if (!sorgu.has("sessiz") && (sorgu.has("mikrofon") || hatirla() === "1")) kulagiAc(true);
-  }
+  // Mikrofon (V bas-konuş, K aç/kapat): uygulama/mikrofon.ts.
+  mikrofonKur({ gunluk, altyaziGoster, sozAlindi });
 
   void beyin.hazirMi().then((h) => {
     console.log(`[BEYIN] ${beyin.ad} hazir=${h}`);
