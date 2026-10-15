@@ -68,7 +68,9 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
       "world/level/capaGeometri.ts",
       // Etkileşim olay yayıcısı (EtkilesimOlaylari): oyuncu, kapı/yüzey geçişi ve HUD ipucu bununla konuşur;
       // uygulama katmanı ve senaryolar abone olur (giris bölme B1).
-      "world/player/etkilesim.ts"],
+      "world/player/etkilesim.ts",
+      // Davranış ölçüm defteri (`?davranis`, window._davranisKayit): uygulama katmanı ve davranış senaryosu tipini/kaydı kullanır.
+      "world/davranisDenemesi.ts"],
     izinli: ["Protokol", "Level"], urun: true,
   },
   {
@@ -215,11 +217,8 @@ export const ISTISNALAR: Readonly<Record<string, string>> = {
   "uygulama/niyetYurutucu.ts → world/bilgisayar.ts": KOK,
   "uygulama/ortamBaglantisi.ts → world/level/stil/ortamKomutu.ts": KOK,
   "uygulama/ortamDeposu.ts → world/level/stil/ortamKomutu.ts": KOK,
-  "uygulama/pencereKancalari.ts → world/davranisDenemesi.ts": KOK,
-  "uygulama/senaryolar/davranis.ts → world/davranisDenemesi.ts": KOK,
   "uygulama/senaryolar/ortamdene.ts → world/level/stil/stilTanimi.ts": KOK,
   "uygulama/senaryolar/zihindene.ts → world/surfaces/duvar/semaCekirdek.ts": KOK,
-  "uygulama/giris.ts → world/davranisDenemesi.ts": KOK,
   "world/level/cekirdek/anlam.ts → world/level/nesneKaydi.ts": NESNE_TIPI,
   "world/level/editor/arayuz/orionGozu.ts → world/player/gorunurluk.ts": ORION_GOZU,
   "world/level/ofisYeri.ts → world/level/cekirdek/arazi.ts": SAHNE_LEVEL,
