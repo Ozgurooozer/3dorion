@@ -40,7 +40,6 @@ import { yerelTepki } from "../mind/yerelTepki.ts";
 import { capaKonumu } from "../world/level/capaGeometri.ts";
 import { Oyuncu } from "../world/player/oyuncu.ts";
 import { EtkilesimOlaylari } from "../world/player/etkilesim.ts";
-import { PiperCikisi } from "../voice/cikis.ts";
 import { avatarKur, orionGozuKur, VARSAYILAN_VRM, type Avatar } from "../world/avatar/index.ts";
 import { monitorKur, type Monitor } from "../world/surfaces/terminal/monitor.ts";
 import { tahtaKur, type Tahta } from "../world/surfaces/tahta/tahta.ts";
@@ -76,6 +75,10 @@ import { altyaziKur } from "./altyazi.ts";
 import { terminalAlgisiKur } from "./terminalAlgisi.ts";
 import { odakKur } from "./odak.ts";
 import { yerlerKur, yerGecisiKur } from "./yerGecisi.ts";
+import { mcpBaglantisiKur } from "./mcpBaglantisi.ts";
+import { sohbetKutusuKur } from "./sohbetKutusu.ts";
+import { dumanTestiKur } from "./dumanTesti.ts";
+import { orionSesiKur } from "./orionSesi.ts";
 import { zihinDuvariniBagla } from "./zihinDuvari.ts";
 import { beyinSeciminiKur, seciciKaynagiKur, modelKancasiKur, kisaAd } from "./beyinSecimi.ts";
 import { odadaSure, sessizlikSozu, gununVakti } from "../mind/zaman.ts";
@@ -86,7 +89,6 @@ import { OrtamGunlugu, ogrenilenDeposu } from "./ortamDeposu.ts";
 import { OrtamSozlugu } from "../mind/ortamSozlugu.ts";
 import { sessizlikIzinliMi } from "../bridge/ozerkYetenek.ts";
 import { GirdiPenceresi, type GirdiTipi } from "../mind/girdiPenceresi.ts";
-import { McpBeyin } from "../bridge/mcpBeyin.ts";
 import { GozModeli } from "../bridge/goz.ts";
 import { KuralRefleksi, refleksGirdisi } from "../mind/refleks.ts";
 import { OnayKapisi } from "../mind/onayKapisi.ts";
@@ -264,42 +266,8 @@ const inisiyatif = new Inisiyatif(inisiyatifSn > 0
 /** Güç bütçesine düşülen son beyin turu sayısı — fark kadar `dusundu()`. */
 let gucDusunmeSayaci = 0;
 
-// ── MCP AJANI (spec 05 Aşama 1-2) ─────────────────────────────────────────
-// Tek örnek: seçicideki "mcp" girdisi ve main'deki HTTP ucunun rölesi AYNI
-// nesneyle konuşur. Beyin seçili değilken ajanın `dunya_bekle`si yalnızca
-// "sessiz" döner ve araç çağrıları reddedilir (açık tur yok) — uç etkisizdir.
-const mcpBeyin = new McpBeyin();
-(globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru?.mcpDinle?.(async ({ id, yontem, param }) => {
-  const k = (globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru!;
-  // Yeni ajan oturumu (MCP initialize): talimat yeniden gitsin. Cevap yok (id 0).
-  if (yontem === "oturum") { mcpBeyin.oturumBasladi(); return; }
-  // Ajanın bağlantısı koptu: YALNIZCA o isteğin beklemesini iptal et.
-  if (yontem === "iptal") {
-    mcpBeyin.bekleIptal((param as { id?: number })?.id);
-    // Gözlemlenebilir olsun: R1 kapısı bu satırı arar.
-    console.log(`[mcp] ajan baglantisi koptu → temas kesildi (hazir=${mcpBeyin.kesikSaniye === 0})`);
-    return;
-  }
-  try {
-    if (yontem === "tools/list") {
-      return k.mcpYanitla!(id, {
-        tools: mcpBeyin.araclar().map((a) => ({ name: a.ad, description: a.aciklama, inputSchema: a.sema })),
-      });
-    }
-    const p = param as { name?: string; arguments?: Record<string, unknown> };
-    if (p?.name === "dunya_bekle") {
-      // Tavan 120 sn: main'deki röle sınırı (130 sn) bunun üstünde. Ajan ne
-      // isterse istesin en az 60 sn: kısa bekleme = her "quiet" bir model turu.
-      const sn = Math.min(120, Math.max(60, Number(p.arguments?.azami_sn ?? 120) || 120));
-      const s = await mcpBeyin.bekle(sn * 1000, id);
-      return k.mcpYanitla!(id, { content: [{ type: "text", text: "sessiz" in s ? "quiet — nothing happened. Call dunya_bekle again." : s.metin }] });
-    }
-    const r = mcpBeyin.cagri(String(p?.name ?? ""), p?.arguments ?? {});
-    return k.mcpYanitla!(id, { content: [{ type: "text", text: r.mesaj }], isError: !r.ok });
-  } catch (hata) {
-    k.mcpYanitla!(id, undefined, String((hata as Error)?.message ?? hata));
-  }
-});
+// ── MCP AJANI (spec 05 Aşama 1-2): uygulama/mcpBaglantisi.ts ──────────────
+const mcpBeyin = mcpBaglantisiKur();
 
 // ── SENARYO KİPİ: kendiliğinden davranışları sustur ───────────────────────
 //
@@ -999,7 +967,7 @@ function beyniBagla(a: Avatar): void {
     rozet: document.getElementById("beyinRozet") as HTMLElement,
     // M bir harftir: terminal/panel odaktayken, sohbet ya da onay açıkken değil.
     tusSerbest: () => oyuncu.oyuncuDurumu().etkilesim === null
-      && sohbet.dataset.acik !== "1" && onayKapisi.durum !== "bekliyor",
+      && !sohbet.acikMi() && onayKapisi.durum !== "bekliyor",
   });
   window.orionModel = modelKancasiKur(secim, () => modelSecici?.ac());
   // ── STİL PENCERESİ (G): ova'dayken stil/renk/ışık/shader/saat denemeleri; fare kilidi açılınca bırakılır ──
@@ -1013,7 +981,7 @@ function beyniBagla(a: Avatar): void {
       })),
       sil: (soz) => { ortamSozlugu.sil(soz); },
     },
-    tusSerbest: () => oyuncu.oyuncuDurumu().etkilesim === null && sohbet.dataset.acik !== "1" && onayKapisi.durum !== "bekliyor",
+    tusSerbest: () => oyuncu.oyuncuDurumu().etkilesim === null && !sohbet.acikMi() && onayKapisi.durum !== "bekliyor",
     acildi: () => rig.fareKilitBirak(),
   });
   const birlesik = gecis.birlesik();
@@ -1169,83 +1137,14 @@ function beyniBagla(a: Avatar): void {
   });
 }
 
-// ── Sohbet kutusu: T aç, Enter gönder, Esc kapat ──────────────────────────
-const sohbet = document.getElementById("sohbet") as HTMLDivElement;
-const sohbetGirdi = document.getElementById("sohbetGirdi") as HTMLInputElement;
+// ── Sohbet kutusu: T aç, Enter gönder, Esc kapat (uygulama/sohbetKutusu.ts) ──
+const sohbet = sohbetKutusuKur({ oyuncu, girdi });
 
-function sohbetAc(acik: boolean): void {
-  sohbet.dataset.acik = acik ? "1" : "0";
-  if (acik) sohbetGirdi.focus();
-  else { sohbetGirdi.blur(); sohbetGirdi.value = ""; }
-}
+// ── Duman testi kanıtı (uygulama/dumanTesti.ts) ────────────────────────────
+dumanTestiKur({ motor, saat, rig, oda, oyuncu, monitor, yerler, orion: () => orion, kopru: () => kopru });
 
-addEventListener("keydown", (e) => {
-  const acikMi = sohbet.dataset.acik === "1";
-  if (!acikMi && (e.key === "t" || e.key === "T")) {
-    if (oyuncu.oyuncuDurumu().etkilesim === "monitor") return;  // terminaldeyken T yazıdır
-    e.preventDefault();
-    sohbetAc(true);
-    return;
-  }
-  if (!acikMi) return;
-  if (e.key === "Escape") { sohbetAc(false); return; }
-  if (e.key === "Enter") {
-    const m = sohbetGirdi.value.trim();
-    sohbetGirdi.value = "";
-    if (m) girdi.gonder(m);
-    sohbetAc(false);
-  }
-});
-
-// ── Duman testi kanıtı ─────────────────────────────────────────────────────
-setTimeout(() => {
-  const d = oyuncu.oyuncuDurumu();
-  console.log(
-    `[DUMAN] fps=${motor.getFps().toFixed(1)} hz=${saat.olculenHz.toFixed(2)} ` +
-    `tik=${saat.tikSayisi} atlanan=${saat.atlanan} ` +
-    `kamera=${rig.mod} mesh=${oda.meshler.length} capa=${yerler.ozyn.capalar.length} ` +
-    `kopru=${JSON.stringify(kopru?.sayac() ?? null)} ` +
-    `oyuncu=${d.konum.x.toFixed(2)},${d.konum.y.toFixed(2)},${d.konum.z.toFixed(2)} ` +
-    `etkilesim=${d.etkilesim ?? "-"} kopru=${typeof window.kopru} ` +
-    `orion=${orion ? `${orion.durum().poz}@${orion.durum().konum.x.toFixed(2)},${orion.durum().konum.z.toFixed(2)}` : "yok"} ` +
-    `monitor=${monitor.acikMi() ? "acik" : "kapali"}`
-  );
-}, 4000);
-
-// ---- Orion'un sesi --------------------------------------------------------
-// Birleştirme noktası burası: voice/ ile world/ birbirini import etmez (K4),
-// ikisini giris.ts bağlar. Avatar geldiğinde (T2) agizAcikligi() buradan
-// avatar.agizAyarla()'ya beslenecek.
-const orionSesi = new PiperCikisi();
-window.orionSes = orionSesi;
-
-void (async () => {
-  const kurulu = await orionSesi.kurulumKontrol();
-  console.log(`[SES] piper kurulu=${kurulu}`);
-  if (!kurulu) return;
-
-  const sorgu = new URLSearchParams(location.search);
-  if (sorgu.has("sessiz")) return;
-
-  // ORION_SOZ verilmişse yalnızca onu söyle — elle deneme için.
-  const istenen = sorgu.get("soz");
-  if (istenen) {
-    const oldu = await orionSesi.soyle(istenen);
-    console.log(`[SES] istenen soyle=${oldu} baslama_gecikmesi=${orionSesi.baslamaGecikmesi.toFixed(0)}ms ses_uzunlugu=${orionSesi.sonSure.toFixed(2)}sn`);
-    return;
-  }
-
-  // Açılışta tek selam. (Ölçüm koşumu ORION_SOZ ile ayrıca yapılabiliyor.)
-  const cumleler = ["Merhaba Ozyn. Odama hoş geldin. Terminal masamda, istediğin zaman aç."];
-  for (let i = 0; i < cumleler.length; i++) {
-    const oldu = await orionSesi.soyle(cumleler[i]!);
-    console.log(
-      `[SES] cumle${i + 1} soyle=${oldu} ` +
-      `baslama_gecikmesi=${orionSesi.baslamaGecikmesi.toFixed(0)}ms ` +
-      `ses_uzunlugu=${orionSesi.sonSure.toFixed(2)}sn tepe_agiz=${orionSesi.tepeAgiz.toFixed(3)}`
-    );
-  }
-})();
+// ---- Orion'un sesi (uygulama/orionSesi.ts) --------------------------------
+const orionSesi = orionSesiKur();
 
 // ── CANLI DENEME SENARYOLARI (spec 14 R3) ─────────────────────────────────────
 //

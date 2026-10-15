@@ -125,7 +125,9 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
   {
     ad: "Ses", sorumluluk: "STT (klavye, Nemotron) ve TTS (Piper).",
     yollar: ["voice/"],
-    kamu: ["voice/tip.ts", "voice/cikis.ts", "voice/nemotron.ts", "voice/kisalt.ts"],
+    kamu: ["voice/tip.ts", "voice/cikis.ts", "voice/nemotron.ts", "voice/kisalt.ts",
+      // Klavye/sohbet girdisi: kompozisyon kökü ve sohbet kutusu kullanır (giris bölme B1).
+      "voice/metin-girdi.ts"],
     izinli: ["Protokol"], urun: true,
   },
   {
@@ -212,7 +214,6 @@ export const ISTISNALAR: Readonly<Record<string, string>> = {
   "uygulama/senaryolar/ortamdene.ts → world/level/stil/stilTanimi.ts": KOK,
   "uygulama/senaryolar/otodene.ts → world/player/etkilesim.ts": KOK,
   "uygulama/senaryolar/zihindene.ts → world/surfaces/duvar/semaCekirdek.ts": KOK,
-  "uygulama/giris.ts → voice/metin-girdi.ts": KOK,
   "uygulama/giris.ts → world/davranisDenemesi.ts": KOK,
   "uygulama/giris.ts → world/level/capaGeometri.ts": KOK,
   "uygulama/giris.ts → world/player/etkilesim.ts": KOK,
