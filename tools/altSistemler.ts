@@ -70,7 +70,9 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
       // uygulama katmanı ve senaryolar abone olur (giris bölme B1).
       "world/player/etkilesim.ts",
       // Davranış ölçüm defteri (`?davranis`, window._davranisKayit): uygulama katmanı ve davranış senaryosu tipini/kaydı kullanır.
-      "world/davranisDenemesi.ts"],
+      "world/davranisDenemesi.ts",
+      // Dünyanın bilgisayar (monitör terminali) niyetlerini yürüten yüz: niyet yürütücü (uygulama/) kullanır (giris bölme B2).
+      "world/bilgisayar.ts"],
     izinli: ["Protokol", "Level"], urun: true,
   },
   {
@@ -84,6 +86,8 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
       "world/level/cekirdek/anlam.ts", "world/level/cekirdek/modul.ts", "world/level/cekirdek/renk.ts",
       "world/level/moduller/index.ts", "world/level/shader/moduller/index.ts",
       "world/level/stil/stilSistemi.ts", "world/level/depo/levelDeposu.ts",
+      // Ortam komutu sözlüğü (ışık/stil/zaman niyeti): ortam bağlantısı, günlük, stil penceresi ve editör aynı tipleri kullanır.
+      "world/level/stil/ortamKomutu.ts",
       // Gece ufuk katmanı (ışık dili adım 2): level tanımından bağımsız, birleşik dünya (Sahne) kurar.
       "world/level/ufuk/ufuk.ts",
       // Işık Hacmi (GI spike 1, `?gi=hacim`): birleşik dünya (Sahne) kurar, senaryo (Uygulama) tipini okur.
@@ -117,6 +121,8 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
       "world/surfaces/duvar/sema.ts", "world/surfaces/duvar/gunluk.ts", "world/surfaces/duvar/hafizaBulutu.ts",
       // Monitör çıktısını algıya çeviren saf ayrıştırıcılar: uygulama/terminalAlgisi.ts kullanır (giris bölme B1).
       "world/surfaces/terminal/ciktiFarki.ts", "world/surfaces/terminal/ciktiToplayici.ts",
+      // Model seçicinin saf çekirdeği (uygulama/beyinSecimi.ts) ve zihin duvarı şema çekirdeği (zihindene) — giris bölme B2.
+      "world/arayuz/modelSeciciCekirdek.ts", "world/surfaces/duvar/semaCekirdek.ts",
       "world/arayuz/modelSecici.ts", "world/arayuz/stilPenceresi.ts"],
     izinli: ["Protokol", "Level", "Editör"], tipIzinli: ["Kabuk"], urun: true,
   },
@@ -164,9 +170,11 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
   },
 ];
 
-// ── İstisna gerekçeleri (2026-10-14 ölçümü: 67 kenar; A4 ilk turundan sonra 60) ─────────────────
+// ── İstisna gerekçeleri (2026-10-14 ölçümü: 67 kenar; A4 ilk turundan sonra 60; giris bölme B1–B2 sonrası 35) ──
+// giris bölme (B1–B2, 2026-10-15): uygulama/ → dünya kenarlarının çoğu bilinçli tüketilen yüzeydi ve ilgili Sahne/Yüzeyler/Level/Ses
+// kamu listelerine alındı; kalan tek kenar level stil tanımının iç tipi (Level kamu kararı EDITOR_LEVEL ile birlikte verilir).
 const KOK =
-  "kompozisyon kökü dünyanın iç dosyasına uzanıyor; dünyanın uygulamaya yüzeyi yok (rapor §1e) — giris bölme (B1–B3) daraltır";
+  "kompozisyon kökü dünyanın iç dosyasına uzanıyor; dünyanın uygulamaya yüzeyi yok (rapor §1e) — Level kamu kararıyla (EDITOR_LEVEL) birlikte kapanır";
 const EDITOR_LEVEL =
   "editör level veri modelinin iç dosyalarına uzanıyor (dönüşüm/grup/kimlik/arazi, stil/shader tanımları); " +
   "Level'in kamu listesi sonraki yüzey turunda bu kullanıma göre kararlaştırılır";
@@ -178,7 +186,6 @@ const NESNE_TIPI =
 // Sahne ile Editör'ün ikisinin de alabileceği bir yere (Protokol değil; ortak saf algı) almak: B5'le.
 const ORION_GOZU =
   "editörün 'Orion'un gözü' katmanı (spec 23 B) odadaki görünürlük kodunun AYNISINI kullanır; kopyası yazılmaz";
-const YUZEY_LEVEL = "stil penceresi ortam komutu tipini level stilinin iç dosyasından alıyor";
 
 /**
  * Bugün kuralı çiğneyen kenarlar: "kaynak dosya → hedef dosya" → gerekçe. YALNIZ KÜÇÜLÜR.
@@ -189,7 +196,6 @@ export const ISTISNALAR: Readonly<Record<string, string>> = {
   "world/level/editor/arayuz/gorunum.ts → world/level/shader/dunyaDurumu.ts": EDITOR_LEVEL,
   "world/level/editor/arayuz/gorunum.ts → world/level/shader/paletler.ts": EDITOR_LEVEL,
   "world/level/editor/arayuz/gorunum.ts → world/level/shader/shaderSistemi.ts": EDITOR_LEVEL,
-  "world/level/editor/arayuz/gorunum.ts → world/level/stil/ortamKomutu.ts": EDITOR_LEVEL,
   "world/level/editor/arayuz/gorunum.ts → world/level/stil/stilTanimi.ts": EDITOR_LEVEL,
   "world/level/editor/arayuz/ozellikler.ts → world/level/cekirdek/donusum.ts": EDITOR_LEVEL,
   "world/level/editor/arayuz/sahneAgaci.ts → world/level/cekirdek/grup.ts": EDITOR_LEVEL,
@@ -213,12 +219,7 @@ export const ISTISNALAR: Readonly<Record<string, string>> = {
   "world/level/editorSayfasi.ts → world/level/depo/httpDeposu.ts": EDITOR_LEVEL,
   "world/level/editorSayfasi.ts → world/level/shader/dunyaDurumu.ts": EDITOR_LEVEL,
   "world/level/editorSayfasi.ts → world/level/stil/stilTanimi.ts": EDITOR_LEVEL,
-  "uygulama/beyinSecimi.ts → world/arayuz/modelSeciciCekirdek.ts": KOK,
-  "uygulama/niyetYurutucu.ts → world/bilgisayar.ts": KOK,
-  "uygulama/ortamBaglantisi.ts → world/level/stil/ortamKomutu.ts": KOK,
-  "uygulama/ortamDeposu.ts → world/level/stil/ortamKomutu.ts": KOK,
   "uygulama/senaryolar/ortamdene.ts → world/level/stil/stilTanimi.ts": KOK,
-  "uygulama/senaryolar/zihindene.ts → world/surfaces/duvar/semaCekirdek.ts": KOK,
   "world/level/cekirdek/anlam.ts → world/level/nesneKaydi.ts": NESNE_TIPI,
   "world/level/editor/arayuz/orionGozu.ts → world/player/gorunurluk.ts": ORION_GOZU,
   "world/level/ofisYeri.ts → world/level/cekirdek/arazi.ts": SAHNE_LEVEL,
@@ -226,7 +227,6 @@ export const ISTISNALAR: Readonly<Record<string, string>> = {
   "world/level/ofisYeri.ts → world/level/moduller/zemin.ts": SAHNE_LEVEL,
   "world/yer/levelYeri.ts → world/level/cekirdek/grup.ts": SAHNE_LEVEL,
   "world/yer/levelYeri.ts → world/level/moduller/zemin.ts": SAHNE_LEVEL,
-  "world/arayuz/stilPenceresi.ts → world/level/stil/ortamKomutu.ts": YUZEY_LEVEL,
 };
 
 function eslesmeBoyu(kalip: string, yol: string): number {
