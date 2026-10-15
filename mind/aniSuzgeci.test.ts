@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { aniKaydi, eskiHafizayiTemizle, eskiSozleriTemizle, KOMUT_ONEMI, terminalKirp, MIKROFON_ONEMI, TERMINAL_BAS, TERMINAL_SON, TERMINAL_TAVANI } from "./aniSuzgeci.ts";
-import { kuralOnemi } from "./hafiza.ts";
+import { kuralOnemi, DERS_TAVANI } from "./hafiza.ts";
 
 const satirlar = (n: number) => Array.from({ length: n }, (_, i) => `satir ${i + 1}`).join("\n");
 
@@ -127,4 +127,10 @@ test("söz göçü iki kez koşunca ikincisi hiçbir şey değiştirmez", () => 
   const bir = eskiSozleriTemizle([ani("konusma", "hey", 8), ani("konusma", "otursana", 8), ani("sonuc", "hata: ortam efekt: geçersiz", 6), ani("sonuc", "hata: a 'x' b", 6)]);
   const iki = eskiSozleriTemizle(bir.aniler);
   assert.deepEqual([bir.atilan, bir.indirilen, bir.normallesen, iki.atilan, iki.indirilen, iki.normallesen], [2, 1, 1, 0, 0, 0]);
+});
+
+test("söz göçü: tekrarla 10'a tırmanmış hata dersi DERS_TAVANI'na iner; tavandaki ve düşük ders yerinde kalır", () => {
+  const r = eskiSozleriTemizle([ani("sonuc", "hata: bilinmeyen çapa/nesne.", 10), ani("sonuc", "hata: zaten bakıyorum", DERS_TAVANI), ani("sonuc", "hata: a", 6)]);
+  assert.deepEqual(r.aniler.map((a) => (a as { onem: number }).onem), [DERS_TAVANI, DERS_TAVANI, 6]);
+  assert.equal(r.indirilen, 1);
 });

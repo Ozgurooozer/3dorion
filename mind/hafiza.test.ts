@@ -2,7 +2,7 @@
 "use strict";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { Hafiza, kelimeIlgisi, kuralOnemi, BOZULMA, gozlemAnisiMi, cekmecesi, OLGU_AZAMI } from "./hafiza.ts";
+import { Hafiza, DERS_TAVANI, kelimeIlgisi, kuralOnemi, BOZULMA, gozlemAnisiMi, cekmecesi, OLGU_AZAMI } from "./hafiza.ts";
 
 function saatli(baslangic = 1_000_000) {
   let t = baslangic;
@@ -405,4 +405,19 @@ test("unut: tam metni taşıyan tek anıyı siler ve döner; olmayana null", () 
   assert.equal(h.unut("gçz")?.metin, "gçz");
   assert.deepEqual(h.dok().map((a) => a.metin), ["başka söz"]);
   assert.equal(h.unut("gçz"), null);
+});
+
+test("tekrarlanan HATA dersi DERS_TAVANI'nı geçmez; tekrarlanan söz 10'a çıkabilir", () => {
+  const h = new Hafiza();
+  for (let i = 0; i < 12; i++) { h.ekle("hata: bilinmeyen çapa/nesne.", "sonuc", 6); h.ekle("ben terminalde claude kullanırım", "konusma", 8); }
+  const d = h.dok();
+  assert.equal(d.find((a) => a.tur === "sonuc")!.onem, DERS_TAVANI);
+  assert.equal(d.find((a) => a.tur === "konusma")!.onem, 10);
+});
+
+test("tavan geriye düşürmez: zaten tavanın üstünde yüklenen ders ekle ile aşağı inmez (indirme göçün işi)", () => {
+  const h = new Hafiza();
+  h.yukle([{ metin: "hata: x", tur: "sonuc", onem: 10, olusma: 1, sonErisim: 1 }]);
+  h.ekle("hata: x", "sonuc", 6);
+  assert.equal(h.dok()[0]!.onem, 10);
 });

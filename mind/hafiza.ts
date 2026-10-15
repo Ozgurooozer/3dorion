@@ -64,6 +64,14 @@ export function cekmecesi(a: Pick<Ani, "tur" | "metin">): Cekmece {
  */
 export const CEKMECE_PAYI: Readonly<Record<Cekmece, number>> = { konusma: 0.5, is: 0.15, ders: 0.15, olay: 0.05, olgu: 0.15 };
 
+/**
+ * Tekrarla tırmanan HATA DERSİNİN tavanı. Aynı ders tekrar gelince önemi artar ("üç kez olan bir şey daha kayda değer"),
+ * ama bir noktadan sonra daha da değerli olmaz: canlı hafızada kaynağı çoktan kapanmış `bilinmeyen çapa/nesne.` dersi 10'a
+ * çıkıp bağlamda ve budamada öne geçiyordu (2026-10-15). Terminal tavanıyla (`TERMINAL_TAVANI`, 7) aynı değer. Ozyn'in sözü
+ * tavansızdır (10'a çıkabilir): tekrarladığı şey gerçekten önemlidir.
+ */
+export const DERS_TAVANI = 7;
+
 /** Olgu çekmecesinin tavanı (damıtılmış bilgi: az ve kısa) ve bağlama giren en çok karakter. */
 /** Sıkıştırma özetinin metin öneki (tek kaynak): görünüm özeti buradan tanır. */
 export const OZET_ONEKI = "Summary of earlier chat: ";
@@ -345,7 +353,8 @@ export class Hafiza {
       // "(komut çıktı üretmedi)" ve `ozyn_yaklasti` önem 10'a tırmanmış, budamada Ozyn'in
       // sözlerini (8) yeniyordu. Onlar yalnız tazelenir.
       mevcut.sonErisim = t;
-      if (mevcut.tur === "konusma" || mevcut.tur === "sonuc") mevcut.onem = Math.min(10, mevcut.onem + 1);
+      if (mevcut.tur === "konusma") mevcut.onem = Math.min(10, mevcut.onem + 1);
+      else if (mevcut.tur === "sonuc") mevcut.onem = Math.min(Math.max(mevcut.onem, DERS_TAVANI), mevcut.onem + 1);
       return;
     }
     const o = Math.max(1, Math.min(10, Math.round(onem)));

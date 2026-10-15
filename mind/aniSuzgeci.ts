@@ -19,7 +19,7 @@
 // Algı yine bağlama (bu tur) ve sorguya girer; süzgeç yalnız KALICI hafızayı korur.
 "use strict";
 import type { Algi } from "../protocol/algi.ts";
-import type { AniTuru } from "./hafiza.ts";
+import { DERS_TAVANI, type AniTuru } from "./hafiza.ts";
 import { sohbetGurultusuMu, dersiNormallestir, terminalKirp, KOMUT_ONEMI } from "./aniYardimcilari.ts";
 import { uygula, kayitDan } from "./hafizaKurallari.ts";
 import { komutCoz } from "./komutSozlugu.ts";
@@ -97,7 +97,8 @@ export interface SozTemizligiSonucu {
  * kurallarına getirir. `eskiHafizayiTemizle` bunlara bilerek dokunmuyordu ("yanlışlıkla silmek geri alınamaz");
  * bu yüzden desen DAR: yalnız `aniKaydi`nin kendi kararlarını yeniden uygular, yeni hüküm koymaz.
  *   - konusma: selam/sohbet sözü atılır; doğuştan komut sözü önemi KOMUT_ONEMI'ne iner.
- *   - sonuc:   "hata: ortam …" atılır (kural 7); diğer hata dersleri normalleşir (kural 6).
+ *   - sonuc:   "hata: ortam …" atılır (kural 7); diğer hata dersleri normalleşir (kural 6) ve önemi `DERS_TAVANI`na (7) iner
+ *     (tekrarla 10'a tırmanmış ders gürültüdür; yeni yazımda tavan `Hafiza.ekle`de).
  * Yazım hatalı kısa sözlere, normal sözlere, tanınmayan kayıtlara DOKUNULMAZ. İdempotent. Silmeden önce yedek çağıranın işi.
  */
 export function eskiSozleriTemizle(aniler: readonly unknown[]): SozTemizligiSonucu {
@@ -113,7 +114,13 @@ export function eskiSozleriTemizle(aniler: readonly unknown[]): SozTemizligiSonu
     } else if (o.tur === "sonuc") {
       if (/^hata: ortam /.test(o.metin)) { atilan++; continue; }
       const d = dersiNormallestir(o.metin);
-      if (d !== o.metin) { normallesen++; sonuc.push({ ...o, metin: d }); continue; }
+      const yuksek = typeof o.onem === "number" && o.onem > DERS_TAVANI;
+      if (d !== o.metin || yuksek) {
+        if (d !== o.metin) normallesen++;
+        if (yuksek) indirilen++;
+        sonuc.push({ ...o, metin: d, ...(yuksek ? { onem: DERS_TAVANI } : {}) });
+        continue;
+      }
     }
     sonuc.push(a);
   }
