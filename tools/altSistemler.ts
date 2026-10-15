@@ -57,7 +57,10 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
       "world/yer/yer.ts", "world/yer/birlesikYer.ts", "world/yer/birlesikDunya.ts",
       "world/level/oda.ts", "world/level/olculer.ts", "world/level/capalar.ts", "world/level/nesneKaydi.ts",
       // Dünya olayı üretici (yakınlık/bakış geçişleri → algı olayı): kompozisyon kökü tik başına çağırır (giris bölme B1).
-      "world/olayUretici.ts"],
+      "world/olayUretici.ts",
+      // Yer gerçeklemeleri: hangi yerin kurulacağına kompozisyon kökü (uygulama/yerGecisi.ts) karar verir;
+      // avatar da ofis Yer'ini varsayılan olarak alır (giris bölme B1).
+      "world/yer/odaYeri.ts", "world/yer/levelSahnesi.ts", "world/yer/levelYeri.ts"],
     izinli: ["Protokol", "Level"], urun: true,
   },
   {
@@ -74,7 +77,9 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
       // Gece ufuk katmanı (ışık dili adım 2): level tanımından bağımsız, birleşik dünya (Sahne) kurar.
       "world/level/ufuk/ufuk.ts",
       // Işık Hacmi (GI spike 1, `?gi=hacim`): birleşik dünya (Sahne) kurar, senaryo (Uygulama) tipini okur.
-      "world/level/gi/isikHacmi.ts"],
+      "world/level/gi/isikHacmi.ts",
+      // Ova level verisi: uygulama/yerGecisi.ts birleşik dünyayı bu tanımla kurar (`?url` ile paketlenir).
+      "world/level/ova/ova.level.json"],
     izinli: ["Protokol"], urun: true,
   },
   {
@@ -170,7 +175,6 @@ const YUZEY_LEVEL = "stil penceresi ortam komutu tipini level stilinin iç dosya
  */
 export const ISTISNALAR: Readonly<Record<string, string>> = {
   "world/avatar/goz.ts → world/player/gorunurluk.ts": AVATAR_SAHNE,
-  "world/avatar/yurutucu.ts → world/yer/odaYeri.ts": AVATAR_SAHNE,
   "world/level/editor/arayuz/editorArayuzu.ts → world/level/shader/shaderSistemi.ts": EDITOR_LEVEL,
   "world/level/editor/arayuz/gorunum.ts → world/level/shader/dunyaDurumu.ts": EDITOR_LEVEL,
   "world/level/editor/arayuz/gorunum.ts → world/level/shader/paletler.ts": EDITOR_LEVEL,
@@ -211,13 +215,9 @@ export const ISTISNALAR: Readonly<Record<string, string>> = {
   "uygulama/giris.ts → voice/metin-girdi.ts": KOK,
   "uygulama/giris.ts → world/davranisDenemesi.ts": KOK,
   "uygulama/giris.ts → world/level/capaGeometri.ts": KOK,
-  "uygulama/giris.ts → world/level/ova/ova.level.json": KOK,
   "uygulama/giris.ts → world/player/etkilesim.ts": KOK,
   "uygulama/giris.ts → world/player/gorunurluk.ts": KOK,
   "uygulama/giris.ts → world/player/isinTarama.ts": KOK,
-  "uygulama/giris.ts → world/yer/levelSahnesi.ts": KOK,
-  "uygulama/giris.ts → world/yer/levelYeri.ts": KOK,
-  "uygulama/giris.ts → world/yer/odaYeri.ts": KOK,
   "world/level/cekirdek/anlam.ts → world/level/nesneKaydi.ts": NESNE_TIPI,
   "world/level/editor/arayuz/orionGozu.ts → world/player/gorunurluk.ts": ORION_GOZU,
   "world/level/ofisYeri.ts → world/level/cekirdek/arazi.ts": SAHNE_LEVEL,
