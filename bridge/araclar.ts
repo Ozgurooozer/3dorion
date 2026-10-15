@@ -11,7 +11,7 @@
 // reddediyor. Açıklamalar Türkçe — model Ozyn'le Türkçe konuşuyor.
 "use strict";
 import { niyetDogrula, type Sonuc } from "../protocol/dogrula.ts";
-import { POZLAR, JESTLER, SORULAR, ORTAM_KONULARI, type Niyet, type NiyetTur } from "../protocol/niyet.ts";
+import { POZLAR, JESTLER, SORULAR, ORTAM_KONULARI, DOKTOR_KAPSAMLARI, type Niyet, type NiyetTur } from "../protocol/niyet.ts";
 
 /** Sağlayıcıdan bağımsız araç tanımı. Anthropic/OpenAI/Ollama biçimlerine çevrilebilir. */
 export interface AracTanimi {
@@ -165,6 +165,11 @@ export const ARAC_TABLOSU: Record<NiyetTur, Omit<AracTanimi, "ad">> = {
       },
       required: ["ne"],
     },
+  },
+  doktor: {
+    // Orion Doktor: kendi bedenini muayene eder. Açıklama KISA (her turun sabit maliyeti); sonuç sağlıklıysa sessiz, hastaysa metin döner.
+    aciklama: "Self-check for rendering faults (errors, invisible things). Use when Ozyn asks or something looks broken. hizli ~2 s, tam ~35 s.",
+    sema: { type: "object", properties: { kapsam: { type: "string", enum: [...DOKTOR_KAPSAMLARI] } } },
   },
 };
 

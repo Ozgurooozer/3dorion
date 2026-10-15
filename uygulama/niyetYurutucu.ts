@@ -23,6 +23,7 @@ import { bilgisayariAc } from "../world/bilgisayar.ts";
 import type { OnayKapisi } from "../mind/onayKapisi.ts";
 import { onaysizCalissinMi, type KomutKipi } from "./komutKipi.ts";
 import type { Cevap, Soru } from "../mind/algiHizmeti.ts";
+import type { Doktor } from "./doktor.ts";
 
 /** Yürütücünün dünyadan gördüğü kadarı. Sonradan atananlar (beden, köprü) fonksiyondur. */
 export interface YurutucuBaglami {
@@ -49,6 +50,8 @@ export interface YurutucuBaglami {
    * (sessiz yutma yok). Beden işi değil: yürümez, sırada beklemez.
    */
   ortam?: { uygula(k: Extract<Niyet, { tur: "ortam" }>): { ok: boolean; not: string } };
+  /** `doktor` niyeti (Orion Doktor, `uygulama/doktor.ts`): kendi bedenini/dünyasını muayene eder. Verilmezse dürüstçe "yok" denir. */
+  doktor?: Pick<Doktor, "muayene">;
   /** `sor` cevabı beyne gitti (`bakdene` yedeği: zincir kendiliğinden işledi mi?). */
   gordumBildir(): void;
   /**
@@ -135,6 +138,25 @@ export function niyetYurutucusuKur(b: YurutucuBaglami): NiyetYurutucu {
       const r = b.ortam?.uygula(n) ?? { ok: false, not: "world look control is not available" };
       b.gunluk.ekle("bilgi", "ortam", r.ok ? r.not : `reddedildi: ${r.not}`);
       b.kopru()?.sonuc({ niyet_id: id, durum: r.ok ? "bitti" : "hata", not: r.not });
+      return;
+    }
+
+    // `doktor` bedene gitmez: Orion kendi bedenini/dünyasını muayene eder (token'sız; söz yolu LLM'siz). "Tam" ~35 sn sürer ve eylem
+    // sırasının adım zaman aşımından uzundur: niyet HEMEN `bitti` döner (sıra tıkanmaz), rapor ASENKRON gelir — altyazı, günlük ve Orion'un
+    // sesi. Sağlıklıysa başka hiçbir şey olmaz (beyin uyanmaz = token yok); HASTAYSA ayrı bir `hata` sonucu modele gider (neyin bozuk olduğunu
+    // söylesin diye). Aynı anda tek muayene (ikinci istek "zaten ediyorum" der).
+    if (n.tur === "doktor") {
+      const d = b.doktor;
+      if (!d) { b.kopru()?.sonuc({ niyet_id: id, durum: "hata", not: "doctor is not available" }); return; }
+      b.altyazi(n.kapsam === "tam" ? "Orion tam muayene oluyor (~35 sn)…" : "Orion kendini muayene ediyor…", 2500);
+      b.kopru()?.sonuc({ niyet_id: id, durum: "bitti", not: "Check started; the report follows." });
+      void d.muayene(n.kapsam ?? "hizli").then((r) => {
+        for (const s of r.ayrinti) console.log("[DOKTOR] " + s);
+        b.gunluk.ekle(r.saglikli ? "iyi" : "hata", "doktor", `${r.ozet} (${r.sureMs} ms)`);
+        b.altyazi(r.ozet, 5000);
+        void bedenAdimi({ tur: "soyle", metin: r.ozet });
+        if (!r.saglikli) b.kopru()?.sonuc({ niyet_id: `${id}_rapor`, durum: "hata", not: r.modelNotu });
+      });
       return;
     }
 

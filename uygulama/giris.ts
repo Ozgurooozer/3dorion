@@ -85,6 +85,7 @@ import { beyinSeciminiKur, seciciKaynagiKur, modelKancasiKur, kisaAd } from "./b
 import { GucButcesi, Inisiyatif, butceSatiri } from "../mind/inisiyatif.ts";
 import { inisiyatifTik } from "./inisiyatifBaglantisi.ts";
 import { ortamBaglantisiKur } from "./ortamBaglantisi.ts";
+import { doktorKur, doktorBaglamiBabylon } from "./doktor.ts";
 import { OrtamGunlugu, ogrenilenDeposu } from "./ortamDeposu.ts";
 import { OrtamSozlugu } from "../mind/ortamSozlugu.ts";
 import { sessizlikIzinliMi } from "../bridge/ozerkYetenek.ts";
@@ -327,8 +328,14 @@ const ogrenilenDepo = ogrenilenDeposu(() => ortamGunlugu.kip === "kalici");
 ortamGunlugu.kipDinle(() => ogrenilenDepo.esitle());
 const ortamSozlugu = new OrtamSozlugu({ depo: ogrenilenDepo });
 ortamBaglantisi.dinle((k) => { if (k.ne === "sifirla") ortamSozlugu.sifirlandi(); });
+/**
+ * ORION DOKTOR (uygulama/doktor.ts): "doktor" sözü ya da `doktor` niyeti kendi bedenini/dünyasını muayene eder (WebGL hatası, görünmez
+ * mesh, kare hızı; `tam`: her ışık efekti çalışma anında). Token'sız; ileride Orion hatayı kendisi tespit ederken aynı yolu çağırır.
+ */
+const doktor = doktorKur(doktorBaglamiBabylon(sahne, motor, ortamBaglantisi, () => kopru?.sayac() ?? {}));
 const { niyetiYurut, bedenAdimi, sonGorme } = niyetYurutucusuKur({
   ortam: ortamBaglantisi,
+  doktor,
   beden: () => orion,
   kopru: () => kopru,
   tahta, monitor, onayKapisi, sema, gunluk, algiSor,
@@ -689,6 +696,7 @@ const senaryoBaglami: SenaryoBaglami = {
   dunya: { kapiAcisi: () => oda.kapi?.aci() ?? null, ic: () => gecis.birlesik()?.ic() ?? 0, gi: () => gecis.birlesik()?.gi ?? null },
   niyetiYurut, onayKarari, algiSor, monitoreGec: odak.monitoreGec, admineGec: odak.admineGec, panelOdak: odak.panelOdak, panoyuAl, zoomUygula: odak.zoomUygula, sonGorme,
   gozModeli: () => gozModeli.model,
+  doktor,
 };
 for (const ad of istenenSenaryolar(location.search)) {
   void import(`./senaryolar/${ad}.ts`)

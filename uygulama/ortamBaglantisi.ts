@@ -27,7 +27,15 @@ export interface OrtamBaglantisi {
   /** Ova kurulunca level, ofise dönünce null. */
   ova(level: OrtamLevel | null): void;
   kullanilabilirMi(): boolean;
-  uygula(k: OrtamKomutu): OrtamUygulama;
+  /**
+   * `sessiz`: dinleyicileri çağırmaz (kalıcılık günlüğü, öğrenen sözlük, G penceresi) — Orion Doktor efektleri geçici açıp kapatırken Ozyn'in
+   * ayarlarına/günlüğüne iz bırakmasın (`uygulama/doktor.ts`).
+   */
+  uygula(k: OrtamKomutu, secenek?: { sessiz?: boolean }): OrtamUygulama;
+  /** Şu anki ova tanımının KOPYASI (geri yüklemek için); ova yoksa null. */
+  anlik(): LevelTanimi | null;
+  /** Anlık görüntüyü dinleyicisiz geri yükler (doktorun `finally`si). Level yoksa ya da ayarlanamazsa false. */
+  geriYukle(t: LevelTanimi): boolean;
   /**
    * Günlüğü (kaydedilmiş komutlar) taze kurulmuş level'a TEK `ayarla` ile yeniden oynatır; dinleyicileri çağırmaz
    * (oynatılan komut yeniden günlüğe yazılmasın). Bozuk komut atlanır ve sayılır; level yoksa 0.
@@ -50,7 +58,12 @@ export function ortamBaglantisiKur(): OrtamBaglantisi {
       ilk = l ? structuredClone(l.tanim()) : null;
     },
     kullanilabilirMi: () => level !== null,
-    uygula(k) {
+    anlik: () => (level ? structuredClone(level.tanim()) : null),
+    geriYukle(t) {
+      if (!level) return false;
+      try { level.ayarla(t); return true; } catch { return false; }
+    },
+    uygula(k, secenek) {
       if (!level) return { ok: false, not: OVADA_DEGILIM };
       let s: OrtamSonucu;
       try {
@@ -59,7 +72,7 @@ export function ortamBaglantisiKur(): OrtamBaglantisi {
       } catch (err) {
         return { ok: false, not: err instanceof Error ? err.message : String(err) };
       }
-      for (const f of dinleyiciler) f(k, s);
+      if (!secenek?.sessiz) for (const f of dinleyiciler) f(k, s);
       return { ok: true, not: s.not };
     },
     oynat(komutlar) {

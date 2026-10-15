@@ -75,13 +75,24 @@ export type Niyet =
    * Değerin geçerliliğini dünya bilir (`world/level/stil/ortamKomutu.ts`); orası bilinmeyen değeri açık hatayla
    * reddeder ve metin modele döner. Beden niyeti DEĞİL: yürümez, bekleme sırasına girmez.
    */
-  | { tur: "ortam";    ne: OrtamNe; deger?: string; sayi?: number };
+  | { tur: "ortam";    ne: OrtamNe; deger?: string; sayi?: number }
+  /**
+   * ORION DOKTOR: kendi bedenini/dünyasını muayene et (WebGL hataları, görünmez mesh'ler, kare hızı, köprü sayaçları). Beden niyeti DEĞİL:
+   * yürümez. `hizli` pasiftir (hiçbir şeye dokunmaz, ~2 sn); `tam` her ışık efektini ve önayarı gündüz/gece çalışma anında açıp kapatır ve
+   * ESKİ hâle döner (~35 sn, yalnız ova'da). Sağlıklıysa sonuç sessizdir (`bitti` beyni uyandırmaz = token yok); hastaysa `hata` metni
+   * modele gider. Söz yolu LLM'siz (`mind/doktorKomutlari.ts`): "doktor", "kendini kontrol et" — oturmak kadar kolay.
+   */
+  | { tur: "doktor";   kapsam?: DoktorKapsam };
 
 /** `ortam`ın konuları — araç şeması ve doğrulayıcı BURADAN türer (`sor`un SORULAR'ı gibi). */
 export const ORTAM_KONULARI = [
   "stil", "renk", "saat", "saat_kaydir", "isik", "sis", "efekt", "shader", "akis", "dunya", "sifirla",
 ] as const;
 export type OrtamNe = (typeof ORTAM_KONULARI)[number];
+/** `doktor`un kapsamları: hızlı (pasif, dokunmaz) ya da tam (her efekti açıp kapatır, geri yükler). */
+export const DOKTOR_KAPSAMLARI = ["hizli", "tam"] as const;
+export type DoktorKapsam = (typeof DOKTOR_KAPSAMLARI)[number];
+
 /** `deger` metni sınırı: kısa bir ad ("toon", "bloom:kapat"); roman değil. */
 export const ORTAM_DEGER_SINIRI = 40;
 
@@ -104,6 +115,8 @@ export const YAZAN_NIYETLER: readonly NiyetTur[] = [
   "poz", "jest", "bak", "git", "otur", "kalk", "soyle", "yaz", "al", "birak", "odaklan", "dur",
   // `ortam` dünyanın görünümünü değiştirir (ışık, stil, zaman): yazan niyettir.
   "ortam",
+  // `doktor` (tam kapsam) efektleri geçici açıp geri yükler: yazan niyet sayılır (özerk turda sunulmaz).
+  "doktor",
   // `komut` BİLEREK BURADA YOK: dünyayı kendisi değiştirmez, yalnızca öneri
   // kuyruğuna girer. Dünyayı değiştiren şey Ozyn'in onayıdır.
 ];

@@ -5,7 +5,7 @@
 // Bağımlılık yok — elle yazılmış doğrulayıcı (şema kütüphanesi taşımıyoruz).
 "use strict";
 import {
-  POZLAR, JESTLER, SORULAR, ORTAM_KONULARI, ORTAM_DEGER_SINIRI, OLGU_ANAHTAR_SINIRI, OLGU_DEGER_SINIRI,
+  POZLAR, JESTLER, SORULAR, ORTAM_KONULARI, ORTAM_DEGER_SINIRI, DOKTOR_KAPSAMLARI, OLGU_ANAHTAR_SINIRI, OLGU_DEGER_SINIRI,
   type Niyet, type NiyetTur, type OrtamNe, type SorKonusu,
 } from "./niyet.ts";
 import { capaCoz, type Hedef } from "./temel.ts";
@@ -21,6 +21,7 @@ const TURLER: readonly NiyetTur[] = [
   // "model komut önermiyor" sanıldı; oysa öneriyordu, biz düşürüyorduk.
   "komut",
   "ortam",
+  "doktor",
 ];
 
 const sayi = (v: unknown): boolean => typeof v === "number" && Number.isFinite(v);
@@ -179,6 +180,14 @@ export function niyetDogrula(ham: unknown): Sonuc<Niyet> {
       if (deger !== undefined) g.deger = (deger as string).trim();
       if (sayiHam !== undefined) g.sayi = sayiHam as number;
       return { ok: true, deger: g };
+    }
+
+    case "doktor": {
+      // `kapsam` isteğe bağlı (varsayılan hızlı); verilmişse listede olmalı (uydurma kapsam sessizce hızlıya düşmez).
+      if (o.kapsam === undefined) return { ok: true, deger: { tur: "doktor" } };
+      if (!DOKTOR_KAPSAMLARI.includes(o.kapsam as never))
+        return { ok: false, hata: `doktor.kapsam geçersiz: ${String(o.kapsam)} (geçerli: ${DOKTOR_KAPSAMLARI.join(", ")})` };
+      return { ok: true, deger: { tur: "doktor", kapsam: o.kapsam as (typeof DOKTOR_KAPSAMLARI)[number] } };
     }
 
     case "kalk":   return { ok: true, deger: { tur: "kalk" } };

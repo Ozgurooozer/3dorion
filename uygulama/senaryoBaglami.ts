@@ -30,6 +30,7 @@ import type { Cevap, Soru } from "../mind/algiHizmeti.ts";
 import type { KuralRefleksi } from "../mind/refleks.ts";
 import type { OnayKapisi } from "../mind/onayKapisi.ts";
 import type { GormeKaydi } from "./niyetYurutucu.ts";
+import type { Doktor } from "./doktor.ts";
 import type { IsikHacmi } from "../world/level/gi/isikHacmi.ts";
 
 export interface SenaryoBaglami {
@@ -64,6 +65,8 @@ export interface SenaryoBaglami {
    * ORTAM aracı (ova'nın ışığı/stili/zamanı; `ortamdene`): ova'nın GERÇEK tanımı (ofiste null), hatırlama kipi, öğrenen
    * sözlüğün kayıt sayısı ve ofise dönüş (kalıcılık denemesi için).
    */
+  /** Orion Doktor (`uygulama/doktor.ts`): `efektdene` ve ileride canlı hata tespiti AYNI muayeneyi çalıştırır. */
+  readonly doktor: Doktor;
   readonly ortam: {
     tanim(): LevelTanimi | null;
     kipAyarla(kip: "oturum" | "kalici"): void;

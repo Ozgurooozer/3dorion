@@ -40,6 +40,8 @@ const SINIF: Record<NiyetTur, NiyetSinifi> = {
   // `ortam` ENGEL: bir uyanıştan beceri doğarsa refleks `ortam`ı tekrarlamaz, sessizce düşürürdü. Ortamın kendi
   // öğrenen sözlüğü var (mind/ortamSozlugu.ts).
   yaz: "engel", komut: "engel", ortam: "engel",
+  // `doktor` ENGEL: muayene bir beceri/refleks olarak tekrarlanmaz (her seferinde Ozyn ister ya da Orion kendi karar verir).
+  doktor: "engel",
 };
 
 export function niyetSinifi(tur: NiyetTur): NiyetSinifi {

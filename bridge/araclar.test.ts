@@ -17,6 +17,9 @@ const BEKLENEN_TURLER = [
   // `ortam` = ova'nın ışığı/rengi/stili/zamanı (Ozyn, 2026-10-13: "tahtaya yazmak gibi bir araç olsun"). Dünyanın
   // GÖRÜNÜMÜNÜ değiştirir, onay istemez; özerk turda sunulmaz (OZERK_ARACLAR).
   "ortam",
+  // `doktor` = Orion Doktor (Ozyn, 2026-10-15): kendi bedenini/dünyasını muayene eder (WebGL hatası, görünmez mesh). Onay istemez;
+  // sağlıklıysa sessiz (token yok). Özerk turda sunulmaz (YAZAN_NIYETLER). Açıklama bilerek KISA: her turun sabit maliyeti.
+  "doktor",
 ];
 
 test("her niyet türünün bir aracı var — sessizce görünmez yetenek yok", () => {
@@ -82,7 +85,9 @@ test("araç yüzeyi token bütçesi makul", () => {
   assert.ok(m > 100, `şüpheli küçük yüzey: ${m}`);
   // 1500 → 1650: `dunya_ortam` (~190 token; değer adları şemada, kısa tutuldu). Yerel modele zararı Faz 3'te ölçülür
   // (docs/olcum/on-kayit-ortam.md): mevcut 28 senaryoda ±1; bozarsa o modelden `cikarilanAraclar` ile çıkarılır.
-  assert.ok(m < 1650, `araç yüzeyi çok pahalı: ~${m} token/tur`);
+  // 1650 → 1750: `dunya_doktor` (~55 token, ölçüldü 1704, açıklama bilerek tek cümle). Ozyn'in isteği: LLM'siz söz yolu var ("doktor"), araç yalnız Orion'un kendi
+  // kararıyla çağırabilmesi için; sabit maliyeti bu kadar tutuldu.
+  assert.ok(m < 1750, `araç yüzeyi çok pahalı: ~${m} token/tur`);
 });
 
 // ── BAK zinciri: sözleşme → araç → protokol ───────────────────────────────
