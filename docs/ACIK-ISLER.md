@@ -55,7 +55,7 @@ Bırakıldığı yer:
 - **Konumu yapılan işten al** (vardı/oturdu), geometri yedek kalsın — masa çevresi durakları 0,9 m arayla. `mind/durumDefteri.ts`
 - **F6 araç kırpma** çevrimdışı ölçümü (P7/P8; `eylem-olc --cikar=dunya_al,dunya_birak,dunya_poz`). Bağlamın ~%60'ı araç şeması.
 - **`baglamdene` n=5 partileri yarım:** qwen 2/5, Haiku 1/5 koşuldu (histerezisli sürüm). `specs/16` §5
-- **İngilizce cevap kipi** (talimat + İngilizce Piper sesi) — mikrofon İngilizce duyuyor, Orion Türkçe cevaplıyor.
+- **İngilizce cevap kipi** (talimat + İngilizce Piper sesi) — `ORION_STT=nemotron` ile mikrofon İngilizce duyar. Varsayılan kulak artık TÜRKÇE (Whisper base, yerel CPU, 2026-10-15; `docs/olcum/on-kayit-stt-turkce-1.md`): sentetik sesle ölçüldü, GERÇEK MİKROFON canlı kapısı Ozyn'de bekliyor (`3dorion.bat mikrofon`, V basılı tut). Açık: iki dil arasında oyun içi geçiş tuşu, akışlı (sesli yazma gibi) tanıma, gerçek sesle doğruluk.
 
 ## Ova (spec 17) — sıradaki adımlar, her biri ayrı onay
 - **Yeşil harabe kiti (2026-10-11, Ozyn'in referans görüntüsü):** `assets/kaynak/orman-kiti.py` (Blender'da kurar,

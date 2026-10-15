@@ -1,4 +1,5 @@
-// host/dinleme.js — Orion'un kulağı: tools/nemotron-dinle.py kalıcı sürecinin istemcisi.
+// host/dinleme.js — Orion'un kulağı: tools/whisper-dinle.py (Türkçe, varsayılan) ya da tools/nemotron-dinle.py (İngilizce, ORION_STT=nemotron)
+// kalıcı sürecinin istemcisi. İki betik AYNI protokolü konuşur.
 // YALNIZCA ana süreçte çalışır (child_process).
 //
 // Neden ayrı süreç: model Python (Transformers) ve her konuşmada yüklemek ~4 sn; kalıcı süreçte
@@ -13,7 +14,8 @@ import { StringDecoder } from "node:string_decoder";
 import { fileURLToPath } from "node:url";
 
 const BU_DIZIN = path.dirname(fileURLToPath(import.meta.url));
-export const BETIK_YOLU = path.join(BU_DIZIN, "..", "tools", "nemotron-dinle.py");
+// Varsayılan TÜRKÇE (Ozyn Türkçe konuşuyor; Nemotron yalnız İngilizce). `ORION_STT=nemotron` eski kulağa döner.
+export const BETIK_YOLU = path.join(BU_DIZIN, "..", "tools", process.env.ORION_STT === "nemotron" ? "nemotron-dinle.py" : "whisper-dinle.py");
 
 /** Python'un yazdığı bir JSON satırını olaya çevirir; bozuk satır `null` (ör. kütüphane uyarısı). */
 export function satirCoz(satir) {

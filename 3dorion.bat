@@ -27,7 +27,7 @@ rem    3dorion.bat kapidene   birlesik dunya: kapi acilir/kapanir, Orion yuruyer
 rem    3dorion.bat ovadene    Orion ovada: gel, takip, kapiya git, otur, bak, jest, algi, gec (spec 26 F4)
 rem    3dorion.bat ortamdene  Orion'un ortam araci: sozluk (token'siz), LLM yolu, ogrenme, kalicilik (ORION_BEYIN=claude:haiku)
 rem    3dorion.bat gozdene    Orion gozuyle bakiyor: gorme algiyla birlesiyor mu (spec 25 V1; ORION_GOZ=model)
-rem    3dorion.bat mikrofon   Orion'u MIKROFONLA dene: V tusunu basili tut, Ingilizce konus (Nemotron Speech)
+rem    3dorion.bat mikrofon   Orion'u MIKROFONLA dene: V tusunu basili tut, TURKCE konus (Whisper, yerel CPU; ORION_STT=nemotron: Ingilizce)
 rem    3dorion.bat zihindene  zihin duvari panelleri (sema + gunluk) gozle dogrulanir
 rem    3dorion.bat admindene  yonetim terminali gercek kabuk mu, Orion'a siziyor mu
 rem    3dorion.bat gordene    Orion odayi goruyor mu (cevap konuma bagli mi)
@@ -111,7 +111,7 @@ echo [2/2] Orion'un odasi aciliyor...
 echo.
 echo   WASD yuru  ^|  Shift kos  ^|  F kamera  ^|  E etkilesim  ^|  Esc cik
 echo   T ile Orion'a yaz (yerel model dusunur, sesle cevap verir)
-echo   K mikrofonu ac/kapat (hatirlanir)  ^|  V basili tut = Ingilizce konus
+echo   K mikrofonu ac/kapat (hatirlanir)  ^|  V basili tut = Turkce konus
 echo   "beni takip et" / "takibi birak"  ^|  Sohbet: "yeni sohbet" (pencere sifirlanir)  ^|  "temiz sohbet" (hafiza kapali)  ^|  "normal sohbet"
 echo   1 tahtaya git  2 pencereye git  3 otur  4 kalk  5 sana bak  6 el salla
 echo   Monitore E ile gec, sonra: claude
@@ -211,9 +211,9 @@ call npx electron .
 goto :son
 
 :mikrofon
-echo [mikrofon] Orion'u sesle dene: V tusunu BASILI TUT, Ingilizce konus, birak. Model ~15 sn yuklenir (altyazida 'kulak hazir' cikana kadar bekle).
+echo [mikrofon] Orion'u sesle dene: V tusunu BASILI TUT, TURKCE konus, birak (~3-4 sn sonra yazi). Model ~10 sn yuklenir (altyazida 'kulak hazir' cikana kadar bekle).
 echo   Duydugun metin altyazida "sen: ..." olarak gorunur; Orion normal yoldan cevap verir.
-echo   Gerekli: python + transformers + librosa + sounddevice (tools/nemotron-dinle.py)
+echo   Gerekli: python + transformers + torch + sounddevice; model BIR KEZ: python tools/whisper-indir.py (tools/whisper-dinle.py)
 call npx vite build
 if errorlevel 1 goto :hata
 set "ORION_MIKROFON=1"
