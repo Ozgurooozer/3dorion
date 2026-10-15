@@ -10,7 +10,7 @@
 // Babylon `Vector3` gereken yerde `capaGeometri.ts` dönüştürür.
 "use strict";
 import { CAPA_ETIKETLERI, type CapaAdi, type Vec3 } from "../../protocol/temel.ts";
-import { MASA, MONITOR, SANDALYE, TAHTA, PENCERE, KAPI, SEMA, GUNLUK, ADMIN } from "./olculer.ts";
+import { MASA, MONITOR, SANDALYE, TAHTA, PENCERE, KAPI, SEMA, GUNLUK, ADMIN, GROMA } from "./olculer.ts";
 
 /**
  * @deprecated `monitor` artık protokolün `CapaAdi` birliğinde. Doğrudan
@@ -147,6 +147,15 @@ const KAYIT: readonly Capa[] = [
     yaklasmaYaricapi: 1.6,
     eylemler: ["odaklan", "kullan", "bak"],
     etiket: CAPA_ETIKETLERI.admin,
+  },
+  {
+    ad: "groma",
+    konum: v(GROMA.x, GROMA.y, GROMA.z),
+    durak: v(GROMA.x, 0, -1.62),
+    yon: ARKAYA,
+    yaklasmaYaricapi: 1.6,
+    eylemler: ["odaklan", "bak"],
+    etiket: CAPA_ETIKETLERI.groma,
   },
   {
     ad: "oda_ortasi",

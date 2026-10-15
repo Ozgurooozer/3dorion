@@ -10,6 +10,11 @@
 import type { DosyaDurumu } from "../mind/hafizaGocu.ts";
 import type { DinlemeOlayi } from "./dinleme.js";
 
+/** Ofisteki 3. monitörün olayları (host/webMonitor.js). */
+export type WebmonOlayi =
+  | { olay: "durum"; d: "yukleniyor" | "acik" | "kapali" | "sonlandi" }
+  | { olay: "kare"; jpeg: Uint8Array; g: number; y: number };
+
 export interface PtyAcIstek {
   /** Boş bırakılırsa ana kabuk (Windows: powershell.exe). */
   kabuk?: string;
@@ -86,6 +91,10 @@ export interface Kopru {
    * metin `dinleDinle` ile olay olarak gelir.
    */
   dinleKomut(komut: "baslat" | "kayit" | "dur" | "kapat"): Promise<boolean>;
+  /** 3. monitör (groma haritası, host/webMonitor.js): `ac` yalnız yerel adresi yükler; `fare` normalleştirilmiş (0..1) koordinat taşır. */
+  webmonKomut(komut: "ac" | "kapat" | "fare", yuk?: unknown): Promise<boolean>;
+  /** 3. monitör olayları: durum (yukleniyor/acik/kapali/sonlandi) ve JPEG kareler. Abonelikten çıkma işlevi döner. */
+  webmonDinle(cb: (o: WebmonOlayi) => void): () => void;
   dinleDinle(cb: (o: DinlemeOlayi) => void): () => void;
 }
 

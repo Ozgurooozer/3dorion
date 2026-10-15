@@ -56,6 +56,8 @@ const CAGRI = {
   durumYaz:          "durum:yaz",
   /** Orion'un kulağı (host/dinleme.js): "baslat" | "kayit" | "dur" | "kapat". */
   dinleKomut:        "dinle:komut",
+  /** Ofisteki 3. monitör (groma haritası, host/webMonitor.js): "ac" (adres) | "kapat" | "fare" (olay). */
+  webmonKomut:       "webmon:komut",
 };
 
 /** Main → renderer (tek yönlü olay). */
@@ -68,6 +70,8 @@ const OLAY = {
   ogretim:  "ogretim:yeni",
   /** Kulak süreci: hazir / tanima / bos / hata / kapandi (host/dinleme.d.ts). */
   dinleme:  "dinle:olay",
+  /** 3. monitör: {olay:"durum", d} | {olay:"kare", jpeg, g, y} (host/webMonitor.js). */
+  webmonOlay: "webmon:olay",
 };
 
 module.exports = { CAGRI, OLAY };

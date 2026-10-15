@@ -9,6 +9,7 @@ import fs from "node:fs";
 import os from "node:os";
 import { PiperSesi, piperBul } from "./ses.js";
 import { Dinleyici } from "./dinleme.js";
+import { WebMonitor, VARSAYILAN_ADRES as GROMA_ADRESI } from "./webMonitor.js";
 import { durumYolu, hafizaDosyasiOku, hafizaDosyasiYaz, hafizaYolu } from "./hafizaDosyasi.js";
 import { kararYaziciKur, ogretimYolu, ogretimleriOku, satirlariOku, yeniSatirlar } from "./kararDosyasi.js";
 import { mcpSunucuKur } from "./mcpSunucu.js";
@@ -145,6 +146,7 @@ function pencereAc() {
   // Ortam aracı (sözlük + LLM + öğrenme + kalıcılık): doğuştan komutlar açık (komut=1), ses kapalı.
   if (process.env.ORION_ORTAMDENE === "1") parcalar.push("ortamdene=1", "sessiz=1", "komut=1");
   if (process.env.ORION_EFEKTDENE === "1") parcalar.push("efektdene=1", "sessiz=1", "komut=1");
+  if (process.env.ORION_GROMADENE === "1") parcalar.push("gromadene=1", "sessiz=1");
   // Spec 25 Faz 2: görme. `ORION_GOZ` görme modelini seçer (varsayılan bridge/goz.ts'te).
   if (process.env.ORION_GOZDENE === "1") parcalar.push("gozdene=1", "sessiz=1");
   if (process.env.ORION_GOZ) parcalar.push(`goz=${encodeURIComponent(process.env.ORION_GOZ)}`);
@@ -202,7 +204,8 @@ function pencereAc() {
   if (GELISTIRME && sunucu) pencere.loadURL(sunucu + (sorgu.search ?? ""));
   else pencere.loadFile(path.join(KOK, "dist", "index.html"), sorgu);
 
-  pencere.on("closed", () => { pencere = null; });
+  // Ekran dışı 3. monitör penceresi de bir pencere: ana pencere kapanınca YIKILMAZSA `window-all-closed` hiç gelmez ve uygulama arkada kalır.
+  pencere.on("closed", () => { pencere = null; webMonitor.kapat(); });
 }
 
 // ---- pty ----------------------------------------------------------------
@@ -469,6 +472,18 @@ ipcMain.handle(CAGRI.dinleKomut, (_e, komut) => {
   return false;
 });
 
+// ---- ofisteki 3. monitör: groma haritası (host/webMonitor.js) --------------------------------
+// Ekran dışı pencere sayfayı yükler, kareler renderer'a JPEG gider. Yalnız yerel adres (webMonitor.adresGecerliMi); ORION_GROMA_URL ile değişir.
+const webMonitor = new WebMonitor((olay) => {
+  if (pencere && !pencere.isDestroyed()) pencere.webContents.send(OLAY.webmonOlay, olay);
+});
+ipcMain.handle(CAGRI.webmonKomut, (_e, komut, yuk) => {
+  if (komut === "ac") return webMonitor.ac(typeof yuk === "string" && yuk ? yuk : (process.env.ORION_GROMA_URL || GROMA_ADRESI));
+  if (komut === "kapat") { webMonitor.kapat(); return true; }
+  if (komut === "fare") return webMonitor.fare(yuk);
+  return false;
+});
+
 ipcMain.handle(CAGRI.sesVarMi, () => ses.kullanilabilir());
 
 ipcMain.handle(CAGRI.sesUret, async (_e, metin) => {
@@ -551,6 +566,7 @@ app.on("window-all-closed", () => { if (process.platform !== "darwin") app.quit(
 app.on("before-quit", () => {
   ses.kapat();
   dinleyici.kapat();
+  webMonitor.kapat();
   for (const p of ptyler.values()) { try { p.kill(); } catch { /* kapanışta önemsiz */ } }
   ptyler.clear();
   // Adaptör bizim başlattığımız süreç: arkada kalıp portu tutmasın.

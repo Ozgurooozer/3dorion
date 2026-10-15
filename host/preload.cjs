@@ -47,4 +47,7 @@ contextBridge.exposeInMainWorld("kopru", {
   // Orion'un kulağı: bas-konuş komutu gider, çözülmüş METİN olay olarak gelir (ses renderer'a girmez).
   dinleKomut:       (komut) => ipcRenderer.invoke(CAGRI.dinleKomut, komut),
   dinleDinle:       (cb) => dinle(OLAY.dinleme, cb),
+  // Ofisteki 3. monitör (groma haritası): komut gider, kareler/durum olay olarak gelir.
+  webmonKomut:      (komut, yuk) => ipcRenderer.invoke(CAGRI.webmonKomut, komut, yuk),
+  webmonDinle:      (cb) => dinle(OLAY.webmonOlay, cb),
 });

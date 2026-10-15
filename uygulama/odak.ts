@@ -15,6 +15,7 @@ import { capaBul, type Capa } from "../world/level/capalar.ts";
 import type { Monitor } from "../world/surfaces/terminal/monitor.ts";
 import type { SemaPaneli } from "../world/surfaces/duvar/sema.ts";
 import type { GunlukEkrani } from "../world/surfaces/duvar/gunluk.ts";
+import type { WebMonitoru } from "./webMonitoru.ts";
 
 export interface OdakGirdisi {
   motor: Engine;
@@ -29,6 +30,8 @@ export interface OdakGirdisi {
   altyaziGoster: (metin: string, ms?: number) => void;
   /** Ozyn'in şu anki yerinin çapaları (yer değişince değişir: çağrı anında okunur). */
   ozynCapalari: () => readonly Capa[];
+  /** Ofisteki 3. monitör (groma haritası, uygulama/webMonitoru.ts): odaktayken fare/tekerlek sayfaya iletilir. Verilmezse groma odağı yalnız kamera. */
+  webMonitoru?: WebMonitoru;
 }
 
 export interface Odak {
@@ -47,6 +50,7 @@ export interface Odak {
 
 export function odakKur(girdi: OdakGirdisi): Odak {
   const { motor, sahne, rig, oda, monitor, adminTerminal, sema, gunluk, tuval, altyaziGoster } = girdi;
+  const web = girdi.webMonitoru;
   const zoomKutu = document.getElementById("zoom") as HTMLElement;
   const zoomOran = document.getElementById("zoomOran") as HTMLElement;
   /**
@@ -127,6 +131,7 @@ export function odakKur(girdi: OdakGirdisi): Odak {
     sema: () => panelOdak(oda.semaYuzey, "beyin şeması"),
     gunluk: () => panelOdak(oda.gunlukYuzey, "beyin günlüğü"),
     tahta: () => panelOdak(oda.tahtaYuzey, "beyaz tahta"),
+    groma: () => panelOdak(oda.gromaEkran, "groma haritası"),
   };
 
   /**
@@ -227,6 +232,11 @@ export function odakKur(girdi: OdakGirdisi): Odak {
   // Yalnızca odakta çalışır — gezinirken tekerleğin başka bir anlamı yok.
   tuval.addEventListener("wheel", (e) => {
     if (!odakMesh) return;
+    // 3. monitörde (groma haritası) tekerlek SAYFAYA gider (haritayı yakınlaştırır); kamera yakınlığı +/− düğmelerinde kalır.
+    if (odakliYuzey === "groma" && web) {
+      const k = gromaUV(e);
+      if (k) { e.preventDefault(); web.tekerlek(k.u, k.v, e.deltaY, e.deltaX); return; }
+    }
     e.preventDefault();
     zoomDegistir(e.deltaY > 0 ? +ZOOM_ADIM : -ZOOM_ADIM);
   }, { passive: false });
@@ -252,6 +262,8 @@ export function odakKur(girdi: OdakGirdisi): Odak {
   /** Odaktaki yüzeyin İÇİNDE imlecin altında tıklanacak ne var — yüzey söyler. */
   const YUZEY_HEDEF: Record<string, (u: number, v: number) => string | null> = {
     sema: (u, v) => sema.hedef(u, v),
+    // Groma haritası: ekranın her yeri sayfadır (tıklanabilirliği sayfa bilir) — imleç `pointer`.
+    groma: () => "harita",
   };
 
   tuval.addEventListener("mousemove", (e) => {
@@ -324,6 +336,28 @@ export function odakKur(girdi: OdakGirdisi): Odak {
     if (!gec) return;
     console.log(`[TIKLAMA] ${capa} yuzeyine geciliyor`);
     void gec();
+  });
+
+  // ── 3. MONİTÖR (groma haritası): odaktayken fare olayları sayfaya gider (haritada gezin, yakınlaştır, tıkla) ──────
+  // Klavye iletilmez. Koordinat doku UV'sidir; sayfa pikseline `host/webMonitor.js` çevirir.
+  function gromaUV(e: MouseEvent): { u: number; v: number } | null {
+    if (!web || odakliYuzey !== "groma" || !rig.odakta) return null;
+    const p = sahne.pick(e.offsetX, e.offsetY);
+    if ((p?.pickedMesh?.metadata as { capa?: string } | undefined)?.capa !== "groma") return null;
+    const uv = p?.getTextureCoordinates?.();
+    return uv ? { u: uv.x, v: uv.y } : null;
+  }
+  const fareDugmesi = (e: MouseEvent) => (e.button === 2 ? "right" : e.button === 1 ? "middle" : "left") as "left" | "right" | "middle";
+  tuval.addEventListener("mousedown", (e) => { const k = gromaUV(e); if (k) web!.bas(k.u, k.v, fareDugmesi(e)); });
+  tuval.addEventListener("mouseup", (e) => { const k = gromaUV(e); if (k) web!.birak(k.u, k.v, fareDugmesi(e)); });
+  let gromaHareketSaati = 0;
+  tuval.addEventListener("mousemove", (e) => {
+    if (!web || odakliYuzey !== "groma") return;
+    const t = performance.now();
+    if (t - gromaHareketSaati < 40) return;   // fare 100+ Hz gelebilir; sayfaya ve ışın testine ~25 Hz yeter
+    gromaHareketSaati = t;
+    const k = gromaUV(e);
+    if (k) web.hareket(k.u, k.v);
   });
 
   /** Esc: klavye dünyaya döner, kamera serbest kalır. Terminal AÇIK kalır —

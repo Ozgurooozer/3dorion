@@ -31,6 +31,7 @@ import type { KuralRefleksi } from "../mind/refleks.ts";
 import type { OnayKapisi } from "../mind/onayKapisi.ts";
 import type { GormeKaydi } from "./niyetYurutucu.ts";
 import type { Doktor } from "./doktor.ts";
+import type { WebMonitoru } from "./webMonitoru.ts";
 import type { IsikHacmi } from "../world/level/gi/isikHacmi.ts";
 
 export interface SenaryoBaglami {
@@ -67,6 +68,8 @@ export interface SenaryoBaglami {
    */
   /** Orion Doktor (`uygulama/doktor.ts`): `efektdene` ve ileride canlı hata tespiti AYNI muayeneyi çalıştırır. */
   readonly doktor: Doktor;
+  /** Ofisteki 3. monitör (groma haritası; `gromadene`). */
+  readonly webMonitoru: WebMonitoru;
   readonly ortam: {
     tanim(): LevelTanimi | null;
     kipAyarla(kip: "oturum" | "kalici"): void;
@@ -100,7 +103,7 @@ export const SENARYOLAR = [
   "terminaldene", "otodene", "gorudene", "sessizdene", "davranis", "tezdene", "gordene", "admindene",
   "zihindene", "onaydene", "tahtabeyin", "becerdene", "bakdene", "acidene", "saglobdene",
   "senaryodene", "eylemdene", "benlikdene", "apidene", "tahtadene", "hafizadene", "yuzdene", "baglamdene", "takipdene",
-  "kapidene", "gozdene", "ovadene", "ortamdene", "gidene", "efektdene",
+  "kapidene", "gozdene", "ovadene", "ortamdene", "gidene", "efektdene", "gromadene",
 ] as const;
 export type SenaryoAdi = (typeof SENARYOLAR)[number];
 

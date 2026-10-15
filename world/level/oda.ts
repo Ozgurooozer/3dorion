@@ -34,7 +34,7 @@ import { CreateBox } from "@babylonjs/core/Meshes/Builders/boxBuilder";
 import { CreateGround } from "@babylonjs/core/Meshes/Builders/groundBuilder";
 import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import { CreateCylinder } from "@babylonjs/core/Meshes/Builders/cylinderBuilder";
-import { ODA, MASA, MONITOR, SANDALYE, TAHTA, PENCERE, KAPI, SEMA, GUNLUK, ADMIN, LAMBA } from "./olculer.ts";
+import { ODA, MASA, MONITOR, SANDALYE, TAHTA, PENCERE, KAPI, SEMA, GUNLUK, ADMIN, GROMA, LAMBA } from "./olculer.ts";
 import { varlik } from "../varlik.ts";
 import { odaKipi, type OdaKipi } from "./odaKipi.ts";
 import { esyalariYukle, malzemeAdi, ODA_ISIK_SAYISI } from "./odaEsyalari.ts";
@@ -55,6 +55,8 @@ export interface OdaKurulumu {
   gunlukYuzey: Mesh;
   /** Masadaki ikinci monitör: yönetim terminali (Claude Code). */
   adminEkran: Mesh;
+  /** Masadaki 3. monitör: groma mimari haritası (docs/olcum/on-kayit-groma-monitoru-1.md). */
+  gromaEkran: Mesh;
   /** Zemin — raycast ve yer hizası için. */
   zemin: Mesh;
   /** Oyuncunun ışın testinde yok sayması gereken mesh'ler (cam, backdrop). */
@@ -313,6 +315,27 @@ export function odaKur(
     kutu("admin_taban", 0.24, 0.02, 0.14, ADMIN.x, MASA.ustYuzey + 0.01, ADMIN.z, mMetal);
   }
 
+  // ── [10d] Groma haritası — masadaki ÜÇÜNCÜ monitör (yönetim terminalinin aynası, sol) ──────────
+  // Ekranda groma'nın web haritası (localhost:4747) canlı görünür; Orion bunu kendi gözüyle de görür. İçeriği `uygulama/webMonitoru.ts` basar.
+  const gromaEkran = CreatePlane("groma_ekran", { width: GROMA.genislik, height: GROMA.yukseklik }, sahne);
+  {
+    gromaEkran.position.set(GROMA.x, GROMA.y, GROMA.z + 0.03);
+    gromaEkran.rotation.y = Math.PI + GROMA.aciY;
+    const mG = new StandardMaterial("m_groma", sahne);
+    mG.diffuseColor = new Color3(0.02, 0.03, 0.05);
+    mG.emissiveColor = new Color3(0.05, 0.10, 0.14);
+    mG.specularColor = Color3.Black();
+    mG.backFaceCulling = false;
+    gromaEkran.material = mG;
+    gromaEkran.metadata = { capa: "groma", yerTutucu: true };
+    meshler.push(gromaEkran);
+
+    const kasa = kutu("groma_kasa", GROMA.genislik + 0.05, GROMA.yukseklik + 0.05, 0.035, GROMA.x, GROMA.y, GROMA.z, mKoyu);
+    kasa.rotation.y = GROMA.aciY;
+    silindir("groma_boyun", 0.04, 0.16, GROMA.x, MASA.ustYuzey + 0.08, GROMA.z, mMetal);
+    kutu("groma_taban", 0.24, 0.02, 0.14, GROMA.x, MASA.ustYuzey + 0.01, GROMA.z, mMetal);
+  }
+
   // ═══════════════════════════════════════════════════════════════════════
   // YALNIZ KLASİK: kutu kabuk ve eşyalar (yeni kipte glb yüklenemezse de kurulur)
   // ═══════════════════════════════════════════════════════════════════════
@@ -449,7 +472,7 @@ export function odaKur(
   // ── [11] Statik dondurma ────────────────────────────────────────────────
   // Monitör ve tahta HARİÇ her şey dondurulur: onların malzemesi T3/T4
   // tarafından değişecek. Donmuş malzeme sonradan güncellenemez.
-  const donmaz = new Set<Mesh>([monitorEkran, tahtaYuzey, semaYuzey, gunlukYuzey, adminEkran]);
+  const donmaz = new Set<Mesh>([monitorEkran, tahtaYuzey, semaYuzey, gunlukYuzey, adminEkran, gromaEkran]);
   const dondur = (bas: number) => {
     for (const m of meshler.slice(bas)) {
       m.isPickable = true;
@@ -496,7 +519,7 @@ export function odaKur(
   }
 
   const kurulum: OdaKurulumu = {
-    meshler, monitorEkran, tahtaYuzey, semaYuzey, gunlukYuzey, adminEkran, zemin, seffaflar,
+    meshler, monitorEkran, tahtaYuzey, semaYuzey, gunlukYuzey, adminEkran, gromaEkran, zemin, seffaflar,
     kip, hazir: Promise.resolve(kip), kapi: null,
     pencereyiAc() { manzaraMesh?.setEnabled(false); for (const m of yagmurMeshleri) m.setEnabled(false); },
     pencereyiKapat() { manzaraMesh?.setEnabled(true); for (const m of yagmurMeshleri) m.setEnabled(true); },

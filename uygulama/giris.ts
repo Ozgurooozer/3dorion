@@ -86,6 +86,8 @@ import { GucButcesi, Inisiyatif, butceSatiri } from "../mind/inisiyatif.ts";
 import { inisiyatifTik } from "./inisiyatifBaglantisi.ts";
 import { ortamBaglantisiKur } from "./ortamBaglantisi.ts";
 import { doktorKur, doktorBaglamiBabylon } from "./doktor.ts";
+import { webMonitoruKur, type WebKopru } from "./webMonitoru.ts";
+import type { Kopru as KabukKoprusu } from "../host/kopru.ts";
 import { OrtamGunlugu, ogrenilenDeposu } from "./ortamDeposu.ts";
 import { OrtamSozlugu } from "../mind/ortamSozlugu.ts";
 import { sessizlikIzinliMi } from "../bridge/ozerkYetenek.ts";
@@ -487,9 +489,17 @@ function panoyuAl(): Pano | null { return panoKaydiGlobal; }
 const zoomKutu = document.getElementById("zoom") as HTMLElement;
 const zoomOran = document.getElementById("zoomOran") as HTMLElement;
 
+// 3. MONİTÖR (groma haritası): ana süreçteki ekran dışı pencere sayfayı yükler, kareler masadaki küçük monitörde görünür (uygulama/webMonitoru.ts).
+// `?gromasiz` kapatır. Groma sunucusu kapalıysa ekran bunu yazar ve açılınca kendiliğinden bağlanır.
+const webMonitoru = webMonitoruKur({
+  sahne, ekranMesh: oda.gromaEkran,
+  kopru: () => { const k = (globalThis as { kopru?: Partial<KabukKoprusu> }).kopru; return k?.webmonKomut && k.webmonDinle ? (k as WebKopru) : null; },
+});
+if (!new URLSearchParams(location.search).has("gromasiz")) void webMonitoru.baslat();
+
 // Odak/zoom kipi: monitöre ve panellere geçiş, zoom, odakta tıklama (uygulama/odak.ts).
 const odak = odakKur({
-  motor, sahne, rig, oda, monitor, adminTerminal, sema, gunluk, tuval, altyaziGoster,
+  motor, sahne, rig, oda, monitor, adminTerminal, sema, gunluk, tuval, altyaziGoster, webMonitoru,
   ozynCapalari: () => yerler.ozyn.capalar,
 });
 
@@ -697,6 +707,7 @@ const senaryoBaglami: SenaryoBaglami = {
   niyetiYurut, onayKarari, algiSor, monitoreGec: odak.monitoreGec, admineGec: odak.admineGec, panelOdak: odak.panelOdak, panoyuAl, zoomUygula: odak.zoomUygula, sonGorme,
   gozModeli: () => gozModeli.model,
   doktor,
+  webMonitoru,
 };
 for (const ad of istenenSenaryolar(location.search)) {
   void import(`./senaryolar/${ad}.ts`)

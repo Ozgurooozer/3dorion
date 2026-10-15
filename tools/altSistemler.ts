@@ -127,7 +127,7 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
     yollar: ["world/surfaces/", "world/arayuz/"],
     // Alt klasörler (B4, 2026-10-14): terminal/ (monitör + xterm/pty, çıktı ayrıştırma), tahta/,
     // duvar/ (zihin duvarı: şema, günlük, hafıza bulutu); ortak altyapı (yuzey, yuzeyStil) kökte.
-    kamu: ["world/surfaces/yuzey.ts", "world/surfaces/terminal/monitor.ts", "world/surfaces/tahta/tahta.ts",
+    kamu: ["world/surfaces/yuzey.ts", "world/surfaces/web/webEkrani.ts", "world/surfaces/terminal/monitor.ts", "world/surfaces/tahta/tahta.ts",
       "world/surfaces/duvar/sema.ts", "world/surfaces/duvar/gunluk.ts", "world/surfaces/duvar/hafizaBulutu.ts",
       // Monitör çıktısını algıya çeviren saf ayrıştırıcılar: uygulama/terminalAlgisi.ts kullanır (giris bölme B1).
       "world/surfaces/terminal/ciktiFarki.ts", "world/surfaces/terminal/ciktiToplayici.ts",

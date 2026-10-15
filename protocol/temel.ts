@@ -44,6 +44,8 @@ export const CAPALAR = [
   // Zihin duvarı (sağ duvar): Orion'un kendi işleyişini gösteren yüzeyler.
   // Orion oraya YÜRÜYEBİLİR — kendi durumuna bakmak bir eylemdir.
   "sema", "gunluk", "admin",
+  // Masadaki 3. monitör: groma mimari haritası (Ozyn, 2026-10-15; docs/olcum/on-kayit-groma-monitoru-1.md). Küçük monitörün aynası, sol tarafta.
+  "groma",
 ] as const;
 
 /**
@@ -62,7 +64,7 @@ export type CapaAdi = (typeof CAPALAR)[number];
 export const CAPA_ETIKETLERI: Readonly<Record<CapaAdi, string>> = {
   masa: "çalışma masası", sandalye: "sandalye", tahta: "beyaz tahta", pencere: "pencere", kapi: "kapı",
   oda_ortasi: "odanın ortası", monitor: "monitör", sema: "beyin şeması", gunluk: "beyin günlüğü",
-  admin: "yönetim terminali",
+  admin: "yönetim terminali", groma: "groma haritası",
 };
 
 /**

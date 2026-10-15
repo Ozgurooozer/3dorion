@@ -129,6 +129,18 @@ export const ADMIN = {
   aciY: -0.42,
 } as const;
 
+/**
+ * Masadaki 3. monitör: groma mimari haritası (`docs/olcum/on-kayit-groma-monitoru-1.md`). Yönetim terminalinin AYNASI: sol tarafta, aynı boy ve yükseklik,
+ * Ozyn'e doğru içe dönük (işaret ters).
+ */
+export const GROMA = {
+  x: -ADMIN.x,
+  y: ADMIN.y,
+  z: ADMIN.z,
+  genislik: ADMIN.genislik, yukseklik: ADMIN.yukseklik,
+  aciY: -ADMIN.aciY,
+} as const;
+
 // ── DEKOR ENGELLERİ (spec 11, Blender odası) ──────────────────────────────
 //
 // Blender odasının büyük eşyaları da yürüme engelidir; konumları burada yaşar ve
@@ -282,4 +294,6 @@ export const KATI_YUZEYLER: readonly KatiYuzey[] = [
   // Yönetim terminali — masadaki ikinci monitör. Açılı duruyor ama ışın ikizi
   // AABB: birkaç derecelik dönüş için ayrı bir dönük kutu testi yazmaya değmez.
   { capa: "admin", kutu: { x: ADMIN.x, y: ADMIN.y, z: ADMIN.z, g: ADMIN.genislik, yuk: ADMIN.yukseklik, d: 0.06 } },
+  // Groma haritası monitörü (3.): yönetim terminalinin aynası.
+  { capa: "groma", kutu: { x: GROMA.x, y: GROMA.y, z: GROMA.z, g: GROMA.genislik, yuk: GROMA.yukseklik, d: 0.06 } },
 ] as const;
