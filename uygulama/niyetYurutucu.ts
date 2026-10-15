@@ -69,6 +69,12 @@ export interface YurutucuBaglami {
     /** Kare + algı metni → betim. Fırlatabilir (model yok, zaman aşımı, boş cevap). */
     gor(png: string, algi: string): Promise<string>;
   };
+  /**
+   * GÖZ MUAYENESİ (`uygulama/gozlem.ts`, Ozyn 2026-10-15): verilirse `sor gor` BU yoldan gider: düz Türkçe görme sorgusu (rol/algı/sohbet YOK), iki yönlü sıra
+   * (beyin düşünürken bekler; bakarken beyin yeni tur başlatmaz), panelde önizleme + cevap. Döngü: söz/araç → bakış → `gordum` algısı → beyin cevaplar.
+   * Verilmezse eski `goz` yolu (algılı, İngilizce betim) çalışır.
+   */
+  gozlem?: { bak(): Promise<{ metin: string } | null>; sonHata(): string | null };
 }
 
 /** Son görmenin kaydı: canlı ölçüm (`gozdene`, spec 25 §7) ve günlük için. */
@@ -240,10 +246,16 @@ export function niyetYurutucusuKur(b: YurutucuBaglami): NiyetYurutucu {
     let metin: string;
     let hata: string | undefined;
     try {
-      if (!b.goz) throw new Error("gözün bağlı değil");
-      const png = await b.goz.kare();
-      if (!png) throw new Error("bedenin hazır değil");
-      metin = await b.goz.gor(png, algi);
+      if (b.gozlem) {
+        const k = await b.gozlem.bak();
+        if (!k) throw new Error(b.gozlem.sonHata() ?? "göz muayenesi cevap vermedi");
+        metin = k.metin;
+      } else {
+        if (!b.goz) throw new Error("gözün bağlı değil");
+        const png = await b.goz.kare();
+        if (!png) throw new Error("bedenin hazır değil");
+        metin = await b.goz.gor(png, algi);
+      }
     } catch (e) {
       hata = (e as Error).message;
       metin = `Your eyes are not working right now (${hata}). Your perception: ${algi}`;

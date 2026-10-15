@@ -342,6 +342,8 @@ const doktor = doktorKur(doktorBaglamiBabylon(sahne, motor, ortamBaglantisi, () 
 const { niyetiYurut, bedenAdimi, sonGorme } = niyetYurutucusuKur({
   ortam: ortamBaglantisi,
   doktor,
+  // `sor gor` göz muayenesi yolundan (düz sorgu, iki yönlü sıra, panel): `gozlem` aşağıda kurulur, burada tembel sarmalayıcı.
+  gozlem: { bak: () => gozlem.bak(), sonHata: () => gozlem.sonHata() },
   beden: () => orion,
   kopru: () => kopru,
   tahta, monitor, onayKapisi, sema, gunluk, algiSor,

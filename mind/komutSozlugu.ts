@@ -23,6 +23,7 @@ import type { Niyet } from "../protocol/niyet.ts";
 import { capaCoz, katla, type CapaAdi } from "../protocol/temel.ts";
 import { ortamCoz } from "./ortamKomutlari.ts";
 import { doktorCoz } from "./doktorKomutlari.ts";
+import { gozCoz } from "./gozKomutlari.ts";
 
 export interface KomutEslesmesi {
   /** Programın adı, kayıt için: `komut:otur`, `komut:git`, … */
@@ -291,5 +292,5 @@ export function komutCoz(soz: string, secenek: KomutSecenegi = {}): KomutEslesme
   if (PENCEREDEN_BAK.test(s)) return bakCapa("pencere");
   // Ortam ailesi (mind/ortamKomutlari.ts) EN SONDA: yer/çapa kalıpları önce denenir, ortam yalnız onlara uymayan sözü alır.
   // Doktor ailesi (mind/doktorKomutlari.ts) ortamdan SONRA: ortam kalıpları ("gece yap") önce denenir; doktor kalıpları dar ve ayrıktır.
-  return komutCozIng(s) ?? (secenek.ortam === false ? null : ortamCoz(s)) ?? doktorCoz(s);
+  return komutCozIng(s) ?? (secenek.ortam === false ? null : ortamCoz(s)) ?? doktorCoz(s) ?? gozCoz(s);
 }

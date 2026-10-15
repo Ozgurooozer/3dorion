@@ -33,6 +33,8 @@ function sahneKur(ayar: {
   ortam?: (k: Extract<Niyet, { tur: "ortam" }>) => { ok: boolean; not: string };
   /** Görme (spec 25 Faz 2): verilirse göz bağlı; `gor` modelin cevabı ya da fırlattığı. */
   goz?: { kare?: string | null; gor: (png: string, algi: string) => Promise<string> };
+  /** Göz muayenesi yolu (uygulama/gozlem.ts): verilirse `sor gor` BURADAN gider; `metin` yoksa bakış null döner ve `hata` nedeni söyler. */
+  gozlem?: { metin?: string; hata?: string };
 } = {}) {
   const kayit = {
     bedeneGiden: [] as { n: Niyet; id: string }[],
@@ -44,6 +46,7 @@ function sahneKur(ayar: {
     otomatikOnay: 0,
     gordumBildirildi: 0,
     gozeGiden: [] as { png: string; algi: string }[],
+    gozlemBakis: 0,
     ortamGelen: [] as Extract<Niyet, { tur: "ortam" }>[],
   };
   let konum = ayar.konum ?? TAHTA_ONU;
@@ -84,6 +87,10 @@ function sahneKur(ayar: {
     gordumBildir: () => { kayit.gordumBildirildi++; },
     ...(ayar.ortam ? { ortam: { uygula: (k) => { kayit.ortamGelen.push(k); return ayar.ortam!(k); } } } : {}),
     ...(ayar.capalar ? { orionCapalari: () => ayar.capalar! } : {}),
+    ...(ayar.gozlem ? { gozlem: {
+      bak: async () => { kayit.gozlemBakis++; return ayar.gozlem!.metin ? { metin: ayar.gozlem!.metin } : null; },
+      sonHata: () => ayar.gozlem!.hata ?? null,
+    } } : {}),
     ...(ayar.goz ? { goz: {
       kare: async () => (ayar.goz!.kare === undefined ? "UE5H" : ayar.goz!.kare),
       gor: (png: string, algi: string) => { kayit.gozeGiden.push({ png, algi }); return ayar.goz!.gor(png, algi); },
@@ -341,4 +348,31 @@ test("ortam: bağlantı yoksa 'bitti' denmez, hata döner", () => {
   y.niyetiYurut({ tur: "ortam", ne: "isik", deger: "kis" }, "n1");
   assert.equal(kayit.kopruSonuc[0]?.durum, "hata");
   assert.equal(kayit.bedeneGiden.length, 0);
+});
+
+// ── Göz muayenesi yolu (Ozyn, 2026-10-15): "gözünle bak" döngüde bu yoldan; düz sorgu, algı/rol modele GİTMEZ ──
+test("gözlem verilirse sor gor ESKİ yoldan değil göz muayenesinden gider (eski goz çağrılmaz)", async () => {
+  const { kayit, y } = sahneKur({ goz: GOREN, gozlem: { metin: "Loş bir oda; beyaz tahta parlıyor." } });
+  y.niyetiYurut({ tur: "sor", ne: "gor" }, "n1");
+  await bekleBiraz();
+  assert.equal(kayit.gozlemBakis, 1);
+  assert.deepEqual(kayit.gozeGiden, [], "eski, algılı/rollü görme yolu çağrılmamalı");
+});
+
+test("göz muayenesinin cevabı beyne `gordum` olarak girer ve niyet `bitti` ile kapanır", async () => {
+  const { kayit, y } = sahneKur({ gozlem: { metin: "Loş bir oda; beyaz tahta parlıyor." } });
+  y.niyetiYurut({ tur: "sor", ne: "gor" }, "n1");
+  await bekleBiraz();
+  assert.deepEqual(kayit.kopruAlgi, [{ tur: "gordum", ne: "gor", metin: "Loş bir oda; beyaz tahta parlıyor." }]);
+  assert.deepEqual(kayit.kopruSonuc.map((s) => [s.niyet_id, s.durum]), [["n1", "bitti"]]);
+  assert.equal(kayit.gordumBildirildi, 1);
+});
+
+test("göz muayenesi null dönerse sonHata nedeni hata olarak söylenir; beyin dürüst metin alır", async () => {
+  const { kayit, y } = sahneKur({ gozlem: { hata: "görme modeli 30 sn içinde cevap vermedi" } });
+  y.niyetiYurut({ tur: "sor", ne: "gor" }, "n1");
+  await bekleBiraz();
+  assert.equal(kayit.kopruSonuc[0]?.durum, "hata");
+  assert.match(kayit.kopruSonuc[0]?.not ?? "", /30 sn içinde cevap vermedi/);
+  assert.match(algiMetni(kayit.kopruAlgi[0]) ?? "", /Your eyes are not working right now \(görme modeli 30 sn/);
 });

@@ -53,6 +53,8 @@ export interface Gozlem {
   /** Muayene sürüyor mu (beyin başlamasın diye köprünün kapısı bunu okur). */
   suruyor(): boolean;
   son(): GozlemKaydi | null;
+  /** Son bakışın hata nedeni (başarıda null). Döngüdeki çağıran (`sor gor`) beyne dürüst neden verebilsin diye. */
+  sonHata(): string | null;
 }
 
 export function gozlemKur(b: GozlemBagi): Gozlem {
@@ -61,25 +63,30 @@ export function gozlemKur(b: GozlemBagi): Gozlem {
   const tavan = b.siraTavaniMs ?? 90_000;
   let calisiyor = false;
   let sonKayit: GozlemKaydi | null = null;
+  let sonHataMetni: string | null = null;
+  // Her hata hem panele hem `sonHata`ya yazılır (tek yer).
+  const hataYaz = (m: string) => { sonHataMetni = m; b.panel.hata(m); };
 
   return {
     suruyor: () => calisiyor,
     son: () => sonKayit,
+    sonHata: () => sonHataMetni,
     async bak() {
       if (calisiyor) { b.panel.ac(); b.panel.durum("zaten bakıyorum, bitince cevap burada görünür"); return null; }
       calisiyor = true;
+      sonHataMetni = null;
       try {
         b.panel.ac();
         b.panel.durum("kare çekiliyor…");
         let kare: GozlemKaresi | null;
-        try { kare = await b.kare(); } catch (err) { b.panel.hata(`kare çekilemedi: ${err instanceof Error ? err.message : String(err)}`); return null; }
-        if (!kare) { b.panel.hata("Orion'un bedeni yok (kare alınamadı)"); return null; }
+        try { kare = await b.kare(); } catch (err) { hataYaz(`kare çekilemedi: ${err instanceof Error ? err.message : String(err)}`); return null; }
+        if (!kare) { hataYaz("Orion'un bedeni yok (kare alınamadı)"); return null; }
         b.panel.onizleme(`data:image/png;base64,${kare.png}`, kare.en, kare.boy);
 
         // Sıra: beyin düşünüyorsa bekle. `calisiyor` zaten doğru: beyin kapısı kapalı, yeni tur başlamaz; yalnız süren tur bitmeli.
         const t0 = simdi();
         while (b.beyinMesgul()) {
-          if (simdi() - t0 > tavan) { b.panel.hata(`beyin ${Math.round(tavan / 1000)} sn içinde boşalmadı; göz muayenesi vazgeçti (tekrar dene)`); return null; }
+          if (simdi() - t0 > tavan) { hataYaz(`beyin ${Math.round(tavan / 1000)} sn içinde boşalmadı; göz muayenesi vazgeçti (tekrar dene)`); return null; }
           b.panel.durum("beyin düşünüyor, sıra bekleniyor…");
           await bekle(300);
         }
@@ -87,7 +94,7 @@ export function gozlemKur(b: GozlemBagi): Gozlem {
         b.panel.durum(`${b.model.model} bakıyor…`);
         const t1 = simdi();
         let metin: string;
-        try { metin = await b.model.incele(kare.png); } catch (err) { b.panel.hata(err instanceof Error ? err.message : String(err)); return null; }
+        try { metin = await b.model.incele(kare.png); } catch (err) { hataYaz(err instanceof Error ? err.message : String(err)); return null; }
         const kayit: GozlemKaydi = { metin, model: b.model.model, ms: simdi() - t1, en: kare.en, boy: kare.boy, png: kare.png, an: simdi() };
         sonKayit = kayit;
         b.panel.cevap(metin, kayit.model, kayit.ms);
