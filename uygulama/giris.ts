@@ -14,7 +14,14 @@
 // K4 VE BU DOSYA: `world/` ALTINDAKİ MODÜLLER `bridge/`, `mind/`, `voice/`
 // import edemez — kural onlar için. Burası birleştirme noktasıdır (composition
 // root): katmanları BİRBİRİNE BAĞLAYAN tek yer burasıdır, bu yüzden voice/ ve
-// avatar/ buradan görülür. Kural gevşetilmedi; bağlama işi tek dosyaya hapsedildi.
+// avatar/ buradan görülür. Kural gevşetilmedi; bağlama işi uygulama/ katmanına hapsedildi.
+//
+// BÖLME (mimari düzenleme B1–B2, 2026-10-15): giris.ts kompozisyon kökü KALDI (Vite giriş noktası, kurulum SIRASI
+// burada); bölümler uygulama/ altına taşındı. Her fabrika eski yerinde çağrılır; sonradan atananlar (orion, kopru …)
+// getter ile okunur (bkz. senaryoBaglami.ts'teki desen). Taşınanlar:
+//   hafizaDeposu.ts · devrePanosu.ts · terminalAlgisi.ts · odak.ts · yerGecisi.ts · onayBaglantisi.ts
+//   algiBaglantisi.ts · varlikSinyali.ts · dunyaDurumu.ts · hud.ts · dunyaKancasi.ts · kopruKur.ts
+//   kopruDinleyicileri.ts · mikrofon.ts · mcpBaglantisi.ts · sohbetKutusu.ts · orionSesi.ts · altyazi.ts · dumanTesti.ts
 "use strict";
 import { Engine } from "@babylonjs/core/Engines/engine";
 import { Scene } from "@babylonjs/core/scene";
@@ -204,9 +211,7 @@ void avatarKur({
   beyniBagla(a);
 }).catch((e) => console.error("[ORION] avatar kurulamadı:", e));
 
-// ── KAPIDAN OVAYA (spec 24) ────────────────────────────────────────────────
-// Ofisin kapısının öbür yanı ova level'ı. Geçişte oda gizlenir, ova AYNI sahneye kurulur (world/yer/levelSahnesi.ts);
-// dönüşte ova yıkılır, oda birebir geri gelir. Ozyn ve Orion birlikte geçer; Orion'un kendi başına çıkması C6.
+// ── Orion'un gözü (kapı/yer geçişi: uygulama/yerGecisi.ts) ──
 // Orion'un gözü (spec 25): `sor gor` (GÖRME, Faz 2) ve ölçüm yüzeyi `dunya.orionGozu` aynı kareyi çeker.
 const orionGozu = orionGozuKur(sahne);
 // Görme modeli: `?goz=<ollama modeli>` (varsayılan gemma4:e4b), `?ollama=` beyinle aynı adres. Yalnız istenince bakar.
