@@ -63,7 +63,12 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
       "world/yer/odaYeri.ts", "world/yer/levelSahnesi.ts", "world/yer/levelYeri.ts",
       // Saf algı yardımcıları: görüş ışını ve nesne görünürlüğü. Algı hizmetinin dünya bağı (uygulama/algiBaglantisi.ts)
       // ve avatarın göz kodu kullanır (giris bölme B1).
-      "world/player/isinTarama.ts", "world/player/gorunurluk.ts"],
+      "world/player/isinTarama.ts", "world/player/gorunurluk.ts",
+      // Çapa konumu hesabı (saf geometri): konsol deneme yüzeyi (uygulama/dunyaKancasi.ts) kullanır (giris bölme B1).
+      "world/level/capaGeometri.ts",
+      // Etkileşim olay yayıcısı (EtkilesimOlaylari): oyuncu, kapı/yüzey geçişi ve HUD ipucu bununla konuşur;
+      // uygulama katmanı ve senaryolar abone olur (giris bölme B1).
+      "world/player/etkilesim.ts"],
     izinli: ["Protokol", "Level"], urun: true,
   },
   {
@@ -213,11 +218,8 @@ export const ISTISNALAR: Readonly<Record<string, string>> = {
   "uygulama/pencereKancalari.ts → world/davranisDenemesi.ts": KOK,
   "uygulama/senaryolar/davranis.ts → world/davranisDenemesi.ts": KOK,
   "uygulama/senaryolar/ortamdene.ts → world/level/stil/stilTanimi.ts": KOK,
-  "uygulama/senaryolar/otodene.ts → world/player/etkilesim.ts": KOK,
   "uygulama/senaryolar/zihindene.ts → world/surfaces/duvar/semaCekirdek.ts": KOK,
   "uygulama/giris.ts → world/davranisDenemesi.ts": KOK,
-  "uygulama/giris.ts → world/level/capaGeometri.ts": KOK,
-  "uygulama/giris.ts → world/player/etkilesim.ts": KOK,
   "world/level/cekirdek/anlam.ts → world/level/nesneKaydi.ts": NESNE_TIPI,
   "world/level/editor/arayuz/orionGozu.ts → world/player/gorunurluk.ts": ORION_GOZU,
   "world/level/ofisYeri.ts → world/level/cekirdek/arazi.ts": SAHNE_LEVEL,
