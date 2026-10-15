@@ -110,3 +110,15 @@ Bırakıldığı yer:
 
 ## Güvenlik
 - `OPENCODE_SERVER_PASSWORD` ayarlı değil (kod hazır; sunucu localhost'ta şifresiz).
+
+## 2026-10-15 oturum sonu: açık işler özeti
+**Ozyn'dan bekleyen (karar/doğrulama):**
+- 24 yerel commit push bekliyor (`brain-ir-v02-event-memory`); onay yok, push yapılmadı.
+- **Mikrofon (Türkçe, Whisper base):** gerçek mikrofonda çalıştığı söylendi; yanlış tanınan sözler toplanmadı (`docs/olcum/on-kayit-stt-turkce-1.md` canlı kapı: sonuç satırı yazılmadı). İki dil geçiş tuşu, akışlı (sesli yazma gibi) tanıma açık. Disk: `small`/`tiny` önbellekte (≈1 GB), C: %95 dolu.
+- **GI/ekran bozulması düzeltmesi** (`cb17fde`, RSM hedefi parçacık çizmesin) Ozyn'in ekranında yeniden denenmedi; `3dorion.bat efektdene` yazıldı ama TAM KOŞUSU yapılmadı (ilk koşu açık).
+- `ova.level.json` + `cekirdek/{anlam,katalog,nesneSistemi}.ts` commit dışı değişiklikleri Ozyn'in mi? Cevap: B5'i (ofis dosyalarını `world/oda/`ya taşıma) ve kırmızı testi ("ova bütün yerleşimleri dönüşsüz") çözer.
+- Varsayılan beyin yerel `gemma4:e4b` oldu (Haiku değil, Ozyn'in isteği): ölçülmedi, eski Haiku kararı (28 Eylül) ölçümle alınmıştı. Geri dönüş: `uygulama/beyinSecimi.ts` `VARSAYILAN_BEYIN`.
+**Hafıza / Markov planı** (`docs/olcum/on-kayit-markov-hafiza-{1,2}.md`): aşama 1–2 BİTTİ (kural motoru, duvarda kurallar görünümü). AÇIK: aşama 3 (kural değişkenini panelden düzenleme: tehlikeli teyit + yedek + etki önizlemesi), aşama 4 (anı düzenleme), canlı tetiklenme sayacı, getirme/yönlendirici ve refleks/komut sözlüğünün aynı biçime taşınması, sonra level için ızgara/kural üretimi. Duvarda 59 sözün yazım hatalıları "Unut…" ile elle temizlenecek (kural ölçümü yetmedi: `on-kayit-hafiza-yazim-hatasi.md`).
+**Işık:** otomatik dinamik GI RAFTA (Işık Hacmi spike 1 olumsuz/koşullu, `?gi=hacim` kapalı; `on-kayit-gi-spike-1.md`). Şikâyet açık: dışarısı aydınlık, oda içi karanlık, pencere/açık kapıdan ışık girmiyor (ara çözüm adayı: elle işaretli pencere/kapı ışığı). Shader memnuniyetsizliği, kontur, gökyüzü bantları, sokak lambası ön planı bastırıyor.
+**Mimari:** B1–B2 YAPILDI (giris.ts 2075 → 700, ISTISNALAR 60 → 35). Kalan: B5, kalan 35 kenar (çoğu Editör→Level, Sahne→Level), `beyniBagla` giris'te. B1–B2 canlıda yalnız dört kapıdan (kapidene, zihindene) geçti.
+**Araç/altyapı:** Ollama bu sürümde yetim `llama-server` bırakıp ekran belleği tutuyor (not: hafıza `reference-ollama-yetim-runner`); temizleme betiği yok. `zihindene ?modelsiz=1` modeli yüklemeden koşar. Test penceresi kapatılırsa duman koşusu sessizce biter. Groma: `C:\Users\ozigo\groma-deneme\canli-takip.ps1` 3 dakikada bir tarıyor (jeton harcamaz), yeni dosyalar elle gruplanır; durdurma komutu betik başında. Commit'siz belgeler: `docs/arastirma/*` (5), `docs/olcum/f0-ozerk3-acikis-yeni-dis.jsonl`, `f3-getirme.json`.
