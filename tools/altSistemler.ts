@@ -55,7 +55,9 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
     yollar: ["world/engine/", "world/player/", "world/yer/", "world/*", "world/level/*"],
     kamu: ["world/engine/tik.ts", "world/engine/kamera.ts", "world/player/oyuncu.ts",
       "world/yer/yer.ts", "world/yer/birlesikYer.ts", "world/yer/birlesikDunya.ts",
-      "world/level/oda.ts", "world/level/olculer.ts", "world/level/capalar.ts", "world/level/nesneKaydi.ts"],
+      "world/level/oda.ts", "world/level/olculer.ts", "world/level/capalar.ts", "world/level/nesneKaydi.ts",
+      // Dünya olayı üretici (yakınlık/bakış geçişleri → algı olayı): kompozisyon kökü tik başına çağırır (giris bölme B1).
+      "world/olayUretici.ts"],
     izinli: ["Protokol", "Level"], urun: true,
   },
   {
@@ -98,6 +100,8 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
     // duvar/ (zihin duvarı: şema, günlük, hafıza bulutu); ortak altyapı (yuzey, yuzeyStil) kökte.
     kamu: ["world/surfaces/yuzey.ts", "world/surfaces/terminal/monitor.ts", "world/surfaces/tahta/tahta.ts",
       "world/surfaces/duvar/sema.ts", "world/surfaces/duvar/gunluk.ts", "world/surfaces/duvar/hafizaBulutu.ts",
+      // Monitör çıktısını algıya çeviren saf ayrıştırıcılar: uygulama/terminalAlgisi.ts kullanır (giris bölme B1).
+      "world/surfaces/terminal/ciktiFarki.ts", "world/surfaces/terminal/ciktiToplayici.ts",
       "world/arayuz/modelSecici.ts", "world/arayuz/stilPenceresi.ts"],
     izinli: ["Protokol", "Level", "Editör"], tipIzinli: ["Kabuk"], urun: true,
   },
@@ -208,12 +212,9 @@ export const ISTISNALAR: Readonly<Record<string, string>> = {
   "uygulama/giris.ts → world/davranisDenemesi.ts": KOK,
   "uygulama/giris.ts → world/level/capaGeometri.ts": KOK,
   "uygulama/giris.ts → world/level/ova/ova.level.json": KOK,
-  "uygulama/giris.ts → world/olayUretici.ts": KOK,
   "uygulama/giris.ts → world/player/etkilesim.ts": KOK,
   "uygulama/giris.ts → world/player/gorunurluk.ts": KOK,
   "uygulama/giris.ts → world/player/isinTarama.ts": KOK,
-  "uygulama/giris.ts → world/surfaces/terminal/ciktiFarki.ts": KOK,
-  "uygulama/giris.ts → world/surfaces/terminal/ciktiToplayici.ts": KOK,
   "uygulama/giris.ts → world/yer/levelSahnesi.ts": KOK,
   "uygulama/giris.ts → world/yer/levelYeri.ts": KOK,
   "uygulama/giris.ts → world/yer/odaYeri.ts": KOK,
