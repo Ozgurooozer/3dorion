@@ -49,8 +49,8 @@ export interface Kopru {
   hafizaYaz(kayitlar: unknown[]): void;
   /** Göç için: sonuç bilinmeden "taşındı" denemez. */
   hafizaYazSenkron(kayitlar: unknown[]): boolean;
-  /** Sıkıştırma öncesi tarih damgalı yedek; yazıldıysa true. */
-  hafizaYedekYaz(kayitlar: unknown[]): boolean;
+  /** Tarih damgalı yedek; yazıldıysa true. Varsayılan: sıkıştırma/göç yedeği (son 5). `"unut"`: duvardan elle silme yedeği, ayrı önek (son 100). */
+  hafizaYedekYaz(kayitlar: unknown[], tur?: "unut"): boolean;
   /** MCP rölesi: main'deki HTTP ucuna gelen `tools/list` / `tools/call`. */
   mcpDinle(cb: (istek: { id: number; yontem: string; param: unknown }) => void): () => void;
   mcpYanitla(id: number, sonuc: unknown, hata?: string): void;

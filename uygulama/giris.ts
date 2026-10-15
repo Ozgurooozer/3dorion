@@ -529,9 +529,11 @@ function hafizaYedegiKur(): { hafizaYedegi?: { yaz(aniler: unknown[]): void } } 
 
 /** Elle unutma teli (duvardaki "Unut…"): host dosya yedeği yoksa HİÇ verilmez, düğme kurulmaz (yedeksiz silme yok). */
 function hafizaUnutTeli(kopru: { hafizaKaydetHemen(): void }): { unut?: { yedekle(aniler: unknown[]): void; kaydet(): void } } {
-  const yedek = hafizaYedegiKur().hafizaYedegi;
-  if (!yedek) return {};
-  return { unut: { yedekle: (aniler) => yedek.yaz(aniler), kaydet: () => kopru.hafizaKaydetHemen() } };
+  const k = (globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru;
+  const yaz = k?.hafizaYedekYaz?.bind(k);
+  if (!yaz) return {};
+  // "unut" türü: ayrı önek ve 100 yedek sınırı; arka arkaya silmeler sıkıştırma yedeklerini (son 5) döndürüp atmasın.
+  return { unut: { yedekle: (aniler) => { if (!yaz(aniler, "unut")) throw new Error("unut yedeği yazılamadı"); }, kaydet: () => kopru.hafizaKaydetHemen() } };
 }
 
 function hafizaDeposuKur(): { oku(): unknown[]; yaz(aniler: unknown[]): void } {
