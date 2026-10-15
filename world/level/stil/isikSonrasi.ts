@@ -21,6 +21,7 @@ import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { Color3, Color4 } from "@babylonjs/core/Maths/math.color";
 import { DirectionalLight } from "@babylonjs/core/Lights/directionalLight";
+import type { MultiRenderTarget } from "@babylonjs/core/Materials/Textures/multiRenderTarget";
 import { ImageProcessingConfiguration } from "@babylonjs/core/Materials/imageProcessingConfiguration";
 import { ColorCurves } from "@babylonjs/core/Materials/colorCurves";
 import { DefaultRenderingPipeline } from "@babylonjs/core/PostProcesses/RenderPipeline/Pipelines/defaultRenderingPipeline";
@@ -150,6 +151,13 @@ export function sonKur(sahne: Scene, kamera: Camera, e: SonStili, ornekleme: num
     // her karede: katmanlar yeniden kurulabilir. Yeni malzemeler de GI eklentisini almalı.
     const liste = sahne.onBeforeRenderObservable.add(() => {
       if (!gi) return;
+      // RSM'in 3 çıkışlı hedefi (konum/normal/akı) PARÇACIK sistemlerini de çizer: Babylon bunu geometri tamponunda, derinlik
+      // hedefinde ve IBL gölgesinde kapatıyor, ReflectiveShadowMap'te UNUTMUŞ (kaynakta `renderParticles = false` yok). Parçacık tek çıkışlı
+      // shader'la 3 çıkışlı hedefe çizilince her karede `glDrawArraysInstanced: Active draw buffers with missing fragment shader outputs`
+      // (ölçüldü: gündüz, dışarıda, GI açılınca 256+ hata; ekran bozuldu, Orion ve ofis duvarları kayboldu — 2026-10-15). Hedef boyut
+      // değişince yeniden kurulur (`_mrt` yenilenir), o yüzden bayrak her karede yazılır (iki özellik atama, ucuz).
+      const rsmHedef = Reflect.get(gi.rsm, "_mrt") as MultiRenderTarget | undefined;
+      if (rsmHedef) { rsmHedef.renderParticles = false; rsmHedef.renderSprites = false; }
       if (++kare % 30 === 0) giyeEkle();   // katman/nesne yeniden kurulunca yeni mesh ve malzemeler
       const k = kamera.globalPosition, a = gi.alan;
       gi.yon.direction = gunesYonu.scale(-1);

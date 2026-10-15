@@ -87,6 +87,11 @@ yerine geçer — dokunmadan önce oku. Farklar: kod/yorum/commit İngilizce, ra
   ve sayıları spec'lerde (`tools/eylem-olc.ts`, `tools/sadakat-olc.ts`, `tools/baglam-ozet.ts`…). Değiştirmeden
   önce ölçüm aracını bul.
 - **Çıkış kodu karar verir,** çıktı metninde anahtar kelime aramaz (kabuk bu yüzden PowerShell; OSC 133).
+- **Işık/efekt zinciri (`world/level/stil/`) çalışma anında doğrulanır.** Efektler açılışta kurulunca duman koşuları (kapidene, zihindene) görmez:
+  `3dorion.bat efektdene` her efekti ve önayarı ÇALIŞMA ANINDA açıp kapatır (gündüz/gece, ova/ofis), WebGL hatası (`gl.getError`) ve
+  görünmezlik (`mesh.isReady`) sayar; tek KALDI kırmızıdır. Çok çıkışlı hedefe (MRT: `ReflectiveShadowMap`, `MultiRenderTarget`) çizen her
+  yapı `renderParticles = false` yapmalı (bekçi: `world/level/stil/mrtParcacik.test.ts`; olay: GI açılınca parçacıklar MRT'ye çizilip ekran
+  bozuldu, 2026-10-15). Konsolda `GL_INVALID_OPERATION` görmek "önemsiz uyarı" değil hatadır.
 - **Kopya kod: kural değil bekçi.** İkinci kopya bulunca birini sil, ötekinden türet, ayrıştıklarında kırılan bir
   test ekle (`docs/olcum-ponytail.md`). Bir sabiti/metni değiştirmeden önce bütün kullanıcılarını grep'le.
 - Yoğun Türkçe "neden" yorumları ürünün parçasıdır; inceltme.

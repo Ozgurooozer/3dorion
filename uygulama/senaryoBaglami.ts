@@ -97,7 +97,7 @@ export const SENARYOLAR = [
   "terminaldene", "otodene", "gorudene", "sessizdene", "davranis", "tezdene", "gordene", "admindene",
   "zihindene", "onaydene", "tahtabeyin", "becerdene", "bakdene", "acidene", "saglobdene",
   "senaryodene", "eylemdene", "benlikdene", "apidene", "tahtadene", "hafizadene", "yuzdene", "baglamdene", "takipdene",
-  "kapidene", "gozdene", "ovadene", "ortamdene", "gidene",
+  "kapidene", "gozdene", "ovadene", "ortamdene", "gidene", "efektdene",
 ] as const;
 export type SenaryoAdi = (typeof SENARYOLAR)[number];
 

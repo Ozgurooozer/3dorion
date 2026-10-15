@@ -144,6 +144,7 @@ function pencereAc() {
   if (process.env.ORION_OVADENE === "1") parcalar.push("ovadene=1", "sessiz=1", "komut=1");
   // Ortam aracı (sözlük + LLM + öğrenme + kalıcılık): doğuştan komutlar açık (komut=1), ses kapalı.
   if (process.env.ORION_ORTAMDENE === "1") parcalar.push("ortamdene=1", "sessiz=1", "komut=1");
+  if (process.env.ORION_EFEKTDENE === "1") parcalar.push("efektdene=1", "sessiz=1", "komut=1");
   // Spec 25 Faz 2: görme. `ORION_GOZ` görme modelini seçer (varsayılan bridge/goz.ts'te).
   if (process.env.ORION_GOZDENE === "1") parcalar.push("gozdene=1", "sessiz=1");
   if (process.env.ORION_GOZ) parcalar.push(`goz=${encodeURIComponent(process.env.ORION_GOZ)}`);
