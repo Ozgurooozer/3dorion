@@ -60,7 +60,10 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
       "world/olayUretici.ts",
       // Yer gerçeklemeleri: hangi yerin kurulacağına kompozisyon kökü (uygulama/yerGecisi.ts) karar verir;
       // avatar da ofis Yer'ini varsayılan olarak alır (giris bölme B1).
-      "world/yer/odaYeri.ts", "world/yer/levelSahnesi.ts", "world/yer/levelYeri.ts"],
+      "world/yer/odaYeri.ts", "world/yer/levelSahnesi.ts", "world/yer/levelYeri.ts",
+      // Saf algı yardımcıları: görüş ışını ve nesne görünürlüğü. Algı hizmetinin dünya bağı (uygulama/algiBaglantisi.ts)
+      // ve avatarın göz kodu kullanır (giris bölme B1).
+      "world/player/isinTarama.ts", "world/player/gorunurluk.ts"],
     izinli: ["Protokol", "Level"], urun: true,
   },
   {
@@ -161,7 +164,6 @@ const EDITOR_LEVEL =
   "editör level veri modelinin iç dosyalarına uzanıyor (dönüşüm/grup/kimlik/arazi, stil/shader tanımları); " +
   "Level'in kamu listesi sonraki yüzey turunda bu kullanıma göre kararlaştırılır";
 const SAHNE_LEVEL = "ofis/yer level modüllerinin iç dosyalarını kullanıyor (zemin, su, arazi, grup); B5 (oda/ ayrımı) ile bakılır";
-const AVATAR_SAHNE = "avatar Sahne'nin kamu listesinde olmayan dosyasını kullanıyor (görünürlük ışını, ofis Yer'i)";
 const NESNE_TIPI =
   "level çekirdeği ofisin nesne kaydından tip alıyor (yanlış yön); B5'te `Nesne` tipi level/cekirdek ya da protocol/temel.ts'e alınır";
 // A4'te gerekçelendi, düzeltilmedi: gorunurluk.ts saf (Babylon yok) ve tasarımcının gördüğü etiket
@@ -176,7 +178,6 @@ const YUZEY_LEVEL = "stil penceresi ortam komutu tipini level stilinin iç dosya
  * Aynı kenarın birden çok import satırı tek anahtardır; tip/değer ayrımı anahtara girmez.
  */
 export const ISTISNALAR: Readonly<Record<string, string>> = {
-  "world/avatar/goz.ts → world/player/gorunurluk.ts": AVATAR_SAHNE,
   "world/level/editor/arayuz/editorArayuzu.ts → world/level/shader/shaderSistemi.ts": EDITOR_LEVEL,
   "world/level/editor/arayuz/gorunum.ts → world/level/shader/dunyaDurumu.ts": EDITOR_LEVEL,
   "world/level/editor/arayuz/gorunum.ts → world/level/shader/paletler.ts": EDITOR_LEVEL,
@@ -217,8 +218,6 @@ export const ISTISNALAR: Readonly<Record<string, string>> = {
   "uygulama/giris.ts → world/davranisDenemesi.ts": KOK,
   "uygulama/giris.ts → world/level/capaGeometri.ts": KOK,
   "uygulama/giris.ts → world/player/etkilesim.ts": KOK,
-  "uygulama/giris.ts → world/player/gorunurluk.ts": KOK,
-  "uygulama/giris.ts → world/player/isinTarama.ts": KOK,
   "world/level/cekirdek/anlam.ts → world/level/nesneKaydi.ts": NESNE_TIPI,
   "world/level/editor/arayuz/orionGozu.ts → world/player/gorunurluk.ts": ORION_GOZU,
   "world/level/ofisYeri.ts → world/level/cekirdek/arazi.ts": SAHNE_LEVEL,

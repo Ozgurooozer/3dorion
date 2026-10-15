@@ -33,9 +33,6 @@ import { odaKur } from "../world/level/oda.ts";
 import { bulunduguCapa, capaBul } from "../world/level/capalar.ts";
 import { yerSabitBilgisi, yerOrtasiSozu, type Yer } from "../world/yer/yer.ts";
 import { konumluSabitBilgi, konumluYerOrtasi } from "../world/yer/birlesikYer.ts";
-import { isinTara } from "../world/player/isinTarama.ts";
-import { gorunenNesneler } from "../world/player/gorunurluk.ts";
-import { sorguYanitla, type Cevap, type Soru } from "../mind/algiHizmeti.ts";
 import { yerelTepki } from "../mind/yerelTepki.ts";
 import { capaKonumu } from "../world/level/capaGeometri.ts";
 import { Oyuncu } from "../world/player/oyuncu.ts";
@@ -49,7 +46,7 @@ import type { Pano } from "../protocol/pano.ts";
 import { PANO_TELLERI, devrePanosuKur, olcumKilidiKancasiKur } from "./devrePanosu.ts";
 // Yalnızca `zihindene` ayna kontrolü için: şemanın sütun sırasıyla ekrandaki
 // sırayı karşılaştırmak gerek. Saf veri, K4 sınırını ihlal etmez.
-import { TAHTA, GUNLUK, SEMA, GOZ_YUKSEKLIK } from "../world/level/olculer.ts";
+import { TAHTA, GUNLUK, SEMA } from "../world/level/olculer.ts";
 import { niyetDogrula } from "../protocol/dogrula.ts";
 import type { Niyet } from "../protocol/niyet.ts";
 import { varlik } from "../world/varlik.ts";
@@ -60,7 +57,6 @@ import { stilPenceresiKur } from "../world/arayuz/stilPenceresi.ts";
 import type { Beyin } from "../bridge/beyin.ts";
 import { MetinGirdi } from "../voice/metin-girdi.ts";
 import { NemotronGirdi } from "../voice/nemotron.ts";
-import { komutuTerminaleYaz } from "./terminalYazici.ts";
 import { komutKipiCoz } from "./komutKipi.ts";
 import { Takipci } from "./takip.ts";
 import { ikiCumleyeKisalt } from "../voice/kisalt.ts";
@@ -79,6 +75,8 @@ import { mcpBaglantisiKur } from "./mcpBaglantisi.ts";
 import { sohbetKutusuKur } from "./sohbetKutusu.ts";
 import { dumanTestiKur } from "./dumanTesti.ts";
 import { orionSesiKur } from "./orionSesi.ts";
+import { onayBaglantisiKur } from "./onayBaglantisi.ts";
+import { algiSorKur } from "./algiBaglantisi.ts";
 import { zihinDuvariniBagla } from "./zihinDuvari.ts";
 import { beyinSeciminiKur, seciciKaynagiKur, modelKancasiKur, kisaAd } from "./beyinSecimi.ts";
 import { odadaSure, sessizlikSozu, gununVakti } from "../mind/zaman.ts";
@@ -91,8 +89,6 @@ import { sessizlikIzinliMi } from "../bridge/ozerkYetenek.ts";
 import { GirdiPenceresi, type GirdiTipi } from "../mind/girdiPenceresi.ts";
 import { GozModeli } from "../bridge/goz.ts";
 import { KuralRefleksi, refleksGirdisi } from "../mind/refleks.ts";
-import { OnayKapisi } from "../mind/onayKapisi.ts";
-import { riskEtiketi } from "../mind/komutRiski.ts";
 import { kimlik } from "../protocol/temel.ts";
 import type { DavranisDefteri } from "../world/davranisDenemesi.ts";
 
@@ -298,112 +294,11 @@ const refleks = new KuralRefleksi();
 // T6b "Orion görsün": kabuk işareti dinleyicisi + dünya olayları + terminal örnekleme. `refleks`ten SONRA kurulur.
 const terminalAlgisi = terminalAlgisiKur({ monitor, refleks, oyuncu, orion: () => orion, kopru: () => kopru });
 
-// ── ONAY KAPISI: projedeki tek tehlikeli yetenegin tek gecidi ─────────────
-// Orion komut ONERIR, CALISTIRAMAZ. Calistiran sey Ozyn'in tusudur.
-// Zaman asimiyla "evet" yoktur; suresi dolan oneri DUSER.
-const onayKapisi = new OnayKapisi({
-  // Süre TELDEN okunur: panel bunu (teyitle) değiştirebilir. Bekleyen
-  // önerinin son tarihi öneri anında dondurulduğu için değişiklik ona
-  // geriye dönük uygulanmaz — S0'da onarılan gizli hata buydu.
-  zamanAsimiMs: PANO_TELLERI.onay.zamanAsimi,
-});
-const onayPanel = document.getElementById("onay") as HTMLDivElement;
-const onayKomutEl = document.getElementById("onayKomut") as HTMLDivElement;
-const onayRiskEl = document.getElementById("onayRisk") as HTMLDivElement;
-const onayGerekceEl = document.getElementById("onayGerekce") as HTMLDivElement;
+// Onay kapısı + paneli + Y/N/Esc bağı (uygulama/onayBaglantisi.ts).
+const { onayKapisi, onayPaneliCiz, onayKarari } = onayBaglantisiKur({ monitor, sema, gunluk, altyaziGoster, kopru: () => kopru });
 
-function onayPaneliCiz(): void {
-  const b = onayKapisi.bekleyen;
-  if (!b) { onayPanel.dataset.acik = "0"; return; }
-  onayPanel.dataset.acik = "1";
-  onayPanel.dataset.risk = b.risk.seviye;
-  onayKomutEl.textContent = b.komut;
-  onayRiskEl.textContent = riskEtiketi(b.risk);
-  onayGerekceEl.textContent = `Orion: ${b.gerekce}`;
-}
-
-/** Onaylanan komut terminale YAZILIR. `otomatik`: Ozyn'in tuşu değil komut kipi onayladı (spec 26 F2). */
-function onayKarari(onaylandi: boolean, otomatik = false): void {
-  const o = onaylandi ? onayKapisi.onayla() : onayKapisi.reddet();
-  onayPaneliCiz();
-  if (!o) return;
-
-  if (!onaylandi) {
-    console.log(`[ONAY] REDDEDILDI: ${o.komut}`);
-    gunluk.ekle("uyari", "onay", `reddedildi: ${o.komut}`);
-    sema.vur("onay", "reddedildi");
-    kopru?.sonuc({ niyet_id: o.id, durum: "hata",
-      not: "Ozyn komutu reddetti. Israr etme; baska bir yol oner ya da sor." });
-    altyaziGoster("komut reddedildi", 1800);
-    return;
-  }
-
-  console.log(`[ONAY] ${otomatik ? "OTOMATIK ONAYLANDI" : "ONAYLANDI"} (${o.risk.seviye}): ${o.komut}`);
-  gunluk.ekle("iyi", "onay", `${otomatik ? "otomatik çalıştı" : "onaylandı"} (${o.risk.seviye}): ${o.komut}`);
-  sema.vur("onay", otomatik ? "otomatik" : "onaylandı");
-  // UZAKTAN TERMİNAL (Ozyn, 2026-10-08): Orion nerede olursa olsun. Kapalı terminal ARKA PLANDA
-  // açılır; Ozyn'in kamerası ve klavye odağı kaçırılmaz (eskiden `monitoreGec()` ikisini de alıyordu).
-  void komutuTerminaleYaz(monitor, o.komut).then(() => {
-    kopru?.sonuc({ niyet_id: o.id, durum: "bitti",
-      not: otomatik ? "The line was typed into the terminal and ran; its result will appear on screen."
-        : "Ozyn approved; the line was typed into the terminal. You will see the result on screen." });
-    altyaziGoster("komut calistiriliyor", 1800);
-  }, (e: unknown) => {
-    console.error("[monitor] açılamadı:", e);
-    kopru?.sonuc({ niyet_id: o.id, durum: "hata", not: "terminal acilamadi; komut calismadi" });
-    altyaziGoster("terminal açılamadı — komut çalışmadı", 2600);
-  });
-}
-
-// Onay tuslari. Panel acikken Y/N/Esc; kapaliyken hicbir sey yapmaz.
-addEventListener("keydown", (e) => {
-  if (onayKapisi.durum !== "bekliyor") return;
-  const t = e.key.toLowerCase();
-  if (t === "y") { e.preventDefault(); e.stopPropagation(); onayKarari(true); }
-  else if (t === "n" || e.key === "Escape") { e.preventDefault(); e.stopPropagation(); onayKarari(false); }
-}, true);
-
-/**
- * Algı hizmetine dünya görüşünü verir.
- *
- * Görünürlük GERÇEK ışınla sınanır (`isinTara`, `KATI_YUZEYLER`): duvar,
- * kapı, raf ışını durdurur. Orion'un cevabı bu yüzden bulunduğu yere bağlıdır
- * — tahtanın önündeyken gördüğü ile kapıdayken gördüğü aynı değildir.
- */
-function algiSor(ne: Soru): Cevap {
-  const d = orion?.durum();
-  const konum = d?.konum ?? { x: 0, y: 0, z: 0 };
-  // Avatarın baktığı yön; yoksa odanın içine doğru makul bir varsayılan.
-  const bakis = d?.bakis ?? { x: 0, y: 0, z: -1 };
-
-  // NPC ALGISI (Ozyn 2026-10-11): Orion'un yerindeki algılanır nesneler; görüş hattı nesnenin 9 noktasından
-  // (gorunurluk.ts — tek ışın büyük nesnede kendi duvarına çarpıyordu). Menzil ve seçim algı hizmetinde (mind/).
-  const gorunum = new Map(gorunenNesneler(konum, bakis, GOZ_YUKSEKLIK, yerler.orion.nesneler, yerler.orion.katiYuzeyler).map((g) => [g.id, g]));
-  const nesneler = yerler.orion.nesneler.map((n) => ({
-    ad: n.ad, konum: { x: n.kutu.x, y: n.kutu.y, z: n.kutu.z }, gorunur: gorunum.get(n.id)?.gorunur ?? false,
-  }));
-  return sorguYanitla(ne, {
-    konum, bakis,
-    gozYuksekligi: GOZ_YUKSEKLIK,
-    nesneler,
-    ...(yerler.orion.algiMenzil !== undefined ? { menzil: yerler.orion.algiMenzil } : {}),
-    // Sanal çapalar (oda_ortasi) elenir: gidilebilir hedeftirler ama
-    // görülebilir nesne değildirler.
-    capalar: yerler.orion.capalar
-      .filter((c) => !c.sanal)
-      .map((c) => ({ ad: c.ad, konum: c.konum, etiket: c.etiket })),
-    oyuncu: oyuncu.oyuncuDurumu().konum,
-    gorunurMu: (kaynak, hedef) => {
-      const dx = hedef.x - kaynak.x, dy = hedef.y - kaynak.y, dz = hedef.z - kaynak.z;
-      const u = Math.hypot(dx, dy, dz);
-      if (u < 1e-4) return true;
-      const isabet = isinTara(kaynak, { x: dx / u, y: dy / u, z: dz / u }, u, yerler.orion.katiYuzeyler);
-      // Işın hedefe VARMADAN bir şeye çarptıysa engel var demektir.
-      // 0.25 m pay: hedefin kendi yüzeyi ışını durdurur, bu engel sayılmaz.
-      return !isabet || isabet.mesafe >= u - 0.25;
-    },
-  });
-}
+// Algı hizmetine dünya görüşü (uygulama/algiBaglantisi.ts).
+const algiSor = algiSorKur({ yerler, oyuncu, orion: () => orion });
 
 // Komut kipi (spec 26 F2): Orion'un terminal komutu onaysız çalışsın mı. `?komutkipi=otomatik|tam|onayli`; varsayılan otomatik.
 const komutKipiSecimi = komutKipiCoz(new URLSearchParams(location.search).get("komutkipi"));
