@@ -85,3 +85,10 @@ test("DERİN: her anı tam metnini unutId olarak taşır; içgüdü ve benlik ke
   assert.deepEqual(k.filter((x) => x.unutId !== undefined).map((x) => [x.kabuk, x.unutId]),
     [[2, "çok uzun bir söz ama tam metni unutId'de durmalı yoksa silinemez"]]);
 });
+
+test("Gerçek kipte anının sayısı 'önem N' diye yazılır (çıplak 'ö8' kimseye bir şey söylemiyordu); hatırlananda skor", () => {
+  const a = ani("söz", 8, 1);
+  assert.equal(hafizaKelimeleri(girdi({ derin: [a] })).find((x) => x.kabuk === 2)!.sayi, "önem 8");
+  const k = hafizaKelimeleri(girdi({ derin: [a], getirilen: [{ ani: a, skor: 0.83, parca: { tazelik: 1, onem: 1, ilgi: 1 } }] }));
+  assert.equal(k.find((x) => x.kabuk === 2)!.sayi, "0.83");
+});

@@ -86,7 +86,7 @@ export function hafizaKelimeleri(g: HafizaGirdisi): HafizaKelimesi[] {
       ...(getir ? { kirmizi: true } : {}),
       ...(kalici ? { kalici: true } : {}),
       unutId: a.metin,
-      sayi: getir ? getir.skor.toFixed(2) : `ö${a.onem}`,
+      sayi: getir ? getir.skor.toFixed(2) : `önem ${a.onem}`,
     });
   }
   return k;
