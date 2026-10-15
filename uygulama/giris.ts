@@ -142,6 +142,8 @@ const oyuncu = new Oyuncu(sahne, oda, rig, {
     return true;
   },
 });
+// Ozyn'in görünür bedeni: Orion'un iskeleti, farklı renk, pantolon+gömlek+ceket (world/player/oyuncuBeden.ts). Yüklenene kadar kapsül görünür.
+void oyuncu.bedenYukle();
 
 const saat = new Saat();
 

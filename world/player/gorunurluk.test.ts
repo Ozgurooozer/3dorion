@@ -23,7 +23,7 @@ test("P4 kayıt: kimlikler = çapalı kutular ∪ açıkça sayılan eşyalar; a
   assert.deepEqual(kayittaCapa, capaliKutular, "çapalı kayıt, KATI_YUZEYLER'deki çapalı kutularla birebir olmalı");
 
   const eşyalar = NESNELER.filter((n) => n.capa === null).map((n) => n.id).sort();
-  assert.deepEqual(eşyalar, ["ayakli_lamba", "banker_lamba", "berjer", "raf", "yigin"]);
+  assert.deepEqual(eşyalar, ["ayakli_lamba", "berjer", "raf", "yigin"]);
 
   for (const n of NESNELER.filter((x) => x.capa !== null)) {
     assert.equal(n.ad, CAPA_ETIKETLERI[n.capa!], `${n.id}: ad CAPA_ETIKETLERI'nden gelmeli`);
@@ -198,11 +198,12 @@ test("kayıt: türler ve kutu boyutları anlamlı, çapasız eşyalar kendi sabi
   const { BERJER, YIGIN, LAMBA } = await import("../level/olculer.ts");
   const tur = (id: string) => NESNELER.find((n) => n.id === id)!.tur;
   for (const id of ["masa", "sandalye", "raf", "berjer", "yigin"]) assert.equal(tur(id), "mobilya", id);
-  for (const id of ["banker_lamba", "ayakli_lamba"]) assert.equal(tur(id), "aydinlatma", id);
+  for (const id of ["ayakli_lamba"]) assert.equal(tur(id), "aydinlatma", id);
+  assert.equal(NESNELER.some((n) => n.id === "banker_lamba"), false, "banker lambası odadan kalktı (3. monitörün içine giriyordu)");
   for (const id of ["monitor", "tahta", "pencere", "kapi", "sema", "gunluk", "admin"]) assert.equal(tur(id), "yuzey", id);
   for (const n of NESNELER) assert.ok(n.kutu.g > 0 && n.kutu.yuk > 0 && n.kutu.d > 0, `${n.id}: kutu boyutları > 0 olmalı`);
   const kutu = (id: string) => NESNELER.find((n) => n.id === id)!.kutu;
   assert.equal(kutu("berjer").x as number, BERJER.x as number); assert.equal(kutu("berjer").z as number, BERJER.z as number);
   assert.equal(kutu("yigin").x as number, YIGIN.x as number); assert.equal(kutu("yigin").z as number, YIGIN.z as number);
-  assert.equal(kutu("banker_lamba").x as number, LAMBA.banker.x as number); assert.equal(kutu("ayakli_lamba").z as number, LAMBA.ayakli.z as number);
+  assert.equal(kutu("ayakli_lamba").z as number, LAMBA.ayakli.z as number);
 });

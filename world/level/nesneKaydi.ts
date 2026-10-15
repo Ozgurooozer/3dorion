@@ -53,7 +53,6 @@ const CAPASIZ: Nesne[] = [
   { id: "raf", ad: "raf", tur: "mobilya", capa: null, kutu: RAF },
   { id: "berjer", ad: "kırmızı berjer", tur: "mobilya", capa: null, kutu: yuzeydenKutu(BERJER.x, BERJER.z) },
   { id: "yigin", ad: "kutu yığını", tur: "mobilya", capa: null, kutu: yuzeydenKutu(YIGIN.x, YIGIN.z) },
-  { id: "banker_lamba", ad: "banker lambası", tur: "aydinlatma", capa: null, kutu: lambaKutusu(LAMBA.banker) },
   { id: "ayakli_lamba", ad: "ayaklı lamba", tur: "aydinlatma", capa: null, kutu: lambaKutusu(LAMBA.ayakli) },
 ];
 

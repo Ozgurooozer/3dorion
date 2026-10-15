@@ -1,0 +1,19 @@
+{
+  "surum": 1,
+  "kaynak": "oda-esyalar.py --lamba-varlik",
+  "varliklar": [
+    {
+      "ad": "ESYA_BankerLamba",
+      "kategori": "esya",
+      "dosya": "esya/banker-lamba.glb",
+      "onizleme": "",
+      "boyut": [
+        0.42,
+        0.49,
+        0.21
+      ],
+      "ucgen": 200,
+      "bayt": 12452
+    }
+  ]
+}

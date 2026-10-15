@@ -178,8 +178,8 @@ export const ISIKLIK = { x: 0, z: -1.7, g: 3.2, d: 2.0, derinlik: 0.45 } as cons
  * (Konum, ışığın çıktığı nokta: abajurun içi.)
  */
 export const LAMBA = {
-  /** Masadaki yeşil banker lambası (masanın sol ucu, monitörün arkası). */
-  banker: { x: MASA.x - 0.95, y: MASA.ustYuzey + 0.4, z: MASA.z - 0.12 },
+  // Masadaki banker lambası KALDIRILDI (2026-10-15): 3. monitörün (GROMA, x=-0.9) içine giriyordu. Modeli ayrı varlık:
+  // `assets/esya/banker-lamba.glb` (üretim: oda-esyalar.py --lamba-varlik).
   /** Sol köşedeki ayaklı lamba (camgöbeği abajur). */
   ayakli: { x: -3.15, y: 1.58, z: -3.6 },
 } as const;

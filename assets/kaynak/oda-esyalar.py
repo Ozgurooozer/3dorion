@@ -45,6 +45,7 @@ OLCU_YOLU = arg("--olculer")
 GLB_YOLU = arg("--glb")
 ONIZLEME = arg("--onizleme")
 BLEND_YOLU = arg("--blend")
+LAMBA_VARLIK = arg("--lamba-varlik")  # banker lambası odadan ÇIKARILDI (3. monitörün içine giriyordu); verilirse ayrı varlık glb'si olarak yazılır
 MANZARA = arg("--manzara")  # yalnız önizleme render'ı için: pencere arkası doku
 if not OLCU_YOLU or not GLB_YOLU:
     raise SystemExit("kullanım: ... -- --olculer <json> --glb <çıktı.glb> [--onizleme <png>]")
@@ -382,13 +383,18 @@ kutu("masa_orta_cekmece", "lambri", mx, mu - mk - 0.06, mz + md / 2 - 0.05, mg -
 kutu("masa_arka_panel", "maun", mx, (mu - mk) / 2 + 0.1, mz - md / 2 + 0.06, mg - 2 * ayakG - 0.06, mu - mk - 0.2, 0.03, pah=0.006)
 kutu("masa_led", "neon_mavi", mx, mu - mk - 0.015, mz + md / 2 - 0.02, mg - 0.3, 0.012, 0.015)
 
-# Masa üstü: banker lambası, kitaplar, kâğıtlar, hologram yayıcı.
-LAMBA = O["LAMBA"]  # ışık noktası olculer.ts'de; şapka onun çevresine kurulur
-lx, lz = LAMBA["banker"]["x"], LAMBA["banker"]["z"] - 0.06
+# Masa üstü: kitaplar, kâğıtlar, hologram yayıcı.
+# BANKER LAMBASI odada YOK (2026-10-15): masanın sol ucundaydı ve 3. monitörün (groma, x=-0.9) içine giriyordu. Model aşağıda kurulur
+# (eski konumunda, ölçüleri korunsun diye) ama odaya değil `--lamba-varlik` glb'sine gider; ışığı da oda.ts'den kalktı.
+LAMBA = O["LAMBA"]  # yalnız ayaklı lamba kaldı (olculer.ts); banker'in konumu aşağıda yerel
+BANKER_X, BANKER_Z = MASA["x"] - 0.95, MASA["z"] - 0.12
+lx, lz = BANKER_X, BANKER_Z - 0.06
+lamba_onceki = set(DISA.objects)
 silindir("lamba_taban", "pirinc", lx, mu + 0.012, lz, 0.16, 0.024, seg=20)
 silindir("lamba_govde", "pirinc", lx, mu + 0.2, lz, 0.025, 0.36, seg=10)
 silindir("lamba_kol", "pirinc", lx, mu + 0.38, lz, 0.02, 0.36, seg=8, eksen="X")
 silindir("lamba_sapka", "lamba_yesil", lx, mu + 0.42, lz + 0.06, 0.14, 0.42, seg=16, cap2=0.08, eksen="X")
+lamba_nesneleri = [ob for ob in DISA.objects if ob not in lamba_onceki]
 for i, (bx, bz, don) in enumerate(((mx - 1.05, mz + 0.22, 0.2), (mx + 0.6, mz + 0.25, -0.1))):
     h = mu
     for j in range(3 + i):
@@ -533,6 +539,27 @@ cerceve("gunluk_cerceve", GUNLUK["x"], GUNLUK["y"], GUNLUK["z"], GUNLUK["genisli
 # ═════════════════════════════════════════════════════════════════════════════
 # BİRLEŞTİR + DIŞA AKTAR
 # ═════════════════════════════════════════════════════════════════════════════
+# BANKER LAMBASI: odadan ayır. `--lamba-varlik` verilmişse kendi glb'sine yazılır (masa üstü orijin: taban merkezi), yoksa atılır.
+for ob in lamba_nesneleri:
+    DISA.objects.unlink(ob)
+if LAMBA_VARLIK:
+    VARLIK = bpy.data.collections.new("varlik_lamba")
+    sahne.collection.children.link(VARLIK)
+    for ob in lamba_nesneleri:
+        ob.data.transform(Matrix.Translation(-B(lx, mu, lz)))
+        ob.name = ob.name.replace("lamba_", "banker_lamba_", 1)
+        VARLIK.objects.link(ob)
+    bpy.ops.object.select_all(action="DESELECT")
+    for ob in lamba_nesneleri:
+        ob.select_set(True)
+    os.makedirs(os.path.dirname(os.path.abspath(LAMBA_VARLIK)), exist_ok=True)
+    bpy.ops.export_scene.gltf(filepath=os.path.abspath(LAMBA_VARLIK), export_format="GLB", use_selection=True,
+                              export_apply=True, export_lights=False, export_cameras=False, export_yup=True)
+    print(f"[ODA] lamba varlığı: {LAMBA_VARLIK} ({os.path.getsize(LAMBA_VARLIK)} bayt)")
+else:
+    for ob in lamba_nesneleri:
+        bpy.data.objects.remove(ob, do_unlink=True)
+
 # Aynı malzemeli parçalar tek nesne olur: Babylon'da çizim çağrısı ≈ malzeme sayısı.
 # Ad: "oda_<malzeme>" — oda.ts bu adlarla ayırt eder (ör. ışın dışı tutulacak neon).
 gruplar = {}

@@ -29,6 +29,7 @@ import { EtkilesimOlaylari, ipucuMetni, type EtkilesimYayici } from "./etkilesim
 import { bakilanCapa } from "./isinTarama.ts";
 import type { Yer } from "../yer/yer.ts";
 import { ODA_YERI } from "../yer/odaYeri.ts";
+import { oyuncuBedeniYukle, type OyuncuBedeni } from "./oyuncuBeden.ts";
 
 /** Yürüme / koşma hızı (m/s). */
 const HIZ_YURU = 2.6;
@@ -84,10 +85,14 @@ export class Oyuncu implements KameraHedefi {
   /** Ayak konumu. y her zaman 0 (düz zemin). */
   readonly konum: Vector3;
   readonly gozYuksekligi = GOZ_YUKSEKLIK;
-  /** Görünür gövde — 3. şahısta kendini görmek için. VRM T2'nin işi. */
+  /**
+   * Mantıksal gövde (kapsül): konum/kamera mesafesi/gizleme kuralı buna bağlı. Giysili beden (`bedenYukle`) yüklenince kapsül görünmez olur,
+   * görünüşü beden taşır; yüklenemezse kapsül görünür kalır.
+   */
   readonly govde: Mesh;
 
   private _rig: KameraRig;
+  private _sahne: Scene;
   private _escOnce: (() => boolean) | null;
   private _yer: () => Yer;
   private _yayici: EtkilesimYayici;
@@ -98,6 +103,10 @@ export class Oyuncu implements KameraHedefi {
   private _t = 0;
   /** Son karede gerçekten hareket etti mi (HUD/animasyon ipucu). */
   private _hareketli = false;
+  /** Giysili görünür beden (Orion iskeleti, farklı renk); yüklenene kadar null → kapsül görünür. */
+  private _beden: OyuncuBedeni | null = null;
+  /** Son tikteki yatay hız (m/s): yürüme klibi hızı. */
+  private _hiz = 0;
   /**
    * Orion'un konumu. T2 avatarı gelene kadar sandalye kabul edilir; avatar
    * geldiğinde `orionKonumuAyarla` ile gerçek konum bağlanır.
@@ -106,6 +115,7 @@ export class Oyuncu implements KameraHedefi {
 
   constructor(sahne: Scene, oda: OdaKurulumu, rig: KameraRig, sec: OyuncuSecenekleri = {}) {
     this._rig = rig;
+    this._sahne = sahne;
     this._yayici = sec.yayici ?? EtkilesimOlaylari;
     this._escOnce = sec.escOnce ?? null;
     this._yer = sec.yer ?? (() => ODA_YERI);
@@ -156,7 +166,29 @@ export class Oyuncu implements KameraHedefi {
     // çağrılıyordu ve orası hareket yoksa erken dönüyor — oyuncu dururken
     // gövde gizleme hiç çalışmıyordu (açılış manzarasında görüldü).
     this._govdeGorunurluk();
+    this._beden?.hareket(this._hiz);
   }
+
+  /**
+   * Giysili görünür bedeni yükler (`assets/oyuncu-beden.glb`) ve kapsülün yerine koyar. Başarısızlıkta FIRLATMAZ: uyarı basar, kapsül kalır.
+   * Çağıran beklemek zorunda değil; yüklenince bir sonraki tikte yerleşir.
+   */
+  async bedenYukle(yol?: string): Promise<boolean> {
+    try {
+      const b = await oyuncuBedeniYukle(this._sahne, GOVDE_YUKSEKLIK, yol);
+      this._rig.isinDisiTut(...b.meshler);
+      this._beden?.yokEt();
+      this._beden = b;
+      this._govdeyiYerlestir();
+      return true;
+    } catch (err) {
+      console.warn(`[oyuncu] giysili beden yüklenemedi, kapsül kalıyor: ${err instanceof Error ? err.message : String(err)}`);
+      return false;
+    }
+  }
+
+  /** Görünür beden yüklü mü (HUD/duman testi). */
+  get bedenYuklu(): boolean { return this._beden !== null; }
 
   /** Protokol biçiminde salt-okunur durum. Mesaj YAYMAZ — T4 yayar. */
   oyuncuDurumu(): OyuncuDurumu {
@@ -185,7 +217,7 @@ export class Oyuncu implements KameraHedefi {
     const ileri = (this._basili("KeyW") ? 1 : 0) - (this._basili("KeyS") ? 1 : 0);
     const yan = (this._basili("KeyD") ? 1 : 0) - (this._basili("KeyA") ? 1 : 0);
     this._hareketli = ileri !== 0 || yan !== 0;
-    if (!this._hareketli) return;
+    if (!this._hareketli) { this._hiz = 0; return; }
 
     const f = this._rig.ileriXZ();
     const s = this._rig.sagXZ();
@@ -196,6 +228,7 @@ export class Oyuncu implements KameraHedefi {
 
     const kos = this._basili("ShiftLeft") || this._basili("ShiftRight");
     const adim = (kos ? HIZ_KOS : HIZ_YURU) * dt;
+    this._hiz = kos ? HIZ_KOS : HIZ_YURU;
 
     // Eksen ayrıştırmalı çarpışma: X ve Z ayrı denenir → duvara sürtünürken
     // durmak yerine kayar. Babylon moveWithCollisions'a gerek yok; oda
@@ -226,6 +259,7 @@ export class Oyuncu implements KameraHedefi {
     this.govde.position.set(this.konum.x, this.konum.y + GOVDE_YUKSEKLIK / 2, this.konum.z);
     // Gövde bakışın yatay yönüne döner (kamera pitch'i gövdeyi eğmez).
     this.govde.rotation.y = this._rig.yaw;
+    this._beden?.yerlestir(this.konum.x, this.konum.y, this.konum.z, this._rig.yaw);
     // 1. şahısta kamera gövdenin içinde: kendi kafasını görmesin.
     const modaGore = this._rig.mod !== "birinci" || this._rig.gecisteMi;
 
@@ -255,7 +289,10 @@ export class Oyuncu implements KameraHedefi {
     const g = this.govde.position;
     const uzaklik = Math.hypot(k.x - g.x, k.y - g.y, k.z - g.z);
     this._sonUzaklik = uzaklik;
-    this.govde.isVisible = this._modaGore && uzaklik > GOVDE_GIZLEME_MESAFESI;
+    const gorunur = this._modaGore && uzaklik > GOVDE_GIZLEME_MESAFESI;
+    // Giysili beden varsa görünüşü o taşır; kapsül yalnız yedektir.
+    this.govde.isVisible = gorunur && this._beden === null;
+    this._beden?.gorunur(gorunur);
   }
 
   private _sonUzaklik = Infinity;

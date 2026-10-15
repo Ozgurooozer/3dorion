@@ -531,7 +531,7 @@ export function odaKur(
 
 /**
  * Yeni kip ışığı (spec 11): karanlık iç mekân, pencereden pembe/mor, ışıklıktan mor,
- * lambalardan sıcak-yeşil ve camgöbeği, iki duvar kenarından pembe ve mavi dolgu.
+ * ayaklı lambadan camgöbeği, iki duvar kenarından pembe ve mavi dolgu.
  * Gölge yok. Sis yalnız derinlik hissi için (manzara sisten muaf).
  */
 function yeniIsik(sahne: Scene): void {
@@ -561,7 +561,6 @@ function yeniIsik(sahne: Scene): void {
     n.intensity = guc;
     n.range = menzil;
   };
-  nokta("isik_banker", LAMBA.banker.x, LAMBA.banker.y, LAMBA.banker.z, 0.7, 1.0, 0.6, 1.4, 2.6);
   nokta("isik_ayakli", LAMBA.ayakli.x, LAMBA.ayakli.y, LAMBA.ayakli.z, 0.3, 0.8, 1.0, 1.6, 4.0);
   nokta("isik_pembe", 4.2, 2.6, -1.0, 1.0, 0.25, 0.7, 1.2, 6.0);
   nokta("isik_mavi", -4.2, 2.4, 0.5, 0.25, 0.6, 1.0, 1.0, 6.0);
