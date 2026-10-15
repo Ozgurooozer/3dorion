@@ -122,3 +122,14 @@ Bırakıldığı yer:
 **Işık:** otomatik dinamik GI RAFTA (Işık Hacmi spike 1 olumsuz/koşullu, `?gi=hacim` kapalı; `on-kayit-gi-spike-1.md`). Şikâyet açık: dışarısı aydınlık, oda içi karanlık, pencere/açık kapıdan ışık girmiyor (ara çözüm adayı: elle işaretli pencere/kapı ışığı). Shader memnuniyetsizliği, kontur, gökyüzü bantları, sokak lambası ön planı bastırıyor.
 **Mimari:** B1–B2 YAPILDI (giris.ts 2075 → 700, ISTISNALAR 60 → 35). Kalan: B5, kalan 35 kenar (çoğu Editör→Level, Sahne→Level), `beyniBagla` giris'te. B1–B2 canlıda yalnız dört kapıdan (kapidene, zihindene) geçti.
 **Araç/altyapı:** Ollama bu sürümde yetim `llama-server` bırakıp ekran belleği tutuyor (not: hafıza `reference-ollama-yetim-runner`); temizleme betiği yok. `zihindene ?modelsiz=1` modeli yüklemeden koşar. Test penceresi kapatılırsa duman koşusu sessizce biter. Groma: `C:\Users\ozigo\groma-deneme\canli-takip.ps1` 3 dakikada bir tarıyor (jeton harcamaz), yeni dosyalar elle gruplanır; durdurma komutu betik başında. Commit'siz belgeler: `docs/arastirma/*` (5), `docs/olcum/f0-ozerk3-acikis-yeni-dis.jsonl`, `f3-getirme.json`.
+
+## 2026-10-15 akşam güncellemesi (yukarıdaki özetin üstüne)
+**Bitti:** mikrofon Türkçe (Whisper base) çalışıyor (Ozyn doğruladı); GI/ekran bozulması düzeltmesi Ozyn'in ekranında doğrulandı (duvarlar ve Orion kaybolmuyor);
+**Orion Doktor** (`uygulama/doktor.ts`, "doktor" / "tam muayene" sözleri token'sız, `doktor` niyeti + `dunya_doktor` aracı; `3dorion.bat efektdene` onu sürer, canlı 38 kontrol temiz);
+**ISTISNALAR 35 → 1** (Level veri çekirdeği kamuya, `Nesne`/`Kutu` tipleri `world/level/cekirdek/nesneTipi.ts`e); **3. monitör** masada, groma haritası (`3dorion.bat gromadene` 5/5; masaüstünde
+`groma-haritasi.bat` ve `-durdur.bat`; `docs/olcum/on-kayit-groma-monitoru-1.md`).
+**Hâlâ açık:**
+- **B5 klasör taşıması** (`world/oda/`): `cekirdek/{anlam,katalog,nesneSistemi}.ts` + `ova.level.json` Ozyn'in commit dışı düzenlemeleri; tip yarısı bitti (tek import satırı, Ozyn'in 15 satırı commit'e girmedi). Kalan 1 istisna: editörün "Orion'un gözü" katmanı odadaki görünürlük koduna uzanıyor.
+- **Orion'un 3. monitörü gözüyle okuması** ölçülmedi (görme karesinde içerik); haritanın METİN özeti (groma JSON modeli) Orion'a verilebilir. Groma kapalıyken ekranın "groma kapalı" yazması canlıda görülmedi (birim testli). Monitör +8 çizim (ön kayıt ≤ +4 tutmadı; bütçe altında).
+- **Doktor:** Orion'un kendi karar vermesi (canlıda hata tespit edince `dunya_doktor` çağırması) hiç ölçülmedi; periyodik/otomatik muayene yok (yalnız istek üzerine).
+- Markov aşama 3–4, ışık şikâyeti (pencere/kapı ışığı), 27+ yerel commit push bekliyor (bu satırlardan önceki push: `e595f81`).
