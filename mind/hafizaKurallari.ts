@@ -146,6 +146,38 @@ export function kayitDan(a: Algi, tur: AniTuru, icerik: string, politika: "yeni"
   };
 }
 
+/** Koşulun insan okuyacağı kısa hâli ("algı=duydum · adlı: selam"); boş koşul "her kayıt". */
+export function kosulMetni(k: Kosul): string {
+  const p: string[] = [];
+  if (k.yeni) p.push("yeni politika");
+  if (k.algi !== undefined) p.push(`algı=${k.algi}`);
+  if (k.tur !== undefined) p.push(`tür=${k.tur}`);
+  if (k.kaynak !== undefined) p.push(`kaynak=${k.kaynak}`);
+  if (k.kod === "sifirdisi") p.push("çıkış kodu ≠ 0");
+  for (const a of k.adli ?? []) p.push(`${a}`);
+  return p.length ? p.join(" · ") : "her kayıt";
+}
+
+/** Koşulun kutuya sığan hâli: önek yok, yalnız değerler ("yeni · duydum · komut"). */
+export function kosulKisa(k: Kosul): string {
+  const p: string[] = [];
+  if (k.yeni) p.push("yeni");
+  if (k.algi !== undefined) p.push(k.algi);
+  if (k.tur !== undefined) p.push(k.tur);
+  if (k.kaynak !== undefined) p.push(k.kaynak);
+  if (k.kod === "sifirdisi") p.push("kod≠0");
+  for (const a of k.adli ?? []) p.push(a);
+  return p.length ? p.join(" · ") : "her kayıt";
+}
+
+/** Sonucun kısa hâli. */
+export function sonucMetni(s: Sonuc): string {
+  if (s.islem === "at") return "hafızaya YAZMA";
+  if (s.islem === "kirp") return `terminali kırp (baş ${s.bas} + son ${s.son} satır)`;
+  if (s.islem === "normallestir") return "hata dersinin ayrıntısını at";
+  return `önem = ${s.deger}`;
+}
+
 /** Düzenlenebilir değişkenler: kuralın sonucundaki sayı alanları (panelde kutu olarak çıkar). */
 export function degiskenler(k: Kural): { ad: string; deger: number }[] {
   const s = k.sonuc;
@@ -154,7 +186,14 @@ export function degiskenler(k: Kural): { ad: string; deger: number }[] {
   return [];
 }
 
-export interface GrafikDugumu { id: string; tur: "giris" | "grup" | "kural" | "cikis"; etiket: string; degiskenler?: { ad: string; deger: number }[] }
+export interface GrafikDugumu {
+  id: string; tur: "giris" | "grup" | "kural" | "cikis"; etiket: string;
+  /** Yalnız kural düğümlerinde: neden (aciklama), ne zaman (kosul), ne yapar (sonuc), hangi grupta. */
+  aciklama?: string; kosul?: string; sonuc?: string; grup?: string;
+  /** Kutuda sığacak kısa koşul ("yeni · duydum · komut"); tamamı `kosul`da. Grup düğümünde: alt başlık. */
+  kisa?: string;
+  degiskenler?: { ad: string; deger: number }[];
+}
 export interface GrafikKenari { kimden: string; kime: string; tur: "sonra" | "icerir" | "at" }
 
 /**
@@ -166,12 +205,14 @@ export function grafik(tablo: Tablo = VARSAYILAN_TABLO): { dugumler: GrafikDugum
   const kenarlar: GrafikKenari[] = [];
   let onceki = "giris";
   for (const g of tablo) {
-    dugumler.push({ id: `grup:${g.id}`, tur: "grup", etiket: g.ad });
+    // "ELE — yazılmayacak olanı at": başlık "ELE", alt başlık gerisi (kutuda iki satır).
+    const [baslik, ...altBaslik] = g.ad.split(" — ");
+    dugumler.push({ id: `grup:${g.id}`, tur: "grup", etiket: baslik ?? g.ad, ...(altBaslik.length ? { kisa: altBaslik.join(" — ") } : {}) });
     kenarlar.push({ kimden: onceki, kime: `grup:${g.id}`, tur: "sonra" });
     onceki = `grup:${g.id}`;
     for (const k of g.kurallar) {
       const d = degiskenler(k);
-      dugumler.push({ id: k.id, tur: "kural", etiket: k.id, ...(d.length ? { degiskenler: d } : {}) });
+      dugumler.push({ id: k.id, tur: "kural", etiket: k.id, aciklama: k.aciklama, kosul: kosulMetni(k.kosul), kisa: kosulKisa(k.kosul), sonuc: sonucMetni(k.sonuc), grup: g.id, ...(d.length ? { degiskenler: d } : {}) });
       kenarlar.push({ kimden: `grup:${g.id}`, kime: k.id, tur: "icerir" });
       if (k.sonuc.islem === "at") kenarlar.push({ kimden: k.id, kime: "cikis:at", tur: "at" });
     }

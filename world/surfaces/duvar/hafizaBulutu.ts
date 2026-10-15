@@ -265,6 +265,7 @@ export function cizHafizaBulutu(bag: CanvasRenderingContext2D, o: YuzeyOlcusu, g
     x += w + kenar * 0.6;
   };
   dugme("Ayarlar · Buda", "gorunum", "ayar");
+  dugme("Kurallar", "gorunum", "kurallar");
   dugme(g.gercek ? "Gerçek: sayılar" : "Gerçek", "gercek", undefined, g.gercek);
   bag.fillStyle = RENK.soluk;
   const sigmayan = sigmayanSozu(gizli);

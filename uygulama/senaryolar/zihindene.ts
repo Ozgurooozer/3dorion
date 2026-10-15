@@ -262,10 +262,24 @@ export async function kos(d: SenaryoBaglami): Promise<void> {
     const pn = panoyuAl();
     const sayi = () => Number(pn?.goruntu("hafiza").flatMap((m) => m.dugmeler).find((x) => x.ad === "hafiza.sayi")?.deger ?? NaN);
     /** Ekranda "sema" yüzeyindeki bölgeleri tarar; anahtarı `ara`yı içerenlerin UV'lerini döner. */
+    // Duvarın ekran dikdörtgeni: kaba taramayla (12 px) BİR kez bulunur; ince tarama yalnız orada (tam ekran 3 px tarama
+    // dakikalar sürüyor, teyit 30 sn ömürlü).
+    let kutuAlani: { x0: number; y0: number; x1: number; y1: number } | null = null;
+    const alanBul = () => {
+      if (kutuAlani) return kutuAlani;
+      let x0 = G3, y0 = Y3, x1 = 0, y1 = 0;
+      for (let ex = 0; ex < G3; ex += 12) for (let ey = 0; ey < Y3; ey += 12) {
+        if ((sahne.pick(ex, ey)?.pickedMesh?.metadata as { capa?: string } | undefined)?.capa !== "sema") continue;
+        x0 = Math.min(x0, ex); y0 = Math.min(y0, ey); x1 = Math.max(x1, ex); y1 = Math.max(y1, ey);
+      }
+      kutuAlani = x1 >= x0 ? { x0: Math.max(0, x0 - 12), y0: Math.max(0, y0 - 12), x1: Math.min(G3, x1 + 12), y1: Math.min(Y3, y1 + 12) } : { x0: 0, y0: 0, x1: G3, y1: Y3 };
+      return kutuAlani;
+    };
     const tara = (ara: string, ilk = false): { h: string; u: number; v: number }[] => {
       const bulunan = new Map<string, { h: string; u: number; v: number }>();
-      for (let ex = 0; ex < G3; ex += 3) {
-        for (let ey = 0; ey < Y3; ey += 3) {
+      const a = alanBul();
+      for (let ex = a.x0; ex < a.x1; ex += 3) {
+        for (let ey = a.y0; ey < a.y1; ey += 3) {
           const p = sahne.pick(ex, ey);
           if ((p?.pickedMesh?.metadata as { capa?: string } | undefined)?.capa !== "sema") continue;
           const uv = p?.getTextureCoordinates?.();
@@ -311,6 +325,25 @@ export async function kos(d: SenaryoBaglami): Promise<void> {
         `teyitte_silinmedi=${!silindiMiOnce} onay_bulundu=${!!onay} anilar: ${once} -> ${sonra}`);
       pn?.teyitIptal();
       await bekle(600);
+    }
+
+    // ── KURALLAR KAPISI (canlı, Markov hafıza aşama 2): [Kurallar] düğmesine bas → kural kutuları görünsün ──────────
+    //
+    // Birim/ölçüm testleri yerleşimin doğru olduğunu söylüyor; kanıtlamadıkları: ekranda GÖRÜNEN düğmenin görünümü açması ve
+    // tablodaki HER kuralın tıklanabilir bir kutu olarak orada bulunması. Son durum (bir kural seçili) açık bırakılır: ORION_SS
+    // senaryo sonunda bu kareyi kaydeder; okunabilirlik görüntüye bakılarak değerlendirilir.
+    {
+      pn?.teyitIptal();
+      sema.sec("hafiza");
+      await bekle(600);
+      const kd = tara("hafiza\u0000gorunum\u0000kurallar", true)[0];
+      if (kd) sema.tikla(kd.u, kd.v);
+      await bekle(500);
+      const kutular = tara("hafiza\u0000kural\u0000");
+      const secilecek = kutular.find((k) => k.h.endsWith("komut.dusuk"));
+      if (secilecek) sema.tikla(secilecek.u, secilecek.v);
+      await bekle(600);
+      console.log(`[ZIHINDENE] KURALLAR ${kd && kutular.length === 14 && secilecek ? "GECTI" : "KALDI"} — dugme_bulundu=${!!kd} kural_kutusu=${kutular.length}/14 secilen=${secilecek ? "komut.dusuk" : "yok"}`);
     }
   }
 

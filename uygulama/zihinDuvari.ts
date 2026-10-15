@@ -12,11 +12,12 @@ import type { Kopru, KopruAyari } from "../bridge/kopru.ts";
 import { KararKaydi } from "../mind/kararKaydi.ts";
 import { gunlukBicimleyiciKur } from "../mind/gunlukSatirlari.ts";
 import { hafizaKelimeleri } from "../mind/hafizaGorunumu.ts";
+import { grafik as hafizaKuralGrafigi } from "../mind/hafizaKurallari.ts";
 import { ICGUDULER } from "../mind/icgudu.ts";
 import { durumSatiri } from "../mind/benlik.ts";
 
 export interface ZihinDuvariBaglami {
-  sema: Pick<SemaPaneli, "ariza" | "durumYaz" | "not" | "vur" | "hafizaBagla">;
+  sema: Pick<SemaPaneli, "ariza" | "durumYaz" | "not" | "vur" | "hafizaBagla" | "kuralBagla">;
   gunluk: Pick<GunlukEkrani, "ekle" | "canli">;
   /** Köprü avatar yüklendikten sonra kurulur: çağrı anında okunur. */
   kopru(): Kopru | null;
@@ -86,6 +87,8 @@ export function zihinDuvariniBagla(b: ZihinDuvariBaglami): ZihinDuvariKancalari 
       derin: h.derin, getirilen: h.getirilen, simdi: Date.now(), durum: h.durum,
     });
   }, () => b.kopru()?.hafiza.sayi ?? 0);
+  // KURALLAR görünümü (Markov hafıza, aşama 2): grafik YALNIZ kural tablosundan türer; panel yalnız çizer.
+  sema.kuralBagla(() => hafizaKuralGrafigi());
 
   return {
     kararKaydi,

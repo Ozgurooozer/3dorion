@@ -20,6 +20,7 @@ function duvarKur() {
       durumYaz: (m) => { kayit.durum.push(m); },
       vur: (ad, not) => { kayit.vurulan.push(`${ad}:${not ?? ""}`); },
       hafizaBagla: (k) => { kayit.hafizaKaynagi = k; },
+      kuralBagla: () => {},
     },
     gunluk: {
       ekle: (seviye, kaynak, metin) => { kayit.gunluk.push(`${seviye}|${kaynak}|${metin}`); },
