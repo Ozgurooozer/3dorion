@@ -165,7 +165,8 @@ export function kosulKisa(k: Kosul): string {
   if (k.algi !== undefined) p.push(k.algi);
   if (k.tur !== undefined) p.push(k.tur);
   if (k.kaynak !== undefined) p.push(k.kaynak);
-  if (k.kod === "sifirdisi") p.push("kod≠0");
+  // "≠" monospace yazı tipinde yok ve "#" gibi çiziliyordu (canlı görüntü); kutu ASCII ile yazılır.
+  if (k.kod === "sifirdisi") p.push("kod!=0");
   for (const a of k.adli ?? []) p.push(a);
   return p.length ? p.join(" · ") : "her kayıt";
 }
@@ -182,7 +183,7 @@ export function sonucMetni(s: Sonuc): string {
 export function degiskenler(k: Kural): { ad: string; deger: number }[] {
   const s = k.sonuc;
   if (s.islem === "onem") return [{ ad: "önem", deger: s.deger }];
-  if (s.islem === "kirp") return [{ ad: "baş satır", deger: s.bas }, { ad: "son satır", deger: s.son }];
+  if (s.islem === "kirp") return [{ ad: "baş", deger: s.bas }, { ad: "son", deger: s.son }];
   return [];
 }
 

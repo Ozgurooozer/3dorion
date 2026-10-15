@@ -169,21 +169,24 @@ export function cizKuralGrafigi(bag: CanvasRenderingContext2D, o: YuzeyOlcusu, g
       }
     } else {
       const punto = Math.max(8, Math.round(k.yuk * 0.30));
-      bag.font = `600 ${punto}px ${YAZI.tek}`;
-      bag.fillStyle = RENK.metin;
-      bag.fillText(kisalt(bag, d.etiket, ic), k.x + kenar / 2, k.y + k.yuk * 0.30);
+      // Değişken (sarı) ilk satırın SAĞINDA: ikinci satır koşulun tamamına kalır (canlı görüntüde koşullar kırpılıyordu).
       const deg = (d.degiskenler ?? []).map((v) => `${v.ad} ${v.deger}`).join(" · ");
-      bag.font = `${Math.max(7, punto - 1)}px ${YAZI.tek}`;
+      const kucuk = `${Math.max(7, punto - 1)}px ${YAZI.tek}`;
+      bag.font = kucuk;
       let sag = 0;
       if (deg) {
         bag.textAlign = "right"; bag.fillStyle = RENK.uyari;
-        const dyazi = kisalt(bag, deg, ic * 0.5);
-        sag = bag.measureText(dyazi).width + kenar / 2;
-        bag.fillText(dyazi, k.x + k.g - kenar / 2, k.y + k.yuk * 0.72);
+        const dyazi = kisalt(bag, deg, ic * 0.55);
+        sag = bag.measureText(dyazi).width + kenar;
+        bag.fillText(dyazi, k.x + k.g - kenar / 2, k.y + k.yuk * 0.30);
         bag.textAlign = "left";
       }
+      bag.font = `600 ${punto}px ${YAZI.tek}`;
+      bag.fillStyle = RENK.metin;
+      bag.fillText(kisalt(bag, d.etiket, ic - sag), k.x + kenar / 2, k.y + k.yuk * 0.30);
+      bag.font = kucuk;
       bag.fillStyle = RENK.soluk;
-      bag.fillText(kisalt(bag, d.kisa ?? d.kosul ?? "", ic - sag), k.x + kenar / 2, k.y + k.yuk * 0.72);
+      bag.fillText(kisalt(bag, d.kisa ?? d.kosul ?? "", ic), k.x + kenar / 2, k.y + k.yuk * 0.72);
       bolgeler.push({ x: k.x, y: k.y, g: k.g, yuk: k.yuk, ad: "hafiza", islem: "kural", deger: k.id });
     }
   }
