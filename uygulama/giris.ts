@@ -86,6 +86,7 @@ import {
 import { mesgulMu } from "../mind/benlik.ts";
 import { istenenSenaryolar, type SenaryoBaglami } from "./senaryoBaglami.ts";
 import { niyetYurutucusuKur } from "./niyetYurutucu.ts";
+import { altyaziKur } from "./altyazi.ts";
 import { zihinDuvariniBagla } from "./zihinDuvari.ts";
 import { beyinSeciminiKur, seciciKaynagiKur, modelKancasiKur, kisaAd } from "./beyinSecimi.ts";
 import { odadaSure, sessizlikSozu, gununVakti } from "../mind/zaman.ts";
@@ -110,6 +111,7 @@ import type { DavranisDefteri } from "../world/davranisDenemesi.ts";
 const tuval = document.getElementById("tuval") as HTMLCanvasElement;
 const hud = document.getElementById("hud") as HTMLDivElement;
 const altyazi = document.getElementById("altyazi") as HTMLDivElement;
+const altyaziGoster = altyaziKur(altyazi);
 
 // ── Motor + sahne ──────────────────────────────────────────────────────────
 const motor = new Engine(tuval, true, { preserveDrawingBuffer: false, stencil: true }, true);
@@ -822,14 +824,6 @@ addEventListener("resize", () => motor.resize());
 // kullanıcıya geri bildirim var; protokol mesajı ÜRETİLMEZ.
 let ipucuMetin = "";
 EtkilesimOlaylari.dinle("ipucu", (i) => { ipucuMetin = i?.metin ?? ""; });
-
-function altyaziGoster(metin: string, ms = 2200): void {
-  altyazi.textContent = metin;
-  altyazi.dataset.gorunur = "1";
-  clearTimeout(altyaziZaman);
-  altyaziZaman = setTimeout(() => { altyazi.dataset.gorunur = "0"; }, ms);
-}
-let altyaziZaman: ReturnType<typeof setTimeout>;
 
 EtkilesimOlaylari.dinle("basladi", (o) => {
   // Kapı (spec 24): "geç" anlık bir eylem — etkileşim açık kalmaz, geçiş başlar.
