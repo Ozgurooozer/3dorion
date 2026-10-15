@@ -32,6 +32,7 @@ import type { OnayKapisi } from "../mind/onayKapisi.ts";
 import type { GormeKaydi } from "./niyetYurutucu.ts";
 import type { Doktor } from "./doktor.ts";
 import type { WebMonitoru } from "./webMonitoru.ts";
+import type { Gozlem } from "./gozlem.ts";
 import type { IsikHacmi } from "../world/level/gi/isikHacmi.ts";
 
 export interface SenaryoBaglami {
@@ -70,6 +71,8 @@ export interface SenaryoBaglami {
   readonly doktor: Doktor;
   /** Ofisteki 3. monitör (groma haritası; `gromadene`). */
   readonly webMonitoru: WebMonitoru;
+  /** Göz muayenesi (`gozlemdene`): Orion'un gözünden kare → görme modeli → panel. */
+  readonly gozlem: Gozlem;
   readonly ortam: {
     tanim(): LevelTanimi | null;
     kipAyarla(kip: "oturum" | "kalici"): void;
@@ -103,7 +106,7 @@ export const SENARYOLAR = [
   "terminaldene", "otodene", "gorudene", "sessizdene", "davranis", "tezdene", "gordene", "admindene",
   "zihindene", "onaydene", "tahtabeyin", "becerdene", "bakdene", "acidene", "saglobdene",
   "senaryodene", "eylemdene", "benlikdene", "apidene", "tahtadene", "hafizadene", "yuzdene", "baglamdene", "takipdene",
-  "kapidene", "gozdene", "ovadene", "ortamdene", "gidene", "efektdene", "gromadene",
+  "kapidene", "gozdene", "ovadene", "ortamdene", "gidene", "efektdene", "gromadene", "gozlemdene",
 ] as const;
 export type SenaryoAdi = (typeof SENARYOLAR)[number];
 

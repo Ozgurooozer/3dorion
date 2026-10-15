@@ -161,6 +161,11 @@ export interface KopruAyari {
   ozerkTur?: boolean;
   /** Hafıza giriş politikası (mind/aniSuzgeci.ts söz/hata kuralları). Varsayılan "yeni"; "eski" geri alma yoludur. */
   aniPolitikasi?: "yeni" | "eski";
+  /**
+   * BEYİN KAPISI: true döndüğü sürece yeni düşünme turu BAŞLAMAZ (kısa süre ertelenir, kaybolmaz). Göz muayenesi (`uygulama/gozlem.ts`) aynı yerel
+   * modeli kullanırken beyin araya girip ikinci bir modeli yüklemesin diye (iki yönlü sıra; göz de beyin düşünürken bekler). Verilmezse kapı yok.
+   */
+  beyinKapisi?: () => boolean;
   /** Odadaki yer adları (çapa etiketleri): sözde geçerse yönlendirici konumu ister. */
   yerAdlari?: () => readonly string[];
   /**

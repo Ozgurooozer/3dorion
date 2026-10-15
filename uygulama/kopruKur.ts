@@ -49,6 +49,8 @@ export interface KopruGirdisi {
   /** Sonradan atananlar: çağrı anında okunur. */
   orion: () => Avatar | null;
   inisiyatifSimdi: () => number;
+  /** Göz muayenesi sürerken beyin yeni tur başlatmasın (iki yönlü sıra; uygulama/gozlem.ts). */
+  beyinKapisi?: () => boolean;
 }
 
 export function kopruKur(g: KopruGirdisi): Kopru {
@@ -111,6 +113,7 @@ export function kopruKur(g: KopruGirdisi): Kopru {
       inisiyatifButcesi: { sonuc: (_t, sureMs, token, eylemli) => inisiyatif.butce.sonuc(g.inisiyatifSimdi(), sureMs, token, eylemli) },
       ozerkTur: !g.inisiyatifEski,
       aniPolitikasi: new URLSearchParams(location.search).get("anipolitikasi") === "eski" ? "eski" : "yeni",
+      ...(g.beyinKapisi ? { beyinKapisi: g.beyinKapisi } : {}),
       hafizaKapasite: PANO_TELLERI.hafiza.kapasite,
       // SPEC 16: bağlama yalnız SORULAN girer (konum, son iş, eski konuşma…), yakın pencere küçük.
       // `?hafiza=otomatik` eski davranışı geri getirir — kıyas ölçüsü için (spec 16 P1).

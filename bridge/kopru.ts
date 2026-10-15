@@ -1011,6 +1011,8 @@ export class Kopru {
     if (this._durduruldu) return;
     if (this._dusunuyor) { this._tekrarGerek = true; return; }
     if (this._tampon.length === 0) return;
+    // Beyin kapısı (göz muayenesi yerel modeli kullanıyor): tur kaybolmaz, kısa süre sonra yeniden denenir; arada tampon büyüyebilir (aynı tur birleştirir).
+    if (this._ayar.beyinKapisi?.()) { if (!this._zamanlayici) this._zamanlayici = setTimeout(() => { this._zamanlayici = null; void this._dusun(); }, 400); return; }
 
     this._dusunuyor = true;
     this._benlik.dusunceBasladi(this._ayar.beyin.ad, this._zincirKokeni);

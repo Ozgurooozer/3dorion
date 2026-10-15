@@ -40,6 +40,18 @@ export function gozIstemi(algi: string): string {
   ].join("\n");
 }
 
+/**
+ * GÖZ MUAYENESİ istemi (Ozyn, 2026-10-15): Orion'un gözünden alınan kareyi bizim için betimleyen DÜZ MEKANİZMA. Orion rolü YOK, sohbet geçmişi YOK, algı
+ * bağlamı YOK: yalnız resim ve bir soru. Türkçe (okuyan Ozyn). Görsel kusurları (bozulma, eksik yüzey, siyah alan) ayrıca ister: Orion Doktor'un
+ * (uygulama/doktor.ts) sayısal ölçümünü görsel bir ikinci gözle tamamlar.
+ */
+export const GOZLEM_ISTEMI = [
+  "Bu bir 3B odanın içinden alınmış ekran görüntüsü. Görüntüde ne olduğunu Türkçe, kısa ve somut anlat (en çok 5 cümle):",
+  "ortam ve ışık, görünen nesneler ve yerleri, ekranlarda okunan yazı ya da içerik, kişi ya da karakter varsa ne yaptığı.",
+  "Açıkça görünen görsel kusurları da söyle: bozulma, parazit, eksik ya da şeffaf görünen yüzeyler, siyah alanlar.",
+  "Görmediğin şeyi uydurma; emin olmadığında 'gibi görünüyor' de. Liste, başlık ya da biçimlendirme kullanma.",
+].join(" ");
+
 /** Model cevabını tek paragrafa indirir: satır sonları, markdown süsleri gider (cevap ŞİMDİ satırına girer). */
 export function betimiTemizle(ham: string): string {
   return ham.replace(/[*#_`]+/g, "").replace(/^\s*[-•]\s*/gm, "").replace(/\s+/g, " ").trim();
@@ -62,17 +74,29 @@ export class GozModeli {
 
   /** Kare (base64 PNG, önek yok) + algı metni → betim. FIRLATIR (model yok, zaman aşımı, boş cevap): çağıran dürüst cevap kurar. */
   async gor(png: string, algi: string): Promise<string> {
+    return this._sor([
+      { role: "system", content: gozIstemi(algi) },
+      { role: "user", content: "Ne görüyorsun?", images: [png] },
+    ], 160);
+  }
+
+  /**
+   * GÖZ MUAYENESİ: aynı kare, ama Orion'un sohbetinden, rolünden ve algısından BAĞIMSIZ düz bir soru (`GOZLEM_ISTEMI`). Sohbet geçmişine girmez, köprüden geçmez.
+   * FIRLATIR (model yok, zaman aşımı, boş cevap).
+   */
+  async incele(png: string, istem: string = GOZLEM_ISTEMI): Promise<string> {
+    return this._sor([{ role: "user", content: istem, images: [png] }], 260);
+  }
+
+  private async _sor(mesajlar: readonly { role: string; content: string; images?: string[] }[], uretilecek: number): Promise<string> {
     const govde = {
       model: this.model,
-      messages: [
-        { role: "system", content: gozIstemi(algi) },
-        { role: "user", content: "Ne görüyorsun?", images: [png] },
-      ],
+      messages: mesajlar,
       stream: false,
       // V0 ile aynı: düşünme kapalı (gecikme), sıcaklık 0 (aynı kare → aynı betim; ölçülebilir).
       think: false,
       keep_alive: this._sicakTut,
-      options: { temperature: 0, num_ctx: 4096, num_predict: 160 },
+      options: { temperature: 0, num_ctx: 4096, num_predict: uretilecek },
     };
     const c = new AbortController();
     const saat = setTimeout(() => c.abort(), this._zamanAsimi);

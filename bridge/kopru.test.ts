@@ -700,3 +700,15 @@ test("SUSMA İLANI: Ozyn araya girerse köken DIŞ olur — cevap düşmez", asy
   await bekle(80);
   assert.deepEqual(duyulan, ["Sessiz kalıyorum, dinliyorum."], "Ozyn konusmusken cevap inisiyatif sanildi");
 });
+
+test("beyin kapısı kapalıyken tur BAŞLAMAZ ama kaybolmaz; kapı açılınca beyin uyanır (göz muayenesi sırası)", async () => {
+  let kapi = true;
+  const b = new SahteBeyin({ metin: "", cagrilar: [] });
+  const { k } = kur(b, { beyinKapisi: () => kapi });
+  k.algi({ tur: "duydum", metin: "merhaba orion nasılsın bugün", kesin: true });
+  await bekle(150);
+  assert.equal(b.gordugu.length, 0, "kapı kapalıyken beyin düşünmemeli");
+  kapi = false;
+  await bekle(600);
+  assert.equal(b.gordugu.length, 1, "kapı açılınca tur kaybolmadan çalışmalı");
+});

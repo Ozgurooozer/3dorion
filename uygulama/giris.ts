@@ -87,6 +87,8 @@ import { inisiyatifTik } from "./inisiyatifBaglantisi.ts";
 import { ortamBaglantisiKur } from "./ortamBaglantisi.ts";
 import { doktorKur, doktorBaglamiBabylon } from "./doktor.ts";
 import { webMonitoruKur, type WebKopru } from "./webMonitoru.ts";
+import { gozlemKur } from "./gozlem.ts";
+import { gozPaneliKur } from "../world/arayuz/gozPaneli.ts";
 import type { Kopru as KabukKoprusu } from "../host/kopru.ts";
 import { OrtamGunlugu, ogrenilenDeposu } from "./ortamDeposu.ts";
 import { OrtamSozlugu } from "../mind/ortamSozlugu.ts";
@@ -218,6 +220,8 @@ void avatarKur({
 // Orion'un gözü (spec 25): `sor gor` (GÖRME, Faz 2) ve ölçüm yüzeyi `dunya.orionGozu` aynı kareyi çeker.
 const orionGozu = orionGozuKur(sahne);
 // Görme modeli: `?goz=<ollama modeli>` (varsayılan gemma4:e4b), `?ollama=` beyinle aynı adres. Yalnız istenince bakar.
+// Göz muayenesi sürerken beyin yeni tur başlatmasın (iki yönlü sıra; aşağıda `gozlem` kurulunca bağlanır).
+let gozlemSuruyor: () => boolean = () => false;
 const gozModeli = (() => {
   const q = new URLSearchParams(location.search);
   return new GozModeli({ model: q.get("goz") || undefined, adres: q.get("ollama") || undefined });
@@ -580,6 +584,7 @@ function beyniBagla(a: Avatar): void {
     niyetiYurut, davranisKayit, dunyaDurumu: dunyaDurumuMetni,
     hafizaKipi: HAFIZA_KIPI, inisiyatifEski: INISIYATIF_ESKI,
     orion: () => orion, inisiyatifSimdi: () => inisiyatifSimdi,
+    beyinKapisi: () => gozlemSuruyor(),
   });
 
   // DEVRE PANOSU kayıt defteri: uygulama/devrePanosu.ts (kurulum + şemaya takma).
@@ -674,6 +679,21 @@ function beyniBagla(a: Avatar): void {
 // ── Sohbet kutusu: T aç, Enter gönder, Esc kapat (uygulama/sohbetKutusu.ts) ──
 const sohbet = sohbetKutusuKur({ oyuncu, girdi });
 
+// ── GÖZ MUAYENESİ (O): Orion'un gözünden kare → yerel görme modeli (sohbetten BAĞIMSIZ düz soru) → panelde önizleme + cevap ──
+// Sıra iki yönlü (uygulama/gozlem.ts): beyin düşünürken göz bekler, göz sürerken beyin yeni tur başlatmaz (`beyinKapisi`). Sohbet geçmişine/hafızaya girmez.
+const gozPaneli = gozPaneliKur({
+  istek: () => { void gozlem.bak(); },
+  tusSerbest: () => oyuncu.oyuncuDurumu().etkilesim === null && !sohbet.acikMi() && onayKapisi.durum !== "bekliyor",
+  acildi: () => rig.fareKilitBirak(),
+});
+const gozlem = gozlemKur({
+  kare: async () => { const k = await orionKaresi(); return k ? { png: k.png, en: 896, boy: 504 } : null; },
+  model: gozModeli,
+  beyinMesgul: () => kopru?.dusunuyorMu ?? false,
+  panel: gozPaneli,
+});
+gozlemSuruyor = () => gozlem.suruyor();
+
 // ── Duman testi kanıtı (uygulama/dumanTesti.ts) ────────────────────────────
 dumanTestiKur({ motor, saat, rig, oda, oyuncu, monitor, yerler, orion: () => orion, kopru: () => kopru });
 
@@ -708,6 +728,7 @@ const senaryoBaglami: SenaryoBaglami = {
   gozModeli: () => gozModeli.model,
   doktor,
   webMonitoru,
+  gozlem,
 };
 for (const ad of istenenSenaryolar(location.search)) {
   void import(`./senaryolar/${ad}.ts`)

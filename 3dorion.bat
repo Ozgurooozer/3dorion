@@ -25,6 +25,7 @@ rem    3dorion.bat baglamdene temiz baglam (spec 16): neredesin / neredeydin / n
 rem    3dorion.bat takipdene  "beni takip et": Ozyn uzaklasinca Orion yanina geliyor mu
 rem    3dorion.bat kapidene   birlesik dunya: kapi acilir/kapanir, Orion yuruyerek cikar-doner, gorunum gecisi, cizim butcesi (spec 27)
 rem    3dorion.bat ovadene    Orion ovada: gel, takip, kapiya git, otur, bak, jest, algi, gec (spec 26 F4)
+rem    3dorion.bat gozlemdene Goz muayenesi (O tusu): Orion'un gozunden kare, yerel gorme modeli, panelde onizleme + cevap
 rem    3dorion.bat gromadene  Ofisteki 3. monitor (groma haritasi): sayfa, kare, dolu doku, tekerlek/tiklama (docs/olcum/on-kayit-groma-monitoru-1.md)
 rem    3dorion.bat efektdene  Isik/efekt zinciri calisma aninda: her efekt + onayar, gunduz/gece, ova/ofis, WebGL hatasi + gorunmezlik (CLAUDE.md kurali)
 rem    3dorion.bat ortamdene  Orion'un ortam araci: sozluk (token'siz), LLM yolu, ogrenme, kalicilik (ORION_BEYIN=claude:haiku)
@@ -99,6 +100,7 @@ if /i "%MOD%"=="ovadene" goto :ovadene
 if /i "%MOD%"=="ortamdene" goto :ortamdene
 if /i "%MOD%"=="efektdene" goto :efektdene
 if /i "%MOD%"=="gromadene" goto :gromadene
+if /i "%MOD%"=="gozlemdene" goto :gozlemdene
 if /i "%MOD%"=="tahtabeyin" goto :tahtabeyin
 if /i "%MOD%"=="becerdene" goto :becerdene
 if /i "%MOD%"=="gelistir" goto :gelistir
@@ -252,6 +254,19 @@ set "ORION_EFEKTDENE=1"
 set "ORION_SMOKE=1"
 set "ORION_SMOKE_MS=300000"
 rem Beyin kapali bir porta: model yuklenmesin (Ollama yetim runner birakiyor), Haiku'ya istek gitmesin; sozluk yolu LLM'siz calisir.
+set "ORION_BEYIN=dis"
+set "ORION_BEYIN_ADRES=http://127.0.0.1:9"
+call npx electron .
+goto :son
+
+:gozlemdene
+echo [gozlemdene] Goz muayenesi: Orion'un gozunden kare - yerel gorme modeli (Ollama + gemma4:e4b gerekir) - panel; sohbetten bagimsiz
+call npx vite build
+if errorlevel 1 goto :hata
+set "ORION_GOZLEMDENE=1"
+set "ORION_SMOKE=1"
+set "ORION_SMOKE_MS=120000"
+rem Beyin kapali porta: beyin model yuklemesin (yalniz gorme modeli yuklenir).
 set "ORION_BEYIN=dis"
 set "ORION_BEYIN_ADRES=http://127.0.0.1:9"
 call npx electron .
