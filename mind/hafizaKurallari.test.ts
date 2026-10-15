@@ -4,8 +4,29 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { Algi } from "../protocol/algi.ts";
 import type { AniTuru } from "./hafiza.ts";
-import { aniKaydi } from "./aniSuzgeci.ts";
+import { aniKaydi, KOMUT_ONEMI, MIKROFON_ONEMI, sohbetGurultusuMu, dersiNormallestir, terminalKirp } from "./aniSuzgeci.ts";
+import { kuralOnemi } from "./hafiza.ts";
+import { komutCoz } from "./komutSozlugu.ts";
+import { takipEylemi } from "./takipSozu.ts";
+import { sohbetEylemi } from "./sohbetKipi.ts";
 import { uygula, kayitDan, grafik, degiskenler, VARSAYILAN_TABLO, type Tablo } from "./hafizaKurallari.ts";
+
+/**
+ * REFERANS: kural tablosuna devirden ÖNCEKİ `aniKaydi` gövdesi, değiştirilmeden (2026-10-15). Tablo bununla ayrışırsa bu test kırılır;
+ * ayrışma bilerek yapılıyorsa referans da bilerek güncellenir (kararı görünür kılar).
+ */
+function referansAniKaydi(a: Algi, tur: AniTuru, icerik: string, politika: "yeni" | "eski" = "yeni"): { icerik: string; onem: number } | null {
+  if (a.tur === "olay") return null;
+  if (politika === "yeni") {
+    if (a.tur === "duydum" && sohbetGurultusuMu(a.metin)) return null;
+    if (a.tur === "duydum" && (komutCoz(a.metin) || takipEylemi(a.metin) || sohbetEylemi(a.metin))) return { icerik, onem: KOMUT_ONEMI };
+    if (a.tur === "sonuc" && a.sonuc.durum === "hata" && (a.sonuc.not ?? "").startsWith("ortam ")) return null;
+    if (a.tur === "sonuc") { const d = dersiNormallestir(icerik); return { icerik: d, onem: kuralOnemi(tur, d) }; }
+  }
+  if (a.tur === "terminal") { const kirpik = terminalKirp(icerik); return { icerik: kirpik, onem: kuralOnemi(tur, kirpik, a.kod) }; }
+  if (a.tur === "duydum" && a.kaynak === "mikrofon") return { icerik, onem: MIKROFON_ONEMI };
+  return { icerik, onem: kuralOnemi(tur, icerik) };
+}
 
 const satirlar = (n: number) => Array.from({ length: n }, (_, i) => `satir ${i + 1}`).join("\n");
 const SOZLER = ["merhaba orion", "nasılsın", "tamam", "hey", "otur", "gece yap", "bana gel", "takip et", "temiz sohbet", "ben terminalde claude kullanırım", "gçz", "orion", ""];
@@ -33,11 +54,11 @@ function izgara(): { a: Algi; icerik: string; tur: AniTuru; politika: "yeni" | "
   return cikti;
 }
 
-test("E1 denklik: kural tablosu bugünkü aniKaydi ile aynı kararı verir (tam ızgara)", () => {
+test("E1 denklik: kural tablosu, devir öncesi REFERANS aniKaydi ile aynı kararı verir (tam ızgara)", () => {
   const farklar: string[] = [];
   const g = izgara();
   for (const { a, icerik, tur, politika } of g) {
-    const eski = aniKaydi(a, tur, icerik, politika);
+    const eski = referansAniKaydi(a, tur, icerik, politika);
     const yeni = uygula(kayitDan(a, tur, icerik, politika));
     const a1 = eski === null ? null : { icerik: eski.icerik, onem: eski.onem };
     const a2 = yeni.yaz ? { icerik: yeni.icerik, onem: yeni.onem } : null;
@@ -88,4 +109,12 @@ test("değişken düzenleme: önem değişkenini değiştirmek kararı değişti
 test("tablo ÖNEM kuralı eşleşmezse sessiz geçmez, fırlatır", () => {
   const eksik: Tablo = [{ id: "onem", ad: "ÖNEM", kurallar: [{ id: "yalniz.olay", aciklama: "x", kosul: { tur: "olay" }, sonuc: { islem: "onem", deger: 4 } }] }];
   assert.throws(() => uygula(kayitDan({ tur: "duydum", metin: "x", kesin: true }, "konusma", "x"), eksik), /ÖNEM kuralı eşleşmedi/);
+});
+
+test("devir: aniKaydi kapısı tabloyla aynı sonucu verir (ızgara)", () => {
+  for (const { a, icerik, tur, politika } of izgara()) {
+    const k = aniKaydi(a, tur, icerik, politika);
+    const t = uygula(kayitDan(a, tur, icerik, politika));
+    assert.deepEqual(k, t.yaz ? { icerik: t.icerik, onem: t.onem } : null);
+  }
 });

@@ -17,7 +17,7 @@ import type { AniTuru } from "./hafiza.ts";
 import { komutCoz } from "./komutSozlugu.ts";
 import { takipEylemi } from "./takipSozu.ts";
 import { sohbetEylemi } from "./sohbetKipi.ts";
-import { sohbetGurultusuMu, dersiNormallestir, terminalKirp, KOMUT_ONEMI, MIKROFON_ONEMI, TERMINAL_BAS, TERMINAL_SON } from "./aniSuzgeci.ts";
+import { sohbetGurultusuMu, dersiNormallestir, terminalKirp, KOMUT_ONEMI, MIKROFON_ONEMI, TERMINAL_BAS, TERMINAL_SON } from "./aniYardimcilari.ts";
 
 /** Kuralın baktığı kayıt: algıdan türetilmiş, düz veri (adaptör `kayitDan`). */
 export interface Kayit {
