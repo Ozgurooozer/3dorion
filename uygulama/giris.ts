@@ -54,13 +54,8 @@ import { monitorKur, type Monitor } from "../world/surfaces/terminal/monitor.ts"
 import { tahtaKur, type Tahta } from "../world/surfaces/tahta/tahta.ts";
 import { gunlukKur, type GunlukEkrani } from "../world/surfaces/duvar/gunluk.ts";
 import { semaKur, type SemaPaneli } from "../world/surfaces/duvar/sema.ts";
-// Devre panosu: sözleşme `protocol/`ta, tanımlar `mind/tanim/`da. Bu iki
-// import K4'ün belgelenmiş istisnası olan kompozisyon kökünde, burada.
-import { panoKur, tel } from "../protocol/pano.ts";
 import type { Pano } from "../protocol/pano.ts";
-import {
-  dikkatTanimi, hafizaTanimi, onayTanimi, ajandaTanimi, refleksTanimi, beyinTanimi,
-} from "../mind/tanim/index.ts";
+import { PANO_TELLERI, devrePanosuKur, olcumKilidiKancasiKur } from "./devrePanosu.ts";
 // Yalnızca `zihindene` ayna kontrolü için: şemanın sütun sırasıyla ekrandaki
 // sırayı karşılaştırmak gerek. Saf veri, K4 sınırını ihlal etmez.
 import { TAHTA, GUNLUK, SEMA, GOZ_YUKSEKLIK } from "../world/level/olculer.ts";
@@ -81,7 +76,7 @@ import { Takipci } from "./takip.ts";
 import { ikiCumleyeKisalt } from "../voice/kisalt.ts";
 import { Ajanda } from "../mind/ajanda.ts";
 import {
-  ogretimleriYukle, gorevSatirlariniYukle, durumDeposuKur, hafizaYedegiKur, hafizaUnutTeli, hafizaDeposuKur,
+  ogretimleriYukle, gorevSatirlariniYukle, durumDeposuKur, hafizaYedegiKur, hafizaDeposuKur,
 } from "./hafizaDeposu.ts";
 import { mesgulMu } from "../mind/benlik.ts";
 import { istenenSenaryolar, type SenaryoBaglami } from "./senaryoBaglami.ts";
@@ -384,22 +379,6 @@ let mantikTik = 0;
 // T6: beyin konuşmuyorken Orion'un masasında heykel gibi durmaması için
 // düşük maliyetli öneriler (bak/jest). Beyin/kullanıcı meşgulse asla araya
 // girmez — bkz. mind/ajanda.ts başındaki KATI KURAL.
-
-/**
- * DEVRE PANOSU TELLERİ — yazılabilir ayarların tek doğruluk kaynağı.
- *
- * Değer modülün içinde değil BURADA duruyor. Modül teli okur, pano aynı
- * teli okur ve yazar; ikisinin ayrışması yapısal olarak imkânsız.
- *
- * Başlangıç değerleri modüllerin kendi varsayılanlarıyla AYNI — telin
- * takılması davranışı değiştirmemeli, yalnızca değiştirilebilir kılmalı.
- */
-const PANO_TELLERI = {
-  dikkat: { tekrar: tel(4000), terminalKis: tel(2500), azami: tel(20) },
-  ajanda: { asgari: tel(15_000), sapma: tel(15_000) },
-  hafiza: { kapasite: tel(300) },
-  onay: { zamanAsimi: tel(90_000) },
-} as const;
 
 const ajanda = new Ajanda({
   asgariAralikMs: PANO_TELLERI.ajanda.asgari,
@@ -1516,39 +1495,8 @@ function beyniBagla(a: Avatar): void {
     asamaDinle: duvar.asamaDinle,
   });
 
-  // ── DEVRE PANOSU kayıt defteri ───────────────────────────────────────
-  //
-  // Kompozisyon kökü kurar (K4'ün belgelenmiş tek istisnası): `world/`
-  // içindeki hiçbir dosya `mind/`i görmez, yalnızca `protocol/pano.ts`
-  // tipini bilir. Kayıt defteri burada doğar ve panele TAKILIR.
-  //
-  // Beyin tanımı bir sınıf örneği değil üç okuyucu alıyor: koşan beynin
-  // durumu (ad, devre kesici) tek bir nesnede toplanmış değil ve sahte bir
-  // nesne uydurmak, panonun tam da kaçındığı kopya-durum olurdu.
-  const panoKaydi = panoKur([
-    dikkatTanimi(kopru.dikkat, PANO_TELLERI.dikkat),
-    hafizaTanimi(kopru.hafiza, { ...PANO_TELLERI.hafiza, ...hafizaUnutTeli(kopru) }),
-    onayTanimi(onayKapisi, PANO_TELLERI.onay),
-    ajandaTanimi(ajanda, PANO_TELLERI.ajanda),
-    refleksTanimi(),
-    beyinTanimi({
-      ad: () => beyin.ad,
-      kesikSaniye: () => kesikSn(),
-      yakinlikKurali: () => true,
-      secim: {
-        istenen: () => secici.istenen,
-        iste: (ad) => secici.iste(ad),
-        secenekler: () => secici.secenekAdlari(),
-        durum: () => {
-          const g = secici.gecis;
-          if (g.tur === "kontrol") return `${secici.aktif} → ${g.hedef} (kontrol)`;
-          if (g.tur === "reddedildi") return `${secici.aktif} (${g.hedef} reddedildi)`;
-          return beyin.ad;
-        },
-      },
-    }),
-  ]);
-  sema.panoBagla(panoKaydi);
+  // DEVRE PANOSU kayıt defteri: uygulama/devrePanosu.ts (kurulum + şemaya takma).
+  const panoKaydi = devrePanosuKur({ kopru, onayKapisi, ajanda, beyin, secici, kesikSn, sema });
   panoKaydiGlobal = panoKaydi;
 
   // ── MODEL SEÇİCİ (M) ─────────────────────────────────────────────────
@@ -1580,22 +1528,8 @@ function beyniBagla(a: Avatar): void {
   console.log(`[PANO] ${panoKaydi.moduller().length} modül, ` +
     `${panoKaydi.goruntu().reduce((n, m) => n + m.dugmeler.length, 0)} tel bağlandı`);
 
-  // ── ÖLÇÜM KİLİDİ: panelden AÇILMAZ, bilerek ─────────────────────────
-  //
-  // Kilidi açmak GEREKÇE ister ve gerekçe yazmak metin girişi gerektirir;
-  // odadaki panelin klavyesi yok. Panele "aç" düğmesi koyup gerekçeyi
-  // uydurmak, kilidin tek işlevini — sürtünmeyi — ortadan kaldırırdı.
-  // Bu yüzden açma yolu yönetim terminalinden geçer ve yazılı bir cümle
-  // ister. Kapatmak damgayı KALDIRMAZ.
-  window.orionPano = {
-    kilitAc: (gerekce: string) => panoKaydi.kilitAc(gerekce),
-    kilitKapat: () => panoKaydi.kilitKapat(),
-    durum: () => ({
-      kilitAcik: panoKaydi.kilitAcikMi(),
-      olcumDisi: panoKaydi.olcumDisi(),
-      gerekce: panoKaydi.kilitGerekcesi(),
-    }),
-  };
+  // ÖLÇÜM KİLİDİ: panelden AÇILMAZ, bilerek (gerekçe: uygulama/devrePanosu.ts).
+  olcumKilidiKancasiKur(panoKaydi);
 
   // DURUM DEFTERİ (spec 16 F2): Orion'un bulunduğu yer (çapa adı, ham koordinat değil) ve monitör
   // yarım saniyede bir gözlenir. Defter yalnız DEĞİŞİMİ yazar ve yanından geçmeyi konum saymaz.
