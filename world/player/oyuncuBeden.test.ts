@@ -4,6 +4,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { BEKLENEN_MESHLER } from "./bedenAyari.ts";
 
 interface Gltf { animations?: { name: string }[]; materials?: { name: string }[]; skins?: { joints: unknown[] }[] }
 
@@ -26,8 +27,8 @@ test("beden: Orion'la aynı iskelet (52 kemik) — klipler aynı kemiklere bağl
   assert.equal(beden.skins?.[0]?.joints.length, orion.skins?.[0]?.joints.length);
 });
 
-test("beden: giysi parçalarının her biri ayrı malzeme (pantolon, gömlek, ceket, ayakkabı, ten) — Orion beyazından farklı", () => {
+test("beden: her parça kendi malzemesine sahip (renk parça parça değişebilsin) — Orion beyazı yok", () => {
   const adlar = (beden.materials ?? []).map((m) => m.name);
-  for (const m of ["oyuncu_ten", "oyuncu_gomlek", "oyuncu_pantolon", "oyuncu_ayakkabi", "oyuncu_ceket"]) assert.ok(adlar.includes(m), m);
+  for (const mesh of BEKLENEN_MESHLER) assert.ok(adlar.includes(mesh), `${mesh} malzemesi (malzeme adı = mesh adı)`);
   assert.ok(!adlar.includes("orion_beyaz"), "Orion'un beyaz malzemesi kalmamalı");
 });

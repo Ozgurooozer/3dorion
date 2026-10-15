@@ -30,6 +30,7 @@ import { bakilanCapa } from "./isinTarama.ts";
 import type { Yer } from "../yer/yer.ts";
 import { ODA_YERI } from "../yer/odaYeri.ts";
 import { oyuncuBedeniYukle, type OyuncuBedeni } from "./oyuncuBeden.ts";
+import { ayariDuzelt, type BedenAyari } from "./bedenAyari.ts";
 
 /** Yürüme / koşma hızı (m/s). */
 const HIZ_YURU = 2.6;
@@ -105,6 +106,8 @@ export class Oyuncu implements KameraHedefi {
   private _hareketli = false;
   /** Giysili görünür beden (Orion iskeleti, farklı renk); yüklenene kadar null → kapsül görünür. */
   private _beden: OyuncuBedeni | null = null;
+  /** Giysi seçimi + renkler (modüler beden). Beden yüklenmeden de ayarlanabilir; yüklenince uygulanır. */
+  private _bedenAyari: BedenAyari = ayariDuzelt(null);
   /** Son tikteki yatay hız (m/s): yürüme klibi hızı. */
   private _hiz = 0;
   /**
@@ -179,13 +182,23 @@ export class Oyuncu implements KameraHedefi {
       this._rig.isinDisiTut(...b.meshler);
       this._beden?.yokEt();
       this._beden = b;
+      b.ayarla(this._bedenAyari);
       this._govdeyiYerlestir();
+      console.log(`[oyuncu] giysili beden yüklendi (${b.meshler.length} mesh)`);
       return true;
     } catch (err) {
       console.warn(`[oyuncu] giysili beden yüklenemedi, kapsül kalıyor: ${err instanceof Error ? err.message : String(err)}`);
       return false;
     }
   }
+
+  /** Giysi seçimini/renkleri değiştir (anında; beden henüz yüklenmediyse yüklenince uygulanır). */
+  bedenAyarla(a: BedenAyari): void {
+    this._bedenAyari = a;
+    this._beden?.ayarla(a);
+  }
+
+  get bedenAyari(): BedenAyari { return this._bedenAyari; }
 
   /** Görünür beden yüklü mü (HUD/duman testi). */
   get bedenYuklu(): boolean { return this._beden !== null; }

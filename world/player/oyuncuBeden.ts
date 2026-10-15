@@ -10,7 +10,10 @@ import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import type { AnimationGroup } from "@babylonjs/core/Animations/animationGroup";
 import { ImportMeshAsync } from "@babylonjs/core/Loading/sceneLoader";
+import { PBRMaterial } from "@babylonjs/core/Materials/PBR/pbrMaterial";
+import { Color3 } from "@babylonjs/core/Maths/math.color";
 import "@babylonjs/loaders/glTF";
+import { gorunenMeshler, meshRengi, type BedenAyari } from "./bedenAyari.ts";
 
 /** Yürüme klibinin (assets/orion-lowpoly.glb ile aynı kaynak) ölçülen hızı (m/s): klip hızı gerçek hıza oranlanır. */
 const KLIP_HIZI = 1.25;
@@ -24,6 +27,8 @@ export interface OyuncuBedeni {
   yerlestir(x: number, y: number, z: number, yaw: number): void;
   /** Yatay hız (m/s). 0 → boşta, >0 → yürüme klibi (hız oranında). */
   hareket(hiz: number): void;
+  /** Giysi seçimini ve renkleri uygula (modüler beden: `bedenAyari.ts`). Anında; yeniden yükleme yok. */
+  ayarla(a: BedenAyari): void;
   gorunur(g: boolean): void;
   yokEt(): void;
 }
@@ -76,7 +81,24 @@ export async function oyuncuBedeniYukle(sahne: Scene, boy: number, yol = OYUNCU_
   };
   oynat(bosta, 1);
 
+  // Parçalar glb'de ADLI mesh'lerdir (`oyuncu_<parça>`), malzeme başına bir renk. Tek primitive'li mesh adı düğüm adıdır; çok primitive'liyse `_primitiveN` eki gelir.
+  const parcaAdi = (m: AbstractMesh): string => m.name.replace(/_primitive\d+$/, "");
+  const ayarla = (a: BedenAyari): void => {
+    const gorunen = new Set(gorunenMeshler(a));
+    let taninan = 0;
+    for (const m of sonuc.meshes) {
+      const anahtar = meshRengi(parcaAdi(m));
+      if (anahtar === null) continue;  // iskelet kökü ve bedene ait olmayanlar
+      taninan++;
+      m.setEnabled(gorunen.has(parcaAdi(m)));
+      if (m.material instanceof PBRMaterial) m.material.albedoColor = Color3.FromHexString(a.renk[anahtar]).toLinearSpace();
+    }
+    // Ad eşleşmezse bütün giysiler üst üste görünürdü: sessiz kalma.
+    if (taninan === 0) console.warn(`[oyuncu-beden] parça adı eşleşmedi; mesh adları: ${sonuc.meshes.map((m) => m.name).join(", ")}`);
+  };
+
   return {
+    ayarla,
     kok,
     meshler: sonuc.meshes,
     yerlestir(x, y, z, yaw) { kok.position.set(x, y, z); kok.rotation.y = yaw; },
