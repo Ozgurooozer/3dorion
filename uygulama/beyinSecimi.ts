@@ -39,12 +39,15 @@ import type { SemaPaneli } from "../world/surfaces/duvar/sema.ts";
 import type { ModelSeciciKaynagi } from "../world/arayuz/modelSeciciCekirdek.ts";
 import type { OrionModelKancasi } from "./pencereKancalari.ts";
 
-// VARSAYILAN BEYİN: Claude Haiku (Ozyn, 2026-09-28). OpenRouter'daki ücretsiz
+// VARSAYILAN BEYİN: YEREL gemma4:e4b (Ozyn, 2026-10-15: "Haiku ile yapma, locallerle yap"). Önceki karar Claude Haiku idi
+// (Ozyn, 2026-09-28; ölçümde yerel modeller düşünce/eylemde Haiku'dan zayıftı): geri dönmek için aşağıdaki sabit. Son elle seçim
+// (M tuşu) hatırlanır ve varsayılanın önüne geçer. Aşağıdaki not Haiku kararının gerekçesidir (tarihsel):
+// OpenRouter'daki ücretsiz
 // Ling modeli kalktı: karar kaydında dört uyanışın dördü 404 ile bitti
 // (2026-09-27). Haiku zaten bağlı (adaptörünü Electron başlatıyor) ve
 // ölçülmüştü (2,8–3,6 sn). OpenCode seçenek olarak duruyor; yedek model yine
 // YOK: seçilen beyin düşerse Orion kurallı varlık kipinde kalır.
-export const VARSAYILAN_BEYIN = "claude:haiku";
+export const VARSAYILAN_BEYIN = "yerel:gemma4:e4b";
 /** Son elle seçimin depo anahtarı. */
 export const HATIRA_ANAHTARI = "orionBeyin";
 
@@ -155,6 +158,11 @@ export function beyinSeciminiKur(b: BeyinSecimiBaglami): BeyinSecimi {
   if (istenenYerel) {
     secenekler.push({ ad: yerelAd(istenenYerel), kur: () => new OllamaBeyni({ model: istenenYerel, adres: ollamaAdres }) });
   }
+  // Varsayılan yerel model de TARAMAYI BEKLEMEZ: açılışta seçenek olarak hazır durur (kurulu değilse sağlık kontrolü söyler).
+  const varsayilanYerel = yereldenModel(VARSAYILAN_BEYIN);
+  if (varsayilanYerel && varsayilanYerel !== istenenYerel) {
+    secenekler.push({ ad: yerelAd(varsayilanYerel), kur: () => new OllamaBeyni({ model: varsayilanYerel, adres: ollamaAdres }) });
+  }
   const baslangic = secenekler.some((s) => s.ad === istek) ? istek! : VARSAYILAN_BEYIN;
   if (istek && baslangic !== istek) {
     console.warn(`[BEYIN] bilinmeyen beyin '${istek}', ${VARSAYILAN_BEYIN} ile başlanıyor`);
@@ -180,7 +188,7 @@ export function beyinSeciminiKur(b: BeyinSecimiBaglami): BeyinSecimi {
   });
   const beyin: Beyin = secici;
   console.log(`[BEYIN] seçenekler: ${secici.secenekAdlari().join(", ")} · başlangıç: ${secici.aktif}`);
-  sema.lob("beyin", istenenYerel && baslangic === istek ? "yerel" : "bulut");
+  sema.lob("beyin", yereldenModel(baslangic) !== null ? "yerel" : "bulut");
 
   // ── OLLAMA TARAMASI: kurulu modeller açılışta seçenek olur ───────────
   //

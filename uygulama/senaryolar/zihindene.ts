@@ -211,7 +211,10 @@ export async function kos(d: SenaryoBaglami): Promise<void> {
   // `dis` reddedilmeli ve mevcut beyin kalmalı. `dis` varsayılan adresi 4700 = Electron'un Haiku
   // adaptörü; bu yüzden `3dorion.bat zihindene` ORION_BEYIN_ADRES'i kapalı bir porta çevirir
   // (spec 14 R6: adres boşken `dis` Haiku'ya bağlanıp geçiyordu, kapı bayat sebeple KALIYORDU).
-  {
+  // `?modelsiz=1` (ORION_SORGU_EK="modelsiz=1"): seçici kapısı ATLANIR. Kapı `qwen2.5:7b` yükletir; Ollama bu sürümde her yüklemeden
+  // sonra ebeveynsiz `llama-server` bırakıp 5+ GiB ekran belleğini tutuyor (2026-10-15, Orion sessiz kaldı). Panel kapılarını
+  // (S5/S6/UNUT/KURALLAR) model yüklemeden koşturmak için.
+  if (!new URLSearchParams(location.search).has("modelsiz")) {
     const pn = panoyuAl();
     const deger = (ad: string) => pn?.goruntu("beyin")
       .flatMap((m) => m.dugmeler).find((d) => d.ad === ad)?.deger ?? null;
