@@ -16,7 +16,7 @@
 "use strict";
 import { NESNE_EYLEMLERI, type NesneEylemi } from "../../../protocol/temel.ts";
 import type { NesneYeri } from "./levelTanimi.ts";
-import type { Nesne } from "../nesneKaydi.ts";
+import type { Nesne } from "./nesneTipi.ts";
 
 /** Orion'un nesneleri gördüğü türler (spec 15'in yuzey/mobilya/aydinlatma'sı dahil). */
 export const NESNE_TURLERI = ["yapi", "mobilya", "esya", "aydinlatma", "yuzey", "tabela", "yol", "bitki", "altyapi", "arac", "detay"] as const;

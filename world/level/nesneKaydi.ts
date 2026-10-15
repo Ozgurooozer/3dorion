@@ -13,7 +13,10 @@
 // olmayan şey Orion için "bilinmiyor"dur, "yok" değil (spec 15 K2).
 "use strict";
 import { CAPA_ETIKETLERI, type CapaAdi } from "../../protocol/temel.ts";
-import { BERJER, KATI_YUZEYLER, LAMBA, RAF, YIGIN, type Kutu } from "./olculer.ts";
+import { BERJER, KATI_YUZEYLER, LAMBA, RAF, YIGIN } from "./olculer.ts";
+// `Nesne` ve `Kutu` TİPLERİ Level'in (cekirdek/nesneTipi.ts): level çekirdeği ofisten tip almasın (B5 tip yarısı). Buradan yeniden dışa verilir.
+import type { Kutu, Nesne } from "./cekirdek/nesneTipi.ts";
+export type { Nesne };
 
 /**
  * Türler TEK yerde (cekirdek/anlam.ts `NESNE_TURLERI`): oda `yuzey` (ekran-panel), `mobilya` (taşınabilir/
@@ -21,18 +24,6 @@ import { BERJER, KATI_YUZEYLER, LAMBA, RAF, YIGIN, type Kutu } from "./olculer.t
  */
 export type { NesneTuru } from "./cekirdek/anlam.ts";
 import type { NesneTuru } from "./cekirdek/anlam.ts";
-
-export interface Nesne {
-  /** Kararlı kimlik: çapalıysa çapa adı, değilse kısa ad. */
-  id: string;
-  /** Odadaki Türkçe ad (Orion'un sesi bunu aynen kullanır). */
-  ad: string;
-  tur: NesneTuru;
-  /** Bu nesneye bakmak hangi çapayı önerir; çapasız eşya için null. */
-  capa: CapaAdi | null;
-  /** Işın ve görünürlük testinin kullandığı kutu. */
-  kutu: Kutu;
-}
 
 const MOBILYA_CAPALARI: ReadonlySet<CapaAdi> = new Set(["masa", "sandalye"]);
 

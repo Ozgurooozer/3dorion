@@ -92,6 +92,16 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
       "world/level/ufuk/ufuk.ts",
       // Işık Hacmi (GI spike 1, `?gi=hacim`): birleşik dünya (Sahne) kurar, senaryo (Uygulama) tipini okur.
       "world/level/gi/isikHacmi.ts",
+      // Level VERİ ÇEKİRDEĞİ (Ozyn, 2026-10-15 "mimari açıkları hallet"): editör, ofis/yer ve senaryolar level'in saf veri modelini ve tanım
+      // modüllerini DOĞAL olarak tüketir (dönüşüm/grup/kimlik/arazi/rastgele, zemin/su modülleri, shader ve stil TANIMLARI, uzak depo). Hepsi
+      // saf mantık/veri dosyası; kenar başına istisna tutmak yerine Level'in yüzeyine alındı (kopya ya da ters yön YOK).
+      "world/level/cekirdek/donusum.ts", "world/level/cekirdek/grup.ts", "world/level/cekirdek/kimlik.ts",
+      "world/level/cekirdek/arazi.ts", "world/level/cekirdek/rastgele.ts",
+      "world/level/moduller/zemin.ts", "world/level/moduller/su.ts",
+      "world/level/shader/shaderSistemi.ts", "world/level/shader/dunyaDurumu.ts", "world/level/shader/paletler.ts",
+      "world/level/stil/stilTanimi.ts", "world/level/depo/httpDeposu.ts",
+      // Nesne/Kutu tipleri (B5 tip yarısı): ofis (Sahne) bunları Level'den yeniden dışa verir.
+      "world/level/cekirdek/nesneTipi.ts",
       // Ova level verisi: uygulama/yerGecisi.ts birleşik dünyayı bu tanımla kurar (`?url` ile paketlenir).
       "world/level/ova/ova.level.json"],
     izinli: ["Protokol"], urun: true,
@@ -170,17 +180,8 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
   },
 ];
 
-// ── İstisna gerekçeleri (2026-10-14 ölçümü: 67 kenar; A4 ilk turundan sonra 60; giris bölme B1–B2 sonrası 35) ──
-// giris bölme (B1–B2, 2026-10-15): uygulama/ → dünya kenarlarının çoğu bilinçli tüketilen yüzeydi ve ilgili Sahne/Yüzeyler/Level/Ses
-// kamu listelerine alındı; kalan tek kenar level stil tanımının iç tipi (Level kamu kararı EDITOR_LEVEL ile birlikte verilir).
-const KOK =
-  "kompozisyon kökü dünyanın iç dosyasına uzanıyor; dünyanın uygulamaya yüzeyi yok (rapor §1e) — Level kamu kararıyla (EDITOR_LEVEL) birlikte kapanır";
-const EDITOR_LEVEL =
-  "editör level veri modelinin iç dosyalarına uzanıyor (dönüşüm/grup/kimlik/arazi, stil/shader tanımları); " +
-  "Level'in kamu listesi sonraki yüzey turunda bu kullanıma göre kararlaştırılır";
-const SAHNE_LEVEL = "ofis/yer level modüllerinin iç dosyalarını kullanıyor (zemin, su, arazi, grup); B5 (oda/ ayrımı) ile bakılır";
-const NESNE_TIPI =
-  "level çekirdeği ofisin nesne kaydından tip alıyor (yanlış yön); B5'te `Nesne` tipi level/cekirdek ya da protocol/temel.ts'e alınır";
+// ── İstisna gerekçeleri (2026-10-14 ölçümü: 67 kenar; A4 sonrası 60; giris bölme B1–B2 sonrası 35; Level veri çekirdeği kamuya alınınca 2) ──
+// Mimari düzenleme (2026-10-15): giris bölme B1–B2 ve Level veri çekirdeğinin kamu listesine alınması sonrası ve `Nesne`/`Kutu` tiplerinin Level'e alınmasıyla 1 kenar kaldı (ORION_GOZU: görünürlük kodu).
 // A4'te gerekçelendi, düzeltilmedi: gorunurluk.ts saf (Babylon yok) ve tasarımcının gördüğü etiket
 // Orion'un odada gördüğüyle AYNI olmalı — ikinci bir kopya bu sözü bozar. Doğru çözüm dosyayı
 // Sahne ile Editör'ün ikisinin de alabileceği bir yere (Protokol değil; ortak saf algı) almak: B5'le.
@@ -192,41 +193,7 @@ const ORION_GOZU =
  * Aynı kenarın birden çok import satırı tek anahtardır; tip/değer ayrımı anahtara girmez.
  */
 export const ISTISNALAR: Readonly<Record<string, string>> = {
-  "world/level/editor/arayuz/editorArayuzu.ts → world/level/shader/shaderSistemi.ts": EDITOR_LEVEL,
-  "world/level/editor/arayuz/gorunum.ts → world/level/shader/dunyaDurumu.ts": EDITOR_LEVEL,
-  "world/level/editor/arayuz/gorunum.ts → world/level/shader/paletler.ts": EDITOR_LEVEL,
-  "world/level/editor/arayuz/gorunum.ts → world/level/shader/shaderSistemi.ts": EDITOR_LEVEL,
-  "world/level/editor/arayuz/gorunum.ts → world/level/stil/stilTanimi.ts": EDITOR_LEVEL,
-  "world/level/editor/arayuz/ozellikler.ts → world/level/cekirdek/donusum.ts": EDITOR_LEVEL,
-  "world/level/editor/arayuz/sahneAgaci.ts → world/level/cekirdek/grup.ts": EDITOR_LEVEL,
-  "world/level/editor/arayuz/sahneAgaci.ts → world/level/cekirdek/kimlik.ts": EDITOR_LEVEL,
-  "world/level/editor/cekirdek/araziKomutu.ts → world/level/cekirdek/arazi.ts": EDITOR_LEVEL,
-  "world/level/editor/cekirdek/araziKomutu.ts → world/level/cekirdek/donusum.ts": EDITOR_LEVEL,
-  "world/level/editor/cekirdek/firca.ts → world/level/cekirdek/donusum.ts": EDITOR_LEVEL,
-  "world/level/editor/cekirdek/komutlar.ts → world/level/cekirdek/donusum.ts": EDITOR_LEVEL,
-  "world/level/editor/cekirdek/komutlar.ts → world/level/cekirdek/grup.ts": EDITOR_LEVEL,
-  "world/level/editor/cekirdek/komutlar.ts → world/level/cekirdek/kimlik.ts": EDITOR_LEVEL,
-  "world/level/editor/cekirdek/pano.ts → world/level/cekirdek/donusum.ts": EDITOR_LEVEL,
-  "world/level/editor/cekirdek/secim.ts → world/level/cekirdek/grup.ts": EDITOR_LEVEL,
-  "world/level/editor/editor.ts → world/level/cekirdek/arazi.ts": EDITOR_LEVEL,
-  "world/level/editor/editor.ts → world/level/cekirdek/donusum.ts": EDITOR_LEVEL,
-  "world/level/editor/editor.ts → world/level/cekirdek/rastgele.ts": EDITOR_LEVEL,
-  "world/level/editor/editor.ts → world/level/moduller/zemin.ts": EDITOR_LEVEL,
-  "world/level/editor/editor.ts → world/level/stil/stilTanimi.ts": EDITOR_LEVEL,
-  "world/level/editor/levelPaneli.ts → world/level/shader/shaderSistemi.ts": EDITOR_LEVEL,
-  "world/level/editor/levelPaneli.ts → world/level/stil/stilTanimi.ts": EDITOR_LEVEL,
-  "world/level/editor/sahne/yerlestirme.ts → world/level/cekirdek/donusum.ts": EDITOR_LEVEL,
-  "world/level/editorSayfasi.ts → world/level/depo/httpDeposu.ts": EDITOR_LEVEL,
-  "world/level/editorSayfasi.ts → world/level/shader/dunyaDurumu.ts": EDITOR_LEVEL,
-  "world/level/editorSayfasi.ts → world/level/stil/stilTanimi.ts": EDITOR_LEVEL,
-  "uygulama/senaryolar/ortamdene.ts → world/level/stil/stilTanimi.ts": KOK,
-  "world/level/cekirdek/anlam.ts → world/level/nesneKaydi.ts": NESNE_TIPI,
   "world/level/editor/arayuz/orionGozu.ts → world/player/gorunurluk.ts": ORION_GOZU,
-  "world/level/ofisYeri.ts → world/level/cekirdek/arazi.ts": SAHNE_LEVEL,
-  "world/level/ofisYeri.ts → world/level/moduller/su.ts": SAHNE_LEVEL,
-  "world/level/ofisYeri.ts → world/level/moduller/zemin.ts": SAHNE_LEVEL,
-  "world/yer/levelYeri.ts → world/level/cekirdek/grup.ts": SAHNE_LEVEL,
-  "world/yer/levelYeri.ts → world/level/moduller/zemin.ts": SAHNE_LEVEL,
 };
 
 function eslesmeBoyu(kalip: string, yol: string): number {

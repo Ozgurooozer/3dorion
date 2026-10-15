@@ -19,13 +19,9 @@
 import type { CapaAdi } from "../../protocol/temel.ts";
 import type { YurumeAlani } from "../yer/yer.ts";
 
-/** Bir eksen hizalı kutu (AABB). Çarpışma ve mesh üretimi aynı veriyi okur. */
-export interface Kutu {
-  /** Merkez. */
-  x: number; y: number; z: number;
-  /** Tam boyutlar (yarım değil). */
-  g: number; yuk: number; d: number;
-}
+// `Kutu` Level'in tipi (cekirdek/nesneTipi.ts; B5 tip yarısı): buradan yeniden dışa verilir, bildirim tek yerde.
+import type { Kutu } from "./cekirdek/nesneTipi.ts";
+export type { Kutu };
 
 /** Oda kabuğu ölçüleri. */
 export const ODA = {
