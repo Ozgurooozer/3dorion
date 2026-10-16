@@ -69,6 +69,21 @@ export function anlamSozluguOku(v: unknown): AnlamSozlugu {
   return { surum: 1, kategoriler: s["kategoriler"] as Record<string, Anlam>, varliklar: s["varliklar"] as Record<string, Anlam> };
 }
 
+/** Birden çok anlam sözlüğünü katar (kit başına bir dosya); aynı kategori/varlık iki dosyada FARKLI tanımlıysa HATA. Saf. */
+export function anlamBirlestir(parcalar: readonly AnlamSozlugu[]): AnlamSozlugu {
+  const kategoriler: Record<string, Anlam> = {}, varliklar: Record<string, Anlam> = {};
+  for (const p of parcalar) {
+    for (const [bolum, hedef, kaynak] of [["kategori", kategoriler, p.kategoriler], ["varlık", varliklar, p.varliklar]] as const) {
+      for (const [ad, a] of Object.entries(kaynak)) {
+        // Aynı tanım iki kitte olabilir (ortak "detay" kategorisi); FARKLI tanım sessizce ezilmez.
+        if (ad in hedef && JSON.stringify(hedef[ad]) !== JSON.stringify(a)) throw new Error(`anlam sözlüğü: ${bolum} ${ad} iki dosyada farklı tanımlı`);
+        hedef[ad] = a;
+      }
+    }
+  }
+  return { surum: 1, kategoriler, varliklar };
+}
+
 /** Bir yerleşimin ETKİN anlamı (bütün alanlar dolu) ve her alanın nereden geldiği (editör gri gösterir). */
 export interface EtkinAnlam {
   ad: string;

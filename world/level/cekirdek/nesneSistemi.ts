@@ -30,15 +30,25 @@ import { VertexData } from "@babylonjs/core/Meshes/mesh.vertexData";
 import type { Color3 } from "@babylonjs/core/Maths/math.color";
 import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import type { GrupTanimi, NesneYeri } from "./levelTanimi.ts";
-import { katalogOku, type Katalog, type Varlik } from "./katalog.ts";
-import { anlamSozluguOku, type AnlamSozlugu } from "./anlam.ts";
+import { katalogOku, katalogBirlestir, type Katalog, type Varlik } from "./katalog.ts";
+import { anlamSozluguOku, anlamBirlestir, type AnlamSozlugu } from "./anlam.ts";
 import { donusRadyan, olcekVec } from "./donusum.ts";
 import { etkinBayrak } from "./grup.ts";
 import type { Renk } from "./renk.ts";
 
-export const KATALOG_DOSYASI = "sehir/katalog.json";
+/** Varlık kitleri: her biri assets/<kit>/ altında katalog.json + anlam.json (şehir, yeşil harabe). Katalog bunların birleşimi. */
+export const KITLER = ["sehir", "orman"] as const;
+export const KATALOG_DOSYALARI = KITLER.map((k) => `${k}/katalog.json`);
 /** Varlıkların Orion için anlam sözlüğü (spec 23 B; cekirdek/anlam.ts). */
-export const ANLAM_DOSYASI = "sehir/anlam.json";
+export const ANLAM_DOSYALARI = KITLER.map((k) => `${k}/anlam.json`);
+
+/** Bir kit dosyasını getirir (varlık yolu çözücüsüyle); yoksa dosya adıyla HATA. */
+async function kitDosyasi(ad: string): Promise<unknown> {
+  const { varlik } = await import("../../varlik.ts");
+  const y = await fetch(varlik(ad));
+  if (!y.ok) throw new Error(`${ad}: HTTP ${y.status}`);
+  return y.json();
+}
 
 /**
  * Varlığın bir örneğini `ust` altına kurar, mesh'lerini döner (test sahte yükleyici verir; asıl yol glb).
@@ -124,19 +134,13 @@ export function nesneSistemiKur(b: NesneBaglami): NesneSistemi {
   let nesil = 0, yuklemeSayaci = 0;
 
   const katalog = (): Promise<Katalog> => {
-    katalogSozu ??= import("../../varlik.ts")
-      .then(({ varlik }) => fetch(varlik(KATALOG_DOSYASI)))
-      .then((y) => { if (!y.ok) throw new Error(`${KATALOG_DOSYASI}: HTTP ${y.status}`); return y.json(); })
-      .then(katalogOku);
+    katalogSozu ??= Promise.all(KATALOG_DOSYALARI.map(kitDosyasi)).then((h) => katalogBirlestir(h.map(katalogOku)));
     katalogSozu.catch(() => { katalogSozu = null; });
     return katalogSozu;
   };
   let anlamSozu: Promise<AnlamSozlugu> | null = null;
   const anlamlar = (): Promise<AnlamSozlugu> => {
-    anlamSozu ??= import("../../varlik.ts")
-      .then(({ varlik }) => fetch(varlik(ANLAM_DOSYASI)))
-      .then((y) => { if (!y.ok) throw new Error(`${ANLAM_DOSYASI}: HTTP ${y.status}`); return y.json(); })
-      .then(anlamSozluguOku);
+    anlamSozu ??= Promise.all(ANLAM_DOSYALARI.map(kitDosyasi)).then((h) => anlamBirlestir(h.map(anlamSozluguOku)));
     anlamSozu.catch(() => { anlamSozu = null; });
     return anlamSozu;
   };

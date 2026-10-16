@@ -26,15 +26,15 @@
       "renk": "cimAcik",
       "siddet": 1.6,
       "golge": {
+        "otomatikSinir": false,
+        "kip": 0,
+        "karisim": 0.1,
         "acik": true,
         "boyut": 2048,
         "kademe": 4,
         "uzaklik": 250,
         "yumusaklik": 0.2,
-        "koyuluk": 0.35,
-        "otomatikSinir": true,
-        "kip": 0,
-        "karisim": 0.1
+        "koyuluk": 0.35
       }
     },
     "dolgu": {
@@ -47,18 +47,18 @@
     "arkaPlan": "gokZenit",
     "sis": {
       "acik": true,
-      "renk": "gokUfuk",
-      "yogunluk": 0.0042
+      "renk": "gokZenit",
+      "yogunluk": 0.03
     },
     "tonlama": {
       "acik": true,
-      "pozlama": 1,
-      "kontrast": 1.1
+      "pozlama": 1.62,
+      "kontrast": 0.94
     },
     "kamera": {
-      "uzak": 1000
+      "uzak": 3000
     },
-    "piksel": 1
+    "piksel": 2
   },
   "katmanlar": [
     {
@@ -104,7 +104,9 @@
         "basiklik": 0.8,
         "renk": "bulut",
         "golge": "bulutGolge",
-        "donus": 0.004
+        "donus": 0.004,
+        "geceParlak": 0.16,
+        "alacaPayi": 0.65
       }
     },
     {
@@ -129,11 +131,21 @@
           0.62,
           0.86
         ],
-        "tohum": 1907,
         "golX": -30,
         "golZ": -32,
         "golYaricap": 16,
-        "golDerinlik": 1.1
+        "golDerinlik": 1.1,
+        "tohum": 1907,
+        "duzenleme": [],
+        "duzenlemeHucre": 2,
+        "platoX": 0,
+        "platoZ": 0,
+        "platoYaricap": 0,
+        "platoGecis": 18,
+        "platoYukseklik": 0,
+        "platoCukur": 0,
+        "platoCukurBas": 140,
+        "platoCukurSon": 260
       }
     },
     {
@@ -149,6 +161,8 @@
         "boyMax": 2.2,
         "bozma": 0.35,
         "basiklik": 0.7,
+        "maske": [],
+        "maskeHucre": 2,
         "renk": "kaya",
         "koyu": "kayaKoyu"
       }
@@ -163,9 +177,17 @@
         "merkezYogunluk": 1.6,
         "boyMin": 0.14,
         "boyMax": 0.5,
+        "uzunOran": 0.07,
+        "uzunCarpan": 1.9,
         "genislik": 0.07,
+        "genislikOynama": 0.3,
         "yaprak": 5,
+        "dilim": 4,
+        "egilme": 0.2,
         "yatma": 0.18,
+        "maske": [],
+        "maskeHucre": 2,
+        "enAlcak": -0.2,
         "lekeOlcek": 6,
         "bosluk": 0.06,
         "kokKoyuluk": 0.55,
@@ -178,8 +200,10 @@
         "ruzgarHiz": 1.8,
         "ruzgarOlcek": 0.05,
         "ruzgarAci": 35,
-        "tohum": 4242,
-        "enAlcak": -0.2
+        "hucre": 16,
+        "mesafe1": 24,
+        "mesafe2": 55,
+        "tohum": 4242
       }
     },
     {
@@ -190,7 +214,19 @@
         "x": -30,
         "z": -32,
         "yaricap": 16,
-        "seviye": -0.25
+        "seviye": -0.25,
+        "yaricapCarpani": 1.15,
+        "dalga": 0.05,
+        "dalgaHiz": 0.9,
+        "dalgaSikligi": 0.9,
+        "derinRenk": "#173f5c",
+        "siglikRenk": "#4aa6a8",
+        "kopukRenk": "#e8f6f0",
+        "yansima": 1,
+        "parilti": 1.1,
+        "opaklik": 0.9,
+        "halka": 14,
+        "dilim": 36
       }
     },
     {
@@ -198,8 +234,8 @@
       "ad": "dekor",
       "acik": true,
       "ayar": {
-        "agac": 22,
-        "bank": 4,
+        "agac": 50,
+        "bank": 10,
         "lamba": 3,
         "tohum": 31,
         "icYaricap": 10,
@@ -207,12 +243,14 @@
         "aralik": 5,
         "agacOlcekMin": 0.8,
         "agacOlcekMax": 1.5,
-        "tacBozma": 0.18,
+        "tacBozma": 0.08,
         "govde": "#5a4632",
         "tac": "#3f6631",
         "tacAcik": "#5d8a3a",
         "ahsap": "#6e5138",
         "demir": "#33363a",
+        "maske": [],
+        "maskeHucre": 2,
         "lambaBasi": "#d8cfa0"
       }
     },
@@ -253,7 +291,23 @@
       "tur": "parcacik",
       "ad": "havadakiler",
       "acik": true,
-      "ayar": {}
+      "ayar": {
+        "x": 0,
+        "z": 0,
+        "alan": 38,
+        "yukseklikMin": 0.3,
+        "yukseklikMax": 3.4,
+        "polen": 260,
+        "atesBocegi": 500,
+        "polenBoyu": 0.05,
+        "atesBoyu": 0.2,
+        "polenOmru": 9,
+        "atesOmru": 7,
+        "polenHiz": 0.35,
+        "atesHiz": 0.5,
+        "polenRenk": "#fff4c2",
+        "atesRenk": "#c8ff5a"
+      }
     }
   ],
   "stil": {
@@ -263,12 +317,13 @@
       "yumusaklik": 0.02,
       "enKoyu": 0.35,
       "golgeRengi": "#4b4f8f",
-      "golgeKarisim": 0,
-      "parlama": 0,
-      "parlamaBoyu": 32,
-      "kenarIsik": 0,
-      "kenarEsik": 0.72,
-      "tarama": 0
+      "golgeKarisim": 1,
+      "parlama": 1,
+      "parlamaBoyu": 128,
+      "kenarIsik": 1,
+      "kenarEsik": 1,
+      "tarama": 1,
+      "golgeDolgudan": 1
     },
     "cizgi": {
       "acik": false,
@@ -352,6 +407,13 @@
         "acik": false,
         "odak": 20,
         "aciklik": 2
+      },
+      "gi": {
+        "acik": false,
+        "guc": 10,
+        "yaricap": 0.05,
+        "ornek": 400,
+        "alan": 90
       }
     }
   },
@@ -361,107 +423,280 @@
       "varlik": "INFRA_Pipe_Wall_Cluster",
       "konum": [
         11.19,
-        0.66,
+        1.66,
         -13.85
       ],
       "donus": 0,
-      "olcek": 1
+      "olcek": [
+        3.8623,
+        2.3309,
+        1.8908
+      ]
     },
     {
       "id": "n2",
-      "varlik": "CORP_BLD_Annex_SM",
+      "varlik": "INFRA_Cable_Bundle_Overhead",
       "konum": [
-        5.44,
-        0.83,
-        -19.98
+        12,
+        0.635,
+        -14
       ],
       "donus": 0,
       "olcek": 1
     },
     {
       "id": "n3",
-      "varlik": "CORP_BLD_Annex_SM",
+      "varlik": "INFRA_Cable_Bundle_Overhead",
       "konum": [
-        19.86,
-        0.5,
-        -16.59
+        10,
+        0.677,
+        -13
       ],
       "donus": 0,
       "olcek": 1
     },
     {
       "id": "n4",
-      "varlik": "CORP_BLD_Annex_SM",
+      "varlik": "DETAIL_Pipe_Straight_1m",
       "konum": [
-        10.35,
-        0.52,
-        6.42
+        24,
+        0.302,
+        -9
       ],
       "donus": 0,
       "olcek": 1
     },
     {
       "id": "n5",
-      "varlik": "CORP_BLD_Annex_SM",
+      "varlik": "CORP_BLD_TwinTower_LG",
       "konum": [
-        -13.59,
-        0.74,
-        -9.75
+        48,
+        -0.262,
+        -21
       ],
-      "donus": 0,
+      "donus": 30,
       "olcek": 1
     },
     {
       "id": "n6",
-      "varlik": "CORP_BLD_Annex_SM",
+      "varlik": "HARBOR_BLD_Warehouse_LG",
       "konum": [
-        -7.83,
-        0.8,
-        -24.32
+        76,
+        0.406,
+        -51
       ],
-      "donus": 0,
-      "olcek": 1
+      "donus": 30,
+      "olcek": [
+        1,
+        1.624,
+        1
+      ]
     },
     {
       "id": "n7",
-      "varlik": "CORP_BLD_Annex_SM",
+      "varlik": "PROP_Barricade_Concrete",
       "konum": [
-        -12.35,
-        0.46,
-        9.89
+        21,
+        0.293,
+        -7
       ],
       "donus": 0,
       "olcek": 1
     },
     {
       "id": "n8",
-      "varlik": "CORP_BLD_Annex_SM",
+      "varlik": "PROP_Barricade_Concrete",
       "konum": [
-        27.38,
-        0.2,
-        0.24
+        9,
+        0.608,
+        -7
       ],
       "donus": 0,
       "olcek": 1
     },
     {
-      "id": "ofis",
-      "varlik": "CORP_BLD_OfficeBlock_MD",
-      "ad": "Orion'un ofisi",
+      "id": "n9",
+      "varlik": "PROP_Barricade_Concrete",
       "konum": [
-        -2,
-        -0.2,
-        22
+        9,
+        1.608,
+        -7
       ],
       "donus": 0,
-      "olcek": 1,
-      "anlam": {
-        "not": "Orion'un çalıştığı oda bu binada; kapısı ofise açılır"
-      }
+      "olcek": 1
+    },
+    {
+      "id": "n10",
+      "varlik": "PROP_Barricade_Concrete",
+      "konum": [
+        8,
+        2.608,
+        -7
+      ],
+      "donus": 0,
+      "olcek": 1
+    },
+    {
+      "id": "n11",
+      "varlik": "PROP_Barricade_Concrete",
+      "konum": [
+        9,
+        2.608,
+        -7
+      ],
+      "donus": 0,
+      "olcek": 1
+    },
+    {
+      "id": "n12",
+      "varlik": "PROP_Barricade_Concrete",
+      "konum": [
+        10,
+        2.608,
+        -7
+      ],
+      "donus": 0,
+      "olcek": 1
+    },
+    {
+      "id": "n13",
+      "varlik": "PROP_Barricade_Concrete",
+      "konum": [
+        9,
+        3.608,
+        -7
+      ],
+      "donus": 0,
+      "olcek": 1
+    },
+    {
+      "id": "n14",
+      "varlik": "PROP_Barricade_Concrete",
+      "konum": [
+        11,
+        0.557,
+        -7
+      ],
+      "donus": 0,
+      "olcek": 1
+    },
+    {
+      "id": "n15",
+      "varlik": "PROP_CoolingTower_LG",
+      "konum": [
+        16,
+        1.557,
+        -7
+      ],
+      "donus": 0,
+      "olcek": [
+        1.8821,
+        2.0079,
+        1
+      ]
+    },
+    {
+      "id": "n16",
+      "varlik": "PROP_Dumpster_Closed",
+      "konum": [
+        15,
+        0.581,
+        -20
+      ],
+      "donus": 0,
+      "olcek": 1
+    },
+    {
+      "id": "n17",
+      "varlik": "PROP_HVAC_Cluster_MD",
+      "konum": [
+        32,
+        0.24,
+        -3
+      ],
+      "donus": 0,
+      "olcek": 1
+    },
+    {
+      "id": "n18",
+      "varlik": "PROP_Hydrant_Cyber",
+      "konum": [
+        39,
+        0.215,
+        6
+      ],
+      "donus": 0,
+      "olcek": 1
+    },
+    {
+      "id": "n19",
+      "varlik": "PROP_Hydrant_Cyber",
+      "konum": [
+        78,
+        0.228,
+        -11
+      ],
+      "donus": 0,
+      "olcek": 1
+    },
+    {
+      "id": "n20",
+      "varlik": "PROP_Hydrant_Cyber",
+      "konum": [
+        118,
+        0.807,
+        -55
+      ],
+      "donus": 0,
+      "olcek": 1
+    },
+    {
+      "id": "n21",
+      "varlik": "PROP_Hydrant_Cyber",
+      "konum": [
+        18,
+        0.463,
+        -13
+      ],
+      "donus": 0,
+      "olcek": 1
+    },
+    {
+      "id": "n22",
+      "varlik": "PROP_Hydrant_Cyber",
+      "konum": [
+        10,
+        2.157,
+        -6
+      ],
+      "donus": 0,
+      "olcek": 1
+    },
+    {
+      "id": "n23",
+      "varlik": "PROP_Hydrant_Cyber",
+      "konum": [
+        11,
+        3.017,
+        -6
+      ],
+      "donus": 0,
+      "olcek": 1
+    },
+    {
+      "id": "n24",
+      "varlik": "PROP_Hydrant_Cyber",
+      "konum": [
+        19,
+        0.405,
+        -11
+      ],
+      "donus": 0,
+      "olcek": 1
     }
   ],
   "zaman": {
-    "saat": 13,
+    "saat": 9.25,
     "hiz": 0.1,
     "akiyor": false,
     "egim": 35,
@@ -470,43 +705,99 @@
   "shaderlar": [
     {
       "tur": "gokZamani",
-      "acik": true,
-      "ayar": {}
+      "acik": false,
+      "ayar": {
+        "guc": 1,
+        "yildiz": 1,
+        "ayBoyu": 1.6,
+        "ay": "#e8eeff"
+      }
     },
     {
       "tur": "paletHaritasi",
-      "acik": true,
-      "ayar": {}
+      "acik": false,
+      "ayar": {
+        "gunduz": 0.3,
+        "gece": 0.75,
+        "tonKoru": 0.6,
+        "egri": 1,
+        "sicakKoru": 0
+      }
     },
     {
       "tur": "zamanKirigi",
       "acik": false,
-      "ayar": {}
+      "ayar": {
+        "merkezX": 18,
+        "merkezZ": -24,
+        "yaricap": 20,
+        "kenar": 0.18,
+        "guc": 0.92,
+        "saatFarki": 12,
+        "nabiz": 0.08,
+        "isilti": "#5b8def"
+      }
     },
     {
       "tur": "hataImzasi",
       "acik": false,
-      "ayar": {}
+      "ayar": {
+        "guc": 0.85,
+        "merkezX": -14,
+        "merkezZ": -10,
+        "yaricap": 9,
+        "blok": 0.45,
+        "hiz": 9,
+        "ekran": 0.6,
+        "siklik": 0.3
+      }
     },
     {
       "tur": "debugTarama",
-      "acik": false,
-      "ayar": {}
+      "acik": true,
+      "ayar": {
+        "hiz": 35,
+        "menzil": 160,
+        "kalinlik": 5,
+        "soluk": 0.75,
+        "kenar": 1,
+        "renk": "#5b8def"
+      }
     },
     {
       "tur": "firca",
       "acik": false,
-      "ayar": {}
+      "ayar": {
+        "yaricap": 4,
+        "guc": 1,
+        "normal": 0.35,
+        "olcek": 0.7
+      }
     },
     {
       "tur": "elyazmasi",
       "acik": false,
-      "ayar": {}
+      "ayar": {
+        "kagit": "#efe3c8",
+        "murekkep": "#2b1d14",
+        "yaldiz": "#c9a227",
+        "tarama": 6,
+        "hat": 1,
+        "yaldizEsik": 0.8,
+        "yikama": 0.3
+      }
     },
     {
       "tur": "atmosfer",
       "acik": false,
-      "ayar": {}
+      "ayar": {
+        "pozlama": 1,
+        "cokluSacilim": 1,
+        "rayleigh": 1,
+        "mie": 1,
+        "geceTaban": 0.02,
+        "gunesRengi": 0.85
+      }
     }
   ],
   "kameraYerleri": [
@@ -597,5 +888,6 @@
       "hedef": "oda",
       "etiket": "ofis kapısı"
     }
-  ]
+  ],
+  "gruplar": []
 }

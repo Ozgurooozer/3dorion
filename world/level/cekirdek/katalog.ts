@@ -29,6 +29,20 @@ export const kisaAd = (ad: string) => ad.replace(/^[A-Z]+_(BLD_|MOD_|PROP_)?/, "
 
 const nesneMi = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 
+/** Birden çok katalog dosyasını (şehir kiti, yeşil harabe kiti…) tek kataloğa katar; yinelenen ad HATA. Saf. */
+export function katalogBirlestir(parcalar: readonly Katalog[]): Katalog {
+  const adlar = new Set<string>();
+  const varliklar: Varlik[] = [];
+  for (const p of parcalar) {
+    for (const v of p.varliklar) {
+      if (adlar.has(v.ad)) throw new Error(`katalog: yinelenen ad ${v.ad} (iki kitte de var)`);
+      adlar.add(v.ad);
+      varliklar.push(v);
+    }
+  }
+  return { surum: parcalar[0]?.surum ?? 1, kaynak: parcalar.map((p) => p.kaynak).join(" + "), varliklar };
+}
+
 /** Katalog JSON'unu doğrular; bozuksa HATA (sessiz boş tarayıcı yok). */
 export function katalogOku(v: unknown): Katalog {
   if (!nesneMi(v) || !Array.isArray(v["varliklar"])) throw new Error("katalog: varliklar dizisi yok");
