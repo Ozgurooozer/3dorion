@@ -60,6 +60,7 @@ import { komutKipiCoz } from "./komutKipi.ts";
 import { Takipci } from "./takip.ts";
 import { Ajanda } from "../mind/ajanda.ts";
 import { mesgulMu } from "../mind/benlik.ts";
+import type { SeciliNesne } from "../mind/komutSozlugu.ts";
 import { istenenSenaryolar, type SenaryoBaglami } from "./senaryoBaglami.ts";
 import { niyetYurutucusuKur } from "./niyetYurutucu.ts";
 import { altyaziKur } from "./altyazi.ts";
@@ -75,7 +76,7 @@ import { mikrofonKur } from "./mikrofon.ts";
 import { durumGozlemiKur, sohbetKipiIsaretiKur, arizaGostergesiKur, konusmayiBagla } from "./kopruDinleyicileri.ts";
 import { onayBaglantisiKur } from "./onayBaglantisi.ts";
 import { varlikSinyaliKur } from "./varlikSinyali.ts";
-import { dunyaDurumuKur } from "./dunyaDurumu.ts";
+import { dunyaDurumuKur, seciliDurumu } from "./dunyaDurumu.ts";
 import { hudKur } from "./hud.ts";
 import { dunyaKancasiKur } from "./dunyaKancasi.ts";
 import { algiSorKur } from "./algiBaglantisi.ts";
@@ -101,6 +102,14 @@ import { GozModeli } from "../bridge/goz.ts";
 import { KuralRefleksi } from "../mind/refleks.ts";
 import { kimlik } from "../protocol/temel.ts";
 import type { DavranisDefteri } from "../world/davranisDenemesi.ts";
+import { imlecKipiKur } from "../world/player/imlecKipi.ts";
+import { fareIsini } from "../world/engine/fareIsini.ts";
+import { secimVurgusuKur } from "../world/level/secimVurgusu.ts";
+import { nesnePaneliKur } from "../world/arayuz/nesnePaneli.ts";
+import { nesneEylemleri, type NesneEylemi } from "../world/yer/nesneEylemleri.ts";
+import { secimDurumuKur } from "./secimDurumu.ts";
+import { nesneSecimiKur } from "./nesneSecimi.ts";
+import { nesneEtkilesimiKur, seciliSozOlustur } from "./nesneEtkilesimi.ts";
 
 const tuval = document.getElementById("tuval") as HTMLCanvasElement;
 const hud = document.getElementById("hud") as HTMLDivElement;
@@ -126,11 +135,20 @@ const oda = odaKur(sahne);
 // ışını, çapalar ve algı her aktörün kendi yerinden okunur. Bugün ikisi de ofiste; kapı geçişi (C3) bunları değiştirir.
 const yerler = yerlerKur();
 const rig = new KameraRig(sahne, tuval);
+// İMLEÇ KİPİ (Tab, spec 28): gezinirken imleç serbest, tıklama nesne seçer (uygulama/nesneSecimi.ts). Açılması yalnız odakta (terminal/panel), yazan sohbette ve
+// bekleyen onayda engellenir; kapanınca açık menü de kapanır. `sohbet`, `onayKapisi`, `nesnePaneli` aşağıda kurulur: çağrı ANINDA okunur.
+const imlec = imlecKipiKur({
+  kilidiBirak: () => rig.fareKilitBirak(),
+  kilidiIste: () => rig.fareKilitIste(),
+  engelli: () => rig.odakta || sohbet.acikMi() || onayKapisi.durum === "bekliyor",
+  degisti: (acik) => { if (!acik) nesnePaneli.kapat(); },
+});
 // Doğum yeri köşeden İÇERİ: (2.6, 2.6) kapı köşesiydi ve omuz kamerası iki
 // duvara birden sıkışıp oyuncunun gövdesine yapışıyordu (ölçüm: 1.44 m).
 const oyuncu = new Oyuncu(sahne, oda, rig, {
   dogumYeri: new Vector3(1.6, 0, 1.9),
   yer: () => yerler.ozyn,
+  imlec,
   // Esc yığınının 0. aşaması: panel içindeki alt görünüm önce kapanır.
   // `sema` aşağıda kuruluyor; kapanış çağrı ANINDA okunduğu için sorun yok.
   // Esc yığını sırayla daralır: teyit → detay → (oyuncu.ts: etkileşim →
@@ -482,12 +500,12 @@ yol.dinle("etkilesim.basladi", (o) => {
   }
   altyaziGoster(`${o.capa} · ${o.eylem} — çıkmak için Esc`);
   console.log(`[etkilesim] basladi capa=${o.capa} eylem=${o.eylem} t=${o.t.toFixed(2)}`);
-  // `E` ile YÜZEYE GEÇ. Tek tablo (`YUZEY_GECISI`) hem `E`yi hem odaktaki
-  // tıklamayı besliyor: iki giriş yolu aynı davranışı vermeli, yoksa "E ile
+  // Etkileşim tuşuyla (`F`) YÜZEYE GEÇ. Tek tablo (`YUZEY_GECISI`) hem tuşu hem odaktaki
+  // tıklamayı besliyor: iki giriş yolu aynı davranışı vermeli, yoksa "F ile
   // açılıyor ama tıklayınca açılmıyor" gibi keyfi bir fark doğar.
   //
   // Eskiden yalnızca monitor ve admin bağlıydı: zihin duvarındaki panellere
-  // `E` basmak etkileşim başlatıyor ama EKRANDA HİÇBİR ŞEY OLMUYORDU.
+  // etkileşim tuşuna basmak etkileşim başlatıyor ama EKRANDA HİÇBİR ŞEY OLMUYORDU.
   void odak.yuzeyGecisi[o.capa]?.();
 });
 yol.dinle("etkilesim.bitti", (o) => {
@@ -522,8 +540,43 @@ const odak = odakKur({
   ozynCapalari: () => yerler.ozyn.capalar,
 });
 
+// ── NESNE SEÇİMİ + ETKİLEŞİM MENÜSÜ (spec 28): Tab imleç kipi, sol tık seç, sağ tık menü ──
+// Seçili nesne yoldan duyurulur (`nesne.secildi`): vurgu ve HUD abone. Menüdeki eylemler Orion'a TEK eylem yolundan (`niyetiYurut`) gider.
+const secim = secimDurumuKur({ nesneler: () => yerler.ozyn.nesneler, degisti: (n) => yol.yayinla("nesne.secildi", n) });
+const secimVurgusu = secimVurgusuKur(sahne);
+yol.dinle("nesne.secildi", (n) => secimVurgusu.goster(n?.kutu ?? null));
+const nesneEtkilesimi = nesneEtkilesimiKur({ niyetiYurut, oyuncuEtkilesim: (c, e) => oyuncu.etkilesimBaslat(c, e), altyazi: altyaziGoster });
+let menudekiEylemler: readonly NesneEylemi[] = [];
+/** Seçili nesne ve ORION'un onunla yapabildikleri: söz sözlüğü ("buraya otur") ve beynin bağlamı AYNI menü verisinden beslenir. */
+function seciliOrionEylemleri() {
+  const n = secim.oku();
+  if (!n) return null;
+  const k = oyuncu.oyuncuDurumu().konum;
+  return { n, eylemler: nesneEylemleri(n, { capalar: yerler.ozyn.capalar, oyuncu: { x: k.x, z: k.z } }).filter((e) => e.kim === "orion") };
+}
+const seciliSoz = (): SeciliNesne | null => {
+  const b = seciliOrionEylemleri();
+  return b ? seciliSozOlustur(b.n.ad, b.eylemler) : null;
+};
+const seciliBeyne = () => { const b = seciliOrionEylemleri(); return b ? seciliDurumu(b.n, b.eylemler) : null; };
+const nesnePaneli = nesnePaneliKur({
+  calistir: (kimlik) => { const e = menudekiEylemler.find((x) => x.kimlik === kimlik); if (e) nesneEtkilesimi.calistir(e); },
+  secimiKaldir: () => { secim.sec(null); altyaziGoster("seçim kaldırıldı", 1500); },
+});
+nesneSecimiKur({
+  tuval, imlec, odakta: () => rig.odakta, nesneler: () => yerler.ozyn.nesneler,
+  isin: (x, y) => fareIsini(sahne, rig.kamera, x, y),
+  secim,
+  menuAc: (n, x, y) => {
+    const k = oyuncu.oyuncuDurumu().konum;
+    menudekiEylemler = nesneEylemleri(n, { capalar: yerler.ozyn.capalar, oyuncu: { x: k.x, z: k.z } });
+    nesnePaneli.ac(n, menudekiEylemler, x, y);
+  },
+  altyazi: altyaziGoster,
+});
+
 // HUD + odak gözetimi (uygulama/hud.ts).
-hudKur({ hud, motor, saat, rig, oda, oyuncu, odak, yerler, yol, mantikTik: () => mantikTik });
+hudKur({ hud, motor, saat, rig, oda, oyuncu, odak, yerler, yol, imlec: () => imlec.acik, secili: () => secim.oku()?.ad ?? null, mantikTik: () => mantikTik });
 
 // Konsol/MCP deneme yüzeyi (window.dunya) + hızlı deneme tuşları (uygulama/dunyaKancasi.ts).
 dunyaKancasiKur({ sahne, rig, oyuncu, tahta, monitor, odak, yerler, gecis, altyaziGoster, niyetiYurut, orionKaresi, orion: () => yol.al("orion") });
@@ -553,7 +606,7 @@ const HAFIZA_KIPI: "otomatik" | "yonlendirici" =
 /** Beyne her turda giden dünya durumu satırı (uygulama/dunyaDurumu.ts). */
 const dunyaDurumuMetni = dunyaDurumuKur({
   oyuncu, monitor, acilis: varlikSinyali.acilis, hafizaKipi: HAFIZA_KIPI,
-  orion: () => yol.al("orion"), sonKonusma: () => varlikSinyali.sonKonusma(),
+  orion: () => yol.al("orion"), sonKonusma: () => varlikSinyali.sonKonusma(), secili: seciliBeyne,
 });
 
 function beyniBagla(a: Avatar): void {
@@ -594,6 +647,7 @@ function beyniBagla(a: Avatar): void {
     hafizaKipi: HAFIZA_KIPI, inisiyatifEski: INISIYATIF_ESKI,
     orion: () => yol.al("orion"), inisiyatifSimdi: () => inisiyatifSimdi,
     beyinKapisi: () => gozlemSuruyor(),
+    secili: seciliSoz,
   });
   yol.kaydet("kopru", kopru);
 

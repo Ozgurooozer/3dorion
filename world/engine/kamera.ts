@@ -1,7 +1,7 @@
 // world/engine/kamera.ts — İki modlu kamera rig'i: omuz-üstü ve 1. şahıs.
 //
 // Neden iki mod: spec'te sabitlenmiş karar — "beden dili projenin değeri; saf
-// FPS'te görünmez". Varsayılan 3. şahıs, `F` ile 1. şahıs.
+// FPS'te görünmez". Varsayılan 3. şahıs, `C` ile 1. şahıs.
 //
 // İki fazlı güncelleme (bilinçli):
 //   guncelle(dt)      — 20Hz mantık tick'inden. HEDEF pozu hesaplar (mod,
@@ -86,6 +86,8 @@ export class KameraRig {
   private _fareAktif = false;
   /** Fare kipi (girdi kararı) — kurulum `_olaylariBagla` içinde. */
   private _fare: FareKipi | null = null;
+  /** İmleç kipi kaynağı (Tab, spec 28): oyuncu bağlar; verilmezse hiç açık değildir. */
+  private _imlecMi: () => boolean = () => false;
   private _cozucular: Array<() => void> = [];
 
   constructor(sahne: Scene, tuval: HTMLCanvasElement) {
@@ -134,7 +136,7 @@ export class KameraRig {
     for (const m of meshler) this._isinDisi.add(m);
   }
 
-  /** `F` davranışı: modu değiştirir, geçişi başlatır. */
+  /** Kamera tuşu (`C`) davranışı: modu değiştirir, geçişi başlatır. */
   modDegistir(): KameraModu {
     this._mod = this._mod === "omuz" ? "birinci" : "omuz";
     this._gecis = 0;
@@ -142,6 +144,9 @@ export class KameraRig {
     // moda değil. Mod değiştirmek fare kipini değiştirmemeli.
     return this._mod;
   }
+
+  /** İmleç kipi kaynağını bağla (`world/player/imlecKipi.ts`): açıkken tıklama kilide gitmez, fare Ctrl olmadan kamerayı sürmez. */
+  imlecKaynagi(f: () => boolean): void { this._imlecMi = f; }
 
   /** Fare kilidi (pointer lock). Kilitliyken bakış fareyle döner. */
   fareKilitIste(): void {
@@ -423,6 +428,7 @@ export class KameraRig {
     this._fare = fareKipiKur({
       tuval: this._tuval,
       odaktaMi: () => this._odak !== null,
+      imlecMi: () => this._imlecMi(),
       kilitIste: () => this.fareKilitIste(),
       kilitliMi: () => this._fareAktif,
       dondur: (dx, dy) => this._fareyleDondur(dx, dy),

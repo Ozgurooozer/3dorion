@@ -8,6 +8,33 @@ import type { Avatar } from "../world/avatar/index.ts";
 import type { Monitor } from "../world/surfaces/terminal/monitor.ts";
 import { odadaSure, sessizlikSozu, gununVakti } from "../mind/zaman.ts";
 
+/** Beynin gördüğü seçili nesne (spec 28): Ozyn'in fareyle gösterdiği; "buraya/buna" sözlerinin göndermesi. */
+export interface SeciliDurumu {
+  ad: string;
+  capa: string | null;
+  konum: { x: number; z: number };
+  /** Orion'un bu nesneyle yapabildikleri (İngilizce fiil öbekleri). */
+  yapabilir: readonly string[];
+}
+
+const EYLEM_SOZU: Readonly<Record<string, string>> = { "orion.git": "go there", "orion.bak": "look at it", "orion.otur": "sit on it", "orion.odaklan": "focus on it" };
+
+/** Seçili nesneden beyin durumu: yalnız UYGUN eylemler "yapabilir"e girer (yapamayacağını önermesin). */
+export function seciliDurumu(n: { ad: string; capa: string | null; kutu: { x: number; z: number } }, eylemler: readonly { kimlik: string; uygun: boolean }[]): SeciliDurumu {
+  return {
+    ad: n.ad, capa: n.capa, konum: { x: n.kutu.x, z: n.kutu.z },
+    yapabilir: eylemler.filter((e) => e.uygun).map((e) => EYLEM_SOZU[e.kimlik]).filter((x): x is string => x !== undefined),
+  };
+}
+
+/** Seçili nesnenin tek satırı (LLM bağlamı); seçili yoksa BOŞ (bağlama yalnız gerekli satır girer, spec 16). */
+export function seciliSatiri(s: SeciliDurumu | null): string {
+  if (!s) return "";
+  const yer = s.capa ? `anchor: ${s.capa}` : `at ${s.konum.x.toFixed(1)},${s.konum.z.toFixed(1)}`;
+  const yap = s.yapabilir.length ? ` You can: ${s.yapabilir.join(", ")}.` : "";
+  return `Ozyn has pointed at "${s.ad}" (${yer}); "this" or "here" in his words means it.${yap}`;
+}
+
 export interface DunyaDurumuGirdisi {
   oyuncu: Oyuncu;
   monitor: Monitor;
@@ -18,6 +45,8 @@ export interface DunyaDurumuGirdisi {
   /** Sonradan atananlar: çağrı anında okunur. */
   orion: () => Avatar | null;
   sonKonusma: () => number;
+  /** Seçili nesne (Tab + sol tık); yoksa null. */
+  secili?: () => SeciliDurumu | null;
 }
 
 export function dunyaDurumuKur(girdi: DunyaDurumuGirdisi): () => string {
@@ -43,6 +72,7 @@ export function dunyaDurumuKur(girdi: DunyaDurumuGirdisi): () => string {
         : "",
       `Ozyn is ${o.mesafe?.toFixed?.(1) ?? "?"}m away${o.bakiyor ? ", looking at you" : ""}.`,
       o.etkilesim === "monitor" ? "Ozyn is working on your monitor." : "",
+      seciliSatiri(girdi.secili?.() ?? null),
       // Spec 13 Faz 2a: terminal açıksa Orion bunu BİLSİN — yoksa "bilgisayarı aç" sonrası komut
       // önermek yerine yeniden açmaya çalışır. UZAKTAN TERMİNAL (2026-10-08): oturmak şart değil —
       // eskiden yalnız masada otururken söyleniyordu ve model önce masaya gitmesi gerektiğini sanıyordu.

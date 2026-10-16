@@ -46,6 +46,8 @@ export const CAPALAR = [
   "sema", "gunluk", "admin",
   // Masadaki 3. monitör: groma mimari haritası (Ozyn, 2026-10-15; docs/olcum/on-kayit-groma-monitoru-1.md). Küçük monitörün aynası, sol tarafta.
   "groma",
+  // Ofisin DIŞINDAKİ bank (Ozyn, 2026-10-16): kapının önündeki terasta, oturulabilir; yalnız birleşik dünyada var (world/level/bank.ts).
+  "bank",
 ] as const;
 
 /**
@@ -64,7 +66,7 @@ export type CapaAdi = (typeof CAPALAR)[number];
 export const CAPA_ETIKETLERI: Readonly<Record<CapaAdi, string>> = {
   masa: "çalışma masası", sandalye: "sandalye", tahta: "beyaz tahta", pencere: "pencere", kapi: "kapı",
   oda_ortasi: "odanın ortası", monitor: "monitör", sema: "beyin şeması", gunluk: "beyin günlüğü",
-  admin: "yönetim terminali", groma: "groma haritası",
+  admin: "yönetim terminali", groma: "groma haritası", bank: "bank",
 };
 
 /**

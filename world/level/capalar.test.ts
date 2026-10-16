@@ -11,12 +11,16 @@ import {
   bulunduguCapa, capaAdlari, capaBul, etkilesilebilirCapa, eylemVarMi, mesafeXZ, YER_HISTEREZISI,
   tumCapalar, yakinCapalar, yaklastiMi, BULUNMA_YARICAPI,
 } from "./capalar.ts";
-import { carpisiyorMu, SINIR } from "./olculer.ts";
+import { carpisiyorMu, SINIR, SANDALYE } from "./olculer.ts";
 import { CAPALAR, CAPA_ETIKETLERI } from "../../protocol/temel.ts";
+import { BANK_CAPASI } from "./bank.ts";
+
+// Ofisin DIŞINDAKİ çapalar (yalnız birleşik dünyada: world/yer/birlesikYer.ts) protokol listesinde ama `tumCapalar()`da değildir.
+const DIS_CAPALAR = [BANK_CAPASI];
 
 test("dünyanın gösterdiği etiketler protokolün etiket tablosundan (BY39-2d: çapa çözümü aynı tabloyu kullanır)", () => {
   assert.deepEqual(
-    Object.fromEntries(tumCapalar().map((c) => [c.ad, c.etiket])),
+    Object.fromEntries([...tumCapalar(), ...DIS_CAPALAR].map((c) => [c.ad, c.etiket])),
     Object.fromEntries(CAPALAR.map((c) => [c, CAPA_ETIKETLERI[c]])),
   );
 });
@@ -24,7 +28,7 @@ test("dünyanın gösterdiği etiketler protokolün etiket tablosundan (BY39-2d:
 test("dünyanın çapaları protokolün listesiyle birebir aynı: eksik de fazla da yok", () => {
   // Liste TEK yerde: protocol/temel.ts `CAPALAR`. Burada yeniden yazılmaz;
   // beceri refleksi sözdeki çapa adlarını o listeyle tanır (spec 10).
-  assert.deepEqual([...capaAdlari()].sort(), [...CAPALAR].sort());
+  assert.deepEqual([...capaAdlari(), ...DIS_CAPALAR.map((c) => c.ad)].sort(), [...CAPALAR].sort());
 });
 
 test("capaBul ada göre doğru çapayı döner", () => {
@@ -107,7 +111,7 @@ test("eylem listeleri spec'e uygun", () => {
 test("yakinCapalar menzili uygular ve yakından uzağa sıralar", () => {
   const orta = { x: 0, z: 0 };
   const hepsi = yakinCapalar(orta, 100);
-  assert.equal(hepsi.length, CAPALAR.length);
+  assert.equal(hepsi.length, CAPALAR.length - DIS_CAPALAR.length);   // varsayılan kayıt ofisin: dış çapalar (bank) birleşik yerde
   assert.equal(hepsi[0]?.capa.ad, "oda_ortasi");
   for (let i = 1; i < hepsi.length; i++) {
     assert.ok(hepsi[i]!.mesafe >= hepsi[i - 1]!.mesafe, "sıralama bozuk");
@@ -177,4 +181,36 @@ test("bulunma yarıçapı en az BULUNMA_YARICAPI'dır", () => {
   const r = Math.max(BULUNMA_YARICAPI, c.yaklasmaYaricapi) * 0.99;
   const yakini = bulunduguCapa({ x: c.durak.x + r, z: c.durak.z });
   assert.notEqual(yakini, null);
+});
+
+// ── ORION'UN OTURMA GEOMETRİSİ (spec 28 Faz 4) ─────────────────────────────────────────────────────────────
+
+test("Orion sandalyeye VE banka oturabilir: ikisinde de oturma geometrisi tanımlı", () => {
+  const oturabilen = [...tumCapalar(), ...DIS_CAPALAR].filter((c) => c.oturma).map((c) => c.ad).sort();
+  assert.deepEqual(oturabilen, ["bank", "sandalye"]);
+});
+
+test("oturma geometrisi olan her çapa 'otur' eylemi de taşır (geometri eylemsiz anlamsız)", () => {
+  for (const c of [...tumCapalar(), ...DIS_CAPALAR]) if (c.oturma) assert.ok(c.eylemler.includes("otur"), `${c.ad}: oturma var ama 'otur' eylemi yok`);
+});
+
+test("yanaşma yönleri BİRİM ve yatay (XZ); en az bir yön, yarı boy pozitif", () => {
+  for (const c of [...tumCapalar(), ...DIS_CAPALAR]) {
+    if (!c.oturma) continue;
+    assert.ok(c.oturma.yanlar.length >= 1, `${c.ad}: yanaşma yönü yok`);
+    for (const d of c.oturma.yanlar) assert.ok(Math.abs(Math.hypot(d.x, d.z) - 1) < 1e-9 && d.y === 0, `${c.ad}: yön birim ve yatay değil: ${JSON.stringify(d)}`);
+    assert.ok(c.oturma.yariBoy > 0, `${c.ad}: yarı boy pozitif olmalı`);
+  }
+});
+
+test("sandalye oturma geometrisi eski yürütücü sabitleriyle BİREBİR (regresyon): nokta, yanlar ±X, yarı boy genişlik/2", () => {
+  const s = capaBul("sandalye")!;
+  assert.deepEqual(s.oturma?.nokta, { x: SANDALYE.x, z: SANDALYE.z - 0.04 });
+  assert.deepEqual(s.oturma?.yanlar.map((d) => [d.x, d.z]), [[1, 0], [-1, 0]]);
+  assert.equal(s.oturma?.yariBoy, SANDALYE.genislik / 2);
+});
+
+test("bank önden (+Z) yanaşılır ve oturanın yüzü ova'ya: tek yön, yön = oturmaYonu", () => {
+  assert.deepEqual(BANK_CAPASI.oturma?.yanlar.map((d) => [d.x, d.z]), [[0, 1]]);
+  assert.deepEqual([BANK_CAPASI.oturmaYonu?.x, BANK_CAPASI.oturmaYonu?.z], [0, 1]);
 });

@@ -76,12 +76,12 @@ export const BAS_YUKSEKLIGI = BEDEN.basYuksekligi;
 export const ADIM_UZUNLUGU = BEDEN.adimUzunlugu;
 
 /**
- * Otururken kökün yükselmesi. Bacaklar bükülür, kalça oturma yüzeyine oturur;
- * kök (ayak hizası) bu kadar yukarı taşınır.
+ * Otururken kök, oturma yüzeyinin bu kadar (m) ALTINDA kalır: bacaklar bükülür, kalça yüzeye oturur. Kökün mutlak y'si = çapanın oturma yüzeyi − bu pay
+ * (`capa.konum.y - OTURMA_KALCA_PAYI`): sandalye 0,46 → 0,16; terastaki bank 0,40 → 0,10.
  */
-export const OTURMA_YUKSELMESI = SANDALYE.oturma - 0.30;
-/** Oturunca gövdenin sandalye üstüne geçtiği nokta. */
-const OTURMA_NOKTASI: Nokta2 = { x: SANDALYE.x, z: SANDALYE.z - 0.04 };
+export const OTURMA_KALCA_PAYI = 0.30;
+/** Sandalyeye oturunca kökün yükselmesi (geriye dönük dışa aktarım; yürütücü çapadan hesaplar). */
+export const OTURMA_YUKSELMESI = SANDALYE.oturma - OTURMA_KALCA_PAYI;
 
 /**
  * Sandalyeye YANDAN, sırtı dönük oturulur; oturunca döner sandalye masaya
@@ -106,12 +106,11 @@ const OTURMA_NOKTASI: Nokta2 = { x: SANDALYE.x, z: SANDALYE.z - 0.04 };
  */
 export const OTURMA_ADIMI = 0.45;
 /**
- * Yol bulmanın gidebildiği en yakın yan nokta: sandalye kutusu + avatar
- * yarıçapı. Oturma yeri (0.45) bunun İÇİNDE kalır — çarpışma yarıçapı
- * omuz genişliğine göre cömert, sandalye ise diz hizasında. Son 17 cm'yi
- * `_yoluKur` düz bir adım olarak ekler.
+ * Yol bulmanın gidebildiği en yakın yanaşma noktasının oturma noktasına uzaklığı: oturağın yanaşma yönündeki yarı boyu + avatar yarıçapı. Oturma yeri
+ * (0.45) bunun İÇİNDE kalır — çarpışma yarıçapı omuz genişliğine göre cömert, oturak ise diz hizasında. Son kısmı `_yoluKur` düz bir adım olarak
+ * ekler. Sandalye için yarı boy genişlik/2: eski sabitle birebir aynı.
  */
-const YANASMA_UZAKLIGI = SANDALYE.genislik / 2 + AVATAR_YARICAP + 0.02;
+const yanasmaUzakligi = (yariBoy: number): number => yariBoy + AVATAR_YARICAP + 0.02;
 /** Oturma yerine varış eşiği — klibin varsaydığı mesafeyi bozmayacak kadar sıkı. */
 const OTURMA_YERI_TOLERANSI = 0.03;
 
@@ -185,8 +184,8 @@ export interface YurutucuAyari {
   oyuncuKonumu?: () => Vec3;
   /**
    * Orion'un bulunduğu yer (spec 24): yol bulma, engeller ve çapalar buradan. Varsayılan oda.
-   * Geri çağrı, çünkü kapıdan geçince yer değişir; yürütücü yeniden kurulmaz. Oturma (sandalye) oda
-   * sabitlerine bağlı kalır — sandalye çapası olmayan yerde `otur` zaten "bilinmeyen çapa" döner.
+   * Geri çağrı, çünkü kapıdan geçince yer değişir; yürütücü yeniden kurulmaz. Oturma çapanın `oturma`
+   * geometrisinden okunur (sandalye, bank) — çapası olmayan yerde `otur` zaten "bilinmeyen çapa" döner.
    */
   yer?: () => Yer;
 }
@@ -221,8 +220,11 @@ interface AktifIs {
    * eklenir. Yalnızca `otur` kullanır (oturma yeri çarpışma payının içinde).
    */
   yanasma?: Nokta2;
-  /** `otur`: oturduktan sonra sandalyeyle dönülecek yaw (masaya). */
+  /** `otur`: oturduktan sonra oturakla dönülecek yaw (sandalye: masaya, bank: ova'ya). */
   oturmaYaw?: number;
+  /** `otur`: oturunca kökün geleceği nokta (XZ) ve mutlak y (çapanın oturma yüzeyi − `OTURMA_KALCA_PAYI`). */
+  oturmaNoktasi?: Nokta2;
+  oturmaY?: number;
   /** `kalk`/`kalkiyor`: sandalye çıkışa döndü mü — kalkma ondan sonra başlar. */
   dondu?: boolean;
 }
@@ -502,24 +504,32 @@ export class Yurutucu {
   private _otur(n: Extract<Niyet, { tur: "otur" }>, id: string, cikti: NiyetSonucu[]): void {
     const ad = n.capa ?? "sandalye";
     const capa = capaBul(ad, this._yer().capalar);
-    if (!capa) { cikti.push(this._hata(id, `bilinmeyen çapa: '${ad}'. Oturulabilir: sandalye.`)); return; }
+    if (!capa) { cikti.push(this._hata(id, `bilinmeyen çapa: '${ad}'. Oturulabilir: ${this._oturulabilirler()}.`)); return; }
     if (!capa.eylemler.includes("otur")) {
-      cikti.push(this._hata(id, `'${ad}' çapasına oturulmaz (eylemleri: ${capa.eylemler.join(", ")}). Oturulabilir: sandalye.`));
+      cikti.push(this._hata(id, `'${ad}' çapasına oturulmaz (eylemleri: ${capa.eylemler.join(", ")}). Oturulabilir: ${this._oturulabilirler()}.`));
       return;
     }
     if (this._oturuyor) { cikti.push(this._hata(id, "zaten oturuyorsun. Önce `kalk` niyeti gönder.")); return; }
-
-    // Hangi yandan: avatara yakın olan yan; o yanın yanaşma noktası bir
-    // engele (duvar/masa) denk geliyorsa öbürü. İkisi de kapalıysa hata —
-    // sandalyenin içinden geçerek oturmak yok.
-    const yakinYan = this._konum.x >= OTURMA_NOKTASI.x ? 1 : -1;
-    const yan = [yakinYan, -yakinYan].find((s) =>
-      noktaSerbestMi({ x: OTURMA_NOKTASI.x + s * YANASMA_UZAKLIGI, z: OTURMA_NOKTASI.z }, AVATAR_YARICAP, this._yer()));
-    if (yan === undefined) {
-      cikti.push(this._hata(id, "sandalyenin iki yanı da kapalı; oturmak için yandan yaklaşılacak yer yok."));
+    const geo = capa.oturma;
+    if (!geo) {
+      cikti.push(this._hata(id, `'${ad}' çapasına Orion oturamaz (oturma geometrisi tanımlı değil). Oturulabilir: ${this._oturulabilirler()}.`));
       return;
     }
-    const oturmaYeri: Nokta2 = { x: OTURMA_NOKTASI.x + yan * OTURMA_ADIMI, z: OTURMA_NOKTASI.z };
+
+    // Hangi yandan: avatara yakın olan yan (eşitlikte listedeki ilk); o yanın yanaşma noktası bir engele (duvar/masa) denk geliyorsa
+    // öbürü. Hepsi kapalıysa hata — oturağın içinden geçerek oturmak yok.
+    const yanasma = yanasmaUzakligi(geo.yariBoy);
+    const adayYerler = [...geo.yanlar]
+      .map((d) => ({ d, yeri: { x: geo.nokta.x + d.x * OTURMA_ADIMI, z: geo.nokta.z + d.z * OTURMA_ADIMI } }))
+      .sort((a, b) => mesafeXZ(this._konum, a.yeri) - mesafeXZ(this._konum, b.yeri));
+    const secilen = adayYerler.find(({ d }) =>
+      noktaSerbestMi({ x: geo.nokta.x + d.x * yanasma, z: geo.nokta.z + d.z * yanasma }, AVATAR_YARICAP, this._yer()));
+    if (!secilen) {
+      cikti.push(this._hata(id, `${capa.etiket} için yanaşılacak serbest yer yok: oturmak için yaklaşılan yanlar engelli.`));
+      return;
+    }
+    const yan = secilen.d, oturmaYeri: Nokta2 = secilen.yeri;
+    const oturmaBakisi = capa.oturmaYonu ?? capa.yon;
 
     this._aktifIptal(cikti);
     const is: AktifIs = {
@@ -527,14 +537,16 @@ export class Yurutucu {
       asama: mesafeXZ(this._konum, oturmaYeri) <= OTURMA_YERI_TOLERANSI ? "donuyor" : "yuruyor",
       asamaGecen: 0, toplamGecen: 0,
       hedef: oturmaYeri, tolerans: OTURMA_YERI_TOLERANSI,
-      // Varışta SANDALYEYE SIRTINI döner: yüz, sandalyeden dışarı (yan yönü).
-      varisYaw: yonYaw(yan, 0),
+      // Varışta OTURAĞA SIRTINI döner: yüz, oturaktan dışarı (yanaşma yönü).
+      varisYaw: yonYaw(yan.x, yan.z),
       yol: [], kosuyor: false, capa: ad,
       pozBasKonum: { x: this._konum.x, z: this._konum.z },
       pozBasY: this._konum.y,
       kalkildi: false,
-      yanasma: { x: OTURMA_NOKTASI.x + yan * YANASMA_UZAKLIGI, z: OTURMA_NOKTASI.z },
-      oturmaYaw: yonYaw(capa.yon.x, capa.yon.z),
+      yanasma: { x: geo.nokta.x + yan.x * yanasma, z: geo.nokta.z + yan.z * yanasma },
+      oturmaYaw: yonYaw(oturmaBakisi.x, oturmaBakisi.z),
+      oturmaNoktasi: { x: geo.nokta.x, z: geo.nokta.z },
+      oturmaY: capa.konum.y - OTURMA_KALCA_PAYI,
     };
     if (is.asama === "yuruyor") {
       const hata = this._yoluKur(is);
@@ -545,6 +557,12 @@ export class Yurutucu {
     }
     this._aktif = is;
     cikti.push({ niyet_id: id, durum: "basladi" });
+  }
+
+  /** Orion'un oturabildiği çapalar (hata iletilerinde: LLM seçenekleri görür). */
+  private _oturulabilirler(): string {
+    const l = this._yer().capalar.filter((c) => c.oturma !== undefined).map((c) => c.ad);
+    return l.length > 0 ? l.join(", ") : "yok";
   }
 
   private _kalk(id: string, cikti: NiyetSonucu[]): void {
@@ -769,10 +787,12 @@ export class Yurutucu {
     const u = kis(is.asamaGecen / KALKMA_SURESI, 0, 1);
     this._konum.x = is.pozBasKonum.x + (this._oturmaCikisi.x - is.pozBasKonum.x) * u;
     this._konum.z = is.pozBasKonum.z + (this._oturmaCikisi.z - is.pozBasKonum.z) * u;
-    this._konum.y = is.pozBasY * (1 - u);
+    // Zemin çıkış noktasının zemini: oda 0, terasta −0,05 (yer verir); y'yi sıfıra çekmek terasta havada bırakırdı.
+    const zemin = this._yer().yukseklik(this._oturmaCikisi.x, this._oturmaCikisi.z);
+    this._konum.y = zemin + (is.pozBasY - zemin) * (1 - u);
     if (u < 1) return;
     this._oturuyor = false;
-    this._konum.y = 0;
+    this._konum.y = zemin;
     is.asama = "yuruyor";
     is.asamaGecen = 0;
     const hata = this._yoluKur(is);
@@ -890,8 +910,8 @@ export class Yurutucu {
   private _asamaPoz(is: AktifIs, cikti: NiyetSonucu[]): void {
     const sure = is.tur === "otur" ? OTURMA_SURESI : KALKMA_SURESI;
     const u = kis(is.asamaGecen / sure, 0, 1);
-    const varisXZ = is.tur === "otur" ? OTURMA_NOKTASI : this._oturmaCikisi;
-    const varisY = is.tur === "otur" ? OTURMA_YUKSELMESI : 0;
+    const varisXZ = is.tur === "otur" ? is.oturmaNoktasi! : this._oturmaCikisi;
+    const varisY = is.tur === "otur" ? is.oturmaY! : this._yer().yukseklik(this._oturmaCikisi.x, this._oturmaCikisi.z);
     this._konum.x = is.pozBasKonum.x + (varisXZ.x - is.pozBasKonum.x) * u;
     this._konum.z = is.pozBasKonum.z + (varisXZ.z - is.pozBasKonum.z) * u;
     this._konum.y = is.pozBasY + (varisY - is.pozBasY) * u;

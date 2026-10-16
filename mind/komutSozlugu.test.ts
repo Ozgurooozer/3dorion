@@ -228,7 +228,7 @@ test("SORU BİÇİMİ (MEVCUT karar, Ozyn onayına AÇIK): 'oturur musun', 'kalk
 });
 
 test("olumsuz, belirsiz, geçmiş/koşul/meta Türkçe sözler LLM'e gider", () => {
-  for (const s of ["oturma", "gitme", "kalkma", "oraya gitme", "pencereye bakma", "tahtaya yaklaşma", "oraya git", "şuna bak",
+  for (const s of ["oturma", "gitme", "kalkma", "oraya gitme", "pencereye bakma", "tahtaya yaklaşma", "oraya git",
     "suraya otur", "bunu yap", "git", "bak", "dün tahtaya gittin", "o az önce oturdu", "oturursan sevinirim", "git komutu ne işe yarar",
     "masaya git sonra otur", "kalk ve pencereye git", "ayağa kalkıp kapıya yürü", "tahtaya git ve merhaba yaz"]) {
     assert.equal(program(s), null, s);
@@ -272,7 +272,8 @@ test("Tur 7 gösterme sıfatı + AÇIK yer: 'şu koltuğa otur', 'bu masaya git'
   assert.deepEqual(adimlar("hadi şu koltuğa otur"), [{ tur: "otur" }]);
   assert.deepEqual(adimlar("bu masaya git"), [{ tur: "git", hedef: { tip: "capa", ad: "masa" } }]);
   assert.deepEqual(adimlar("şu pencereye bak"), [{ tur: "bak", hedef: { tip: "capa", ad: "pencere" } }]);
-  for (const s of ["şuraya otur", "oraya git", "buraya git", "şuna bak", "şu şeye bak"]) assert.equal(program(s), null, s);
+  // "buraya git" ve "şuna bak" artık DEİKSİS (spec 28): seçili nesneye gönderir, seçili yoksa Orion SORAR (bkz. aşağıdaki DEİKSİS testleri).
+  for (const s of ["şuraya otur", "oraya git", "şu şeye bak"]) assert.equal(program(s), null, s);
 });
 
 test("Tur 7 'göz at' = bak; '<yer> tarafına bak/git'; ora tarafa belirsiz", () => {
@@ -323,4 +324,111 @@ test("sozuNormalle: Türkçe katlama, noktalama ve çift boşluk", () => {
 
 test("yonelmeCapasi: ek yoksa çapa sayılmaz ('tahta git' değil 'tahtaya git')", () => {
   assert.equal(yonelmeCapasi("tahta"), null);
+});
+
+// ── DEİKSİS (spec 28): "buraya otur", "buna bak" — seçili nesneye gönderme ──────────────────────────────────
+
+import type { SeciliNesne } from "./komutSozlugu.ts";
+
+const TAHTA: SeciliNesne = { ad: "tahta", eylemler: [
+  { kimlik: "orion.git", uygun: true, niyet: { tur: "git", hedef: { tip: "capa", ad: "tahta" } } },
+  { kimlik: "orion.bak", uygun: true, niyet: { tur: "bak", hedef: { tip: "capa", ad: "tahta" } } },
+  { kimlik: "orion.otur", uygun: false, niyet: { tur: "otur", capa: "tahta" }, soz: "Şimdilik yalnız ofis sandalyesine oturabiliyorum." },
+] };
+const SANDALYE_SECILI: SeciliNesne = { ad: "sandalye", eylemler: [
+  { kimlik: "orion.git", uygun: true, niyet: { tur: "git", hedef: { tip: "capa", ad: "sandalye" } } },
+  { kimlik: "orion.otur", uygun: true, niyet: { tur: "otur", capa: "sandalye" } },
+] };
+const MONITOR_SECILI: SeciliNesne = { ad: "monitör", eylemler: [
+  { kimlik: "orion.git", uygun: true, niyet: { tur: "git", hedef: { tip: "capa", ad: "monitor" } } },
+  { kimlik: "orion.odaklan", uygun: true, niyet: { tur: "odaklan", capa: "monitor" } },
+] };
+const RAF: SeciliNesne = { ad: "raf", eylemler: [
+  { kimlik: "orion.git", uygun: true, niyet: { tur: "git", hedef: { tip: "nokta", x: -4, y: 0, z: 2.4 }, mesafe: 1.7 } },
+] };
+
+test("deiksis: 'buraya git' seçili nesneye gider (menüdeki Orion niyeti)", () => {
+  const p = komutCoz("buraya git", { secili: TAHTA });
+  assert.deepEqual([p?.program, p?.adimlar], ["komut:sec_git", [{ tur: "git", hedef: { tip: "capa", ad: "tahta" } }]]);
+});
+
+test("deiksis: 'buna bak' seçili nesneye bakar", () => {
+  assert.deepEqual(komutCoz("buna bak", { secili: TAHTA })?.adimlar, [{ tur: "bak", hedef: { tip: "capa", ad: "tahta" } }]);
+});
+
+test("deiksis: 'buraya otur' + seçili SANDALYE → oturur", () => {
+  const p = komutCoz("buraya otur", { secili: SANDALYE_SECILI });
+  assert.deepEqual([p?.program, p?.adimlar], ["komut:sec_otur", [{ tur: "otur", capa: "sandalye" }]]);
+});
+
+test("deiksis: 'buraya otur' + seçili TAHTA (Orion oturamıyor) → DÜRÜSTÇE söyler, oturmaya çalışmaz", () => {
+  const p = komutCoz("buraya otur", { secili: TAHTA });
+  assert.deepEqual([p?.program, p?.adimlar], ["komut:sec_yapamam", [{ tur: "soyle", metin: "Şimdilik yalnız ofis sandalyesine oturabiliyorum." }]]);
+});
+
+test("deiksis: seçili YOKKEN Orion tahmin etmez, SORAR (Tab ile göster)", () => {
+  for (const soz of ["buraya otur", "buraya git", "buna bak", "bununla etkileşime gir"]) {
+    const p = komutCoz(soz, {});
+    assert.equal(p?.program, "komut:sec_iste", soz);
+    assert.match(String((p?.adimlar[0] as { metin?: string }).metin), /Tab/);
+  }
+});
+
+test("deiksis: nesnede o eylem YOKSA (rafa otur) 'bunu yapamam' der", () => {
+  const p = komutCoz("buraya otur", { secili: RAF });
+  assert.deepEqual([p?.program, p?.adimlar], ["komut:sec_yapamam", [{ tur: "soyle", metin: "raf ile bunu yapamam." }]]);
+});
+
+test("'bununla etkileşime gir' = BİRİNCİL eylem: monitör → odaklan", () => {
+  assert.deepEqual(komutCoz("bununla etkileşime gir", { secili: MONITOR_SECILI })?.adimlar, [{ tur: "odaklan", capa: "monitor" }]);
+});
+
+test("'bununla etkileşime gir' = birincil: sandalye → otur", () => {
+  assert.deepEqual(komutCoz("bununla etkileşime gir", { secili: SANDALYE_SECILI })?.adimlar, [{ tur: "otur", capa: "sandalye" }]);
+});
+
+test("'bununla etkileşime gir' + TAHTA: birincil 'otur' gri → sessizce yanına GİTMEZ, nedenini söyler", () => {
+  const p = komutCoz("bununla etkileşime gir", { secili: TAHTA });
+  assert.equal(p?.program, "komut:sec_yapamam");
+});
+
+test("'bununla etkileşime gir' + yalnız git olan nesne → yanına gider", () => {
+  assert.equal(komutCoz("bununla etkileşime gir", { secili: RAF })?.program, "komut:sec_git");
+});
+
+test("dolgu atılır: 'Orion, şimdi buraya otur lütfen' de çalışır", () => {
+  assert.equal(komutCoz("Orion, şimdi buraya otur lütfen", { secili: SANDALYE_SECILI })?.program, "komut:sec_otur");
+});
+
+test("MEVCUT DAVRANIŞ DEĞİŞMEZ: 'buraya gel' (bana gel) seçili olsa da olmasa da komut:gel", () => {
+  assert.equal(komutCoz("buraya gel", {})?.program, "komut:gel");
+  assert.equal(komutCoz("buraya gel", { secili: TAHTA })?.program, "komut:gel");
+});
+
+test("MEVCUT DAVRANIŞ DEĞİŞMEZ: deiksis olmayan sözler seçili nesneden etkilenmez ('otur', 'masaya git')", () => {
+  assert.equal(komutCoz("otur", { secili: TAHTA })?.program, "komut:otur");
+  assert.equal(komutCoz("masaya git", { secili: TAHTA })?.program, "komut:git");
+});
+
+test("deiksis kalıpları DAR: uzun/belirsiz sözler LLM'e gider ('buraya otursam olur mu', 'buna bakar mısın')", () => {
+  for (const soz of ["buraya otursam olur mu", "buna bakar misin", "buraya git ve bekle"]) assert.equal(komutCoz(soz, { secili: TAHTA }), null, soz);
+});
+
+// ── "banka otur": çapalı otur (Faz 4) ──────────────────────────────────────────────────────────────────────
+
+test("'banka otur' → bankın çapasıyla otur (çapasız otur sandalyeye giderdi)", () => {
+  assert.deepEqual(adimlar("banka otur"), [{ tur: "otur", capa: "bank" }]);
+});
+
+test("'banka git otur' ve 'şu banka otur' de bankın çapasıyla otur", () => {
+  assert.deepEqual(adimlar("banka git otur"), [{ tur: "otur", capa: "bank" }]);
+  assert.deepEqual(adimlar("şu banka otur"), [{ tur: "otur", capa: "bank" }]);
+});
+
+test("'tahtaya otur' hâlâ LLM'e gider (oturulabilir liste: sandalye, masa, monitör, bank)", () => {
+  assert.equal(program("tahtaya otur"), null);
+});
+
+test("'otur' (çapasız) DEĞİŞMEDİ: sandalyeye gider", () => {
+  assert.deepEqual(adimlar("otur"), [{ tur: "otur" }]);
 });

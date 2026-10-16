@@ -6,6 +6,7 @@ Açık işler tek yerde: `ACIK-ISLER.md`. Fikirler: `FIKIR-HAVUZU.md`. Son günc
 ## Spec'ler (`specs/`)
 | # | konu | durum | ne zaman oku |
 |---|---|---|---|
+| 28 | Nesne seçimi ve etkileşim menüsü: Tab imleç kipi, sol tık seç, sağ tık panel (özellikler + yapılabilecekler), "buraya otur" deiksisi, menüden Orion'a eylem yaptırma; Orion'un oturması çapanın `oturma` geometrisinden (sandalye, bank) | Faz 1–4 YAZILDI (testli, canlıda GÖRÜLMEDİ) · Faz 5 (not/ayar) açık | nesne seçimi, imleç kipi, etkileşim menüsü, "buraya/buna" sözleri ya da Orion'un oturmasına dokunmadan önce |
 | 01 | Sanal alan: oda, tik, protokol, MVP K1–K12, model seçim kayıtları | bitti | model/parametre değiştirmeden önce (ölçümler burada) |
 | 02 | İki loblu beyin: refleks (kural) / düşünce (LLM) | uygulandı | refleks–düşünce sınırına dokunurken |
 | 03 | Algı hizmeti + zihin duvarı panelleri | bitti | `mind/algiHizmeti.ts`, duvar |
@@ -40,6 +41,8 @@ Açık işler tek yerde: `ACIK-ISLER.md`. Fikirler: `FIKIR-HAVUZU.md`. Son günc
 | `olcum-goz-ve-mekan-bellegi.md` | spec 15 S1 ölçüleri |
 | `olcum-ponytail.md` | ponytail eklentisi denemesi — KALDIRILDI (kopya kod kuralı değil bekçi) |
 | `canli-test-2026-10-02.md` | ilk ortak canlı testin bulguları |
+| `kullanim-defteri.md` | 2026-10-16 → 10-30 ODAK: "Orion günlük kullanımda işe yarıyor mu?" — ön kayıtlı ölçüt + günlük defter (E/K/H/Y) |
+| `gunluk/` | DONUK günceler: `acik-isler-2026-10-16.md` = ACIK-ISLER'in tarihli eski hâli (güncel kısa liste: `ACIK-ISLER.md`) |
 | `arastirma/` | dış kaynak notları (`stil-shaderlari.md`: toon/cel/çizgi/piksel teknikleri) |
 
 ## Bu turun kalıcı davranışları (spec dışı, commit mesajlarında)

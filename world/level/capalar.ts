@@ -18,6 +18,20 @@ import { MASA, MONITOR, SANDALYE, TAHTA, PENCERE, KAPI, SEMA, GUNLUK, ADMIN, GRO
  */
 export type CapaAdiGenis = CapaAdi;
 
+/**
+ * Çapaya OTURMA geometrisi (Orion'un `otur` niyeti, `world/avatar/yurutucu.ts`; spec 28 Faz 4). Avatar oturma noktasından `yanlar`dan birinde, `OTURMA_ADIMI`
+ * (klibe bake edilmiş 0,45 m) uzakta durur, SIRTI oturağa dönük; `otur` klibi kökü o kadar geriye taşıyıp oturtur; sonra `oturmaYonu`na (yoksa `yon`a) döner.
+ * Bu alan olan çapa Orion için oturulabilirdir; olmayanda `otur` nedenli hata verir.
+ */
+export interface OturmaGeometrisi {
+  /** Oturunca kökün geldiği nokta (XZ). */
+  nokta: { x: number; z: number };
+  /** Yanaşma yönleri (birim, XZ): `nokta`dan DIŞARI. Avatara yakın olan SERBEST yön seçilir. */
+  yanlar: readonly Vec3[];
+  /** Yanaşma yönünde oturağın yarı boyu (m): yol bulmanın gidebildiği en yakın nokta = yarı boy + avatar yarıçapı + pay. */
+  yariBoy: number;
+}
+
 /** Dünyada bir çapa tanımı. */
 export interface Capa {
   /** Kanonik ad. Niyetlerde bu dize geçer. */
@@ -32,8 +46,15 @@ export interface Capa {
   /** Durakta hangi yöne bakılacak. Birim vektör, XZ düzleminde. */
   yon: Vec3;
   /**
+   * Çapaya OTURULUNCA bakılan yön (birim, XZ); yoksa `yon`. Sandalye masaya bakar (`yon` ile aynı), bank ise ova'ya: durakta bankı görmek için −Z'ye
+   * bakılır ama oturan +Z'ye bakar. İkisi zıt olduğu için ayrı alan.
+   */
+  oturmaYonu?: Vec3;
+  /** Orion'un oturabildiği çapa: oturma geometrisi (yoksa Orion buraya oturamaz; Ozyn'in oturması `world/player/oturma.ts`ten ayrı çalışır). */
+  oturma?: OturmaGeometrisi;
+  /**
    * Bu mesafenin altına girildiğinde çapa "erişildi" / "etkileşilebilir"
-   * sayılır. `git` niyetinin varış toleransı ve `E` ipucu eşiği budur.
+   * sayılır. `git` niyetinin varış toleransı ve etkileşim ipucu eşiği budur.
    */
   yaklasmaYaricapi: number;
   /** İzin verilen eylemler: "otur" | "odaklan" | "yaz" | "bak" | "al" ... */
@@ -90,6 +111,8 @@ const KAYIT: readonly Capa[] = [
     yaklasmaYaricapi: 0.9,
     eylemler: ["otur", "kalk"],
     etiket: CAPA_ETIKETLERI.sandalye,
+    // Yandan oturulur (oturağın önü masaya yaslı: 0,215 m, ayakta durulacak yer yok); nokta oturağın biraz gerisi. Değerler eski yürütücü sabitleriyle BİREBİR.
+    oturma: { nokta: { x: SANDALYE.x, z: SANDALYE.z - 0.04 }, yanlar: [v(1, 0, 0), v(-1, 0, 0)], yariBoy: SANDALYE.genislik / 2 },
   },
   {
     ad: "tahta",
@@ -204,7 +227,7 @@ export function mesafeXZ(a: { x: number; z: number }, b: { x: number; z: number 
 
 /**
  * Bir noktanın `yaklasmaYaricapi` içinde kalıp kalmadığı.
- * `git` niyetinin "vardım" kararı ve `E` ipucu eşiği aynı fonksiyonu kullanır.
+ * `git` niyetinin "vardım" kararı ve etkileşim ipucu eşiği aynı fonksiyonu kullanır.
  */
 export function yaklastiMi(ad: string, nokta: { x: number; z: number }, kayit: readonly Capa[] = KAYIT): boolean {
   const c = capaBul(ad, kayit);
@@ -260,7 +283,7 @@ export function yakinCapalar(nokta: { x: number; z: number }, menzil = 3, kayit:
 
 /**
  * Etkileşimli (en az bir eylemi `bak`tan fazla olan) ve `yaklasmaYaricapi`
- * içindeki en yakın çapa. `E` ipucunu bu belirler.
+ * içindeki en yakın çapa. etkileşim ipucunu bu belirler.
  */
 export function etkilesilebilirCapa(nokta: { x: number; z: number }, kayit: readonly Capa[] = KAYIT): Capa | null {
   let enIyi: Capa | null = null;

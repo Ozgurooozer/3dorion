@@ -171,3 +171,39 @@ test("ORTAM: komutYetkisi kapalıyken ortam sözü de LLM'e gider", async () => 
   await bekle(60);
   assert.equal(beyin.gordugu.length, 1);
 });
+
+// ── SEÇİLİ NESNE (spec 28): "buraya otur" köprüde ──────────────────────────────────────────────────────────────
+
+const SANDALYE_SECILI = { ad: "sandalye", eylemler: [{ kimlik: "orion.otur", uygun: true, niyet: { tur: "otur", capa: "sandalye" } as Niyet }] };
+const TAHTA_SECILI = { ad: "tahta", eylemler: [{ kimlik: "orion.otur", uygun: false, niyet: { tur: "otur", capa: "tahta" } as Niyet, soz: "Şimdilik yalnız ofis sandalyesine oturabiliyorum." }] };
+
+test("seçili nesne varken 'buraya otur' → LLM UYANMAZ, seçili çapaya oturur", async () => {
+  const { k, beyin, niyetler } = kur({ secili: () => SANDALYE_SECILI });
+  soyle(k, "buraya otur");
+  await bekle(60);
+  assert.equal(beyin.gordugu.length, 0);
+  assert.deepEqual(niyetler.map((x) => JSON.parse(JSON.stringify(x.n))).at(-1), { tur: "otur", capa: "sandalye" });
+});
+
+test("seçili TAHTA (Orion oturamıyor): 'buraya otur' → oturma niyeti GİTMEZ, Orion nedenini söyler", async () => {
+  const { k, niyetler, turler } = kur({ secili: () => TAHTA_SECILI });
+  soyle(k, "buraya otur");
+  await bekle(60);
+  assert.equal(turler().includes("otur"), false);
+  assert.match(String((niyetler.find((x) => x.n.tur === "soyle")?.n as { metin?: string } | undefined)?.metin), /yalnız ofis sandalyesine/);
+});
+
+test("seçili YOKKEN 'buraya otur' → LLM uyanmaz, Orion 'Hangisi?' diye sorar", async () => {
+  const { k, beyin, niyetler } = kur({ secili: () => null });
+  soyle(k, "buraya otur");
+  await bekle(60);
+  assert.equal(beyin.gordugu.length, 0);
+  assert.match(String((niyetler.find((x) => x.n.tur === "soyle")?.n as { metin?: string } | undefined)?.metin), /Hangisi/);
+});
+
+test("secili getter'ı hiç verilmediyse (eski çağıranlar) 'buraya otur' de 'Hangisi?' diye sorar, çökmez", async () => {
+  const { k, niyetler } = kur();
+  soyle(k, "buraya otur");
+  await bekle(60);
+  assert.ok(niyetler.some((x) => x.n.tur === "soyle"));
+});

@@ -28,6 +28,7 @@ import { levelTanimiDogrula } from "../level/cekirdek/levelTanimi.ts";
 import { MODULLER } from "../level/moduller/index.ts";
 import type { OdaKurulumu } from "../level/oda.ts";
 import { ofisiOvayaKur } from "../level/ofisYeri.ts";
+import { bankMeshleriKur } from "../level/bankMesh.ts";
 import { KAPI_MERKEZI, kapiYakinMi } from "../level/odaKapisi.ts";
 import type { Yer } from "./yer.ts";
 import { birlesikYerKur, ofisIcindeMi } from "./birlesikYer.ts";
@@ -164,6 +165,9 @@ export async function birlesikDunyaKur(a: BirlesikDunyaAyari): Promise<BirlesikD
   const maxZ = level.tanim().ortam.kamera.uzak;
   kamera.maxZ = maxZ;
   for (const m of a.golgeAtanlar ?? []) level.isik.golgeyeKat(m, { atar: true });
+  // Ofisin dışındaki bank (world/level/bank.ts): kodla kurulan mesh'ler; ova'nın güneşi bankta gölge düşürür ve bank gölge alır.
+  const bank = bankMeshleriKur(sahne);
+  for (const m of bank) level.isik.golgeyeKat(m, { atar: true, alir: true });
 
   // Ova görünümü: level'ın az önce sahneye yazdığı. `ayarla` (ortam komutu, G penceresi) bunu yeniden yazar: sarmala.
   // DİKKAT: zaman tanımlıysa level HER KARE sis rengini/arka planı saatten yeniden yazar (`guncelle` → `zamanUygula`): ova görünümünün
@@ -259,6 +263,7 @@ export async function birlesikDunyaKur(a: BirlesikDunyaAyari): Promise<BirlesikD
       sahne.onBeforeRenderObservable.remove(gozlemci);
       gi?.yokEt();
       ufuk?.yokEt();
+      for (const m of bank) m.dispose(false, true);
       level.yokEt();
       oda.pencereyiKapat();
       gorunumuYaz(sahne, ofisGorunumu);

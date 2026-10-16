@@ -122,7 +122,7 @@ export function odakKur(girdi: OdakGirdisi): Odak {
   // arasında tıklamak gibi. Odaktan çıkmadan ekranlar arasında dolaşabilirsin.
   //
   // GEZİNİRKEN bu çalışmaz: orada tıklamanın işi kamerayı ele almak ve yüzeye
-  // `E` ile yaklaşılır. İki kipte tek tuşa iki anlam yüklemek karışıklık olurdu.
+  // Etkileşim tuşuyla (`F`) yaklaşılır. İki kipte tek tuşa iki anlam yüklemek karışıklık olurdu.
 
   /** Tıklanabilir yüzeyler ve oraya nasıl geçileceği. */
   const YUZEY_GECISI: Record<string, () => void | Promise<void>> = {

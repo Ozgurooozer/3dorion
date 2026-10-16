@@ -5,7 +5,7 @@
 import type { Algi } from "../protocol/algi.ts";
 import type { Niyet, NiyetTur } from "../protocol/niyet.ts";
 import type { DikkatAyari } from "../mind/dikkat.ts";
-import type { KomutEslesmesi } from "../mind/komutSozlugu.ts";
+import type { KomutEslesmesi, SeciliNesne } from "../mind/komutSozlugu.ts";
 import type { KararKaydi, KararSatiri, OgretimSatiri } from "../mind/kararKaydi.ts";
 import type { IcguduKimligi } from "../mind/icgudu.ts";
 import type { KapiBaglami } from "../mind/durumKodu.ts";
@@ -79,6 +79,8 @@ export interface KopruAyari {
    * Verilmezse KAPALI sayılır: sözlük ortam sözünü sahiplenmez, söz LLM'e gider ("ova'da değilim" diyebilsin).
    */
   ortamKullanilabilir?: () => boolean;
+  /** Seçili nesne (Tab + sol tık, spec 28): "buraya otur", "buna bak" sözlerinin göndermesi. Yoksa/null: bu sözler seçim ister. */
+  secili?: () => SeciliNesne | null;
   /**
    * ÖĞRENEN ortam sözlüğü (mind/ortamSozlugu.ts). `ortamOgrenilen`: yerleşik sözlük tutmadıysa, söz LLM'in daha önce
    * doğru yaptığı bir söz mü (varsa program döner; yalnız `ortamKullanilabilir` iken sorulur). `ortamOgren`: LLM tek

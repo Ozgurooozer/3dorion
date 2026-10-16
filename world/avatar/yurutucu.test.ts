@@ -21,6 +21,9 @@ import { capaBul, mesafeXZ } from "../level/capalar.ts";
 import { bostaHesapla } from "./bosta.ts";
 import { MASA, carpisiyorMu } from "../level/olculer.ts";
 import type { Niyet, NiyetSonucu } from "../../protocol/niyet.ts";
+import type { Yer } from "../yer/yer.ts";
+import { birlesikYerKur } from "../yer/birlesikYer.ts";
+import { BANK } from "../level/bank.ts";
 
 const DT = 1 / 20; // 20 Hz — dünya saatiyle aynı adım
 
@@ -31,8 +34,8 @@ class Kosucu {
   /** Her tikteki konum izi — çarpışma denetimi için. */
   iz: { x: number; z: number }[] = [];
 
-  constructor(spawn = { x: 0, y: 0, z: 0 }, yaw = 0) {
-    this.y = new Yurutucu({ spawn, yaw });
+  constructor(spawn = { x: 0, y: 0, z: 0 }, yaw = 0, yer?: () => Yer) {
+    this.y = new Yurutucu({ spawn, yaw, ...(yer ? { yer } : {}) });
   }
   niyet(n: Niyet, id: string): this { this.y.niyet(n, id); return this; }
   tik(n = 1): this {
@@ -715,4 +718,122 @@ test("AKTÜATÖR: varışta hız sıfıra İNER, sıçramaz", () => {
   assert.ok(oncekiHiz < YURUME_HIZI * 0.75,
     `tam hizda duvara carpar gibi durdu: son hiz ${oncekiHiz.toFixed(3)}`);
   assert.equal(k.y.gorunum().hiz, 0, "varista hiz sifirlanmali");
+});
+
+// ── 4c. ORION BANKTA OTURUR (spec 28 Faz 4): oturma geometrisi çapadan, klip sözleşmesi aynı ───────────────
+
+/** Sahte ova: geniş sınır, engelsiz, düz teras −0,05 (birleşik yer: ofis + bank + bu ova). */
+const OVA_SAHTE: Yer = { ad: "ova", sinir: { minX: -60, maxX: 60, minZ: -60, maxZ: 60 }, engeller: [], katiYuzeyler: [], capalar: [], nesneler: [], yukseklik: () => -0.05 };
+const YER_BANK = birlesikYerKur(OVA_SAHTE);
+const BANK_ONU = { x: BANK.x, z: BANK.z + 1.4 };   // bankın önünde, serbest
+
+function bankKosucu(spawn = { x: BANK_ONU.x - 1.5, y: -0.05, z: BANK_ONU.z + 1.0 }, yer: () => Yer = () => YER_BANK): Kosucu {
+  return new Kosucu(spawn, 0, yer);
+}
+
+test("bank: Orion banka oturur — otur 'bitti', oturuyor_mu true, poz oturuyor", () => {
+  const k = bankKosucu();
+  k.niyet({ tur: "otur", capa: "bank" }, "o1");
+  assert.ok(k.bekle("o1", "bitti"), "otur tamamlanmalı");
+  assert.deepEqual([k.y.durum().oturuyor_mu, k.y.durum().poz], [true, "oturuyor"]);
+});
+
+test("bank: oturunca kök oturma noktasında ve yüksekliği oturma yüzeyi − 0,30 (0,10)", () => {
+  const k = bankKosucu();
+  k.niyet({ tur: "otur", capa: "bank" }, "o1");
+  assert.ok(k.bekle("o1", "bitti"));
+  const d = k.y.durum().konum, c = capaBul("bank", YER_BANK.capalar)!;
+  assert.ok(Math.abs(d.x - c.oturma!.nokta.x) < 0.02 && Math.abs(d.z - c.oturma!.nokta.z) < 0.02, `oturma noktası (${d.x.toFixed(2)}, ${d.z.toFixed(2)})`);
+  assert.ok(Math.abs(d.y - (c.konum.y - 0.30)) < 0.01, `y=${d.y.toFixed(3)} beklenen ${(c.konum.y - 0.30).toFixed(3)}`);
+});
+
+test("bank: yandan değil ÖNDEN, sırtı dönük — kök OTURMA_ADIMI kadar GERİ gider (klip sözleşmesi), sonra ova'ya (+Z) bakar", () => {
+  const k = bankKosucu();
+  k.niyet({ tur: "otur", capa: "bank" }, "o1");
+  let bas: { x: number; z: number; yaw: number } | null = null;
+  for (let i = 0; i < 800 && !bas; i++) {
+    const g = k.tik().y.gorunum();
+    if (g.poz === "oturuyor") bas = { x: g.konum.x, z: g.konum.z, yaw: g.govdeYaw };
+  }
+  assert.ok(bas, "oturma pozuna geçilmeli");
+  assert.ok(k.bekle("o1", "bitti"), "otur tamamlanmalı");
+  const son = k.y.gorunum();
+  const dx = son.konum.x - bas!.x, dz = son.konum.z - bas!.z, yol = Math.hypot(dx, dz);
+  assert.ok(Math.abs(yol - OTURMA_ADIMI) < 0.04, `oturmada kök ${yol.toFixed(3)} m gitti, klip ${OTURMA_ADIMI} varsayar`);
+  const f = ileri(bas!.yaw);
+  assert.ok(dx * f.x + dz * f.z < -0.9 * yol, "kök GERİ gitmeli (sırtı banka dönük)");
+  assert.ok(Math.abs(aciSar(son.govdeYaw - 0)) < 0.07, `bitti anında ova'ya (+Z, yaw 0) dönük olmalı, yaw=${son.govdeYaw.toFixed(2)}`);
+  assert.ok(bas!.z > BANK.z, "yanaşma bankın ÖNÜNDEN (+Z) olmalı");
+});
+
+test("bank: bankın ARKASINDAN (ofis tarafı) başlasa da bankın önüne dolaşır ve oturur (tek yan)", () => {
+  const k = bankKosucu({ x: BANK.x + 2.5, y: -0.05, z: BANK.z - 1.2 });
+  k.niyet({ tur: "otur", capa: "bank" }, "o1");
+  assert.ok(k.bekle("o1", "bitti", 1200), "otur tamamlanmalı");
+  assert.equal(k.y.durum().oturuyor_mu, true);
+});
+
+test("bank: kalk → bankın önüne ilerler ve TERASIN zeminine iner (−0,05), 0'a değil", () => {
+  const k = bankKosucu();
+  k.niyet({ tur: "otur", capa: "bank" }, "o1");
+  assert.ok(k.bekle("o1", "bitti"));
+  k.niyet({ tur: "kalk" }, "u1");
+  assert.ok(k.bekle("u1", "bitti"));
+  const d = k.y.durum();
+  assert.equal(d.oturuyor_mu, false);
+  assert.ok(Math.abs(d.konum.y - -0.05) < 1e-6, `kalkınca y=${d.konum.y} (teras −0,05 olmalı)`);
+  assert.ok(d.konum.z > BANK.z + 0.25, "bankın önüne (+Z) çıkmalı");
+});
+
+test("bank: otur → kalk → yürü: kalktıktan sonra yeniden yürüyebilir (bank engeline takılmaz)", () => {
+  const k = bankKosucu();
+  k.niyet({ tur: "otur", capa: "bank" }, "o1");
+  assert.ok(k.bekle("o1", "bitti"));
+  k.niyet({ tur: "git", hedef: { tip: "nokta", x: BANK.x - 3, y: -0.05, z: BANK.z + 3 } }, "g1");
+  assert.ok(k.bekle("g1", "bitti", 1200), "oturduğu yerden kalkıp yürümeli");
+  assert.equal(k.durumlar("g1").includes("hata"), false);
+});
+
+test("bank: yanaşma yönü engelliyse hata, nedeni söyler ve oturmaz", () => {
+  const engelli: Yer = { ...YER_BANK, engeller: [...YER_BANK.engeller, { x: BANK.x, y: 1, z: BANK.z + 0.9, g: 3, yuk: 2, d: 1 }] };
+  const k = bankKosucu(undefined, () => engelli);
+  k.niyet({ tur: "otur", capa: "bank" }, "o1").tik();
+  const s = k.bul("o1")[0]!;
+  assert.equal(s.durum, "hata");
+  assert.match(s.not ?? "", /yanaşılacak serbest yer yok/);
+  assert.equal(k.y.durum().oturuyor_mu, false);
+});
+
+test("oturulamayan çapa (tahta): hata, Oturulabilir listesi sandalye VE bank'ı sayar", () => {
+  const k = bankKosucu();
+  k.niyet({ tur: "otur", capa: "tahta" }, "o1").tik();
+  const s = k.bul("o1")[0]!;
+  assert.equal(s.durum, "hata");
+  assert.match(s.not ?? "", /Oturulabilir: .*sandalye.*bank|Oturulabilir: .*bank.*sandalye/);
+});
+
+test("oturma geometrisi OLMAYAN 'otur' eylemli çapa: Orion oturamaz, nedenli hata (varsayımla oturmaz)", () => {
+  const { oturma: _o, ...bankSiz } = capaBul("bank", YER_BANK.capalar)!;
+  const yer: Yer = { ...YER_BANK, capalar: YER_BANK.capalar.map((c) => (c.ad === "bank" ? bankSiz : c)) };
+  const k = bankKosucu(undefined, () => yer);
+  k.niyet({ tur: "otur", capa: "bank" }, "o1").tik();
+  const s = k.bul("o1")[0]!;
+  assert.equal(s.durum, "hata");
+  assert.match(s.not ?? "", /oturma geometrisi tanımlı değil/);
+});
+
+test("bank: oturuyorken git (otomatik kalkış) — kök kalkış boyunca TERASA iner (−0,05), 0'a doğru değil", () => {
+  const k = bankKosucu();
+  k.niyet({ tur: "otur", capa: "bank" }, "o1");
+  assert.ok(k.bekle("o1", "bitti"));
+  k.niyet({ tur: "git", hedef: { tip: "nokta", x: BANK.x - 3, y: -0.05, z: BANK.z + 3 } }, "g1");
+  let sonOturanY = Infinity;
+  for (let i = 0; i < 400; i++) {
+    k.tik();
+    const d = k.y.durum();
+    if (d.oturuyor_mu) sonOturanY = d.konum.y; else break;
+  }
+  assert.ok(Number.isFinite(sonOturanY), "kalkış gözlenmeli");
+  // Kalkışın SON karelerinde kök teras zeminine (−0,05) çok yakın olmalı; eski 0'a çekme formülü burada ≥ 0 verirdi.
+  assert.ok(sonOturanY < -0.02, `kalkışın sonunda y=${sonOturanY.toFixed(4)} (teras −0,05'e yaklaşmalı)`);
 });

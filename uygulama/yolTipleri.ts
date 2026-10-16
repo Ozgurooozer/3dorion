@@ -9,6 +9,7 @@ import type { Pano } from "../protocol/pano.ts";
 import type { modelSeciciKur } from "../world/arayuz/modelSecici.ts";
 import type { stilPenceresiKur } from "../world/arayuz/stilPenceresi.ts";
 import type { EtkilesimOlayi, Ipucu } from "../world/player/etkilesim.ts";
+import type { Nesne } from "../world/level/nesneKaydi.ts";
 import type { Yol } from "./yol.ts";
 
 /**
@@ -33,12 +34,14 @@ export interface Servisler {
  * `tik` ve diğer `world/` içi yayıcılar (Saat, kararKaydi …) burada YOK: `uygulama/`da tek aboneleri var, yoldan geçirmek abonelik sayısını azaltmaz.
  */
 export interface Olaylar {
-  /** Oyuncu `E` ile bir çapayla etkileşime girdi (`world/player/etkilesim.ts`). */
+  /** Oyuncu etkileşim tuşuyla (`F`) bir çapayla etkileşime girdi (`world/player/etkilesim.ts`). */
   "etkilesim.basladi": EtkilesimOlayi;
   /** Aktif etkileşim bitti. */
   "etkilesim.bitti": EtkilesimOlayi;
   /** Ekranda gösterilecek ipucu değişti; `null` = ipucu yok. */
   "etkilesim.ipucu": Ipucu | null;
+  /** Fareyle seçilen nesne değişti (spec 28); `null` = seçim kalktı. Vurgu ve HUD abone. */
+  "nesne.secildi": Nesne | null;
 }
 
 /** Kökün yolu: bu iki tabloyla kurulmuş `Yol`. Modüller yolu bu adla alır. */

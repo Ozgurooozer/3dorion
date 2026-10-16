@@ -9,6 +9,7 @@
 // KATI SINIR: burada protokol MESAJI üretilmez. `bridge/` (T4) bu olayları
 // dinleyip `Algi` zarfına çevirir. `world/` beyne doğrudan yazmaz.
 "use strict";
+import { TUSLAR } from "./tuslar.ts";
 
 /** Etkileşim olayının gövdesi. Saf veri — Babylon tipi içermez. */
 export interface EtkilesimOlayi {
@@ -26,7 +27,7 @@ export interface EtkilesimOlayi {
 export interface Ipucu {
   capa: string;
   eylem: string;
-  /** Ekranda görünecek hazır metin: "[E] monitörü kullan". */
+  /** Ekranda görünecek hazır metin: "[F] monitör — kullan" (tuş etiketi `tuslar.ts`ten). */
   metin: string;
 }
 
@@ -37,7 +38,7 @@ type Dinleyici<T> = (veri: T) => void;
 /**
  * Minimal, tip güvenli olay yayıcısı.
  *
- * `basladi` — oyuncu `E` ile bir çapayla etkileşime girdi.
+ * `basladi` — oyuncu etkileşim tuşuyla (`F`, bkz. tuslar.ts) bir çapayla etkileşime girdi.
  * `bitti`   — oyuncu `Esc` ile çıktı.
  * `ipucu`   — bakış ışınının altındaki etkileşim değişti (veya kayboldu).
  */
@@ -108,10 +109,16 @@ export class EtkilesimYayici {
  */
 export const EtkilesimOlaylari = new EtkilesimYayici();
 
+/**
+ * Menüden ("ben yapayım", spec 28) bir çapayla etkileşime girmek için oyuncunun çapaya en çok bu kadar (m, XZ) yakın olması gerekir. Tuşla etkileşim
+ * bakış ışınıyla (2,5 m) sınırlı; menüde ışın yok, mesafe var: biraz geniş, ama uzaktan oturtmaz. Menü ve oyuncu AYNI sabiti kullanır.
+ */
+export const ETKILESIM_MENZILI = 3.5;
+
 /** Eylem kimliği ASCII ("gec"); ekranda Türkçe yazımı. Listede olmayan kimlik olduğu gibi yazılır. */
 const EYLEM_YAZIMI: Readonly<Record<string, string>> = { gec: "geç" };
 
-/** İpucu metnini üretir: "[E] monitörü kullan". */
+/** İpucu metnini üretir: "[F] monitör — kullan" (etiket `tuslar.ts`ten: yazı ile gerçek tuş ayrışmaz). */
 export function ipucuMetni(etiket: string, eylem: string): string {
-  return `[E] ${etiket} — ${EYLEM_YAZIMI[eylem] ?? eylem}`;
+  return `[${TUSLAR.etkilesim.etiket}] ${etiket} — ${EYLEM_YAZIMI[eylem] ?? eylem}`;
 }

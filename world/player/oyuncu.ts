@@ -1,6 +1,6 @@
 // world/player/oyuncu.ts — Oyuncu (Ozyn) denetleyicisi.
 //
-// Sorumluluk: klavye → hareket, çarpışma, bakış ışını, `E`/`Esc` etkileşimi
+// Sorumluluk: klavye → hareket, çarpışma, bakış ışını, `F`/`Esc` etkileşimi
 // ve `OyuncuDurumu` biçiminde OKUNUR durum.
 //
 // KATI SINIR: burada protokol MESAJI üretilmez, hiçbir kanala yazılmaz.
@@ -20,12 +20,15 @@ import { CreateCapsule } from "@babylonjs/core/Meshes/Builders/capsuleBuilder";
 import type { OyuncuDurumu } from "../../protocol/algi.ts";
 import type { KameraHedefi, KameraRig } from "../engine/kamera.ts";
 import type { OdaKurulumu } from "../level/oda.ts";
-import { capaBul } from "../level/capalar.ts";
+import { capaBul, mesafeXZ } from "../level/capalar.ts";
 import { vec3 } from "../level/capaGeometri.ts";
 import {
   carpisiyorMu, GOZ_YUKSEKLIK, GOVDE_YUKSEKLIK, OYUNCU_YARICAP, SANDALYE,
 } from "../level/olculer.ts";
-import { EtkilesimOlaylari, ipucuMetni, type EtkilesimYayici } from "./etkilesim.ts";
+import { EtkilesimOlaylari, ipucuMetni, ETKILESIM_MENZILI, type EtkilesimYayici } from "./etkilesim.ts";
+import { tusKarari } from "./tuslar.ts";
+import { oturmaNoktasi, kalkmaNoktasi } from "./oturma.ts";
+import type { ImlecKipi } from "./imlecKipi.ts";
 import { bakilanCapa } from "./isinTarama.ts";
 import type { Yer } from "../yer/yer.ts";
 import { ODA_YERI } from "../yer/odaYeri.ts";
@@ -80,6 +83,8 @@ export interface OyuncuSecenekleri {
    * Geri çağrı, çünkü kapıdan geçince yer değişir; Oyuncu yeniden kurulmaz.
    */
   yer?: () => Yer;
+  /** İmleç kipi (Tab, spec 28): verilirse `Tab` onu açıp kapar, `Esc` onu kapatır; rig imleç kaynağını ondan alır. */
+  imlec?: ImlecKipi;
 }
 
 export class Oyuncu implements KameraHedefi {
@@ -110,6 +115,10 @@ export class Oyuncu implements KameraHedefi {
   private _bedenAyari: BedenAyari = ayariDuzelt(null);
   /** Son tikteki yatay hız (m/s): yürüme klibi hızı. */
   private _hiz = 0;
+  /** Oturuyorsa oturulan çapanın adı (`bank`, `sandalye`); null = ayakta. Oturanın hareketi kilitli; kalkış etkileşim tuşu ya da `Esc` (etkileşimi bitirir). */
+  private _oturan: string | null = null;
+  /** İmleç kipi (Tab); verilmediyse Tab bir şey yapmaz. */
+  private _imlec: ImlecKipi | null = null;
   /**
    * Orion'un konumu. T2 avatarı gelene kadar sandalye kabul edilir; avatar
    * geldiğinde `orionKonumuAyarla` ile gerçek konum bağlanır.
@@ -122,6 +131,8 @@ export class Oyuncu implements KameraHedefi {
     this._yayici = sec.yayici ?? EtkilesimOlaylari;
     this._escOnce = sec.escOnce ?? null;
     this._yer = sec.yer ?? (() => ODA_YERI);
+    this._imlec = sec.imlec ?? null;
+    rig.imlecKaynagi(() => this._imlec?.acik ?? false);
 
     // Doğum yeri köşeden İÇERİ alındı. (2.6, 2.6) kapının önündeki köşeydi ve
     // omuz kamerası arkadaki iki duvara birden sıkışıyordu: açılış manzarası
@@ -148,6 +159,7 @@ export class Oyuncu implements KameraHedefi {
     rig.isinDisiTut(this.govde, ...oda.seffaflar);
 
     this._olaylariBagla();
+    this._oturmayiBagla();
   }
 
   get hareketliMi(): boolean { return this._hareketli; }
@@ -228,6 +240,8 @@ export class Oyuncu implements KameraHedefi {
   // ── Hareket ─────────────────────────────────────────────────────────────
 
   private _hareket(dt: number): void {
+    // Oturan yürümez: konum oturma noktasında kilitli (kalkış etkileşimi bitirir).
+    if (this._oturan) { this._hareketli = false; this._hiz = 0; return; }
     const ileri = (this._basili("KeyW") ? 1 : 0) - (this._basili("KeyS") ? 1 : 0);
     const yan = (this._basili("KeyD") ? 1 : 0) - (this._basili("KeyA") ? 1 : 0);
     this._hareketli = ileri !== 0 || yan !== 0;
@@ -337,13 +351,29 @@ export class Oyuncu implements KameraHedefi {
     this._yayici.ipucuAyarla({ capa: capa.ad, eylem, metin: ipucuMetni(capa.etiket, eylem) });
   }
 
-  /** "bak" dışındaki ilk eylem — ipucunun ve `E`nin varsayılan eylemi. */
+  /** "bak" dışındaki ilk eylem — ipucunun ve etkileşim tuşunun varsayılan eylemi. */
   private _birincilEylem(eylemler: readonly string[]): string | null {
     for (const e of eylemler) if (e !== "bak") return e;
     return null;
   }
 
+  /**
+   * MENÜDEN etkileşim ("ben yapayım", spec 28): `F` ile aynı olay yolu, bakış ışını yerine mesafe. Çapa bu yerde olmalı, eylemi taşımalı, oyuncu
+   * `ETKILESIM_MENZILI` içinde olmalı ve başka bir etkileşim açık olmamalı. Başarı.
+   */
+  etkilesimBaslat(capaAdi: string, eylem: string): boolean {
+    if (this._yayici.aktif) return false;
+    const capa = capaBul(capaAdi, this._yer().capalar);
+    if (!capa || !capa.eylemler.includes(eylem)) return false;
+    if (mesafeXZ(this.konum, capa.konum) > ETKILESIM_MENZILI) return false;
+    const basladi = this._yayici.baslat({ capa: capa.ad, eylem, kaynak: { x: this.konum.x, y: this.konum.y, z: this.konum.z }, t: this._t });
+    if (basladi) this._yayici.ipucuAyarla(null);
+    return basladi;
+  }
+
   private _eTusu(): void {
+    // Oturuyorsa etkileşim tuşu KALDIRIR (Esc de aynı yoldan: etkileşimi bitirir, kalkış `bitti` olayından).
+    if (this._oturan) { this._yayici.bitir(); return; }
     const i = this._yayici.sonIpucu;
     if (!i) return;
     this._yayici.baslat({
@@ -353,6 +383,37 @@ export class Oyuncu implements KameraHedefi {
       t: this._t,
     });
     this._yayici.ipucuAyarla(null);
+  }
+
+  // ── Oturma ──────────────────────────────────────────────────────────────
+
+  /** `otur` etkileşimi başlayınca oturur, bitince kalkar: Esc ve etkileşim tuşu aynı yoldan (`bitir`) çalışır. Poz yok: bkz. oturma.ts. */
+  private _oturmayiBagla(): void {
+    this._cozucular.push(
+      this._yayici.dinle("basladi", (o) => { if (o.eylem === "otur") this._otur(o.capa); }),
+      this._yayici.dinle("bitti", (o) => { if (o.eylem === "otur") this._kalk(); }),
+    );
+  }
+
+  private _otur(capaAdi: string): void {
+    const capa = capaBul(capaAdi, this._yer().capalar);
+    if (!capa) return;   // bu yerde yok: etkileşim açık kalır, Esc bitirir (kalk de çapasız, zararsız)
+    const n = oturmaNoktasi(capa);
+    this._oturan = capa.ad;
+    this.konum.set(n.x, n.y, n.z);
+    this._rig.bakisAyarla(n.yaw);
+    this._govdeyiYerlestir();
+    this._rig.anindaYerles();
+  }
+
+  private _kalk(): void {
+    const capa = this._oturan ? capaBul(this._oturan, this._yer().capalar) : null;
+    this._oturan = null;
+    if (!capa) return;
+    const k = kalkmaNoktasi(capa);
+    this.konum.set(k.x, this._yer().yukseklik(k.x, k.z), k.z);
+    this._govdeyiYerlestir();
+    this._rig.anindaYerles();
   }
 
   // ── Girdi ───────────────────────────────────────────────────────────────
@@ -386,6 +447,8 @@ export class Oyuncu implements KameraHedefi {
         }
         if (this._yayici.bitir()) return;
         if (this._rig.odakta) { this._rig.odakBirak(); return; }
+        // İmleç kipi açıksa Esc onu kapatır; kilit İSTENMEZ (tarayıcı Esc'ten hemen sonra kilidi reddeder, bkz. imlecKipi.ts).
+        if (this._imlec?.kapat(false)) return;
         this._rig.fareKilitBirak();
         return;
       }
@@ -394,8 +457,10 @@ export class Oyuncu implements KameraHedefi {
       // Bir metin alanına yazılıyorsa dünya klavyeyi çalmaz (T3 terminali).
       if (hedef && (hedef.tagName === "INPUT" || hedef.tagName === "TEXTAREA")) return;
       this._tuslar.add(e.code);
-      if (e.code === "KeyF") { this._rig.modDegistir(); this._govdeyiYerlestir(); }
-      else if (e.code === "KeyE") this._eTusu();
+      const karar = tusKarari(e.code);   // tuş tablosu: tuslar.ts (F etkileşim, C kamera)
+      if (karar === "kamera") { this._rig.modDegistir(); this._govdeyiYerlestir(); }
+      else if (karar === "etkilesim") this._eTusu();
+      else if (karar === "imlec") { e.preventDefault(); this._imlec?.degistir(); }   // Tab: tarayıcı odak kaydırmasın
     };
     const birak = (e: KeyboardEvent) => { this._tuslar.delete(e.code); };
     // Pencere odağı kaybolunca tuşlar "basılı kalmasın".

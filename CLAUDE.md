@@ -7,6 +7,9 @@ Tez: **"AI'ın oturduğu oda — terminalini onun masasında açıyorsun."** Kod
 **Belgeler:** `docs/INDEX.md` her spec'i tek satırla, durumuyla ve "ne zaman oku" notuyla listeler — bir alana
 dokunmadan önce oradan ilgili spec'i aç (kararlar ölçüme dayanır, sezgiye değil). Açık işler: `docs/ACIK-ISLER.md`.
 
+**ODAK (2026-10-16 → 2026-10-30):** `world/level/`'a yeni özellik YOK, yalnız hata düzeltme (istisnayı Ozyn "istisna" diyerek verir). Tek soru:
+Orion günlük kullanımda işe yarıyor mu? Kayıt ve ön kayıtlı ölçüt: `docs/kullanim-defteri.md` (sonuca bakıp eşik değiştirilmez). `brain-lab/`'a dokunulmaz.
+
 ## Komutlar
 ```
 npm run typecheck   # tsc --noEmit (strict; tek statik kapı, linter yok; brain-lab/ dahil)

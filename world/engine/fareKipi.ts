@@ -15,6 +15,8 @@
 //                             Bakmak için tuşa basmak gerekmez.
 //   ODAKTAYKEN (ekran/panel)→ imleç SERBEST: tıklayıp nesne seçebilirsin.
 //                             Kamerayı ayarlamak istersen Ctrl basılı tut.
+//   İMLEÇ KİPİNDE (Tab)     → gezinirken ama imleç SERBEST (spec 28): tıklama kilide GİTMEZ, nesne seçer;
+//                             kamera yine Ctrl basılı tutulunca döner. Odak gibi, ama bir yüzeye yaklaşmadan.
 //
 // Odakta pointer lock ALINMAZ: `movementX/Y` kilitsiz `mousemove`da da gelir.
 // Kilit alsaydık imleç kaybolur ve `Ctrl+C` kabuğun elinden giderdi.
@@ -29,6 +31,8 @@ export interface FareKipiAyari {
   kilitIste: () => void;
   /** Kilit gerçekten bizde mi? */
   kilitliMi: () => boolean;
+  /** İmleç kipi açık mı (Tab, spec 28)? Verilmezse hiç açık değildir. */
+  imlecMi?: () => boolean;
   /** Bakışı döndür (ham fare deltası; ölçekleme çağrılana ait). */
   dondur: (dx: number, dy: number) => void;
 }
@@ -45,8 +49,9 @@ export interface FareKipi {
 export function fareKipiKur(a: FareKipiAyari): FareKipi {
   let ctrlBasili = false;
 
+  const imlec = (): boolean => a.imlecMi?.() ?? false;
   const surebilirMi = (): boolean =>
-    a.odaktaMi() ? ctrlBasili : a.kilitliMi();
+    a.odaktaMi() || imlec() ? ctrlBasili : a.kilitliMi();
 
   const fareHareket = (e: MouseEvent) => {
     if (!surebilirMi()) return;
@@ -54,8 +59,8 @@ export function fareKipiKur(a: FareKipiAyari): FareKipi {
   };
 
   // Gezinirken tuvale tıklamak kamerayı ele alır — klasik davranış.
-  // Odaktayken tıklama kilide GİTMEZ: orada tıklamanın işi nesne seçmek.
-  const tuvalTik = () => { if (!a.odaktaMi()) a.kilitIste(); };
+  // Odaktayken ve imleç kipinde tıklama kilide GİTMEZ: orada tıklamanın işi nesne seçmek.
+  const tuvalTik = () => { if (!a.odaktaMi() && !imlec()) a.kilitIste(); };
 
   const ctrlBas = (e: KeyboardEvent) => {
     if (e.key !== "Control" || e.repeat) return;

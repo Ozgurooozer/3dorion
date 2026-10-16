@@ -131,9 +131,11 @@ const ODAKLAN = /^(.+) odaklan$/;
 const BAK = /^(.+) (?:bak|goz at)$/;
 const PENCEREDEN_BAK = /^pencereden disari bak$/;
 /** Oturulabilecek yerler: "tahtaya otur" anlamsız, programa girmez. */
-const OTURULAN: ReadonlySet<CapaAdi> = new Set<CapaAdi>(["sandalye", "masa", "monitor"]);
+const OTURULAN: ReadonlySet<CapaAdi> = new Set<CapaAdi>(["sandalye", "masa", "monitor", "bank"]);
 
 const otur = (): KomutEslesmesi => ({ program: "komut:otur", adimlar: [{ tur: "otur" }] });
+/** Çapalı otur: bank gibi sandalye olmayan oturaklar (çapasız `otur` her zaman masadaki sandalyeye gider). */
+const oturCapa = (capa: CapaAdi): KomutEslesmesi => ({ program: "komut:otur", adimlar: [{ tur: "otur", capa }] });
 const kalk = (): KomutEslesmesi => ({ program: "komut:kalk", adimlar: [{ tur: "kalk" }] });
 const gel = (): KomutEslesmesi => ({ program: "komut:gel", adimlar: [{ tur: "git", hedef: { tip: "oyuncu" }, mesafe: GEL_MESAFESI }] });
 const dur = (): KomutEslesmesi => ({ program: "komut:dur", adimlar: [{ tur: "dur" }] });
@@ -222,7 +224,24 @@ function komutCozIng(s: string): KomutEslesmesi | null {
   return null;
 }
 
+/**
+ * SEÇİLİ NESNE (spec 28): Ozyn'in fareyle gösterdiği nesne ve menüdeki ORION eylemleri. Söz sözlüğü ile menü AYNI veriden beslenir
+ * (`world/yer/nesneEylemleri.ts`): "buraya otur" demek ile menüden "Otur"a basmak ayrışamaz. Yapısal tip: mind/ world/'ü import etmez.
+ */
+export interface SeciliOrionEylemi {
+  /** "orion.git" | "orion.bak" | "orion.otur" | "orion.odaklan" … */
+  kimlik: string;
+  uygun: boolean;
+  /** Uygunsa yürütülecek niyet. */
+  niyet?: Niyet;
+  /** Uygun DEĞİLSE Orion'un söyleyeceği tek cümle (birinci ağız). */
+  soz?: string;
+}
+export interface SeciliNesne { ad: string; eylemler: readonly SeciliOrionEylemi[] }
+
 export interface KomutSecenegi {
+  /** Seçili nesne (Tab + sol tık); yoksa null. "buraya/buna/bununla" sözleri buna göre çözülür. */
+  secili?: SeciliNesne | null;
   /**
    * Ortam komutları ("gece yap", "ışığı kıs") sahiplenilsin mi: yalnız ova'dayken (level varken) anlamlı. Varsayılan
    * AÇIK (tarama/ölçüm araçları görsün); köprü canlıda `ortamKullanilabilir` ile besler.
@@ -230,10 +249,36 @@ export interface KomutSecenegi {
   ortam?: boolean;
 }
 
+// ── DEİKSİS (spec 28): "buraya otur", "buna bak" — "buraya/buna" Ozyn'in SEÇTİĞİ nesnedir ──────────────────────────────────────
+// Dar ve kesin kalır (başlık kuralı): yalnız bu kalıplar. "buraya gel" (bana gel) DEĞİŞMEZ; hareket fiili git/geç/yürü olanlar deiksistir.
+const D_GIT = /^(buraya|suraya|buna|bunun yanina|sunun yanina) (git|gec|yuru)$/;
+const D_BAK = /^(buna|bunu|suna|sunu) (bak|goz at|incele)$/;
+const D_OTUR = /^(buraya|burada|buna) otur$/;
+const D_ETKILESIM = /^(bununla|sunla|buna|suna) (etkilesime gir|etkilesime gec|etkilesim kur)$/;
+/** "Bununla etkileşime gir" = nesnenin BİRİNCİL eylemi: önce otur, sonra odaklan; ikisi de yoksa yanına git. */
+const BIRINCIL = ["orion.otur", "orion.odaklan", "orion.git"] as const;
+
+const soyle = (program: string, metin: string): KomutEslesmesi => ({ program, adimlar: [{ tur: "soyle", metin }] });
+
+/** Deiksis sözünü seçili nesneyle çöz (SAF). Deiksis değilse null. Seçili YOKSA Orion tahmin etmez, sorar; yapamıyorsa nedenini söyler. */
+export function deiktikCoz(s: string, secili: SeciliNesne | null): KomutEslesmesi | null {
+  const kimlik = D_GIT.test(s) ? "orion.git" : D_BAK.test(s) ? "orion.bak" : D_OTUR.test(s) ? "orion.otur" : D_ETKILESIM.test(s) ? "birincil" : null;
+  if (!kimlik) return null;
+  if (!secili) return soyle("komut:sec_iste", "Hangisi? Tab'a basıp göster, sol tıkla seç.");
+  const e = kimlik === "birincil"
+    ? BIRINCIL.map((k) => secili.eylemler.find((x) => x.kimlik === k)).find((x) => x !== undefined)
+    : secili.eylemler.find((x) => x.kimlik === kimlik);
+  if (!e) return soyle("komut:sec_yapamam", `${secili.ad} ile bunu yapamam.`);
+  if (!e.uygun || !e.niyet) return soyle("komut:sec_yapamam", e.soz ?? "Bunu şimdilik yapamıyorum.");
+  return { program: `komut:sec_${e.kimlik.replace(/^orion\./, "")}`, adimlar: [e.niyet] };
+}
+
 /** Söz bir doğuştan programa TAMAMEN uyuyorsa onu döner; uymuyorsa null (söz LLM'e gider). */
 export function komutCoz(soz: string, secenek: KomutSecenegi = {}): KomutEslesmesi | null {
   const s = sozuNormalle(soz);
   if (!s) return null;
+  const deiktik = deiktikCoz(s, secenek.secili ?? null);
+  if (deiktik) return deiktik;
   if (OTUR.test(s)) return otur();
   if (KALK.test(s)) return kalk();
   if (GEL.test(s)) return gel();
@@ -247,6 +292,7 @@ export function komutCoz(soz: string, secenek: KomutSecenegi = {}): KomutEslesme
   if (gitOtur) {
     const capa = yonelmeCapasi(gitOtur[1]!);
     if (capa === "masa" || capa === "monitor" || capa === "sandalye") return otur();
+    if (capa === "bank") return oturCapa("bank");
     return null;
   }
 
@@ -254,7 +300,7 @@ export function komutCoz(soz: string, secenek: KomutSecenegi = {}): KomutEslesme
   const oturYer = OTUR_YER.exec(s);
   if (oturYer) {
     const capa = yonelmeCapasi(oturYer[1]!);
-    if (capa && OTURULAN.has(capa)) return otur();
+    if (capa && OTURULAN.has(capa)) return capa === "bank" ? oturCapa("bank") : otur();
   }
   const odaklan = ODAKLAN.exec(s);
   if (odaklan && yonelmeCapasi(odaklan[1]!) === "monitor") return bilgisayar();

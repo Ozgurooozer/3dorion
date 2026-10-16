@@ -75,7 +75,7 @@ export function bedenPaneliKur(a: BedenPaneliAyari): BedenPaneli {
   sifirla.title = "Giysileri ve renkleri ilk haline döndür";
   const kapatDugme = olustur("button", "", "Kapat"); kapatDugme.append(" ", tusEtiketi("Esc"));
   baslik.append(olustur("b", "", "Bedenim"), sifirla, kapatDugme);
-  const ipucu = olustur("div", "bp-ipucu", "Parçaları seç, rengi değiştir; beden anında güncellenir ve kaydedilir. Kendini görmek için F ile omuz kamerasına geç.");
+  const ipucu = olustur("div", "bp-ipucu", "Parçaları seç, rengi değiştir; beden anında güncellenir ve kaydedilir. Kendini görmek için C ile omuz kamerasına geç.");
 
   // Arayüz tablodan üretilir: seçim kutuları (slot başına) + renk seçiciler (renk anahtarı başına).
   const secimKutulari = new Map<string, HTMLSelectElement>();

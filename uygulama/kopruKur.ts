@@ -8,6 +8,7 @@ import { Kopru } from "../bridge/kopru.ts";
 import { konumluSabitBilgi } from "../world/yer/birlesikYer.ts";
 import { yerelTepki } from "../mind/yerelTepki.ts";
 import { refleksGirdisi, type KuralRefleksi } from "../mind/refleks.ts";
+import type { SeciliNesne } from "../mind/komutSozlugu.ts";
 import type { Inisiyatif } from "../mind/inisiyatif.ts";
 import type { OrtamSozlugu } from "../mind/ortamSozlugu.ts";
 import { kimlik } from "../protocol/temel.ts";
@@ -51,6 +52,8 @@ export interface KopruGirdisi {
   inisiyatifSimdi: () => number;
   /** Göz muayenesi sürerken beyin yeni tur başlatmasın (iki yönlü sıra; uygulama/gozlem.ts). */
   beyinKapisi?: () => boolean;
+  /** Seçili nesne (spec 28): söz sözlüğü "buraya otur" gibi sözleri buna göre çözer. */
+  secili?: () => SeciliNesne | null;
 }
 
 export function kopruKur(g: KopruGirdisi): Kopru {
@@ -147,6 +150,7 @@ export function kopruKur(g: KopruGirdisi): Kopru {
       },
       // Ortam sözleri ("gece yap") yalnız ova'dayken sözlükten geçer; ofiste LLM'e gider (mind/ortamKomutlari.ts).
       ortamKullanilabilir: () => ortamBaglantisi.kullanilabilirMi(),
+      ...(g.secili ? { secili: g.secili } : {}),
       ortamOgrenilen: (soz) => ortamSozlugu.esle(soz),
       ortamOgren: (soz, komutlar) => {
         const r = ortamSozlugu.ogren(soz, komutlar);

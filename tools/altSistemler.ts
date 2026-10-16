@@ -71,6 +71,11 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
       "world/player/etkilesim.ts",
       // Beden ayarı: giysi seçimi + renk modeli (saf); kayıt (uygulama/bedenKaydi.ts) ve beden paneli kurulumu (giris.ts) kullanır.
       "world/player/bedenAyari.ts",
+      // Oyun tuşları (etkileşim F, kamera C): HUD ve yardım metinlerinin etiketi buradan türer.
+      "world/player/tuslar.ts",
+      // Nesne seçimi ve etkileşim menüsü (spec 28): imleç kipi (Tab), ışın→nesne seçici, fare ışını, seçim çerçevesi, menü eylemleri.
+      // Kompozisyon kökü (giris.ts) ve uygulama/nesneSecimi.ts · nesneEtkilesimi.ts bağlar.
+      "world/player/imlecKipi.ts", "world/player/nesneSecici.ts", "world/engine/fareIsini.ts", "world/level/secimVurgusu.ts", "world/yer/nesneEylemleri.ts",
       // Davranış ölçüm defteri (`?davranis`, window._davranisKayit): uygulama katmanı ve davranış senaryosu tipini/kaydı kullanır.
       "world/davranisDenemesi.ts",
       // Dünyanın bilgisayar (monitör terminali) niyetlerini yürüten yüz: niyet yürütücü (uygulama/) kullanır (giris bölme B2).
@@ -129,7 +134,7 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
     yollar: ["world/surfaces/", "world/arayuz/"],
     // Alt klasörler (B4, 2026-10-14): terminal/ (monitör + xterm/pty, çıktı ayrıştırma), tahta/,
     // duvar/ (zihin duvarı: şema, günlük, hafıza bulutu); ortak altyapı (yuzey, yuzeyStil) kökte.
-    kamu: ["world/surfaces/yuzey.ts", "world/surfaces/web/webEkrani.ts", "world/arayuz/gozPaneli.ts", "world/arayuz/bedenPaneli.ts", "world/surfaces/terminal/monitor.ts", "world/surfaces/tahta/tahta.ts",
+    kamu: ["world/surfaces/yuzey.ts", "world/surfaces/web/webEkrani.ts", "world/arayuz/gozPaneli.ts", "world/arayuz/bedenPaneli.ts", "world/arayuz/nesnePaneli.ts", "world/surfaces/terminal/monitor.ts", "world/surfaces/tahta/tahta.ts",
       "world/surfaces/duvar/sema.ts", "world/surfaces/duvar/gunluk.ts", "world/surfaces/duvar/hafizaBulutu.ts",
       // Monitör çıktısını algıya çeviren saf ayrıştırıcılar: uygulama/terminalAlgisi.ts kullanır (giris bölme B1).
       "world/surfaces/terminal/ciktiFarki.ts", "world/surfaces/terminal/ciktiToplayici.ts",

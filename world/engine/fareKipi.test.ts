@@ -21,7 +21,7 @@ function olayHedefi() {
   };
 }
 
-function düzenek(baslangic: { odakta?: boolean; kilitli?: boolean } = {}) {
+function düzenek(baslangic: { odakta?: boolean; kilitli?: boolean; imlec?: boolean } = {}) {
   const pencere = olayHedefi();
   const tuval = olayHedefi();
   const g = globalThis as unknown as Record<string, unknown>;
@@ -31,6 +31,7 @@ function düzenek(baslangic: { odakta?: boolean; kilitli?: boolean } = {}) {
 
   const durum = {
     odakta: baslangic.odakta ?? false,
+    imlec: baslangic.imlec ?? false,
     kilitli: baslangic.kilitli ?? false,
     kilitIstendi: 0,
     donus: [0, 0] as [number, number],
@@ -39,6 +40,7 @@ function düzenek(baslangic: { odakta?: boolean; kilitli?: boolean } = {}) {
   const kip = fareKipiKur({
     tuval: tuval as unknown as HTMLCanvasElement,
     odaktaMi: () => durum.odakta,
+    imlecMi: () => durum.imlec,
     kilitliMi: () => durum.kilitli,
     kilitIste: () => { durum.kilitIstendi++; durum.kilitli = true; },
     dondur: (dx, dy) => { durum.donus[0] += dx; durum.donus[1] += dy; },
@@ -175,4 +177,54 @@ test("sok() dinleyicileri çözer — çözüldükten sonra fare etkisiz", () =>
     d.oynat(100);
     assert.deepEqual(d.durum.donus, [0, 0], "cozuldukten sonra olay islenmemeli");
   } finally { d.kapat(); }
+});
+
+// ── İMLEÇ KİPİ (Tab, spec 28): gezinirken ama imleç serbest ─────────────────
+
+test("İMLEÇ KİPİ: tuvale tıklamak kilide GİTMEZ (tıklamanın işi nesne seçmek)", () => {
+  const d = düzenek({ imlec: true });
+  try {
+    d.tuval.yay("click", {});
+    assert.equal(d.durum.kilitIstendi, 0);
+  } finally { d.kapat(); }
+});
+
+test("İMLEÇ KİPİ: fare Ctrl olmadan kamerayı SÜRMEZ", () => {
+  const d = düzenek({ imlec: true, kilitli: true });
+  try {
+    d.oynat(30, 10);
+    assert.deepEqual(d.durum.donus, [0, 0]);
+    assert.equal(d.kip.kamerada, false);
+  } finally { d.kapat(); }
+});
+
+test("İMLEÇ KİPİ: Ctrl basılıyken fare kamerayı sürer (odak kipiyle aynı kural)", () => {
+  const d = düzenek({ imlec: true });
+  try {
+    d.ctrl(true);
+    d.oynat(30, 10);
+    assert.deepEqual(d.durum.donus, [30, 10]);
+  } finally { d.kapat(); }
+});
+
+test("İMLEÇ KİPİ kapanınca eski davranış döner: tıklama kilide gider, kilitliyken fare sürer", () => {
+  const d = düzenek({ imlec: true });
+  try {
+    d.durum.imlec = false;
+    d.tuval.yay("click", {});
+    assert.equal(d.durum.kilitIstendi, 1);
+    d.oynat(7, 3);
+    assert.deepEqual(d.durum.donus, [7, 3]);
+  } finally { d.kapat(); }
+});
+
+test("imleç kaynağı verilmezse (eski çağıranlar) imleç kipi hiç açık değildir", () => {
+  const pencere = olayHedefi(), tuval = olayHedefi();
+  const g = globalThis as unknown as Record<string, unknown>;
+  const eskiEkle = g.addEventListener, eskiSil = g.removeEventListener;
+  g.addEventListener = pencere.addEventListener.bind(pencere);
+  g.removeEventListener = pencere.removeEventListener.bind(pencere);
+  let kilit = 0;
+  const kip = fareKipiKur({ tuval: tuval as unknown as HTMLCanvasElement, odaktaMi: () => false, kilitliMi: () => false, kilitIste: () => { kilit++; }, dondur: () => {} });
+  try { tuval.yay("click", {}); assert.equal(kilit, 1); } finally { kip.sok(); g.addEventListener = eskiEkle; g.removeEventListener = eskiSil; }
 });

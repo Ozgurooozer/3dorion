@@ -5,7 +5,7 @@
 //   sinir         ova'nın yürünebilir karesi (ofisi kapsar)
 //   engeller      ova engelleri + ofisin mobilyası + ofisin DUVARLARI (ön duvarda kapı boşluğu: her zaman yürünür)
 //   katiYuzeyler  ova + ofisin ışın-geçirmez yüzeyleri (duvarlar dahil)
-//   capalar       ofisin çapaları (tahta, masa, monitör, kapı…) + ova'nın adlandırılmış yerleri
+//   capalar       ofisin çapaları (tahta, masa, monitör, kapı…) + dışarıdaki bank (level/bank.ts) + ova'nın adlandırılmış yerleri
 //   nesneler      ofis + ova
 //   yukseklik     ofisin İÇİ 0 (döşeme), dışı ova zemini (teras ofisin 5 cm altı: basamak yok denecek kadar küçük)
 // Kapı kanadı çarpışmada YOK: kapı yakınlaşana otomatik açılır (`world/level/odaKapisi.ts`), boşluk her zaman yürünür; yol bulma
@@ -16,6 +16,7 @@
 import { yerSabitBilgisi, yerOrtasiSozu, type Yer } from "./yer.ts";
 import { ENGELLER, KATI_YUZEYLER, KAPI, ODA, type Kutu } from "../level/olculer.ts";
 import { tumCapalar } from "../level/capalar.ts";
+import { BANK_KUTUSU, BANK_KATI, BANK_CAPASI, BANK_NESNESI } from "../level/bank.ts";
 import { NESNELER } from "../level/nesneKaydi.ts";
 import { OFIS_IZI } from "../level/ofisYeri.ts";
 
@@ -56,10 +57,10 @@ export function birlesikYerKur(ova: Yer): Yer {
   return {
     ad: "ova",
     sinir: ova.sinir,
-    engeller: [...ova.engeller, ...OFIS_DUVARLARI, ...ENGELLER],
-    katiYuzeyler: [...ova.katiYuzeyler, ...KATI_YUZEYLER],
-    capalar: [...tumCapalar(), ...ova.capalar],
-    nesneler: [...NESNELER, ...ova.nesneler],
+    engeller: [...ova.engeller, ...OFIS_DUVARLARI, ...ENGELLER, BANK_KUTUSU],
+    katiYuzeyler: [...ova.katiYuzeyler, ...KATI_YUZEYLER, BANK_KATI],
+    capalar: [...tumCapalar(), BANK_CAPASI, ...ova.capalar],
+    nesneler: [...NESNELER, BANK_NESNESI, ...ova.nesneler],
     yukseklik: (x, z) => (ofisIcindeMi(x, z) ? 0 : yuk(x, z)),
     ...(ova.algiMenzil !== undefined ? { algiMenzil: ova.algiMenzil } : {}),
   };

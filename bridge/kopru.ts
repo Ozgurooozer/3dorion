@@ -410,7 +410,7 @@ export class Kopru {
     if (a.tur === "duydum" && a.kesin && this._ayar.komutYetkisi !== false) {
       const ortamVar = this._ayar.ortamKullanilabilir?.() === true;
       // Sıra: yerleşik sözlük → öğrenen ortam sözlüğü (LLM'in bir kez doğru yaptığı söz) → LLM.
-      const program = komutCoz(a.metin, { ortam: ortamVar }) ?? (ortamVar ? this._ayar.ortamOgrenilen?.(a.metin) ?? null : null);
+      const program = komutCoz(a.metin, { ortam: ortamVar, secili: this._ayar.secili?.() ?? null }) ?? (ortamVar ? this._ayar.ortamOgrenilen?.(a.metin) ?? null : null);
       if (program) {
         this._programYurut(a, ozet, golge, program);
         return;
