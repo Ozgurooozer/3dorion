@@ -91,7 +91,7 @@ import { gozlemKur } from "./gozlem.ts";
 import { gozPaneliKur } from "../world/arayuz/gozPaneli.ts";
 import { bedenPaneliKur } from "../world/arayuz/bedenPaneli.ts";
 import { bedenAyariniYukle, bedenAyariniKaydet } from "./bedenKaydi.ts";
-import { SLOTLAR, RENK_ADLARI, VARSAYILAN as BEDEN_VARSAYILANI, YOK as BEDEN_YOK, ayariDuzelt as bedenAyariniDuzelt } from "../world/player/bedenAyari.ts";
+import { OYUNCU_BEDEN_DOSYASI, SLOTLAR, RENK_ADLARI, VARSAYILAN as BEDEN_VARSAYILANI, YOK as BEDEN_YOK, ayariDuzelt as bedenAyariniDuzelt } from "../world/player/bedenAyari.ts";
 import type { Kopru as KabukKoprusu } from "../host/kopru.ts";
 import { OrtamGunlugu, ogrenilenDeposu } from "./ortamDeposu.ts";
 import { OrtamSozlugu } from "../mind/ortamSozlugu.ts";
@@ -148,7 +148,7 @@ const oyuncu = new Oyuncu(sahne, oda, rig, {
 // Ozyn'in görünür bedeni: Orion'un iskeleti, MODÜLER giysiler (world/player/oyuncuBeden.ts, ayar bedenAyari.ts, panel B tuşu). Kayıtlı ayar yüklenir;
 // beden yüklenene kadar kapsül görünür.
 oyuncu.bedenAyarla(bedenAyariniYukle());
-void oyuncu.bedenYukle();
+void oyuncu.bedenYukle(varlik(OYUNCU_BEDEN_DOSYASI));  // varlik(): paketli file:// altında "./" ile çözülür (mutlak "/" yüklenemezdi)
 
 const saat = new Saat();
 

@@ -18,7 +18,6 @@ import { gorunenMeshler, meshRengi, type BedenAyari } from "./bedenAyari.ts";
 /** Yürüme klibinin (assets/orion-lowpoly.glb ile aynı kaynak) ölçülen hızı (m/s): klip hızı gerçek hıza oranlanır. */
 const KLIP_HIZI = 1.25;
 
-export const OYUNCU_BEDEN_YOLU = "/oyuncu-beden.glb";
 
 export interface OyuncuBedeni {
   readonly kok: TransformNode;
@@ -36,7 +35,7 @@ export interface OyuncuBedeni {
 }
 
 /** `boy`: bedenin metre cinsinden hedef boyu (ayaklar y=0'a oturtulur). */
-export async function oyuncuBedeniYukle(sahne: Scene, boy: number, yol = OYUNCU_BEDEN_YOLU): Promise<OyuncuBedeni> {
+export async function oyuncuBedeniYukle(sahne: Scene, boy: number, yol: string): Promise<OyuncuBedeni> {
   const sonuc = await ImportMeshAsync(yol, sahne, { pluginExtension: ".glb" });
   if (sonuc.meshes.length === 0) throw new Error(`oyuncu bedeni boş geldi: ${yol}`);
 

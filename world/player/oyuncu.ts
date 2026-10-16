@@ -176,7 +176,7 @@ export class Oyuncu implements KameraHedefi {
    * Giysili görünür bedeni yükler (`assets/oyuncu-beden.glb`) ve kapsülün yerine koyar. Başarısızlıkta FIRLATMAZ: uyarı basar, kapsül kalır.
    * Çağıran beklemek zorunda değil; yüklenince bir sonraki tikte yerleşir.
    */
-  async bedenYukle(yol?: string): Promise<boolean> {
+  async bedenYukle(yol: string): Promise<boolean> {
     try {
       const b = await oyuncuBedeniYukle(this._sahne, GOVDE_YUKSEKLIK, yol);
       this._rig.isinDisiTut(...b.meshler);

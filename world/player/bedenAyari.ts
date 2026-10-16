@@ -32,6 +32,10 @@ export const SLOTLAR: readonly Slot[] = [
     ayakkabi: { ad: "Ayakkabı", mesh: "oyuncu_ayakkabi" } } },
 ];
 
+/** Dosya adı; yolu ORTAMA göre çözmek çağıranın işi (`world/varlik.ts` `varlik()`): paketli Electron file:// altında "/oyuncu-beden.glb" diskin köküne bakar ve
+ * yüklenemez ("Error status: 0", 2026-10-16 canlı log). */
+export const OYUNCU_BEDEN_DOSYASI = "oyuncu-beden.glb";
+
 /** Çıplak gövde her zaman görünür; rengi ten rengidir. */
 export const TEN_MESHI = "oyuncu_ten";
 
