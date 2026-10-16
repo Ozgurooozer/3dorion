@@ -4,6 +4,7 @@
 // dokunmuyor, hepsi `globalThis.kopru`yu (host köprüsü, yoksa geliştirme kipi) ve `localStorage`ı okur.
 // Karar `mind/hafizaGocu.ts` → `depoYukle`de; burada yalnızca G/Ç bağlanır (spec 07 K4, K7).
 "use strict";
+import { kabukKoprusu } from "./kabuk.ts";
 import { gozlemAnisiMi } from "../mind/hafiza.ts";
 import { eskiHafizayiTemizle, eskiSozleriTemizle } from "../mind/aniSuzgeci.ts";
 import { depoYukle } from "../mind/hafizaGocu.ts";
@@ -77,7 +78,7 @@ function sozleriAyikla(aniler: unknown[]): unknown[] {
   const r = eskiSozleriTemizle(aniler);
   if (!r.atilan && !r.indirilen && !r.normallesen) return aniler;
   try {
-    const k = (globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru;
+    const k = kabukKoprusu();
     if (k?.hafizaYedekYaz) { if (!k.hafizaYedekYaz(aniler)) throw new Error("dosya yedeği yazılamadı"); }
     else if (!localStorage.getItem(HAFIZA_SOZ_YEDEK)) localStorage.setItem(HAFIZA_SOZ_YEDEK, JSON.stringify(aniler));
   } catch (err) {
@@ -115,7 +116,7 @@ function eskiHafizayiOku(): unknown[] {
  * okuma hatası Orion'u durdurmaz ama görünür olur.
  */
 export function ogretimleriYukle(): OgretimSatiri[] {
-  const k = (globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru;
+  const k = kabukKoprusu();
   try { return (k?.ogretimOku?.() ?? []) as OgretimSatiri[]; }
   catch (err) { console.warn("[KAPI] ogretimler okunamadi, bos hafizayla basliyor:", err); return []; }
 }
@@ -126,7 +127,7 @@ export function ogretimleriYukle(): OgretimSatiri[] {
  * yoksa ya da okuyamazsa defter geçmişsiz başlar, bu oturumdan öğrenir.
  */
 export function gorevSatirlariniYukle(): KararSatiri[] {
-  const k = (globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru;
+  const k = kabukKoprusu();
   try { return (k?.kayitSatirlariOku?.(GOREV_SATIRLARI) ?? []) as KararSatiri[]; }
   catch (err) { console.warn("[BECERI] gorev satirlari okunamadi, gecmissiz basliyor:", err); return []; }
 }
@@ -137,7 +138,7 @@ export function gorevSatirlariniYukle(): KararSatiri[] {
  * kurulabilir bilgi tutar; kaybı yalnız "nerede olduğunu bir süre bilmemek"tir.
  */
 export function durumDeposuKur(): { oku(): unknown[]; yaz(k: unknown[]): void } {
-  const k = (globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru;
+  const k = kabukKoprusu();
   if (k?.durumOku && k.durumYaz) return { oku: () => k.durumOku!(), yaz: (x) => k.durumYaz!(x) };
   const ANAHTAR = "orion.durum.v1";
   return {
@@ -148,7 +149,7 @@ export function durumDeposuKur(): { oku(): unknown[]; yaz(k: unknown[]): void } 
 
 /** Sıkıştırma yedeği: yalnız host dosyası varken (yoksa boş → köprü sıkıştırmayı REDDEDER, yedeksiz silme yok). */
 export function hafizaYedegiKur(): { hafizaYedegi?: { yaz(aniler: unknown[]): void } } {
-  const k = (globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru;
+  const k = kabukKoprusu();
   const yaz = k?.hafizaYedekYaz?.bind(k);
   if (!yaz) return {};
   return { hafizaYedegi: { yaz: (aniler) => { if (!yaz(aniler)) throw new Error("yedek yazılamadı"); } } };
@@ -156,7 +157,7 @@ export function hafizaYedegiKur(): { hafizaYedegi?: { yaz(aniler: unknown[]): vo
 
 /** Elle unutma teli (duvardaki "Unut…"): host dosya yedeği yoksa HİÇ verilmez, düğme kurulmaz (yedeksiz silme yok). */
 export function hafizaUnutTeli(kopru: { hafizaKaydetHemen(): void }): { unut?: { yedekle(aniler: unknown[]): void; kaydet(): void } } {
-  const k = (globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru;
+  const k = kabukKoprusu();
   const yaz = k?.hafizaYedekYaz?.bind(k);
   if (!yaz) return {};
   // "unut" türü: ayrı önek ve 100 yedek sınırı; arka arkaya silmeler sıkıştırma yedeklerini (son 5) döndürüp atmasın.
@@ -164,7 +165,7 @@ export function hafizaUnutTeli(kopru: { hafizaKaydetHemen(): void }): { unut?: {
 }
 
 export function hafizaDeposuKur(): { oku(): unknown[]; yaz(aniler: unknown[]): void } {
-  const k = (globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru;
+  const k = kabukKoprusu();
   const dosya = k?.hafizaOku && k.hafizaYaz && k.hafizaYazSenkron ? k : null;
   let dosyayaYaz = false;
 

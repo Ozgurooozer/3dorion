@@ -8,10 +8,13 @@
 //   hesaplı  alan = işlev, gövdesi ad üzerinde iş yapıyor        (`() => kopru?.sayac() ?? {}`, `(n) => bedenAdimi(n)`)
 //   değer    alan = doğrudan değer ya da ifade                   (`{ oyuncu }`, `acilis: varlikSinyali.acilis`) ve fabrikaya sıralı verilen bağımsız değişken
 //
+// ABONELİK ayrı bir kanal: `olayKaynagi.dinle("olay", (x) => ...)` (`dinle` / `…Dinle` ailesi ve `runRenderLoop`). Kaynak olayı yayar, geri çağrı hangi üst düzey canlı
+// adlara dokunduğunu söyler: "saat tikleyince oyuncu, rig, onayKapisi çalışır". Fabrika kablosundan farklı olarak YÖN olay kaynağından geri çağrıya doğrudur.
+//
 // Sınır (dürüstçe): yalnız ÜST DÜZEY `const`/`let` adları kaynak sayılır. `beyniBagla` gibi işlevlerin YEREL sabitleri (secim, duvar, panoKaydi …)
 // haritada yoktur; blok yerelinin üst düzey adla çakışması ve alt-alt işlev gölgelemesi de ele alınmaz (yanlış alarm değil, eksik kablo olarak görünür).
 //
-// Kullanım: node --experimental-strip-types tools/kablo-haritasi.ts [dosya]   (varsayılan: uygulama/giris.ts)
+// Kullanım: node --experimental-strip-types tools/kablo-haritasi.ts [--abonelik] [dosya...]   (varsayılan: uygulama/giris.ts; --abonelik yalnız olay abonelikleri)
 "use strict";
 import fs from "node:fs";
 import path from "node:path";
@@ -27,13 +30,27 @@ const FONKSIYON = new Set(["ArrowFunctionExpression", "FunctionExpression"]);
 const anahtarAdi = (p: Dugum): string | null =>
   p.computed ? null : dugumMu(p.key) && p.key.type === "Identifier" ? String(p.key.name) : dugumMu(p.key) && typeof p.key.value === "string" ? p.key.value : null;
 
-/** Bir alt ağaçta anılan üst düzey adlar (üye adı, nesne anahtarı, tip konumu ve `gizli` yerelleri sayılmaz). */
+/** `yol.al("ad")` okuması → "servis:ad" (yol servisi; eskiden üst düzey `let` + `() => ad` getter'ıydı). Başka çağrı için null. */
+function servisAdi(d: unknown): string | null {
+  const c = parantezsiz(d);
+  const cagri = dugumMu(c) && c.type === "ChainExpression" ? parantezsiz(c.expression) : c;
+  if (!dugumMu(cagri) || cagri.type !== "CallExpression") return null;
+  const f = parantezsiz(cagri.callee);
+  if (!dugumMu(f) || f.type !== "MemberExpression" || f.computed) return null;
+  const nesne = parantezsiz(f.object);
+  const ilk = parantezsiz(liste(cagri.arguments)[0]);
+  const yolOkumasi = dugumMu(nesne) && nesne.type === "Identifier" && nesne.name === "yol" && dugumMu(f.property) && f.property.name === "al";
+  return yolOkumasi && dugumMu(ilk) && typeof ilk.value === "string" ? `servis:${ilk.value}` : null;
+}
+
+/** Bir alt ağaçta anılan üst düzey adlar ve yol servisleri (üye adı, nesne anahtarı, tip konumu ve `gizli` yerelleri sayılmaz). */
 function bagimliliklar(d: unknown, kaynaklar: ReadonlySet<string>, gizli: ReadonlySet<string>, cikti: Set<string>): void {
   if (!dugumMu(d)) return;
   if (d.type.startsWith("TS")) { if (TIP_SARMALAYICI.has(d.type)) bagimliliklar(d.expression, kaynaklar, gizli, cikti); return; }
   const ic = (x: unknown): void => bagimliliklar(x, kaynaklar, gizli, cikti);
   switch (d.type) {
     case "Identifier": { const ad = String(d.name); if (kaynaklar.has(ad) && !gizli.has(ad)) cikti.add(ad); return; }
+    case "CallExpression": { const sv = servisAdi(d); if (sv) { cikti.add(sv); return; } for (const c of cocuklar(d)) ic(c); return; }
     case "MemberExpression": ic(d.object); if (d.computed) ic(d.property); return;
     case "Property": case "PropertyDefinition": case "MethodDefinition": if (d.computed) ic(d.key); ic(d.value); return;
     case "VariableDeclarator": ic(d.init); return;
@@ -56,6 +73,8 @@ export function kabloCikar(kaynakMetni: string): Kablo[] {
       const gizli = new Set(liste(v.params).flatMap(desenAdlari));
       const govdeIfadesi = dugumMu(v.body) && v.body.type === "BlockStatement" ? tekDonus(v.body) : v.body;
       const saf = parantezsiz(govdeIfadesi);
+      const sv = servisAdi(saf);
+      if (liste(v.params).length === 0 && sv) { ekle({ tuketici, anahtar, kaynak: sv, tur: "tembel" }); return; }
       if (liste(v.params).length === 0 && dugumMu(saf) && saf.type === "Identifier" && kaynaklar.has(String(saf.name))) {
         ekle({ tuketici, anahtar, kaynak: String(saf.name), tur: "tembel" });
         return;
@@ -118,6 +137,60 @@ export function kaynakOzeti(kablolar: readonly Kablo[]): { kaynak: string; tuket
     .sort((a, b) => b.tuketiciler.length - a.tuketiciler.length || a.kaynak.localeCompare(b.kaynak));
 }
 
+export interface Abonelik { alici: string; metot: string; olay: string | null; dokunur: string[] }
+
+const ABONE = /^(dinle|[A-Za-zÇĞİÖŞÜçğıöşü]*Dinle|runRenderLoop)$/;
+
+/** `a.b().c` zincirinin köküne iner: olayı yayan nesnenin adı (bilinmiyorsa "?"). */
+function kokAd(d: unknown): string {
+  let x = parantezsiz(d);
+  while (dugumMu(x)) {
+    if (x.type === "Identifier") return String(x.name);
+    if (x.type === "ThisExpression") return "this";
+    if (x.type === "MemberExpression") x = x.object;
+    else if (x.type === "CallExpression") x = x.callee;
+    else if (x.type === "ChainExpression" || TIP_SARMALAYICI.has(x.type)) x = x.expression;
+    else break;
+  }
+  return "?";
+}
+
+/** Kaynaktaki olay abonelikleri; `dokunur` geri çağrının anan üst düzey adlarıdır (kendi parametreleri hariç). */
+export function abonelikCikar(kaynakMetni: string): Abonelik[] {
+  const kok: unknown = parseAst(kaynakMetni, { lang: "ts" });
+  const govde = dugumMu(kok) ? liste(kok.body) : [];
+  const kaynaklar = new Set(ustDuzey(govde).sozluk.keys());
+  const bulunan: Abonelik[] = [];
+  const yuru = (d: Dugum): void => {
+    if (d.type === "CallExpression") {
+      const c = parantezsiz(d.callee);
+      if (dugumMu(c) && c.type === "MemberExpression" && !c.computed && dugumMu(c.property) && ABONE.test(String(c.property.name))) {
+        const argumanlar = liste(d.arguments).map(parantezsiz).filter(dugumMu);
+        const isleyici = argumanlar.at(-1);   // olay adı varsa önde, işleyici SONDA
+        if (isleyici && (FONKSIYON.has(isleyici.type) || isleyici.type === "Identifier")) {
+          const dokunur = new Set<string>();
+          if (FONKSIYON.has(isleyici.type)) bagimliliklar(isleyici.body, kaynaklar, new Set(liste(isleyici.params).flatMap(desenAdlari)), dokunur);
+          else if (kaynaklar.has(String(isleyici.name))) dokunur.add(String(isleyici.name));
+          const ilk = argumanlar[0];
+          bulunan.push({ alici: kokAd(c.object), metot: String(c.property.name), olay: ilk && ilk.type === "Literal" && typeof ilk.value === "string" ? ilk.value : null, dokunur: [...dokunur].sort() });
+        }
+      }
+    }
+    for (const ch of cocuklar(d)) yuru(ch);
+  };
+  for (const st of govde) if (dugumMu(st)) yuru(st);
+  return bulunan;
+}
+
+export function abonelikTablosu(abonelikler: readonly Abonelik[]): string {
+  if (abonelikler.length === 0) return "ABONELİKLER: yok";
+  const satirlar = [`ABONELİKLER (${abonelikler.length}): olay kaynağı → geri çağrının dokunduğu üst düzey adlar`, ""];
+  const sirali = [...abonelikler].sort((a, b) => a.alici.localeCompare(b.alici) || a.metot.localeCompare(b.metot));
+  const kn = Math.max(...sirali.map((a) => `${a.alici}.${a.metot}${a.olay ? `("${a.olay}")` : ""}`.length));
+  for (const a of sirali) satirlar.push(`${`${a.alici}.${a.metot}${a.olay ? `("${a.olay}")` : ""}`.padEnd(kn)}  → ${a.dokunur.join(", ") || "(üst düzey ada dokunmuyor)"}`);
+  return satirlar.join("\n");
+}
+
 /** İnsan okuyacak tablo. */
 export function tabloYaz(kablolar: readonly Kablo[]): string {
   const ozet = kaynakOzeti(kablolar);
@@ -135,6 +208,18 @@ export function tabloYaz(kablolar: readonly Kablo[]): string {
 }
 
 if (import.meta.main) {
-  const dosya = process.argv[2] ?? path.join(import.meta.dirname, "..", "uygulama", "giris.ts");
-  console.log(tabloYaz(kabloCikar(fs.readFileSync(dosya, "utf8"))));
+  const bayrak = new Set(process.argv.slice(2).filter((a) => a.startsWith("--")));
+  const dosyalar = process.argv.slice(2).filter((a) => !a.startsWith("--"));
+  if (dosyalar.length === 0) dosyalar.push(path.join(import.meta.dirname, "..", "uygulama", "giris.ts"));
+  for (const dosya of dosyalar) {
+    const metin = fs.readFileSync(dosya, "utf8");
+    if (bayrak.has("--abonelik")) {
+      const a = abonelikCikar(metin);
+      if (dosyalar.length === 1) console.log(abonelikTablosu(a));
+      else if (a.length > 0) console.log(`\n## ${dosya}\n${abonelikTablosu(a)}`);   // çok dosyada yalnız aboneliği olanlar
+    } else {
+      if (dosyalar.length > 1) console.log(`\n## ${dosya}`);
+      console.log(tabloYaz(kabloCikar(metin)) + "\n\n" + abonelikTablosu(abonelikCikar(metin)));
+    }
+  }
 }

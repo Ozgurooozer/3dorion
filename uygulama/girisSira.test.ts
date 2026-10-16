@@ -96,7 +96,7 @@ test("giris.ts: bildirilmeden önce hemen okunan üst düzey ad yok (kuruluş s�
 
 test("giris.ts taraması boş geçmiyor: sonradan kurulanlar bildirilen adlar arasında", () => {
   const { bildirilenler } = siraTara(GIRIS);
-  for (const ad of ["kopru", "sohbet", "orionSesi", "varlikSinyali", "odak", "gozlem"]) assert.ok(bildirilenler.includes(ad), `${ad} bulunamadı`);
+  for (const ad of ["yol", "sohbet", "orionSesi", "varlikSinyali", "odak", "gozlem"]) assert.ok(bildirilenler.includes(ad), `${ad} bulunamadı`);
 });
 
 test("giris.ts'e sokulan ihlal yakalanır: 'sohbet' (689. satır dolayında bildirilir) erken okununca doğru satır bildirilir", () => {

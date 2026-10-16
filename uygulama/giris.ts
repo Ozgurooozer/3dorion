@@ -52,7 +52,6 @@ import { PANO_TELLERI, devrePanosuKur, olcumKilidiKancasiKur } from "./devrePano
 import { TAHTA, GUNLUK, SEMA } from "../world/level/olculer.ts";
 import type { Niyet } from "../protocol/niyet.ts";
 import { varlik } from "../world/varlik.ts";
-import { Kopru } from "../bridge/kopru.ts";
 import { modelSeciciKur } from "../world/arayuz/modelSecici.ts";
 import { stilPenceresiKur } from "../world/arayuz/stilPenceresi.ts";
 import type { Beyin } from "../bridge/beyin.ts";
@@ -92,7 +91,9 @@ import { gozPaneliKur } from "../world/arayuz/gozPaneli.ts";
 import { bedenPaneliKur } from "../world/arayuz/bedenPaneli.ts";
 import { bedenAyariniYukle, bedenAyariniKaydet } from "./bedenKaydi.ts";
 import { OYUNCU_BEDEN_DOSYASI, SLOTLAR, RENK_ADLARI, VARSAYILAN as BEDEN_VARSAYILANI, YOK as BEDEN_YOK, ayariDuzelt as bedenAyariniDuzelt } from "../world/player/bedenAyari.ts";
-import type { Kopru as KabukKoprusu } from "../host/kopru.ts";
+import { kabukKoprusu } from "./kabuk.ts";
+import { yolKur } from "./yol.ts";
+import type { Olaylar, Servisler } from "./yolTipleri.ts";
 import { OrtamGunlugu, ogrenilenDeposu } from "./ortamDeposu.ts";
 import { OrtamSozlugu } from "../mind/ortamSozlugu.ts";
 import { sessizlikIzinliMi } from "../bridge/ozerkYetenek.ts";
@@ -105,6 +106,8 @@ const tuval = document.getElementById("tuval") as HTMLCanvasElement;
 const hud = document.getElementById("hud") as HTMLDivElement;
 const altyazi = document.getElementById("altyazi") as HTMLDivElement;
 const altyaziGoster = altyaziKur(altyazi);
+// YOL: sonradan kurulan canlı nesneler (orion, kopru …) ve modüller arası olaylar tek tabloda (uygulama/yolTipleri.ts, uygulama/yol.ts).
+const yol = yolKur<Olaylar, Servisler>();
 
 // ── Motor + sahne ──────────────────────────────────────────────────────────
 const motor = new Engine(tuval, true, { preserveDrawingBuffer: false, stencil: true }, true);
@@ -134,8 +137,9 @@ const oyuncu = new Oyuncu(sahne, oda, rig, {
   // odak → fare kilidi). Her Esc BİR adım geri alır; tek tuşun kullanıcıyı
   // duvarın dibinden odanın ortasına atması istenmiyor.
   escOnce: () => {
-    if (panoKaydiGlobal?.bekleyenTeyit()) {
-      panoKaydiGlobal.teyitIptal();
+    const pano = yol.al("pano");
+    if (pano?.bekleyenTeyit()) {
+      pano.teyitIptal();
       altyaziGoster("teyit iptal edildi", 1800);
       return true;
     }
@@ -196,7 +200,7 @@ const sema: SemaPaneli = semaKur({
 sema.durumYaz("dünya kuruldu, beyin bekleniyor");
 
 // ── Orion: avatar asenkron yüklenir, sahne onsuz da ayakta kalır ───────────
-let orion: Avatar | null = null;
+// `orion` bir yol servisidir (yolTipleri.ts): avatar kurulunca kaydolur, tüketiciler `yol.al("orion")` ile okur.
 void avatarKur({
   sahne, saat,
   spawn: { x: 0.9, y: 0, z: -1.2 },
@@ -211,7 +215,7 @@ void avatarKur({
   // bak {tip:"oyuncu"} için: avatar oyuncunun yerini buradan öğrenir.
   oyuncuKonumu: () => oyuncu.oyuncuDurumu().konum,
 }).then((a) => {
-  orion = a;
+  yol.kaydet("orion", a);
   a.sonucDinle((s) => {
     console.log(`[NIYET] ${s.niyet_id} → ${s.durum}${s.not ? ` (${s.not})` : ""}`);
     if (s.durum === "hata") {
@@ -236,8 +240,8 @@ const gozModeli = (() => {
 
 /** Orion'un ŞU ANKİ yerinden ve bakışından kare (beden yoksa null). Çekimde kendi bedeni gizlenir. */
 async function orionKaresi(en = 896, boy = 504, yaw?: number) {
-  if (!orion) return null;
-  const o = orion;
+  const o = yol.al("orion");
+  if (!o) return null;
   const d = o.durum();
   return orionGozu.kare(d.konum, yaw ?? Math.atan2(d.bakis.x, d.bakis.z), yerler.orion, en, boy, (g) => o.gorunur(g && yerler.orion === yerler.ozyn));
 }
@@ -245,10 +249,10 @@ async function orionKaresi(en = 896, boy = 504, yaw?: number) {
 // Yer geçişi, kapı ve birleşik dünya (uygulama/yerGecisi.ts).
 const gecis = yerGecisiKur({
   yerler, sahne, oda, rig, oyuncu, gunluk, altyaziGoster,
-  orion: () => orion,
+  orion: () => yol.al("orion"),
   ortamBaglantisi: () => ortamBaglantisi,
   ortamGunlugu: () => ortamGunlugu,
-  stilPenceresi: () => stilPenceresi,
+  stilPenceresi: () => yol.al("stilPenceresi"),
 });
 
 // ── MANTIK: 20Hz ───────────────────────────────────────────────────────────
@@ -305,13 +309,13 @@ const SENARYO_KIPI = bedenSenaryosuMu();
 if (SENARYO_KIPI) console.log("[SENARYO] kendiliğinden davranışlar susturuldu (ajanda + beyin)");
 const refleks = new KuralRefleksi();
 // T6b "Orion görsün": kabuk işareti dinleyicisi + dünya olayları + terminal örnekleme. `refleks`ten SONRA kurulur.
-const terminalAlgisi = terminalAlgisiKur({ monitor, refleks, oyuncu, orion: () => orion, kopru: () => kopru });
+const terminalAlgisi = terminalAlgisiKur({ monitor, refleks, oyuncu, orion: () => yol.al("orion"), kopru: () => yol.al("kopru") });
 
 // Onay kapısı + paneli + Y/N/Esc bağı (uygulama/onayBaglantisi.ts).
-const { onayKapisi, onayPaneliCiz, onayKarari } = onayBaglantisiKur({ monitor, sema, gunluk, altyaziGoster, kopru: () => kopru });
+const { onayKapisi, onayPaneliCiz, onayKarari } = onayBaglantisiKur({ monitor, sema, gunluk, altyaziGoster, kopru: () => yol.al("kopru") });
 
 // Algı hizmetine dünya görüşü (uygulama/algiBaglantisi.ts).
-const algiSor = algiSorKur({ yerler, oyuncu, orion: () => orion });
+const algiSor = algiSorKur({ yerler, oyuncu, orion: () => yol.al("orion") });
 
 // Komut kipi (spec 26 F2): Orion'un terminal komutu onaysız çalışsın mı. `?komutkipi=otomatik|tam|onayli`; varsayılan otomatik.
 const komutKipiSecimi = komutKipiCoz(new URLSearchParams(location.search).get("komutkipi"));
@@ -345,18 +349,18 @@ ortamBaglantisi.dinle((k) => { if (k.ne === "sifirla") ortamSozlugu.sifirlandi()
  * ORION DOKTOR (uygulama/doktor.ts): "doktor" sözü ya da `doktor` niyeti kendi bedenini/dünyasını muayene eder (WebGL hatası, görünmez
  * mesh, kare hızı; `tam`: her ışık efekti çalışma anında). Token'sız; ileride Orion hatayı kendisi tespit ederken aynı yolu çağırır.
  */
-const doktor = doktorKur(doktorBaglamiBabylon(sahne, motor, ortamBaglantisi, () => kopru?.sayac() ?? {}));
+const doktor = doktorKur(doktorBaglamiBabylon(sahne, motor, ortamBaglantisi, () => yol.al("kopru")?.sayac() ?? {}));
 const { niyetiYurut, bedenAdimi, sonGorme } = niyetYurutucusuKur({
   ortam: ortamBaglantisi,
   doktor,
   // `sor gor` göz muayenesi yolundan (düz sorgu, iki yönlü sıra, panel): `gozlem` aşağıda kurulur, burada tembel sarmalayıcı.
   gozlem: { bak: () => gozlem.bak(), sonHata: () => gozlem.sonHata() },
-  beden: () => orion,
-  kopru: () => kopru,
+  beden: () => yol.al("orion"),
+  kopru: () => yol.al("kopru"),
   tahta, monitor, onayKapisi, sema, gunluk, algiSor,
   altyazi: (metin, ms) => altyaziGoster(metin, ms),
   onayPaneliCiz,
-  olguHatirla: (anahtar, deger) => kopru?.olguHatirla(anahtar, deger) ?? null,
+  olguHatirla: (anahtar, deger) => yol.al("kopru")?.olguHatirla(anahtar, deger) ?? null,
   komutKipi: () => komutKipiSecimi.kip,
   otomatikOnay: () => onayKarari(true, true),
   gordumBildir: () => { gordumGeldi = true; },
@@ -374,6 +378,8 @@ function davranisKayit(): ReturnType<DavranisDefteri["kayit"]> | null {
 
 saat.dinle((t, dt) => {
   mantikTik++;
+  const orion = yol.al("orion");   // tik içinde değişmez: kurulum senkron
+  const kopru = yol.al("kopru");
   oyuncu.guncelle(t, dt);
   rig.guncelle(dt);
 
@@ -448,6 +454,7 @@ motor.runRenderLoop(() => {
   // Avatarın görsel yumuşatması render karesinde. Bu çağrı EKSİKTİ: mantık
   // 20Hz'de koşuyordu ama mesh hiç güncellenmiyordu — Orion hareket ediyor
   // ama görünmüyordu.
+  const orion = yol.al("orion");
   if (orion) {
     orion.cizimGuncelle(Math.min(ms, 100) / 1000);
     if (orionSesi.konusuyorMu()) orion.agizAyarla(orionSesi.agizAcikligi());
@@ -457,11 +464,16 @@ motor.runRenderLoop(() => {
 
 addEventListener("resize", () => motor.resize());
 
+// Dünya yayıcısı (world/player/etkilesim.ts) → yol: world/ yolu görmez, çeviri kökte. Abone olan uygulama modülleri yalnız yolu bilir.
+EtkilesimOlaylari.dinle("basladi", (o) => yol.yayinla("etkilesim.basladi", o));
+EtkilesimOlaylari.dinle("bitti", (o) => yol.yayinla("etkilesim.bitti", o));
+EtkilesimOlaylari.dinle("ipucu", (i) => yol.yayinla("etkilesim.ipucu", i));
+
 // ── Etkileşim → altyazı/HUD ────────────────────────────────────────────────
 // T3 (monitör) ve T4 (köprü) aynı yayıcıya abone olacak. Burada yalnızca
 // kullanıcıya geri bildirim var; protokol mesajı ÜRETİLMEZ.
 
-EtkilesimOlaylari.dinle("basladi", (o) => {
+yol.dinle("etkilesim.basladi", (o) => {
   // Kapı (spec 24): "geç" anlık bir eylem — etkileşim açık kalmaz, geçiş başlar.
   if (o.eylem === "gec") {
     EtkilesimOlaylari.bitir();
@@ -478,7 +490,7 @@ EtkilesimOlaylari.dinle("basladi", (o) => {
   // `E` basmak etkileşim başlatıyor ama EKRANDA HİÇBİR ŞEY OLMUYORDU.
   void odak.yuzeyGecisi[o.capa]?.();
 });
-EtkilesimOlaylari.dinle("bitti", (o) => {
+yol.dinle("etkilesim.bitti", (o) => {
   if (o.eylem === "gec") return;
   altyaziGoster("etkileşim kapandı");
   console.log(`[etkilesim] bitti capa=${o.capa}`);
@@ -488,16 +500,10 @@ EtkilesimOlaylari.dinle("bitti", (o) => {
   else if (o.capa in odak.yuzeyGecisi) rig.odakBirak();
 });
 
-/** Senaryoların panoyu sorgulayabilmesi için. Üretimde yalnızca okunur. */
-let panoKaydiGlobal: Pano | null = null;
 /** `bakdene` icin: algi cevabi beyne ulasti mi (senaryo yedegi buna bakar). */
 let gordumGeldi = false;
-/**
- * Panoyu oku. Fonksiyon olması gerekli: TS, modül kapsamındaki `let`i
- * bildirim yerindeki `null`a daraltıyor ve senaryo bloğunda `?.` zinciri
- * `never` üretiyor. Açık dönüş tipi bu daraltmayı keser.
- */
-function panoyuAl(): Pano | null { return panoKaydiGlobal; }
+/** Senaryoların panoyu sorgulayabilmesi için (yol servisi `pano`). Üretimde yalnızca okunur. */
+function panoyuAl(): Pano | null { return yol.al("pano"); }
 
 const zoomKutu = document.getElementById("zoom") as HTMLElement;
 const zoomOran = document.getElementById("zoomOran") as HTMLElement;
@@ -506,7 +512,7 @@ const zoomOran = document.getElementById("zoomOran") as HTMLElement;
 // `?gromasiz` kapatır. Groma sunucusu kapalıysa ekran bunu yazar ve açılınca kendiliğinden bağlanır.
 const webMonitoru = webMonitoruKur({
   sahne, ekranMesh: oda.gromaEkran,
-  kopru: () => { const k = (globalThis as { kopru?: Partial<KabukKoprusu> }).kopru; return k?.webmonKomut && k.webmonDinle ? (k as WebKopru) : null; },
+  kopru: () => { const k = kabukKoprusu(); return k?.webmonKomut && k.webmonDinle ? (k as WebKopru) : null; },
 });
 if (!new URLSearchParams(location.search).has("gromasiz")) void webMonitoru.baslat();
 
@@ -517,16 +523,15 @@ const odak = odakKur({
 });
 
 // HUD + odak gözetimi (uygulama/hud.ts).
-hudKur({ hud, motor, saat, rig, oda, oyuncu, odak, yerler, mantikTik: () => mantikTik });
+hudKur({ hud, motor, saat, rig, oda, oyuncu, odak, yerler, yol, mantikTik: () => mantikTik });
 
 // Konsol/MCP deneme yüzeyi (window.dunya) + hızlı deneme tuşları (uygulama/dunyaKancasi.ts).
-dunyaKancasiKur({ sahne, rig, oyuncu, tahta, monitor, odak, yerler, gecis, altyaziGoster, niyetiYurut, orionKaresi, orion: () => orion });
+dunyaKancasiKur({ sahne, rig, oyuncu, tahta, monitor, odak, yerler, gecis, altyaziGoster, niyetiYurut, orionKaresi, orion: () => yol.al("orion") });
 
 // ── BEYİN: Orion kendi kararıyla dünyada eylemde bulunur ──────────────────
 // Köprü dünyayı da beyni de import etmez; ikisini burada bağlıyoruz.
 // Yerel model odadaki varlıktan sorumlu; ağır iş terminaldeki Claude'a gider.
 const girdi = new MetinGirdi();
-let kopru: Kopru | null = null;
 
 // Ozyn'in varlık sinyali: son girdi, son konuşma, girdi sayacı (uygulama/varlikSinyali.ts).
 const varlikSinyali = varlikSinyaliKur();
@@ -548,13 +553,8 @@ const HAFIZA_KIPI: "otomatik" | "yonlendirici" =
 /** Beyne her turda giden dünya durumu satırı (uygulama/dunyaDurumu.ts). */
 const dunyaDurumuMetni = dunyaDurumuKur({
   oyuncu, monitor, acilis: varlikSinyali.acilis, hafizaKipi: HAFIZA_KIPI,
-  orion: () => orion, sonKonusma: () => varlikSinyali.sonKonusma(),
+  orion: () => yol.al("orion"), sonKonusma: () => varlikSinyali.sonKonusma(),
 });
-
-/** Model seçici penceresi — beyin bağlanınca kurulur (seçiciye ihtiyaç duyar). */
-let modelSecici: ReturnType<typeof modelSeciciKur> | null = null;
-/** Ova stil deneme araçları (G): yalnız ova kuruluyken açılır; ofise dönünce kapanır. */
-let stilPenceresi: ReturnType<typeof stilPenceresiKur> | null = null;
 
 function beyniBagla(a: Avatar): void {
   // Takip: Ozyn uzaklaştıkça Orion yanına yürür (uygulama/takip.ts). Mevcut beden yolu (`bedenAdimi`).
@@ -570,7 +570,7 @@ function beyniBagla(a: Avatar): void {
   const secim = beyinSeciminiKur({
     sorgu: location.search, mcpBeyin, sema, gunluk,
     altyazi: (metin, ms) => altyaziGoster(metin, ms),
-    tazele: () => modelSecici?.tazele(),
+    tazele: () => yol.al("modelSecici")?.tazele(),
     kabuk: kabukApi,
     depo: {
       oku: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
@@ -583,26 +583,27 @@ function beyniBagla(a: Avatar): void {
   // ZİHİN DUVARI (uygulama/zihinDuvari.ts, spec 14 R4): karar kaydı → günlük, anlık benlik →
   // canlı satır, devre kesici → arıza, hafıza → bulut. Yalnız gözlem; kancalar köprüye gider.
   const duvar = zihinDuvariniBagla({
-    sema, gunluk, kopru: () => kopru, kesikSn, kisaAd,
+    sema, gunluk, kopru: () => yol.al("kopru"), kesikSn, kisaAd,
     inisiyatifDurumu: () => (INISIYATIF_ESKI ? null : butceSatiri(inisiyatif.butce.ozet(inisiyatifSimdi))),
   });
   varlikSinyali.kararKaydiBagla(duvar.kararKaydi);
   kopruBeyinAdi = () => secim.kopruBeyni.ad;
-  kopru = kopruKur({
+  const kopru = kopruKur({
     duvar, secim, sema, gunluk, oyuncu, yerler, refleks, takipci, inisiyatif, ortamBaglantisi, ortamSozlugu,
     niyetiYurut, davranisKayit, dunyaDurumu: dunyaDurumuMetni,
     hafizaKipi: HAFIZA_KIPI, inisiyatifEski: INISIYATIF_ESKI,
-    orion: () => orion, inisiyatifSimdi: () => inisiyatifSimdi,
+    orion: () => yol.al("orion"), inisiyatifSimdi: () => inisiyatifSimdi,
     beyinKapisi: () => gozlemSuruyor(),
   });
+  yol.kaydet("kopru", kopru);
 
   // DEVRE PANOSU kayıt defteri: uygulama/devrePanosu.ts (kurulum + şemaya takma).
   const panoKaydi = devrePanosuKur({ kopru, onayKapisi, ajanda, beyin, secici, kesikSn, sema });
-  panoKaydiGlobal = panoKaydi;
+  yol.kaydet("pano", panoKaydi);
 
   // ── MODEL SEÇİCİ (M) ─────────────────────────────────────────────────
   // Kaynağı uygulama/beyinSecimi.ts'te: seçim devre panosunun teyit yolundan geçer (tek yol).
-  modelSecici = modelSeciciKur({
+  const modelSecici = modelSeciciKur({
     kaynak: seciciKaynagiKur(secim, panoKaydi, kabukApi),
     kok: document.getElementById("modelSecici") as HTMLElement,
     rozet: document.getElementById("beyinRozet") as HTMLElement,
@@ -610,9 +611,10 @@ function beyniBagla(a: Avatar): void {
     tusSerbest: () => oyuncu.oyuncuDurumu().etkilesim === null
       && !sohbet.acikMi() && onayKapisi.durum !== "bekliyor",
   });
-  window.orionModel = modelKancasiKur(secim, () => modelSecici?.ac());
+  yol.kaydet("modelSecici", modelSecici);
+  window.orionModel = modelKancasiKur(secim, () => modelSecici.ac());
   // ── STİL PENCERESİ (G): ova'dayken stil/renk/ışık/shader/saat denemeleri; fare kilidi açılınca bırakılır ──
-  stilPenceresi = stilPenceresiKur({
+  const stilPenceresi = stilPenceresiKur({
     ortam: ortamBaglantisi,
     gunluk: ortamGunlugu,
     ogrenilen: {
@@ -625,6 +627,7 @@ function beyniBagla(a: Avatar): void {
     tusSerbest: () => oyuncu.oyuncuDurumu().etkilesim === null && !sohbet.acikMi() && onayKapisi.durum !== "bekliyor",
     acildi: () => rig.fareKilitBirak(),
   });
+  yol.kaydet("stilPenceresi", stilPenceresi);
   const birlesik = gecis.birlesik();
   if (birlesik) stilPenceresi.ova(birlesik.level);   // dünya pencereden ÖNCE hazırsa burada bağlanır (aksi hâlde dünya kurulunca)
   console.log(`[PANO] ${panoKaydi.moduller().length} modül, ` +
@@ -707,13 +710,13 @@ bedenPaneliKur({
 const gozlem = gozlemKur({
   kare: async () => { const k = await orionKaresi(); return k ? { png: k.png, en: 896, boy: 504 } : null; },
   model: gozModeli,
-  beyinMesgul: () => kopru?.dusunuyorMu ?? false,
+  beyinMesgul: () => yol.al("kopru")?.dusunuyorMu ?? false,
   panel: gozPaneli,
 });
 gozlemSuruyor = () => gozlem.suruyor();
 
 // ── Duman testi kanıtı (uygulama/dumanTesti.ts) ────────────────────────────
-dumanTestiKur({ motor, saat, rig, oda, oyuncu, monitor, yerler, orion: () => orion, kopru: () => kopru });
+dumanTestiKur({ motor, saat, rig, oda, oyuncu, monitor, yerler, orion: () => yol.al("orion"), kopru: () => yol.al("kopru") });
 
 // ---- Orion'un sesi (uygulama/orionSesi.ts) --------------------------------
 const orionSesi = orionSesiKur();
@@ -727,8 +730,8 @@ const orionSesi = orionSesiKur();
 const senaryoBaglami: SenaryoBaglami = {
   motor, sahne, saat, rig, oda, oyuncu, monitor, adminTerminal, tahta, gunluk, sema, zoomKutu, zoomOran,
   refleks, onayKapisi,
-  get orion() { return orion; },
-  get kopru() { return kopru; },
+  get orion() { return yol.al("orion"); },
+  get kopru() { return yol.al("kopru"); },
   get gordumGeldi() { return gordumGeldi; },
   get zoomPayi() { return odak.zoomPayi(); },
   yerler: () => ({ ozyn: yerler.ozyn, orion: yerler.orion }),

@@ -8,23 +8,25 @@ import type { Engine } from "@babylonjs/core/Engines/engine";
 import type { KameraRig } from "../world/engine/kamera.ts";
 import type { OdaKurulumu } from "../world/level/oda.ts";
 import type { Oyuncu } from "../world/player/oyuncu.ts";
-import { EtkilesimOlaylari } from "../world/player/etkilesim.ts";
 import type { Odak } from "./odak.ts";
 import type { Yerler } from "./yerGecisi.ts";
+import type { KokYolu } from "./yolTipleri.ts";
 
 export interface HudGirdisi {
   hud: HTMLElement;
   motor: Engine; saat: Saat; rig: KameraRig; oda: OdaKurulumu; oyuncu: Oyuncu; odak: Odak; yerler: Yerler;
+  /** Etkileşim ipucu yoldan gelir (`etkilesim.ipucu`). */
+  yol: KokYolu;
   /** 20Hz mantık tik sayacı (giris.ts'te artar): çağrı anında okunur. */
   mantikTik: () => number;
 }
 
 export function hudKur(g: HudGirdisi): void {
   const { hud, motor, saat, rig, oda, oyuncu, yerler } = g;
-  // Etkileşim → HUD: T3 (monitör) ve T4 (köprü) aynı yayıcıya abone olacak. Burada yalnızca
+  // Etkileşim → HUD: T3 (monitör) ve T4 (köprü) aynı konuya abone olacak. Burada yalnızca
   // kullanıcıya geri bildirim var; protokol mesajı ÜRETİLMEZ.
   let ipucuMetin = "";
-  EtkilesimOlaylari.dinle("ipucu", (i) => { ipucuMetin = i?.metin ?? ""; });
+  g.yol.dinle("etkilesim.ipucu", (i) => { ipucuMetin = i?.metin ?? ""; });
 
   setInterval(() => {
     // Odaktan çıkışın birden çok yolu var (Esc, panel değişimi, terminale

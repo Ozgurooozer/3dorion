@@ -15,6 +15,7 @@ import { bulunduguCapa } from "../world/level/capalar.ts";
 import { konumluYerOrtasi } from "../world/yer/birlesikYer.ts";
 import { ikiCumleyeKisalt } from "../voice/kisalt.ts";
 import type { OgretimSatiri } from "../mind/kararKaydi.ts";
+import { kabukKoprusu } from "./kabuk.ts";
 import type { Takipci } from "./takip.ts";
 import type { Yerler } from "./yerGecisi.ts";
 
@@ -65,7 +66,7 @@ export function arizaGostergesiKur(g: { kopru: Kopru; altyaziGoster: Altyazi; gu
   // sistem bildirimi olarak altyazıya düşer, TTS'e gitmez.
   let sonAriza = 0;
   // Öğretim dosyasına düşen yeni ders (tools/ogret.ts) yeniden başlatmadan uygulanır.
-  (globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru?.ogretimDinle?.((s) => {
+  kabukKoprusu()?.ogretimDinle?.((s) => {
     if (kopru?.ogretimUygula(s as OgretimSatiri)) console.log("[KAPI] yeni ogretim uygulandi");
   });
   kopru.arizaDinle((m) => {

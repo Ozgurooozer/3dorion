@@ -3,14 +3,15 @@
 // Eskiden uygulama/giris.ts'teydi (mimari düzenleme B1–B2). Tek örnek: seçicideki "mcp" girdisi ve main'deki HTTP
 // ucunun rölesi AYNI nesneyle konuşur.
 "use strict";
+import { kabukKoprusu } from "./kabuk.ts";
 import { McpBeyin } from "../bridge/mcpBeyin.ts";
 
 // Beyin seçili değilken ajanın `dunya_bekle`si yalnızca
 // "sessiz" döner ve araç çağrıları reddedilir (açık tur yok) — uç etkisizdir.
 export function mcpBaglantisiKur(): McpBeyin {
   const mcpBeyin = new McpBeyin();
-  (globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru?.mcpDinle?.(async ({ id, yontem, param }) => {
-    const k = (globalThis as { kopru?: Partial<import("../host/kopru.ts").Kopru> }).kopru!;
+  kabukKoprusu()?.mcpDinle?.(async ({ id, yontem, param }) => {
+    const k = kabukKoprusu()!;
     // Yeni ajan oturumu (MCP initialize): talimat yeniden gitsin. Cevap yok (id 0).
     if (yontem === "oturum") { mcpBeyin.oturumBasladi(); return; }
     // Ajanın bağlantısı koptu: YALNIZCA o isteğin beklemesini iptal et.
