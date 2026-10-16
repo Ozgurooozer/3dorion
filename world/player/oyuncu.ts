@@ -180,11 +180,12 @@ export class Oyuncu implements KameraHedefi {
     try {
       const b = await oyuncuBedeniYukle(this._sahne, GOVDE_YUKSEKLIK, yol);
       this._rig.isinDisiTut(...b.meshler);
+      // Önce ayar uygulanır, SONRA beden devreye girer: ayarla fırlatırsa kapsül görünür kalır (eskiden kapsül gizlenip beden yarım kalıyordu).
+      b.ayarla(this._bedenAyari);
       this._beden?.yokEt();
       this._beden = b;
-      b.ayarla(this._bedenAyari);
       this._govdeyiYerlestir();
-      console.log(`[oyuncu] giysili beden yüklendi (${b.meshler.length} mesh)`);
+      console.log(`[oyuncu] giysili beden yüklendi: ${b.tani()}`);
       return true;
     } catch (err) {
       console.warn(`[oyuncu] giysili beden yüklenemedi, kapsül kalıyor: ${err instanceof Error ? err.message : String(err)}`);

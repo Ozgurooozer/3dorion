@@ -27,6 +27,8 @@ export interface OyuncuBedeni {
   yerlestir(x: number, y: number, z: number, yaw: number): void;
   /** Yatay hız (m/s). 0 → boşta, >0 → yürüme klibi (hız oranında). */
   hareket(hiz: number): void;
+  /** Tek satır tanı: kaç mesh açık, hangi adlar, ölçek, kök konumu, sınır kutusu (görünmezlik şikâyetinde log'dan okunur). */
+  tani(): string;
   /** Giysi seçimini ve renkleri uygula (modüler beden: `bedenAyari.ts`). Anında; yeniden yükleme yok. */
   ayarla(a: BedenAyari): void;
   gorunur(g: boolean): void;
@@ -99,6 +101,17 @@ export async function oyuncuBedeniYukle(sahne: Scene, boy: number, yol = OYUNCU_
 
   return {
     ayarla,
+    tani() {
+      const acik = sonuc.meshes.filter((m) => m.isEnabled() && m.getTotalVertices() > 0).map((m) => m.name);
+      let alt = Infinity, ust = -Infinity;
+      for (const m of sonuc.meshes) {
+        if (!m.isEnabled() || m.getTotalVertices() === 0) continue;
+        m.computeWorldMatrix(true);
+        const k = m.getBoundingInfo().boundingBox;
+        alt = Math.min(alt, k.minimumWorld.y); ust = Math.max(ust, k.maximumWorld.y);
+      }
+      return `${sonuc.meshes.length} mesh, açık=[${acik.join(",")}], ölçek=${ayar.scaling.x.toFixed(3)}, kök=(${kok.position.x.toFixed(2)},${kok.position.y.toFixed(2)},${kok.position.z.toFixed(2)}), y=[${alt.toFixed(2)},${ust.toFixed(2)}]`;
+    },
     kok,
     meshler: sonuc.meshes,
     yerlestir(x, y, z, yaw) { kok.position.set(x, y, z); kok.rotation.y = yaw; },
