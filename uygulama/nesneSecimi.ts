@@ -24,6 +24,12 @@ export interface NesneSecimiAyari {
   secim: SecimDurumu;
   /** Sağ tık: seçilen nesnenin menüsünü ekranın (x, y) noktasında aç. */
   menuAc: (n: Nesne, x: number, y: number) => void;
+  /** Işının Orion'un gövdesine isabet mesafesi (m); vurmadıysa null. Verilmezse Orion menüsü yok. */
+  orionuVur?: (kaynak: Nokta3, yon: Nokta3) => number | null;
+  /** Sağ tık Orion'a: Orion'un kendi menüsünü aç. */
+  orionMenusu?: (x: number, y: number) => void;
+  /** Sağ tık boş zemine: ışının zemini kestiği nokta (yoksa null) ile zemin menüsünü aç; zemin bulunamazsa (gökyüzü) menü açılmaz. */
+  zeminMenusu?: (kaynak: Nokta3, yon: Nokta3, x: number, y: number) => void;
   altyazi: (metin: string, ms?: number) => void;
 }
 
@@ -43,10 +49,13 @@ export function nesneSecimiKur(a: NesneSecimiAyari): { sok(): void } {
   const sagTik = (e: FareOlayi): void => {
     if (!etkin()) return;
     e.preventDefault();   // tarayıcının kendi bağlam menüsü açılmasın
-    const n = vurulan(e);
-    if (!n) return;
-    a.secim.sec(n);
-    a.menuAc(n, e.clientX, e.clientY);
+    // Üç olası hedef (nesne, Orion, boş zemin): en YAKIN isabet kazanır; Orion bir nesnenin önünde/üstünde (bankta otururken) durabilir, eşitlikte Orion.
+    const i = a.isin(e.offsetX, e.offsetY);
+    const nesne = nesneSec(i.kaynak, i.yon, a.nesneler());
+    const orion = a.orionuVur?.(i.kaynak, i.yon) ?? null;
+    if (orion !== null && (!nesne || orion <= nesne.mesafe)) { a.orionMenusu?.(e.clientX, e.clientY); return; }
+    if (nesne) { a.secim.sec(nesne.nesne); a.menuAc(nesne.nesne, e.clientX, e.clientY); return; }
+    a.zeminMenusu?.(i.kaynak, i.yon, e.clientX, e.clientY);
   };
 
   a.tuval.addEventListener("click", solTik);

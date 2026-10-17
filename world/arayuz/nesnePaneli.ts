@@ -13,6 +13,8 @@ export interface PanelNesne {
   kutu: { x: number; y: number; z: number; g: number; yuk: number; d: number };
   /** Orion'a not (level nesnesi anlamından). */
   not?: string;
+  /** Verilirse standart (kimlik/tür/çapa/konum/boyut) satırlarının YERİNE bunlar gösterilir (zemin ve Orion menüsü: nesne olmayan hedefler). */
+  ozellikler?: [string, string][];
 }
 
 export interface PanelEylem {
@@ -36,21 +38,21 @@ const m = (v: number): string => v.toFixed(2).replace(/\.?0+$/, "");
 
 /** Panelin ne göstereceği (SAF): başlık, özellik satırları ve "Orion yapsın" / "Ben yapayım" grupları (boş grup yok). */
 export function panelModeli(n: PanelNesne, eylemler: readonly PanelEylem[]): PanelModeli {
-  const ozellikler: [string, string][] = [
+  const ozellikler: [string, string][] = n.ozellikler ? [...n.ozellikler] : [
     ["Kimlik", n.id],
     ["Tür", n.tur],
     ["Çapa", n.capa ?? "—"],
     ["Konum", `${m(n.kutu.x)}, ${m(n.kutu.z)} (yükseklik ${m(n.kutu.y)})`],
     ["Boyut", `${m(n.kutu.g)} × ${m(n.kutu.d)} × ${m(n.kutu.yuk)} m`],
   ];
-  if (n.not) ozellikler.push(["Orion'a not", n.not]);
+  if (n.not && !n.ozellikler) ozellikler.push(["Orion'a not", n.not]);
   const grup = (baslik: string, kim: PanelEylem["kim"]): PanelGrubu => ({
     baslik,
     dugmeler: eylemler.filter((e) => e.kim === kim).map((e) => ({ kimlik: e.kimlik, ad: e.ad, uygun: e.uygun, neden: e.neden ?? null })),
   });
   return {
     baslik: n.ad,
-    altbaslik: `${n.tur}${n.capa ? ` · çapa: ${n.capa}` : ""}`,
+    altbaslik: n.capa ? `${n.tur} · çapa: ${n.capa}` : n.tur,
     ozellikler,
     gruplar: [grup("Orion yapsın", "orion"), grup("Ben yapayım", "ozyn")].filter((g) => g.dugmeler.length > 0),
   };

@@ -98,3 +98,53 @@ test("sok() dinleyicileri çözer", () => {
   assert.equal(secim.oku(), null);
   assert.deepEqual([...kayit.values()].map((k) => k.size), [0, 0]);
 });
+
+// ── Üç hedefli sağ tık: nesne, Orion, boş zemin (en yakın isabet kazanır) ──
+function uclu(orionMesafe: number | null) {
+  const kayit = new Map<string, Set<(e: FareOlayi) => void>>();
+  const tuval = {
+    addEventListener: (t: string, f: (e: FareOlayi) => void) => { (kayit.get(t) ?? kayit.set(t, new Set()).get(t)!).add(f); },
+    removeEventListener: (t: string, f: (e: FareOlayi) => void) => { kayit.get(t)?.delete(f); },
+  };
+  const gelen = { menuler: [] as string[] };
+  const nesneler = [BANK, RAF];
+  nesneSecimiKur({
+    tuval, imlec: { acik: true }, odakta: () => false, nesneler: () => nesneler,
+    isin: (x) => ({ kaynak: { x, y: 0, z: 0 }, yon: { x: 0, y: 0, z: 1 } }),
+    secim: secimDurumuKur({ nesneler: () => nesneler, degisti: () => {} }),
+    menuAc: (n) => { gelen.menuler.push(`nesne:${n.id}`); },
+    orionuVur: () => orionMesafe,
+    orionMenusu: () => { gelen.menuler.push("orion"); },
+    zeminMenusu: () => { gelen.menuler.push("zemin"); },
+    altyazi: () => {},
+  });
+  const sag = (x: number) => { for (const f of kayit.get("contextmenu") ?? []) f({ offsetX: x, offsetY: 0, clientX: x, clientY: 0, preventDefault: () => {} }); };
+  return { sag, gelen };
+}
+
+test("sağ tık boşluğa: ZEMİN menüsü açılır (nesne menüsü değil)", () => {
+  const { sag, gelen } = uclu(null);
+  sag(-30);
+  assert.deepEqual(gelen.menuler, ["zemin"]);
+});
+
+test("sağ tık Orion'a: ORION menüsü açılır", () => {
+  const { sag, gelen } = uclu(3);
+  sag(-30);
+  assert.deepEqual(gelen.menuler, ["orion"]);
+});
+
+test("sağ tık nesneye: nesne menüsü; Orion nesnenin ARKASINDAysa nesne kazanır, ÖNÜNDEyse Orion", () => {
+  const arkada = uclu(20);   // bank z=5'te (yüzü ~4,5), Orion 20 m: bank önde
+  arkada.sag(0);
+  assert.deepEqual(arkada.gelen.menuler, ["nesne:bank"]);
+  const onde = uclu(2);      // Orion bankın önünde
+  onde.sag(0);
+  assert.deepEqual(onde.gelen.menuler, ["orion"]);
+});
+
+test("orion/zemin kancaları verilmezse boşluğa sağ tık sessiz kalır (eski davranış)", () => {
+  const { sag, durum } = duzenek();
+  sag(-30);
+  assert.deepEqual(durum.menu, []);
+});

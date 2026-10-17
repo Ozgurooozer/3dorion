@@ -6,6 +6,7 @@ Açık işler tek yerde: `ACIK-ISLER.md`. Fikirler: `FIKIR-HAVUZU.md`. Son günc
 ## Spec'ler (`specs/`)
 | # | konu | durum | ne zaman oku |
 |---|---|---|---|
+| 29 | Bağlam menüsü: Windows/Unreal tarzı kademeli sağ tık; yollu öğeler + katkı kuralları (hedef türünden bağımsız), gri+neden, taşma "Diğer ▸", alt menü sağa/sığmazsa sola; zemin/Orion/nesne hedefleri | çekirdek + görünüm + 3 hedef YAZILDI (testli, canlıda GÖRÜLMEDİ) | sağ tık menüsüne, yeni hedef (terminal/tahta/duvar) menüsüne dokunmadan önce |
 | 28 | Nesne seçimi ve etkileşim menüsü: Tab imleç kipi, sol tık seç, sağ tık panel (özellikler + yapılabilecekler), "buraya otur" deiksisi, menüden Orion'a eylem yaptırma; Orion'un oturması çapanın `oturma` geometrisinden (sandalye, bank) | Faz 1–4 YAZILDI (testli, canlıda GÖRÜLMEDİ) · Faz 5 (not/ayar) açık | nesne seçimi, imleç kipi, etkileşim menüsü, "buraya/buna" sözleri ya da Orion'un oturmasına dokunmadan önce |
 | 01 | Sanal alan: oda, tik, protokol, MVP K1–K12, model seçim kayıtları | bitti | model/parametre değiştirmeden önce (ölçümler burada) |
 | 02 | İki loblu beyin: refleks (kural) / düşünce (LLM) | uygulandı | refleks–düşünce sınırına dokunurken |

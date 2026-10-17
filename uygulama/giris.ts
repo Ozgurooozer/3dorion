@@ -105,10 +105,15 @@ import type { DavranisDefteri } from "../world/davranisDenemesi.ts";
 import { imlecKipiKur } from "../world/player/imlecKipi.ts";
 import { fareIsini } from "../world/engine/fareIsini.ts";
 import { secimVurgusuKur } from "../world/level/secimVurgusu.ts";
-import { nesnePaneliKur } from "../world/arayuz/nesnePaneli.ts";
+import { nesnePaneliKur, type PanelNesne } from "../world/arayuz/nesnePaneli.ts";
+import { baglamMenusuKur } from "../world/arayuz/menu/baglamMenusu.ts";
+import { menuKur } from "../world/arayuz/menu/menuModeli.ts";
+import { MENU_KATKILARI, type HedefMenuBaglami, type MenuEylemi, type MenuHedefi } from "./menuKatkilari.ts";
 import { nesneEylemleri, type NesneEylemi } from "../world/yer/nesneEylemleri.ts";
 import { secimDurumuKur } from "./secimDurumu.ts";
 import { nesneSecimiKur } from "./nesneSecimi.ts";
+import { orionuVur, zeminNoktasi } from "../world/player/hedefSecici.ts";
+import { zeminOzellikleri, orionOzellikleri } from "../world/yer/hedefEylemleri.ts";
 import { nesneEtkilesimiKur, seciliSozOlustur } from "./nesneEtkilesimi.ts";
 
 const tuval = document.getElementById("tuval") as HTMLCanvasElement;
@@ -141,7 +146,7 @@ const imlec = imlecKipiKur({
   kilidiBirak: () => rig.fareKilitBirak(),
   kilidiIste: () => rig.fareKilitIste(),
   engelli: () => rig.odakta || sohbet.acikMi() || onayKapisi.durum === "bekliyor",
-  degisti: (acik) => { if (!acik) nesnePaneli.kapat(); },
+  degisti: (acik) => { if (!acik) { nesnePaneli.kapat(); baglamMenusu.kapat(); } },
 });
 // Doğum yeri köşeden İÇERİ: (2.6, 2.6) kapı köşesiydi ve omuz kamerası iki
 // duvara birden sıkışıp oyuncunun gövdesine yapışıyordu (ölçüm: 1.44 m).
@@ -546,7 +551,6 @@ const secim = secimDurumuKur({ nesneler: () => yerler.ozyn.nesneler, degisti: (n
 const secimVurgusu = secimVurgusuKur(sahne);
 yol.dinle("nesne.secildi", (n) => secimVurgusu.goster(n?.kutu ?? null));
 const nesneEtkilesimi = nesneEtkilesimiKur({ niyetiYurut, oyuncuEtkilesim: (c, e) => oyuncu.etkilesimBaslat(c, e), altyazi: altyaziGoster });
-let menudekiEylemler: readonly NesneEylemi[] = [];
 /** Seçili nesne ve ORION'un onunla yapabildikleri: söz sözlüğü ("buraya otur") ve beynin bağlamı AYNI menü verisinden beslenir. */
 function seciliOrionEylemleri() {
   const n = secim.oku();
@@ -559,18 +563,50 @@ const seciliSoz = (): SeciliNesne | null => {
   return b ? seciliSozOlustur(b.n.ad, b.eylemler) : null;
 };
 const seciliBeyne = () => { const b = seciliOrionEylemleri(); return b ? seciliDurumu(b.n, b.eylemler) : null; };
+// Bilgi paneli ("Özellikler…"): eylemler artık bağlam menüsünde (spec 29), panel yalnız özellik gösterir.
 const nesnePaneli = nesnePaneliKur({
-  calistir: (kimlik) => { const e = menudekiEylemler.find((x) => x.kimlik === kimlik); if (e) nesneEtkilesimi.calistir(e); },
+  calistir: () => {},
   secimiKaldir: () => { secim.sec(null); altyaziGoster("seçim kaldırıldı", 1500); },
 });
+// BAĞLAM MENÜSÜ (spec 29): Windows/Unreal gibi kademeli sağ tık menüsü; katkılar `uygulama/menuKatkilari.ts`, çekirdek `world/arayuz/menu/`.
+// Yaprak yükü tek eylem yolundan çalışır: hedef eylemi → `nesneEtkilesimi.calistir` (niyetiYurut), "Özellikler…" → bilgi paneli.
+let sonOzellikler: (() => void) | null = null;
+const baglamMenusu = baglamMenusuKur<MenuEylemi>({
+  calistir: (y) => {
+    if (y.tur === "eylem") nesneEtkilesimi.calistir(y.eylem);
+    else if (y.tur === "ozellikler") sonOzellikler?.();
+    else { secim.sec(null); altyaziGoster("seçim kaldırıldı", 1500); }
+  },
+});
+/** Hedefin menüsünü aç; "Özellikler…" aynı noktada `panel`i gösterir. */
+function hedefMenusuAc(hedef: MenuHedefi, panel: PanelNesne, x: number, y: number): void {
+  nesnePaneli.kapat();
+  sonOzellikler = () => nesnePaneli.ac(panel, [], x, y);
+  baglamMenusu.ac(menuKur<HedefMenuBaglami, MenuEylemi>({ hedef }, MENU_KATKILARI), x, y);
+}
+const bosKutu = { x: 0, y: 0, z: 0, g: 0, yuk: 0, d: 0 };
 nesneSecimiKur({
   tuval, imlec, odakta: () => rig.odakta, nesneler: () => yerler.ozyn.nesneler,
+  orionuVur: (k, y) => { const d = yol.al("orion")?.durum(); return d ? orionuVur(k, y, d.konum, d.oturuyor_mu) : null; },
+  orionMenusu: (x, y) => {
+    const d = yol.al("orion")?.durum();
+    if (!d) return;
+    const b = { oturuyor: d.oturuyor_mu, poz: d.poz, mesgul: d.mesgul, elinde: d.elinde, konum: d.konum };
+    secim.sec(null);
+    hedefMenusuAc({ tur: "orion", orion: b }, { id: "orion", ad: "Orion", tur: "orion", capa: null, kutu: bosKutu, ozellikler: orionOzellikleri(b) }, x, y);
+  },
+  zeminMenusu: (k, yon, x, y) => {
+    const p = zeminNoktasi(k, yon, (px, pz) => yerler.ozyn.yukseklik(px, pz));
+    if (!p) return;
+    secim.sec(null);
+    hedefMenusuAc({ tur: "zemin", nokta: p, alan: yerler.ozyn }, { id: "zemin", ad: "Zemin", tur: "zemin noktası", capa: null, kutu: bosKutu, ozellikler: zeminOzellikleri(p) }, x, y);
+  },
   isin: (x, y) => fareIsini(sahne, rig.kamera, x, y),
   secim,
   menuAc: (n, x, y) => {
     const k = oyuncu.oyuncuDurumu().konum;
-    menudekiEylemler = nesneEylemleri(n, { capalar: yerler.ozyn.capalar, oyuncu: { x: k.x, z: k.z } });
-    nesnePaneli.ac(n, menudekiEylemler, x, y);
+    const eylemler = nesneEylemleri(n, { capalar: yerler.ozyn.capalar, oyuncu: { x: k.x, z: k.z } });
+    hedefMenusuAc({ tur: "nesne", ad: n.ad, eylemler }, n, x, y);
   },
   altyazi: altyaziGoster,
 });
