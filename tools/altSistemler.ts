@@ -61,6 +61,8 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
       // Yer gerçeklemeleri: hangi yerin kurulacağına kompozisyon kökü (uygulama/yerGecisi.ts) karar verir;
       // avatar da ofis Yer'ini varsayılan olarak alır (giris bölme B1).
       "world/yer/odaYeri.ts", "world/yer/levelSahnesi.ts", "world/yer/levelYeri.ts",
+      // Level'dan taze Yer ölçümü: asset yerleştirme (uygulama/yerlestirmeBaglantisi, spec 30) her değişiklikte Orion'un yerini yeniden ölçer.
+      "world/yer/levelOlcumu.ts",
       // Saf algı yardımcıları: görüş ışını ve nesne görünürlüğü. Algı hizmetinin dünya bağı (uygulama/algiBaglantisi.ts)
       // ve avatarın göz kodu kullanır (giris bölme B1).
       "world/player/isinTarama.ts", "world/player/gorunurluk.ts",
@@ -119,7 +121,13 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
     // Paylaşılan panel kiti (gorunum, ortak) editörün arayuz/'unda kalır ama kamudur: oyun içi stil
     // penceresi (Yüzeyler) aynı paneli kullanır (A4, 2026-10-14; taşımak 2 import satırına değmez).
     kamu: ["world/level/editor/editor.ts", "world/level/editor/arayuz/editorArayuzu.ts",
-      "world/level/editor/arayuz/gorunum.ts", "world/level/editor/arayuz/ortak.ts"],
+      "world/level/editor/arayuz/gorunum.ts", "world/level/editor/arayuz/ortak.ts",
+      // Oyun içi düzenleme (spec 30, uygulama/duzenlemeKipi.ts): editörün sahne parçaları kopyalanmaz, aynen kullanılır — Çağır hayaleti, yüzey ışını,
+      // taşı/döndür/ölçekle gizmosu ve yaslama kuralı. Editörün kamerası, tuş haritası ve araç çubuğu Orion'a GİRMEZ.
+      "world/level/editor/sahne/yerlestirme.ts", "world/level/editor/sahne/yuzey.ts", "world/level/editor/sahne/gizmo.ts",
+      "world/level/editor/cekirdek/yaslama.ts",
+      // Oyun içi zemin kalemi (Yapı çubuğu · Zemin sekmesi, uygulama/zeminKalemi.ts): editörün arazi komutu (damga + nesneleri oturt) ve fırça halkası aynen kullanılır.
+      "world/level/editor/cekirdek/araziKomutu.ts", "world/level/editor/sahne/firca.ts"],
     izinli: ["Level", "Protokol"], urun: true,
   },
   {
@@ -140,7 +148,9 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
       "world/surfaces/terminal/ciktiFarki.ts", "world/surfaces/terminal/ciktiToplayici.ts",
       // Model seçicinin saf çekirdeği (uygulama/beyinSecimi.ts) ve zihin duvarı şema çekirdeği (zihindene) — giris bölme B2.
       "world/arayuz/modelSeciciCekirdek.ts", "world/surfaces/duvar/semaCekirdek.ts",
-      "world/arayuz/modelSecici.ts", "world/arayuz/stilPenceresi.ts"],
+      "world/arayuz/modelSecici.ts", "world/arayuz/stilPenceresi.ts",
+      // Alt çubuk (Yapı çubuğu): sekmeli, açılır-kapanır alt panel çerçevesi; sekme içerikleri uygulama katmanında (uygulama/yapi/).
+      "world/arayuz/altCubuk.ts", "world/arayuz/altCubukModeli.ts"],
     izinli: ["Protokol", "Level", "Editör"], tipIzinli: ["Kabuk"], urun: true,
   },
   {

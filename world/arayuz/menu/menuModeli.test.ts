@@ -137,3 +137,19 @@ test("taşma sınırı: azami+1 öğe TAM bir fazlalıkla taşar (Diğer'de 2 ö
   assert.deepEqual(adlar(m), ["O0", "O1", "O2", "Diğer"]);
   assert.deepEqual(adlar(alt(m[3])), ["O3", "O4"]);
 });
+
+test("sınırsız kök: altındaki uzun listeler (her derinlikte) 'Diğer'e BÖLÜNMEZ; öteki kökler bölünür", () => {
+  const uzun = (kok: string) => Array.from({ length: 12 }, (_, i) => oge([kok, "Kategori", `Ad${String(i).padStart(2, "0")}`], `${kok}-${i}`, { sira: i }));
+  const m = menuKur(zemin, [katki("a", "hepsi", [...uzun("Asset"), ...uzun("Diger")])], { azamiOge: 4, sinirsizKokler: ["Asset"] });
+  const asset = alt(m.find((d) => d.tur === "alt" && d.ad === "Asset"));
+  assert.deepEqual(adlar(alt(asset[0])).length, 12);
+  assert.equal(adlar(alt(asset[0])).includes("Diğer"), false);
+  const diger = alt(m.find((d) => d.tur === "alt" && d.ad === "Diger"));
+  assert.ok(adlar(alt(diger[0])).includes("Diğer"));
+});
+
+test("sınırsız kök: kökün kendisi çok kardeşle bile taşmaz mı? — kök düzeyi normal kural (başka köklerle birlikte 'Diğer'e girebilir)", () => {
+  const ogeler = Array.from({ length: 6 }, (_, i) => oge([`K${i}`, "x"], `k${i}`, { sira: i }));
+  const m = menuKur(zemin, [katki("a", "hepsi", ogeler)], { azamiOge: 4, sinirsizKokler: ["K5"] });
+  assert.equal(m.length, 4);   // kök düzeyi hâlâ azami 4 (3 + Diğer)
+});

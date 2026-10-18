@@ -12,7 +12,7 @@
     text-shadow: 0 1px 2px #000; white-space: pre;
   }
   #altyazi {
-    position: fixed; left: 50%; bottom: 7%; transform: translateX(-50%); z-index: 10;
+    position: fixed; left: 50%; bottom: calc(7% + var(--alt-cubuk, 0px)); transform: translateX(-50%); z-index: 31;
     max-width: 62ch; padding: 10px 16px; border-radius: 6px;
     background: rgba(7,7,13,.72); color: #e6e9f5;
     font: 15px/1.45 "Segoe UI", system-ui, sans-serif; text-align: center;
@@ -79,7 +79,7 @@
     border-radius: 4px; padding: 1px 6px; font-family: inherit;
   }
   #sohbet {
-    position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
+    position: fixed; left: 50%; bottom: calc(18px + var(--alt-cubuk, 0px)); transform: translateX(-50%);
     z-index: 11; width: min(620px, 86vw); display: none;
   }
   #sohbet[data-acik="1"] { display: block; }

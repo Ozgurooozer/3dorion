@@ -47,9 +47,14 @@ export type MenuDugumu<E> =
 export interface MenuKurAyari {
   /** Bir düzeyde en çok kaç öğe görünür; fazlası "Diğer ▸"e gider (varsayılan 8). */
   azamiOge: number;
+  /**
+   * Bu adlı KÖK alt menülerin altında taşma YOK (hepsi görünür; görünüm kaydırır): asset listesi gibi zaten kategori/ad sırasıyla düzenli, "Diğer ▸" ile
+   * bölünmesi anlamsız uzun listeler için. Yalnız kökteki ad eşleşir (iç içe "Diğer" zinciri oluşmaz).
+   */
+  sinirsizKokler: readonly string[];
 }
 
-const VARSAYILAN: MenuKurAyari = { azamiOge: 8 };
+const VARSAYILAN: MenuKurAyari = { azamiOge: 8, sinirsizKokler: [] };
 const SIRA = 100;
 
 /** Birleşme ağacının ara düğümü (yalnız `menuKur` içinde). */
@@ -88,7 +93,7 @@ export function menuKur<B extends MenuBaglami, E>(b: B, katkilar: readonly MenuK
     }
   }
   siraHesapla(kok);
-  return duzeyKur(kok, azami);
+  return duzeyKur(kok, azami, new Set(ayar.sinirsizKokler ?? VARSAYILAN.sinirsizKokler), true);
 }
 
 /** Her dalın sırası/grubu: yaprakta kendisininki, alt menüde EN KÜÇÜK sıralı çocuğunkiler. */
@@ -105,18 +110,20 @@ function siraHesapla<E>(d: Dal<E>): void {
 const sirali = <E>(d: Dal<E>): Dal<E>[] =>
   [...d.cocuk.values()].sort((a, b) => a.sira - b.sira || a.ad.localeCompare(b.ad, "tr"));
 
-function dugumOf<E>(d: Dal<E>, azami: number): MenuDugumu<E> {
+function dugumOf<E>(d: Dal<E>, azami: number, sinirsizKokler: ReadonlySet<string>, kokDuzeyi: boolean): MenuDugumu<E> {
   if (d.yaprak) {
     const o = d.yaprak;
     return { tur: "eylem", kimlik: o.kimlik, ad: d.ad, kisayol: o.kisayol ?? null, uygun: o.uygun, neden: o.uygun ? null : (o.neden ?? null), eylem: o.eylem };
   }
-  const ogeler = duzeyKur(d, azami);
+  // Sınırsız kökün ALTINDAKİ bütün düzeyler taşmasız (azami sonsuz); başka dallar normal.
+  const sinirsiz = kokDuzeyi ? sinirsizKokler.has(d.ad) : azami === Infinity;
+  const ogeler = duzeyKur(d, sinirsiz ? Infinity : azami, sinirsizKokler, false);
   const hicbiriUygunDegil = ogeler.every((x) => x.tur === "ayrac" || !x.uygun);
   return { tur: "alt", ad: d.ad, uygun: !hicbiriUygunDegil, neden: hicbiriUygunDegil ? "hiçbiri şu an yapılamaz" : null, ogeler };
 }
 
 /** Bir düzeyin düğümleri: sıralı, taşan "Diğer ▸"e, gruplar arası ayraçlı. */
-function duzeyKur<E>(d: Dal<E>, azami: number): MenuDugumu<E>[] {
+function duzeyKur<E>(d: Dal<E>, azami: number, sinirsizKokler: ReadonlySet<string>, kokDuzeyi: boolean): MenuDugumu<E>[] {
   const dallar = sirali(d);
   let gorunen = dallar;
   let diger: Dal<E> | null = null;
@@ -131,7 +138,7 @@ function duzeyKur<E>(d: Dal<E>, azami: number): MenuDugumu<E>[] {
   let onceki: Dal<E> | null = null;
   for (const dal of gorunen) {
     if (onceki && onceki.grup !== dal.grup) cikti.push({ tur: "ayrac" });
-    cikti.push(dugumOf(dal, azami));
+    cikti.push(dugumOf(dal, azami, sinirsizKokler, kokDuzeyi));
     onceki = dal;
   }
   return cikti;

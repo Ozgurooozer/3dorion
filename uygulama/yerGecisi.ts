@@ -38,6 +38,8 @@ export interface YerGecisiGirdisi {
   oyuncu: Oyuncu;
   gunluk: GunlukEkrani;
   altyaziGoster: (metin: string, ms?: number) => void;
+  /** Birleşik dünya kuruldu (level hazır, `yerler` verildi): asset yerleştirme kayıtlı yerleştirmeleri uygular (spec 30). Hatası dünyayı bozmaz. */
+  birlesikKuruldu?: (b: BirlesikDunya) => void;
   /** Sonradan atananlar / giris.ts'te sonra kurulanlar: çağrı anında okunur. */
   orion: () => Avatar | null;
   ortamBaglantisi: () => ReturnType<typeof ortamBaglantisiKur>;
@@ -53,6 +55,8 @@ export interface YerGecisi {
   kapidanGec(): Promise<boolean>;
   /** Açılışta ova level'ını ofisin yanına kurar (spec 27); en sonda, senaryolar yüklendikten sonra çağrılır. */
   birlesikDunyayiAc(): void;
+  /** Birleşik yer yeniden ölçüldü (asset yerleştirme, spec 30): bu yerde duran aktörlerin yerini tazeler; başka yerdekilere (ofis tek başına) dokunmaz. */
+  birlesikYeriniYenile(yer: Yer): void;
 }
 
 export function yerGecisiKur(d: YerGecisiGirdisi): YerGecisi {
@@ -130,6 +134,8 @@ export function yerGecisiKur(d: YerGecisiGirdisi): YerGecisi {
    * `odayaDon` yok (ofisten ayrılınmıyor) ve false döner.
    */
   let birlesik: BirlesikDunya | null = null;
+  /** Birleşik dünyanın GÜNCEL yeri: açılışta `b.yer`; asset yerleştirme yeniden ölçtükçe değişir (`birlesikYeriniYenile`). */
+  let birlesikYer: Yer | null = null;
   let birlesikBitti!: () => void;
   const birlesikHazir = new Promise<void>((r) => { birlesikBitti = r; });
   async function ovayaCik(): Promise<boolean> { await birlesikHazir; return birlesik !== null; }
@@ -189,6 +195,7 @@ export function yerGecisiKur(d: YerGecisiGirdisi): YerGecisi {
           },
         });
         birlesik = b;
+        birlesikYer = b.yer;
         yerler.ozyn = b.yer;
         yerler.orion = b.yer;
         d.ortamBaglantisi().ova(b.level);
@@ -198,6 +205,7 @@ export function yerGecisiKur(d: YerGecisiGirdisi): YerGecisi {
         d.stilPenceresi()?.ova(b.level);   // pencere dünyadan sonra kurulduysa orada bağlanır
         gunluk.ekle("bilgi", "yer", `birleşik dünya kuruldu (${b.kurulumMs} ms)`);
         console.log(`[YER] birleşik dünya kuruldu ${b.kurulumMs} ms · engel ${b.yer.engeller.length} · nesne ${b.yer.nesneler.length} · çapa ${b.yer.capalar.length}`);
+        try { d.birlesikKuruldu?.(b); } catch (e) { console.error("[YER] birleşik dünya sonrası bağlama hatası:", e); }
       } catch (e) {
         console.error("[YER] birleşik dünya kurulamadı, ofis tek başına:", e);
       } finally {
@@ -206,9 +214,16 @@ export function yerGecisiKur(d: YerGecisiGirdisi): YerGecisi {
     })();
   }
 
+  function birlesikYeriniYenile(yer: Yer): void {
+    const eski = birlesikYer;
+    if (yerler.ozyn === eski) yerler.ozyn = yer;
+    if (yerler.orion === eski) yerler.orion = yer;
+    birlesikYer = yer;
+  }
+
   return {
     birlesik: () => birlesik,
     disari: () => disari,
-    ovayaCik, odayaDon, kapidanGec, birlesikDunyayiAc,
+    ovayaCik, odayaDon, kapidanGec, birlesikDunyayiAc, birlesikYeriniYenile,
   };
 }

@@ -1,9 +1,10 @@
 # Açık işler — tek liste
 Önceliği Ozyn belirler. Her madde tek satır + nerede. Biten madde SİLİNİR (geçmişi git'te). Tarihli eski güncenin TAMAMI: `gunluk/acik-isler-2026-10-16.md` (donuk). Son güncelleme: 2026-10-16.
 
-**ODAK (2026-10-16 → 2026-10-30):** `world/level`'a yeni özellik YOK (yalnız hata düzeltme). Tek soru: **Orion günlük kullanımda işe yarıyor mu?** Kayıt: `kullanim-defteri.md` (ön kayıtlı ölçüt orada).
+**ODAK (2026-10-16 → 2026-10-30):** `world/level`'a yeni özellik YOK (yalnız hata düzeltme; Ozyn istisnası 2026-10-17: oyun içi asset yerleştirme menüsü `specs/30` ve alt çubuk `specs/31`). Tek soru: **Orion günlük kullanımda işe yarıyor mu?** Kayıt: `kullanim-defteri.md` (ön kayıtlı ölçüt orada).
 
 ## Ozyn'dan bekleyen
+- Asset yerleştirme menüsünü (`specs/30`) canlıda gör: Yerleştir/Çağır anlamı (tıklanan nokta / önüm), Kopyala-Yapıştır-Taşı-Kaldır; ardından commit (çalışma kopyasında, commit edilmedi).
 - Bugünkü yığını canlıda gör, sonra commit: bank, `F`/`C`, `Tab` seçim + menü, Orion bankta oturur (~67 dosya commit dışı). Ölçülmeyenler: `specs/28` §9.
 - Push: yerelde 3 commit (`ad1f1c6`, `67eb12b`, `a66749b`) + yukarıdaki yığın; onay yok.
 - Kapı sen yaklaşınca KENDİLİĞİNDEN açılıyor (`world/level/odaKapisi.ts`, 2,2 m): beklediğin davranış söylenmedi (E ile / hiç / mesafe kısa / yalnız Orion).

@@ -24,7 +24,7 @@ export interface BaglamMenusu<E> {
 export const ACILMA_GECIKMESI = 150;
 
 const CSS = `
-.bm-liste { position: fixed; z-index: 58; min-width: 170px; max-width: 320px; padding: 4px; background: rgba(10,14,24,0.98); color: #d7dcea;
+.bm-liste { position: fixed; z-index: 58; min-width: 170px; max-width: 320px; max-height: calc(100vh - 16px); overflow-y: auto; padding: 4px; background: rgba(10,14,24,0.98); color: #d7dcea;
   border: 1px solid #2a3246; border-radius: 8px; font: 13px/1.4 'Segoe UI', system-ui, sans-serif; user-select: none; }
 .bm-satir { display: flex; align-items: center; gap: 14px; padding: 4px 10px; border-radius: 5px; cursor: default; }
 .bm-satir[data-aktif="1"]:not([data-gri="1"]) { background: #1c2740; }
@@ -60,6 +60,7 @@ export function baglamMenusuKur<E>(a: BaglamMenusuAyari<E>): BaglamMenusu<E> {
   function aktifYap(s: Seviye, i: number | null): void {
     s.aktif = i;
     s.satirlar.forEach((el, k) => { if (el) el.dataset.aktif = k === i ? "1" : "0"; });
+    if (i !== null) s.satirlar[i]?.scrollIntoView?.({ block: "nearest" });   // uzun listede klavyeyle gezerken satır görünür kalsın
   }
 
   function sec(d: Extract<MenuDugumu<E>, { tur: "eylem" }>): void {

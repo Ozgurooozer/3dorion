@@ -3,7 +3,7 @@
 **Durum:** çekirdek + görünüm + üç hedef YAZILDI (testli), canlıda GÖRÜLMEDİ. Spec 28'in düz sağ tık panelinin yerini alır; panel yalnız "Özellikler…" bilgi paneli olarak kalır.
 
 ## Amaç
-Sağ tık, tıklanan hedefe göre uzun liste + alt menüler açar ("Buraya ▸ Git / Bak"). Seçenekler **kurallara göre** gelir ve sistem yalnız Orion için değil, her hedef için aynıdır.
+Sağ tık, tıklanan hedefe göre uzun liste + alt menüler açar ("Orion ▸ Buraya ▸ Git / Bak"). Seçenekler **kurallara göre** gelir ve sistem yalnız Orion için değil, her hedef için aynıdır.
 
 ## Tasarım: yollu öğeler + katkılar
 - Her **katkı** (`MenuKatkisi`) "hangi hedef türünde, hangi koşulda, hangi YOLA ne eklerim" der. Yol `["Orion","Otur"]` = "Orion ▸ Otur".

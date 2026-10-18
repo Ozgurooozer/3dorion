@@ -107,8 +107,17 @@ import { fareIsini } from "../world/engine/fareIsini.ts";
 import { secimVurgusuKur } from "../world/level/secimVurgusu.ts";
 import { nesnePaneliKur, type PanelNesne } from "../world/arayuz/nesnePaneli.ts";
 import { baglamMenusuKur } from "../world/arayuz/menu/baglamMenusu.ts";
+import { yerlestirmeKur } from "./yerlestirmeBaglantisi.ts";
+import { duzenlemeKipiKur } from "./duzenlemeKipi.ts";
+import { altCubukKur } from "../world/arayuz/altCubuk.ts";
+import { assetSekmesi } from "./yapi/assetSekmesi.ts";
+import { zeminSekmesi } from "./yapi/zeminSekmesi.ts";
+import { zeminKalemiKur } from "./zeminKalemi.ts";
+import { zeminBaglantisiKur } from "./zeminBaglantisi.ts";
+import { birlesikYerKur } from "../world/yer/birlesikYer.ts";
+import { levelYeriniOlc } from "../world/yer/levelOlcumu.ts";
 import { menuKur } from "../world/arayuz/menu/menuModeli.ts";
-import { MENU_KATKILARI, type HedefMenuBaglami, type MenuEylemi, type MenuHedefi } from "./menuKatkilari.ts";
+import { MENU_KATKILARI, MENU_AYARI, type HedefMenuBaglami, type MenuEylemi, type MenuHedefi } from "./menuKatkilari.ts";
 import { nesneEylemleri, type NesneEylemi } from "../world/yer/nesneEylemleri.ts";
 import { secimDurumuKur } from "./secimDurumu.ts";
 import { nesneSecimiKur } from "./nesneSecimi.ts";
@@ -146,7 +155,10 @@ const imlec = imlecKipiKur({
   kilidiBirak: () => rig.fareKilitBirak(),
   kilidiIste: () => rig.fareKilitIste(),
   engelli: () => rig.odakta || sohbet.acikMi() || onayKapisi.durum === "bekliyor",
-  degisti: (acik) => { if (!acik) { nesnePaneli.kapat(); baglamMenusu.kapat(); } },
+  degisti: (acik) => {
+    altCubuk.gorunur(acik);   // Yapı çubuğu yalnız imleç kipinde görünür (fare serbestken tıklanabilir)
+    if (!acik) { nesnePaneli.kapat(); baglamMenusu.kapat(); duzenleme.bitir(); zeminKalemi.sec(null); }
+  },
 });
 // Doğum yeri köşeden İÇERİ: (2.6, 2.6) kapı köşesiydi ve omuz kamerası iki
 // duvara birden sıkışıp oyuncunun gövdesine yapışıyordu (ölçüm: 1.44 m).
@@ -272,6 +284,8 @@ async function orionKaresi(en = 896, boy = 504, yaw?: number) {
 // Yer geçişi, kapı ve birleşik dünya (uygulama/yerGecisi.ts).
 const gecis = yerGecisiKur({
   yerler, sahne, oda, rig, oyuncu, gunluk, altyaziGoster,
+  // Önce zemin (nesnelerin oturacağı yükseklik belli olsun), sonra asset yerleştirme; ikisi de sonunda Orion'un Yer'ini yeniden ölçer.
+  birlesikKuruldu: () => { void (async () => { await zemin.baslat(); await yerlestirme.baslat(); })(); },
   orion: () => yol.al("orion"),
   ortamBaglantisi: () => ortamBaglantisi,
   ortamGunlugu: () => ortamGunlugu,
@@ -573,16 +587,77 @@ const nesnePaneli = nesnePaneliKur({
 let sonOzellikler: (() => void) | null = null;
 const baglamMenusu = baglamMenusuKur<MenuEylemi>({
   calistir: (y) => {
-    if (y.tur === "eylem") nesneEtkilesimi.calistir(y.eylem);
-    else if (y.tur === "ozellikler") sonOzellikler?.();
-    else { secim.sec(null); altyaziGoster("seçim kaldırıldı", 1500); }
+    switch (y.tur) {
+      case "eylem": nesneEtkilesimi.calistir(y.eylem); break;
+      case "soz": yol.al("kopru")?.algi({ tur: "duydum", metin: y.metin, kesin: true, kaynak: "klavye" }); altyaziGoster(`sen: ${y.metin}`, 1800); break;
+      case "ozellikler": sonOzellikler?.(); break;
+      case "secimiKaldir": secim.sec(null); altyaziGoster("seçim kaldırıldı", 1500); break;
+      // Asset yerleştirme (spec 30): zemin komutları son açılan zemin menüsünün noktasına uygulanır.
+      case "yerlestir": if (sonZemin) void yerlestirme.yerlestir(y.varlik, [sonZemin.x, sonZemin.y, sonZemin.z]); break;
+      case "cagir": cagirHayalet(y.varlik, y.varlik); break;
+      case "yapistir": if (sonZemin) void yerlestirme.yapistir(sonZemin); break;
+      case "kopyala": yerlestirme.kopyala(y.id); break;
+      case "duzenle": duzenleme.duzenle(y.arac); break;
+      case "duzenleBitir": duzenleme.bitir(); altyaziGoster("düzenleme bitti", 1200); break;
+      case "kaldir": duzenleme.bitir(); void yerlestirme.kaldir(y.id); break;
+      default: { const hic: never = y; throw new Error(`menü: işlenmeyen eylem ${JSON.stringify(hic)}`); }
+    }
   },
 });
+// ASSET YERLEŞTİRME (spec 30): menü komutları level'ın kamu API'siyle uygulanır; Orion'un `Yer`i her değişiklikte yeniden ölçülür.
+let sonZemin: { x: number; y: number; z: number } | null = null;
+const yerlestirme = yerlestirmeKur({
+  level: () => gecis.birlesik()?.level ?? null,
+  yeniYer: async (l) => birlesikYerKur(await levelYeriniOlc(l, "ova")),
+  yerGuncelle: (yer) => gecis.birlesikYeriniYenile(yer),
+  altyazi: altyaziGoster,
+});
+// OYUN İÇİ DÜZENLEME (spec 30): Çağır hayaleti + seçili nesnede taşı/döndür/ölçekle gizmosu (editörün sahne parçaları; sonuç `yerlestirme` kaydına yazılır).
+const duzenleme = duzenlemeKipiKur({
+  sahne, kamera: rig.kamera, tuval, level: () => gecis.birlesik()?.level ?? null, secili: () => secim.oku()?.id ?? null,
+  koy: (varlik, konum, donus) => { void yerlestirme.yerlestir(varlik, konum, donus); },
+  donustur: (degisim, mesaj) => { void yerlestirme.donustur(degisim, mesaj); },
+  altyazi: altyaziGoster,
+});
+// ZEMİN ŞEKİLLENDİRME (Yapı çubuğu · Zemin sekmesi): editörün arazi kalemi; vuruşlar kayda, geri al yığınına ve Orion'un Yer'ine işlenir. Nesneler araziye oturunca
+// yeni konumları yerleştirme kaydına yazılır (yeniden açılışta eski yüksekliğe dönmesinler).
+const zemin = zeminBaglantisiKur({
+  level: () => gecis.birlesik()?.level ?? null,
+  yeniYer: async (l) => birlesikYerKur(await levelYeriniOlc(l, "ova")),
+  yerGuncelle: (yer) => gecis.birlesikYeriniYenile(yer),
+  nesneleriTasi: (degisim, mesaj) => yerlestirme.donustur(degisim, mesaj),
+  altyazi: altyaziGoster,
+});
+const zeminKalemi = zeminKalemiKur({
+  sahne, kamera: rig.kamera, tuval, level: () => gecis.birlesik()?.level ?? null,
+  baslarken: () => duzenleme.bitir(),
+  vurusBitti: (v) => { void zemin.vurusBitti(v); },
+  geriAl: () => { void zemin.geriAl(); }, ileriAl: () => { void zemin.ileriAl(); },
+  altyazi: altyaziGoster,
+});
+/** Asset hayaleti (kart ya da menü): zemin kalemi açıksa önce o bırakılır — ikisi aynı tıklamayı isteyemez. */
+function cagirHayalet(varlikAdi: string, ad: string): void { zeminKalemi.sec(null); void duzenleme.cagir(varlikAdi, ad); }
+// YAPI ÇUBUĞU (Y): ekranın altında açılır-kapanır, sekmeli panel. Sekmeler bağımsız modüller (`uygulama/yapi/`); yeni özellik = yeni sekme (`altCubuk.ekle`).
+// Çubuk imleç kipinde görünür; Y (ya da sekmeye tık) paneli açar ve imleç kipini de açar (açılamıyorsa — odak, sohbet, onay — açılmaz).
+const altCubuk = altCubukKur({
+  tusSerbest: () => oyuncu.oyuncuDurumu().etkilesim === null && !sohbet.acikMi() && onayKapisi.durum !== "bekliyor",
+  izin: () => imlec.acik || imlec.ac(),
+});
+altCubuk.ekle(assetSekmesi({
+  kartlar: () => yerlestirme.kartlar(),
+  cagir: cagirHayalet,
+  cagrilan: () => duzenleme.cagrilan(),
+  birak: () => duzenleme.bitir(),
+  hayaletDegisince: (f) => duzenleme.dinle(f),
+  onizlemeAdresi: varlik,
+}));
+altCubuk.ekle(zeminSekmesi({ kalem: zeminKalemi, baglanti: zemin }));
+
 /** Hedefin menüsünü aç; "Özellikler…" aynı noktada `panel`i gösterir. */
 function hedefMenusuAc(hedef: MenuHedefi, panel: PanelNesne, x: number, y: number): void {
   nesnePaneli.kapat();
   sonOzellikler = () => nesnePaneli.ac(panel, [], x, y);
-  baglamMenusu.ac(menuKur<HedefMenuBaglami, MenuEylemi>({ hedef }, MENU_KATKILARI), x, y);
+  baglamMenusu.ac(menuKur<HedefMenuBaglami, MenuEylemi>({ hedef }, MENU_KATKILARI, MENU_AYARI), x, y);
 }
 const bosKutu = { x: 0, y: 0, z: 0, g: 0, yuk: 0, d: 0 };
 nesneSecimiKur({
@@ -599,14 +674,15 @@ nesneSecimiKur({
     const p = zeminNoktasi(k, yon, (px, pz) => yerler.ozyn.yukseklik(px, pz));
     if (!p) return;
     secim.sec(null);
-    hedefMenusuAc({ tur: "zemin", nokta: p, alan: yerler.ozyn }, { id: "zemin", ad: "Zemin", tur: "zemin noktası", capa: null, kutu: bosKutu, ozellikler: zeminOzellikleri(p) }, x, y);
+    sonZemin = p;
+    hedefMenusuAc({ tur: "zemin", nokta: p, alan: yerler.ozyn, yerlestirme: { gruplar: yerlestirme.gruplar(), pano: yerlestirme.pano() } }, { id: "zemin", ad: "Zemin", tur: "zemin noktası", capa: null, kutu: bosKutu, ozellikler: zeminOzellikleri(p) }, x, y);
   },
   isin: (x, y) => fareIsini(sahne, rig.kamera, x, y),
   secim,
   menuAc: (n, x, y) => {
     const k = oyuncu.oyuncuDurumu().konum;
     const eylemler = nesneEylemleri(n, { capalar: yerler.ozyn.capalar, oyuncu: { x: k.x, z: k.z } });
-    hedefMenusuAc({ tur: "nesne", ad: n.ad, eylemler }, n, x, y);
+    hedefMenusuAc({ tur: "nesne", ad: n.ad, eylemler, duzenleme: yerlestirme.duzenleme(n) }, n, x, y);
   },
   altyazi: altyaziGoster,
 });
