@@ -142,7 +142,7 @@ import { girdiAdaptoruKur } from "./ajanlar/girdiAdaptoru.ts";
 import { emirHedefleri as emirHedefleriBul, emirTeslim } from "./ajanlar/emir.ts";
 import { Koltuklar } from "./ajanlar/koltuklar.ts";
 import { flashBaglantisiKur, type FlashBaglantisi } from "./ajanlar/flashBaglantisi.ts";
-import { grafYetenegiKur, okumaSuresiMs, type AjanKapisi } from "./graf/grafYetenegi.ts";
+import { govdeDurumundan, grafYetenegiKur, okumaSuresiMs, type AjanKapisi } from "./graf/grafYetenegi.ts";
 import { grafKutuphanesi } from "./graf/kutuphane.ts";
 import { grafDeposuKur, grafKaynaginiSec } from "./graf/grafDeposu.ts";
 import { grafCalistiriciKur, type GrafCalistirici } from "./graf/grafCalistirici.ts";
@@ -793,12 +793,13 @@ function grafKapisi(id: string): AjanKapisi | null {
         if (!caldi) await new Promise<void>((r) => setTimeout(r, okumaSuresiMs(m)));
       },
       sus: () => orionSesi.kes(),
+      govde: () => govdeDurumundan(o.durum()),
     };
   }
   const a = ajanlar.al(id);
   if (!a?.niyet || !a.sonucDinle) return null;
-  const { niyet, sonucDinle, soyle } = a;
-  return { id: a.id, ad: a.ad, niyet, sonucDinle, soyle: soyle ?? (async () => { throw new Error(`${a.ad}: söz hattı yok`); }) };
+  const { niyet, sonucDinle, soyle, govde } = a;
+  return { id: a.id, ad: a.ad, niyet, sonucDinle, soyle: soyle ?? (async () => { throw new Error(`${a.ad}: söz hattı yok`); }), ...(govde ? { govde } : {}) };
 }
 const grafKaynagi = grafKaynaginiSec();
 let grafHata: string | null = grafKaynagi.hata;
@@ -819,6 +820,8 @@ const grafTabani = {
     ajanlar: () => ajanlar.hepsi().map((x) => ({ id: x.id, ad: x.ad })), kapi: grafKapisi,
     nesneler: () => yerler.ozyn.nesneler, capalar: () => yerler.ozyn.capalar,
     diyalog: (i) => diyalogDenetimi.ac({ ...i, renk: ajanlar.al(i.ajan.id)?.renk ?? ORION_AJANI.renk }),
+    // Ozyn'in AYAK konumu (oyuncu durumunun konumu göz hizası): "Git → konum" Ozyn'in bulunduğu noktaya gitsin, havaya değil.
+    ozyn: () => { const d = oyuncu.oyuncuDurumu(); return { konum: { x: d.konum.x, y: d.konum.y - oyuncu.gozYuksekligi, z: d.konum.z }, etkilesim: d.etkilesim }; },
   }),
   ajanlar: () => ajanlar.hepsi().map((x) => x.id),
   durum: grafDurumu,

@@ -26,7 +26,7 @@ import { flashKur, type Flash } from "../../flash/flashKur.ts";
 import { FLASH } from "../../flash/npcTanimi.ts";
 import { Takipci } from "../takip.ts";
 import { avatarAdimi } from "../niyetYurutucu.ts";
-import { okumaSuresiMs } from "../graf/grafYetenegi.ts";
+import { govdeDurumundan, okumaSuresiMs } from "../graf/grafYetenegi.ts";
 import { ajanAlgisiKur } from "./ajanAlgisi.ts";
 import type { UretilenOlay } from "../../world/olayUretici.ts";
 import type { AjanDefteri } from "./ajanKaydi.ts";
@@ -136,6 +136,7 @@ export async function flashBaglantisiKur(g: FlashBaglantisiGirdisi): Promise<Fla
     id: FLASH.id, ad: FLASH.ad, renk: FLASH.renk, kume: null, hitapAyiklar: true,
     niyet: (n, id) => { avatar.niyet(n, id); }, sonucDinle: (cb) => avatar.sonucDinle(cb),
     soyle: (m) => { konus(m); return new Promise<void>((r) => setTimeout(r, okumaSuresiMs(m))); },
+    govde: () => govdeDurumundan(avatar.durum()),
     algi: (a) => flash.kopru.algi(a),
   });
   g.gunluk.ekle("bilgi", "flash", `${FLASH.ad} odada (LLM'siz NPC)`);

@@ -12,6 +12,7 @@
 // seçimi YOK (YAGNI, plan dilim 6). Tip ve çözücü şimdiden küme seçimini anlıyor ki ilk küme geldiğinde girdi yolu değişmesin.
 "use strict";
 import type { Algi } from "../../protocol/algi.ts";
+import type { AjanGovdesi } from "../graf/grafYetenegi.ts";
 import type { Niyet, NiyetSonucu } from "../../protocol/niyet.ts";
 
 /** Ayrılmış hedef: kayıtlı bütün ajanlar ("ikisi birden"). Bir ajanın kimliği olamaz. */
@@ -50,6 +51,8 @@ export interface AjanKaydi {
    * Verilmezse ajan grafikten konuşturulamaz (nedenli hata).
    */
   readonly soyle?: (metin: string) => Promise<void>;
+  /** Gövdenin anlık durumu (düğüm grafiğinin Dünya değişkenleri okur: konum, meşgul, oturuyor). Bedensiz ajanda yok. */
+  readonly govde?: () => AjanGovdesi | null;
   /** Ajanın algı kapısı: söz (ve ileride başka algılar) buradan girer. Hatası öbür ajanları kesmez (adaptör yakalar). */
   algi(a: Algi): void;
 }

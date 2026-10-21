@@ -11,6 +11,7 @@ import { ajanDugumleri } from "./ajanDugumleri.ts";
 import type { GrafYetenegi } from "./grafYetenegi.ts";
 import { olayDugumleri } from "./olayDugumleri.ts";
 import { durumDugumleri } from "./durumDugumleri.ts";
+import { dunyaDugumleri } from "./dunyaDugumleri.ts";
 
 export function grafKutuphanesi(): DugumKaydi<GrafYetenegi> {
   const k = new DugumKaydi<GrafYetenegi>();
@@ -19,6 +20,8 @@ export function grafKutuphanesi(): DugumKaydi<GrafYetenegi> {
   // Dilim 2 (NPC davranışı): dünya olayları (dinlemedeki grafiğin girişi), değişkenler, mantık, gün vakti.
   for (const t of olayDugumleri<GrafYetenegi>()) k.kaydet(t);
   for (const t of durumDugumleri<GrafYetenegi>()) k.kaydet(t);
+  // Dilim 2c: dünya değişkenleri (saat, ajan/Ozyn durumu, mesafe, en yakın nesne, konum): salt okunur saf düğümler.
+  for (const t of dunyaDugumleri()) k.kaydet(t);
   return k;
 }
 

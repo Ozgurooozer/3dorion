@@ -17,7 +17,7 @@
 // "bitti mi" sorusu yarış doğurur (sonuç aynı tikte gelebilir).
 "use strict";
 import type { Niyet, NiyetSonucu } from "../../protocol/niyet.ts";
-import { kimlik } from "../../protocol/temel.ts";
+import { kimlik, type Vec3 } from "../../protocol/temel.ts";
 import type { Capa } from "../../world/level/capalar.ts";
 import type { Nesne } from "../../world/level/nesneKaydi.ts";
 import { avatarAdimi } from "../niyetYurutucu.ts";
@@ -36,6 +36,26 @@ export function okumaSuresiMs(metin: string): number {
   return Math.min(8000, Math.max(1500, metin.length * 60));
 }
 
+/** Ajan gövdesinin anlık durumu (Dünya değişkenleri: Ajan durumu, Ozyn'e mesafe, En yakın nesne). */
+export interface AjanGovdesi {
+  readonly konum: Vec3;
+  /** Süreli bir iş yapıyor (yürüyor, oturmaya gidiyor). */
+  readonly mesgul: boolean;
+  readonly oturuyor: boolean;
+}
+
+/** Bir gövdenin protokol durumundan (`OrionDurumu`) grafiğe açılan kısmı: tek dönüşüm, Orion ve Flash aynı yerden geçer. */
+export function govdeDurumundan(d: { konum: Vec3; mesgul: boolean; oturuyor_mu: boolean }): AjanGovdesi {
+  return { konum: { ...d.konum }, mesgul: d.mesgul, oturuyor: d.oturuyor_mu };
+}
+
+/** Ozyn'in anlık durumu (Dünya değişkenleri). */
+export interface OzynDurumu {
+  readonly konum: Vec3;
+  /** Etkileştiği yüzey (monitor, bank…); yoksa null. */
+  readonly etkilesim: string | null;
+}
+
 /** Bir ajanın grafiğe açtığı kapı (bedeni olan ajan). */
 export interface AjanKapisi {
   readonly id: string;
@@ -48,6 +68,8 @@ export interface AjanKapisi {
   soyle(metin: string): Promise<void>;
   /** Sözü kes (■). Verilmezse söz kesilmez (altyazı kendi süresinde gider). */
   sus?(): void;
+  /** Gövdenin anlık durumu (okuma). Verilmezse Dünya değişkeni düğümleri bu ajan için nedenle düşer. */
+  govde?(): AjanGovdesi | null;
 }
 
 export interface AjanSecenegi { readonly id: string; readonly ad: string }
@@ -72,6 +94,10 @@ export interface GrafYetenegi {
    * Ozyn'in seçimi bir NİYET değildir (bedene gitmez): grafiğin hangi dalı yürüyeceğini söyler.
    */
   diyalogAc(i: DiyalogIstegi): DiyalogIsi;
+  /** Ajanın gövdesi şu an (Dünya değişkenleri); bedeni yoksa ya da henüz kurulmadıysa null. SALT OKUNUR: bir kopya döner. */
+  ajanDurumu(kim: string): AjanGovdesi | null;
+  /** Ozyn şu an; oyuncu yoksa null. */
+  ozynDurumu(): OzynDurumu | null;
 }
 
 export interface GrafYetenegiAyari {
@@ -84,6 +110,8 @@ export interface GrafYetenegiAyari {
   adimSiniriMs?: number;
   /** Diyalog ekranı (diyalogDenetimi.ts); verilmezse diyalog düğümü nedenle düşer (senaryo/test dünyası). */
   diyalog?: (i: DiyalogIstegi) => DiyalogIsi;
+  /** Ozyn'in durumu (oyuncu); verilmezse Ozyn düğümleri nedenle düşer (senaryo/test dünyası). */
+  ozyn?: () => OzynDurumu | null;
 }
 
 const hemen = (niyet_id: string, not: string): AjanIsi => ({ sonuc: Promise.resolve({ niyet_id, durum: "hata", not }), kes: () => {} });
@@ -94,6 +122,14 @@ export function grafYetenegiKur(a: GrafYetenegiAyari): GrafYetenegi {
     ajanlar: () => a.ajanlar(),
     nesneler: () => a.nesneler(),
     capalar: () => a.capalar(),
+    ajanDurumu(kim) {
+      const g = a.kapi(kim)?.govde?.();
+      return g ? { konum: { ...g.konum }, mesgul: g.mesgul, oturuyor: g.oturuyor } : null;
+    },
+    ozynDurumu() {
+      const o = a.ozyn?.();
+      return o ? { konum: { ...o.konum }, etkilesim: o.etkilesim } : null;
+    },
     diyalogAc(i) {
       if (!a.diyalog) throw new Error("bu dünyada diyalog ekranı yok (seçimli diyalog gösterilemez)");
       return a.diyalog(i);

@@ -5,7 +5,7 @@
 // düğüm hatası (ajanın nedeni aynen söylenir: "hedefe giden yol yok…"); `iptal` → düğüm hatası ("iş kesildi": başka bir niyet araya girdi). ■ beklemeyi
 // keser ve ajana `dur` gider (`durdurulunca`). Grafikte OLMAYANLAR bilerek yok: `komut` (terminal), `hatirla`, `doktor`, `ortam`, `yaz`, `emret`.
 //
-// HEDEF (Git, Bak): `hedef` ayarı pinleri seçer — `ozyn` (pin yok; protokolün `oyuncu` hedefi), `capa` (metin pini: çapa adı ya da etiketi; doğrulayıcı
+// HEDEF (Git, Bak): `hedef` ayarı pinleri seçer — `ozyn` (pin yok; protokolün `oyuncu` hedefi), `konum` (konum pini: Konum düğümünden ya da bir ajan/Ozyn konumundan; protokolün `nokta` hedefi), `capa` (metin pini: çapa adı ya da etiketi; doğrulayıcı
 // "beyaz tahta"yı `tahta`ya çevirir), `nesne` (nesne pini: Nesne bul'dan). NEDEN ayarla ve tek "hedef" pini değil: bağsız veri girişi ayar ister (denetim),
 // yani "isteğe bağlı pin" yok; hedef türü sabit bir seçimdir, pin listesi ona göre değişir ("Sıra 3" üç çıkış gibi). Nesneye giden hedef etkileşim
 // menüsüyle AYNI kuraldan (`world/yer/nesneEylemleri.ts` `nesneHedefleri`): çapalıysa çapa, değilse nokta + yarıçap.
@@ -26,18 +26,25 @@ import {
 /** Ajan seçeneklerinin kaynağı: pin ortamındaki ajan defteri (denetim anında; Flash sonradan gelir). */
 const ajanSecenekleri = (o: PinOrtami): readonly string[] => o.ajanlar?.() ?? [];
 
-const KIM: PinTanimi = { ad: "kim", tip: "ajan" };
+export const KIM: PinTanimi = { ad: "kim", tip: "ajan" };
 /** `kim` bağsızsa ayardan okunur; ayar varsa ajan defterinde olmalı (denetim). */
-const KIM_AYARI: AyarTanimi = { ad: "kim", tip: "metin", secenekler: ajanSecenekleri, aciklama: "ajan kimliği (bağ yoksa)" };
+export const KIM_AYARI: AyarTanimi = { ad: "kim", tip: "metin", secenekler: ajanSecenekleri, aciklama: "ajan kimliği (bağ yoksa)" };
 
-export const GIT_HEDEFLERI = ["ozyn", "capa", "nesne"] as const;
+export const GIT_HEDEFLERI = ["ozyn", "capa", "nesne", "konum"] as const;
 export const BAK_HEDEFLERI = [...GIT_HEDEFLERI, "serbest"] as const;
 type HedefTuru = (typeof BAK_HEDEFLERI)[number];
 /** Mesafe ayarının tavanı (m): ova ölçeği; 0 = hedefin kendi yakınlığı. */
 export const MESAFE_AZAMI = 50;
 
 const hedefPinleri = (h: GrafDegeri | undefined): PinTanimi[] =>
-  h === "capa" ? [{ ad: "capa", tip: "metin" }] : h === "nesne" ? [{ ad: "nesne", tip: "nesne" }] : [];
+  h === "capa" ? [{ ad: "capa", tip: "metin" }] : h === "nesne" ? [{ ad: "nesne", tip: "nesne" }] : h === "konum" ? [{ ad: "konum", tip: "konum" }] : [];
+
+/** Değer bir konum mu (`{ x, y, z }` sayıları; Konum / Ajan durumu / Ozyn durumu çıktısı). Yanlış bağlanan değer sessizce (0,0)'a yürütmesin. */
+export function konumMu(v: unknown): v is { x: number; y: number; z: number } {
+  if (typeof v !== "object" || v === null) return false;
+  const k = v as { x?: unknown; y?: unknown; z?: unknown };
+  return [k.x, k.y, k.z].every((x) => typeof x === "number" && Number.isFinite(x));
+}
 
 /** Değer bir nesne mi (Nesne bul'un çıktısı ya da desen girişi). Yapı denetimi: yanlış bağlanmış bir değer sessizce (0,0)'a yürütmesin. */
 export function nesneMi(v: unknown): v is Nesne {
@@ -49,7 +56,7 @@ export function nesneMi(v: unknown): v is Nesne {
 }
 
 /** `kim` girişinin değeri: defterde olan bir ajan kimliği. Denetimden sonra defter değişmiş olabilir (ajan kapandı): çalışma anında da bakılır. */
-async function kimOku(c: DugumCalismasi<GrafYetenegi>): Promise<{ id: string; ad: string }> {
+export async function kimOku(c: DugumCalismasi<GrafYetenegi>): Promise<{ id: string; ad: string }> {
   const v = await c.giris("kim");
   if (typeof v !== "string" || !v) throw new Error(`kim: bir ajan olmalı (Ajan seç'e bağla ya da ayar.kim ver; gelen: ${JSON.stringify(v)})`);
   const ajanlar = c.yetenek.ajanlar();
@@ -66,6 +73,11 @@ async function hedefOku(c: DugumCalismasi<GrafYetenegi>, tur: HedefTuru): Promis
     const ad = await c.giris("capa");
     if (typeof ad !== "string" || !ad.trim()) throw new Error(`capa: çapa adı olmalı (örn. "sandalye", "tahta"; gelen: ${JSON.stringify(ad)})`);
     return { hedef: { tip: "capa", ad: ad.trim() } };
+  }
+  if (tur === "konum") {
+    const k = await c.giris("konum");
+    if (!konumMu(k)) throw new Error("konum: bir konum olmalı (Konum, Ajan durumu ya da Ozyn durumu düğümüne bağla)");
+    return { hedef: { tip: "nokta", x: k.x, y: k.y, z: k.z } };
   }
   const n = await c.giris("nesne");
   if (!nesneMi(n)) throw new Error("nesne: bir nesne olmalı (Nesne bul düğümüne bağla)");

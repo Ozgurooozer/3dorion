@@ -77,6 +77,13 @@ function yaziya(v: unknown, pin: string): string {
   throw new Error(`${pin}: metin, sayı ya da doğru/yanlış olmalı (gelen: ${v === null ? "null" : typeof v})`);
 }
 
+/** Çalışmanın saati (0–24, kesirli); geçersizse nedenli hata. Gün vakti ve Saat düğümü AYNI kuraldan okur. */
+export function gecerliSaat(c: { saat(): number }): number {
+  const s = c.saat();
+  if (typeof s !== "number" || !Number.isFinite(s) || s < 0 || s >= 24) throw new Error(`saat 0–24 arası olmalı (gelen: ${String(s)})`);
+  return s;
+}
+
 export function durumDugumleri<Y>(): DugumTanimi<Y>[] {
   return [
     // ── değişkenler ──
@@ -151,8 +158,7 @@ export function durumDugumleri<Y>(): DugumTanimi<Y>[] {
       ayarlar: [{ ad: "vakit", tip: "metin", varsayilan: "gece", secenekler: GUN_VAKITLERI, aciklama: "sorulan vakit" }],
       pinler: () => ({ girisler: [], cikislar: [BOOL("sonuc"), { ad: "vakit", tip: "metin" }] }),
       calistir: (c) => {
-        const s = c.saat();
-        if (typeof s !== "number" || !Number.isFinite(s) || s < 0 || s >= 24) throw new Error(`saat 0–24 arası olmalı (gelen: ${String(s)})`);
+        const s = gecerliSaat(c);
         const vakit = gunVaktiAdi(s);
         return { cikti: { sonuc: vakit === c.ayar["vakit"], vakit } };
       },
