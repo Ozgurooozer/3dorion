@@ -332,10 +332,12 @@ export function niyetYurutucusuKur(b: YurutucuBaglami): NiyetYurutucu {
 /**
  * Bir bedene tek adım: niyeti verir, sonucu (bitti/hata/iptal) gelince çözülür. Orion'un `bedenAdimi`'nın gövdesiydi; Flash'ın takibi
  * (spec 33) aynısını kendi bedeniyle çağırır — kopya yazılmaz. Dinleyici GÖNDERMEDEN önce kurulur: avatar sonucu senkron da verebilir.
- * Kimlik öneki `program`: köprü bu adımı kendi sırası sanmaz.
+ * Kimlik öneki `program`: köprü bu adımı kendi sırası sanmaz. Düğüm grafiği (spec 35 dilim 1) aynı gövdeyi `elle` önekiyle çağırır: grafiği
+ * Ozyn'in ▶'si yürütür, hatası Orion'un LLM'ini uyandırmaz (`refleks.sonuc.elle_hata`) ve benlik onu "Ozyn yaptı" diye etiketler.
+ * `o.niyet` bedenin kendisi olmak zorunda değil: Orion'da TEK eylem yolu (`niyetiYurut`), sonuç bedenin `sonucDinle`sinden.
  */
-export function avatarAdimi(o: Pick<Avatar, "niyet" | "sonucDinle"> | null, n: Niyet, sinirMs = 30_000): Promise<NiyetSonucu> {
-  const id = kimlik("program");
+export function avatarAdimi(o: Pick<Avatar, "niyet" | "sonucDinle"> | null, n: Niyet, sinirMs = 30_000, onek = "program"): Promise<NiyetSonucu> {
+  const id = kimlik(onek);
   return new Promise((coz) => {
     if (!o) { coz({ niyet_id: id, durum: "hata", not: "beden henüz yüklenmedi" }); return; }
     let bitti = false;

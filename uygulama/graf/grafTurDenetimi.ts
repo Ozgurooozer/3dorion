@@ -9,7 +9,7 @@
 //   • olay grafiğinde tam bir "▶ Başla"; fonksiyon (desen) grafiğinde tam bir "Fonksiyon girişi"; bir desen kendini doğrudan çağıramaz.
 "use strict";
 import type { Graf, GrafDegeri, PinTanimi } from "../../protocol/graf.ts";
-import type { DugumKaydi, DugumPinleri, DugumTanimi, PinOrtami } from "./dugumKaydi.ts";
+import { secenekleriCoz, type DugumKaydi, type DugumPinleri, type DugumTanimi, type PinOrtami } from "./dugumKaydi.ts";
 
 /** Olay/fonksiyon giriş-çıkış düğümlerinin türleri (yorumlayıcıyla ortak). */
 export const BASLA_TIPI = "olay.basla";
@@ -27,7 +27,7 @@ const pinBul = (l: readonly PinTanimi[], ad: string) => l.find((p) => p.ad === a
 const uyumlu = (a: PinTanimi["tip"], b: PinTanimi["tip"]) =>
   a === b || (a !== "akis" && b !== "akis" && (a === "herhangi" || b === "herhangi"));
 
-function ayarHatalari(id: string, t: DugumTanimi<unknown>, ayar: Readonly<Record<string, GrafDegeri>>): string[] {
+function ayarHatalari(id: string, t: DugumTanimi<unknown>, ayar: Readonly<Record<string, GrafDegeri>>, ortam: PinOrtami): string[] {
   const h: string[] = [];
   for (const a of t.ayarlar ?? []) {
     const d = ayar[a.ad];
@@ -39,7 +39,8 @@ function ayarHatalari(id: string, t: DugumTanimi<unknown>, ayar: Readonly<Record
       if (typeof d !== "boolean") h.push(`${id}.${a.ad}: true/false olmalı`);
     } else {
       if (typeof d !== "string") { h.push(`${id}.${a.ad}: metin olmalı`); continue; }
-      if (a.secenekler && !a.secenekler.includes(d)) h.push(`${id}.${a.ad}: '${d}' geçersiz (seçenekler: ${a.secenekler.join(", ")})`);
+      const secenekler = secenekleriCoz(a, ortam);
+      if (secenekler && !secenekler.includes(d)) h.push(`${id}.${a.ad}: '${d}' geçersiz (seçenekler: ${secenekler.join(", ") || "yok"})`);
     }
   }
   return h;
@@ -59,7 +60,7 @@ export function dugumleriCoz(g: Graf, kayit: DugumKaydi<unknown>, ortam: PinOrta
     let pinler: DugumPinleri;
     try { pinler = t.pinler(ayar, pinOrtami); }
     catch (err) { hatalar.push(`${d.id}: ${err instanceof Error ? err.message : String(err)}`); continue; }
-    hatalar.push(...ayarHatalari(d.id, t, ayar));
+    hatalar.push(...ayarHatalari(d.id, t, ayar, pinOrtami));
     cozum.set(d.id, { tanim: t, pinler, ayar });
   }
   return { cozum, hatalar };

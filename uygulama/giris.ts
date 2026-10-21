@@ -74,7 +74,7 @@ import { orionSesiKur } from "./orionSesi.ts";
 import { kopruKur, yetkiAnahtarlari } from "./kopruKur.ts";
 import { orionAyarlariKur } from "./ayar/orionAyarlari.ts";
 import { mikrofonKur } from "./mikrofon.ts";
-import { durumGozlemiKur, sohbetKipiIsaretiKur, arizaGostergesiKur, konusmayiBagla } from "./kopruDinleyicileri.ts";
+import { durumGozlemiKur, sohbetKipiIsaretiKur, arizaGostergesiKur, konusmayiBagla, orionKonusmasi } from "./kopruDinleyicileri.ts";
 import { onayBaglantisiKur } from "./onayBaglantisi.ts";
 import { varlikSinyaliKur } from "./varlikSinyali.ts";
 import { dunyaDurumuKur, seciliDurumu } from "./dunyaDurumu.ts";
@@ -142,6 +142,11 @@ import { girdiAdaptoruKur } from "./ajanlar/girdiAdaptoru.ts";
 import { emirHedefleri as emirHedefleriBul, emirTeslim } from "./ajanlar/emir.ts";
 import { Koltuklar } from "./ajanlar/koltuklar.ts";
 import { flashBaglantisiKur, type FlashBaglantisi } from "./ajanlar/flashBaglantisi.ts";
+import { grafYetenegiKur, okumaSuresiMs, type AjanKapisi } from "./graf/grafYetenegi.ts";
+import { grafKutuphanesi } from "./graf/kutuphane.ts";
+import { grafDeposuKur, grafKaynaginiSec } from "./graf/grafDeposu.ts";
+import { grafCalistiriciKur } from "./graf/grafCalistirici.ts";
+import { grafSekmesi } from "./yapi/grafSekmesi.ts";
 
 const tuval = document.getElementById("tuval") as HTMLCanvasElement;
 const hud = document.getElementById("hud") as HTMLDivElement;
@@ -176,6 +181,7 @@ const imlec = imlecKipiKur({
   degisti: (acik) => {
     altCubuk.gorunur(acik);   // Yapı çubuğu yalnız imleç kipinde görünür (fare serbestken tıklanabilir)
     editorPenceresi.gorunur(acik);   // düzenleyici pencereleri de (gizlenir, KAYBOLMAZ: yazılmış metin durur)
+    grafPenceresi.gorunur(acik);     // grafiklerin JSON düzenleyicisi de (spec 35)
     orionAyarPaneli.gorunur(acik);   // Orion'un ayar paneli de (spec 34; fare kilitliyken tıklanamaz — gizlenir, seçim sürer)
     if (!acik) { nesnePaneli.kapat(); baglamMenusu.kapat(); duzenleme.bitir(); zeminKalemi.sec(null); }
   },
@@ -761,6 +767,59 @@ setInterval(() => {
   mdDeposu.anlikGuncelle(otomatikBlok(k.durum.kayitlar())).catch((e: unknown) => console.warn("[MD] anlık hafıza güncellenemedi:", e instanceof Error ? e.message : e));
 }, 4000);
 
+// DÜNYA EDİTÖRÜ (spec 35 dilim 1): düğüm grafikleri (Orion'u ve Flash'ı süren programlar) ve desenler. Yapı çubuğu · Graf sekmesi; düzenleme JSON (aynı
+// metin düzenleyici penceresi, ikinci örnek); çalıştırma YALNIZ Ozyn'in ▶ tıklamasıyla (sekme `isTrusted` bakar). Grafik dünyaya yalnız `GrafYetenegi`nden
+// dokunur: ajan listesi (defter), ajanın kapısı, Ozyn'in yerindeki nesneler. Terminal, hafıza, onay ayarları, protokol, level dosyası grafikte YOK.
+/**
+ * Ajanın grafiğe kapısı. Orion: niyet TEK eylem yolundan (`niyetiYurut`: yakınlık kuralı, şema, beden), sonuç bedeninden, söz Orion'un söz hattından
+ * (köprünün cevabıyla aynı: altyazı + Piper; ses yoksa okuma süresi beklenir). Orion'un defter kaydına `niyet` EKLENMEDİ: menüdeki "Flash ▸ …" girişleri
+ * `niyet`i olan ajanlardan çıkar ve Orion'un kendi menüsü zaten var (çift giriş olurdu). Öteki ajanlar (Flash) kaydındaki beden kapısıyla.
+ */
+function grafKapisi(id: string): AjanKapisi | null {
+  if (id === ORION_AJANI.id) {
+    const o = yol.al("orion");
+    if (!o) return null;
+    return {
+      id, ad: ORION_AJANI.ad,
+      niyet: (n, nid) => niyetiYurut(n, nid),
+      sonucDinle: (cb) => o.sonucDinle(cb),
+      soyle: async (m) => {
+        // `orionSesi` aşağıda kurulur: söz hattı çağrı ANINDA kurulur (kurulum sırasında değil).
+        const caldi = await orionKonusmasi({ altyaziGoster, altyaziEkle: altyaziGoster.ekle, gunluk, davranisKayit, orionSesi })(m);
+        if (!caldi) await new Promise<void>((r) => setTimeout(r, okumaSuresiMs(m)));
+      },
+      sus: () => orionSesi.kes(),
+    };
+  }
+  const a = ajanlar.al(id);
+  if (!a?.niyet || !a.sonucDinle) return null;
+  const { niyet, sonucDinle, soyle } = a;
+  return { id: a.id, ad: a.ad, niyet, sonucDinle, soyle: soyle ?? (async () => { throw new Error(`${a.ad}: söz hattı yok`); }) };
+}
+const grafKaynagi = grafKaynaginiSec();
+let grafHata: string | null = grafKaynagi.hata;
+const grafDeposu = grafDeposuKur(grafKaynagi.kaynak);
+const grafCalistirici = grafCalistiriciKur({
+  kayit: grafKutuphanesi(), depo: grafDeposu,
+  yetenek: grafYetenegiKur({
+    ajanlar: () => ajanlar.hepsi().map((x) => ({ id: x.id, ad: x.ad })), kapi: grafKapisi,
+    nesneler: () => yerler.ozyn.nesneler, capalar: () => yerler.ozyn.capalar,
+  }),
+  ajanlar: () => ajanlar.hepsi().map((x) => x.id),
+  gunluk: (seviye, metin) => { gunluk.ekle(seviye, "graf", metin); console.log(`[GRAF] ${metin}`); },
+});
+const grafPenceresi = editorPenceresiKur({
+  kaynak: { oku: (ad) => grafDeposu.oku(ad), yaz: (ad, metin) => grafDeposu.yaz(ad, metin) },
+  bilgi: (ad) => { const k = grafDeposu.liste().find((x) => x.ad === ad); return !k ? null : k.hata ? `✗ ${k.hata}` : k.tur === "olay" ? "grafik · ▶ Graf sekmesinden" : "desen · 'Desen' düğümüyle çağrılır"; },
+  not: () => "Düğüm grafiği (JSON). Ctrl+S biçimi doğrular (bozuksa kaydetmez); tür denetimi ve ▶ Graf sekmesinde.",
+  degistiNotu: "kaydedildi (biçim doğrulandı, okunur biçime çevrildi)",
+  altyazi: altyaziGoster,
+});
+grafDeposu.dinle((o) => { if (o.tur === "icerik") void grafPenceresi.icerikDegisti(o.ad); grafPenceresi.tazele(); });
+function grafAc(ad: string): void { grafPenceresi.ac(ad).catch((e: unknown) => altyaziGoster(`${ad} açılamadı: ${e instanceof Error ? e.message : String(e)}`, 4000)); }
+altCubuk.ekle(grafSekmesi({ depo: grafDeposu, calistirici: grafCalistirici, ac: grafAc, hata: () => grafHata, bildir: altyaziGoster }));
+grafDeposu.baslat().then(() => console.log(`[GRAF] ${grafDeposu.liste().length} grafik/desen`), (e: unknown) => { grafHata = e instanceof Error ? e.message : String(e); console.error("[GRAF] yüklenemedi:", grafHata); });
+
 /** Hedefin menüsünü aç; "Özellikler…" aynı noktada `panel`i gösterir. */
 function hedefMenusuAc(hedef: MenuHedefi, panel: PanelNesne, x: number, y: number): void {
   nesnePaneli.kapat();
@@ -871,6 +930,7 @@ const girdi = new MetinGirdi();
     flashBaglantisiKur({
       sahne, saat, vrmYolu: varlik(VARSAYILAN_VRM), yer: () => yerler.ozyn, oyuncuKonumu: () => oyuncu.oyuncuDurumu().konum,
       koltuklar, ajanlar, altyazi: altyaziGoster, altyaziEkle: altyaziGoster.ekle, gunluk, secili: seciliSoz, sema: flashSemaKancasi(flashZihni),
+      oyuncuDurumu: () => oyuncu.oyuncuDurumu(),
     }).then((b) => { flashBag = b; }, (e: unknown) => console.error("[FLASH] kurulamadı:", e));
   }
 }

@@ -10,6 +10,7 @@
 import type { DosyaDurumu } from "../mind/hafizaGocu.ts";
 import type { DinlemeOlayi } from "./dinleme.js";
 import type { MdBilgisi } from "./mdDosyalari.js";
+import type { DosyaBilgisi } from "./dosyaKlasoru.js";
 import type { SesDurumu, SesIndirmeIlerlemesi, SesSatiri } from "./sesler.js";
 
 export type { SesDurumu, SesIndirmeIlerlemesi, SesSatiri };
@@ -100,6 +101,11 @@ export interface Kopru {
   mdYaz(ad: string, metin: string): Promise<MdSonuc<true>>;
   mdYeni(ad: string, metin?: string): Promise<MdSonuc<true>>;
   mdAktif(ad: string, aktif: boolean): Promise<MdSonuc<true>>;
+  /** Düğüm grafikleri (spec 35 dilim 1): ad = grafın adı (uzantısız). Çalıştırma kanalı YOK (grafik renderer'da, Ozyn'in ▶'siyle). */
+  grafListe(): Promise<IpcSonuc<DosyaBilgisi[]>>;
+  grafOku(ad: string): Promise<IpcSonuc<string>>;
+  grafYaz(ad: string, metin: string): Promise<IpcSonuc<true>>;
+  grafYeni(ad: string, metin: string): Promise<IpcSonuc<true>>;
   /**
    * Orion'un sesi (spec 34, host/sesler.js). Her işlem güncel durumu döner. `sesSec` bir SONRAKİ cümleden geçerli; `ORION_PIPER_MODEL` varken
    * `kilitli` kodla reddedilir. `sesIndir` yalnız katalogdaki adı kabul eder (adres renderer'dan gelmez); `sesSil` yalnız panelden indirileni.

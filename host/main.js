@@ -14,6 +14,7 @@ import { Dinleyici } from "./dinleme.js";
 import { WebMonitor, VARSAYILAN_ADRES as GROMA_ADRESI } from "./webMonitor.js";
 import { durumYolu, hafizaDosyasiOku, hafizaDosyasiYaz, hafizaYolu } from "./hafizaDosyasi.js";
 import { mdAktifYap, mdDizini, mdListe, mdOku, mdTohumla, mdYaz, mdYeni } from "./mdDosyalari.js";
+import { grafDizini, grafListe, grafOku, grafYaz, grafYeni } from "./grafDosyalari.js";
 import { kararYaziciKur, ogretimYolu, ogretimleriOku, satirlariOku, yeniSatirlar } from "./kararDosyasi.js";
 import { mcpSunucuKur } from "./mcpSunucu.js";
 import { ollamaHazirla, ollamaAdresi } from "./ollamaSunucu.js";
@@ -417,6 +418,14 @@ ipcMain.handle(CAGRI.mdOku, (_e, ad) => mdSar(() => mdOku(MD_DIZINI, ad)));
 ipcMain.handle(CAGRI.mdYaz, (_e, ad, metin) => mdSar(() => { mdYaz(MD_DIZINI, ad, metin); return true; }));
 ipcMain.handle(CAGRI.mdYeni, (_e, ad, metin) => mdSar(() => { mdYeni(MD_DIZINI, ad, metin ?? ""); return true; }));
 ipcMain.handle(CAGRI.mdAktif, (_e, ad, aktif) => mdSar(() => { mdAktifYap(MD_DIZINI, ad, aktif); return true; }));
+
+// ---- düğüm grafikleri (spec 35 dilim 1) ---------------------------------------------
+// Ozyn'in (ve dilim 4'te Orion'un önerdiği) programlar ve desenler: kullanıcı verisinde (repoda DEĞİL). Biçimi renderer doğrular; burası yalnız tutar.
+const GRAF_DIZINI = grafDizini(process.env, app.getPath("userData"), os.tmpdir());
+ipcMain.handle(CAGRI.grafListe, () => ipcSonucu(() => grafListe(GRAF_DIZINI)));
+ipcMain.handle(CAGRI.grafOku, (_e, ad) => ipcSonucu(() => grafOku(GRAF_DIZINI, ad)));
+ipcMain.handle(CAGRI.grafYaz, (_e, ad, metin) => ipcSonucu(() => { grafYaz(GRAF_DIZINI, ad, metin); return true; }));
+ipcMain.handle(CAGRI.grafYeni, (_e, ad, metin) => ipcSonucu(() => { grafYeni(GRAF_DIZINI, ad, metin); return true; }));
 
 // ---- MCP ucu (spec 05 Aşama 1) --------------------------------------------
 // Odadaki `claude` buraya bağlanıp Orion'un bedenini sürer. İstekler IPC ile

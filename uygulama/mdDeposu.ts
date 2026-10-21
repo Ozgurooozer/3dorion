@@ -4,6 +4,7 @@
 // talimatı SENKRON kurabilsin (`baglam()`); (3) anlık hafıza dosyasının otomatik bölümünü güncel tutar (`anlikGuncelle`).
 // Kaynak iki türlü: Electron'da host dosyaları (IPC), `npm run dev`'de localStorage (dosya yok; kalıcı ama tarayıcıya bağlı). Arayüz farkı bilmez.
 // Bütün yazan işlemler SIRAYLA çalışır (okuma-değiştirme-yazma yarışmasın); hata fırlatır (arayüz altyazıyla söyler), sessiz yutulmaz.
+// Kaynakların ve sıranın gövdesi ortak çekirdekte (`dosyaDeposu.ts`): düğüm grafikleri (spec 35) aynısını kullanır; burada md'ye özgü olan (aktif/pasif, bağlam).
 "use strict";
 import type { MdBilgisi } from "../host/mdDosyalari.js";
 import type { MdSonuc } from "../host/kopru.ts";
@@ -12,20 +13,17 @@ import { bolumuGuncelle, kaydetBirlestir } from "../mind/anlikHafiza.ts";
 import type { Depo } from "./yerlestirmeKaydi.ts";
 import { kabukKoprusu } from "./kabuk.ts";
 import { ipcAc } from "./ipcSonuc.ts";
+import { DosyaHatasi, calismayanDosyaKaynagi, ipcDosyaKaynagi, isSirasi, tarayiciDeposu, yerelDosyaKaynagi, type DosyaKaynagi } from "./dosyaDeposu.ts";
 
 export type { MdBilgisi };
 
 /** md işlemi hatası: `kod` host'un kodudur (yok | var | gecersiz-ad | gecersiz-icerik | cok-buyuk | bozuk-ayar | hata). */
-export class MdHatasi extends Error {
-  readonly kod: string;
-  constructor(kod: string, mesaj: string) { super(mesaj); this.name = "MdHatasi"; this.kod = kod; }
+export class MdHatasi extends DosyaHatasi {
+  constructor(kod: string, mesaj: string) { super(kod, mesaj); this.name = "MdHatasi"; }
 }
+const mdHatasi = (kod: string, mesaj: string): Error => new MdHatasi(kod, mesaj);
 
-export interface MdKaynagi {
-  liste(): Promise<MdBilgisi[]>;
-  oku(ad: string): Promise<string>;
-  yaz(ad: string, metin: string): Promise<void>;
-  yeni(ad: string, metin: string): Promise<void>;
+export interface MdKaynagi extends DosyaKaynagi<MdBilgisi> {
   aktifYap(ad: string, aktif: boolean): Promise<void>;
 }
 
@@ -37,45 +35,31 @@ export interface MdKopruYuzu {
   mdYeni(ad: string, metin?: string): Promise<MdSonuc<true>>;
   mdAktif(ad: string, aktif: boolean): Promise<MdSonuc<true>>;
 }
-const ac = <T>(s: MdSonuc<T>): T => ipcAc(s, (kod, mesaj) => new MdHatasi(kod, mesaj));
+const ac = <T>(s: MdSonuc<T>): T => ipcAc(s, mdHatasi);
 export function ipcKaynagi(k: MdKopruYuzu): MdKaynagi {
   return {
-    liste: async () => ac(await k.mdListe()),
-    oku: async (ad) => ac(await k.mdOku(ad)),
-    yaz: async (ad, metin) => { ac(await k.mdYaz(ad, metin)); },
-    yeni: async (ad, metin) => { ac(await k.mdYeni(ad, metin)); },
+    ...ipcDosyaKaynagi<MdBilgisi>({ liste: () => k.mdListe(), oku: (ad) => k.mdOku(ad), yaz: (ad, metin) => k.mdYaz(ad, metin), yeni: (ad, metin) => k.mdYeni(ad, metin) }, mdHatasi),
     aktifYap: async (ad, aktif) => { ac(await k.mdAktif(ad, aktif)); },
   };
 }
 
-// ── localStorage kaynağı (Electron'suz geliştirme) ──
+// ── localStorage kaynağı (Electron'suz geliştirme): ortak yerel kaynak + md'nin `aktif` bayrağı ──
 export const YEREL_MD_ANAHTARI = "orion.md.v1";
-interface YerelDosya { metin: string; aktif: boolean; degisti: number }
 
 export function yerelKaynak(depo: Depo, simdi: () => number = Date.now): MdKaynagi {
-  const oku = (): Record<string, YerelDosya> => {
-    const ham = depo.getItem(YEREL_MD_ANAHTARI);
-    if (!ham) return {};
-    const v: unknown = JSON.parse(ham);
-    if (typeof v !== "object" || v === null || Array.isArray(v)) throw new MdHatasi("bozuk-ayar", "yerel md kaydı bozuk");
-    return v as Record<string, YerelDosya>;
-  };
-  const yaz = (d: Record<string, YerelDosya>) => depo.setItem(YEREL_MD_ANAHTARI, JSON.stringify(d));
-  const dene = (ad: string) => { if (!mdAdiGecerli(ad)) throw new MdHatasi("gecersiz-ad", `geçersiz md adı: ${JSON.stringify(ad)}`); };
-  const var_ = (d: Record<string, YerelDosya>, ad: string): YerelDosya => { const x = d[ad]; if (!x) throw new MdHatasi("yok", `md dosyası yok: ${ad}`); return x; };
+  const k = yerelDosyaKaynagi<{ aktif: boolean }>(depo, {
+    anahtar: YEREL_MD_ANAHTARI, adGecerli: mdAdiGecerli, hata: mdHatasi, etiket: "md dosyası", adEtiketi: "md adı",
+    yeniEk: (ad) => ({ aktif: ad === ANLIK_HAFIZA }), ekAl: (x) => ({ aktif: x.aktif }),
+  }, simdi);
   return {
     async liste() {
-      return Object.entries(oku()).map(([ad, x]) => ({ ad, boyut: new TextEncoder().encode(x.metin).length, degisti: x.degisti, aktif: x.aktif, sistem: ad === ANLIK_HAFIZA }))
+      return (await k.liste()).map((x) => ({ ...x, sistem: x.ad === ANLIK_HAFIZA }))
         .sort((a, b) => Number(b.sistem) - Number(a.sistem) || a.ad.localeCompare(b.ad, "tr"));
     },
-    async oku(ad) { dene(ad); return var_(oku(), ad).metin; },
-    async yaz(ad, metin) { dene(ad); const d = oku(); const x = var_(d, ad); d[ad] = { ...x, metin, degisti: simdi() }; yaz(d); },
-    async yeni(ad, metin) {
-      dene(ad); const d = oku();
-      if (d[ad]) throw new MdHatasi("var", `zaten var: ${ad}`);
-      d[ad] = { metin, aktif: ad === ANLIK_HAFIZA, degisti: simdi() }; yaz(d);
-    },
-    async aktifYap(ad, aktif) { dene(ad); const d = oku(); d[ad] = { ...var_(d, ad), aktif }; yaz(d); },
+    oku: (ad) => k.oku(ad),
+    yaz: (ad, metin) => k.yaz(ad, metin),
+    yeni: (ad, metin) => k.yeni(ad, metin),
+    aktifYap: (ad, aktif) => k.ekGuncelle(ad, { aktif }),
   };
 }
 
@@ -109,15 +93,9 @@ export function mdDeposuKur(kaynak: MdKaynagi, sinir: () => MdSinirlari = () => 
   let liste: MdBilgisi[] = [];
   const metinler = new Map<string, string>();   // yalnız AKTİF dosyaların metni
   const dinleyiciler = new Set<(o: MdOlayi) => void>();
-  let kuyruk: Promise<unknown> = Promise.resolve();
+  const sira = isSirasi();
+  const sirala = <T>(is: () => Promise<T>): Promise<T> => sira.sirala(is);
   const yay = (o: MdOlayi) => { for (const f of [...dinleyiciler]) f(o); };
-
-  /** İşi sıraya al; önceki iş hata verse de sıra devam eder, bu işin hatası çağırana gider. */
-  function sirala<T>(is: () => Promise<T>): Promise<T> {
-    const s = kuyruk.then(is, is);
-    kuyruk = s.catch(() => undefined);
-    return s;
-  }
 
   async function listeyiTazele(): Promise<void> {
     liste = await kaynak.liste();
@@ -162,22 +140,20 @@ export function mdDeposuKur(kaynak: MdKaynagi, sinir: () => MdSinirlari = () => 
       return true;
     }),
     dinle(f) { dinleyiciler.add(f); return () => { dinleyiciler.delete(f); }; },
-    bitti: async () => { await kuyruk; },
+    bitti: () => sira.bitti(),
   };
 }
 
 /** Hiçbir md kaynağı yokken: her işlem nedenle HATA verir (depo boş kalır, arayüz nedeni söyler; sessiz boş liste değil). */
 export function calismayanKaynak(neden: string): MdKaynagi {
-  const hata = async (): Promise<never> => { throw new MdHatasi("hata", neden); };
-  return { liste: async () => [], oku: hata, yaz: hata, yeni: hata, aktifYap: hata };
+  return { ...calismayanDosyaKaynagi(neden, mdHatasi), aktifYap: async (): Promise<never> => { throw new MdHatasi("hata", neden); } };
 }
 
 /** Çalışma ortamına göre kaynak: Electron'da host dosyaları (IPC), değilse (`npm run dev`) localStorage; ikisi de yoksa nedenli çalışmayan kaynak. */
 export function mdKaynaginiSec(): { kaynak: MdKaynagi; hata: string | null } {
   const k = kabukKoprusu();
   if (k?.mdListe && k.mdOku && k.mdYaz && k.mdYeni && k.mdAktif) return { kaynak: ipcKaynagi(k as MdKopruYuzu), hata: null };
-  let depo: Depo | null = null;
-  try { depo = globalThis.localStorage ?? null; } catch { depo = null; }
+  const depo = tarayiciDeposu();
   if (!depo) { const neden = "md dosyaları için ne kabuk ne localStorage var"; return { kaynak: calismayanKaynak(neden), hata: neden }; }
   console.warn("[MD] kabuk yok (npm run dev): md dosyaları tarayıcı deposunda tutulur");
   return { kaynak: yerelKaynak(depo), hata: null };

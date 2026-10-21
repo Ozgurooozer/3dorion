@@ -68,6 +68,14 @@ const CAGRI = {
   mdYeni:            "md:yeni",
   mdAktif:           "md:aktif",
   /**
+   * Düğüm grafikleri (spec 35 dilim 1, host/grafDosyalari.js): ad = grafın adı (uzantısız). Sonuç biçimi md'ninkiyle aynı. Biçimi renderer doğrular
+   * (protocol/graf.ts); kabuk yalnız dosyayı tutar. ÇALIŞTIRMA kanalı YOK: grafik renderer'da, yalnız Ozyn'in ▶'siyle çalışır.
+   */
+  grafListe:         "graf:liste",
+  grafOku:           "graf:oku",
+  grafYaz:           "graf:yaz",
+  grafYeni:          "graf:yeni",
+  /**
    * Orion'un sesi (spec 34, host/sesler.js): kurulu/katalog sesleri, seçim (bir SONRAKİ cümleden geçerli), katalogdan indirme, yalnız indirileni silme.
    * Sonuç biçimi md'ninkiyle aynı (`{ ok, deger: SesDurumu }` | `{ ok: false, kod, mesaj }`); deneme cümlesi mevcut `sesUret` yolundan çalar.
    */

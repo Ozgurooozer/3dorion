@@ -50,20 +50,32 @@ function eylemlerOf(n: Nesne, capa: Capa | null): readonly string[] {
   return capa ? capa.eylemler : ["bak"];
 }
 
+/**
+ * Bir nesneye GİTMEK ve BAKMAK için niyetler. Çapa varsa çapa (durağına gider, yönüne döner); yoksa nesnenin noktası (avatar adla yalnız çapa çözer) ve
+ * kutusunun yarıçapı + 0.8 m uzakta durur. Etkileşim menüsü ve düğüm grafiği (spec 35 "Git/Bak: nesne", `uygulama/graf/ajanDugumleri.ts`) AYNI kuralı
+ * kullanır: biri değişip öteki eski kalmasın diye tek yerde.
+ */
+export function nesneHedefleri(n: Nesne, capalar: readonly Capa[]): { git: Extract<Niyet, { tur: "git" }>; bak: Extract<Niyet, { tur: "bak" }> } {
+  const capa = n.capa ? capaBul(n.capa, capalar) : null;
+  const k = n.kutu;
+  const yaricap = Math.max(k.g, k.d) / 2;
+  const hedefGit: Hedef = capa ? { tip: "capa", ad: capa.ad } : { tip: "nokta", x: k.x, y: 0, z: k.z };
+  const hedefBak: Hedef = capa ? { tip: "capa", ad: capa.ad } : { tip: "nokta", x: k.x, y: k.y, z: k.z };
+  return {
+    git: capa ? { tur: "git", hedef: hedefGit } : { tur: "git", hedef: hedefGit, mesafe: yaricap + 0.8 },
+    bak: { tur: "bak", hedef: hedefBak },
+  };
+}
+
 export function nesneEylemleri(n: Nesne, b: EylemBaglami): NesneEylemi[] {
   const capa = n.capa ? capaBul(n.capa, b.capalar) : null;
   const eylemler = eylemlerOf(n, capa);
-  const k = n.kutu;
-  const yaricap = Math.max(k.g, k.d) / 2;
   const cikti: NesneEylemi[] = [];
 
-  // Orion'un yürüyüp bakacağı hedef: çapa varsa çapa (durağına gider, yönüne döner); yoksa nesnenin noktası.
-  const hedefGit: Hedef = capa ? { tip: "capa", ad: capa.ad } : { tip: "nokta", x: k.x, y: 0, z: k.z };
-  const hedefBak: Hedef = capa ? { tip: "capa", ad: capa.ad } : { tip: "nokta", x: k.x, y: k.y, z: k.z };
-
-  cikti.push({ kimlik: "orion.git", ad: "Yanına git", kim: "orion", uygun: true,
-    niyet: capa ? { tur: "git", hedef: hedefGit } : { tur: "git", hedef: hedefGit, mesafe: yaricap + 0.8 } });
-  cikti.push({ kimlik: "orion.bak", ad: "Ona bak", kim: "orion", uygun: true, niyet: { tur: "bak", hedef: hedefBak } });
+  // Orion'un yürüyüp bakacağı hedef: `nesneHedefleri` (grafik de aynısını kullanır).
+  const hedef = nesneHedefleri(n, b.capalar);
+  cikti.push({ kimlik: "orion.git", ad: "Yanına git", kim: "orion", uygun: true, niyet: hedef.git });
+  cikti.push({ kimlik: "orion.bak", ad: "Ona bak", kim: "orion", uygun: true, niyet: hedef.bak });
 
   if (capa && eylemler.includes("odaklan")) {
     cikti.push({ kimlik: "orion.odaklan", ad: "Odaklan", kim: "orion", uygun: true, niyet: { tur: "odaklan", capa: capa.ad } });

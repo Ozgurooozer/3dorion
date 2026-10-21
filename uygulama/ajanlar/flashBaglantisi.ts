@@ -17,6 +17,7 @@ import type { Saat } from "../../world/engine/tik.ts";
 import type { Yer } from "../../world/yer/yer.ts";
 import type { GunlukEkrani } from "../../world/surfaces/duvar/gunluk.ts";
 import type { Vec3 } from "../../protocol/temel.ts";
+import type { OyuncuDurumu } from "../../protocol/algi.ts";
 import { kimlik } from "../../protocol/temel.ts";
 import { Ajanda, AJANDA_ONEKI } from "../../mind/ajanda.ts";
 import { mesgulMu } from "../../mind/benlik.ts";
@@ -25,6 +26,8 @@ import { flashKur, type Flash } from "../../flash/flashKur.ts";
 import { FLASH } from "../../flash/npcTanimi.ts";
 import { Takipci } from "../takip.ts";
 import { avatarAdimi } from "../niyetYurutucu.ts";
+import { okumaSuresiMs } from "../graf/grafYetenegi.ts";
+import { ajanAlgisiKur } from "./ajanAlgisi.ts";
 import type { AjanDefteri } from "./ajanKaydi.ts";
 import type { FlashSemaKancasi } from "./flashSemasi.ts";
 import type { Koltuklar } from "./koltuklar.ts";
@@ -48,6 +51,8 @@ export interface FlashBaglantisiGirdisi {
   gunluk: Pick<GunlukEkrani, "ekle">;
   secili?: () => SeciliNesne | null;
   sema?: FlashSemaKancasi;
+  /** Oyuncunun ham durumu (`oyuncu.oyuncuDurumu()`): Flash'ın "gözü" bunu KENDİ gövdesine göre yeniden hesaplar (ajanAlgisi.ts). Verilmezse Flash dünyayı görmez. */
+  oyuncuDurumu?: () => OyuncuDurumu;
 }
 
 export interface FlashBaglantisi {
@@ -92,15 +97,26 @@ export async function flashBaglantisiKur(g: FlashBaglantisiGirdisi): Promise<Fla
     if (s.durum === "hata") g.gunluk.ekle("uyari", "flash", `${s.niyet_id} başarısız: ${s.not ?? "sebep yok"}`);
     flash.kopru.sonuc(s);
   });
-  flash.kopru.konusmaDinle((m) => {
+  // Flash'ın sözü: köprünün cevabı da düğüm grafiğinin "Söyle"si de (spec 35) AYNI satırdan çıkar (altyazı + günlük; TTS yok).
+  const konus = (m: string): void => {
     if (g.altyaziEkle) g.altyaziEkle(FLASH.ad, m, 3500, true); else g.altyazi(`${FLASH.ad}: ${m}`, 3500);
     g.gunluk.ekle("bilgi", "flash", m);
-  });
+  };
+  flash.kopru.konusmaDinle(konus);
 
   // Boşta kıpırtı + takip: 20 Hz mantık saatinde (çizimde değil, K1). Meşgul: köprü düşünüyor/yürüyor ya da takip yürüyüşü sürüyor.
   const ajanda = new Ajanda({ tohum: FLASH_AJANDA_TOHUMU });
+  // Flash'ın gözü: dünya olayları (Ozyn yaklaştı/uzaklaştı/baktı/yüzeye geçti) KENDİ gövdesine göre köprüsüne gider; tepki NPC tanımından (veri).
+  // Tepki niyeti ajanda önekiyle gider: köprü sonucunu sessiz yutar (kıpırtı, uyanış sebebi değil).
+  const goz = g.oyuncuDurumu ? ajanAlgisiKur({
+    beden: () => avatar, oyuncu: g.oyuncuDurumu, algi: (a) => flash.kopru.algi(a),
+    ...(FLASH.tepkiler ? { tepkiler: FLASH.tepkiler } : {}),
+    niyet: (n) => { avatar.niyet(n, kimlik(AJANDA_ONEKI)); },
+    iz: (ad) => console.log(`[ALGI] flash olay: ${ad}`),
+  }) : null;
   g.saat.dinle((t) => {
     takipci.tik();
+    goz?.tikle(t * 1000);
     const mesgul = mesgulMu(flash.kopru.benlik.oku()).mesgul || takipci.yuruyor;
     const oneri = ajanda.tikle(t * 1000, mesgul);
     if (oneri) avatar.niyet(oneri, kimlik(AJANDA_ONEKI));
@@ -108,7 +124,14 @@ export async function flashBaglantisiKur(g: FlashBaglantisiGirdisi): Promise<Fla
   // Görsel yumuşatma her çizim karesinde (Orion'unki giris.ts'in çizim döngüsünde; Flash'ınki kendi gözlemcisinde, MANTIK YOK).
   g.sahne.onBeforeRenderObservable.add(() => avatar.cizimGuncelle(Math.min(g.sahne.getEngine().getDeltaTime(), 100) / 1000));
 
-  g.ajanlar.kaydet({ id: FLASH.id, ad: FLASH.ad, renk: FLASH.renk, kume: null, hitapAyiklar: true, niyet: (n, id) => { avatar.niyet(n, id); }, algi: (a) => flash.kopru.algi(a) });
+  // Grafiğin kapısı (spec 35): niyet bedenin kendisine, sonuç bedenden, söz yukarıdaki satırdan. Ses yok: söz okuma süresi kadar bekletilir ki sonraki düğüm
+  // altyazıyı hemen ezmesin (`okumaSuresiMs`, uygulama/graf/grafYetenegi.ts).
+  g.ajanlar.kaydet({
+    id: FLASH.id, ad: FLASH.ad, renk: FLASH.renk, kume: null, hitapAyiklar: true,
+    niyet: (n, id) => { avatar.niyet(n, id); }, sonucDinle: (cb) => avatar.sonucDinle(cb),
+    soyle: (m) => { konus(m); return new Promise<void>((r) => setTimeout(r, okumaSuresiMs(m))); },
+    algi: (a) => flash.kopru.algi(a),
+  });
   g.gunluk.ekle("bilgi", "flash", `${FLASH.ad} odada (LLM'siz NPC)`);
   console.log(`[FLASH] beden hazır (${avatar.iskeletBilgisi().tur}), ajan kaydedildi`);
 

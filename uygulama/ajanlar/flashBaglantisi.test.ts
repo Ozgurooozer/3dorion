@@ -6,6 +6,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { carpisiyorMu } from "../../world/level/olculer.ts";
 import { ODA_YERI } from "../../world/yer/odaYeri.ts";
+import type { OyuncuDurumu } from "../../protocol/algi.ts";
+import type { KararSatiri } from "../../mind/kararKaydi.ts";
 import { AjanDefteri } from "./ajanKaydi.ts";
 import { girdiAdaptoruKur } from "./girdiAdaptoru.ts";
 import { Koltuklar } from "./koltuklar.ts";
@@ -19,7 +21,7 @@ const { flashBaglantisiKur, FLASH_DOGUM } = await import("./flashBaglantisi.ts")
 const GLB = `data:model/gltf-binary;base64,${readFileSync(new URL("../../assets/orion-lowpoly.glb", import.meta.url)).toString("base64")}`;
 const bekle = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-async function dunya() {
+async function dunya(ozyn?: () => OyuncuDurumu) {
   const motor = new NullEngine();
   const sahne = new Scene(motor);
   const saat = new Saat();
@@ -34,6 +36,7 @@ async function dunya() {
     koltuklar.kaydet("Orion", () => orion.koltugu());
     const fb = await flashBaglantisiKur({
       sahne, saat, vrmYolu: GLB, yer: () => ODA_YERI, oyuncuKonumu: () => ({ x: 1.6, y: 0, z: 1.9 }),
+      ...(ozyn ? { oyuncuDurumu: ozyn } : {}),
       koltuklar, ajanlar, altyazi: (m) => { altyazilar.push(m); }, gunluk: { ekle: () => {} },
     });
     const girdi = girdiAdaptoruKur({ ajanlar: () => ajanlar.hepsi(), hedef: () => "flash" });
@@ -87,5 +90,35 @@ test("aktör kaydı: birleşik dünya Flash'ın mesh'lerini ve konumunu görür"
   try {
     const a = d.fb.aktor();
     assert.deepEqual([a !== null && a.meshler.length > 0, a?.x, a?.z], [true, FLASH_DOGUM.x, FLASH_DOGUM.z]);
+  } finally { d.kapat(); }
+});
+
+test("Flash'ın gözü: Ozyn yaklaşınca olay Flash'ın KENDİ köprüsüne düşer", async () => {
+  // Ozyn ham durumu Orion'a göre hesaplı; Flash'ın gözü kendi gövdesine göre yeniden hesaplar (uzak → yakın, Flash'a dönük).
+  const flashKonumu = FLASH_DOGUM;
+  let yakin = false;
+  const ozyn = (): OyuncuDurumu => {
+    const x = yakin ? flashKonumu.x + 1.2 : flashKonumu.x + 6, z = flashKonumu.z;
+    return { konum: { x, y: 1.7, z }, bakis: { x: -1, y: 0, z: 0 }, bakiyor: false, mesafe: 99, etkilesim: null };
+  };
+  const d = await dunya(ozyn);
+  const satirlar: KararSatiri[] = [];
+  d.fb.flash.kararDinle((s) => satirlar.push(s));
+  try {
+    d.ilerle(5);
+    yakin = true;
+    d.ilerle(5);
+    const olaylar = satirlar.flatMap((s) => (s.tur === "algi" && s.algi === "olay" && s.olay ? [s.olay] : []));
+    assert.deepEqual(olaylar, ["ozyn_yaklasti"]);
+  } finally { d.kapat(); }
+});
+
+test("Flash'ın gözü: oyuncu durumu verilmezse Flash dünyadan olay almaz (eski davranış)", async () => {
+  const d = await dunya();
+  const satirlar: KararSatiri[] = [];
+  d.fb.flash.kararDinle((s) => satirlar.push(s));
+  try {
+    d.ilerle(10);
+    assert.deepEqual(satirlar.filter((s) => s.tur === "algi" && s.algi === "olay"), []);
   } finally { d.kapat(); }
 });

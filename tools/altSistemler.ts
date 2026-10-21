@@ -77,6 +77,8 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
       "world/player/bedenAyari.ts",
       // Oyun tuşları (etkileşim F, kamera C): HUD ve yardım metinlerinin etiketi buradan türer.
       "world/player/tuslar.ts",
+      // Bakış konisi sabiti (saf): oyuncu durumu da ajanın gözü de (uygulama/ajanlar/ajanAlgisi.ts) aynı toleransı kullanır.
+      "world/player/bakis.ts",
       // Nesne seçimi ve etkileşim menüsü (spec 28): imleç kipi (Tab), ışın→nesne seçici, fare ışını, seçim çerçevesi, menü eylemleri.
       // Kompozisyon kökü (giris.ts) ve uygulama/nesneSecimi.ts · nesneEtkilesimi.ts bağlar.
       "world/player/imlecKipi.ts", "world/player/nesneSecici.ts", "world/engine/fareIsini.ts", "world/level/secimVurgusu.ts", "world/yer/nesneEylemleri.ts", "world/player/hedefSecici.ts", "world/yer/hedefEylemleri.ts",
@@ -193,7 +195,9 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
     ad: "Kabuk", sorumluluk: "Electron ana süreci: pty, IPC, dosya depoları, yan süreçleri başlatma.",
     yollar: ["host/"],
     // mdDosyalari.js: Orion'un md dosyaları (spec 32) — uygulama/mdDeposu.ts yalnız TİP alır (MdBilgisi); çalışma kodu renderer'a girmez (node:fs).
-    kamu: ["host/kopru.ts", "host/kanallar.cjs", "host/levelDosyasi.js", "host/mdDosyalari.js"],
+    kamu: ["host/kopru.ts", "host/kanallar.cjs", "host/levelDosyasi.js", "host/mdDosyalari.js",
+      // Dosya klasörü ortak çekirdeği (spec 35 dilim 1: md + düğüm grafikleri): uygulama/dosyaDeposu.ts yalnız TİP alır (DosyaBilgisi).
+      "host/dosyaKlasoru.js"],
     izinli: [], tipIzinli: ["Zihin"], urun: true,
   },
   {

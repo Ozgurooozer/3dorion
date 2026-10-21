@@ -34,14 +34,13 @@ import type { Yer } from "../yer/yer.ts";
 import { ODA_YERI } from "../yer/odaYeri.ts";
 import { oyuncuBedeniYukle, type OyuncuBedeni } from "./oyuncuBeden.ts";
 import { ayariDuzelt, type BedenAyari } from "./bedenAyari.ts";
+import { BAKIS_KOSINUS } from "./bakis.ts";   // "Orion'a bakıyor" konik toleransı (yarı açı ≈ 28°)
 
 /** Yürüme / koşma hızı (m/s). */
 const HIZ_YURU = 2.6;
 const HIZ_KOS = 4.6;
 /** Etkileşim ışını menzili — spec: 2.5 m. */
 const ISIN_MENZIL = 2.5;
-/** "Orion'a bakıyor" konik toleransı (yarı açı ≈ 28°). */
-const BAKIS_KOSINUS = Math.cos(0.49);
 /**
  * Kamera gövdeye bu mesafeden yakınsa gövde çizilmez (metre).
  *

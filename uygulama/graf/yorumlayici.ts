@@ -8,6 +8,8 @@
 //   • DESEN: `desen.cagir` yeni bir çerçevede fonksiyon grafiğini girdilerle yürütür; "Fonksiyon dönüşü" çıktıları verir ve çerçeveyi bitirir.
 // Güvence: çalışmadan ÖNCE tür denetimi (hata varsa hiç başlamaz); adım, süre ve desen derinliği tavanlı; ■ `durdur()` her adımda ve her beklemede
 // bakılır. Her düğüm başlarken `olay` yayılır (editördeki aktif düğüm vurgusu, günlük).
+// Dilim 1: dünya işi (ajanın yürüyüşü) bir SÖZDÜR, süre değil: düğüm onu `bekleVeyaDur` ile bekler, ■ beklemeyi hemen keser ve `durdurulunca`
+// kancaları dünyadaki işi de durdurur (bedene `dur`). Hata, oluştuğu grafikle (desen içindeyse desenin adı) döner.
 "use strict";
 import type { Graf, PinUcu } from "../../protocol/graf.ts";
 import type { DugumCalismasi, DugumKaydi, DugumSonucu } from "./dugumKaydi.ts";
@@ -27,12 +29,15 @@ export type CalismaOlayi =
   | { tur: "dugum"; graf: string; id: string; derinlik: number }
   | { tur: "bitti"; adim: number }
   | { tur: "durdu"; adim: number }
+  /** `graf`: hatanın OLDUĞU grafik (desenin içindeyse desenin adı; dilim 1: editör hatalı düğümü doğru grafikte göstersin). */
   | { tur: "hata"; graf: string; id: string | null; mesaj: string };
 
 export interface CalismaAyari<Y> {
   kayit: DugumKaydi<Y>;
   /** Kaydedilmiş desenler (fonksiyon grafikleri). */
   desen(ad: string): Graf | null;
+  /** Ajan defterinin kimlikleri (tür denetiminde "Ajan seç" seçenekleri). Verilmezse boş: ajan seçen grafik çalışmaz (bkz. `PinOrtami.ajanlar`). */
+  ajanlar?: () => readonly string[];
   yetenek: Y;
   simdi?: () => number;
   /** Bekleme (testte sahte saat). */
@@ -47,6 +52,8 @@ export interface CalismaSonucu {
   hata?: string;
   /** Hatanın düğümü (editör onu kırmızı gösterir). */
   hataDugumu?: string;
+  /** Hatalı düğümün grafiği (desenin içindeyse desen; değilse çalışan grafik). */
+  hataGrafi?: string;
 }
 
 export interface Calisma {
@@ -58,7 +65,8 @@ export interface Calisma {
 class Durduruldu extends Error {}
 class DugumHatasi extends Error {
   readonly dugum: string | null;
-  constructor(dugum: string | null, mesaj: string) { super(mesaj); this.dugum = dugum; }
+  readonly graf: string | null;
+  constructor(dugum: string | null, mesaj: string, graf: string | null = null) { super(mesaj); this.dugum = dugum; this.graf = graf; }
 }
 
 interface Cerceve {
@@ -83,14 +91,17 @@ export function grafCalistir<Y>(g: Graf, a: CalismaAyari<Y>): Calisma {
   const baslangic = simdi();
   let adim = 0;
   let durdu = false;
+  let bitti = false;
   let durmaCoz: () => void = () => {};
   const durma = new Promise<void>((r) => { durmaCoz = r; });
+  /** ■ kancaları (`durdurulunca`): dünyadaki süren işi kesenler. Çalışma bitince temizlenir (geç ■ eski bir işi kesmesin). */
+  const durunca = new Set<() => void>();
 
-  const ortam = { desen: (ad: string) => a.desen(ad), buGraf: null };
+  const ortam = { desen: (ad: string) => a.desen(ad), buGraf: null, ajanlar: () => a.ajanlar?.() ?? [] };
 
   function cerceveKur(graf: Graf, derinlik: number, girdiler: Readonly<Record<string, unknown>>): Cerceve {
     const hatalar = grafTurDenetle(graf, a.kayit, ortam);
-    if (hatalar.length) throw new DugumHatasi(null, `'${graf.ad}' çalıştırılamaz: ${hatalar.join("; ")}`);
+    if (hatalar.length) throw new DugumHatasi(null, `'${graf.ad}' çalıştırılamaz: ${hatalar.join("; ")}`, graf.ad);
     const { cozum } = dugumleriCoz(graf, a.kayit, ortam);
     const akisHedefi = new Map<string, string>(), veriKaynagi = new Map<string, PinUcu>();
     for (const b of graf.baglar) {
@@ -102,10 +113,10 @@ export function grafCalistir<Y>(g: Graf, a: CalismaAyari<Y>): Calisma {
     return { graf, cozum, derinlik, ciktilar: new Map(), girdiler, donus: null, akisHedefi, veriKaynagi };
   }
 
-  function adimSay(id: string): void {
+  function adimSay(c: Cerceve, id: string): void {
     if (durdu) throw new Durduruldu();
-    if (++adim > sinir.adim) throw new DugumHatasi(id, `adım tavanı aşıldı (${sinir.adim}): grafik çok uzun ya da sonsuza yakın tekrar ediyor`);
-    if (simdi() - baslangic > sinir.sureMs) throw new DugumHatasi(id, `süre tavanı aşıldı (${Math.round(sinir.sureMs / 1000)} sn)`);
+    if (++adim > sinir.adim) throw new DugumHatasi(id, `adım tavanı aşıldı (${sinir.adim}): grafik çok uzun ya da sonsuza yakın tekrar ediyor`, c.graf.ad);
+    if (simdi() - baslangic > sinir.sureMs) throw new DugumHatasi(id, `süre tavanı aşıldı (${Math.round(sinir.sureMs / 1000)} sn)`, c.graf.ad);
   }
 
   async function bekle(ms: number): Promise<void> {
@@ -114,12 +125,28 @@ export function grafCalistir<Y>(g: Graf, a: CalismaAyari<Y>): Calisma {
     if (durdu) throw new Durduruldu();
   }
 
+  /** Bir sözü ■'ye karşı bekler. Kaybeden söz sonradan reddederse "yakalanmamış ret" olmasın diye ona boş bir yakalayıcı takılır (yarış yine reddi görür). */
+  async function bekleVeyaDur<T>(is: Promise<T>): Promise<T> {
+    if (durdu) throw new Durduruldu();
+    is.catch(() => undefined);
+    const r = await Promise.race([is.then((deger) => ({ deger })), durma.then(() => null)]);
+    if (r === null || durdu) throw new Durduruldu();
+    return r.deger;
+  }
+
+  function durdurulunca(f: () => void): () => void {
+    if (bitti) return () => {};
+    if (durdu) { try { f(); } catch (err) { console.error("[graf] durdurma kancası hatası:", err); } return () => {}; }
+    durunca.add(f);
+    return () => { durunca.delete(f); };
+  }
+
   /** Veri girişinin değeri. */
   async function girisDegeri(c: Cerceve, id: string, pin: string): Promise<unknown> {
     const kaynak = c.veriKaynagi.get(anahtar(id, pin));
     if (!kaynak) {
       const d = c.cozum.get(id)!.ayar[pin];
-      if (d === undefined) throw new DugumHatasi(id, `'${pin}' girişi bağlı değil ve ayarı yok`);
+      if (d === undefined) throw new DugumHatasi(id, `'${pin}' girişi bağlı değil ve ayarı yok`, c.graf.ad);
       return d;
     }
     const [kid, kpin] = kaynak;
@@ -129,12 +156,12 @@ export function grafCalistir<Y>(g: Graf, a: CalismaAyari<Y>): Calisma {
       return s.cikti?.[kpin];
     }
     const cikti = c.ciktilar.get(kid);
-    if (!cikti || !(kpin in cikti)) throw new DugumHatasi(id, `'${pin}' girişi '${kid}.${kpin}'den okunuyor ama '${kid}' henüz çalışmadı`);
+    if (!cikti || !(kpin in cikti)) throw new DugumHatasi(id, `'${pin}' girişi '${kid}.${kpin}'den okunuyor ama '${kid}' henüz çalışmadı`, c.graf.ad);
     return cikti[kpin];
   }
 
   async function dugumCalistir(c: Cerceve, id: string): Promise<DugumSonucu> {
-    adimSay(id);
+    adimSay(c, id);
     const d = c.cozum.get(id)!;
     a.olay?.({ tur: "dugum", graf: c.graf.ad, id, derinlik: c.derinlik });
     if (d.tanim.tip === FONKSIYON_GIRIS_TIPI) return { cikti: { ...c.girdiler }, sonra: "sonra" };
@@ -150,6 +177,8 @@ export function grafCalistir<Y>(g: Graf, a: CalismaAyari<Y>): Calisma {
       girisAdlari: () => d.pinler.girisler.filter((p) => p.tip !== "akis").map((p) => p.ad),
       durduruldu: () => durdu,
       bekle,
+      bekleVeyaDur,
+      durdurulunca,
       desenCagir: (ad, girdiler) => desenCagir(c, id, ad, girdiler),
       yetenek: a.yetenek,
     };
@@ -157,7 +186,7 @@ export function grafCalistir<Y>(g: Graf, a: CalismaAyari<Y>): Calisma {
       return await d.tanim.calistir(calisma);
     } catch (err) {
       if (err instanceof Durduruldu || err instanceof DugumHatasi) throw err;
-      throw new DugumHatasi(id, err instanceof Error ? err.message : String(err));
+      throw new DugumHatasi(id, err instanceof Error ? err.message : String(err), c.graf.ad);
     }
   }
 
@@ -179,9 +208,9 @@ export function grafCalistir<Y>(g: Graf, a: CalismaAyari<Y>): Calisma {
   }
 
   async function desenCagir(c: Cerceve, id: string, ad: string, girdiler: Readonly<Record<string, unknown>>): Promise<Record<string, unknown>> {
-    if (c.derinlik + 1 > sinir.derinlik) throw new DugumHatasi(id, `desen derinlik tavanı aşıldı (${sinir.derinlik}): desenler birbirini çok derin ya da döngüyle çağırıyor`);
+    if (c.derinlik + 1 > sinir.derinlik) throw new DugumHatasi(id, `desen derinlik tavanı aşıldı (${sinir.derinlik}): desenler birbirini çok derin ya da döngüyle çağırıyor`, c.graf.ad);
     const d = a.desen(ad);
-    if (!d) throw new DugumHatasi(id, `'${ad}' adlı desen yok`);
+    if (!d) throw new DugumHatasi(id, `'${ad}' adlı desen yok`, c.graf.ad);
     const alt = cerceveKur(d, c.derinlik + 1, girdiler);
     const giris = d.dugumler.find((x) => x.tip === FONKSIYON_GIRIS_TIPI)!;
     await akisYurut(alt, giris.id);
@@ -190,7 +219,7 @@ export function grafCalistir<Y>(g: Graf, a: CalismaAyari<Y>): Calisma {
 
   const sonuc = (async (): Promise<CalismaSonucu> => {
     try {
-      if (g.tur !== "olay") throw new DugumHatasi(null, `'${g.ad}' bir desen: tek başına çalışmaz, başka bir grafikten 'Desen' düğümüyle çağrılır`);
+      if (g.tur !== "olay") throw new DugumHatasi(null, `'${g.ad}' bir desen: tek başına çalışmaz, başka bir grafikten 'Desen' düğümüyle çağrılır`, g.ad);
       const kok = cerceveKur(g, 0, {});
       const basla = g.dugumler.find((x) => x.tip === BASLA_TIPI)!;
       await akisYurut(kok, basla.id);
@@ -199,11 +228,25 @@ export function grafCalistir<Y>(g: Graf, a: CalismaAyari<Y>): Calisma {
     } catch (err) {
       if (err instanceof Durduruldu) { a.olay?.({ tur: "durdu", adim }); return { durum: "durdu", adim }; }
       const id = err instanceof DugumHatasi ? err.dugum : null;
+      const hataGrafi = (err instanceof DugumHatasi ? err.graf : null) ?? g.ad;
       const mesaj = err instanceof Error ? err.message : String(err);
-      a.olay?.({ tur: "hata", graf: g.ad, id, mesaj });
-      return { durum: "hata", adim, hata: mesaj, ...(id ? { hataDugumu: id } : {}) };
+      a.olay?.({ tur: "hata", graf: hataGrafi, id, mesaj });
+      return { durum: "hata", adim, hata: mesaj, ...(id ? { hataDugumu: id } : {}), hataGrafi };
+    } finally {
+      bitti = true;
+      durunca.clear();
     }
   })();
 
-  return { sonuc, durdur() { durdu = true; durmaCoz(); } };
+  return {
+    sonuc,
+    durdur() {
+      if (durdu || bitti) return;
+      durdu = true;
+      durmaCoz();
+      // Dünyadaki süren işi kes (ajanın bedenine `dur`, söz): bir kancanın hatası ötekileri kesmez ama sessiz de kalmaz.
+      for (const f of [...durunca]) { try { f(); } catch (err) { console.error("[graf] durdurma kancası hatası:", err); } }
+      durunca.clear();
+    },
+  };
 }

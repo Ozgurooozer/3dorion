@@ -33,3 +33,9 @@ test("komut örnekleri tekil (aynı öneri iki kez sayılmaz)", () => {
   const s = FLASH.komutlar.map((k) => k.soz);
   assert.equal(new Set(s).size, s.length);
 });
+
+test("her tepki bedenin yapabildiği bir niyettir (yapamayacağı tepkiyi tanımlamaz) ve olay adları tekildir", () => {
+  const tepkiler = FLASH.tepkiler ?? [];
+  assert.deepEqual(tepkiler.filter((t) => !FLASH.bedenNiyetleri.has(t.niyet.tur)).map((t) => t.olay), []);
+  assert.equal(new Set(tepkiler.map((t) => t.olay)).size, tepkiler.length);
+});

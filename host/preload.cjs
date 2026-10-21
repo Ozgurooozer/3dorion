@@ -56,6 +56,11 @@ contextBridge.exposeInMainWorld("kopru", {
   mdYaz:            (ad, metin) => ipcRenderer.invoke(CAGRI.mdYaz, ad, metin),
   mdYeni:           (ad, metin) => ipcRenderer.invoke(CAGRI.mdYeni, ad, metin),
   mdAktif:          (ad, aktif) => ipcRenderer.invoke(CAGRI.mdAktif, ad, aktif),
+  // Düğüm grafikleri (spec 35): aynı sonuç biçimi; çalıştırma kanalı yok (grafik renderer'da, Ozyn'in ▶'siyle).
+  grafListe:        () => ipcRenderer.invoke(CAGRI.grafListe),
+  grafOku:          (ad) => ipcRenderer.invoke(CAGRI.grafOku, ad),
+  grafYaz:          (ad, metin) => ipcRenderer.invoke(CAGRI.grafYaz, ad, metin),
+  grafYeni:         (ad, metin) => ipcRenderer.invoke(CAGRI.grafYeni, ad, metin),
   // Orion'un sesi (spec 34): hepsi yanıt bekler, sonuç { ok, deger: SesDurumu } ya da { ok:false, kod, mesaj }; indirme ilerlemesi olay olarak.
   sesListe:         () => ipcRenderer.invoke(CAGRI.sesListe),
   sesSec:           (ad) => ipcRenderer.invoke(CAGRI.sesSec, ad),

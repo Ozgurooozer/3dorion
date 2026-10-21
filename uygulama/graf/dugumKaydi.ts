@@ -20,16 +20,30 @@ export interface AyarTanimi {
   varsayilan?: GrafDegeri;
   en?: number;
   cok?: number;
-  /** Metin ayarında izinli değerler (listeden seçim). */
-  secenekler?: readonly string[];
+  /**
+   * Metin ayarında izinli değerler (listeden seçim). Sabit liste ya da ÇALIŞMA ANINDA hesaplanan liste (dilim 1): "Ajan seç"in seçenekleri ajan
+   * defteridir ve Flash sonradan gelir; kayıt anında donmuş bir liste ya eksik ya bayat olurdu. Fonksiyon pin ortamından okur (`secenekleriCoz`).
+   */
+  secenekler?: readonly string[] | ((o: PinOrtami) => readonly string[]);
   aciklama?: string;
 }
 
-/** Pin/ayar çözümünde düğümün dış dünyadan bilmesi gerekenler (desen deposu). */
+/** Pin/ayar çözümünde düğümün dış dünyadan bilmesi gerekenler (desen deposu, ajan defteri). */
 export interface PinOrtami {
   desen(ad: string): Graf | null;
   /** Denetlenen/çalışan grafiğin kendisi (fonksiyon giriş/dönüş düğümlerinin pinleri grafiğin `girisler`/`cikislar`ından gelir). */
   buGraf: Graf | null;
+  /**
+   * Dünyadaki ajanların kimlikleri (ajan defteri; "Ajan seç" denetimi). Verilmezse liste BOŞ sayılır: dünyaya bağlı olmayan bir denetim
+   * "her ajan var" demez, ajan seçen grafik o denetimden geçmez (sessiz geçiş yerine nedenli hata).
+   */
+  ajanlar?(): readonly string[];
+}
+
+/** Ayarın izinli değerleri (sabit ya da ortamdan); seçenek listesi yoksa null. */
+export function secenekleriCoz(a: AyarTanimi, o: PinOrtami): readonly string[] | null {
+  if (!a.secenekler) return null;
+  return typeof a.secenekler === "function" ? a.secenekler(o) : a.secenekler;
 }
 
 /** Düğüm çalışırken eline verilenler. */
@@ -44,6 +58,16 @@ export interface DugumCalismasi<Y> {
   durduruldu(): boolean;
   /** Durdurulabilir bekleme. */
   bekle(ms: number): Promise<void>;
+  /**
+   * Dünya işinin sözünü ■'ye KARŞI bekler (dilim 1: ajan eyleminin sonucu). ■ önce gelirse çalışma 'durdu' ile biter; söz sonradan çözülse de
+   * yok sayılır. NEDEN ayrı: `bekle` yalnız süre bekler; yürüyen bir bedenin "vardım" sonucu ne zaman geleceği belli olmayan bir sözdür.
+   */
+  bekleVeyaDur<T>(is: Promise<T>): Promise<T>;
+  /**
+   * ■ basılınca BİR KEZ çağrılacak iş (yürüyen bedene `dur` göndermek, sözü susturmak). Bekleme yalnız grafiği bırakır; dünyadaki iş kendi
+   * kendine durmaz: bu kanca olmasa ■'den sonra Flash yürümeye devam ederdi. Bırakma fonksiyonu döner (iş bitince çağrılır).
+   */
+  durdurulunca(f: () => void): () => void;
   /** Desen (fonksiyon grafiği) çağır: girdiler → çıktılar. Derinlik tavanlı. */
   desenCagir(ad: string, girdiler: Readonly<Record<string, unknown>>): Promise<Record<string, unknown>>;
   /** Kompozisyon kökünün verdiği dünya yetenekleri (ajan eylemleri, nesne düzenleme…). */

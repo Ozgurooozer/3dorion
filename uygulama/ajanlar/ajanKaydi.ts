@@ -12,7 +12,7 @@
 // seçimi YOK (YAGNI, plan dilim 6). Tip ve çözücü şimdiden küme seçimini anlıyor ki ilk küme geldiğinde girdi yolu değişmesin.
 "use strict";
 import type { Algi } from "../../protocol/algi.ts";
-import type { Niyet } from "../../protocol/niyet.ts";
+import type { Niyet, NiyetSonucu } from "../../protocol/niyet.ts";
 
 /** Ayrılmış hedef: kayıtlı bütün ajanlar ("ikisi birden"). Bir ajanın kimliği olamaz. */
 export const HEPSI = "hepsi";
@@ -40,6 +40,16 @@ export interface AjanKaydi {
    * Niyet ajanın KENDİ beden kapısından geçer; sonucu ajanın kendi köprüsüne döner.
    */
   readonly niyet?: (n: Niyet, id: string) => void;
+  /**
+   * Bedenin niyet sonuçları (`niyet` ile gönderilenlerin `bitti`/`hata`/`iptal`i). Düğüm grafiği (spec 35) eylemin SONUCUNU bekler: bu olmadan
+   * "Git" yürüyüş bitmeden "bitti" sayılırdı. Bedensiz ajanda yok.
+   */
+  readonly sonucDinle?: (cb: (s: NiyetSonucu) => void) => () => void;
+  /**
+   * Ajanın SÖZ hattı (altyazı; varsa ses): söylenince çözülür. `soyle` bir beden niyeti değildir (avatar reddeder); grafiğin "Söyle"si buradan geçer.
+   * Verilmezse ajan grafikten konuşturulamaz (nedenli hata).
+   */
+  readonly soyle?: (metin: string) => Promise<void>;
   /** Ajanın algı kapısı: söz (ve ileride başka algılar) buradan girer. Hatası öbür ajanları kesmez (adaptör yakalar). */
   algi(a: Algi): void;
 }

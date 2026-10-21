@@ -9,37 +9,30 @@
 //   3. AD kuralı: klasör gezme yok (yol ayracı, `..`, nokta ile başlama yasak), yalnız `.md`, harf/rakam/_/-/boşluk/nokta; en çok 64 karakter. Boyut sınırı 256 KB.
 //   4. BOZUK AYAR ≠ BOŞ AYAR: `_ayar.json` bozuksa HATA (yoksa herkes sessizce "pasif" olur, bağlam bir şey söylemeden değişirdi); bozuk dosya yanına taşınır.
 //   5. İlk açılış: klasör boşsa tohum dosyalar yazılır (persona: PASİF şablon, anlık hafıza: AKTİF, sistem dosyası).
+// 1–3'ün gövdesi ortak çekirdekte (`dosyaKlasoru.js`): düğüm grafikleri (spec 35) aynı kuralları oradan alır; burası md'ye özgü olanı (aktif/pasif, tohum) ekler.
 import fs from "node:fs";
 import path from "node:path";
+import { atomikYaz, dosyaKlasoru, klasorDizini, kodluHata } from "./dosyaKlasoru.js";
 
 export const MD_BOYUT_SINIRI = 256 * 1024;
 /** Sistemin kendi güncellediği dosyalar: silinemez/adı değişmez, aktif olarak başlar. (Renderer tarafındaki `mind/mdBaglami.ts` ANLIK_HAFIZA ile aynı olmalı: test bekçisi.) */
 export const SISTEM_DOSYALARI = ["anlik-hafiza.md"];
 const AYAR_DOSYASI = "_ayar.json";
 
-const hata = (kod, mesaj) => Object.assign(new Error(mesaj), { kod });
+const hata = kodluHata;
 
 /** @param {string} ad */
 export const mdAdiGecerli = (ad) =>
   typeof ad === "string" && ad.length <= 64 && /^[\p{L}\p{N}][\p{L}\p{N}_ .-]*\.md$/u.test(ad) && !ad.includes("..") && !/[\\/]/.test(ad);
 
+const klasor = dosyaKlasoru({ adGecerli: mdAdiGecerli, boyutSiniri: MD_BOYUT_SINIRI, etiket: "md dosyası", adEtiketi: "md adı" });
+
 /** Klasör yolu. Öncelik: `ORION_MD_DIZINI` > senaryo koşusu (`ORION_SMOKE=1`: geçici klasör) > gerçek klasör. */
 export function mdDizini(env, kullaniciVerisi, gecici) {
-  if (env.ORION_MD_DIZINI) return env.ORION_MD_DIZINI;
-  if (env.ORION_SMOKE === "1") return path.join(gecici, "orion-md-deneme");
-  return path.join(kullaniciVerisi, "orion-md");
+  return klasorDizini(env, "ORION_MD_DIZINI", "orion-md", kullaniciVerisi, gecici);
 }
 
-function atomikYaz(hedef, metin) {
-  const gecici = `${hedef}.tmp`;
-  fs.writeFileSync(gecici, metin, "utf8");
-  fs.renameSync(gecici, hedef);
-}
-
-function yol(dizin, ad) {
-  if (!mdAdiGecerli(ad)) throw hata("gecersiz-ad", `geçersiz md adı: ${JSON.stringify(ad)}`);
-  return path.join(dizin, ad);
-}
+const yol = klasor.yol;
 
 /**
  * Ayar: `{ aktif: { "dosya.md": true }, tohumlandi: ["flash.md"] }`. Yoksa boş; bozuksa HATA ve dosya yanına taşınır.
@@ -73,39 +66,17 @@ const aktifMi = (ayar, ad) => (ad in ayar.aktif ? ayar.aktif[ad] : SISTEM_DOSYAL
 export function mdListe(dizin) {
   fs.mkdirSync(dizin, { recursive: true });
   const ayar = ayarOku(dizin);
-  return fs.readdirSync(dizin).filter(mdAdiGecerli).map((ad) => {
-    const s = fs.statSync(path.join(dizin, ad));
-    return { ad, boyut: s.size, degisti: Math.round(s.mtimeMs), aktif: aktifMi(ayar, ad), sistem: SISTEM_DOSYALARI.includes(ad) };
-  }).sort((a, b) => Number(b.sistem) - Number(a.sistem) || a.ad.localeCompare(b.ad, "tr"));
+  return klasor.liste(dizin).map((d) => ({ ...d, aktif: aktifMi(ayar, d.ad), sistem: SISTEM_DOSYALARI.includes(d.ad) }))
+    .sort((a, b) => Number(b.sistem) - Number(a.sistem) || a.ad.localeCompare(b.ad, "tr"));
 }
 
-export function mdOku(dizin, ad) {
-  const p = yol(dizin, ad);
-  if (!fs.existsSync(p)) throw hata("yok", `md dosyası yok: ${ad}`);
-  return fs.readFileSync(p, "utf8");
-}
-
-function boyutDene(metin) {
-  if (typeof metin !== "string") throw hata("gecersiz-icerik", "içerik metin olmalı");
-  if (Buffer.byteLength(metin, "utf8") > MD_BOYUT_SINIRI) throw hata("cok-buyuk", `içerik ${MD_BOYUT_SINIRI / 1024} KB sınırını aşıyor`);
-}
+export function mdOku(dizin, ad) { return klasor.oku(dizin, ad); }
 
 /** Var olan dosyayı günceller (yoksa 404). */
-export function mdYaz(dizin, ad, metin) {
-  const p = yol(dizin, ad);
-  boyutDene(metin);
-  if (!fs.existsSync(p)) throw hata("yok", `md dosyası yok: ${ad} (yeni dosya için YENİ)`);
-  atomikYaz(p, metin);
-}
+export function mdYaz(dizin, ad, metin) { klasor.yaz(dizin, ad, metin); }
 
 /** Yeni dosya; varsa 409. Yeni dosya PASİF başlar (bağlama girmesi bilinçli bir adım). */
-export function mdYeni(dizin, ad, metin = "") {
-  const p = yol(dizin, ad);
-  boyutDene(metin);
-  fs.mkdirSync(dizin, { recursive: true });
-  if (fs.existsSync(p)) throw hata("var", `zaten var: ${ad}`);
-  atomikYaz(p, metin);
-}
+export function mdYeni(dizin, ad, metin = "") { klasor.yeni(dizin, ad, metin); }
 
 /** Aktif/pasif (dosya var olmalı). */
 export function mdAktifYap(dizin, ad, aktif) {

@@ -7,7 +7,7 @@
 // LLM'siz yolundan GERÇEKTEN geçmelidir (komut sözlüğü / takip / sohbet) ve doğurduğu her niyet `bedenNiyetleri`nde olmalıdır —
 // yoksa Flash yapamayacağı bir şeyi önerir. Bekçi: flash/npcTanimi.test.ts (örnekler gerçek Flash köprüsünden geçirilir).
 "use strict";
-import type { NiyetTur } from "../protocol/niyet.ts";
+import type { Niyet, NiyetTur } from "../protocol/niyet.ts";
 
 export interface NpcKomutu {
   /** Gösterilen biçim ("otur", "bana gel"): öneri ve "bildiklerim" listesi bunu söyler. */
@@ -27,6 +27,14 @@ export interface NpcTanimi {
   readonly komutlar: readonly NpcKomutu[];
   /** Bedeninin yürütebildiği niyetler. Dışındaki niyet (odaklan, komut, yaz…) "yapamam" sonucuyla döner. */
   readonly bedenNiyetleri: ReadonlySet<NiyetTur>;
+  /** Dünya olaylarına bedensel tepkiler (algı → niyet). Beden boşken verilir; sözsüz: NPC her kıpırtıya konuşmaz. */
+  readonly tepkiler?: readonly NpcTepkisi[];
+}
+
+/** Bir dünya olayına (`world/olayUretici.ts` adları) verilen bedensel tepki: VERİ, kod değil. Niyet `bedenNiyetleri` içinde olmalı (bekçi: npcTanimi.test.ts). */
+export interface NpcTepkisi {
+  readonly olay: string;
+  readonly niyet: Niyet;
 }
 
 /**
@@ -52,4 +60,9 @@ export const FLASH: NpcTanimi = {
     { soz: "masaya git", esler: ["go to the desk"] },
   ],
   bedenNiyetleri: new Set<NiyetTur>(["git", "otur", "kalk", "dur", "poz", "jest", "bak", "al", "birak"]),
+  // Ozyn yaklaşınca ona döner, uzaklaşınca serbest bakışa geçer. Söz YOK: konuşmak LLM'siz ajanda kural işidir (grafik), refleks değil.
+  tepkiler: [
+    { olay: "ozyn_yaklasti", niyet: { tur: "bak", hedef: { tip: "oyuncu" } } },
+    { olay: "ozyn_uzaklasti", niyet: { tur: "bak", hedef: null } },
+  ],
 };

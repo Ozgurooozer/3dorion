@@ -23,6 +23,11 @@ export interface EditorPenceresiAyari {
   altyazi?: (metin: string, ms?: number) => void;
   /** Sistemin yönettiği bölüm uyarısı gibi dosyaya özgü kısa not (başlık altında gösterilir). */
   not?: (ad: string) => string | null;
+  /**
+   * Kaynak yazılanı DEĞİŞTİRDİYSE (yazılan ≠ metin) gösterilen mesaj. Varsayılan md'ninki (anlık hafızanın otomatik bölümü); düğüm grafiği (spec 35)
+   * kanonik biçime çevirir ve bunu söyler — md'nin metni orada yanlış olurdu.
+   */
+  degistiNotu?: string;
   ata?: HTMLElement;
 }
 
@@ -165,7 +170,7 @@ export function editorPenceresiKur(a: EditorPenceresiAyari): EditorPenceresi {
         if (degisti) metniKoy(yazilan); else durum.metin = alan.value;
         kok.dataset.catisma = "0";
         tazele();
-        mesaj(degisti ? "kaydedildi (otomatik bölüm sistemde korundu)" : "kaydedildi");
+        mesaj(degisti ? (a.degistiNotu ?? "kaydedildi (otomatik bölüm sistemde korundu)") : "kaydedildi");
       } catch (err) {
         const m = err instanceof Error ? err.message : String(err);
         mesaj(`KAYDEDİLEMEDİ: ${m}`, 8000);
