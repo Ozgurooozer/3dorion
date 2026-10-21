@@ -10,6 +10,7 @@
 import type { Graf } from "../../protocol/graf.ts";
 import type { DugumKaydi } from "./dugumKaydi.ts";
 import { grafTurDenetle } from "./grafTurDenetimi.ts";
+import type { GrafDurumDeposu } from "./grafDurumu.ts";
 import { grafCalistir, type Calisma, type CalismaSinirlari } from "./yorumlayici.ts";
 
 export interface SuankiDugum { graf: string; id: string; tip: string; ad: string; derinlik: number }
@@ -37,7 +38,8 @@ export interface GrafKaynagi {
   desen(ad: string): Graf | null;
 }
 
-export interface GrafCalistiriciAyari<Y> {
+/** Bir grafik çalışmasının ortak dünyası: ▶ çalıştırıcısı da olay dinleyicisi de (grafDinleyici.ts) bununla kurulur. */
+export interface CalismaTabani<Y> {
   kayit: DugumKaydi<Y>;
   depo: GrafKaynagi;
   yetenek: Y;
@@ -48,6 +50,64 @@ export interface GrafCalistiriciAyari<Y> {
   sinir?: Partial<CalismaSinirlari>;
   /** Günlük satırı (başladı / bitti / durdu / hata): Ozyn sonradan "ne oldu" diye bakabilsin. */
   gunluk?: (seviye: "bilgi" | "iyi" | "uyari" | "hata", metin: string) => void;
+  /** Grafiklerin bellekteki değişkenleri (dilim 2); grafik başına ad alanı. Verilmezse değişken düğümleri nedenle düşer. */
+  durum?: GrafDurumDeposu;
+  /** Yerel saat (0–24): "Gün vakti" düğümü; varsayılan bilgisayarın saati. */
+  saat?: () => number;
+}
+
+export interface GrafCalistiriciAyari<Y> extends CalismaTabani<Y> {
+  /**
+   * Bu grafik BAŞKA YOLDAN çalışıyorsa nedeni (dilim 2: dinlemedeki grafiğin olay çalışması). "Aynı grafik aynı anda tek çalışma": ▶ o sırada başlamaz —
+   * aynı NPC programı iki kez aynı bedeni sürerdi ve değişken sayacı iki kez artardı.
+   */
+  mesgul?: (ad: string) => string | null;
+}
+
+/** Süren bir çalışma: ■ için `calisma`, bitince son sonucu veren söz. */
+export interface BaslamisCalisma {
+  readonly calisma: Calisma;
+  readonly bitis: Promise<SonCalisma>;
+}
+
+/**
+ * TEK ÇALIŞMA ÇEKİRDEĞİ: kopyalanmış grafiği yorumlayıcıyla başlatır; canlı düğümü (saf düğümler hariç) `suan`a bildirir ve bitince son sonucu
+ * (hangi düğüm, desen içindeyse desenin adı) kurar. ▶ çalıştırıcısı ve olay dinleyicisi bunu paylaşır: ikinci kopya olsaydı biri "saf düğüm canlı
+ * satırda görünmez" kuralını ya da hata yerini unuturdu.
+ */
+export function calismaBaslat<Y>(g: Graf, a: CalismaTabani<Y>, ek: { giris?: { dugum: string; veri?: Readonly<Record<string, unknown>> }; suan?: (d: SuankiDugum) => void } = {}): BaslamisCalisma {
+  const simdi = a.simdi ?? (() => Date.now());
+  const baslangic = simdi();
+  let son: SuankiDugum | null = null;
+  /** Düğümün türü ve görünen adı: kök grafikte ya da (desen çerçevesindeyse) desende aranır. */
+  const dugumBilgisi = (graf: string, id: string, derinlik: number): SuankiDugum => {
+    const kaynak = graf === g.ad ? g : a.depo.desen(graf);
+    const tip = kaynak?.dugumler.find((d) => d.id === id)?.tip ?? "?";
+    return { graf, id, tip, ad: a.kayit.al(tip)?.ad ?? tip, derinlik };
+  };
+  const calisma = grafCalistir(g, {
+    kayit: a.kayit, desen: (x) => a.depo.desen(x), ajanlar: a.ajanlar, yetenek: a.yetenek,
+    ...(a.simdi ? { simdi: a.simdi } : {}), ...(a.uyu ? { uyu: a.uyu } : {}), ...(a.sinir ? { sinir: a.sinir } : {}),
+    ...(a.durum ? { degiskenler: a.durum.alan(g.ad) } : {}), ...(a.saat ? { saat: a.saat } : {}),
+    ...(ek.giris ? { giris: ek.giris } : {}),
+    olay: (o) => {
+      if (o.tur !== "dugum") return;
+      const b = dugumBilgisi(o.graf, o.id, o.derinlik);
+      // SAF düğümler (Ajan seç, Nesne bul, Sayı) bir akış düğümünün girişi okunurken anlık hesaplanır: canlı satır onları göstermez, yoksa satır
+      // "Git yürüyor" yerine "Ajan seç" derdi (ilk denemede tam olarak bu görüldü). Hataları yine kendi adıyla döner (`hataDugumu`).
+      if (a.kayit.al(b.tip)?.saf) return;
+      son = b;
+      ek.suan?.(b);
+    },
+  });
+  const bitis = calisma.sonuc.then((s): SonCalisma => {
+    const hataDugumu = s.hataDugumu ? dugumBilgisi(s.hataGrafi ?? g.ad, s.hataDugumu, son?.derinlik ?? 0) : undefined;
+    return {
+      graf: g.ad, durum: s.durum, adim: s.adim, sureMs: simdi() - baslangic,
+      ...(s.hata ? { hata: s.hata } : {}), ...(hataDugumu ? { hataDugumu } : {}), ...(son ? { sonDugum: son } : {}),
+    };
+  });
+  return { calisma, bitis };
 }
 
 export interface GrafCalistirici {
@@ -76,49 +136,30 @@ export function grafCalistiriciKur<Y>(a: GrafCalistiriciAyari<Y>): GrafCalistiri
     }
   };
 
-  /** Düğümün türü ve görünen adı: kök grafikte ya da (desen çerçevesindeyse) desende aranır. */
-  function dugumBilgisi(kok: Graf, graf: string, id: string, derinlik: number): SuankiDugum {
-    const g = graf === kok.ad ? kok : a.depo.desen(graf);
-    const tip = g?.dugumler.find((d) => d.id === id)?.tip ?? "?";
-    return { graf, id, tip, ad: a.kayit.al(tip)?.ad ?? tip, derinlik };
-  }
-
   return {
     calistir(ad) {
       if (durum.calisiyor) return { ok: false, neden: `zaten çalışıyor: '${durum.calisiyor.graf}' (önce ■ Durdur)` };
       const kaynak = a.depo.al(ad);
       if (!kaynak) return { ok: false, neden: `'${ad}' yüklenemedi ya da bozuk (Kontrol et)` };
       if (kaynak.tur !== "olay") return { ok: false, neden: `'${ad}' bir desen: tek başına çalışmaz, bir grafikte 'Desen' düğümüyle çağrılır` };
+      const baska = a.mesgul?.(ad);
+      if (baska) return { ok: false, neden: `'${ad}' ${baska} (aynı grafik aynı anda tek çalışma; önce ■ Durdur)` };
       const g: Graf = structuredClone(kaynak);
-      const baslangic = simdi();
-      let son: SuankiDugum | null = null;
-      durum = { calisiyor: { graf: g.ad, baslangic, suan: null }, son: durum.son };
+      durum = { calisiyor: { graf: g.ad, baslangic: simdi(), suan: null }, son: durum.son };
       a.gunluk?.("bilgi", `▶ ${g.ad} çalışıyor`);
-      calisma = grafCalistir(g, {
-        kayit: a.kayit, desen: (x) => a.depo.desen(x), ajanlar: a.ajanlar, yetenek: a.yetenek,
-        ...(a.simdi ? { simdi: a.simdi } : {}), ...(a.uyu ? { uyu: a.uyu } : {}), ...(a.sinir ? { sinir: a.sinir } : {}),
-        olay: (o) => {
-          if (o.tur !== "dugum" || !durum.calisiyor) return;
-          const b = dugumBilgisi(g, o.graf, o.id, o.derinlik);
-          // SAF düğümler (Ajan seç, Nesne bul, Sayı) bir akış düğümünün girişi okunurken anlık hesaplanır: canlı satır onları göstermez, yoksa satır
-          // "Git yürüyor" yerine "Ajan seç" derdi (ilk denemede tam olarak bu görüldü). Hataları yine kendi adıyla döner (`hataDugumu`).
-          if (a.kayit.al(b.tip)?.saf) return;
-          son = b;
-          durum = { ...durum, calisiyor: { ...durum.calisiyor, suan: son } };
+      const b = calismaBaslat(g, a, {
+        suan: (d) => {
+          if (!durum.calisiyor) return;
+          durum = { ...durum, calisiyor: { ...durum.calisiyor, suan: d } };
           yay();
         },
       });
+      calisma = b.calisma;
       yay();
-      suren = calisma.sonuc.then((s) => {
-        const sureMs = simdi() - baslangic;
-        const hataDugumu = s.hataDugumu ? dugumBilgisi(g, s.hataGrafi ?? g.ad, s.hataDugumu, son?.derinlik ?? 0) : undefined;
-        const sonuc: SonCalisma = {
-          graf: g.ad, durum: s.durum, adim: s.adim, sureMs,
-          ...(s.hata ? { hata: s.hata } : {}), ...(hataDugumu ? { hataDugumu } : {}), ...(son ? { sonDugum: son } : {}),
-        };
+      suren = b.bitis.then((sonuc) => {
         calisma = null;
         durum = { calisiyor: null, son: sonuc };
-        a.gunluk?.(s.durum === "bitti" ? "iyi" : s.durum === "durdu" ? "uyari" : "hata", sonucSatiri(sonuc));
+        a.gunluk?.(sonuc.durum === "bitti" ? "iyi" : sonuc.durum === "durdu" ? "uyari" : "hata", sonucSatiri(sonuc));
         yay();
       });
       return { ok: true };

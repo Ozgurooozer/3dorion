@@ -1,6 +1,7 @@
 // uygulama/graf/grafYetenegi.ts — GRAFİĞİN DÜNYAYA TEK KAPISI (spec 35 dilim 1). SAF: DOM, Babylon, köprü yok; kompozisyon kökü (giris.ts) bağlar.
 //
-// Ajan düğümleri dünyaya YALNIZ bu dar arayüzden dokunur: ajan listesi, bir ajana niyet yürütüp sonucunu beklemek, Ozyn'in yerindeki nesneler ve çapalar.
+// Ajan düğümleri dünyaya YALNIZ bu dar arayüzden dokunur: ajan listesi, bir ajana niyet yürütüp sonucunu beklemek, Ozyn'in yerindeki nesneler ve çapalar,
+// ve (dilim 2) Ozyn'e seçimli diyalog açmak.
 // Burada olmayan şey grafikten yapılamaz (sınır budur): terminal/komut, hafıza (`hatirla`), doktor, ortam, tahta (`yaz`), güvenlik/onay ayarları, protokol,
 // level DOSYASI yoktur.
 //
@@ -20,6 +21,7 @@ import { kimlik } from "../../protocol/temel.ts";
 import type { Capa } from "../../world/level/capalar.ts";
 import type { Nesne } from "../../world/level/nesneKaydi.ts";
 import { avatarAdimi } from "../niyetYurutucu.ts";
+import type { DiyalogIsi, DiyalogIstegi } from "./diyalogDenetimi.ts";
 
 /** Grafiğin ajan niyetlerinin kimlik öneki: Ozyn'in eli (bkz. `mind/refleks.ts` `refleks.sonuc.elle_hata`, `mind/benlik.ts` `eden`). */
 export const GRAF_NIYET_ONEKI = "elle";
@@ -65,6 +67,11 @@ export interface GrafYetenegi {
   /** Ozyn'in bulunduğu yerin nesneleri (Nesne bul) ve çapaları (nesneye giden hedef: `nesneHedefleri`). */
   nesneler(): readonly Nesne[];
   capalar(): readonly Capa[];
+  /**
+   * Seçimli diyalog (dilim 2): ajan Ozyn'e sorar, Ozyn seçer. Ekranda başka diyalog varsa ya da bu dünyada diyalog arayüzü yoksa FIRLATIR (nedenle).
+   * Ozyn'in seçimi bir NİYET değildir (bedene gitmez): grafiğin hangi dalı yürüyeceğini söyler.
+   */
+  diyalogAc(i: DiyalogIstegi): DiyalogIsi;
 }
 
 export interface GrafYetenegiAyari {
@@ -75,6 +82,8 @@ export interface GrafYetenegiAyari {
   capalar(): readonly Capa[];
   /** Tek adımın tavanı (ms); varsayılan `GRAF_ADIM_SINIRI_MS`. */
   adimSiniriMs?: number;
+  /** Diyalog ekranı (diyalogDenetimi.ts); verilmezse diyalog düğümü nedenle düşer (senaryo/test dünyası). */
+  diyalog?: (i: DiyalogIstegi) => DiyalogIsi;
 }
 
 const hemen = (niyet_id: string, not: string): AjanIsi => ({ sonuc: Promise.resolve({ niyet_id, durum: "hata", not }), kes: () => {} });
@@ -85,6 +94,10 @@ export function grafYetenegiKur(a: GrafYetenegiAyari): GrafYetenegi {
     ajanlar: () => a.ajanlar(),
     nesneler: () => a.nesneler(),
     capalar: () => a.capalar(),
+    diyalogAc(i) {
+      if (!a.diyalog) throw new Error("bu dünyada diyalog ekranı yok (seçimli diyalog gösterilemez)");
+      return a.diyalog(i);
+    },
     niyetYurut(kim, n) {
       const kapi = a.kapi(kim);
       if (!kapi) {

@@ -1,4 +1,4 @@
-// uygulama/graf/ajanDugumleri.ts — AJAN DÜĞÜMLERİ (spec 35 dilim 1): Git, Bak, Otur, Kalk, Söyle, Jest + Ajan seç, Nesne bul.
+// uygulama/graf/ajanDugumleri.ts — AJAN DÜĞÜMLERİ (spec 35 dilim 1): Git, Bak, Otur, Kalk, Söyle, Jest + Ajan seç, Nesne bul; dilim 2: Seçimli diyalog.
 //
 // Her eylem düğümü bir `kim` (tip `ajan`) alır, ham niyeti kurar, PROTOKOL DOĞRULAYICISINDAN (`niyetDogrula`) geçirir ve O AJANIN tek eylem yolundan yürütür
 // (`GrafYetenegi.niyetYurut`: Orion'da `niyetiYurut`, Flash'ta kendi beden kapısı). Düğüm niyetin SONUCUNU BEKLER: `bitti` → sonraki düğüm; `hata` →
@@ -19,6 +19,9 @@ import { NESNE_TURLERI } from "../../world/level/cekirdek/anlam.ts";
 import { nesneHedefleri } from "../../world/yer/nesneEylemleri.ts";
 import { AKIS_GIRIS, AKIS_SONRA, type AyarTanimi, type DugumCalismasi, type DugumSonucu, type DugumTanimi, type PinOrtami } from "./dugumKaydi.ts";
 import type { GrafYetenegi } from "./grafYetenegi.ts";
+import {
+  DIYALOG_SECENEK_AZAMI, DIYALOG_SECENEK_ENAZ, DIYALOG_SURE_AZAMI_SN, DIYALOG_SURE_ENAZ_SN, DIYALOG_SURE_VARSAYILAN_SN, diyalogHatasi,
+} from "./diyalogDenetimi.ts";
 
 /** Ajan seçeneklerinin kaynağı: pin ortamındaki ajan defteri (denetim anında; Flash sonradan gelir). */
 const ajanSecenekleri = (o: PinOrtami): readonly string[] => o.ajanlar?.() ?? [];
@@ -93,6 +96,28 @@ function metinle(v: unknown): string {
 }
 
 const norm = (s: string): string => s.trim().toLocaleLowerCase("tr");
+
+/** Diyalog seçeneklerinin ayar adları (`secenek1`…): pin adları "1"…"4" tuşlarla aynı sayı, Ozyn'in gördüğü numara. */
+const SECENEK_ADLARI = Array.from({ length: DIYALOG_SECENEK_AZAMI }, (_, i) => `secenek${i + 1}`);
+
+/**
+ * Diyalog seçenekleri, ayardaki sırayla. BOŞLUK YOK: secenek3 dolu ama secenek2 boşsa HATA — "3" çıkışına bağlanan dal ekranda 2. sırada görünür ve
+ * Ozyn'in bastığı numara başka dalı yürütürdü. Sayı ve metin denetimi `diyalogHatasi`nda (ekranla aynı kural).
+ */
+function secenekleriOku(a: Readonly<Record<string, GrafDegeri>>): string[] {
+  const l: string[] = [];
+  let bosluk = 0;
+  for (const [i, ad] of SECENEK_ADLARI.entries()) {
+    const v = a[ad];
+    if (v === undefined || v === null || v === "") { if (!bosluk) bosluk = i + 1; continue; }
+    if (typeof v !== "string") throw new Error(`${ad}: metin olmalı`);
+    if (bosluk) throw new Error(`seçenekler sırayla olmalı: secenek${bosluk} boş ama ${ad} dolu`);
+    l.push(v);
+  }
+  const h = diyalogHatasi("x", l, DIYALOG_SURE_VARSAYILAN_SN * 1000);
+  if (h) throw new Error(h);
+  return l;
+}
 
 /**
  * NESNE BUL (saf): ad (ya da kimlik) ve isteğe bağlı türle. Önce TAM eşleşme (kimlik ya da ad), yoksa adın İÇİNDE geçen; tek aday kazanır.
@@ -203,6 +228,39 @@ export function ajanDugumleri(): DugumTanimi<GrafYetenegi>[] {
       calistir: async (c) => {
         const kim = await kimOku(c);
         return yurut(c, kim, { tur: "soyle", metin: metinle(await c.giris("metin")) });
+      },
+    },
+    {
+      tip: "diyalog.sec", ad: "Seçimli diyalog", kategori: "ajan", saf: false,
+      aciklama: `Ajan Ozyn'e sorar ve ${DIYALOG_SECENEK_ENAZ}–${DIYALOG_SECENEK_AZAMI} seçenek gösterir (oyun NPC'si gibi): Ozyn tıklar ya da 1–${DIYALOG_SECENEK_AZAMI}'e basar, `
+        + `o seçeneğin çıkışı ("1", "2"…) yürür. Süre dolarsa 'zamanAsimi'. Seçenekler ayar.secenek1…secenek${DIYALOG_SECENEK_AZAMI} (sırayla, boşluksuz).`,
+      ayarlar: [
+        ...SECENEK_ADLARI.map((ad): AyarTanimi => ({ ad, tip: "metin", aciklama: "seçenek metni" })),
+        { ad: "sure", tip: "sayi", varsayilan: DIYALOG_SURE_VARSAYILAN_SN, en: DIYALOG_SURE_ENAZ_SN, cok: DIYALOG_SURE_AZAMI_SN, aciklama: "cevap bekleme süresi (sn)" },
+        KIM_AYARI,
+      ],
+      pinler: (a) => {
+        const s = secenekleriOku(a);
+        return {
+          girisler: [AKIS_GIRIS, KIM, { ad: "metin", tip: "herhangi" }],
+          cikislar: [...s.map((_, i): PinTanimi => ({ ad: String(i + 1), tip: "akis" })), { ad: "zamanAsimi", tip: "akis" }, { ad: "secilen", tip: "sayi" }, { ad: "secilenMetin", tip: "metin" }],
+        };
+      },
+      calistir: async (c) => {
+        const kim = await kimOku(c);
+        const metin = metinle(await c.giris("metin"));
+        const secenekler = secenekleriOku(c.ayar);
+        const sureMs = (c.ayar["sure"] as number) * 1000;
+        const h = diyalogHatasi(metin, secenekler, sureMs);
+        if (h) throw new Error(h);
+        // Ekran BEKLEMEDEN önce açılır (başka diyalog açıksa burada nedenle düşer); ■ diyaloğu da kapatır — yoksa durmuş bir grafiğin sorusu ekranda kalırdı.
+        const is = c.yetenek.diyalogAc({ ajan: kim, metin, secenekler, sureMs });
+        const birak = c.durdurulunca(() => is.kapat());
+        const s = await c.bekleVeyaDur(is.sonuc).finally(birak);
+        if (s.tur === "kapandi") throw new Error("diyalog cevaplanmadan kapandı");
+        // Zaman aşımında da çıktılar dolu: sonraki düğüm 'secilen'i okursa "henüz çalışmadı" yerine 0 görür.
+        if (s.tur === "zamanAsimi") return { cikti: { secilen: 0, secilenMetin: "" }, sonra: "zamanAsimi" };
+        return { cikti: { secilen: s.indeks + 1, secilenMetin: secenekler[s.indeks]! }, sonra: String(s.indeks + 1) };
       },
     },
     {

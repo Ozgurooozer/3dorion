@@ -46,9 +46,31 @@ export function secenekleriCoz(a: AyarTanimi, o: PinOrtami): readonly string[] |
   return typeof a.secenekler === "function" ? a.secenekler(o) : a.secenekler;
 }
 
+/**
+ * Çalışmanın DEĞİŞKEN ALANI (dilim 2): grafik başına, YALNIZ BELLEKTE (uygulama kapanınca gider). Kök grafiğin adıyla açılır; desen çağrısı çağıranın
+ * alanını görür (desen bir fonksiyondur, durumu onu çağıran programındır). Tavanlar (adet, metin uzunluğu) `yaz`da: aşılırsa fırlatır, düğüm nedenle düşer.
+ */
+export interface DegiskenAlani {
+  oku(ad: string): GrafDegeri | undefined;
+  /** Yalnız sayı (sonlu), metin, bool. Tavan aşılırsa fırlatır. */
+  yaz(ad: string, deger: GrafDegeri): void;
+}
+
+/** Çalışmayı bir OLAY başlattıysa (dinlemedeki grafik, dilim 2): hangi olay düğümünden ve olayın verisi (mesafe, yüzey). ▶ ile başlayınca null. */
+export interface CalismaTetigi {
+  readonly dugum: string;
+  readonly veri: Readonly<Record<string, unknown>>;
+}
+
 /** Düğüm çalışırken eline verilenler. */
 export interface DugumCalismasi<Y> {
   readonly dugumId: string;
+  /** Çalışmayı başlatan olay (yalnız olay düğümü okur); ▶ ile başladıysa null. */
+  readonly tetik: CalismaTetigi | null;
+  /** Grafiğin değişken alanı; çalıştıran vermediyse null (değişken düğümleri nedenle düşer, sessiz geçmez). */
+  readonly degiskenler: DegiskenAlani | null;
+  /** Yerel saat (0–24, kesirli): "Gün vakti" düğümü. Testte sahte saat. */
+  saat(): number;
   readonly ayar: Readonly<Record<string, GrafDegeri>>;
   /** Veri girişinin değeri: bağlıysa kaynaktan, değilse ayardan (aynı ad), o da yoksa ayar tanımının varsayılanı. Hiçbiri yoksa HATA. */
   giris(pin: string): Promise<unknown>;
@@ -98,6 +120,11 @@ export interface DugumTanimi<Y = unknown> {
   saf: boolean;
   /** Olay düğümü (grafiğin giriş noktası): akış girişi yok. */
   olay?: boolean;
+  /**
+   * DÜNYA OLAYI düğümüyse (dilim 2: "Ozyn yaklaştı"), dinlediği olayın adı (`world/olayUretici.ts`). Böyle bir düğüm ▶ ile değil, grafik DİNLEMEYE
+   * ALININCA (Ozyn'in tıklaması) o olay gelince yürür. `olay: true` ile birlikte verilir.
+   */
+  dunyaOlayi?: string;
   pinler(ayar: Readonly<Record<string, GrafDegeri>>, ortam: PinOrtami): DugumPinleri;
   ayarlar?: readonly AyarTanimi[];
   calistir(c: DugumCalismasi<Y>): Promise<DugumSonucu> | DugumSonucu;

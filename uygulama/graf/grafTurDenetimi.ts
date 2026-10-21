@@ -6,7 +6,8 @@
 //   • bir veri girişine en çok bir bağ; bir akış çıkışından en çok bir bağ (dallanma Sıra düğümüyle);
 //   • bağsız veri girişinin değeri ayarda ya da varsayılanda olmalı;
 //   • akış DÖNGÜSÜ yok (tekrar için Tekrar düğümü: sonlanma garantisi), veri döngüsü yok;
-//   • olay grafiğinde tam bir "▶ Başla"; fonksiyon (desen) grafiğinde tam bir "Fonksiyon girişi"; bir desen kendini doğrudan çağıramaz.
+//   • olay grafiğinde en çok bir "▶ Başla" ve en az bir giriş (Başla ya da dünya olayı düğümü, dilim 2); fonksiyon (desen) grafiğinde tam bir
+//     "Fonksiyon girişi" ve olay düğümü yok; bir desen kendini doğrudan çağıramaz.
 "use strict";
 import type { Graf, GrafDegeri, PinTanimi } from "../../protocol/graf.ts";
 import { secenekleriCoz, type DugumKaydi, type DugumPinleri, type DugumTanimi, type PinOrtami } from "./dugumKaydi.ts";
@@ -126,12 +127,17 @@ export function grafTurDenetle(g: Graf, kayit: DugumKaydi<unknown>, ortam: PinOr
   if (veriDongusu) hatalar.push(`veri döngüsü var ('${veriDongusu}' üzerinden)`);
 
   const say = (tip: string) => g.dugumler.filter((d) => d.tip === tip).length;
+  // Dünya olayı düğümleri (dilim 2): grafiğin ikinci tür girişi. ▶ Başla'yla aynı grafikte olabilir (Ozyn ▶ ile dener, dinlemede olay yürütür).
+  const olaylar = [...cozum.values()].filter((c) => c.tanim.dunyaOlayi !== undefined).length;
   if (g.tur === "olay") {
-    if (say(BASLA_TIPI) !== 1) hatalar.push(`olay grafiğinde tam bir '▶ Başla' (${BASLA_TIPI}) olmalı (${say(BASLA_TIPI)} var)`);
+    if (say(BASLA_TIPI) > 1) hatalar.push(`olay grafiğinde en çok bir '▶ Başla' (${BASLA_TIPI}) olur (${say(BASLA_TIPI)} var)`);
+    if (say(BASLA_TIPI) === 0 && olaylar === 0) hatalar.push(`olay grafiğinin girişi olmalı: tam bir '▶ Başla' (${BASLA_TIPI}) ya da en az bir olay düğümü (örn. olay.ozyn_yaklasti)`);
     if (say(FONKSIYON_GIRIS_TIPI) || say(FONKSIYON_DONUS_TIPI)) hatalar.push("olay grafiğinde fonksiyon giriş/dönüş düğümü olmaz");
   } else {
     if (say(FONKSIYON_GIRIS_TIPI) !== 1) hatalar.push(`desen (fonksiyon) grafiğinde tam bir 'Fonksiyon girişi' (${FONKSIYON_GIRIS_TIPI}) olmalı (${say(FONKSIYON_GIRIS_TIPI)} var)`);
     if (say(BASLA_TIPI)) hatalar.push("desen grafiğinde '▶ Başla' olmaz (desen başka grafikten çağrılır)");
+    // Desen bir fonksiyondur: çağıran grafik yürütür. İçinde olay düğümü olsaydı kimin dinlediği belirsizleşirdi (dinleme yalnız grafiğe kurulur).
+    if (olaylar) hatalar.push("desen grafiğinde olay düğümü olmaz (olayı grafik dinler, deseni çağırır)");
   }
   for (const d of g.dugumler) {
     if (d.tip === DESEN_CAGIR_TIPI && d.ayar?.["desen"] === g.ad) hatalar.push(`${d.id}: desen kendini çağıramaz ('${g.ad}')`);

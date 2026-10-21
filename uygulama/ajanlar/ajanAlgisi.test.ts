@@ -65,6 +65,32 @@ test("tepki tanımı yoksa yalnız algı gider (Orion'un köprüsü gibi)", () =
   assert.deepEqual([algilar.length, niyetler.length], [1, 0]);
 });
 
+test("olay ABONESİ köprüyle AYNI olayı alır (tek üretici); sıra: köprü → tepki niyeti → abone", () => {
+  const sira: string[] = [];
+  let ozynX = 6;
+  const g = ajanAlgisiKur({ beden: () => beden(0), oyuncu: () => ozyn(ozynX), algi: (a) => sira.push(`kopru:${a.tur === "olay" ? a.ad : a.tur}`), tepkiler: TEPKI, niyet: (n) => sira.push(`niyet:${n.tur}`) });
+  const gelen: unknown[] = [];
+  g.olayDinle((o) => { sira.push(`abone:${o.ad}`); gelen.push(o.ayrinti); });
+  g.tikle(0); ozynX = 1; g.tikle(100);
+  assert.deepEqual(sira, ["kopru:ozyn_yaklasti", "niyet:bak", "abone:ozyn_yaklasti"]);
+  assert.equal(typeof (gelen[0] as { mesafe?: unknown }).mesafe, "number");
+});
+
+test("abonenin hatası köprüyü ve öteki aboneyi kesmez; çıkan abone olay almaz", () => {
+  const algilar: Algi[] = [];
+  let ozynX = 6;
+  const g = ajanAlgisiKur({ beden: () => beden(0), oyuncu: () => ozyn(ozynX), algi: (a) => algilar.push(a) });
+  const ikinci: string[] = [], cikan: string[] = [];
+  g.olayDinle(() => { throw new Error("bozuk abone"); });
+  g.olayDinle((o) => ikinci.push(o.ad));
+  const cik = g.olayDinle((o) => cikan.push(o.ad));
+  cik();
+  const hata = console.error;
+  console.error = () => {};
+  try { g.tikle(0); ozynX = 1; g.tikle(100); } finally { console.error = hata; }
+  assert.deepEqual([adlar(algilar), ikinci, cikan], [["ozyn_yaklasti"], ["ozyn_yaklasti"], []]);
+});
+
 test("gövde yoksa (yüklenmedi) hiçbir şey üretilmez", () => {
   const algilar: Algi[] = [];
   const g = ajanAlgisiKur({ beden: () => null, oyuncu: () => ozyn(1), algi: (a) => algilar.push(a) });

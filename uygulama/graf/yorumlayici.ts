@@ -10,9 +10,11 @@
 // bakılır. Her düğüm başlarken `olay` yayılır (editördeki aktif düğüm vurgusu, günlük).
 // Dilim 1: dünya işi (ajanın yürüyüşü) bir SÖZDÜR, süre değil: düğüm onu `bekleVeyaDur` ile bekler, ■ beklemeyi hemen keser ve `durdurulunca`
 // kancaları dünyadaki işi de durdurur (bedene `dur`). Hata, oluştuğu grafikle (desen içindeyse desenin adı) döner.
+// Dilim 2: çalışma bir DÜNYA OLAYI düğümünden de başlayabilir (`giris`: dinlemedeki grafik; kim kurdu, ne zaman: grafDinleyici.ts); düğümler grafiğin
+// bellekteki değişken alanını (`degiskenler`) ve yerel saati görür.
 "use strict";
 import type { Graf, PinUcu } from "../../protocol/graf.ts";
-import type { DugumCalismasi, DugumKaydi, DugumSonucu } from "./dugumKaydi.ts";
+import type { CalismaTetigi, DegiskenAlani, DugumCalismasi, DugumKaydi, DugumSonucu } from "./dugumKaydi.ts";
 import { FONKSIYON_DONUS_TIPI, FONKSIYON_GIRIS_TIPI, BASLA_TIPI, dugumleriCoz, grafTurDenetle, type CozulmusDugum } from "./grafTurDenetimi.ts";
 
 export interface CalismaSinirlari {
@@ -44,6 +46,15 @@ export interface CalismaAyari<Y> {
   uyu?: (ms: number) => Promise<void>;
   sinir?: Partial<CalismaSinirlari>;
   olay?: (o: CalismaOlayi) => void;
+  /**
+   * Çalışmanın GİRİŞİ (dilim 2): verilirse çalışma "▶ Başla"dan değil bu DÜNYA OLAYI düğümünden başlar, olayın verisiyle (dinlemedeki grafik).
+   * Düğüm bir dünya olayı düğümü olmalı; değilse çalışma hiç başlamaz.
+   */
+  giris?: { dugum: string; veri?: Readonly<Record<string, unknown>> };
+  /** Grafiğin değişken alanı (bellekte, grafik başına). Verilmezse değişken düğümleri nedenle düşer. */
+  degiskenler?: DegiskenAlani;
+  /** Yerel saat (0–24); varsayılan bilgisayarın saati. */
+  saat?: () => number;
 }
 
 export interface CalismaSonucu {
@@ -98,6 +109,8 @@ export function grafCalistir<Y>(g: Graf, a: CalismaAyari<Y>): Calisma {
   const durunca = new Set<() => void>();
 
   const ortam = { desen: (ad: string) => a.desen(ad), buGraf: null, ajanlar: () => a.ajanlar?.() ?? [] };
+  const saat = a.saat ?? (() => { const d = new Date(); return d.getHours() + d.getMinutes() / 60; });
+  const tetik: CalismaTetigi | null = a.giris ? { dugum: a.giris.dugum, veri: a.giris.veri ?? {} } : null;
 
   function cerceveKur(graf: Graf, derinlik: number, girdiler: Readonly<Record<string, unknown>>): Cerceve {
     const hatalar = grafTurDenetle(graf, a.kayit, ortam);
@@ -172,6 +185,9 @@ export function grafCalistir<Y>(g: Graf, a: CalismaAyari<Y>): Calisma {
     }
     const calisma: DugumCalismasi<Y> = {
       dugumId: id,
+      tetik,
+      degiskenler: a.degiskenler ?? null,
+      saat,
       ayar: d.ayar,
       giris: (pin) => girisDegeri(c, id, pin),
       girisAdlari: () => d.pinler.girisler.filter((p) => p.tip !== "akis").map((p) => p.ad),
@@ -217,12 +233,27 @@ export function grafCalistir<Y>(g: Graf, a: CalismaAyari<Y>): Calisma {
     return alt.donus ?? {};
   }
 
+  /**
+   * Çalışmanın ilk düğümü: olay girişi verildiyse o DÜNYA OLAYI düğümü (başka tür düğümden "başlatmak" akış kuralını atlardı: Eğer'in ortasından
+   * başlayan bir program denetimin görmediği bir yol olurdu), yoksa ▶ Başla. Olay grafiğinde Başla yoksa ▶ ile çalışmaz, nedenini söyler.
+   */
+  function girisBul(kok: Cerceve): string {
+    if (a.giris) {
+      const d = kok.cozum.get(a.giris.dugum);
+      if (!d) throw new DugumHatasi(null, `olay girişi '${a.giris.dugum}' bu grafikte yok`, g.ad);
+      if (d.tanim.dunyaOlayi === undefined) throw new DugumHatasi(a.giris.dugum, `'${a.giris.dugum}' bir olay düğümü değil (${d.tanim.tip}): çalışma yalnız ▶ Başla'dan ya da olay düğümünden başlar`, g.ad);
+      return a.giris.dugum;
+    }
+    const basla = g.dugumler.find((x) => x.tip === BASLA_TIPI);
+    if (!basla) throw new DugumHatasi(null, `'${g.ad}' olayla çalışır ('▶ Başla' yok): Graf sekmesinde ⚡ Dinlemeye al`, g.ad);
+    return basla.id;
+  }
+
   const sonuc = (async (): Promise<CalismaSonucu> => {
     try {
       if (g.tur !== "olay") throw new DugumHatasi(null, `'${g.ad}' bir desen: tek başına çalışmaz, başka bir grafikten 'Desen' düğümüyle çağrılır`, g.ad);
       const kok = cerceveKur(g, 0, {});
-      const basla = g.dugumler.find((x) => x.tip === BASLA_TIPI)!;
-      await akisYurut(kok, basla.id);
+      await akisYurut(kok, girisBul(kok));
       a.olay?.({ tur: "bitti", adim });
       return { durum: "bitti", adim };
     } catch (err) {

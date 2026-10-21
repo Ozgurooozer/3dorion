@@ -13,7 +13,7 @@
 import type { Niyet } from "../../protocol/niyet.ts";
 import type { Algi, OrionDurumu, OyuncuDurumu } from "../../protocol/algi.ts";
 import type { Vec3 } from "../../protocol/temel.ts";
-import { OlayUretici } from "../../world/olayUretici.ts";
+import { OlayUretici, type UretilenOlay } from "../../world/olayUretici.ts";
 import { BAKIS_KOSINUS } from "../../world/player/bakis.ts";
 import type { NpcTepkisi } from "../../flash/npcTanimi.ts";
 
@@ -46,10 +46,16 @@ export interface AjanAlgisiGirdisi {
 export interface AjanAlgisi {
   /** 20 Hz mantık tikinden çağrılır. */
   tikle(msSimdi: number): void;
+  /**
+   * Olay ABONESİ (spec 35 dilim 2: dinlemedeki düğüm grafikleri). Aynı üretilen olay hem köprüye hem aboneye gider — ikinci bir olay üreticisi YOK
+   * (iki üretici iki ayrı histerezis/soğuma tutar ve "Flash'a yaklaştı" köprüde ve grafikte farklı anlarda olurdu). Çıkış fonksiyonu döner.
+   */
+  olayDinle(cb: (o: UretilenOlay) => void): () => void;
 }
 
 export function ajanAlgisiKur(g: AjanAlgisiGirdisi): AjanAlgisi {
   const uretici = new OlayUretici();
+  const aboneler = new Set<(o: UretilenOlay) => void>();
   return {
     tikle(ms) {
       const b = g.beden();
@@ -61,7 +67,13 @@ export function ajanAlgisiKur(g: AjanAlgisiGirdisi): AjanAlgisi {
         const tepki = g.tepkiler?.find((t) => t.olay === o.ad);
         // Beden boş değilse tepki YOK (yürüyüşü bölmez); köprüye giden algı yine gitti.
         if (tepki && g.niyet && !d.mesgul) g.niyet(tepki.niyet);
+        // Aboneler TEPKİDEN SONRA: grafiğin ilk niyeti tepkinin niyetinden sonra bedene ulaşsın (sonraki niyet öncekini keser; tersi olsaydı refleksin
+        // "bak"ı grafiğin "bak"ını iptal eder, grafik "iş kesildi" diye düşerdi). Bir abonenin hatası ötekileri ve köprüyü kesmez.
+        for (const cb of [...aboneler]) {
+          try { cb(o); } catch (err) { console.error("[ALGI] olay abonesi hatası:", err); }
+        }
       }
     },
+    olayDinle(cb) { aboneler.add(cb); return () => { aboneler.delete(cb); }; },
   };
 }

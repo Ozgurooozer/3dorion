@@ -28,6 +28,7 @@ import { Takipci } from "../takip.ts";
 import { avatarAdimi } from "../niyetYurutucu.ts";
 import { okumaSuresiMs } from "../graf/grafYetenegi.ts";
 import { ajanAlgisiKur } from "./ajanAlgisi.ts";
+import type { UretilenOlay } from "../../world/olayUretici.ts";
 import type { AjanDefteri } from "./ajanKaydi.ts";
 import type { FlashSemaKancasi } from "./flashSemasi.ts";
 import type { Koltuklar } from "./koltuklar.ts";
@@ -60,6 +61,11 @@ export interface FlashBaglantisi {
   flash: Flash;
   /** Birleşik dünyanın aktör listesi için (ışık üyeliği, kapı): bedenin mesh'leri ve konumu. */
   aktor(): { meshler: AbstractMesh[]; x: number; z: number } | null;
+  /**
+   * Flash'ın gözünün olay abonesi (spec 35 dilim 2: dinlemedeki grafikler). Gözü yoksa (`oyuncuDurumu` verilmedi) null: o zaman Flash'ın olayları
+   * grafiğe açılmaz (sessiz "hiç tetiklenmeyen dinleme" yerine kurulurken nedenli ret).
+   */
+  olayDinle: ((cb: (o: UretilenOlay) => void) => () => void) | null;
 }
 
 export async function flashBaglantisiKur(g: FlashBaglantisiGirdisi): Promise<FlashBaglantisi> {
@@ -137,6 +143,7 @@ export async function flashBaglantisiKur(g: FlashBaglantisiGirdisi): Promise<Fla
 
   return {
     avatar, flash,
+    olayDinle: goz ? (cb) => goz.olayDinle(cb) : null,
     aktor() {
       const kok = g.sahne.getTransformNodeByName(`${FLASH.id}_vrm_kok`) ?? g.sahne.getTransformNodeByName(`${FLASH.id}_kok`);
       if (!kok) return null;

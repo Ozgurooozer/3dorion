@@ -145,7 +145,11 @@ import { flashBaglantisiKur, type FlashBaglantisi } from "./ajanlar/flashBaglant
 import { grafYetenegiKur, okumaSuresiMs, type AjanKapisi } from "./graf/grafYetenegi.ts";
 import { grafKutuphanesi } from "./graf/kutuphane.ts";
 import { grafDeposuKur, grafKaynaginiSec } from "./graf/grafDeposu.ts";
-import { grafCalistiriciKur } from "./graf/grafCalistirici.ts";
+import { grafCalistiriciKur, type GrafCalistirici } from "./graf/grafCalistirici.ts";
+import { grafDinleyiciKur, olayYoluKur, type GrafDinleyici } from "./graf/grafDinleyici.ts";
+import { GrafDurumDeposu } from "./graf/grafDurumu.ts";
+import { diyalogDenetimiKur } from "./graf/diyalogDenetimi.ts";
+import { diyalogKutusuKur } from "./yapi/diyalogKutusu.ts";
 import { grafSekmesi } from "./yapi/grafSekmesi.ts";
 
 const tuval = document.getElementById("tuval") as HTMLCanvasElement;
@@ -799,15 +803,30 @@ function grafKapisi(id: string): AjanKapisi | null {
 const grafKaynagi = grafKaynaginiSec();
 let grafHata: string | null = grafKaynagi.hata;
 const grafDeposu = grafDeposuKur(grafKaynagi.kaynak);
-const grafCalistirici = grafCalistiriciKur({
+// DİLİM 2 (NPC davranışı): grafiklerin bellekteki değişkenleri, ajanların gözünden olay yolu (Flash hazır olunca açılır), seçimli diyalog ekranı.
+// Üçü de YALNIZ BELLEKTE: uygulama kapanınca durum ve dinleme gider (Ozyn bir sonraki açılışta yeniden kurar).
+const grafDurumu = new GrafDurumDeposu();
+const grafOlaylari = olayYoluKur();
+const diyalogDenetimi = diyalogDenetimiKur();
+diyalogKutusuKur({
+  denetim: diyalogDenetimi,
+  // 1–4 diyaloğun tuşu yalnız oyun tuşları serbestken: sohbet yazarken, terminaldeyken ya da onay beklerken o tuş harftir/onayındır (dunyaKancasi deseni).
+  tusSerbest: () => oyuncu.oyuncuDurumu().etkilesim !== "monitor" && !sohbet.acikMi() && onayKapisi.durum !== "bekliyor",
+});
+const grafTabani = {
   kayit: grafKutuphanesi(), depo: grafDeposu,
   yetenek: grafYetenegiKur({
     ajanlar: () => ajanlar.hepsi().map((x) => ({ id: x.id, ad: x.ad })), kapi: grafKapisi,
     nesneler: () => yerler.ozyn.nesneler, capalar: () => yerler.ozyn.capalar,
+    diyalog: (i) => diyalogDenetimi.ac({ ...i, renk: ajanlar.al(i.ajan.id)?.renk ?? ORION_AJANI.renk }),
   }),
   ajanlar: () => ajanlar.hepsi().map((x) => x.id),
-  gunluk: (seviye, metin) => { gunluk.ekle(seviye, "graf", metin); console.log(`[GRAF] ${metin}`); },
-});
+  durum: grafDurumu,
+  gunluk: (seviye: "bilgi" | "iyi" | "uyari" | "hata", metin: string) => { gunluk.ekle(seviye, "graf", metin); console.log(`[GRAF] ${metin}`); },
+};
+// Aynı grafik aynı anda tek çalışma: ▶ ve olay çalışması birbirini görür (biri sürerken öteki başlamaz/atlanır).
+const grafCalistirici: GrafCalistirici = grafCalistiriciKur({ ...grafTabani, mesgul: (ad) => (grafDinleyici.calisiyorMu(ad) ? "şu an olayla (⚡) çalışıyor" : null) });
+const grafDinleyici: GrafDinleyici = grafDinleyiciKur({ ...grafTabani, kaynak: grafOlaylari, disMesgul: (ad) => grafCalistirici.durum().calisiyor?.graf === ad });
 const grafPenceresi = editorPenceresiKur({
   kaynak: { oku: (ad) => grafDeposu.oku(ad), yaz: (ad, metin) => grafDeposu.yaz(ad, metin) },
   bilgi: (ad) => { const k = grafDeposu.liste().find((x) => x.ad === ad); return !k ? null : k.hata ? `✗ ${k.hata}` : k.tur === "olay" ? "grafik · ▶ Graf sekmesinden" : "desen · 'Desen' düğümüyle çağrılır"; },
@@ -817,7 +836,7 @@ const grafPenceresi = editorPenceresiKur({
 });
 grafDeposu.dinle((o) => { if (o.tur === "icerik") void grafPenceresi.icerikDegisti(o.ad); grafPenceresi.tazele(); });
 function grafAc(ad: string): void { grafPenceresi.ac(ad).catch((e: unknown) => altyaziGoster(`${ad} açılamadı: ${e instanceof Error ? e.message : String(e)}`, 4000)); }
-altCubuk.ekle(grafSekmesi({ depo: grafDeposu, calistirici: grafCalistirici, ac: grafAc, hata: () => grafHata, bildir: altyaziGoster }));
+altCubuk.ekle(grafSekmesi({ depo: grafDeposu, calistirici: grafCalistirici, dinleyici: grafDinleyici, durum: grafDurumu, ac: grafAc, hata: () => grafHata, bildir: altyaziGoster }));
 grafDeposu.baslat().then(() => console.log(`[GRAF] ${grafDeposu.liste().length} grafik/desen`), (e: unknown) => { grafHata = e instanceof Error ? e.message : String(e); console.error("[GRAF] yüklenemedi:", grafHata); });
 
 /** Hedefin menüsünü aç; "Özellikler…" aynı noktada `panel`i gösterir. */
@@ -931,7 +950,11 @@ const girdi = new MetinGirdi();
       sahne, saat, vrmYolu: varlik(VARSAYILAN_VRM), yer: () => yerler.ozyn, oyuncuKonumu: () => oyuncu.oyuncuDurumu().konum,
       koltuklar, ajanlar, altyazi: altyaziGoster, altyaziEkle: altyaziGoster.ekle, gunluk, secili: seciliSoz, sema: flashSemaKancasi(flashZihni),
       oyuncuDurumu: () => oyuncu.oyuncuDurumu(),
-    }).then((b) => { flashBag = b; }, (e: unknown) => console.error("[FLASH] kurulamadı:", e));
+    }).then((b) => {
+      flashBag = b;
+      // Flash'ın gözü grafiklere açılır (spec 35 dilim 2): aynı olay köprüsüne de gider (ajanAlgisi.ts, kopya üretici yok). Göz yoksa açılmaz.
+      if (b.olayDinle) { b.olayDinle((o) => grafOlaylari.yay(FLASH.id, o)); grafOlaylari.ajanEkle(FLASH.id); }
+    }, (e: unknown) => console.error("[FLASH] kurulamadı:", e));
   }
 }
 

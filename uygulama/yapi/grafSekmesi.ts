@@ -7,18 +7,27 @@
 //   • ▶ ÇALIŞTIR YALNIZ OZYN'İN GERÇEK TIKLAMASIYLA: olay `isTrusted` değilse (betikten `.click()`, senaryo, konsol) yok sayılır; Orion'un araç yüzeyinde
 //     grafik çalıştıran bir yol yoktur (bekçi: uygulama/graf/ajanDugumleri.test.ts "▶ TEK YERDEN"). Aynı anda tek çalışma; ■ her an.
 //   • Çalışırken canlı satır (şu anki düğüm: kimlik + tür adı, desen derinliği, süre); bitince son sonuç (bitti / durdu / hata + hangi düğüm).
+//   • ⚡ DİNLEMEYE AL (dilim 2) da YALNIZ GERÇEK TIKLAMAYLA: olay gelince çalıştırma iznidir (bekçi: grafDinleyici.test.ts). Dinlemedekiler sağda listelenir
+//     (tetik/atlanan sayıları, bırak, hepsini bırak); ■ bütün süren çalışmaları (▶ + olay) durdurur, dinlemeyi bırakmaz. Seçili grafiğin bellekteki
+//     değişkenleri Kontrol et altında (Durumu sıfırla).
 // Mantık saf modüllerde ve testli (grafCalistirici.ts, grafDeposu.ts, ajanDugumleri.ts); bu dosya yalnız çizer ve düğmeleri bağlar — DOM'u test edecek bir
 // tarayıcı ortamı bu projede yok (hafizaSekmesi.ts gibi), canlı deneme listesi spec 35'te.
 "use strict";
 import type { Sekme, SekmeAraci, SekmeIcerigi } from "../../world/arayuz/altCubuk.ts";
 import { grafAdiGecerli } from "../../protocol/graf.ts";
+import type { GrafDegeri } from "../../protocol/graf.ts";
 import type { GrafDeposu, GrafKaydi } from "../graf/grafDeposu.ts";
 import { canliSatir, sonucSatiri, type GrafCalistirici } from "../graf/grafCalistirici.ts";
-import { yeniDesenSablonu, yeniGrafSablonu } from "../graf/kutuphane.ts";
+import type { GrafDinleyici } from "../graf/grafDinleyici.ts";
+import { GRAF_SABLONLARI, yeniDesenSablonu } from "../graf/kutuphane.ts";
 
 export interface GrafSekmesiAyari {
   depo: GrafDeposu;
   calistirici: GrafCalistirici;
+  /** ⚡ Dinleme (dilim 2): olay tetikli çalışma. Kurulum yalnız buradan, yalnız gerçek tıklamayla. */
+  dinleyici: GrafDinleyici;
+  /** Grafiklerin bellekteki değişkenleri (gösterim ve "Durumu sıfırla"). */
+  durum: { ozet(graf: string): Readonly<Record<string, GrafDegeri>>; sifirla(graf: string): boolean; dinle(f: (graf: string) => void): () => void };
   /** Düzenleyici penceresinde aç (JSON). */
   ac: (ad: string) => void;
   /** Depo yüklenemediyse nedeni. */
@@ -57,6 +66,17 @@ const CSS = `
 .gs-kontrol li { margin: 0 0 4px 14px; color: #ffcf8a; }
 .gs-kontrol .gs-tamam { color: #8fe0a8; }
 .gs-bos { grid-column: 1 / -1; padding: 10px 2px; color: #7c88a6; }
+.gs-dinle:not(:disabled) { border-color: #a87a2a; color: #ffcf8a; }
+.gs-kart[data-dinliyor="1"] { border-color: #a87a2a; }
+.gs-sag { width: 320px; flex: none; display: flex; flex-direction: column; gap: 8px; min-height: 0; border-left: 1px solid #222c41; padding-left: 10px; }
+.gs-sag .gs-kontrol { width: auto; border-left: 0; padding-left: 0; flex: 1; min-height: 0; }
+.gs-dinleme { font-size: 12px; color: #aab4d0; max-height: 45%; overflow: auto; }
+.gs-dinleme-satir { display: flex; align-items: center; gap: 6px; padding: 2px 0; }
+.gs-dinleme-satir span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gs-dinleme-satir[data-calisiyor="1"] span { color: #8fe0a8; }
+.gs-dinleme .gs-dugme { padding: 1px 8px; font-size: 11px; }
+.gs-yeni select { background: #121726; color: #eef1fa; border: 1px solid #2a3246; border-radius: 6px; padding: 3px 6px; font: inherit; }
+.gs-durum { margin-top: 8px; color: #9fb0d8; }
 `;
 
 export function grafSekmesi(a: GrafSekmesiAyari): Sekme {
@@ -82,23 +102,31 @@ function kur(sayfa: HTMLElement, arac: SekmeAraci, a: GrafSekmesiAyari): SekmeIc
   const ust = el("div", "gs-ust");
   const satir = el("div", "gs-satir");
   const calistir = dugme("▶ Çalıştır", "gs-calistir", "Seçili grafiği çalıştır (yalnız senin tıklamanla)");
-  const durdur = dugme("■ Durdur", "gs-durdur", "Süren grafiği hemen durdur (yürüyen ajan da durur)");
+  const durdur = dugme("■ Durdur", "gs-durdur", "Süren bütün grafikleri hemen durdur (▶ ve olayla çalışanlar; yürüyen ajan da durur, açık diyalog kapanır)");
+  const dinleDugme = dugme("⚡ Dinlemeye al", "gs-dinle", "Seçili grafik olay gelince (Ozyn Flash'a yaklaştı…) çalışsın — yalnız senin tıklamanla; uygulama kapanınca biter");
   const kontrolDugme = dugme("Kontrol et", "", "Kaydedilmiş hâlin biçim ve tür denetimi");
   const acDugme = dugme("Aç", "", "Seçili grafiği düzenleyicide aç (JSON)");
-  const yeniGraf = dugme("＋ Yeni grafik", "", "Çalışan bir örnekle başlar: Flash yanına gelir, el sallar, selam verir");
+  const yeniGraf = dugme("＋ Yeni grafik", "", "Çalışan bir örnekle başlar (şablon seç): selam — Flash yanına gelir, el sallar; nöbetçi — yaklaşınca parola sorar");
   const yeniDesen = dugme("＋ Yeni desen", "", "Girişli alt-grafik: başka bir grafikte 'Desen' düğümüyle tek düğüm olarak çağrılır");
   const yeniKutu = el("div", "gs-yeni"); yeniKutu.style.display = "none";
   const yeniGirdi = el("input"); yeniGirdi.autocomplete = "off"; yeniGirdi.spellcheck = false;
   const yeniHata = el("span", "gs-yeni-hata");
-  yeniKutu.append(yeniGirdi, yeniHata);
-  ust.append(satir, calistir, durdur, kontrolDugme, acDugme, yeniKutu, yeniGraf, yeniDesen);
+  // Şablon seçimi (yalnız grafik için): boş sayfa yerine çalışan örnek — selam (▶) ya da nöbetçi (⚡ olay + diyalog).
+  const sablonSec = el("select");
+  for (const s of GRAF_SABLONLARI) { const o = el("option", "", s.ad); o.value = s.id; sablonSec.append(o); }
+  sablonSec.addEventListener("keydown", (e) => e.stopPropagation());
+  yeniKutu.append(sablonSec, yeniGirdi, yeniHata);
+  ust.append(satir, calistir, durdur, dinleDugme, kontrolDugme, acDugme, yeniKutu, yeniGraf, yeniDesen);
 
   const govde = el("div", "gs-govde");
   const sutun = (baslik: string) => { const s = el("div", "gs-sutun"); const serit = el("div", "gs-serit"); s.append(el("div", "gs-baslik", baslik), serit); return { s, serit }; };
-  const grafikler = sutun("Grafikler (▶ ile çalışır)");
+  const grafikler = sutun("Grafikler (▶ ile ya da ⚡ olayla çalışır)");
   const desenler = sutun("Desenler (tek düğüm olarak çağrılır)");
+  const sag = el("div", "gs-sag");
+  const dinleme = el("div", "gs-dinleme");
   const kontrol = el("div", "gs-kontrol");
-  govde.append(grafikler.s, desenler.s, kontrol);
+  sag.append(dinleme, kontrol);
+  govde.append(grafikler.s, desenler.s, sag);
   kok.append(ust, govde);
   sayfa.append(kok);
 
@@ -120,7 +148,8 @@ function kur(sayfa: HTMLElement, arac: SekmeAraci, a: GrafSekmesiAyari): SekmeIc
       satir.textContent = "Henüz çalıştırılmadı. Bir grafik seç ve ▶ Çalıştır.";
     }
     satir.title = satir.textContent;
-    arac.rozet(d.calisiyor ? "▶" : null);
+    const olayla = a.dinleyici.liste();
+    arac.rozet(d.calisiyor || olayla.some((x) => x.calisiyor) ? "▶" : olayla.length ? "⚡" : null);
   }
   function dugmeleriCiz(): void {
     const k = kayit(secili);
@@ -128,7 +157,11 @@ function kur(sayfa: HTMLElement, arac: SekmeAraci, a: GrafSekmesiAyari): SekmeIc
     const neden = calisiyor ? "zaten bir grafik çalışıyor (■ ile durdur)" : !k ? "önce bir grafik seç" : k.hata ? `bozuk: ${k.hata}` : k.tur !== "olay" ? "desen tek başına çalışmaz" : "";
     calistir.disabled = neden !== "";
     calistir.title = neden || `'${k?.ad}' çalıştır (yalnız senin tıklamanla)`;
-    durdur.disabled = !calisiyor;
+    durdur.disabled = !calisiyor && !a.dinleyici.liste().some((x) => x.calisiyor);
+    // Seçili grafik dinlemedeyse aynı düğme BIRAKIR (bırakmak her zaman serbest); değilse kurar (yalnız gerçek tıklama).
+    const dinlemede = !!k && a.dinleyici.dinlemedeMi(k.ad);
+    dinleDugme.textContent = dinlemede ? "⚡ Dinlemeyi bırak" : "⚡ Dinlemeye al";
+    dinleDugme.disabled = !k || (!dinlemede && (!!k.hata || k.tur !== "olay"));
     kontrolDugme.disabled = !k;
     acDugme.disabled = !k;
   }
@@ -137,6 +170,8 @@ function kur(sayfa: HTMLElement, arac: SekmeAraci, a: GrafSekmesiAyari): SekmeIc
     if (d.calisiyor && !saat) saat = setInterval(satirCiz, 250);   // geçen süre canlı
     if (!d.calisiyor && saat) { clearInterval(saat); saat = null; }
   });
+  a.dinleyici.dinle(() => { dinlemeCiz(); dugmeleriCiz(); kartlariIsaretle(); satirCiz(); });
+  a.durum.dinle((g) => { if (g === secili && kontrol.childElementCount) kontrolEt(); });
 
   // ── ▶ / ■ ──
   calistir.addEventListener("click", (e) => {
@@ -146,7 +181,42 @@ function kur(sayfa: HTMLElement, arac: SekmeAraci, a: GrafSekmesiAyari): SekmeIc
     const r = a.calistirici.calistir(secili);
     if (!r.ok) a.bildir(`çalıştırılamadı: ${r.neden}`, 4000);
   });
-  durdur.addEventListener("click", () => { durdur.blur(); a.calistirici.durdur(); });
+  // ■ her şeyi durdurur (▶ çalışması + olay çalışmaları); dinleme SÜRER — bırakmak için "Dinlemeyi bırak". Durdurmak güvenlik yönü: isTrusted istemez.
+  durdur.addEventListener("click", () => { durdur.blur(); a.calistirici.durdur(); a.dinleyici.durdur(); });
+
+  // ── ⚡ dinleme ──
+  dinleDugme.addEventListener("click", (e) => {
+    dinleDugme.blur();
+    if (!secili) return;
+    if (a.dinleyici.dinlemedeMi(secili)) { a.dinleyici.birak(secili); return; }
+    // YALNIZ GERÇEK TIKLAMA (▶ ile aynı kural): dinlemeye almak, olay gelince çalıştırma İZNİDİR; betik bu izni veremez.
+    if (!e.isTrusted) return;
+    const r = a.dinleyici.dinlemeyeAl(secili);
+    if (!r.ok) a.bildir(`dinlemeye alınamadı: ${r.neden}`, 5000);
+    else a.bildir(`⚡ ${secili} dinlemede (uygulama kapanınca biter)`, 2500);
+  });
+  function dinlemeCiz(): void {
+    const l = a.dinleyici.liste();
+    dinleme.replaceChildren();
+    if (!l.length) { dinleme.append(el("div", "gs-alt", "⚡ Dinlemede grafik yok. Bir grafik seç ve ⚡ Dinlemeye al.")); return; }
+    const bas = el("div", "gs-dinleme-satir");
+    const hepsi = dugme("hepsini bırak", "", "Bütün dinlemeleri bırak (süren olay çalışmaları da durur)");
+    hepsi.addEventListener("click", () => { hepsi.blur(); a.dinleyici.hepsiniBirak(); });
+    bas.append(el("span", "gs-baslik", `⚡ Dinlemede (${l.length})`), hepsi);
+    dinleme.append(bas);
+    for (const x of l) {
+      const s = el("div", "gs-dinleme-satir");
+      s.dataset.calisiyor = x.calisiyor ? "1" : "0";
+      const atlanan = x.atlanan.calisiyor + x.atlanan.soguma;
+      const yazi = `${x.calisiyor ? "▶" : "⚡"} ${x.graf} · ${x.tetikler.map((t) => `${t.ajan}:${t.olay}`).join(", ")} · ${x.tetik} tetik${atlanan ? ` · ${atlanan} atlandı` : ""}`;
+      const metin = el("span", "", yazi);
+      metin.title = `${yazi}\natlanan: ${x.atlanan.calisiyor} (zaten çalışıyordu) · ${x.atlanan.soguma} (soğuma)${x.son ? `\nson: ${sonucSatiri(x.son)}` : ""}`;
+      const birak = dugme("bırak", "", "Dinlemeyi bırak");
+      birak.addEventListener("click", () => { birak.blur(); a.dinleyici.birak(x.graf); });
+      s.append(metin, birak);
+      dinleme.append(s);
+    }
+  }
 
   // ── Kontrol et ──
   function kontrolEt(): void {
@@ -158,11 +228,21 @@ function kur(sayfa: HTMLElement, arac: SekmeAraci, a: GrafSekmesiAyari): SekmeIc
     const hatalar = k.hata ? [k.hata] : g ? a.calistirici.kontrol(g) : ["grafik yüklenemedi"];
     if (!hatalar.length) {
       kontrol.append(el("div", "gs-tamam", k.tur === "olay" ? "✓ hata yok: çalıştırılabilir" : "✓ hata yok (desen: bir grafikte 'Desen' düğümüyle çağrılır)"));
-      return;
+    } else {
+      const l = el("ul");
+      for (const h of hatalar) l.append(el("li", "", h));
+      kontrol.append(el("div", "", `✗ ${hatalar.length} sorun:`), l);
     }
-    const l = el("ul");
-    for (const h of hatalar) l.append(el("li", "", h));
-    kontrol.append(el("div", "", `✗ ${hatalar.length} sorun:`), l);
+    // Değişkenler (bellekte; uygulama kapanınca gider): nöbetçinin ziyaret sayacı burada görünür ve sıfırlanır.
+    const ozet = Object.entries(a.durum.ozet(k.ad));
+    if (k.tur !== "olay") return;
+    const d = el("div", "gs-durum", ozet.length ? `Durum (bellekte): ${ozet.map(([ad, v]) => `${ad} = ${JSON.stringify(v)}`).join(" · ")}` : "Durum (bellekte): değişken yok");
+    if (ozet.length) {
+      const sifirla = dugme("Durumu sıfırla", "", "Bu grafiğin değişkenlerini sil (ziyaret sayacı 0'dan başlar)");
+      sifirla.addEventListener("click", () => { sifirla.blur(); a.durum.sifirla(k.ad); kontrolEt(); });
+      d.append(" ", sifirla);
+    }
+    kontrol.append(d);
   }
   kontrolDugme.addEventListener("click", () => { kontrolDugme.blur(); kontrolEt(); });
   acDugme.addEventListener("click", () => { acDugme.blur(); if (secili) a.ac(secili); });
@@ -173,6 +253,7 @@ function kur(sayfa: HTMLElement, arac: SekmeAraci, a: GrafSekmesiAyari): SekmeIc
   const yeniAc = (tur: "olay" | "fonksiyon") => {
     yeniTur = tur;
     yeniGraf.style.display = "none"; yeniDesen.style.display = "none"; yeniKutu.style.display = "flex";
+    sablonSec.style.display = tur === "olay" ? "" : "none";
     yeniGirdi.placeholder = tur === "olay" ? "grafik adı (örn. selam)" : "desen adı (örn. selamla)";
     yeniGirdi.focus();
   };
@@ -186,7 +267,8 @@ function kur(sayfa: HTMLElement, arac: SekmeAraci, a: GrafSekmesiAyari): SekmeIc
     const ad = yeniGirdi.value.trim();
     if (!grafAdiGecerli(ad)) { yeniHata.textContent = "geçersiz ad (harf, rakam, _ ve -; boşluk yok)"; return; }
     if (kayit(ad)) { yeniHata.textContent = "bu ad zaten var"; return; }
-    const g = yeniTur === "olay" ? yeniGrafSablonu(ad) : yeniDesenSablonu(ad);
+    const sablon = GRAF_SABLONLARI.find((s) => s.id === sablonSec.value) ?? GRAF_SABLONLARI[0]!;
+    const g = yeniTur === "olay" ? sablon.kur(ad) : yeniDesenSablonu(ad);
     void a.depo.yeni(g).then(() => { yeniKapat(); secili = ad; ciz(); a.ac(ad); }, (err: unknown) => { yeniHata.textContent = err instanceof Error ? err.message : String(err); });
   });
   yeniGirdi.addEventListener("keyup", (e) => e.stopPropagation());
@@ -205,7 +287,11 @@ function kur(sayfa: HTMLElement, arac: SekmeAraci, a: GrafSekmesiAyari): SekmeIc
   }
   function kartlariIsaretle(): void {
     const calisan = a.calistirici.durum().calisiyor?.graf ?? null;
-    for (const [ad, c] of kartlar) { c.dataset.secili = ad === secili ? "1" : "0"; c.dataset.calisiyor = ad === calisan ? "1" : "0"; }
+    for (const [ad, c] of kartlar) {
+      c.dataset.secili = ad === secili ? "1" : "0";
+      c.dataset.calisiyor = ad === calisan || a.dinleyici.calisiyorMu(ad) ? "1" : "0";
+      c.dataset.dinliyor = a.dinleyici.dinlemedeMi(ad) ? "1" : "0";
+    }
   }
   function ciz(): void {
     const liste = a.depo.liste();
@@ -216,7 +302,7 @@ function kur(sayfa: HTMLElement, arac: SekmeAraci, a: GrafSekmesiAyari): SekmeIc
     const h = a.hata();
     grafikler.serit.replaceChildren(...(olaylar.length ? olaylar.map(kart) : [el("div", "gs-bos", h ? `Grafikler yüklenemedi: ${h}` : "Henüz grafik yok. ＋ Yeni grafik ile çalışan bir örnekle başla.")]));
     desenler.serit.replaceChildren(...(fonksiyonlar.length ? fonksiyonlar.map(kart) : [el("div", "gs-bos", "Henüz desen yok.")]));
-    kartlariIsaretle(); dugmeleriCiz(); satirCiz();
+    kartlariIsaretle(); dugmeleriCiz(); satirCiz(); dinlemeCiz();
   }
   // Abonelik sekme ömrü boyunca açık: kaydedince kart (bozuk/açıklama) çubuk kapalıyken de güncel kalır.
   a.depo.dinle((o) => { if (o.tur === "liste") ciz(); });
