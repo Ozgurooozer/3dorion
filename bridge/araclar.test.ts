@@ -20,6 +20,8 @@ const BEKLENEN_TURLER = [
   // `doktor` = Orion Doktor (Ozyn, 2026-10-15): kendi bedenini/dünyasını muayene eder (WebGL hatası, görünmez mesh). Onay istemez;
   // sağlıklıysa sessiz (token yok). Özerk turda sunulmaz (YAZAN_NIYETLER). Açıklama bilerek KISA: her turun sabit maliyeti.
   "doktor",
+  // `emret` = Orion → Flash emri (Ozyn, 2026-10-21): LLM'siz NPC'ye kısa komut teslim eder. YALNIZ Flash varken sunulur (köprü `emirHedefleri`); özerk turda sunulmaz.
+  "emret",
 ];
 
 test("her niyet türünün bir aracı var — sessizce görünmez yetenek yok", () => {
@@ -87,7 +89,8 @@ test("araç yüzeyi token bütçesi makul", () => {
   // (docs/olcum/on-kayit-ortam.md): mevcut 28 senaryoda ±1; bozarsa o modelden `cikarilanAraclar` ile çıkarılır.
   // 1650 → 1750: `dunya_doktor` (~55 token, ölçüldü 1704, açıklama bilerek tek cümle). Ozyn'in isteği: LLM'siz söz yolu var ("doktor"), araç yalnız Orion'un kendi
   // kararıyla çağırabilmesi için; sabit maliyeti bu kadar tutuldu.
-  assert.ok(m < 1750, `araç yüzeyi çok pahalı: ~${m} token/tur`);
+  // 1750 → 1800: `dunya_emret` (~88 token, ölçüldü 1792; yalnız Flash varken sunulur, yani Flash'sız turun yüzeyi 1704 kalır — bkz. kopruEmir.test.ts).
+  assert.ok(m < 1800, `araç yüzeyi çok pahalı: ~${m} token/tur`);
 });
 
 // ── BAK zinciri: sözleşme → araç → protokol ───────────────────────────────
@@ -107,4 +110,31 @@ test("dunya_sor protokolün bütün soruları için geçerli niyet üretir (gör
 test("dunya_sor uydurma soruyu REDDEDER", () => {
   const d = cagriyiNiyete("dunya_sor", { ne: "arkamda" });
   assert.equal(d.ok, false, "bilinmeyen sorgu kabul edilmemeli");
+});
+
+// ── emret: Orion → Flash (spec 33) ──
+test("emret: araç çağrısı doğrulanmış niyete döner (kime küçük harfe, söz tek satıra iner)", () => {
+  const r = cagriyiNiyete("dunya_emret", { kime: " Flash ", soz: "bana\n gel" });
+  assert.deepEqual(r.ok ? r.deger : r, { tur: "emret", kime: "flash", soz: "bana gel" });
+});
+
+test("emret: kime ya da soz eksik/boşsa reddedilir ve nedeni söyler", () => {
+  for (const girdi of [{}, { kime: "flash" }, { soz: "otur" }, { kime: "", soz: "otur" }, { kime: "flash", soz: "  " }]) {
+    assert.equal(cagriyiNiyete("dunya_emret", girdi).ok, false, JSON.stringify(girdi));
+  }
+});
+
+test("emret: çok uzun söz ve geçersiz ajan kimliği reddedilir (roman ya da yol değil, kısa komut)", () => {
+  assert.equal(cagriyiNiyete("dunya_emret", { kime: "flash", soz: "x".repeat(61) }).ok, false);
+  assert.equal(cagriyiNiyete("dunya_emret", { kime: "../orion", soz: "otur" }).ok, false);
+  assert.equal(cagriyiNiyete("dunya_emret", { kime: "a".repeat(25), soz: "otur" }).ok, false);
+});
+
+test("emret açıklamasında anılan her komut Flash'ın komut sözlüğünce tanınır (araç yalan komut öğretmesin)", async () => {
+  const { komutCoz } = await import("../mind/komutSozlugu.ts");
+  const { takipEylemi } = await import("../mind/takipSozu.ts");
+  const aciklama = araclariUret().find((a) => a.ad === "dunya_emret")!.aciklama;
+  const komutlar = ["otur", "kalk", "bana gel", "beni takip et", "takibi birak", "pencereye bak"];
+  for (const k of komutlar) assert.ok(aciklama.includes(k), `açıklamada yok: ${k}`);
+  assert.deepEqual(komutlar.filter((k) => komutCoz(k) === null && takipEylemi(k) === null), []);
 });

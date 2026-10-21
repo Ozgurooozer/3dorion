@@ -29,6 +29,8 @@ function sahneKur(ayar: {
   bedenCevabi?: (n: Niyet) => { durum: NiyetSonucu["durum"]; varis?: Vec3 } | null;
   /** Orion'un bulunduğu yerin çapaları (spec 24); verilmezse yürütücü odayı varsayar. */
   capalar?: readonly Capa[];
+  /** `emret` (Orion → Flash, spec 33): verilirse komut teslim bağlantısı; verilmezse başka ajan yok. */
+  emret?: (kime: string, soz: string) => { ok: boolean; not: string };
   /** `ortam` (ova'nın ışığı/stili/zamanı): verilirse bağlantı; `uygula` sonucu kontrol eder. */
   ortam?: (k: Extract<Niyet, { tur: "ortam" }>) => { ok: boolean; not: string };
   /** Görme (spec 25 Faz 2): verilirse göz bağlı; `gor` modelin cevabı ya da fırlattığı. */
@@ -48,6 +50,8 @@ function sahneKur(ayar: {
     gozeGiden: [] as { png: string; algi: string }[],
     gozlemBakis: 0,
     ortamGelen: [] as Extract<Niyet, { tur: "ortam" }>[],
+    emirler: [] as { kime: string; soz: string }[],
+    altyazilar: [] as string[],
   };
   let konum = ayar.konum ?? TAHTA_ONU;
   const dinleyiciler = new Set<(s: NiyetSonucu) => void>();
@@ -80,8 +84,9 @@ function sahneKur(ayar: {
     sema: { vur: () => {} },
     gunluk: { ekle: () => {} },
     algiSor: (ne) => ({ metin: ne === "oyuncu" ? "Ozyn yanında" : "tahta görünüyor", maliyet: 15, kirpildi: false }),
-    altyazi: () => {},
+    altyazi: (m) => { kayit.altyazilar.push(m); },
     onayPaneliCiz: () => { kayit.panelCizildi++; },
+    ...(ayar.emret ? { emret: (kime: string, soz: string) => { kayit.emirler.push({ kime, soz }); return ayar.emret!(kime, soz); } } : {}),
     ...(ayar.olguHatirla ? { olguHatirla: ayar.olguHatirla } : {}),
     ...(ayar.komutKipi ? { komutKipi: () => ayar.komutKipi!, otomatikOnay: () => { kayit.otomatikOnay++; } } : {}),
     gordumBildir: () => { kayit.gordumBildirildi++; },
@@ -375,4 +380,25 @@ test("göz muayenesi null dönerse sonHata nedeni hata olarak söylenir; beyin d
   assert.equal(kayit.kopruSonuc[0]?.durum, "hata");
   assert.match(kayit.kopruSonuc[0]?.not ?? "", /30 sn içinde cevap vermedi/);
   assert.match(algiMetni(kayit.kopruAlgi[0]) ?? "", /Your eyes are not working right now \(görme modeli 30 sn/);
+});
+
+// ── emret: Orion → Flash (spec 33) ──
+test("emret bedene GİTMEZ (Orion yürümez); komut ajana teslim edilir, köprüye 'bitti' döner ve altyazı Ozyn'e gösterir", () => {
+  const { kayit, y } = sahneKur({ emret: () => ({ ok: true, not: "Delivered to Flash." }) });
+  y.niyetiYurut({ tur: "emret", kime: "flash", soz: "otur" }, "e1");
+  assert.deepEqual([kayit.bedeneGiden.length, kayit.emirler, kayit.kopruSonuc, kayit.altyazilar], [
+    0, [{ kime: "flash", soz: "otur" }], [{ niyet_id: "e1", durum: "bitti", not: "Delivered to Flash." }], ["Orion → flash: otur"],
+  ]);
+});
+
+test("emret reddedilirse (ajan yok, kendine emir…) köprüye 'hata' + NEDEN döner (Orion'un modeli görür), altyazı yazılmaz", () => {
+  const { kayit, y } = sahneKur({ emret: () => ({ ok: false, not: "you cannot command yourself" }) });
+  y.niyetiYurut({ tur: "emret", kime: "orion", soz: "otur" }, "e2");
+  assert.deepEqual([kayit.kopruSonuc, kayit.altyazilar], [[{ niyet_id: "e2", durum: "hata", not: "you cannot command yourself" }], []]);
+});
+
+test("emret bağlantısı HİÇ yoksa dürüstçe 'başka karakter yok' hatası döner (sessiz yutulmaz)", () => {
+  const { kayit, y } = sahneKur();
+  y.niyetiYurut({ tur: "emret", kime: "flash", soz: "otur" }, "e3");
+  assert.deepEqual([kayit.kopruSonuc[0]?.durum, kayit.bedeneGiden.length], ["hata", 0]);
 });

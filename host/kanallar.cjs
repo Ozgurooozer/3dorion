@@ -67,6 +67,14 @@ const CAGRI = {
   mdYaz:             "md:yaz",
   mdYeni:            "md:yeni",
   mdAktif:           "md:aktif",
+  /**
+   * Orion'un sesi (spec 34, host/sesler.js): kurulu/katalog sesleri, seçim (bir SONRAKİ cümleden geçerli), katalogdan indirme, yalnız indirileni silme.
+   * Sonuç biçimi md'ninkiyle aynı (`{ ok, deger: SesDurumu }` | `{ ok: false, kod, mesaj }`); deneme cümlesi mevcut `sesUret` yolundan çalar.
+   */
+  sesListe:          "ses:liste",
+  sesSec:            "ses:sec",
+  sesIndir:          "ses:indir",
+  sesSil:            "ses:sil",
 };
 
 /** Main → renderer (tek yönlü olay). */
@@ -81,6 +89,8 @@ const OLAY = {
   dinleme:  "dinle:olay",
   /** 3. monitör: {olay:"durum", d} | {olay:"kare", jpeg, g, y} (host/webMonitor.js). */
   webmonOlay: "webmon:olay",
+  /** Ses indirme ilerlemesi: { ad, dosya: "json" | "onnx", alinan, toplam } (host/sesIndir.js; en çok ~4/sn). */
+  sesIndirme: "ses:indirme",
 };
 
 module.exports = { CAGRI, OLAY };

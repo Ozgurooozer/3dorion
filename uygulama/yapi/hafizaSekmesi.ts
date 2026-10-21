@@ -54,7 +54,17 @@ const zamanMetni = (t: number): string => {
   const d = new Date(t);
   return `${d.getDate().toString().padStart(2, "0")}.${(d.getMonth() + 1).toString().padStart(2, "0")} ${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
 };
-const simge = (d: MdBilgisi): string => (d.ad === ANLIK_HAFIZA ? "🧠" : /persona/i.test(d.ad) ? "🎭" : "📄");
+/** Dosyanın simgesi (Hafıza sekmesi kartı ve ayar paneli · Hafıza notları aynı simgeyi gösterir). */
+export const mdSimgesi = (d: MdBilgisi): string => (d.ad === ANLIK_HAFIZA ? "🧠" : /persona/i.test(d.ad) ? "🎭" : "📄");
+const simge = mdSimgesi;
+
+/** Bağlam bütçesine takılanlar: sığmayan (girmiyor) ve kesilen (kısaltılarak giriyor) notlar — sessiz değil (sekme özeti ve ayar paneli aynı metni yazar). */
+export function baglamUyarilari(baglam: ReturnType<MdDeposu["baglam"]>): string[] {
+  return [
+    ...baglam.atlanan.filter((x) => x.neden !== "boş").map((x) => `⚠ ${x.ad}: ${x.neden}`),
+    ...baglam.kullanilan.filter((x) => x.kesildi).map((x) => `✂ ${x.ad}: uzun, kesilerek giriyor`),
+  ];
+}
 
 export function hafizaSekmesi(a: HafizaSekmesiAyari): Sekme {
   return {
@@ -131,13 +141,9 @@ function kur(sayfa: HTMLElement, arac: SekmeAraci, a: HafizaSekmesiAyari): Sekme
     if (liste.length) {
       ozet.append(`${liste.length} dosya · `, Object.assign(el("b"), { textContent: `${baglam.kullanilan.length} bağlamda` }), ` · ≈${baglam.tahminiToken} token her turda`);
     }
-    const sigmayan = baglam.atlanan.filter((x) => x.neden !== "boş");
-    const kesilen = baglam.kullanilan.filter((x) => x.kesildi);
-    uyari.textContent = [
-      ...sigmayan.map((x) => `⚠ ${x.ad}: ${x.neden}`),
-      ...kesilen.map((x) => `✂ ${x.ad}: uzun, kesilerek giriyor`),
-    ].join(" · ");
-    uyari.title = "Bağlama giren metin sınırlıdır (token ve dikkat maliyeti). Dosyayı kısalt ya da başka bir dosyayı kapat.";
+    uyari.textContent = baglamUyarilari(baglam).join(" · ");
+    uyari.title = "Bağlama giren metin sınırlıdır (token ve dikkat maliyeti). Dosyayı kısalt, başka bir dosyayı kapat ya da bütçeyi büyüt: Zihin sekmesi ▸ HAFIZA ▸ ayar ▸ \"md notları bütçesi\".";
+    ozet.title = "Orion hafızadan yalnız SORULANI getirir; her turda giden tek şey bu notlardır. Bütçe ve otomatik sıkıştırma eşiği: Zihin sekmesi ▸ HAFIZA ▸ ayar.";
     arac.ipucu("Çift tık: düzenle · Sağ tık: bağlama ekle/çıkar, kopyala · Rozete tık: aktif/pasif");
     if (!liste.length) {
       const h = a.hata();

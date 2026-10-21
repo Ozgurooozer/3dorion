@@ -188,6 +188,12 @@ export interface YurutucuAyari {
    * geometrisinden okunur (sandalye, bank) — çapası olmayan yerde `otur` zaten "bilinmeyen çapa" döner.
    */
   yer?: () => Yer;
+  /**
+   * OTURMA İZNİ (spec 33, iki beden): çapa (kanonik ad) başka bir bedenin koltuğuysa onun ADI, boşsa null. `otur` işe başlamadan
+   * sorulur; doluysa açık bir hata döner. Verilmezse her koltuk boş sayılır (tek beden: eski davranış birebir).
+   * NEDEN: başsız deneme (2026-10-21) — iki avatar aynı sandalyeye "otur" alınca ikisi de AYNI noktaya oturdu, hata yok.
+   */
+  koltukDolu?: (capa: string) => string | null;
 }
 
 // ── İç iş tanımı ───────────────────────────────────────────────────────────
@@ -227,6 +233,8 @@ interface AktifIs {
   oturmaY?: number;
   /** `kalk`/`kalkiyor`: sandalye çıkışa döndü mü — kalkma ondan sonra başlar. */
   dondu?: boolean;
+  /** `otur`: tutulan koltuk (çapanın KANONİK adı; `capa` istenen addır ve sonuçta öyle bildirilir). */
+  koltuk?: string;
 }
 
 // ── Yürütücü ───────────────────────────────────────────────────────────────
@@ -280,6 +288,9 @@ export class Yurutucu {
 
   private _oyuncuKonumu: (() => Vec3) | null;
   private _yer: () => Yer;
+  private _koltukDolu: ((capa: string) => string | null) | null;
+  /** Oturulan koltuk (kanonik çapa adı); yalnız `_oturuyor` iken anlamlı. */
+  private _oturulanKoltuk: string | null = null;
 
   constructor(ayar: YurutucuAyari = {}) {
     const s = ayar.spawn ?? { x: 0, y: 0, z: 0 };
@@ -288,6 +299,16 @@ export class Yurutucu {
     this._govdeHedefYaw = this._govdeYaw;
     this._oyuncuKonumu = ayar.oyuncuKonumu ?? null;
     this._yer = ayar.yer ?? (() => ODA_YERI);
+    this._koltukDolu = ayar.koltukDolu ?? null;
+  }
+
+  /**
+   * Tuttuğu koltuk (kanonik çapa adı): oturmaya GİDERKEN de tutulur (iki beden aynı sandalyeye yürümesin), oturuyorken tutulur,
+   * kalkınca/ışınlanınca bırakılır. Durumdan HESAPLANIR (ayrı bir "bırak" adımı yok): unutulup kilitli kalan koltuk olmaz.
+   */
+  koltugu(): string | null {
+    if (this._aktif?.tur === "otur") return this._aktif.koltuk ?? null;
+    return this._oturuyor ? this._oturulanKoltuk : null;
   }
 
   // ── Dış yüzey ────────────────────────────────────────────────────────────
@@ -510,6 +531,11 @@ export class Yurutucu {
       return;
     }
     if (this._oturuyor) { cikti.push(this._hata(id, "zaten oturuyorsun. Önce `kalk` niyeti gönder.")); return; }
+    const sahibi = this._koltukDolu?.(capa.ad) ?? null;
+    if (sahibi) {
+      cikti.push(this._hata(id, `${capa.etiket} dolu: ${sahibi} orada. Başka bir yere otur ya da kalkmasını bekle. Oturulabilir: ${this._oturulabilirler()}.`));
+      return;
+    }
     const geo = capa.oturma;
     if (!geo) {
       cikti.push(this._hata(id, `'${ad}' çapasına Orion oturamaz (oturma geometrisi tanımlı değil). Oturulabilir: ${this._oturulabilirler()}.`));
@@ -547,6 +573,7 @@ export class Yurutucu {
       oturmaYaw: yonYaw(oturmaBakisi.x, oturmaBakisi.z),
       oturmaNoktasi: { x: geo.nokta.x, z: geo.nokta.z },
       oturmaY: capa.konum.y - OTURMA_KALCA_PAYI,
+      koltuk: capa.ad,
     };
     if (is.asama === "yuruyor") {
       const hata = this._yoluKur(is);
@@ -900,6 +927,7 @@ export class Yurutucu {
         return;
       }
       this._oturuyor = true;
+      this._oturulanKoltuk = is.koltuk ?? null;
       this._oturmaCikisi = { x: is.pozBasKonum.x, z: is.pozBasKonum.z };
       return;
     }

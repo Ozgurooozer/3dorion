@@ -407,7 +407,9 @@ export class Kopru {
 
     // DOĞUŞTAN PROGRAM (spec 13 Faz 2b, içgüdü `kopru.komut`): öğrenilmiş beceriden ÖNCE —
     // doğuştan olan kesindir. Beceri gölgesi yine hesaplanır ve satıra yazılır (B9 ölçüsü).
-    if (a.tur === "duydum" && a.kesin && this._ayar.komutYetkisi !== false) {
+    // Yetki her sözde okunur: işlevse (pano teli, spec 34) çalışma anında kapatılmış olabilir.
+    const komutYetkisi = typeof this._ayar.komutYetkisi === "function" ? this._ayar.komutYetkisi() : this._ayar.komutYetkisi;
+    if (a.tur === "duydum" && a.kesin && komutYetkisi !== false) {
       const ortamVar = this._ayar.ortamKullanilabilir?.() === true;
       // Sıra: yerleşik sözlük → öğrenen ortam sözlüğü (LLM'in bir kez doğru yaptığı söz) → LLM.
       const program = komutCoz(a.metin, { ortam: ortamVar, secili: this._ayar.secili?.() ?? null }) ?? (ortamVar ? this._ayar.ortamOgrenilen?.(a.metin) ?? null : null);
@@ -882,7 +884,7 @@ export class Kopru {
   private _otoSikistir(): void {
     if (this._sikistiriyor || this._dusunuyor || this._tampon.length > 0 || this._sohbetKipi === "temiz" || !this._ayar.hafizaYedegi) return;
     const simdi = this._ayar.simdi?.() ?? Date.now();
-    if (otoSikistirmaGerekli(this._hafiza.dok(), this._sonSikistirma, simdi)) void this.sikistir("otomatik");
+    if (otoSikistirmaGerekli(this._hafiza.dok(), this._sonSikistirma, simdi, this._ayar.otoSikistirma?.())) void this.sikistir("otomatik");
   }
 
   /**
@@ -1423,7 +1425,9 @@ export class Kopru {
   /** Modele sunulan araçlar: `cikarilanAraclar` dışındakiler (spec 16 F6) + tur kuralı (`turIcinAraclar`, spec 26 F1). */
   private _araclar(turler: ReadonlySet<string>): ReturnType<typeof araclariUret> {
     const c = this._ayar.cikarilanAraclar;
-    const hepsi = araclariUret();
+    // `dunya_emret` yalnız emir verilecek bir ajan varken sunulur (aksi hâlde her turun sabit maliyetine boşuna ~70 token eklerdi).
+    const emirVar = (this._ayar.emirHedefleri?.().length ?? 0) > 0;
+    const hepsi = araclariUret().filter((a) => emirVar || a.ad !== "dunya_emret");
     return turIcinAraclar(c?.length ? hepsi.filter((a) => !c.includes(a.ad)) : hepsi, turler, this._zincirKokeni === "inisiyatif" && this._ayar.ozerkTur !== false);
   }
 

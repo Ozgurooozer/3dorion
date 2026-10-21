@@ -54,13 +54,32 @@ export interface KopruGirdisi {
   beyinKapisi?: () => boolean;
   /** Orion'un aktif md dosyalarından kurulmuş NOTES bölümü (spec 32; boş = yok). Her turda çağrı anında okunur. */
   mdBaglami?: () => string;
+  /** Orion'un emir verebileceği diğer ajanların kimlikleri (Flash); boşsa `dunya_emret` aracı sunulmaz. Çağrı anında okunur. */
+  emirHedefleri?: () => readonly string[];
   /** Seçili nesne (spec 28): söz sözlüğü "buraya otur" gibi sözleri buna göre çözer. */
   secili?: () => SeciliNesne | null;
+}
+
+/**
+ * Açılıştaki YETKİ ANAHTARLARI (sorgudan; host/main.js env'leri sorguya çevirir). Tek yer: köprü bunlarla kurulur, ayar paneli (spec 34) aynısını gösterir.
+ *   beceri       `?beceri` (ORION_BECERI=1) — spec 10 Faz D, varsayılan KAPALI; açılması ön-kayıtlı bara bağlı
+ *   benlikSuzgec `?benliksuzgec` — spec 12 Faz 5, varsayılan KAPALI; açılması gölge ölçüsüne bağlı (Ozyn)
+ *   komut        doğuştan programlar — elle açılışta AÇIK, senaryoda (`sessiz`) KAPALI; `?komut=0|1` zorlar
+ */
+export function yetkiAnahtarlari(sorgu: string): { beceri: boolean; benlikSuzgec: boolean; komut: boolean } {
+  const q = new URLSearchParams(sorgu);
+  return {
+    beceri: q.has("beceri"),
+    benlikSuzgec: q.has("benliksuzgec"),
+    komut: q.has("komut") ? q.get("komut") !== "0" : !q.has("sessiz"),
+  };
 }
 
 export function kopruKur(g: KopruGirdisi): Kopru {
   const { duvar, secim, sema, gunluk, oyuncu, yerler, refleks, takipci, inisiyatif, ortamBaglantisi, ortamSozlugu, niyetiYurut, davranisKayit } = g;
   const { kesikSn } = secim;
+  const yetki = yetkiAnahtarlari(location.search);
+  PANO_TELLERI.refleks.komut.yaz(yetki.komut);
   return new Kopru({
       kararKaydi: duvar.kararKaydi,
       // Dikkat'in yazılabilir ayarları TELDEN gelir: karar yolu ile devre
@@ -120,7 +139,9 @@ export function kopruKur(g: KopruGirdisi): Kopru {
       aniPolitikasi: new URLSearchParams(location.search).get("anipolitikasi") === "eski" ? "eski" : "yeni",
       ...(g.beyinKapisi ? { beyinKapisi: g.beyinKapisi } : {}),
       ...(g.mdBaglami ? { mdBaglami: g.mdBaglami } : {}),
+      ...(g.emirHedefleri ? { emirHedefleri: g.emirHedefleri } : {}),
       hafizaKapasite: PANO_TELLERI.hafiza.kapasite,
+      otoSikistirma: () => ({ esik: PANO_TELLERI.hafiza.otoEsik(), aralikMs: PANO_TELLERI.hafiza.otoAralikDk() * 60_000 }),
       // SPEC 16: bağlama yalnız SORULAN girer (konum, son iş, eski konuşma…), yakın pencere küçük.
       // `?hafiza=otomatik` eski davranışı geri getirir — kıyas ölçüsü için (spec 16 P1).
       hafizaKipi: g.hafizaKipi,
@@ -139,13 +160,13 @@ export function kopruKur(g: KopruGirdisi): Kopru {
       gorevSatirlari: gorevSatirlariniYukle(),
       // BECERİ YETKİSİ (Faz D): ANAHTAR, varsayılan KAPALI. Yalnız `?beceri=1` (ORION_BECERI=1)
       // ile açılır; açılması ön-kayıtlı barı geçmeye bağlı (spec 10).
-      beceriYetkisi: new URLSearchParams(location.search).has("beceri"),
+      beceriYetkisi: yetki.beceri,
       // DOĞUŞTAN KOMUT PROGRAMLARI (spec 13 Faz 2b): elle açılışta AÇIK (Ozyn: "ölçüm geçince
       // açık"; gerçek sözlerde yanlış eşleşme 0). Senaryolarda (`sessiz=1`) KAPALI: `tahtadene`,
       // `becerdene` LLM'in ve becerinin yolunu ölçer, program onları değiştirmesin. `?komut=0|1` zorlar.
       // SÜZGEÇ MERCEĞİNİN YETKİSİ (spec 12 Faz 5): ANAHTAR, varsayılan KAPALI (gölgede yazar).
       // `?benliksuzgec=1` açar; gerçek kullanımda açılması gölge ölçüsüne bağlı (Ozyn).
-      benlikSuzgecYetkisi: new URLSearchParams(location.search).has("benliksuzgec"),
+      benlikSuzgecYetkisi: yetki.benlikSuzgec,
       // ANLIK BENLİK (spec 12): gövde karar anında ÇEKİLİR.
       bedenDurumu: () => {
         const d = g.orion()?.durum();
@@ -159,10 +180,8 @@ export function kopruKur(g: KopruGirdisi): Kopru {
         const r = ortamSozlugu.ogren(soz, komutlar);
         console.log(`[ORTAM] sözlük: "${soz}" → ${r}${r === "reddedildi" ? "" : ` (${komutlar.map((k) => `${k.ne}${k.deger ? ` ${k.deger}` : ""}${k.sayi !== undefined ? ` ${k.sayi}` : ""}`).join(", ")})`}`);
       },
-      komutYetkisi: (() => {
-        const q = new URLSearchParams(location.search);
-        return q.has("komut") ? q.get("komut") !== "0" : !q.has("sessiz");
-      })(),
+      // Tel: açılış değeri yukarıda yazıldı; ayar paneli/duvar (`refleks.dogustan_komut`) çalışma anında değiştirir, köprü her kesin sözde okur.
+      komutYetkisi: PANO_TELLERI.refleks.komut,
       // BAĞLAM (K4): algı anında Ozyn nerede, Orion'a bakıyor mu, hangi yüzeyde.
       // Yapısal — dünya metni ayrıştırılmaz. Öğrenen kapının durum koduna girer.
       baglam: () => {

@@ -8,6 +8,8 @@ import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
 import { PiperSesi, piperBul } from "./ses.js";
+import { sesAyariYolu, sesDizini, sesYoneticisiKur } from "./sesler.js";
+import { sesIndir } from "./sesIndir.js";
 import { Dinleyici } from "./dinleme.js";
 import { WebMonitor, VARSAYILAN_ADRES as GROMA_ADRESI } from "./webMonitor.js";
 import { durumYolu, hafizaDosyasiOku, hafizaDosyasiYaz, hafizaYolu } from "./hafizaDosyasi.js";
@@ -407,7 +409,9 @@ ipcMain.on(CAGRI.durumYaz, (_e, kayitlar) => {
 const MD_DIZINI = mdDizini(process.env, app.getPath("userData"), os.tmpdir());
 try { const t = mdTohumla(MD_DIZINI); if (t.length) console.log(`[md] tohum dosyalar yazildi: ${t.join(", ")}`); }
 catch (hata) { console.error(`[md] klasor hazirlanamadi: ${hata?.message ?? hata}`); }
-const mdSar = (is) => { try { return { ok: true, deger: is() }; } catch (hata) { return { ok: false, kod: hata?.kod ?? "hata", mesaj: String(hata?.message ?? hata) }; } };
+// Sonuç nesneli IPC sarmalayıcısı (md ve ses aynı biçim, host/kopru.ts `IpcSonuc`): eşzamansız iş de alır (ses indirme).
+const ipcSonucu = async (is) => { try { return { ok: true, deger: await is() }; } catch (hata) { return { ok: false, kod: hata?.kod ?? "hata", mesaj: String(hata?.message ?? hata) }; } };
+const mdSar = ipcSonucu;
 ipcMain.handle(CAGRI.mdListe, () => mdSar(() => mdListe(MD_DIZINI)));
 ipcMain.handle(CAGRI.mdOku, (_e, ad) => mdSar(() => mdOku(MD_DIZINI, ad)));
 ipcMain.handle(CAGRI.mdYaz, (_e, ad, metin) => mdSar(() => { mdYaz(MD_DIZINI, ad, metin); return true; }));
@@ -471,7 +475,33 @@ function mcpUcuBaslat() {
 // Renderer'a YOL değil BAYT döndürülür — dev modda http://localhost'tan
 // file:// okumak Chromium tarafından engelli.
 
-const ses = new PiperSesi();
+const ses = new PiperSesi(undefined, { model: null });
+// SES SEÇİMİ (spec 34, host/sesler.js): ORION_PIPER_MODEL > ses-ayari.json (panel seçimi) > dfki > kurulu ilk. Pencere açılmadan çözülür:
+// açılış selamı da seçilen sesle çıkar. Değişim bir SONRAKİ cümleden geçerli (host/ses.js modelAyarla). Senaryo koşusu gerçek ayarı yazmaz.
+const sesler = sesYoneticisiKur({
+  dizin: sesDizini(process.env),
+  ayarYolu: sesAyariYolu(process.env, app.getPath("userData"), os.tmpdir()),
+  env: process.env,
+  ses,
+  indir: (g) => sesIndir(g),
+});
+try {
+  const c = sesler.baslat();
+  console.log(`[ses] ses: ${c.ad ?? "yok"} (${c.kaynak})`);
+} catch (hata) {
+  // Ses dizini okunamadı (izin vb.): oda yine açılır, eski kural (env > dfki) ile konuşur.
+  console.error(`[ses] sesler taranamadı, eski kurala dönülüyor: ${hata?.message ?? hata}`);
+  ses.modelAyarla(piperBul().model);
+}
+ipcMain.handle(CAGRI.sesListe, () => ipcSonucu(() => sesler.durum()));
+ipcMain.handle(CAGRI.sesSec, (_e, ad) => ipcSonucu(() => { const d = sesler.sec(ad); console.log(`[ses] seçildi: ${ad} (sonraki cümleden)`); return d; }));
+ipcMain.handle(CAGRI.sesSil, (_e, ad) => ipcSonucu(() => { const d = sesler.sil(ad); console.log(`[ses] silindi: ${ad}`); return d; }));
+ipcMain.handle(CAGRI.sesIndir, (e, ad) => ipcSonucu(async () => {
+  console.log(`[ses] indiriliyor: ${ad}`);
+  const gonder = (o) => { if (!e.sender.isDestroyed()) e.sender.send(OLAY.sesIndirme, o); };
+  try { const d = await sesler.indir(ad, gonder); console.log(`[ses] indirildi: ${ad}`); return d; }
+  catch (hata) { console.warn(`[ses] indirilemedi: ${ad}: ${hata?.message ?? hata}`); throw hata; }
+}));
 
 // ---- kulak (Nemotron Speech, mikrofon) ---------------------------------------
 // Tembel: ilk "baslat"a kadar süreç açılmaz. Renderer'a yalnız çözülmüş metin gider.

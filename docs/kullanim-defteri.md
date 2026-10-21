@@ -31,3 +31,13 @@ Dönem sonunda, yalnız yazılan satırlardan:
 | tarih | "yarın yine kullanır mıyım?" (1–5) |
 |---|---|
 | | |
+
+## Flash (spec 33) — "Flash yetti mi?"
+Yukarıdaki Orion ölçütüne GİRMEZ (ayrı soru; Orion'un satırları ve eşikleri değişmedi). Flash'a (sohbet hedefi Flash ya da İkisi) bir şey
+söylediğinde bir satır: **yetti** (istediğim oldu, model gerekmedi) · **seçenek** ("bilmiyorum" dedi, önerisi işe yaradı) · **yetmedi**
+(Orion'a sormam gerekti) · **yanlış** (yanlış şey yaptı). Ölçüt yok — ilk hafta yalnız kayıt; eşik, kayıt görülmeden Ozyn'le konur.
+Çevrimdışı tavan (geçmiş sözler): %24,7 (spec 33 §0.1).
+
+| tarih | ne dedim | ne oldu | yetti/seçenek/yetmedi/yanlış | not |
+|---|---|---|---|---|
+| | | | | |

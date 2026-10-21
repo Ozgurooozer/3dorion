@@ -7,6 +7,7 @@
 // ortam nesneleri hazır olunca kurulur.
 "use strict";
 import type { Scene } from "@babylonjs/core/scene";
+import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import type { Yer } from "../world/yer/yer.ts";
 import { ODA_YERI } from "../world/yer/odaYeri.ts";
 import { levelSahnesiKur, type LevelSahnesi } from "../world/yer/levelSahnesi.ts";
@@ -40,6 +41,11 @@ export interface YerGecisiGirdisi {
   altyaziGoster: (metin: string, ms?: number) => void;
   /** Birleşik dünya kuruldu (level hazır, `yerler` verildi): asset yerleştirme kayıtlı yerleştirmeleri uygular (spec 30). Hatası dünyayı bozmaz. */
   birlesikKuruldu?: (b: BirlesikDunya) => void;
+  /**
+   * Orion ve Ozyn DIŞINDAKİ bedenler (Flash, spec 33): birleşik dünyanın ışık üyeliği (ofis ışığı içeridekini aydınlatır) ve kapısı
+   * onları da görsün. Çağrı anında okunur; verilmezse yalnız Ozyn ve Orion (eski davranış).
+   */
+  ekAktorler?: () => readonly { meshler: AbstractMesh[]; x: number; z: number }[];
   /** Sonradan atananlar / giris.ts'te sonra kurulanlar: çağrı anında okunur. */
   orion: () => Avatar | null;
   ortamBaglantisi: () => ReturnType<typeof ortamBaglantisiKur>;
@@ -188,9 +194,10 @@ export function yerGecisiKur(d: YerGecisiGirdisi): YerGecisi {
           gi: giAcikMi(location.search),
           aktorler: () => {
             const o = oyuncu.oyuncuDurumu().konum;
-            const liste = [{ meshler: [oyuncu.govde], x: o.x, z: o.z }];
+            const liste: { meshler: AbstractMesh[]; x: number; z: number }[] = [{ meshler: [oyuncu.govde], x: o.x, z: o.z }];
             const ok = orionKok(), od = d.orion()?.durum();
             if (ok && od) liste.push({ meshler: ok.getChildMeshes(false), x: od.konum.x, z: od.konum.z });
+            for (const ek of d.ekAktorler?.() ?? []) liste.push(ek);
             return liste;
           },
         });

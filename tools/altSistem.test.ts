@@ -16,7 +16,7 @@ import path from "node:path";
 import { KOK, ithaller, kaynaklar, depoYolu } from "./ithaller.ts";
 import { ALT_SISTEMLER, ISTISNALAR, altSistemi } from "./altSistemler.ts";
 
-const URUN_KLASORLERI = ["protocol", "world", "voice", "mind", "bridge", "host", "uygulama"];
+const URUN_KLASORLERI = ["protocol", "world", "voice", "mind", "bridge", "host", "uygulama", "flash"];
 
 interface Ihlal { anahtar: string; tur: "yön" | "yüzey" | "ürün dışı" }
 

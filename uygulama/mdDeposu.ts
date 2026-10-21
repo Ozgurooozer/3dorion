@@ -7,10 +7,11 @@
 "use strict";
 import type { MdBilgisi } from "../host/mdDosyalari.js";
 import type { MdSonuc } from "../host/kopru.ts";
-import { ANLIK_HAFIZA, mdAdiGecerli, mdBaglaminiKur, type MdBaglami } from "../mind/mdBaglami.ts";
+import { ANLIK_HAFIZA, MD_SINIRLARI, mdAdiGecerli, mdBaglaminiKur, type MdBaglami, type MdSinirlari } from "../mind/mdBaglami.ts";
 import { bolumuGuncelle, kaydetBirlestir } from "../mind/anlikHafiza.ts";
 import type { Depo } from "./yerlestirmeKaydi.ts";
 import { kabukKoprusu } from "./kabuk.ts";
+import { ipcAc } from "./ipcSonuc.ts";
 
 export type { MdBilgisi };
 
@@ -36,10 +37,7 @@ export interface MdKopruYuzu {
   mdYeni(ad: string, metin?: string): Promise<MdSonuc<true>>;
   mdAktif(ad: string, aktif: boolean): Promise<MdSonuc<true>>;
 }
-function ac<T>(s: MdSonuc<T>): T {
-  if (!s.ok) throw new MdHatasi(s.kod, s.mesaj);
-  return s.deger;
-}
+const ac = <T>(s: MdSonuc<T>): T => ipcAc(s, (kod, mesaj) => new MdHatasi(kod, mesaj));
 export function ipcKaynagi(k: MdKopruYuzu): MdKaynagi {
   return {
     liste: async () => ac(await k.mdListe()),
@@ -106,7 +104,8 @@ export interface MdDeposu {
 
 const ANLIK_BASLANGICI = "# Anlık hafıza\n\n<!-- Otomatik bölüm sistem tarafından güncellenir; dışına istediğini yazabilirsin. -->\n";
 
-export function mdDeposuKur(kaynak: MdKaynagi): MdDeposu {
+/** `sinir`: bağlam bütçesi, çağrı ANINDA okunur (pano düğmesi değişince sonraki tur ve kart özeti aynı anda yeni sınırı görür). */
+export function mdDeposuKur(kaynak: MdKaynagi, sinir: () => MdSinirlari = () => MD_SINIRLARI): MdDeposu {
   let liste: MdBilgisi[] = [];
   const metinler = new Map<string, string>();   // yalnız AKTİF dosyaların metni
   const dinleyiciler = new Set<(o: MdOlayi) => void>();
@@ -143,7 +142,7 @@ export function mdDeposuKur(kaynak: MdKaynagi): MdDeposu {
     }),
     yeni: (ad, metin = "") => sirala(async () => { await kaynak.yeni(ad, metin); await listeyiTazele(); }),
     aktifYap: (ad, aktif) => sirala(async () => { await kaynak.aktifYap(ad, aktif); await listeyiTazele(); }),
-    baglam: () => mdBaglaminiKur(liste.filter((x) => x.aktif && metinler.has(x.ad)).map((x) => ({ ad: x.ad, metin: metinler.get(x.ad)!, aktif: true }))),
+    baglam: () => mdBaglaminiKur(liste.filter((x) => x.aktif && metinler.has(x.ad)).map((x) => ({ ad: x.ad, metin: metinler.get(x.ad)!, aktif: true })), sinir()),
     anlikGuncelle: (blok) => sirala(async () => {
       let mevcut: string;
       try { mevcut = await kaynak.oku(ANLIK_HAFIZA); }

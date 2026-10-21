@@ -82,7 +82,18 @@ export type Niyet =
    * ESKİ hâle döner (~35 sn, yalnız ova'da). Sağlıklıysa sonuç sessizdir (`bitti` beyni uyandırmaz = token yok); hastaysa `hata` metni
    * modele gider. Söz yolu LLM'siz (`mind/doktorKomutlari.ts`): "doktor", "kendini kontrol et" — oturmak kadar kolay.
    */
-  | { tur: "doktor";   kapsam?: DoktorKapsam };
+  | { tur: "doktor";   kapsam?: DoktorKapsam }
+  /**
+   * BAŞKA BİR AJANA emir ver (Orion → Flash, spec 33; Ozyn 2026-10-21: "orion da orion lite'a emir verebilsin, takip et, otur gibi"). `kime` ajan kimliği
+   * ("flash"), `soz` o ajanın anlayacağı KISA komut ("otur", "kalk", "bana gel", "beni takip et"). Hedef LLM'siz bir NPC'dir: yalnız sabit komutları tanır,
+   * yani `soz` serbest metin değil komuttur; anlamazsa Flash kendi cevabını verir (Orion'a değil). Beden niyeti DEĞİL: Orion yürümez, sırada beklemez. Sonuç
+   * "teslim edildi"dir, "yapıldı" değil (NPC'nin işi asenkron); Orion yapıldığını bilmek isterse `sor` ile bakar. Orion kendine emredemez.
+   */
+  | { tur: "emret";    kime: string; soz: string };
+
+/** `emret`in sınırları: kısa komut, kısa ad (roman değil). */
+export const EMIR_SOZ_SINIRI = 60;
+export const EMIR_KIME_SINIRI = 24;
 
 /** `ortam`ın konuları — araç şeması ve doğrulayıcı BURADAN türer (`sor`un SORULAR'ı gibi). */
 export const ORTAM_KONULARI = [
@@ -117,6 +128,8 @@ export const YAZAN_NIYETLER: readonly NiyetTur[] = [
   "ortam",
   // `doktor` (tam kapsam) efektleri geçici açıp geri yükler: yazan niyet sayılır (özerk turda sunulmaz).
   "doktor",
+  // `emret` başka bir ajanın (Flash) bedenini hareket ettirir: dünyayı değiştirir, yazan niyettir (özerk turda sunulmaz).
+  "emret",
   // `komut` BİLEREK BURADA YOK: dünyayı kendisi değiştirmez, yalnızca öneri
   // kuyruğuna girer. Dünyayı değiştiren şey Ozyn'in onayıdır.
 ];

@@ -199,3 +199,81 @@ test("zemin: 'Kopyalanamayanlar' satırı GRİ ve nedeni dekor olduğunu söyler
   assert.equal(o.uygun, false);
   assert.match(o.neden ?? "", /ağaç.*dekor/);
 });
+
+// ── Ajan (Flash) menüsü: Orion dışındaki bedene sağ tık ──
+const flashMenu = (oturuyor: boolean) => menu({ tur: "ajan", ajan: { id: "flash", ad: "Flash", oturuyor } });
+
+test("ajan: ayaktayken Otur çıkar, Kalk ÇIKMAZ; komutlar sırayla, Özellikler en sonda", () => {
+  assert.deepEqual(adlar(flashMenu(false)), ["Otur", "Bana gel", "Beni takip et", "Takibi bırak", "Pencereye bak", "—", "Özellikler…"]);
+});
+
+test("ajan: otururken Kalk çıkar, Otur ÇIKMAZ", () => {
+  const a = adlar(flashMenu(true));
+  assert.deepEqual([a.includes("Kalk"), a.includes("Otur")], [true, false]);
+});
+
+test("ajan: her komut O ajana giden söz olur (kimlik taşır, komut sözlüğünün kalıbıyla aynı)", () => {
+  assert.deepEqual(yaprak(flashMenu(false), "Bana gel").eylem, { tur: "ajanSoz", ajan: "flash", metin: "bana gel" });
+  assert.deepEqual(yaprak(flashMenu(false), "Beni takip et").eylem, { tur: "ajanSoz", ajan: "flash", metin: "beni takip et" });
+});
+
+test("ajan menüsünde Orion'a özgü öğeler YOK (Sohbet ▸ Sıkıştır, Asset, Düzenle)", () => {
+  const a = adlar(flashMenu(false));
+  assert.deepEqual([a.includes("Sohbet"), a.includes("Asset"), a.includes("Düzenle")], [false, false, false]);
+});
+
+test("BEKÇİ: ajan menüsündeki her söz gerçekten tanınır (komut sözlüğü ya da takip sözü); menü yalan söylemez", async () => {
+  const { komutCoz } = await import("../mind/komutSozlugu.ts");
+  const { takipEylemi } = await import("../mind/takipSozu.ts");
+  const tanimayan: string[] = [];
+  for (const oturuyor of [false, true]) {
+    for (const d of flashMenu(oturuyor)) {
+      if (d.tur !== "eylem" || d.eylem.tur !== "ajanSoz") continue;
+      const soz = d.eylem.metin;
+      if (komutCoz(soz) === null && takipEylemi(soz) === null) tanimayan.push(soz);
+    }
+  }
+  assert.deepEqual(tanimayan, []);
+});
+
+// ── "Flash ▸ …" girişleri: zemin ve nesne menüleri yalnız Orion'u tanımıyor (Ozyn, 2026-10-21: "sağ tık menüsünü de unutmuşsun") ──
+const FLASH = [{ id: "flash", ad: "Flash" }];
+const zeminAjanli = (ajanlar?: typeof FLASH): D[] =>
+  menuKur<HedefMenuBaglami, MenuEylemi>({ hedef: { tur: "zemin", nokta: { x: 1, y: 0, z: 2 }, alan, ...(ajanlar ? { ajanlar } : {}) } }, MENU_KATKILARI, MENU_AYARI);
+
+test("zemin: bedenli ajan varken 'Flash ▸ Buraya ▸ Git | Bak' çıkar (Orion'unkiyle aynı eylem verisi, eylem Flash'a gider)", () => {
+  const buraya = altOgeleri(altOgeleri(zeminAjanli(FLASH), "Flash"), "Buraya");
+  assert.deepEqual(buraya.map((d) => (d.tur === "ayrac" ? "—" : d.ad)), ["Git", "Bak"]);
+  const git = buraya.find((d) => d.tur === "eylem" && d.ad === "Git") as Extract<D, { tur: "eylem" }>;
+  assert.deepEqual([git.eylem.tur, git.eylem.tur === "ajanEylem" ? git.eylem.ajan : null, git.eylem.tur === "ajanEylem" ? git.eylem.eylem.niyet?.tur : null], ["ajanEylem", "flash", "git"]);
+});
+
+test("zemin: ajan YOKSA (ya da boş liste) menü eskisiyle AYNI: 'Flash' girişi yok", () => {
+  assert.equal(adlar(zeminAjanli()).includes("Flash"), false);
+  assert.equal(adlar(zeminAjanli([])).includes("Flash"), false);
+});
+
+test("zemin: Orion'un girişi duruyor, Flash'ınki onun YANINDA (ikisi de ayrı)", () => {
+  const a = adlar(zeminAjanli(FLASH));
+  assert.deepEqual([a.includes("Orion"), a.includes("Flash")], [true, true]);
+});
+
+test("zemin: yürünemez noktada Flash'ın 'Git'i de GRİ ve nedeni Orion'unkiyle aynı (engel)", () => {
+  const engelli = menuKur<HedefMenuBaglami, MenuEylemi>({ hedef: { tur: "zemin", nokta: { x: 5, y: 0, z: 5 }, alan, ajanlar: FLASH } }, MENU_KATKILARI, MENU_AYARI);
+  const git = altOgeleri(altOgeleri(engelli, "Flash"), "Buraya").find((d) => d.tur === "eylem" && d.ad === "Git") as Extract<D, { tur: "eylem" }>;
+  assert.deepEqual([git.uygun, /engel/.test(git.neden ?? "")], [false, true]);
+});
+
+test("nesne: 'Flash ▸ …' girişleri Orion'un eylemleriyle AYNI adlarda çıkar ve Flash'a gider", () => {
+  const eylemler = eylemlerBank();
+  const m = menu({ tur: "nesne", ad: "bank", eylemler, ajanlar: FLASH });
+  const orionAdlari = altOgeleri(m, "Orion").map((d) => (d.tur === "ayrac" ? "—" : d.ad));
+  const flashAdlari = altOgeleri(m, "Flash").map((d) => (d.tur === "ayrac" ? "—" : d.ad));
+  assert.deepEqual(flashAdlari, orionAdlari);
+  const ilk = altOgeleri(m, "Flash").find((d) => d.tur === "eylem") as Extract<D, { tur: "eylem" }>;
+  assert.deepEqual([ilk.eylem.tur, ilk.eylem.tur === "ajanEylem" ? ilk.eylem.ajan : null], ["ajanEylem", "flash"]);
+});
+
+test("nesne: ajan yoksa 'Flash' alt menüsü YOK (eski menü bozulmaz)", () => {
+  assert.equal(adlar(menu({ tur: "nesne", ad: "bank", eylemler: eylemlerBank() })).includes("Flash"), false);
+});

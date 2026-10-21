@@ -73,6 +73,23 @@ test("anahtar kapalıyken (komutYetkisi: false) 'otur' LLM'e gider — bu fazdan
   assert.deepEqual({ uyanis: beyin.gordugu.length, niyet: turler() }, { uyanis: 1, niyet: [] });
 });
 
+// Spec 34: anahtar bir TEL olabilir (ayar paneli / duvar `refleks.dogustan_komut`); köprü onu her kesin sözde okur.
+test("anahtar TEL ise çalışma anında kapatılınca sonraki 'otur' LLM'e gider", async () => {
+  let acik = true;
+  const { k, beyin } = kur({ komutYetkisi: () => acik });
+  acik = false;
+  soyle(k, "otur");
+  await bekle(60);
+  assert.equal(beyin.gordugu.length, 1);
+});
+
+test("anahtar TEL ise açıkken 'otur' LLM'i uyandırmaz", async () => {
+  const { k, beyin } = kur({ komutYetkisi: () => true });
+  soyle(k, "otur");
+  await bekle(60);
+  assert.equal(beyin.gordugu.length, 0);
+});
+
 test("kesin olmayan söz programa girmez, bugünkü yoldan LLM'e gider", async () => {
   const { k, beyin, turler } = kur();
   k.algi({ tur: "duydum", metin: "otur", kesin: false });

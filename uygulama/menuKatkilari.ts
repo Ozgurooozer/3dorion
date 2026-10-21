@@ -19,6 +19,10 @@ export type MenuEylemi =
   | { tur: "eylem"; eylem: NesneEylemi }
   /** Klavyeden yazılmış gibi Orion'a giden söz (aynı yol: `kopru.algi({ tur: "duydum", kesin: true })`, içgüdü karar kaydına yazılır). */
   | { tur: "soz"; metin: string }
+  /** Zemin/nesne menüsünden BİR AJANIN BEDENİNE verilen eylem ("Flash ▸ Buraya ▸ Git", "Flash ▸ Otur"): niyet o ajanın kendi beden kapısından geçer (Orion'unkinden ayrı). */
+  | { tur: "ajanEylem"; ajan: string; eylem: NesneEylemi }
+  /** Belirli bir AJANA giden söz (Flash menüsü, spec 33): `ajan` kimliği; giriş adaptörünün hedef seçimini (sohbet çipleri) atlar, yalnız o ajana gider. */
+  | { tur: "ajanSoz"; ajan: string; metin: string }
   // Asset yerleştirme (spec 30): hepsi `uygulama/yerlestirmeBaglantisi.ts`te çalışır; menü yalnız ne istendiğini söyler.
   /** Yerleştir: sağ tıkladığım noktaya hemen koy. Çağır: asset imleci izler, tıklayınca konur (Esc/sağ tık vazgeçer). */
   | { tur: "yerlestir"; varlik: string }
@@ -48,11 +52,17 @@ export interface NesneDuzenleme { id: string; kopyalanabilir: Uygunluk; duzenlen
 /** Hafıza sekmesindeki bir md dosyası (sağ tık menüsünün hedefi). */
 export interface MdDosyaMenusu { ad: string; aktif: boolean; sistem: boolean }
 
+/** Orion dışındaki bir ajanın bedeni (sağ tık menüsünün hedefi; Flash). */
+export interface AjanMenusu { id: string; ad: string; oturuyor: boolean }
+/** Zemin/nesne menüsünde komut alabilecek bedenli ajan (Flash): menüde "Flash ▸ …" girişleri çıkar. */
+export interface MenuAjani { id: string; ad: string }
+
 export type MenuHedefi =
-  | { tur: "zemin"; nokta: ZeminNoktasi; alan: YurumeAlani; yerlestirme?: ZeminYerlestirme }
+  | { tur: "zemin"; nokta: ZeminNoktasi; alan: YurumeAlani; yerlestirme?: ZeminYerlestirme; ajanlar?: readonly MenuAjani[] }
   | { tur: "dosya"; dosya: MdDosyaMenusu }
   | { tur: "orion"; orion: OrionBaglami }
-  | { tur: "nesne"; ad: string; eylemler: readonly NesneEylemi[]; duzenleme?: NesneDuzenleme };
+  | { tur: "ajan"; ajan: AjanMenusu }
+  | { tur: "nesne"; ad: string; eylemler: readonly NesneEylemi[]; duzenleme?: NesneDuzenleme; ajanlar?: readonly MenuAjani[] };
 
 /** Menü çekirdeği ayarı: asset listesi çok uzun (kategori/ad sırasıyla zaten düzenli), "Diğer ▸" ile bölünmez, görünüm kaydırır. */
 export const MENU_AYARI = { sinirsizKokler: ["Asset"] } as const;
@@ -83,6 +93,60 @@ const orionKatkisi: HedefKatkisi = {
     const h = b.hedef;
     if (h.tur !== "orion") return [];
     return orionEylemleri(h.orion).map((e, i) => yapak(e, [e.ad], 10 + i, "orion"));
+  },
+};
+
+/**
+ * Zemine sağ tık: her bedenli ajan için "<Ajan> ▸ Buraya ▸ Git / Bak" (Orion'un girişiyle AYNI eylem verisi: `zeminEylemleri`, yalnız eylem o ajanın bedenine gider).
+ * Ozyn, 2026-10-21: "sağ tık menüsünü de unutmuşsun" — Flash eklenince zemin ve nesne menüleri yalnız Orion'u tanıyordu.
+ */
+const ajanZeminKatkisi: HedefKatkisi = {
+  kimlik: "ajanZemin", hedefler: ["zemin"],
+  ogeler: (b) => {
+    const h = b.hedef;
+    if (h.tur !== "zemin" || !h.ajanlar?.length) return [];
+    return h.ajanlar.flatMap((a, ai) => zeminEylemleri(h.nokta, h.alan).flatMap((e, i) => {
+      const y = ZEMIN_YOLU[e.kimlik];
+      return y ? [ajanOgesi(a, e, [a.ad, ...y.slice(1)], 40 + ai * 10 + i)] : [];
+    }));
+  },
+};
+
+/** Nesneye sağ tık: her bedenli ajan için "<Ajan> ▸ <eylem>" (Orion'un "Orion ▸ …" girişleriyle aynı eylemler: git, bak, otur…). */
+const ajanNesneKatkisi: HedefKatkisi = {
+  kimlik: "ajanNesne", hedefler: ["nesne"],
+  ogeler: (b) => {
+    const h = b.hedef;
+    if (h.tur !== "nesne" || !h.ajanlar?.length) return [];
+    return h.ajanlar.flatMap((a, ai) => h.eylemler.filter((e) => e.kim === "orion").map((e, i) => ajanOgesi(a, e, [a.ad, e.ad], 30 + ai * 10 + i)));
+  },
+};
+
+/** Bir NesneEylemi'ni belirli bir ajanın menü öğesine çevirir (gri ise nedeni aynen taşınır). */
+function ajanOgesi(a: MenuAjani, e: NesneEylemi, yol: readonly string[], sira: number): MenuOgesi<MenuEylemi> {
+  return { yol, kimlik: `ajan.${a.id}.${e.kimlik}`, sira, grup: `ajan.${a.id}`, uygun: e.uygun, ...(e.neden ? { neden: e.neden } : {}), eylem: { tur: "ajanEylem", ajan: a.id, eylem: e } };
+}
+
+/**
+ * Orion dışındaki ajanın (Flash) menüsü: bildiği komutlar doğrudan listede, her biri O ajana giden söz (`ajanSoz`). Sözler komut sözlüğünün
+ * tam eşleştiği kalıplar (spec 33 §6): menüden basmak ile yazmak aynı kapıdan geçer, yani menü "ne yapabildiğini" de gösterir. Otururken "Kalk",
+ * ayaktayken "Otur" (ikisi birden asla çıkmaz).
+ */
+const ajanKatkisi: HedefKatkisi = {
+  kimlik: "ajan", hedefler: ["ajan"],
+  ogeler: (b) => {
+    const h = b.hedef;
+    if (h.tur !== "ajan") return [];
+    const a = h.ajan;
+    const soz = (yolAdi: string, kimlik: string, sira: number, metin: string): MenuOgesi<MenuEylemi> =>
+      ({ yol: [yolAdi], kimlik: `ajan.${kimlik}`, sira, grup: "ajan", uygun: true, eylem: { tur: "ajanSoz", ajan: a.id, metin } });
+    return [
+      a.oturuyor ? soz("Kalk", "kalk", 10, "kalk") : soz("Otur", "otur", 10, "otur"),
+      soz("Bana gel", "gel", 11, "bana gel"),
+      soz("Beni takip et", "takip", 12, "beni takip et"),
+      soz("Takibi bırak", "takipBirak", 13, "takibi bırak"),
+      soz("Pencereye bak", "pencere", 14, "pencereye bak"),
+    ];
   },
 };
 
@@ -151,7 +215,7 @@ const sohbetKatkisi: HedefKatkisi = {
 
 /** Her hedefin sonunda: "Özellikler…" (bilgi paneli). */
 const ozelliklerKatkisi: HedefKatkisi = {
-  kimlik: "ozellikler", hedefler: ["zemin", "orion", "nesne"],
+  kimlik: "ozellikler", hedefler: ["zemin", "orion", "nesne", "ajan"],
   ogeler: () => [{ yol: ["Özellikler…"], kimlik: "menu.ozellikler", sira: 900, grup: "son", uygun: true, eylem: { tur: "ozellikler" } }],
 };
 
@@ -180,4 +244,4 @@ const dosyaKatkisi: HedefKatkisi = {
 };
 
 /** Menünün bütün katkıları (kayıt sırası önemsiz: sıra/grup öğelerin kendisinde). */
-export const MENU_KATKILARI: readonly HedefKatkisi[] = [zeminKatkisi, orionKatkisi, nesneKatkisi, assetKatkisi, duzenlemeKatkisi, sohbetKatkisi, ozelliklerKatkisi, secimiKaldirKatkisi, dosyaKatkisi];
+export const MENU_KATKILARI: readonly HedefKatkisi[] = [zeminKatkisi, orionKatkisi, ajanKatkisi, ajanZeminKatkisi, ajanNesneKatkisi, nesneKatkisi, assetKatkisi, duzenlemeKatkisi, sohbetKatkisi, ozelliklerKatkisi, secimiKaldirKatkisi, dosyaKatkisi];

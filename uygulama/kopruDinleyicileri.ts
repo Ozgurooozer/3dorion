@@ -86,8 +86,8 @@ export function arizaGostergesiKur(g: { kopru: Kopru; altyaziGoster: Altyazi; gu
   });
 }
 
-export function konusmayiBagla(g: { kopru: Kopru; altyaziGoster: Altyazi; gunluk: GunlukEkrani; davranisKayit: () => ReturnType<DavranisDefteri["kayit"]> | null; orionSesi: PiperCikisi }): void {
-  const { kopru, altyaziGoster, gunluk, davranisKayit, orionSesi } = g;
+export function konusmayiBagla(g: { kopru: Kopru; altyaziGoster: Altyazi; /** Verilirse Orion cevabı ajan satırı olarak yığılır (spec 33: iki ajan aynı anda konuşursa biri ötekini ezmesin). */ altyaziEkle?: (ad: string, metin: string, ms?: number, adHep?: boolean) => void; gunluk: GunlukEkrani; davranisKayit: () => ReturnType<DavranisDefteri["kayit"]> | null; orionSesi: PiperCikisi }): void {
+  const { kopru, altyaziGoster, altyaziEkle, gunluk, davranisKayit, orionSesi } = g;
 
   // Orion konuşunca: altyazı + gerçek ses.
   kopru.konusmaDinle((ham) => {
@@ -98,7 +98,8 @@ export function konusmayiBagla(g: { kopru: Kopru; altyaziGoster: Altyazi; gunluk
     if (metin !== ham.trim().replace(/\s+/g, " ")) {
       console.log(`[SOZ] kisaltildi ${ham.length} -> ${metin.length} karakter`);
     }
-    altyaziGoster(metin, Math.max(2600, metin.length * 70));
+    const sure = Math.max(2600, metin.length * 70);
+    if (altyaziEkle) altyaziEkle("Orion", metin, sure); else altyaziGoster(metin, sure);
     gunluk.ekle("iyi", "orion", metin);
     davranisKayit()?.soyle(metin);
     void orionSesi.soyle(metin);

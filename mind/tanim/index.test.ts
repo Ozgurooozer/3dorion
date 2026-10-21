@@ -431,3 +431,47 @@ test("unut: olmayan anı için teyit istenebilir ama uyarı 'silinecek bir şey 
   assert.match(pano.bekleyenTeyit()!.uyari, /silinecek bir şey kalmadı/);
   assert.match(pano.teyitliYaz(pano.bekleyenTeyit()!.jeton).sebep, /böyle bir anı yok/);
 });
+
+// ── Bağlamı şişirmeme ayarları (Ozyn, 2026-10-21): otomatik sıkıştırma eşiği/aralığı ve md notları bütçesi ──
+function sisirmeme() {
+  const teller = { otoEsik: tel(100), otoAralikDk: tel(15), mdToplam: tel(5000), mdDosya: tel(2000) };
+  const pano = panoKur([hafizaTanimi(new Hafiza(), teller)]);
+  return { pano, teller, d: (ad: string) => tumDugmeler(pano).find((x) => x.ad === ad)! };
+}
+
+test("sıkıştırma ve md bütçesi düğmeleri panoda: güvenli sınıf, yazılabilir, varsayılan değerleriyle", () => {
+  const { d } = sisirmeme();
+  for (const [ad, varsayilan] of [["hafiza.oto_esik", 100], ["hafiza.oto_aralik", 15], ["hafiza.md_toplam", 5000], ["hafiza.md_dosya", 2000]] as const) {
+    assert.deepEqual([d(ad)?.sinif, d(ad)?.yazilabilir, d(ad)?.deger], ["guvenli", true, varsayilan], ad);
+  }
+});
+
+test("telsiz kurulumda (testler, senaryolar) bu düğmeler SALT OKUNUR ama görünür", () => {
+  const d = tumDugmeler(panoKur([hafizaTanimi(new Hafiza())])).find((x) => x.ad === "hafiza.oto_esik")!;
+  assert.deepEqual([d.yazilabilir, d.deger], [false, 100]);
+});
+
+test("panodan yazmak teli değiştirir (köprü ve depo aynı teli okur)", () => {
+  const { pano, teller } = sisirmeme();
+  assert.equal(pano.yaz("hafiza.oto_esik", 70).oldu, true);
+  assert.equal(pano.yaz("hafiza.md_toplam", 3000).oldu, true);
+  assert.deepEqual([teller.otoEsik(), teller.mdToplam()], [70, 3000]);
+});
+
+test("aralık dışı değer REDDEDİLİR ve tel değişmez: eşik 55'in altına inemez (plan hiç oluşmaz)", () => {
+  const { pano, teller } = sisirmeme();
+  const r = pano.yaz("hafiza.oto_esik", 40);
+  assert.deepEqual([r.oldu, teller.otoEsik()], [false, 100]);
+});
+
+// ── Doğuştan komut anahtarı (spec 34): tel verilince GÜVENLİ ve yazılabilir; verilmezse düğme yok (eski pano aynı) ──
+test("doğuştan komut teli verilmezse refleks modülünde düğmesi YOK", () => {
+  assert.equal(refleksTanimi().dugmeler.some((d) => d.ad === "refleks.dogustan_komut"), false);
+});
+
+test("doğuştan komut teli panodan kapatılır ve tel aynı değeri okur", () => {
+  const komut = tel<boolean>(true);
+  const pano = panoKur([refleksTanimi({ komut })]);
+  const r = pano.yaz("refleks.dogustan_komut", false);
+  assert.deepEqual([r.oldu, komut()], [true, false]);
+});

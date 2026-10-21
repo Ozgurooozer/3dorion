@@ -8,7 +8,7 @@ Tez: **"AI'ın oturduğu oda — terminalini onun masasında açıyorsun."** Kod
 dokunmadan önce oradan ilgili spec'i aç (kararlar ölçüme dayanır, sezgiye değil). Açık işler: `docs/ACIK-ISLER.md`.
 
 **ODAK (2026-10-16 → 2026-10-30):** `world/level/`'a yeni özellik YOK, yalnız hata düzeltme (istisnayı Ozyn "istisna" diyerek verir). Tek soru:
-Orion günlük kullanımda işe yarıyor mu? (İstisna verildi 2026-10-17: oyun içi asset yerleştirme menüsü + hayalet + gizmo, spec 30; alt çubuk (Yapı çubuğu: Asset, Zemin ve Hafıza sekmeleri), spec 31–32; yalnız onlar.) Kayıt ve ön kayıtlı ölçüt: `docs/kullanim-defteri.md` (sonuca bakıp eşik değiştirilmez). `brain-lab/`'a dokunulmaz.
+Orion günlük kullanımda işe yarıyor mu? (İstisna verildi 2026-10-17: oyun içi asset yerleştirme menüsü + hayalet + gizmo, spec 30; alt çubuk (Yapı çubuğu: Asset, Zemin ve Hafıza sekmeleri), spec 31–32; yalnız onlar. Ozyn'in 2026-10-21 isteği: Orion Flash, spec 33 — `world/level/`'a dokunmaz; Orion ayar paneli + seçilebilir ses, spec 34; "İstisna" 2026-10-21: Orion dünyanın editörü — JSON düğüm grafiği, spec 35.) Kayıt ve ön kayıtlı ölçüt: `docs/kullanim-defteri.md` (sonuca bakıp eşik değiştirilmez). `brain-lab/`'a dokunulmaz.
 
 ## Komutlar
 ```
@@ -56,6 +56,8 @@ Avatar    world/avatar/                               Orion'un bedeni; dışarı
 Yüzeyler  world/surfaces/{terminal,tahta,duvar,web}/, monitör terminali, tahta, zihin duvarı, groma monitörü (3.), model seçici, stil penceresi
           world/arayuz/                               (ortak yuzey.ts, yuzeyStil.ts surfaces/ kökünde)
 Zihin mind/ · Köprü bridge/ · Ses voice/ · Kabuk host/ · Uygulama uygulama/ (giris.ts dahil; kök: herkesi alır)
+Flash     flash/                                      LLM'siz NPC ajanı (spec 33): aynı Kopru + beyinsiz beyin; ARKA katman
+          (Protokol/Zihin/Köprü alır, dünyayı görmez; bedeni uygulama/ajanlar/ bağlar). Ajan kaydı + girdi adaptörü: uygulama/ajanlar/
 ürün dışı: Araçlar tools/, Beyin-Lab brain-lab/ — üretim kodu ikisini de import etmez
 ```
 Bekçi: izinli yön, başka alt-sistemden yalnız kamu dosyası, her göreli import diskte çözülür. Bugünkü ihlaller
@@ -72,6 +74,11 @@ Bekçi: izinli yön, başka alt-sistemden yalnız kamu dosyası, her göreli imp
 - **LLM'i atlayan yollar** adlı içgüdüdür (`mind/icgudu.ts`, karar kaydına yazılır): `kopru.komut` (doğuştan
   programlar), `kopru.refleks` (beceri), `kopru.sohbet` (yeni/temiz/normal sohbet), `kopru.takip` (beni takip et).
   Kapıya yeni kural = yeni içgüdü kimliği (spec 08).
+- **Çok ajan (spec 33):** söz tek yerden (`sozAlindi` → `uygulama/ajanlar/girdiAdaptoru.ts`) hedef çipine göre dağılır; yeni ajan =
+  `AjanDefteri.kaydet`. Flash'ın köprüsü Orion'unkinin AYNISI, yalnız ayarı farklı (`flash/flashKur.ts`): karar kaydı KONSOLA YAZILMAZ
+  (host `[KARAR]` satırını Orion'un günlüğüne ekler), hafıza diske gitmez. İkinci beden önekle (`AvatarAyari.ad`), sandalye koltuk defteriyle.
+- **Ayar paneli (spec 34):** Orion seçilince solda; bölüm = modül (`uygulama/ayar/*Bolumu.ts`, çerçeve `world/arayuz/ayarPaneli.ts`), ajanla genelleşir.
+  Bölümler İKİNCİ YAZMA YOLU açmaz (M seçicinin kaynağı, pano düğmeleri, md deposu). Ses seçimi host'ta (`host/sesler.js`; `ORION_PIPER_MODEL` en öncelikli).
 - **Bağlam (spec 16):** bağlama yalnız sorulan girer — kural yönlendirici `mind/hafizaYonlendirici.ts`, durum
   defteri `mind/durumDefteri.ts`, çekmeceli hafıza `mind/hafiza.ts`. Çerçeve İngilizce, odadaki adlar ve Orion'un
   sesi Türkçe (spec 06 §6.8).

@@ -21,11 +21,11 @@ test("dizin: env > senaryo (geçici) > kullanıcı verisi", () => {
   assert.equal(mdDizini({}, "/u", "/t"), path.join("/u", "orion-md"));
 });
 
-test("tohum: boş klasörde persona (pasif) ve anlık hafıza (aktif) yazılır; doluysa dokunulmaz", () => {
+test("tohum: boş klasörde persona (pasif), anlık hafıza (aktif) ve Flash notu (aktif) yazılır; ikinci açılışta hiçbir şey yazılmaz", () => {
   const d = gecici();
-  assert.deepEqual(mdTohumla(d).sort(), ["anlik-hafiza.md", "persona.md"]);
+  assert.deepEqual(mdTohumla(d).sort(), ["anlik-hafiza.md", "flash.md", "persona.md"]);
   const l = mdListe(d);
-  assert.deepEqual(l.map((x) => [x.ad, x.aktif, x.sistem]), [["anlik-hafiza.md", true, true], ["persona.md", false, false]]);
+  assert.deepEqual(l.map((x) => [x.ad, x.aktif, x.sistem]), [["anlik-hafiza.md", true, true], ["flash.md", true, false], ["persona.md", false, false]]);
   assert.deepEqual(mdTohumla(d), []);
 });
 
@@ -65,7 +65,7 @@ test("aktif yap: ayara yazılır, listede görünür, yeniden açılışta kalı
   mdTohumla(d);
   mdAktifYap(d, "persona.md", true);
   mdAktifYap(d, "anlik-hafiza.md", false);
-  assert.deepEqual(mdListe(d).map((x) => [x.ad, x.aktif]), [["anlik-hafiza.md", false], ["persona.md", true]]);
+  assert.deepEqual(mdListe(d).map((x) => [x.ad, x.aktif]), [["anlik-hafiza.md", false], ["flash.md", true], ["persona.md", true]]);
   assert.equal(kod(() => mdAktifYap(d, "yok.md", true)), "yok");
   assert.equal(kod(() => mdAktifYap(d, "persona.md", "evet" as unknown as boolean)), "gecersiz-icerik");
 });
@@ -106,4 +106,74 @@ test("tohum şablonları: kullanım açıklaması HTML yorumunda (bağlama giden
   assert.doesNotMatch(anlik, /Orion'a gitmez|sistem sürekli/);
   assert.match(anlik, /# Anlık hafıza/);
   assert.doesNotMatch(temizle(mdOku(d, "persona.md")), /PASİF|Kısa tut/);
+});
+
+// ── Flash notu (spec 33): Orion'u ikinci karakterden haberdar eder; eski kullanıcının klasörüne de BİR KEZ yazılır ──
+test("tohum: klasör zaten DOLUYSA (eski kullanıcı) yalnız Flash notu eklenir, öteki dosyalara dokunulmaz", () => {
+  const d = gecici();
+  mdYeni(d, "benim.md", "# benim");
+  assert.deepEqual(mdTohumla(d), ["flash.md"]);
+  assert.equal(mdOku(d, "benim.md"), "# benim");
+  assert.deepEqual(mdListe(d).map((x) => [x.ad, x.aktif]), [["benim.md", false], ["flash.md", true]]);
+});
+
+test("tohum: Ozyn Flash notunu pasif yaparsa sonraki açılışta GERİ AÇILMAZ ve yeniden yazılmaz", () => {
+  const d = gecici();
+  mdTohumla(d);
+  mdAktifYap(d, "flash.md", false);
+  mdYaz(d, "flash.md", "# benim düzenlemem");
+  assert.deepEqual(mdTohumla(d), []);
+  assert.deepEqual([mdOku(d, "flash.md"), mdListe(d).find((x) => x.ad === "flash.md")?.aktif], ["# benim düzenlemem", false]);
+});
+
+test("tohum: Ozyn'in KENDİ flash.md'si varsa ezilmez ve aktif yapılmaz", () => {
+  const d = gecici();
+  mdYeni(d, "flash.md", "# kendi notum");
+  assert.deepEqual(mdTohumla(d), []);
+  assert.deepEqual([mdOku(d, "flash.md"), mdListe(d).find((x) => x.ad === "flash.md")?.aktif], ["# kendi notum", false]);
+});
+
+test("tohum: aktif/pasif çevirmek 'tohumlandi' kaydını silmez (yoksa her açılışta not geri yazılırdı)", () => {
+  const d = gecici();
+  mdTohumla(d);
+  mdAktifYap(d, "persona.md", true);
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(d, "_ayar.json"), "utf8")).tohumlandi, ["flash.md"]);
+});
+
+test("tohum: 'tohumlandi' alanı olmayan ESKİ ayar kabul edilir; bozuk alan HATA verir", () => {
+  const eski = gecici();
+  mdYeni(eski, "a.md", "x");
+  fs.writeFileSync(path.join(eski, "_ayar.json"), JSON.stringify({ aktif: { "a.md": true } }));
+  assert.deepEqual(mdTohumla(eski), ["flash.md"]);
+  assert.equal(mdListe(eski).find((x) => x.ad === "a.md")?.aktif, true);
+  const bozuk = gecici();
+  mdYeni(bozuk, "a.md", "x");
+  fs.writeFileSync(path.join(bozuk, "_ayar.json"), JSON.stringify({ aktif: {}, tohumlandi: "flash.md" }));
+  assert.equal(kod(() => mdTohumla(bozuk)), "bozuk-ayar");
+});
+
+test("Flash notu: açıklama yorumda (Orion'a gitmez); bağlama girince Flash'ı anlatır, boş sayılmaz", async () => {
+  const d = gecici();
+  mdTohumla(d);
+  const { temizle, mdBaglaminiKur } = await import("../mind/mdBaglami.ts");
+  const metin = temizle(mdOku(d, "flash.md"));
+  assert.doesNotMatch(metin, /Kısa tut|Bağlamdan çıkar|AKTİF başlar/);
+  assert.match(metin, /no AI/);
+  const b = mdBaglaminiKur([{ ad: "flash.md", metin: mdOku(d, "flash.md"), aktif: true }]);
+  assert.deepEqual([b.kullanilan.map((k) => k.ad), b.kullanilan[0]?.kesildi], [["flash.md"], false]);
+});
+
+test("Flash notu Orion'a komut aracının GERÇEK adını söyler (araç yeniden adlandırılırsa not eskimesin)", async () => {
+  const { araclariUret } = await import("../bridge/araclar.ts");
+  const d = gecici();
+  mdTohumla(d);
+  const arac = araclariUret().find((a) => a.ad === "dunya_emret");
+  assert.ok(arac, "dunya_emret aracı yok");
+  assert.match(mdOku(d, "flash.md"), /dunya_emret/);
+  // Notta anılan her komut Flash'ın komut sözlüğünce tanınır (not Orion'a var olmayan komut öğretmesin).
+  const { komutCoz } = await import("../mind/komutSozlugu.ts");
+  const { takipEylemi } = await import("../mind/takipSozu.ts");
+  const komutlar = ["otur", "kalk", "bana gel", "beni takip et", "takibi bırak", "pencereye bak"];
+  assert.deepEqual(komutlar.filter((k) => komutCoz(k) === null && takipEylemi(k) === null), []);
+  for (const k of komutlar) assert.ok(mdOku(d, "flash.md").includes(k), `notta yok: ${k}`);
 });

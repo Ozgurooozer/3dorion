@@ -27,6 +27,10 @@ export const KURALLAR: Readonly<Record<string, { deger: readonly string[]; tip?:
   voice: { deger: ["protocol"] },
   mind: { deger: ["protocol"] },
   bridge: { deger: ["protocol", "mind"] },
+  // flash/ (spec 33): LLM'siz NPC ajanı — aynı köprüyü (bridge/) ve zihnin LLM'siz parçalarını (mind/) KULLANIR, kopyalamaz.
+  // ARKA katmandır: dünyayı görmez; bedeni kompozisyon kökü (uygulama/) bağlar. Burada olması öbür yönü de korur:
+  // world/ flash/'ı import ederse yakalanır (KURALLAR'da olmayan klasör bekçiye görünmezdi).
+  flash: { deger: ["protocol", "mind", "bridge"] },
   host: { deger: [], tip: ["mind"] },
 };
 /** Kompozisyon kökü (`uygulama/`, `giris.ts` dahil): her katmanı görebilir. */
@@ -72,6 +76,19 @@ test("bekçi kalibrasyonu: ön katman beyni değer olarak alırsa yakalanır, ho
 test("bekçi kalibrasyonu: sözleşme (protocol) hiçbir katmanı alamaz; kompozisyon kökü herkesi alır", () => {
   assert.equal(ihlaller(path.join(KOK, "protocol", "x.ts"), 'import { a } from "../mind/y.ts";').length, 1);
   assert.deepEqual(ihlaller(path.join(KOK, "uygulama", "giris.ts"), 'import { Kopru } from "../bridge/kopru.ts";'), []);
+});
+
+test("bekçi kalibrasyonu: dünya Flash'ı import ederse yakalanır", () => {
+  assert.deepEqual(ihlaller(path.join(KOK, "world", "avatar", "x.ts"), 'import { FLASH } from "../../flash/npcTanimi.ts";'),
+    ["world/avatar/x.ts → ../../flash/npcTanimi.ts"]);
+});
+
+test("bekçi kalibrasyonu: Flash dünyayı import ederse yakalanır, köprüyü alabilir", () => {
+  const d = path.join(KOK, "flash", "x.ts");
+  assert.deepEqual([
+    ihlaller(d, 'import { avatarKur } from "../world/avatar/index.ts";').length,
+    ihlaller(d, 'import { Kopru } from "../bridge/kopru.ts";').length,
+  ], [1, 0]);
 });
 
 test("bekçi kalibrasyonu: dinamik import da sayılır, yorumdaki örnek sayılmaz", () => {

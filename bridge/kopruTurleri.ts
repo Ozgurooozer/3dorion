@@ -8,6 +8,7 @@ import type { DikkatAyari } from "../mind/dikkat.ts";
 import type { KomutEslesmesi, SeciliNesne } from "../mind/komutSozlugu.ts";
 import type { KararKaydi, KararSatiri, OgretimSatiri } from "../mind/kararKaydi.ts";
 import type { IcguduKimligi } from "../mind/icgudu.ts";
+import type { OtoSikistirmaAyari } from "../mind/sikistir.ts";
 import type { KapiBaglami } from "../mind/durumKodu.ts";
 import type { BedenOkumasi } from "../mind/benlik.ts";
 import type { Beyin } from "./beyin.ts";
@@ -72,8 +73,9 @@ export interface KopruAyari {
    * TAMAMEN uyuyorsa LLM uyanmaz; adımlar eylem sırasıyla yürür. Varsayılan AÇIK (Ozyn,
    * 2026-10-02: "ölçüm geçince açık" — karar kaydındaki 62 gerçek sözde yanlış eşleşme 0,
    * tools/komut-tara.ts). `false` iken köprü bu fazdan önceki haliyle birebir aynıdır.
+   * İşlev verilirse HER kesin sözde okunur (spec 34: ayar panelinden/duvardan çalışma anında kapatılabilen pano teli `refleks.dogustan_komut`).
    */
-  komutYetkisi?: boolean;
+  komutYetkisi?: boolean | (() => boolean);
   /**
    * ORTAM komutları ("gece yap", "ışığı kıs"; mind/ortamKomutlari.ts) şu an yürütülebilir mi: yalnız level (ova) varken.
    * Verilmezse KAPALI sayılır: sözlük ortam sözünü sahiplenmez, söz LLM'e gider ("ova'da değilim" diyebilsin).
@@ -164,6 +166,13 @@ export interface KopruAyari {
    * Her turda talimatın SONUNA eklenir; boş metin = ekleme yok. Çağrı ANINDA okunur (Ozyn dosyayı değiştirince sonraki tur görür). Verilmezse eklenmez.
    */
   mdBaglami?: () => string;
+  /** Otomatik sıkıştırmanın sınırı (eşik ve aralık), çağrı ANINDA okunur; verilmezse eski sabitler (`mind/sikistir.ts` OTO_VARSAYILAN). */
+  otoSikistirma?: () => OtoSikistirmaAyari;
+  /**
+   * Orion'un emir verebileceği DİĞER ajanların kimlikleri (Flash; spec 33), çağrı ANINDA okunur. Boş/verilmezse `dunya_emret` aracı modele SUNULMAZ:
+   * Flash yokken (`?flashsiz`, senaryo koşuları) Orion'un araç yüzeyi ve token maliyeti eskisiyle aynı kalır.
+   */
+  emirHedefleri?: () => readonly string[];
   /** Kendiliğinden turda dar araç kümesi (söz/bak/jest/poz) ve zincir bütçesi 0. Varsayılan AÇIK; `false` eski davranışa döner. */
   ozerkTur?: boolean;
   /** Hafıza giriş politikası (mind/aniSuzgeci.ts söz/hata kuralları). Varsayılan "yeni"; "eski" geri alma yoludur. */

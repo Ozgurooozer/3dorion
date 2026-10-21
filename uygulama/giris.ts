@@ -71,7 +71,8 @@ import { mcpBaglantisiKur } from "./mcpBaglantisi.ts";
 import { sohbetKutusuKur } from "./sohbetKutusu.ts";
 import { dumanTestiKur } from "./dumanTesti.ts";
 import { orionSesiKur } from "./orionSesi.ts";
-import { kopruKur } from "./kopruKur.ts";
+import { kopruKur, yetkiAnahtarlari } from "./kopruKur.ts";
+import { orionAyarlariKur } from "./ayar/orionAyarlari.ts";
 import { mikrofonKur } from "./mikrofon.ts";
 import { durumGozlemiKur, sohbetKipiIsaretiKur, arizaGostergesiKur, konusmayiBagla } from "./kopruDinleyicileri.ts";
 import { onayBaglantisiKur } from "./onayBaglantisi.ts";
@@ -115,7 +116,8 @@ import { hafizaSekmesi } from "./yapi/hafizaSekmesi.ts";
 import { zihinSekmesi } from "./yapi/zihinSekmesi.ts";
 import { mdDeposuKur, mdKaynaginiSec } from "./mdDeposu.ts";
 import { otomatikBlok } from "../mind/anlikHafiza.ts";
-import { ANLIK_HAFIZA } from "../mind/mdBaglami.ts";
+import { ANLIK_HAFIZA, MD_SINIRLARI } from "../mind/mdBaglami.ts";
+import { hafizaAyariniKaliciYap, hafizaAyariniYukle } from "./hafizaAyari.ts";
 import { assetSekmesi } from "./yapi/assetSekmesi.ts";
 import { zeminSekmesi } from "./yapi/zeminSekmesi.ts";
 import { zeminKalemiKur } from "./zeminKalemi.ts";
@@ -130,6 +132,16 @@ import { nesneSecimiKur } from "./nesneSecimi.ts";
 import { ORION_KUTUSU, orionuVur, zeminNoktasi } from "../world/player/hedefSecici.ts";
 import { zeminOzellikleri, orionOzellikleri } from "../world/yer/hedefEylemleri.ts";
 import { nesneEtkilesimiKur, seciliSozOlustur } from "./nesneEtkilesimi.ts";
+import { AjanDefteri, ORION_AJANI, type HedefSecimi } from "./ajanlar/ajanKaydi.ts";
+import { FLASH } from "../flash/npcTanimi.ts";
+import { FLASH_SEMASI, flashSemaKancasi } from "./ajanlar/flashSemasi.ts";
+import { semaTuvaliKur } from "../world/surfaces/duvar/semaTuvali.ts";
+import { CipSecimi, hedefCipleri } from "./ajanlar/cipModeli.ts";
+import { sohbetHedefiKur, hatirlananHedef } from "./sohbetHedefi.ts";
+import { girdiAdaptoruKur } from "./ajanlar/girdiAdaptoru.ts";
+import { emirHedefleri as emirHedefleriBul, emirTeslim } from "./ajanlar/emir.ts";
+import { Koltuklar } from "./ajanlar/koltuklar.ts";
+import { flashBaglantisiKur, type FlashBaglantisi } from "./ajanlar/flashBaglantisi.ts";
 
 const tuval = document.getElementById("tuval") as HTMLCanvasElement;
 const hud = document.getElementById("hud") as HTMLDivElement;
@@ -164,6 +176,7 @@ const imlec = imlecKipiKur({
   degisti: (acik) => {
     altCubuk.gorunur(acik);   // Yapı çubuğu yalnız imleç kipinde görünür (fare serbestken tıklanabilir)
     editorPenceresi.gorunur(acik);   // düzenleyici pencereleri de (gizlenir, KAYBOLMAZ: yazılmış metin durur)
+    orionAyarPaneli.gorunur(acik);   // Orion'un ayar paneli de (spec 34; fare kilitliyken tıklanamaz — gizlenir, seçim sürer)
     if (!acik) { nesnePaneli.kapat(); baglamMenusu.kapat(); duzenleme.bitir(); zeminKalemi.sec(null); }
   },
 });
@@ -243,6 +256,18 @@ sema.durumYaz("dünya kuruldu, beyin bekleniyor");
 
 // ── Orion: avatar asenkron yüklenir, sahne onsuz da ayakta kalır ───────────
 // `orion` bir yol servisidir (yolTipleri.ts): avatar kurulunca kaydolur, tüketiciler `yol.al("orion")` ile okur.
+// AJANLAR (spec 33): Ozyn'in sözü TEK yerden girer (`sozAlindi`) ve hedef seçimine göre ajanlara dağılır (uygulama/ajanlar/).
+// Orion köprüsü kurulunca, Flash bedeni kurulunca kaydolur. Varsayılan hedef "orion": hedef çipleri seçilene dek davranış aynı.
+const ajanlar = new AjanDefteri();
+let sohbetHedefi: () => HedefSecimi = () => ORION_AJANI.id;
+const ajanGirdisi = girdiAdaptoruKur({ ajanlar: () => ajanlar.hepsi(), hedef: () => sohbetHedefi() });
+// Orion'un `emret` niyeti ve `dunya_emret` aracının hedef listesi: `uygulama/ajanlar/emir.ts` (saf, testli).
+const emirHedefleri = (): string[] => emirHedefleriBul(ajanlar);
+const ajanaEmret = (kime: string, soz: string): { ok: boolean; not: string } => emirTeslim(ajanlar, kime, soz);
+// KOLTUKLAR (spec 33): odada iki beden varken aynı sandalye ikisine verilmez; her beden kaydolur, `otur` başkasının koltuğunda hata döner.
+const koltuklar = new Koltuklar();
+/** Orion Flash'ın dünyaya bağlantısı (spec 33; aşağıda, ajan defterinden sonra kurulur). Yoksa null. */
+let flashBag: FlashBaglantisi | null = null;
 void avatarKur({
   sahne, saat,
   spawn: { x: 0.9, y: 0, z: -1.2 },
@@ -256,8 +281,10 @@ void avatarKur({
   yer: () => yerler.orion,
   // bak {tip:"oyuncu"} için: avatar oyuncunun yerini buradan öğrenir.
   oyuncuKonumu: () => oyuncu.oyuncuDurumu().konum,
+  koltukDolu: (c) => koltuklar.dolu(c, ORION_AJANI.ad),
 }).then((a) => {
   yol.kaydet("orion", a);
+  koltuklar.kaydet(ORION_AJANI.ad, () => a.koltugu());
   a.sonucDinle((s) => {
     console.log(`[NIYET] ${s.niyet_id} → ${s.durum}${s.not ? ` (${s.not})` : ""}`);
     if (s.durum === "hata") {
@@ -294,6 +321,7 @@ const gecis = yerGecisiKur({
   // Önce zemin (nesnelerin oturacağı yükseklik belli olsun), sonra asset yerleştirme; ikisi de sonunda Orion'un Yer'ini yeniden ölçer.
   birlesikKuruldu: () => { void (async () => { await zemin.baslat(); await yerlestirme.baslat(); })(); },
   orion: () => yol.al("orion"),
+  ekAktorler: () => { const a = flashBag?.aktor(); return a ? [a] : []; },
   ortamBaglantisi: () => ortamBaglantisi,
   ortamGunlugu: () => ortamGunlugu,
   stilPenceresi: () => yol.al("stilPenceresi"),
@@ -397,6 +425,7 @@ const doktor = doktorKur(doktorBaglamiBabylon(sahne, motor, ortamBaglantisi, () 
 const { niyetiYurut, bedenAdimi, sonGorme } = niyetYurutucusuKur({
   ortam: ortamBaglantisi,
   doktor,
+  emret: ajanaEmret,
   // `sor gor` göz muayenesi yolundan (düz sorgu, iki yönlü sıra, panel): `gozlem` aşağıda kurulur, burada tembel sarmalayıcı.
   gozlem: { bak: () => gozlem.bak(), sonHata: () => gozlem.sonHata() },
   beden: () => yol.al("orion"),
@@ -592,11 +621,31 @@ const nesnePaneli = nesnePaneliKur({
 // BAĞLAM MENÜSÜ (spec 29): Windows/Unreal gibi kademeli sağ tık menüsü; katkılar `uygulama/menuKatkilari.ts`, çekirdek `world/arayuz/menu/`.
 // Yaprak yükü tek eylem yolundan çalışır: hedef eylemi → `nesneEtkilesimi.calistir` (niyetiYurut), "Özellikler…" → bilgi paneli.
 let sonOzellikler: (() => void) | null = null;
+/** Menüden ajan bedenine verilen eylemlerin kimlik sayacı (`menu_<ajan>_<n>_<eylem>`: niyet kimlikleri benzersiz kalsın). */
+let ajanMenuSayaci = 0;
 const baglamMenusu = baglamMenusuKur<MenuEylemi>({
   calistir: (y) => {
     switch (y.tur) {
       case "eylem": nesneEtkilesimi.calistir(y.eylem); break;
       case "soz": yol.al("kopru")?.algi({ tur: "duydum", metin: y.metin, kesin: true, kaynak: "klavye" }); altyaziGoster(`sen: ${y.metin}`, 1800); break;
+      // Menüden bir ajanın BEDENİNE eylem (Flash ▸ Buraya git / Otur…): niyet o ajanın kendi beden kapısından geçer. Gri eylem çalışmaz, nedeni söylenir.
+      case "ajanEylem": {
+        const ajan = ajanlar.al(y.ajan);
+        const e = y.eylem;
+        if (!ajan?.niyet) { altyaziGoster(`${y.ajan} hazır değil`, 2000); break; }
+        if (!e.uygun || !e.niyet) { altyaziGoster(`${e.ad}: ${e.neden ?? "şu an yapılamaz"}`, 3000); break; }
+        ajan.niyet(e.niyet, `menu_${ajan.id}_${++ajanMenuSayaci}_${e.kimlik}`);
+        altyaziGoster(`${ajan.ad}'a: ${e.ad}`, 1800);
+        break;
+      }
+      // Menüden belirli bir ajana söz (Flash): sohbet hedef çiplerini atlar. Altyazı ÖNCE (ajanın eşzamanlı cevabını ezmesin, sozAlindi gibi).
+      case "ajanSoz": {
+        const ajan = ajanlar.al(y.ajan);
+        if (!ajan) { altyaziGoster(`${y.ajan} hazır değil`, 2000); break; }
+        altyaziGoster(`sen → ${ajan.ad}: ${y.metin}`, 2000);
+        ajan.algi({ tur: "duydum", metin: y.metin, kesin: true, kaynak: "klavye" });
+        break;
+      }
       case "ozellikler": sonOzellikler?.(); break;
       case "secimiKaldir": secim.sec(null); altyaziGoster("seçim kaldırıldı", 1500); break;
       // Asset yerleştirme (spec 30): zemin komutları son açılan zemin menüsünün noktasına uygulanır.
@@ -664,13 +713,28 @@ altCubuk.ekle(assetSekmesi({
   onizlemeAdresi: varlik,
 }));
 altCubuk.ekle(zeminSekmesi({ kalem: zeminKalemi, baglanti: zemin }));
-altCubuk.ekle(zihinSekmesi({ sema }));
+// Zihin sekmesi AJAN ÇİPLERİYLE (spec 33): Orion'un sayfası duvardaki şema, Flash'ınki mesh'siz şema (duvarı yok; Flash kurulunca beslenir).
+const flashZihni = semaTuvaliKur({ tanim: FLASH_SEMASI, olcu: sema.olcu() });
+altCubuk.ekle(zihinSekmesi({
+  sema,
+  sayfalar: () => [{ ...ORION_AJANI, sema }, ...(ajanlar.al(FLASH.id) ? [{ id: FLASH.id, ad: FLASH.ad, renk: FLASH.renk, sema: flashZihni }] : [])],
+  sayfaDegisti: (cb) => ajanlar.dinle(cb),
+}));
 
 // ORION'UN MD DOSYALARI (Yapı çubuğu · Hafıza sekmesi, spec 32): persona, anlık hafıza, notlar. Aktif olanlar her turda talimatın SONUNA girer (sınırlı: `mind/mdBaglami.ts`);
 // anlık hafıza dosyasının otomatik bölümü durum defterinden sürekli güncellenir. Düzenleyici pencereleri `world/arayuz/editorPenceresi.ts`.
 const mdKaynagi = mdKaynaginiSec();
 let mdHata: string | null = mdKaynagi.hata;
-const mdDeposu = mdDeposuKur(mdKaynagi.kaynak);
+// BAĞLAMI ŞİŞİRMEME AYARLARI (Ozyn, 2026-10-21): otomatik sıkıştırma eşiği/aralığı ve md notları bütçesi. Teller devre panosunda (duvar/Zihin sekmesi → HAFIZA);
+// önce kayıttan geri yüklenir, SONRA kalıcı yapılır (yoksa ilk yazma kaydı varsayılanla ezerdi). Bozuk/aralık dışı kayıt atlanır ve konsola söylenir.
+{
+  const depo = (() => { try { return globalThis.localStorage ?? null; } catch { return null; } })();
+  const r = hafizaAyariniYukle(depo, PANO_TELLERI.hafiza);
+  for (const a of r.atlanan) console.warn(`[AYAR] hafıza ayarı atlandı (${a.ayar}): ${a.neden}`);
+  if (r.uygulanan.length) console.log(`[AYAR] hafıza ayarı kayıttan yüklendi: ${r.uygulanan.join(", ")}`);
+  hafizaAyariniKaliciYap(depo, PANO_TELLERI.hafiza);
+}
+const mdDeposu = mdDeposuKur(mdKaynagi.kaynak, () => ({ ...MD_SINIRLARI, dosyaBasina: PANO_TELLERI.hafiza.mdDosya(), toplam: PANO_TELLERI.hafiza.mdToplam() }));
 const editorPenceresi = editorPenceresiKur({
   kaynak: { oku: (ad) => mdDeposu.oku(ad), yaz: (ad, metin) => mdDeposu.yaz(ad, metin) },
   bilgi: (ad) => { const d = mdDeposu.liste().find((x) => x.ad === ad); return d ? (d.aktif ? "● bağlamda: Orion her turda okuyor" : "○ bağlamda değil") : null; },
@@ -704,17 +768,58 @@ function hedefMenusuAc(hedef: MenuHedefi, panel: PanelNesne, x: number, y: numbe
   baglamMenusu.ac(menuKur<HedefMenuBaglami, MenuEylemi>({ hedef }, MENU_KATKILARI, MENU_AYARI), x, y);
 }
 const bosKutu = { x: 0, y: 0, z: 0, g: 0, yuk: 0, d: 0 };
-// Orion seçimi (sol/sağ tık): `Yer.nesneler`de olmadığı için `secim`e girmez; yalnız sarı çerçeve gösterilir ve Orion yürürse çerçeve onu izler.
-let orionSecili = false;
-function orionCercevesi(): void {
-  const d = yol.al("orion")?.durum();
-  if (!orionSecili || !d) { secimVurgusu.goster(null); return; }
+/** Menüden komut alabilecek BEDENLİ ajanlar (Flash): zemin ve nesne menülerinde "Flash ▸ …" girişleri bunlardan çıkar. */
+const menuAjanlari = () => ajanlar.hepsi().filter((a) => a.niyet).map((a) => ({ id: a.id, ad: a.ad }));
+// Beden seçimi (Orion, Flash; sol/sağ tık): `Yer.nesneler`de olmadıkları için `secim`e girmezler; yalnız sarı çerçeve gösterilir ve beden yürürse çerçeve onu izler.
+// Aynı anda en çok bir beden seçili (nesneSecimi eskinin çerçevesini ÖNCE kapatır).
+type SecilebilirBeden = "orion" | "flash";
+let seciliBeden: SecilebilirBeden | null = null;
+const bedenDurumu = (b: SecilebilirBeden) => (b === "orion" ? yol.al("orion") : flashBag?.avatar)?.durum() ?? null;
+function bedenCercevesi(): void {
+  const d = seciliBeden ? bedenDurumu(seciliBeden) : null;
+  if (!d) { secimVurgusu.goster(null); return; }
   const yuk = d.oturuyor_mu ? ORION_KUTUSU.oturur : ORION_KUTUSU.ayakta;
   secimVurgusu.goster({ x: d.konum.x, y: d.konum.y + yuk / 2, z: d.konum.z, g: ORION_KUTUSU.genislik, yuk, d: ORION_KUTUSU.derinlik });
 }
-setInterval(() => { if (orionSecili) orionCercevesi(); }, 150);
-nesneSecimiKur({
-  orionSecimi: (s) => { orionSecili = s; orionCercevesi(); },
+setInterval(() => { if (seciliBeden) bedenCercevesi(); }, 150);
+const bedenSecimi = (b: SecilebilirBeden) => (secili: boolean): void => {
+  if (secili) seciliBeden = b; else if (seciliBeden === b) seciliBeden = null;
+  bedenCercevesi();
+};
+/** Flash fareyle seçilebilir (Orion'la aynı gövde kutusu: aynı beden, başka renk); yüklenene dek ışın hiçbir şeye isabet etmez. */
+const flashAktoru = {
+  id: FLASH.id, ad: FLASH.ad,
+  vur: (k: { x: number; y: number; z: number }, y: { x: number; y: number; z: number }) => { const d = flashBag?.avatar.durum(); return d ? orionuVur(k, y, d.konum, d.oturuyor_mu) : null; },
+  menu: (x: number, y: number) => {
+    const d = flashBag?.avatar.durum();
+    if (!d) return;
+    const b = { oturuyor: d.oturuyor_mu, poz: d.poz, mesgul: d.mesgul, elinde: d.elinde, konum: d.konum };
+    secim.sec(null);
+    hedefMenusuAc({ tur: "ajan", ajan: { id: FLASH.id, ad: FLASH.ad, oturuyor: d.oturuyor_mu } }, { id: FLASH.id, ad: FLASH.ad, tur: "NPC (LLM'siz)", capa: null, kutu: bosKutu, ozellikler: orionOzellikleri(b) }, x, y);
+  },
+  secimi: bedenSecimi("flash"),
+};
+// ORION'UN AYAR PANELİ (spec 34): Orion seçilince (sol/sağ tık) ekranın SOLUNDA açılır, seçim kalkınca kapanır; ✕/Esc seçimi de bırakır. Bölümler bağımsız
+// modüller (`uygulama/ayar/`): Beyin modeli (M seçicinin AYNI kaynağı), Ses (Piper; host/sesler.js), Hafıza notları (md deposu), Refleksler, Bağlam (pano telleri), Kısayollar.
+const orionAyarPaneli = orionAyarlariKur({
+  bildir: altyaziGoster,
+  kapatildi: () => nesneSecimi.bedenSeciminiBirak(),
+  pano: () => yol.al("pano"),
+  modelKaynagi: () => yol.al("modelKaynagi"),
+  modelPenceresi: () => yol.al("modelSecici")?.ac(),
+  soyle: (metin) => orionSesi.soyle(metin),
+  md: { depo: mdDeposu, ac: mdAc, hata: () => mdHata },
+  sekmeAc: (id) => altCubuk.ac(id),
+  yetki: yetkiAnahtarlari(location.search),
+  komut: PANO_TELLERI.refleks.komut,
+  hafiza: { esik: PANO_TELLERI.hafiza.otoEsik, mdToplam: PANO_TELLERI.hafiza.mdToplam },
+});
+const orionPaneliniAc = (secili: boolean): void => {
+  if (secili) orionAyarPaneli.ac({ id: ORION_AJANI.id, ad: ORION_AJANI.ad, renk: ORION_AJANI.renk }); else orionAyarPaneli.kapat();
+};
+const nesneSecimi = nesneSecimiKur({
+  orionSecimi: (secili) => { bedenSecimi("orion")(secili); orionPaneliniAc(secili); },
+  aktorler: () => (flashBag ? [flashAktoru] : []),
   tuval, imlec, odakta: () => rig.odakta, nesneler: () => yerler.ozyn.nesneler,
   orionuVur: (k, y) => { const d = yol.al("orion")?.durum(); return d ? orionuVur(k, y, d.konum, d.oturuyor_mu) : null; },
   orionMenusu: (x, y) => {
@@ -729,14 +834,14 @@ nesneSecimiKur({
     if (!p) return;
     secim.sec(null);
     sonZemin = p;
-    hedefMenusuAc({ tur: "zemin", nokta: p, alan: yerler.ozyn, yerlestirme: { gruplar: yerlestirme.gruplar(), pano: yerlestirme.pano() } }, { id: "zemin", ad: "Zemin", tur: "zemin noktası", capa: null, kutu: bosKutu, ozellikler: zeminOzellikleri(p) }, x, y);
+    hedefMenusuAc({ tur: "zemin", nokta: p, alan: yerler.ozyn, yerlestirme: { gruplar: yerlestirme.gruplar(), pano: yerlestirme.pano() }, ajanlar: menuAjanlari() }, { id: "zemin", ad: "Zemin", tur: "zemin noktası", capa: null, kutu: bosKutu, ozellikler: zeminOzellikleri(p) }, x, y);
   },
   isin: (x, y) => fareIsini(sahne, rig.kamera, x, y),
   secim,
   menuAc: (n, x, y) => {
     const k = oyuncu.oyuncuDurumu().konum;
     const eylemler = nesneEylemleri(n, { capalar: yerler.ozyn.capalar, oyuncu: { x: k.x, z: k.z } });
-    hedefMenusuAc({ tur: "nesne", ad: n.ad, eylemler, duzenleme: yerlestirme.duzenleme(n) }, n, x, y);
+    hedefMenusuAc({ tur: "nesne", ad: n.ad, eylemler, duzenleme: yerlestirme.duzenleme(n), ajanlar: menuAjanlari() }, n, x, y);
   },
   altyazi: altyaziGoster,
 });
@@ -745,12 +850,30 @@ nesneSecimiKur({
 hudKur({ hud, motor, saat, rig, oda, oyuncu, odak, yerler, yol, imlec: () => imlec.acik, secili: () => secim.oku()?.ad ?? null, mantikTik: () => mantikTik });
 
 // Konsol/MCP deneme yüzeyi (window.dunya) + hızlı deneme tuşları (uygulama/dunyaKancasi.ts).
-dunyaKancasiKur({ sahne, rig, oyuncu, tahta, monitor, odak, yerler, gecis, altyaziGoster, niyetiYurut, orionKaresi, orion: () => yol.al("orion") });
+dunyaKancasiKur({
+  sahne, rig, oyuncu, tahta, monitor, odak, yerler, gecis, altyaziGoster, niyetiYurut, orionKaresi, orion: () => yol.al("orion"),
+  // Hızlı deneme tuşları (1-6) sohbet yazarken ya da onay beklerken oyuna SIZMASIN (Ozyn'in canlı testi, 2026-10-21).
+  tusSerbest: () => !sohbet.acikMi() && onayKapisi.durum !== "bekliyor",
+});
 
 // ── BEYİN: Orion kendi kararıyla dünyada eylemde bulunur ──────────────────
 // Köprü dünyayı da beyni de import etmez; ikisini burada bağlıyoruz.
 // Yerel model odadaki varlıktan sorumlu; ağır iş terminaldeki Claude'a gider.
 const girdi = new MetinGirdi();
+
+// ── ORION FLASH (spec 33): LLM'siz NPC ajanı, ikinci beden (başka renk) ─────
+// Orion'un kablolamasına DOKUNMAZ: ayrı, paralel kablo (uygulama/ajanlar/flashBaglantisi.ts). Yer: Ozyn'in yeri — NPC Ozyn'in bulunduğu
+// dünyada yaşar (birleşik dünyada üçü aynı yerde; Orion'un kendi başına başka yere gitmesi, C6, Flash'ı sürüklemesin). Senaryo koşularında
+// (`?sessiz`, `*dene`) ve `?flashsiz` ile KURULMAZ: canlı doğrulama senaryoları bugünkü tek bedenli dünyayı görür.
+{
+  const q = new URLSearchParams(location.search);
+  if (!q.has("sessiz") && !q.has("flashsiz") && istenenSenaryolar(location.search).length === 0) {
+    flashBaglantisiKur({
+      sahne, saat, vrmYolu: varlik(VARSAYILAN_VRM), yer: () => yerler.ozyn, oyuncuKonumu: () => oyuncu.oyuncuDurumu().konum,
+      koltuklar, ajanlar, altyazi: altyaziGoster, altyaziEkle: altyaziGoster.ekle, gunluk, secili: seciliSoz, sema: flashSemaKancasi(flashZihni),
+    }).then((b) => { flashBag = b; }, (e: unknown) => console.error("[FLASH] kurulamadı:", e));
+  }
+}
 
 // Ozyn'in varlık sinyali: son girdi, son konuşma, girdi sayacı (uygulama/varlikSinyali.ts).
 const varlikSinyali = varlikSinyaliKur();
@@ -814,9 +937,12 @@ function beyniBagla(a: Avatar): void {
     orion: () => yol.al("orion"), inisiyatifSimdi: () => inisiyatifSimdi,
     beyinKapisi: () => gozlemSuruyor(),
     mdBaglami: () => mdDeposu.baglam().metin,
+    emirHedefleri,
     secili: seciliSoz,
   });
   yol.kaydet("kopru", kopru);
+  // Orion bir AJAN kaydıdır (spec 33): sohbet ve mikrofon sözü bu kapıdan alır (eskiden doğrudan `kopru.algi`; nesne aynı).
+  ajanlar.kaydet({ ...ORION_AJANI, kume: null, algi: (a) => kopru.algi(a) });
 
   // DEVRE PANOSU kayıt defteri: uygulama/devrePanosu.ts (kurulum + şemaya takma).
   const panoKaydi = devrePanosuKur({ kopru, onayKapisi, ajanda, beyin, secici, kesikSn, sema });
@@ -824,8 +950,11 @@ function beyniBagla(a: Avatar): void {
 
   // ── MODEL SEÇİCİ (M) ─────────────────────────────────────────────────
   // Kaynağı uygulama/beyinSecimi.ts'te: seçim devre panosunun teyit yolundan geçer (tek yol).
+  // Kaynak TEK: M penceresi ve ayar paneli · Beyin modeli (spec 34) aynı nesneyi kullanır — ikinci seçim yolu yok.
+  const modelKaynagi = seciciKaynagiKur(secim, panoKaydi, kabukApi);
+  yol.kaydet("modelKaynagi", modelKaynagi);
   const modelSecici = modelSeciciKur({
-    kaynak: seciciKaynagiKur(secim, panoKaydi, kabukApi),
+    kaynak: modelKaynagi,
     kok: document.getElementById("modelSecici") as HTMLElement,
     rozet: document.getElementById("beyinRozet") as HTMLElement,
     // M bir harftir: terminal/panel odaktayken, sohbet ya da onay açıkken değil.
@@ -870,7 +999,7 @@ function beyniBagla(a: Avatar): void {
 
   arizaGostergesiKur({ kopru, altyaziGoster, gunluk, sema });
 
-  konusmayiBagla({ kopru, altyaziGoster, gunluk, davranisKayit, orionSesi });
+  konusmayiBagla({ kopru, altyaziGoster, altyaziEkle: altyaziGoster.ekle, gunluk, davranisKayit, orionSesi });
 
   // Niyet sonuçları beyne geri döner (yalnızca hatalar terfi eder).
   a.sonucDinle((s) => kopru?.sonuc(s));
@@ -879,10 +1008,14 @@ function beyniBagla(a: Avatar): void {
   void girdi.baslat();
   const sozAlindi = (t: { metin: string; kesin: boolean }, kaynak: "klavye" | "mikrofon" = "klavye") => {
     if (!t.kesin) return;
-    altyaziGoster(`sen: ${t.metin}`, 2000);
     varlikSinyali.girdiOldu("soz");
     varlikSinyali.sozVerildi();   // "en son ne zaman konuştuk" bundan
-    kopru?.algi({ tur: "duydum", metin: t.metin, kesin: true, kaynak });
+    // TEK GİRİŞ (spec 33): söz hedef ajanlara dağılır. Altyazı ÖNCE (eskisi gibi): ajanın eşzamanlı cevabını ("Peşindeyim.") ezmesin.
+    // Yalnız Orion duyacaksa metin eskisinin aynısı; başka hedefte kime gittiği yazılır.
+    const alacak = ajanGirdisi.hedefler();
+    const kime = alacak.map((x) => x.ad).join(" + ");
+    altyaziGoster(alacak.length === 1 && alacak[0]!.id === ORION_AJANI.id ? `sen: ${t.metin}` : alacak.length ? `sen → ${kime}: ${t.metin}` : `kimse duymadı (hedef hazır değil): ${t.metin}`, 2000);
+    ajanGirdisi.ilet(t.metin, kaynak);
   };
   girdi.dinle((t) => sozAlindi(t));
   // Canlı deneme (`ORION_OZYN_SOZU`, OB21): açılıştan sonra Ozyn bunu yazmış gibi — klavyeyle AYNI yol. Beden
@@ -911,6 +1044,11 @@ function beyniBagla(a: Avatar): void {
 
 // ── Sohbet kutusu: T aç, Enter gönder, Esc kapat (uygulama/sohbetKutusu.ts) ──
 const sohbet = sohbetKutusuKur({ oyuncu, girdi });
+// SOHBET HEDEFİ (spec 33): Orion | Flash | İkisi. Seçim tek girdi adaptörünün hedefidir: mikrofon da aynı seçimi izler (iki giriş, tek hedef).
+const hedefSecimi = new CipSecimi(() => hedefCipleri(ajanlar.hepsi()), hatirlananHedef());
+ajanlar.dinle(() => hedefSecimi.secenekDegisti());
+sohbetHedefi = () => hedefSecimi.etkin() ?? ORION_AJANI.id;
+sohbetHedefiKur({ kok: document.getElementById("sohbetHedef") as HTMLElement, girdi: document.getElementById("sohbetGirdi") as HTMLInputElement, secim: hedefSecimi });
 
 // ── GÖZ MUAYENESİ (O): Orion'un gözünden kare → yerel görme modeli (sohbetten BAĞIMSIZ düz soru) → panelde önizleme + cevap ──
 // Sıra iki yönlü (uygulama/gozlem.ts): beyin düşünürken göz bekler, göz sürerken beyin yeni tur başlatmaz (`beyinKapisi`). Sohbet geçmişine/hafızaya girmez.

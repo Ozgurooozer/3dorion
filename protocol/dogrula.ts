@@ -5,7 +5,7 @@
 // Bağımlılık yok — elle yazılmış doğrulayıcı (şema kütüphanesi taşımıyoruz).
 "use strict";
 import {
-  POZLAR, JESTLER, SORULAR, ORTAM_KONULARI, ORTAM_DEGER_SINIRI, DOKTOR_KAPSAMLARI, OLGU_ANAHTAR_SINIRI, OLGU_DEGER_SINIRI,
+  POZLAR, JESTLER, SORULAR, ORTAM_KONULARI, ORTAM_DEGER_SINIRI, DOKTOR_KAPSAMLARI, OLGU_ANAHTAR_SINIRI, OLGU_DEGER_SINIRI, EMIR_SOZ_SINIRI, EMIR_KIME_SINIRI,
   type Niyet, type NiyetTur, type OrtamNe, type SorKonusu,
 } from "./niyet.ts";
 import { capaCoz, type Hedef } from "./temel.ts";
@@ -22,6 +22,7 @@ const TURLER: readonly NiyetTur[] = [
   "komut",
   "ortam",
   "doktor",
+  "emret",
 ];
 
 const sayi = (v: unknown): boolean => typeof v === "number" && Number.isFinite(v);
@@ -188,6 +189,18 @@ export function niyetDogrula(ham: unknown): Sonuc<Niyet> {
       if (!DOKTOR_KAPSAMLARI.includes(o.kapsam as never))
         return { ok: false, hata: `doktor.kapsam geçersiz: ${String(o.kapsam)} (geçerli: ${DOKTOR_KAPSAMLARI.join(", ")})` };
       return { ok: true, deger: { tur: "doktor", kapsam: o.kapsam as (typeof DOKTOR_KAPSAMLARI)[number] } };
+    }
+
+    case "emret": {
+      if (!yazi(o.kime)) return { ok: false, hata: "emret.kime: ajan kimliği olmalı (örn. flash)" };
+      if (!yazi(o.soz)) return { ok: false, hata: "emret.soz: boş olmayan kısa komut olmalı (örn. otur)" };
+      const kime = (o.kime as string).trim().toLocaleLowerCase("tr");
+      // Satır sonları ve çoklu boşluk tek boşluğa iner: komut tek satırdır (çok satırlı metin bir ajanın girdisine ek komut sokamaz).
+      const soz = (o.soz as string).trim().replace(/\s+/g, " ");
+      if (soz === "") return { ok: false, hata: "emret.soz: boş olmayan kısa komut olmalı (örn. otur)" };
+      if (kime.length > EMIR_KIME_SINIRI || !/^[a-z0-9_-]+$/.test(kime)) return { ok: false, hata: `emret.kime geçersiz: ${String(o.kime).slice(0, 30)} (ajan kimliği: harf, rakam, _ ve -)` };
+      if (soz.length > EMIR_SOZ_SINIRI) return { ok: false, hata: `emret.soz çok uzun (> ${EMIR_SOZ_SINIRI}): kısa bir komut yaz (otur, bana gel…)` };
+      return { ok: true, deger: { tur: "emret", kime, soz } };
     }
 
     case "kalk":   return { ok: true, deger: { tur: "kalk" } };

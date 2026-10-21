@@ -24,10 +24,10 @@
 import { RENK, YAZI, zeminDoldur, yuvarlakKutu, type YuzeyOlcusu } from "../yuzeyStil.ts";
 import type { Pano, DugmeGoruntu, Sinif, Etki, Teyit } from "../../../protocol/pano.ts";
 import {
-  DUGUMLER, OKLAR, SUTUN_ADLARI, PARILTI_MS, semaAlani, semaYerlesimi, sutunSeritleri,
+  OKLAR, ORION_SEMASI, PARILTI_MS, semaAlani, semaYerlesimi, sutunSeritleri,
   dugumTanim, etkinLob,
 } from "./semaCekirdek.ts";
-import type { Dugum, Kutu, SemaDurumu } from "./semaCekirdek.ts";
+import type { Dugum, Kutu, SemaDurumu, SemaTanimi } from "./semaCekirdek.ts";
 
 /** Lob renkleri: yerel hızlı (yeşilimsi), bulut yavaş (mavi), ortak nötr. */
 export const LOB_RENK: Record<Dugum["lob"], string> = {
@@ -55,17 +55,20 @@ export interface SemaGirdisi {
   durum: SemaDurumu;
   altDurum: string;
   simdi: number;
+  /** Hangi ajanın şeması (spec 33). Verilmezse Orion'unki — duvarın bugüne dek çizdiği. */
+  tanim?: SemaTanimi;
 }
 
 export function cizSema(bag: CanvasRenderingContext2D, o: YuzeyOlcusu, g: SemaGirdisi): Bolge[] {
   const { durum, simdi } = g;
+  const t = g.tanim ?? ORION_SEMASI;
   zeminDoldur(bag, o, RENK.ekranZemin);
   const alan = semaAlani(o.genislik, o.yukseklik);
   const { kenar, basYuk, altYuk, sutunYuk } = alan;
   const cizgi = Math.max(1, Math.round(o.yukseklik * 0.003));
 
   // ── Tablo zemini: sütun şeritleri (tek sütunlar hafif açık) ──────────
-  const seritler = sutunSeritleri(alan);
+  const seritler = sutunSeritleri(alan, t.dugumler);
   const tabloUst = basYuk;
   const tabloAlt = o.yukseklik - altYuk;
   seritler.forEach((s, i) => {
@@ -81,7 +84,7 @@ export function cizSema(bag: CanvasRenderingContext2D, o: YuzeyOlcusu, g: SemaGi
   bag.font = `600 ${Math.round(sutunYuk * 0.42)}px ${YAZI.tek}`;
   seritler.forEach((s, i) => {
     bag.fillStyle = "#56618a";
-    bag.fillText(harfAraligi(SUTUN_ADLARI[i] ?? ""), s.merkez, basYuk + sutunYuk * 0.55);
+    bag.fillText(harfAraligi(t.sutunAdlari[i] ?? ""), s.merkez, basYuk + sutunYuk * 0.55);
   });
   bag.strokeStyle = "#161c2c";
   bag.lineWidth = cizgi;
@@ -96,7 +99,7 @@ export function cizSema(bag: CanvasRenderingContext2D, o: YuzeyOlcusu, g: SemaGi
   bag.textAlign = "left";
   bag.fillStyle = RENK.metin;
   bag.font = `600 ${Math.round(basYuk * 0.40)}px ${YAZI.duz}`;
-  const baslik = "ZİHİN AKIŞI";
+  const baslik = t.baslik;
   bag.fillText(baslik, kenar, basYuk / 2);
   let x = kenar + bag.measureText(baslik).width + Math.round(basYuk * 0.35);
 
@@ -130,13 +133,13 @@ export function cizSema(bag: CanvasRenderingContext2D, o: YuzeyOlcusu, g: SemaGi
   bag.moveTo(0, basYuk); bag.lineTo(o.genislik, basYuk); bag.stroke();
 
   // ── Oklar (kutuların altında kalsınlar) ──────────────────────────────
-  const kutular = semaYerlesimi(alan);
-  for (const [a, b] of OKLAR) {
+  const kutular = semaYerlesimi(alan, t.dugumler);
+  for (const [a, b] of t.oklar) {
     const ka = kutular.get(a), kb = kutular.get(b);
     if (!ka || !kb) continue;
     const sa = durum.oku(a);
     const p = durum.parilti(a, simdi);
-    const renk = LOB_RENK[etkinLob(a, sa)];
+    const renk = LOB_RENK[etkinLob(a, sa, t.dugumler)];
     const yol = okYolu(ka, kb);
     bag.strokeStyle = p > 0 ? karistir(RENK.cerceve, renk, 0.35 + 0.65 * p) : "#26304a";
     bag.lineWidth = Math.max(1, o.yukseklik * (0.0035 + 0.004 * p));
@@ -153,7 +156,7 @@ export function cizSema(bag: CanvasRenderingContext2D, o: YuzeyOlcusu, g: SemaGi
   }
 
   // ── Düğüm kartları ───────────────────────────────────────────────────
-  for (const d of DUGUMLER) {
+  for (const d of t.dugumler) {
     const k = kutular.get(d.ad);
     if (!k) continue;
     kartCiz(bag, k, d, durum, simdi);
@@ -168,7 +171,7 @@ export function cizSema(bag: CanvasRenderingContext2D, o: YuzeyOlcusu, g: SemaGi
   bag.moveTo(0, o.yukseklik - altYuk); bag.lineTo(o.genislik, o.yukseklik - altYuk); bag.stroke();
   const altOrta = o.yukseklik - altYuk / 2;
   bag.font = `${Math.round(altYuk * 0.38)}px ${YAZI.tek}`;
-  const toplam = `algı ${durum.oku("algi").sayac} · düşünce ${durum.oku("beyin").sayac} · niyet ${durum.oku("niyet").sayac}`;
+  const toplam = t.toplamlar.map(([etiket, ad]) => `${etiket} ${durum.oku(ad).sayac}`).join(" · ");
   bag.textAlign = "right";
   bag.fillStyle = "#56618a";
   bag.fillText(toplam, o.genislik - kenar, altOrta);
@@ -185,7 +188,8 @@ function kartCiz(
 ): void {
   const s = durum.oku(d.ad);
   const p = durum.parilti(d.ad, simdi);
-  const lob = etkinLob(d.ad, s);
+  // Lob kartın KENDİ tanımından (`d.lob`): başka bir şemanın düğümü Orion'un listesinde aranmasın.
+  const lob = s.lob ?? d.lob;
   const renk = s.arizali ? RENK.kotu : LOB_RENK[lob];
   const r = Math.min(9, k.yuk * 0.16);
 

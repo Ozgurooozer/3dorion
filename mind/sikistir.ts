@@ -52,10 +52,23 @@ export function sikistirmaPlani(aniler: readonly Ani[], simdi: number): Ani[] {
   return adaylar.slice(0, PLAN_AZAMI);
 }
 
+/**
+ * Otomatik sıkıştırmanın AYARLANABİLİR sınırı (Ozyn, 2026-10-21: "contexti şişirmeyelim, otomatik compact sınırı koy ve ayarlanabilir olsun").
+ * Varsayılan değerler eski sabitlerdir (OTO_ESIK, OTO_ARALIK_MS): ayar verilmezse davranış DEĞİŞMEZ. Panodan (duvar/Zihin sekmesi → HAFIZA) değişir.
+ */
+export interface OtoSikistirmaAyari { esik: number; aralikMs: number }
+export const OTO_VARSAYILAN: Readonly<OtoSikistirmaAyari> = { esik: OTO_ESIK, aralikMs: OTO_ARALIK_MS };
+/**
+ * Eşik için anlamlı aralık: en az KORU + EN_AZ_PLAN (= 55) ham kayıt gerekir, altında plan hiç oluşmaz (ayar "çalışıyor ama hiçbir şey olmuyor" olurdu).
+ * Aralık (dk): çok sık sıkıştırma her seferinde bir model çağrısı demek (maliyet), çok seyrek ise bağlam şişer.
+ */
+export const OTO_ESIK_ARALIGI = { en: KORU + EN_AZ_PLAN, cok: 1000 } as const;
+export const OTO_ARALIK_DK_ARALIGI = { en: 1, cok: 240 } as const;
+
 /** Otomatik tetik: ham kayıt eşiği aşıldı ve son sıkıştırmadan yeterince zaman geçti. */
-export function otoSikistirmaGerekli(aniler: readonly Ani[], sonSikistirma: number, simdi: number): boolean {
-  if (simdi - sonSikistirma < OTO_ARALIK_MS) return false;
-  return aniler.filter(hamMi).length > OTO_ESIK && sikistirmaPlani(aniler, simdi).length >= EN_AZ_PLAN;
+export function otoSikistirmaGerekli(aniler: readonly Ani[], sonSikistirma: number, simdi: number, ayar: OtoSikistirmaAyari = OTO_VARSAYILAN): boolean {
+  if (simdi - sonSikistirma < ayar.aralikMs) return false;
+  return aniler.filter(hamMi).length > ayar.esik && sikistirmaPlani(aniler, simdi).length >= EN_AZ_PLAN;
 }
 
 export const SIKISTIR_TALIMATI = [

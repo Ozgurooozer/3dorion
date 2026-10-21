@@ -21,7 +21,7 @@ import { CreateSphere } from "@babylonjs/core/Meshes/Builders/sphereBuilder";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import type { Jest, Poz } from "../../protocol/niyet.ts";
 import { BEDEN } from "../../protocol/bedenTanimi.ts";
-import type { AvatarIskeleti, IskeletBilgisi } from "./iskelet.ts";
+import type { AvatarIskeleti, IskeletBilgisi, IskeletGorunusu } from "./iskelet.ts";
 
 /**
  * Hedef boy — VRM yolu da bu boya normalize edilir, ikisi aynı ölçekte durur.
@@ -46,15 +46,22 @@ function mat(sahne: Scene, ad: string, r: number, g: number, b: number, parlak =
  * Blok-tarzı Orion. Ölçüler `BOY` üstünden oranlıdır: boy değişirse tüm
  * parçalar birlikte ölçeklenir, elle sayı düzeltmek gerekmez.
  */
-export function prosedurelIskelet(sahne: Scene): AvatarIskeleti {
-  const kok = new TransformNode("orion_kok", sahne);
+export function prosedurelIskelet(sahne: Scene, gorunus: IskeletGorunusu = {}): AvatarIskeleti {
+  // Önek: ikinci beden (spec 33) kendi adlarını alır; varsayılan "orion" (yuzdene, bedenAyari testi bu adlarla arar).
+  const o = gorunus.onek ?? "orion";
+  const kok = new TransformNode(`${o}_kok`, sahne);
 
-  const govdeMat = mat(sahne, "orion_govde", 0.10, 0.11, 0.16, 0.18);
-  const koyuMat = mat(sahne, "orion_koyu", 0.16, 0.18, 0.26, 0.16);
-  const isikMat = mat(sahne, "orion_isik", 0.0, 0.55, 0.80, 1.0);
-  const gozMat = mat(sahne, "orion_goz", 0.0, 0.92, 1.0, 1.0);
-  const yuzMat = mat(sahne, "orion_yuz", 0.20, 0.22, 0.30, 0.2);
+  const govdeMat = mat(sahne, `${o}_govde`, 0.10, 0.11, 0.16, 0.18);
+  const koyuMat = mat(sahne, `${o}_koyu`, 0.16, 0.18, 0.26, 0.16);
+  const isikMat = mat(sahne, `${o}_isik`, 0.0, 0.55, 0.80, 1.0);
+  const gozMat = mat(sahne, `${o}_goz`, 0.0, 0.92, 1.0, 1.0);
+  const yuzMat = mat(sahne, `${o}_yuz`, 0.20, 0.22, 0.30, 0.2);
   const malzemeler = [govdeMat, koyuMat, isikMat, gozMat, yuzMat];
+  // Renk (spec 33): blok gövdenin kimliği ışıklı çekirdek ve gözlerdir — ikinci beden onları kendi rengine boyar, gövde koyu kalır.
+  if (gorunus.renk) {
+    const r = Color3.FromHexString(gorunus.renk);
+    for (const m of [isikMat, gozMat]) { m.diffuseColor = r.clone(); m.emissiveColor = r.clone(); }
+  }
 
   const meshler: Mesh[] = [];
   const kutu = (ad: string, g: number, y: number, d: number, m: StandardMaterial): Mesh => {
@@ -67,77 +74,77 @@ export function prosedurelIskelet(sahne: Scene): AvatarIskeleti {
   // ── Hiyerarşi: kök → kalça → gövde → boyun → baş ───────────────────────
   // Oturma ve eğilme kalçadan, bakış boyundan döner. Ayrı pivotlar olmasaydı
   // "baş ayrı, gövde ayrı" isteği kökten döndürmeye çöker (donuk kafa dönüşü).
-  const kalca = new TransformNode("orion_kalca", sahne);
+  const kalca = new TransformNode(`${o}_kalca`, sahne);
   kalca.parent = kok;
   kalca.position.y = BOY * 0.52;
 
-  const govde = kutu("orion_govde_mesh", BOY * 0.32, BOY * 0.36, BOY * 0.18, govdeMat);
+  const govde = kutu(`${o}_govde_mesh`, BOY * 0.32, BOY * 0.36, BOY * 0.18, govdeMat);
   govde.parent = kalca;
   govde.position.y = BOY * 0.18;
 
-  const cekirdek = kutu("orion_cekirdek", BOY * 0.11, BOY * 0.09, BOY * 0.02, isikMat);
+  const cekirdek = kutu(`${o}_cekirdek`, BOY * 0.11, BOY * 0.09, BOY * 0.02, isikMat);
   cekirdek.parent = govde;
   cekirdek.position.set(0, BOY * 0.03, BOY * 0.095);
 
-  const boyun = new TransformNode("orion_boyun", sahne);
+  const boyun = new TransformNode(`${o}_boyun`, sahne);
   boyun.parent = kalca;
   boyun.position.y = BOY * 0.38;
 
-  const bas = kutu("orion_bas", BOY * 0.26, BOY * 0.25, BOY * 0.24, govdeMat);
+  const bas = kutu(`${o}_bas`, BOY * 0.26, BOY * 0.25, BOY * 0.24, govdeMat);
   bas.parent = boyun;
   bas.position.y = BOY * 0.13;
 
-  const yuz = kutu("orion_yuz_mesh", BOY * 0.19, BOY * 0.12, BOY * 0.01, yuzMat);
+  const yuz = kutu(`${o}_yuz_mesh`, BOY * 0.19, BOY * 0.12, BOY * 0.01, yuzMat);
   yuz.parent = bas;
   yuz.position.set(0, BOY * 0.015, BOY * 0.125);
 
-  const gozL = kutu("orion_gozL", BOY * 0.04, BOY * 0.04, BOY * 0.012, gozMat);
+  const gozL = kutu(`${o}_gozL`, BOY * 0.04, BOY * 0.04, BOY * 0.012, gozMat);
   gozL.parent = bas;
   gozL.position.set(-BOY * 0.056, BOY * 0.04, BOY * 0.128);
-  const gozR = kutu("orion_gozR", BOY * 0.04, BOY * 0.04, BOY * 0.012, gozMat);
+  const gozR = kutu(`${o}_gozR`, BOY * 0.04, BOY * 0.04, BOY * 0.012, gozMat);
   gozR.parent = bas;
   gozR.position.set(BOY * 0.056, BOY * 0.04, BOY * 0.128);
 
   // Çene: `agizUygula` bunu aşağı indirir ve uzatır. Gerçek bir ağız parçası
   // olması, ses senkronunun blend shape'e bağımlı olmamasını sağlar.
-  const cene = kutu("orion_cene", BOY * 0.09, BOY * 0.02, BOY * 0.012, koyuMat);
+  const cene = kutu(`${o}_cene`, BOY * 0.09, BOY * 0.02, BOY * 0.012, koyuMat);
   cene.parent = bas;
   const CENE_Y = -BOY * 0.055;
   cene.position.set(0, CENE_Y, BOY * 0.128);
 
-  const omuzL = new TransformNode("orion_omuzL", sahne);
+  const omuzL = new TransformNode(`${o}_omuzL`, sahne);
   omuzL.parent = kalca;
   omuzL.position.set(BOY * 0.19, BOY * 0.32, 0);
-  const kolL = kutu("orion_kolL", BOY * 0.08, BOY * 0.34, BOY * 0.09, govdeMat);
+  const kolL = kutu(`${o}_kolL`, BOY * 0.08, BOY * 0.34, BOY * 0.09, govdeMat);
   kolL.parent = omuzL;
   kolL.position.y = -BOY * 0.17;
 
-  const omuzR = new TransformNode("orion_omuzR", sahne);
+  const omuzR = new TransformNode(`${o}_omuzR`, sahne);
   omuzR.parent = kalca;
   omuzR.position.set(-BOY * 0.19, BOY * 0.32, 0);
-  const kolR = kutu("orion_kolR", BOY * 0.08, BOY * 0.34, BOY * 0.09, govdeMat);
+  const kolR = kutu(`${o}_kolR`, BOY * 0.08, BOY * 0.34, BOY * 0.09, govdeMat);
   kolR.parent = omuzR;
   kolR.position.y = -BOY * 0.17;
 
   // Bacaklar KALÇAYA bağlı, köke değil: oturunca kalça inince bacaklar da
   // iner. Köke bağlı kalsalardı oturma pozunda gövde sandalyeye otururken
   // bacaklar havada asılı kalırdı (ilk canlı denemede görüldü).
-  const bacakL = new TransformNode("orion_bacakL", sahne);
+  const bacakL = new TransformNode(`${o}_bacakL`, sahne);
   bacakL.parent = kalca;
   bacakL.position.set(BOY * 0.085, 0, 0);
-  const uylukL = kutu("orion_uylukL", BOY * 0.10, BOY * 0.50, BOY * 0.11, koyuMat);
+  const uylukL = kutu(`${o}_uylukL`, BOY * 0.10, BOY * 0.50, BOY * 0.11, koyuMat);
   uylukL.parent = bacakL;
   uylukL.position.y = -BOY * 0.25;
 
-  const bacakR = new TransformNode("orion_bacakR", sahne);
+  const bacakR = new TransformNode(`${o}_bacakR`, sahne);
   bacakR.parent = kalca;
   bacakR.position.set(-BOY * 0.085, 0, 0);
-  const uylukR = kutu("orion_uylukR", BOY * 0.10, BOY * 0.50, BOY * 0.11, koyuMat);
+  const uylukR = kutu(`${o}_uylukR`, BOY * 0.10, BOY * 0.50, BOY * 0.11, koyuMat);
   uylukR.parent = bacakR;
   uylukR.position.y = -BOY * 0.25;
 
   // Elindeki nesne göstergesi (al/birak) — küçük bir küre.
-  const tutulan = CreateSphere("orion_tutulan", { diameter: BOY * 0.1, segments: 8 }, sahne);
+  const tutulan = CreateSphere(`${o}_tutulan`, { diameter: BOY * 0.1, segments: 8 }, sahne);
   tutulan.material = isikMat;
   tutulan.parent = omuzR;
   tutulan.position.set(0, -BOY * 0.36, BOY * 0.09);

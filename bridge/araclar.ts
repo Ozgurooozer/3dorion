@@ -166,6 +166,16 @@ export const ARAC_TABLOSU: Record<NiyetTur, Omit<AracTanimi, "ad">> = {
       required: ["ne"],
     },
   },
+  emret: {
+    // Spec 33 (Ozyn, 2026-10-21): Flash = LLM'siz NPC, yalnız sabit komut tanır. Açıklama ÇOK KISA (her turun sabit maliyeti) ve yalnız Flash varken sunulur
+    // (köprü `emirHedefleri` boşsa bu aracı çıkarır). "Teslim edildi" döner, "yapıldı" değil: NPC'nin işi asenkron.
+    aciklama: "Command Flash (an NPC with no AI): otur, kalk, bana gel, beni takip et, takibi birak, pencereye bak. Tells you it was delivered, not done.",
+    sema: {
+      type: "object",
+      properties: { kime: { type: "string", description: "flash" }, soz: { type: "string", description: "one command from the list" } },
+      required: ["kime", "soz"],
+    },
+  },
   doktor: {
     // Orion Doktor: kendi bedenini muayene eder. Açıklama KISA (her turun sabit maliyeti); sonuç sağlıklıysa sessiz, hastaysa metin döner.
     aciklama: "Self-check for rendering faults (errors, invisible things). Use when Ozyn asks or something looks broken. hizli ~2 s, tam ~35 s.",

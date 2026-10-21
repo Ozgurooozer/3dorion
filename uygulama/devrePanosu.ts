@@ -15,6 +15,8 @@ import type { OnayKapisi } from "../mind/onayKapisi.ts";
 import type { SemaPaneli } from "../world/surfaces/duvar/sema.ts";
 import type { beyinSeciminiKur } from "./beyinSecimi.ts";
 import { hafizaUnutTeli } from "./hafizaDeposu.ts";
+import { OTO_ARALIK_MS, OTO_ESIK } from "../mind/sikistir.ts";
+import { MD_SINIRLARI } from "../mind/mdBaglami.ts";
 
 /**
  * DEVRE PANOSU TELLERİ — yazılabilir ayarların tek doğruluk kaynağı.
@@ -28,8 +30,16 @@ import { hafizaUnutTeli } from "./hafizaDeposu.ts";
 export const PANO_TELLERI = {
   dikkat: { tekrar: tel(4000), terminalKis: tel(2500), azami: tel(20) },
   ajanda: { asgari: tel(15_000), sapma: tel(15_000) },
-  hafiza: { kapasite: tel(300) },
+  hafiza: {
+    kapasite: tel(300),
+    // Bağlamı şişirmeme ayarları: başlangıç değerleri eski sabitler (davranış değişmez); kalıcılığı `uygulama/hafizaAyari.ts`.
+    otoEsik: tel(OTO_ESIK), otoAralikDk: tel(OTO_ARALIK_MS / 60_000),
+    mdToplam: tel(MD_SINIRLARI.toplam), mdDosya: tel(MD_SINIRLARI.dosyaBasina),
+  },
   onay: { zamanAsimi: tel(90_000) },
+  // Doğuştan komut programları (spec 13 Faz 2b) açık mı: başlangıç değerini köprü kurulumu açılış kuralından yazar (`yetkiAnahtarlari`: elle açılışta
+  // açık, senaryoda kapalı); ayar paneli/duvar çalışma anında değiştirir (spec 34). Kalıcı değil.
+  refleks: { komut: tel<boolean>(true) },
 } as const;
 
 export interface DevrePanosuGirdisi {
@@ -60,7 +70,7 @@ export function devrePanosuKur(d: DevrePanosuGirdisi): Pano {
     hafizaTanimi(kopru.hafiza, { ...PANO_TELLERI.hafiza, ...hafizaUnutTeli(kopru) }),
     onayTanimi(onayKapisi, PANO_TELLERI.onay),
     ajandaTanimi(ajanda, PANO_TELLERI.ajanda),
-    refleksTanimi(),
+    refleksTanimi(PANO_TELLERI.refleks),
     beyinTanimi({
       ad: () => beyin.ad,
       kesikSaniye: () => kesikSn(),

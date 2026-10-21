@@ -7,6 +7,7 @@ import type { Avatar } from "../world/avatar/index.ts";
 import type { Kopru } from "../bridge/kopru.ts";
 import type { Pano } from "../protocol/pano.ts";
 import type { modelSeciciKur } from "../world/arayuz/modelSecici.ts";
+import type { ModelSeciciKaynagi } from "../world/arayuz/modelSeciciCekirdek.ts";
 import type { stilPenceresiKur } from "../world/arayuz/stilPenceresi.ts";
 import type { EtkilesimOlayi, Ipucu } from "../world/player/etkilesim.ts";
 import type { Nesne } from "../world/level/nesneKaydi.ts";
@@ -25,6 +26,8 @@ export interface Servisler {
   pano: Pano;
   /** Model seçici penceresi (M); beyin bağlanınca kurulur. */
   modelSecici: ReturnType<typeof modelSeciciKur>;
+  /** M seçicinin kaynağı (kartlar, durum, `sec` → devre panosunun teyit yolu): ayar paneli · Beyin modeli AYNI kaynağı kullanır (spec 34). */
+  modelKaynagi: ModelSeciciKaynagi;
   /** Ova stil deneme araçları (G); beyin bağlanınca kurulur. */
   stilPenceresi: ReturnType<typeof stilPenceresiKur>;
 }

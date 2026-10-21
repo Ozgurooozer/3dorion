@@ -46,7 +46,9 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
     ad: "Protokol", sorumluluk: "Beyin ile beden arasındaki tek sözleşme.",
     yollar: ["protocol/"],
     kamu: ["protocol/temel.ts", "protocol/niyet.ts", "protocol/algi.ts", "protocol/dogrula.ts",
-      "protocol/pano.ts", "protocol/bedenTanimi.ts", "protocol/index.ts"],
+      "protocol/pano.ts", "protocol/bedenTanimi.ts", "protocol/index.ts",
+      // Düğüm grafiği biçimi (spec 35): Orion/Ozyn programları; yorumlayıcı ve editör uygulama katmanında.
+      "protocol/graf.ts"],
     izinli: [], urun: true,
   },
   {
@@ -148,11 +150,16 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
       "world/surfaces/terminal/ciktiFarki.ts", "world/surfaces/terminal/ciktiToplayici.ts",
       // Model seçicinin saf çekirdeği (uygulama/beyinSecimi.ts) ve zihin duvarı şema çekirdeği (zihindene) — giris bölme B2.
       "world/arayuz/modelSeciciCekirdek.ts", "world/surfaces/duvar/semaCekirdek.ts",
+      // Mesh'siz şema (spec 33): duvarı olmayan ajanın (Flash) zihin akışı; Yapı çubuğu · Zihin sekmesinin ajan sayfası.
+      "world/surfaces/duvar/semaTuvali.ts",
       "world/arayuz/modelSecici.ts", "world/arayuz/stilPenceresi.ts",
       // Alt çubuk (Yapı çubuğu): sekmeli, açılır-kapanır alt panel çerçevesi; sekme içerikleri uygulama katmanında (uygulama/yapi/).
       "world/arayuz/altCubuk.ts", "world/arayuz/altCubukModeli.ts",
       // Oyun içi metin düzenleyici pencereleri (Hafıza sekmesi, spec 32); mantığı editorModeli.ts'te (aynı alt-sistem, kamu değil).
-      "world/arayuz/editorPenceresi.ts"],
+      "world/arayuz/editorPenceresi.ts",
+      // Ajan ayar paneli (spec 34): Orion seçilince soldaki bölümlü pencere; modeli ayarPaneliModeli.ts, jetonları arayuzJetonlari.ts (aynı alt-sistem, kamu değil).
+      // Bölümler uygulama katmanında (uygulama/ayar/).
+      "world/arayuz/ayarPaneli.ts"],
     izinli: ["Protokol", "Level", "Editör"], tipIzinli: ["Kabuk"], urun: true,
   },
   {
@@ -166,6 +173,13 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
     yollar: ["bridge/"],
     kamu: null, kamuNotu: "geniş (rapor: 21/27 dosya dışa açık, beyin uygulamaları dahil); bu turda daraltılmıyor",
     izinli: ["Protokol", "Zihin"], urun: true,
+  },
+  {
+    ad: "Flash", sorumluluk: "LLM'siz NPC ajanı (spec 33): beyinsiz beyin, 'bilmiyorum + seçenek', NPC tanımı, aynı köprüyle kurulum.",
+    yollar: ["flash/"],
+    // Kompozisyon kökü yalnız kurulumu ve NPC tanımını alır; beyinsiz beyin ve seçenek cümleleri içeride kalır.
+    kamu: ["flash/flashKur.ts", "flash/npcTanimi.ts"],
+    izinli: ["Protokol", "Zihin", "Köprü"], urun: true,
   },
   {
     ad: "Ses", sorumluluk: "STT (klavye, Nemotron) ve TTS (Piper).",

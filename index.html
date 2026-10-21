@@ -15,7 +15,7 @@
     position: fixed; left: 50%; bottom: calc(7% + var(--alt-cubuk, 0px)); transform: translateX(-50%); z-index: 31;
     max-width: 62ch; padding: 10px 16px; border-radius: 6px;
     background: rgba(7,7,13,.72); color: #e6e9f5;
-    font: 15px/1.45 "Segoe UI", system-ui, sans-serif; text-align: center;
+    font: 15px/1.45 "Segoe UI", system-ui, sans-serif; text-align: center; white-space: pre-line;   /* pre-line: yığılan ajan satırları (Orion + Flash) alt alta */
     opacity: 0; transition: opacity .18s ease; pointer-events: none;
   }
   #altyazi[data-gorunur="1"] { opacity: 1; }
@@ -91,6 +91,13 @@
   }
   #sohbetGirdi:focus { border-color: #4d5fa8; }
   #sohbetGirdi::placeholder { color: #5d688f; }
+  /* Sohbet hedef çipleri (spec 33): Orion | Flash | İkisi — uygulama/sohbetHedefi.ts çizer; tek ajanda boş ve gizli. */
+  #sohbetHedef { display: flex; gap: 6px; margin-bottom: 6px; }
+  #sohbetHedef:empty { display: none; }
+  .hedef-cip { font: 600 12px "Segoe UI", system-ui, sans-serif; color: #aab1c8; background: rgba(10,10,18,.92);
+    border: 1px solid #2b3150; border-radius: 12px; padding: 3px 10px 3px 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+  .hedef-cip i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .hedef-cip[data-secili="1"] { color: #fff; border-color: var(--cip, #4d5fa8); background: #182033; }
 
 </style>
 <!-- Model seçici (M) — stili modülün yanında: world/arayuz/modelSecici.ts -->
@@ -115,6 +122,7 @@
   <button id="beyinRozet" type="button" title="düşünce modelini seç (M)"></button>
   <div id="modelSecici" data-acik="0"></div>
   <div id="sohbet">
+    <div id="sohbetHedef"></div>
     <input id="sohbetGirdi" type="text" autocomplete="off" spellcheck="false"
            placeholder="Orion'a yaz… (T ile aç, Enter gönder, Esc kapat)" />
   </div>

@@ -87,7 +87,8 @@ test("Ozyn'in kendi turu DEĞİŞMEZ: tam araç kümesi ve 1 takip turu (gordum 
   const { k } = kur(b);
   k.algi({ tur: "duydum", metin: "ne görüyorsun", kesin: true });
   await bekle(60);
-  assert.equal(adlar(b.gordugu[0]!).length, araclariUret().length, "Ozyn turunda tüm araçlar");
+  // Flash yokken (emirHedefleri verilmedi) `dunya_emret` sunulmaz: Orion'un araç yüzeyi Flash'tan ÖNCEKİYLE aynı (bkz. kopruEmir.test.ts).
+  assert.equal(adlar(b.gordugu[0]!).length, araclariUret().filter((a) => a.ad !== "dunya_emret").length, "Ozyn turunda tüm araçlar (emret hariç)");
   k.algi({ tur: "gordum", ne: "onumde", metin: "masa" });
   await bekle(60);
   assert.equal(b.gordugu.length, 2, "Ozyn turunun takip turu hâlâ var");

@@ -93,6 +93,31 @@ export const OKLAR: readonly (readonly [string, string])[] = [
   ["beyin", "bakis"],
 ] as const;
 
+/**
+ * ŞEMA TANIMI (spec 33): hangi düğümler, hangi oklar, sütun başlıkları, başlık ve alt şeritteki toplamlar. Duvardaki şema Orion'unkini
+ * (`ORION_SEMASI`, aşağıdaki sabitlerin aynısı) çizer; başka bir ajan (Flash: LLM düğümü YOK) kendi tanımını verir. Yerleşim ve tıklama
+ * aritmetiği zaten `dugumler` parametreli; tanım onları tek pakette taşır.
+ */
+export interface SemaTanimi {
+  /** Başlık şeridindeki ad. */
+  baslik: string;
+  dugumler: readonly Dugum[];
+  oklar: readonly (readonly [string, string])[];
+  /** İndeks = `Dugum.sutun`. */
+  sutunAdlari: readonly string[];
+  /** Alt şeridin sağındaki sayaçlar: [etiket, düğüm adı]. */
+  toplamlar: readonly (readonly [string, string])[];
+}
+
+/** Orion'un zihin akışı — duvarın bugüne dek çizdiği şemanın birebir aynısı. */
+export const ORION_SEMASI: SemaTanimi = {
+  baslik: "ZİHİN AKIŞI",
+  dugumler: DUGUMLER,
+  oklar: OKLAR,
+  sutunAdlari: SUTUN_ADLARI,
+  toplamlar: [["algı", "algi"], ["düşünce", "beyin"], ["niyet", "niyet"]],
+};
+
 export interface DugumDurumu {
   /** Kaç kez çalıştı. */
   sayac: number;
@@ -321,9 +346,9 @@ export function sutunSeritleri(
   });
 }
 
-/** Düğümün o anki lobu: durumdaki geçersiz kılma, yoksa tanım. */
-export function etkinLob(ad: string, s: Pick<DugumDurumu, "lob">): Dugum["lob"] {
-  return s.lob ?? dugumTanim(ad)?.lob ?? "ortak";
+/** Düğümün o anki lobu: durumdaki geçersiz kılma, yoksa tanım (`dugumler` başka bir şemanınkiyse oradan). */
+export function etkinLob(ad: string, s: Pick<DugumDurumu, "lob">, dugumler: readonly Dugum[] = DUGUMLER): Dugum["lob"] {
+  return s.lob ?? dugumler.find((d) => d.ad === ad)?.lob ?? "ortak";
 }
 
 /** Bir düğümün tanımı — detay görünümü ve pano kaydı buradan okur. */

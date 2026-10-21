@@ -52,6 +52,11 @@ export interface YurutucuBaglami {
   ortam?: { uygula(k: Extract<Niyet, { tur: "ortam" }>): { ok: boolean; not: string } };
   /** `doktor` niyeti (Orion Doktor, `uygulama/doktor.ts`): kendi bedenini/dünyasını muayene eder. Verilmezse dürüstçe "yok" denir. */
   doktor?: Pick<Doktor, "muayene">;
+  /**
+   * `emret` niyeti (spec 33): başka bir ajana (Flash) komut teslim eder. `ok: false` nedenle döner (ajan yok, kendine emir…): Orion'un modeline gider. Verilmezse
+   * dürüstçe "yok" denir. Teslim edildi demektir, yapıldı değil (NPC'nin işi asenkron).
+   */
+  emret?: (kime: string, soz: string) => { ok: boolean; not: string };
   /** `sor` cevabı beyne gitti (`bakdene` yedeği: zincir kendiliğinden işledi mi?). */
   gordumBildir(): void;
   /**
@@ -163,6 +168,16 @@ export function niyetYurutucusuKur(b: YurutucuBaglami): NiyetYurutucu {
         void bedenAdimi({ tur: "soyle", metin: r.ozet });
         if (!r.saglikli) b.kopru()?.sonuc({ niyet_id: `${id}_rapor`, durum: "hata", not: r.modelNotu });
       });
+      return;
+    }
+
+    // `emret` bedene gitmez: komut başka bir ajanın girdisine teslim edilir (Orion yürümez, sırada beklemez). Başarı sessizdir (`bitti` beyni uyandırmaz),
+    // ret `hata`dır ve nedeni modele gider. Ozyn Orion'un emrini GÖRSÜN diye altyazı ve günlük yazılır.
+    if (n.tur === "emret") {
+      const r = b.emret?.(n.kime, n.soz) ?? { ok: false, not: "there is no other character to command" };
+      b.gunluk.ekle(r.ok ? "bilgi" : "uyari", "emir", r.ok ? `Orion → ${n.kime}: ${n.soz}` : `Orion → ${n.kime}: reddedildi (${r.not})`);
+      if (r.ok) b.altyazi(`Orion → ${n.kime}: ${n.soz}`, 2200);
+      b.kopru()?.sonuc({ niyet_id: id, durum: r.ok ? "bitti" : "hata", not: r.not });
       return;
     }
 
@@ -309,24 +324,30 @@ export function niyetYurutucusuKur(b: YurutucuBaglami): NiyetYurutucu {
    * Dinleyici GÖNDERMEDEN önce kurulur: avatar sonucu senkron da verebilir. Kimlik öneki
    * `program`: köprü bu adımı kendi sırası sanmaz.
    */
-  function bedenAdimi(n: Niyet, sinirMs = 30_000): Promise<NiyetSonucu> {
-    const id = kimlik("program");
-    return new Promise((coz) => {
-      const o = b.beden();
-      if (!o) { coz({ niyet_id: id, durum: "hata", not: "beden henüz yüklenmedi" }); return; }
-      let bitti = false;
-      const bitir = (s: NiyetSonucu): void => {
-        if (bitti) return;
-        bitti = true;
-        clearTimeout(saat);
-        cik();
-        coz(s);
-      };
-      const cik = o.sonucDinle((s) => { if (s.niyet_id === id && s.durum !== "basladi") bitir(s); });
-      const saat = setTimeout(() => bitir({ niyet_id: id, durum: "hata", not: "zaman aşımı" }), sinirMs);
-      o.niyet(n, id);
-    });
-  }
+  function bedenAdimi(n: Niyet, sinirMs = 30_000): Promise<NiyetSonucu> { return avatarAdimi(b.beden(), n, sinirMs); }
 
   return { niyetiYurut, bedenAdimi, sonGorme: () => sonGorme };
+}
+
+/**
+ * Bir bedene tek adım: niyeti verir, sonucu (bitti/hata/iptal) gelince çözülür. Orion'un `bedenAdimi`'nın gövdesiydi; Flash'ın takibi
+ * (spec 33) aynısını kendi bedeniyle çağırır — kopya yazılmaz. Dinleyici GÖNDERMEDEN önce kurulur: avatar sonucu senkron da verebilir.
+ * Kimlik öneki `program`: köprü bu adımı kendi sırası sanmaz.
+ */
+export function avatarAdimi(o: Pick<Avatar, "niyet" | "sonucDinle"> | null, n: Niyet, sinirMs = 30_000): Promise<NiyetSonucu> {
+  const id = kimlik("program");
+  return new Promise((coz) => {
+    if (!o) { coz({ niyet_id: id, durum: "hata", not: "beden henüz yüklenmedi" }); return; }
+    let bitti = false;
+    const bitir = (s: NiyetSonucu): void => {
+      if (bitti) return;
+      bitti = true;
+      clearTimeout(saat);
+      cik();
+      coz(s);
+    };
+    const cik = o.sonucDinle((s) => { if (s.niyet_id === id && s.durum !== "basladi") bitir(s); });
+    const saat = setTimeout(() => bitir({ niyet_id: id, durum: "hata", not: "zaman aşımı" }), sinirMs);
+    o.niyet(n, id);
+  });
 }

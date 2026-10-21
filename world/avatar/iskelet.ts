@@ -76,3 +76,12 @@ export interface AvatarIskeleti {
   gorunur(g: boolean): void;
   yokEt(): void;
 }
+
+/**
+ * İskeletin GÖRÜNÜŞ seçenekleri (spec 33, ikinci beden). `onek`: düğüm/malzeme adlarının öneki (varsayılan "orion");
+ * `renk`: gövde rengi #rrggbb (verilmezse modelin kendi rengi). İkisi de yalnız görünüşü değiştirir; davranış aynı.
+ */
+export interface IskeletGorunusu {
+  onek?: string;
+  renk?: string;
+}

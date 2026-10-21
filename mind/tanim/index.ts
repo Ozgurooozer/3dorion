@@ -9,13 +9,15 @@
 // Her tanım bir ÖRNEK alır, değer değil. Böylece `oku()` çağrıldığı anda
 // canlı durumu okur — panonun önbellek tutması yapısal olarak imkânsız kalır.
 "use strict";
-import type { Modul, Dugme, Tel } from "../../protocol/pano.ts";
+import type { Modul, Dugme, Deger, Tel } from "../../protocol/pano.ts";
 import type { Dikkat } from "../dikkat.ts";
 import type { Ani, Hafiza } from "../hafiza.ts";
 import type { Ajanda } from "../ajanda.ts";
 import type { OnayKapisi } from "../onayKapisi.ts";
 import { BOZULMA } from "../hafiza.ts";
 import { UZUN_ISLEM_MS } from "../refleks.ts";
+import { OTO_ARALIK_DK_ARALIGI, OTO_ARALIK_MS, OTO_ESIK, OTO_ESIK_ARALIGI } from "../sikistir.ts";
+import { MD_DOSYA_ARALIGI, MD_SINIRLARI, MD_TOPLAM_ARALIGI } from "../mdBaglami.ts";
 
 /**
  * Yazılabilir ayarların telleri.
@@ -33,6 +35,14 @@ export interface DikkatTelleri {
 }
 export interface HafizaTelleri {
   kapasite?: Tel<number>;
+  /** Otomatik sıkıştırma: ham anı sayısı bu eşiği aşınca (varsayılan 100). */
+  otoEsik?: Tel<number>;
+  /** Otomatik sıkıştırma: iki sıkıştırma arası en az bu kadar dakika (varsayılan 15). */
+  otoAralikDk?: Tel<number>;
+  /** Orion'un md notlarının (Hafıza sekmesi) bağlama giren TOPLAM karakter bütçesi (varsayılan 5000). */
+  mdToplam?: Tel<number>;
+  /** Tek md notunun bağlama giren en çok karakteri (varsayılan 2000; anlık hafıza hariç). */
+  mdDosya?: Tel<number>;
   /**
    * Elle unutma (duvardan). Verilmezse `hafiza.unut` düğmesi HİÇ kurulmaz: yedeksiz silme yok.
    * `yedekle` fırlatırsa anı silinmez; `kaydet` silmeden sonra diske hemen yazar (3 sn'lik kısma beklenmez).
@@ -172,6 +182,24 @@ export function hafizaTanimi(h: Hafiza, teller: HafizaTelleri = {}): Modul {
         calistir: () => { const n = h.buda(); console.log(`[PANO] ${n} anı budandı`); },
       }] },
       () => h.kapasite, teller.kapasite),
+    // BAĞLAMI ŞİŞİRMEME ayarları (Ozyn, 2026-10-21). Orion hafızadan YALNIZ SORULANI bağlama getirir (spec 16); şişiren iki şey var: biriken ham anılar
+    // (otomatik sıkıştırma onları özete indirir) ve her turda giden md notları (bütçe). İkisi de güvenli ayar: sıkıştırma yedek alır, bütçe yalnız kesme noktasını oynatır.
+    bagla({ ad: "hafiza.oto_esik", etiket: "otomatik sıkıştırma eşiği", sinif: "guvenli", etki: "sonraki_tur",
+      birim: "ham anı", aralik: { ...OTO_ESIK_ARALIGI }, adim: 10,
+      aciklama: "Ham kayıt (konuşma, olay, terminal…) sayısı bunu aşınca ve beyin boştayken eski olanlar tek özete iner (yedek alınır; en yeni 30 ve son 1 saat korunur). Düşürmek bağlamı küçük tutar, ayrıntıyı erken özete indirir." },
+      () => OTO_ESIK, teller.otoEsik),
+    bagla({ ad: "hafiza.oto_aralik", etiket: "sıkıştırma arası", sinif: "guvenli", etki: "sonraki_tur",
+      birim: "dk", aralik: { ...OTO_ARALIK_DK_ARALIGI }, adim: 5,
+      aciklama: "İki otomatik sıkıştırma arasındaki en kısa süre. Her sıkıştırma bir model çağrısıdır: çok kısa süre maliyeti artırır." },
+      () => OTO_ARALIK_MS / 60_000, teller.otoAralikDk),
+    bagla({ ad: "hafiza.md_toplam", etiket: "md notları bütçesi", sinif: "guvenli", etki: "sonraki_tur",
+      birim: "karakter", aralik: { ...MD_TOPLAM_ARALIGI }, adim: 500,
+      aciklama: "Aktif md notlarının (Hafıza sekmesi) her turda bağlama giren toplam karakteri; sığmayan not girmez ve kartta uyarı çıkar. Anlık hafıza bu bütçeye girmez (kendi emniyet tavanı var)." },
+      () => MD_SINIRLARI.toplam, teller.mdToplam),
+    bagla({ ad: "hafiza.md_dosya", etiket: "tek not sınırı", sinif: "guvenli", etki: "sonraki_tur",
+      birim: "karakter", aralik: { ...MD_DOSYA_ARALIGI }, adim: 200,
+      aciklama: "Tek bir md notundan bağlama en çok bu kadar karakter girer (fazlası kesilir, kartta 'kesildi' yazar)." },
+      () => MD_SINIRLARI.dosyaBasina, teller.mdDosya),
     ...(teller.unut ? [unutDugmesi(h, teller.unut)] : []),
     { ad: "hafiza.sayi", etiket: "şu anki anı", sinif: "sabit", etki: "aninda",
       birim: "anı", oku: () => h.sayi,
@@ -230,9 +258,24 @@ export function ajandaTanimi(a: Ajanda, teller: AjandaTelleri = {}): Modul {
   return { ad: "ajanda", etiket: "AJANDA", dugum: "beden", dugmeler };
 }
 
+export interface RefleksTelleri {
+  /**
+   * Doğuştan komut programları (içgüdü `kopru.komut`, spec 13 Faz 2b) açık mı. Verilmezse düğme HİÇ kurulmaz (eski pano birebir aynı).
+   * Değer köprüye aynı telle gider (`KopruAyari.komutYetkisi`): panel ile karar yolu aynı nesneyi okur.
+   */
+  komut?: Tel<boolean>;
+}
+
 /** REFLEKS — sağ lob, kural tabanlı hızlı tepki. */
-export function refleksTanimi(): Modul {
+export function refleksTanimi(teller: RefleksTelleri = {}): Modul {
+  const komut = teller.komut;
   const dugmeler: Dugme[] = [
+    // GÜVENLİ sınıfta: kapatmak yalnız LLM'i atlayan yolu kapatır (söz LLM'e gider: daha yavaş, token harcar); açmak açılıştaki ölçülmüş varsayılandır
+    // (62 gerçek sözde yanlış eşleşme 0). Kalıcı DEĞİL: her açılış ölçülmüş varsayılana döner (senaryolarda kapalı) — elle kapatılmış bir anahtar
+    // haftalar sonra "Orion neden yavaş" diye sessizce kalmasın (spec 34).
+    ...(komut ? [{ ad: "refleks.dogustan_komut", etiket: "doğuştan komutlar", sinif: "guvenli" as const, etki: "sonraki_tur" as const,
+      oku: komut, yaz: (d: Deger) => komut.yaz(d === true),
+      aciklama: "Kesin söz doğuştan bir programa TAM uyuyorsa (otur, bana gel, pencereye bak, bilgisayarı aç) LLM uyanmaz, adımlar sırayla yürür (içgüdü kopru.komut). Kapalıyken aynı söz LLM'e gider. Bu oturum için; açılışta varsayılana döner." }] : []),
     { ad: "refleks.uzun_islem", etiket: "uzun işlem eşiği", sinif: "olculmus", etki: "aninda",
       birim: "ms", oku: () => UZUN_ISLEM_MS,
       kaynak: "tools/refleks-olcum.ts — komut süre dağılımı",

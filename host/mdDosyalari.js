@@ -41,15 +41,19 @@ function yol(dizin, ad) {
   return path.join(dizin, ad);
 }
 
-/** Ayar: `{ aktif: { "dosya.md": true } }`. Yoksa boş; bozuksa HATA ve dosya yanına taşınır. */
+/**
+ * Ayar: `{ aktif: { "dosya.md": true }, tohumlandi: ["flash.md"] }`. Yoksa boş; bozuksa HATA ve dosya yanına taşınır.
+ * `tohumlandi`: sistemin sonradan eklediği tohum dosyaların (EK_TOHUMLAR) bir kez yazıldığının kaydı; eski ayarda yoktur (boş sayılır).
+ */
 function ayarOku(dizin) {
   const p = path.join(dizin, AYAR_DOSYASI);
-  if (!fs.existsSync(p)) return { aktif: {} };
+  if (!fs.existsSync(p)) return { aktif: {}, tohumlandi: [] };
   try {
     const v = JSON.parse(fs.readFileSync(p, "utf8"));
     if (typeof v !== "object" || v === null || typeof v.aktif !== "object" || v.aktif === null || Array.isArray(v.aktif)) throw new Error("beklenen biçimde değil");
     for (const [k, d] of Object.entries(v.aktif)) if (typeof d !== "boolean") throw new Error(`aktif["${k}"] bool değil`);
-    return { aktif: v.aktif };
+    if (v.tohumlandi !== undefined && (!Array.isArray(v.tohumlandi) || v.tohumlandi.some((x) => typeof x !== "string"))) throw new Error("tohumlandi metin listesi değil");
+    return { aktif: v.aktif, tohumlandi: v.tohumlandi ?? [] };
   } catch (err) {
     const yedek = `${p}.bozuk-${Date.now()}`;
     try { fs.renameSync(p, yedek); } catch { /* taşınamadıysa hata yine de fırlar */ }
@@ -142,11 +146,45 @@ içine yazdığın bir sonraki güncellemede ezilir. Bölümün DIŞINA istediğ
 ## Benim notlarım
 `;
 
-/** Klasörde hiç md yoksa tohumları yazar. Yazılanların adları döner (genelde boş). */
+// Orion'u Flash'tan haberdar eden not (spec 33). Orion'un koduna/dünya satırına DOKUNMADAN: Hafıza sekmesindeki bir dosya olarak girer, yani Ozyn onu görür,
+// düzenler, "Bağlamdan çıkar" ile kapatır ve token maliyeti kartta yazar. Çerçeve İngilizce (spec 06 §6.8); açıklama HTML yorumunda (Orion'a gitmez).
+const FLASH_NOTU = `# Flash
+
+<!--
+Bu not Orion'u odadaki ikinci karakter (Flash) hakkında bilgilendirir; AKTİF başlar. Kapatmak için Hafıza sekmesinde sağ tık → "Bağlamdan çıkar".
+Her satır her turda bağlama girer (token + dikkat maliyeti): kısa tut. Bu yorum Orion'a gitmez.
+-->
+
+Flash, an NPC with no AI, shares the room (amber body). It only follows fixed commands (sit, stand, come, follow, look) and cannot chat or use tools. When Ozyn asks you to command it, use dunya_emret (kime: flash, soz: otur / kalk / bana gel / beni takip et / takibi bırak / pencereye bak); you are told it was delivered, not that it was done. It does not talk to you. If sitting fails because Flash holds the seat, pick another. Answer only for yourself; mention Flash only when it matters.
+`;
+
+/**
+ * Sonradan eklenen tohum dosyalar: klasör DOLU olsa da (eski kullanıcı) BİR KEZ yazılır; yazıldığı ayara (`tohumlandi`) kaydedilir:
+ * Ozyn notu düzenler ya da pasif yaparsa sistem sonraki açılışta onu geri yazmaz/aktif etmez. Aynı adlı dosya zaten varsa dokunulmaz (Ozyn'in kendi `flash.md`'si ezilmez, aktif de yapılmaz).
+ * `aktif`: tohum aktif mi başlar (yeni kullanıcı dosyaları pasif başlar; bu not Ozyn'in açık isteğiyle aktif).
+ */
+const EK_TOHUMLAR = [{ ad: "flash.md", metin: FLASH_NOTU, aktif: true }];
+
+/** Klasörde hiç md yoksa temel tohumları yazar; ardından (her açılışta) henüz yazılmamış ek tohumları. Yazılanların adları döner (genelde boş). */
 export function mdTohumla(dizin) {
   fs.mkdirSync(dizin, { recursive: true });
-  if (fs.readdirSync(dizin).some(mdAdiGecerli)) return [];
-  atomikYaz(path.join(dizin, "persona.md"), PERSONA_SABLONU);
-  atomikYaz(path.join(dizin, "anlik-hafiza.md"), ANLIK_SABLONU);
-  return ["persona.md", "anlik-hafiza.md"];
+  const yazilan = [];
+  if (!fs.readdirSync(dizin).some(mdAdiGecerli)) {
+    atomikYaz(path.join(dizin, "persona.md"), PERSONA_SABLONU);
+    atomikYaz(path.join(dizin, "anlik-hafiza.md"), ANLIK_SABLONU);
+    yazilan.push("persona.md", "anlik-hafiza.md");
+  }
+  const ayar = ayarOku(dizin);
+  let degisti = false;
+  for (const t of EK_TOHUMLAR) {
+    if (ayar.tohumlandi.includes(t.ad)) continue;
+    ayar.tohumlandi.push(t.ad);
+    degisti = true;
+    if (fs.existsSync(path.join(dizin, t.ad))) continue;
+    atomikYaz(path.join(dizin, t.ad), t.metin);
+    ayar.aktif[t.ad] = t.aktif;
+    yazilan.push(t.ad);
+  }
+  if (degisti) ayarYaz(dizin, ayar);
+  return yazilan;
 }

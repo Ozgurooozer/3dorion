@@ -179,3 +179,25 @@ test("çalışmayan kaynak: liste boş, her işlem NEDENLE hata verir (sessiz bo
   assert.deepEqual(d.liste(), []);
   await assert.rejects(d.yeni("a.md"), /depo yok/);
 });
+
+// ── Ayarlanabilir bağlam bütçesi (Ozyn, 2026-10-21): sınır ÇAĞRI ANINDA okunur ──
+test("bütçe sınırı canlı okunur: aynı depo, sınır düşünce bağlam KISALIR (yeniden kurmadan)", async () => {
+  const s = sahteKaynak({ "a.md": { metin: "x".repeat(1500), aktif: true } });
+  let toplam = 5000;
+  const d = mdDeposuKur(s.k, () => ({ dosyaBasina: 2000, toplam, anlikTavan: 6000 }));
+  await d.baslat();
+  assert.equal(d.baglam().kullanilan.length, 1);
+  toplam = 1000;   // pano düğmesi değişti
+  const b = d.baglam();
+  assert.deepEqual([b.kullanilan.length, b.atlanan.map((x) => x.ad)], [0, ["a.md"]]);
+});
+
+test("tek not sınırı canlı okunur: 1500 karakterlik not 800'e inince KESİLDİ olur", async () => {
+  const s = sahteKaynak({ "a.md": { metin: "satır\n".repeat(250), aktif: true } });
+  let dosyaBasina = 2000;
+  const d = mdDeposuKur(s.k, () => ({ dosyaBasina, toplam: 5000, anlikTavan: 6000 }));
+  await d.baslat();
+  assert.equal(d.baglam().kullanilan[0]?.kesildi, false);
+  dosyaBasina = 800;
+  assert.deepEqual([d.baglam().kullanilan[0]?.kesildi, (d.baglam().kullanilan[0]?.karakter ?? 0) <= 800], [true, true]);
+});

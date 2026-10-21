@@ -8,21 +8,11 @@
 // Kullanım: node --experimental-strip-types tools/komut-tara.ts [klasör]
 //   klasör varsayılanı %APPDATA%/3dorion/karar-kaydi
 "use strict";
-import fs from "node:fs";
-import path from "node:path";
 import { komutCoz } from "../mind/komutSozlugu.ts";
+import { kararSozleri, varsayilanKlasor } from "./kararSozleri.ts";
 
-const klasor = process.argv[2] ?? path.join(process.env.APPDATA ?? "", "3dorion", "karar-kaydi");
-const sozler = new Map<string, number>();
-for (const ad of fs.readdirSync(klasor).filter((f) => f.endsWith(".jsonl")).sort()) {
-  for (const satir of fs.readFileSync(path.join(klasor, ad), "utf8").split("\n")) {
-    if (!satir.includes('"soz"')) continue;
-    let x: { soz?: { metin?: unknown } };
-    try { x = JSON.parse(satir); } catch { continue; }
-    const m = x.soz?.metin;
-    if (typeof m === "string" && m.trim()) sozler.set(m, (sozler.get(m) ?? 0) + 1);
-  }
-}
+const klasor = process.argv[2] ?? varsayilanKlasor();
+const sozler = kararSozleri(klasor);
 
 const eslesen: string[] = [], kalan: string[] = [];
 for (const [soz, kez] of sozler) {

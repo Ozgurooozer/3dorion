@@ -29,7 +29,10 @@ import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import type { MorphTarget } from "@babylonjs/core/Morph/morphTarget";
 import "@babylonjs/loaders/glTF";
 import type { Jest, Poz } from "../../protocol/niyet.ts";
-import type { AvatarIskeleti, IskeletBilgisi } from "./iskelet.ts";
+import type { AvatarIskeleti, IskeletBilgisi, IskeletGorunusu } from "./iskelet.ts";
+import { PBRMaterial } from "@babylonjs/core/Materials/PBR/pbrMaterial";
+import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
+import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { BOY } from "./prosedurel.ts";
 
 /** VRM 0.x blend shape preset adayları — ağız açıklığı için sırayla aranır. */
@@ -59,15 +62,26 @@ function morphBul(meshler: readonly AbstractMesh[], adaylar: readonly string[]):
  * uyarı basıp prosedürele düşer. Burada sessiz yedekleme YOK: hangi katmanın
  * düştüğü loglanabilir kalmalı.
  */
-export async function vrmIskeletYukle(sahne: Scene, yol: string): Promise<AvatarIskeleti> {
+export async function vrmIskeletYukle(sahne: Scene, yol: string, gorunus: IskeletGorunusu = {}): Promise<AvatarIskeleti> {
   const sonuc = await ImportMeshAsync(yol, sahne, { pluginExtension: ".glb" });
   if (sonuc.meshes.length === 0) throw new Error(`VRM boş geldi: ${yol}`);
+  const onek = gorunus.onek ?? "orion";
 
-  const kok = new TransformNode("orion_vrm_kok", sahne);
+  const kok = new TransformNode(`${onek}_vrm_kok`, sahne);
   // Babylon glTF yükleyicisi bir `__root__` düğümü üretir; onu kendi kökümüze
   // bağlıyoruz ki konum/yaw'ı tek yerden sürelim.
   const disKok = sonuc.meshes[0]!;
-  const ayar = new TransformNode("orion_vrm_ayar", sahne);
+  const ayar = new TransformNode(`${onek}_vrm_ayar`, sahne);
+
+  // RENK (spec 33, ikinci beden): her yükleme KENDİ malzemesini üretir (başsız ölçüm 2026-10-21: iki yüklemede ortak malzeme 0),
+  // yani boyamak öbür bedene sızmaz. PBR'de doku varsa renk onu çarpar; Oyuncu bedeniyle aynı dönüşüm (sRGB → doğrusal).
+  if (gorunus.renk) {
+    const renk = Color3.FromHexString(gorunus.renk);
+    for (const m of sonuc.meshes) {
+      if (m.material instanceof PBRMaterial) m.material.albedoColor = renk.toLinearSpace();
+      else if (m.material instanceof StandardMaterial) m.material.diffuseColor = renk.clone();
+    }
+  }
   ayar.parent = kok;
   disKok.parent = ayar;
 

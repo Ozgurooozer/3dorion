@@ -24,6 +24,37 @@ export interface DunyaKancasiGirdisi {
   orionKaresi: (en?: number, boy?: number, yaw?: number) => Promise<unknown>;
   /** Sonradan atanır: çağrı anında okunur. */
   orion: () => Avatar | null;
+  /** Oyun tuşları serbest mi (sohbet kapalı, onay beklemiyor, terminal odakta değil)? Verilmezse yalnız terminal odağı denetlenir (eski davranış). */
+  tusSerbest?: () => boolean;
+}
+
+/** Hızlı deneme tuşlarının (1-6) niyetleri: tuş → [tür, argüman]. */
+export const HIZLI_NIYETLER: Readonly<Record<string, readonly [string, Readonly<Record<string, unknown>>]>> = {
+  "1": ["git",  { hedef: { tip: "capa", ad: "tahta" } }],
+  "2": ["git",  { hedef: { tip: "capa", ad: "pencere" } }],
+  "3": ["otur", {}],
+  "4": ["kalk", {}],
+  "5": ["bak",  { hedef: { tip: "oyuncu" } }],
+  "6": ["jest", { jest: "el_salliyor" }],
+};
+
+/** Olayın hedefi bir yazı alanı mı (input, textarea, select, contentEditable): orada tuş HARFTİR. Yapısal yoklama: DOM'suz testte de çalışır. */
+export function yaziHedefiMi(h: EventTarget | null): boolean {
+  const e = h as { tagName?: string; isContentEditable?: boolean } | null;
+  return !!e && (e.tagName === "INPUT" || e.tagName === "TEXTAREA" || e.tagName === "SELECT" || e.isContentEditable === true);
+}
+
+/**
+ * Hızlı deneme tuşunun niyeti; tuş oyuna AİT DEĞİLSE null. Kapı (Ozyn, 2026-10-21: "1 2 3 4 tuşları oyuna sızıyor sohbet ederken"):
+ * eskiden yalnız terminal odağı kontrol ediliyordu, yani sohbet kutusuna "1" yazınca Orion tahtaya yürüyordu. Şimdi: serbest değilse (sohbet açık,
+ * onay bekliyor, terminal odakta), hedef yazı alanıysa, Ctrl/Alt/Meta ile basıldıysa ya da IME yazımı sürüyorsa tuş oyuna gitmez.
+ */
+export function hizliTusNiyeti(
+  e: { key: string; target: EventTarget | null; ctrlKey?: boolean; metaKey?: boolean; altKey?: boolean; isComposing?: boolean },
+  tusSerbest: boolean,
+): readonly [string, Readonly<Record<string, unknown>>] | null {
+  if (!tusSerbest || yaziHedefiMi(e.target) || e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return null;
+  return HIZLI_NIYETLER[e.key] ?? null;
 }
 
 export function dunyaKancasiKur(girdi: DunyaKancasiGirdisi): void {
@@ -89,18 +120,9 @@ export function dunyaKancasiKur(girdi: DunyaKancasiGirdisi): void {
 
   // ── Hızlı deneme tuşları (1-6) ────────────────────────────────────────────
   // Terminal odaktayken devre dışı: orada rakamlar kabuğa gitmeli.
-  const HIZLI_NIYETLER: Record<string, [string, Record<string, unknown>]> = {
-    "1": ["git",  { hedef: { tip: "capa", ad: "tahta" } }],
-    "2": ["git",  { hedef: { tip: "capa", ad: "pencere" } }],
-    "3": ["otur", {}],
-    "4": ["kalk", {}],
-    "5": ["bak",  { hedef: { tip: "oyuncu" } }],
-    "6": ["jest", { jest: "el_salliyor" }],
-  };
   addEventListener("keydown", (e) => {
     const d = oyuncu.oyuncuDurumu();
-    if (d.etkilesim === "monitor") return;  // terminal odakta
-    const n = HIZLI_NIYETLER[e.key];
+    const n = hizliTusNiyeti(e, d.etkilesim !== "monitor" && (girdi.tusSerbest?.() ?? true));   // terminal odakta, sohbet açık ya da yazı alanında: tuş harftir
     if (!n || !girdi.orion()) return;
     const sonuc = dunyaKancasi.niyet(n[0], n[1]);
     altyaziGoster(`Orion: ${n[0]} ${JSON.stringify(n[1]).slice(0, 40)}`, 1600);

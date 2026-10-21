@@ -28,6 +28,12 @@ export interface MdSinirlari {
   anlikTavan: number;
 }
 export const MD_SINIRLARI: MdSinirlari = { dosyaBasina: 2000, toplam: 5000, anlikTavan: 6000 };
+/**
+ * Ayarlanabilir aralıklar (Ozyn, 2026-10-21: "contexti şişirmeyelim… ayarlanabilir olsun"): pano düğmeleri (`mind/tanim`) ve kalıcı ayar (`uygulama/hafizaAyari.ts`) AYNI sabiti okur.
+ * Anlık hafıza tavanı (`anlikTavan`) ayarlanmaz: onu aşan dosya zaten uyarıyla kesilir ve tavan emniyet sınırıdır.
+ */
+export const MD_TOPLAM_ARALIGI = { en: 500, cok: 20000 } as const;
+export const MD_DOSYA_ARALIGI = { en: 200, cok: 8000 } as const;
 
 export interface KullanilanMd { ad: string; karakter: number; kesildi: boolean }
 export interface AtlananMd { ad: string; neden: string }

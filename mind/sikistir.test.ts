@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { Hafiza, type Ani, type AniTuru } from "./hafiza.ts";
-import { KORU, TAZE_MS, OTO_ESIK, OTO_ARALIK_MS, otoSikistirmaGerekli, sikistirmaCoz, sikistirmaIstegi, sikistirmaPlani, sinirdaKes } from "./sikistir.ts";
+import { KORU, TAZE_MS, OTO_ESIK, OTO_ARALIK_MS, OTO_ARALIK_DK_ARALIGI, OTO_ESIK_ARALIGI, OTO_VARSAYILAN, EN_AZ_PLAN, otoSikistirmaGerekli, sikistirmaCoz, sikistirmaIstegi, sikistirmaPlani, sinirdaKes } from "./sikistir.ts";
 
 const SIMDI = 10_000_000_000;
 const ani = (i: number, tur: AniTuru = "konusma", yasMs = 24 * 3600_000): Ani => ({ metin: `kayıt ${i}`, tur, onem: 5, olusma: SIMDI - yasMs - i * 1000, sonErisim: SIMDI - yasMs });
@@ -80,4 +80,37 @@ test("cümle sonu yoksa son kelimede kesilir ve … eklenir; kelime bölünmez",
 
 test("sınır içindeki özet aynen kalır", () => {
   assert.equal(sinirdaKes("kısa özet.", 500), "kısa özet.");
+});
+
+// ── Ayarlanabilir otomatik sıkıştırma sınırı (Ozyn, 2026-10-21) ──
+
+test("ayar verilmezse eski sabitler geçerli (davranış DEĞİŞMEZ)", () => {
+  assert.deepEqual(OTO_VARSAYILAN, { esik: OTO_ESIK, aralikMs: OTO_ARALIK_MS });
+  assert.equal(otoSikistirmaGerekli(ham(OTO_ESIK + 1), 0, SIMDI), otoSikistirmaGerekli(ham(OTO_ESIK + 1), 0, SIMDI, OTO_VARSAYILAN));
+});
+
+test("eşik DÜŞÜRÜLÜNCE (70) daha az ham kayıtla tetikler; varsayılan eşikte aynı kayıt tetiklemezdi", () => {
+  const aniler = ham(80);
+  assert.equal(otoSikistirmaGerekli(aniler, 0, SIMDI), false);
+  assert.equal(otoSikistirmaGerekli(aniler, 0, SIMDI, { esik: 70, aralikMs: OTO_ARALIK_MS }), true);
+});
+
+test("eşik YÜKSELTİLİNCE (300) varsayılanın tetiklediği kayıt artık tetiklemez", () => {
+  assert.equal(otoSikistirmaGerekli(ham(OTO_ESIK + 50), 0, SIMDI), true);
+  assert.equal(otoSikistirmaGerekli(ham(OTO_ESIK + 50), 0, SIMDI, { esik: 300, aralikMs: OTO_ARALIK_MS }), false);
+});
+
+test("aralık ayarlanabilir: 1 dk aralıkta 2 dk önceki sıkıştırma sonrası tetikler, 15 dk aralıkta tetiklemez", () => {
+  const aniler = ham(OTO_ESIK + 1);
+  assert.equal(otoSikistirmaGerekli(aniler, SIMDI - 2 * 60_000, SIMDI, { esik: OTO_ESIK, aralikMs: 60_000 }), true);
+  assert.equal(otoSikistirmaGerekli(aniler, SIMDI - 2 * 60_000, SIMDI), false);
+});
+
+test("izin verilen eşik aralığının ALT ucu anlamlı: KORU + EN_AZ_PLAN'ın altı hiç plan üretemez", () => {
+  assert.equal(OTO_ESIK_ARALIGI.en, KORU + EN_AZ_PLAN);
+  assert.ok(OTO_ARALIK_DK_ARALIGI.en >= 1);
+});
+
+test("alt uçtaki eşikte (55) tam 56 ham kayıt gerçekten tetikler (ayar 'çalışıyor ama hiçbir şey olmuyor' olmasın)", () => {
+  assert.equal(otoSikistirmaGerekli(ham(OTO_ESIK_ARALIGI.en + 1), 0, SIMDI, { esik: OTO_ESIK_ARALIGI.en, aralikMs: 60_000 }), true);
 });

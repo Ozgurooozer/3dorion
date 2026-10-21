@@ -10,9 +10,14 @@
 import type { DosyaDurumu } from "../mind/hafizaGocu.ts";
 import type { DinlemeOlayi } from "./dinleme.js";
 import type { MdBilgisi } from "./mdDosyalari.js";
+import type { SesDurumu, SesIndirmeIlerlemesi, SesSatiri } from "./sesler.js";
 
-/** md IPC sonucu: invoke hata nesnesinin `kod` alanını taşımaz, o yüzden sonuç nesnesi. */
-export type MdSonuc<T> = { ok: true; deger: T } | { ok: false; kod: string; mesaj: string };
+export type { SesDurumu, SesIndirmeIlerlemesi, SesSatiri };
+
+/** Sonuç nesneli IPC (md, ses): invoke hata nesnesinin `kod` alanını taşımaz, o yüzden sonuç nesnesi. */
+export type IpcSonuc<T> = { ok: true; deger: T } | { ok: false; kod: string; mesaj: string };
+/** md IPC sonucu (spec 32): `IpcSonuc`un eski adı, kullanıcıları değişmesin diye. */
+export type MdSonuc<T> = IpcSonuc<T>;
 
 /** Ofisteki 3. monitörün olayları (host/webMonitor.js). */
 export type WebmonOlayi =
@@ -95,6 +100,16 @@ export interface Kopru {
   mdYaz(ad: string, metin: string): Promise<MdSonuc<true>>;
   mdYeni(ad: string, metin?: string): Promise<MdSonuc<true>>;
   mdAktif(ad: string, aktif: boolean): Promise<MdSonuc<true>>;
+  /**
+   * Orion'un sesi (spec 34, host/sesler.js). Her işlem güncel durumu döner. `sesSec` bir SONRAKİ cümleden geçerli; `ORION_PIPER_MODEL` varken
+   * `kilitli` kodla reddedilir. `sesIndir` yalnız katalogdaki adı kabul eder (adres renderer'dan gelmez); `sesSil` yalnız panelden indirileni.
+   */
+  sesListe(): Promise<IpcSonuc<SesDurumu>>;
+  sesSec(ad: string): Promise<IpcSonuc<SesDurumu>>;
+  sesIndir(ad: string): Promise<IpcSonuc<SesDurumu>>;
+  sesSil(ad: string): Promise<IpcSonuc<SesDurumu>>;
+  /** İndirme ilerlemesi; abonelikten çıkma işlevi döner. */
+  sesIndirmeDinle(cb: (o: SesIndirmeIlerlemesi) => void): () => void;
   /**
    * Orion'un kulağı (host/dinleme.js, tools/nemotron-dinle.py): "baslat" süreci açar, "kayit"/"dur"
    * bas-konuş, "kapat" süreci kapatır. Dönüş: komut iletildi mi. Ses renderer'a GİRMEZ; çözülmüş

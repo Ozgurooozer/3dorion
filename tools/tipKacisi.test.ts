@@ -12,7 +12,7 @@ import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const KOK = fileURLToPath(new URL("..", import.meta.url));
-const KATMANLAR = ["protocol", "world", "voice", "mind", "bridge", "host", "uygulama"];
+const KATMANLAR = ["protocol", "world", "voice", "mind", "bridge", "host", "uygulama", "flash"];
 
 /** İzinli kaçışlar: dosya → gerekçe. */
 const IZINLI: Record<string, string> = {

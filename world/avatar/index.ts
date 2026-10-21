@@ -49,6 +49,16 @@ export interface AvatarAyari {
   yaw?: number;
   /** Orion'un bulunduğu yer (spec 24); yürütücüye geçer. Varsayılan oda. */
   yer?: () => Yer;
+  /**
+   * Düğüm/malzeme adlarının ÖNEKİ (varsayılan "orion"). İkinci beden (Flash, spec 33) kendi önekini alır. NEDEN: başsız deneme
+   * (2026-10-21) — iki yüklemede de kök `orion_vrm_kok` adını aldı; `getTransformNodeByName` (uygulama/yerGecisi.ts) İLKİNİ döner,
+   * yükleme sırası değişince Orion yerine Flash'ı bulurdu.
+   */
+  ad?: string;
+  /** Gövde rengi (#rrggbb). Verilmezse modelin kendi rengi — Orion'un görünüşü değişmez. Her yükleme kendi malzemesini üretir (ölçüldü). */
+  renk?: string;
+  /** Oturma izni (spec 33): çapa başka bir bedenin koltuğuysa onun adı, boşsa null; yürütücüye geçer. Verilmezse her koltuk boş. */
+  koltukDolu?: (capa: string) => string | null;
 }
 
 export interface Avatar {
@@ -70,6 +80,8 @@ export interface Avatar {
   iskeletBilgisi(): AvatarIskeleti["bilgi"];
   /** Avatarın ekranda göründüğü konum — mantık konumundan ayrı. */
   cizimKonumu(): Vec3;
+  /** Tuttuğu koltuk (kanonik çapa adı) ya da null — oturmaya giderken de tutar (spec 33). */
+  koltugu(): string | null;
 }
 
 /**
@@ -79,6 +91,7 @@ export interface Avatar {
  */
 export async function avatarKur(ayar: AvatarAyari): Promise<Avatar> {
   const yol = ayar.vrmYolu ?? VARSAYILAN_VRM;
+  const gorunus = { ...(ayar.ad ? { onek: ayar.ad } : {}), ...(ayar.renk ? { renk: ayar.renk } : {}) };
 
   // Seçim ölçütü "yüklendi mi" DEĞİL, "ifade edebiliyor mu" — bkz.
   // iskeletSecim.ts. Yüklenen ama ağzı oynamayan bir model eskiden kabul
@@ -86,7 +99,7 @@ export async function avatarKur(ayar: AvatarAyari): Promise<Avatar> {
   // (tepe_agiz=1.000) ekranda HİÇ görünmüyordu.
   let vrmIskelet: AvatarIskeleti | null = null;
   try {
-    vrmIskelet = await vrmIskeletYukle(ayar.sahne, yol);
+    vrmIskelet = await vrmIskeletYukle(ayar.sahne, yol, gorunus);
     console.log(`[avatar] VRM okundu: ${vrmIskelet.bilgi.kaynak}`);
   } catch (err) {
     const sebep = err instanceof Error ? err.message : String(err);
@@ -103,11 +116,11 @@ export async function avatarKur(ayar: AvatarAyari): Promise<Avatar> {
     // Reddedilen VRM sahnede KALMASIN: mesh'leri yok edilir. Yoksa görünmeyen
     // ama yüklenmiş bir iskelet bellekte ve çizim listesinde durur.
     vrmIskelet?.yokEt();
-    iskelet = prosedurelIskelet(ayar.sahne);
+    iskelet = prosedurelIskelet(ayar.sahne, gorunus);
   }
 
   const spawn = ayar.spawn ?? { x: 0, y: 0, z: 0 };
-  const yurutucu = new Yurutucu({ spawn, yaw: ayar.yaw ?? 0, oyuncuKonumu: ayar.oyuncuKonumu, yer: ayar.yer });
+  const yurutucu = new Yurutucu({ spawn, yaw: ayar.yaw ?? 0, oyuncuKonumu: ayar.oyuncuKonumu, yer: ayar.yer, ...(ayar.koltukDolu ? { koltukDolu: ayar.koltukDolu } : {}) });
   const beden = new Beden(iskelet);
   beden.yerlestir(spawn.x, spawn.y, spawn.z, ayar.yaw ?? 0);
 
@@ -143,6 +156,7 @@ export async function avatarKur(ayar: AvatarAyari): Promise<Avatar> {
     iskeletBilgisi: () => iskelet.bilgi,
     /** Avatarın EKRANDA göründüğü konum (mantık konumu değil). Testler için. */
     cizimKonumu: () => iskelet.cizimKonumu(),
+    koltugu: () => yurutucu.koltugu(),
     yokEt() { birak(); dinleyiciler.clear(); beden.yokEt(); },
   };
 }

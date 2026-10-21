@@ -42,6 +42,8 @@ const SINIF: Record<NiyetTur, NiyetSinifi> = {
   yaz: "engel", komut: "engel", ortam: "engel",
   // `doktor` ENGEL: muayene bir beceri/refleks olarak tekrarlanmaz (her seferinde Ozyn ister ya da Orion kendi karar verir).
   doktor: "engel",
+  // `emret` ENGEL: başka ajana emir bir beceri/refleks olarak kendiliğinden tekrarlanmaz (Flash'a her emri Orion'un o anki kararı ya da Ozyn'in isteği verir).
+  emret: "engel",
 };
 
 export function niyetSinifi(tur: NiyetTur): NiyetSinifi {

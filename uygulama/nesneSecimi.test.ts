@@ -160,7 +160,7 @@ function orionluSol(orionMesafe: number | null) {
   const gelen = { orion: [] as boolean[], altyazi: [] as string[], olaylar: [] as string[] };
   const secim = secimDurumuKur({ nesneler: () => nesneler, degisti: (n) => { gelen.olaylar.push(`nesne:${n?.id ?? "yok"}`); } });
   let mesafe = orionMesafe;
-  nesneSecimiKur({
+  const ns = nesneSecimiKur({
     tuval, imlec: { acik: true }, odakta: () => false, nesneler: () => nesneler,
     isin: (x) => ({ kaynak: { x, y: 0, z: 0 }, yon: { x: 0, y: 0, z: 1 } }),
     secim, menuAc: () => {},
@@ -169,8 +169,30 @@ function orionluSol(orionMesafe: number | null) {
     altyazi: (m) => { gelen.altyazi.push(m); },
   });
   const tikla = (tur: string, x: number) => { for (const f of kayit.get(tur) ?? []) f({ offsetX: x, offsetY: 0, clientX: x, clientY: 0, preventDefault: () => {} }); };
-  return { sol: (x: number) => tikla("click", x), sag: (x: number) => tikla("contextmenu", x), gelen, secim, orionMesafe: (m: number | null) => { mesafe = m; } };
+  return { sol: (x: number) => tikla("click", x), sag: (x: number) => tikla("contextmenu", x), gelen, secim, orionMesafe: (m: number | null) => { mesafe = m; }, birak: () => ns.bedenSeciminiBirak() };
 }
+
+// ── Ayar paneli (spec 34): panel ✕/Esc ile kapanınca beden seçimi dışarıdan bırakılır ──
+test("bedenSeciminiBirak: seçili Orion'un çerçevesi kapanır", () => {
+  const t = orionluSol(3);
+  t.sol(-30);
+  t.birak();
+  assert.deepEqual(t.gelen.orion, [true, false]);
+});
+
+test("bedenSeciminiBirak sonrası Orion'a yeniden tık yeniden SEÇER (kapatılan panel geri açılabilsin)", () => {
+  const t = orionluSol(3);
+  t.sol(-30);
+  t.birak();
+  t.sol(-30);
+  assert.deepEqual(t.gelen.orion, [true, false, true]);
+});
+
+test("bedenSeciminiBirak hiçbir beden seçili değilken hiçbir şey yaymaz", () => {
+  const t = orionluSol(3);
+  t.birak();
+  assert.deepEqual(t.gelen.olaylar, []);
+});
 
 test("sol tık Orion'a: Orion SEÇİLİR (çerçeve açılır, altyazı söyler), nesne seçimi boş kalır", () => {
   const t = orionluSol(3);
@@ -215,4 +237,84 @@ test("sağ tık Orion'a: çerçeve de açılır", () => {
   const t = orionluSol(3);
   t.sag(-30);
   assert.deepEqual(t.gelen.orion, [true]);
+});
+
+// ── Orion DIŞINDaki bedenler (Flash, spec 33): aynı seçim kuralları, kendi menüsü ve çerçevesi ──
+function bedenli(mesafeler: { orion?: number | null; flash?: number | null }) {
+  const kayit = new Map<string, Set<(e: FareOlayi) => void>>();
+  const tuval = {
+    addEventListener: (t: string, f: (e: FareOlayi) => void) => { (kayit.get(t) ?? kayit.set(t, new Set()).get(t)!).add(f); },
+    removeEventListener: (t: string, f: (e: FareOlayi) => void) => { kayit.get(t)?.delete(f); },
+  };
+  const nesneler = [BANK, RAF];
+  const gelen = { olaylar: [] as string[], altyazi: [] as string[] };
+  const m = { orion: mesafeler.orion ?? null, flash: mesafeler.flash ?? null };
+  nesneSecimiKur({
+    tuval, imlec: { acik: true }, odakta: () => false, nesneler: () => nesneler,
+    isin: (x) => ({ kaynak: { x, y: 0, z: 0 }, yon: { x: 0, y: 0, z: 1 } }),
+    secim: secimDurumuKur({ nesneler: () => nesneler, degisti: (n) => { gelen.olaylar.push(`nesne:${n?.id ?? "yok"}`); } }),
+    menuAc: (n) => { gelen.olaylar.push(`menu-nesne:${n.id}`); },
+    orionuVur: () => m.orion, orionMenusu: () => { gelen.olaylar.push("menu-orion"); },
+    orionSecimi: (s) => { gelen.olaylar.push(`orion:${s}`); },
+    aktorler: () => [{
+      id: "flash", ad: "Flash", vur: () => m.flash,
+      menu: () => { gelen.olaylar.push("menu-flash"); },
+      secimi: (s) => { gelen.olaylar.push(`flash:${s}`); },
+    }],
+    zeminMenusu: () => { gelen.olaylar.push("menu-zemin"); },
+    altyazi: (t) => { gelen.altyazi.push(t); },
+  });
+  const tikla = (tur: string, x: number) => { for (const f of kayit.get(tur) ?? []) f({ offsetX: x, offsetY: 0, clientX: x, clientY: 0, preventDefault: () => {} }); };
+  return { sol: (x: number) => tikla("click", x), sag: (x: number) => tikla("contextmenu", x), gelen, ayarla: (o: number | null, f: number | null) => { m.orion = o; m.flash = f; } };
+}
+
+test("sol tık Flash'a: Flash SEÇİLİR (çerçeve açılır, altyazı adını söyler)", () => {
+  const t = bedenli({ flash: 3 });
+  t.sol(-30);
+  assert.deepEqual(t.gelen.olaylar, ["flash:true"]);
+  assert.deepEqual(t.gelen.altyazi, ["seçildi: Flash · sağ tık: menü"]);
+});
+
+test("sağ tık Flash'a: FLASH menüsü açılır (Orion'unki değil) ve çerçeve açılır", () => {
+  const t = bedenli({ flash: 3 });
+  t.sag(-30);
+  assert.deepEqual(t.gelen.olaylar, ["menu-flash", "flash:true"]);
+});
+
+test("Orion ve Flash üst üste: ışına DAHA YAKIN olan seçilir", () => {
+  const flashOnde = bedenli({ orion: 5, flash: 3 });
+  flashOnde.sag(-30);
+  assert.equal(flashOnde.gelen.olaylar[0], "menu-flash");
+  const orionOnde = bedenli({ orion: 3, flash: 5 });
+  orionOnde.sag(-30);
+  assert.equal(orionOnde.gelen.olaylar[0], "menu-orion");
+});
+
+test("bedenler arası kesin eşitlikte Orion (listede önde)", () => {
+  const t = bedenli({ orion: 3, flash: 3 });
+  t.sag(-30);
+  assert.equal(t.gelen.olaylar[0], "menu-orion");
+});
+
+test("Orion seçiliyken Flash'a sol tık: ÖNCE Orion'un çerçevesi kapanır, sonra Flash'ınki açılır (tek çerçeve)", () => {
+  const t = bedenli({ orion: 3 });
+  t.sol(-30);
+  t.ayarla(null, 3); t.sol(-30);
+  assert.deepEqual(t.gelen.olaylar, ["orion:true", "orion:false", "flash:true"]);
+});
+
+test("Flash seçiliyken boşluğa ya da nesneye sol tık: Flash çerçevesi kapanır (nesne çerçevesinden ÖNCE)", () => {
+  const t = bedenli({ flash: 3 });
+  t.sol(-30);
+  t.ayarla(null, null); t.sol(0);
+  assert.deepEqual(t.gelen.olaylar, ["flash:true", "flash:false", "nesne:bank"]);
+});
+
+test("Flash bir nesnenin ARKASINDAysa nesne kazanır, ÖNÜNDEyse Flash", () => {
+  const arkada = bedenli({ flash: 20 });   // bank z=5'te
+  arkada.sag(0);
+  assert.equal(arkada.gelen.olaylar[0], "nesne:bank");
+  const onde = bedenli({ flash: 2 });
+  onde.sag(0);
+  assert.equal(onde.gelen.olaylar[0], "menu-flash");
 });

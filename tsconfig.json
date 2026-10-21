@@ -20,7 +20,8 @@
   // brain-lab da taranır: deneysel modül de olsa tip gate'i dışında kalmamalı
   // (dışarıda kalınca iki eksik import ve readonly uyuşmazlığı sessizce birikmişti).
   // uygulama/ ve tools/ de tip kapısında (2026-10-14 ölçümü: uygulama 52 dosyadan 11'i, tools 44 .ts'ten 0'ı denetleniyordu; 7 gizli hata).
-  "include": ["protocol", "world", "bridge", "mind", "voice", "host", "uygulama", "tools", "brain-lab", "vite.config.ts"],
+  // flash/: LLM'siz NPC ajanı (spec 33), ARKA katman (bridge/ gibi).
+  "include": ["protocol", "world", "bridge", "mind", "voice", "host", "uygulama", "flash", "tools", "brain-lab", "vite.config.ts"],
   // brain-lab/archive DIŞARIDA: tanımı gereği donmuş eski prototipler
   // (`brain-lab/ORION-BRAIN-IR-CONTEXT.md` §1). Kanonik yol `brain-ir/`;
   // arşiv ne çalıştırılıyor ne de geliştiriliyor. Tip kapısına sokmak sürekli
