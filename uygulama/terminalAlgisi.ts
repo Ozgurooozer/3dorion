@@ -12,6 +12,7 @@ import type { Oyuncu } from "../world/player/oyuncu.ts";
 import type { Avatar } from "../world/avatar/index.ts";
 import type { Kopru } from "../bridge/kopru.ts";
 import { OlayUretici } from "../world/olayUretici.ts";
+import { GOVDE_ORTASI } from "./ajanlar/ajanAlgisi.ts";
 import { ciktiFarki, kesildiMi } from "../world/surfaces/terminal/ciktiFarki.ts";
 import { CiktiToplayici } from "../world/surfaces/terminal/ciktiToplayici.ts";
 import { ozetle, type Algi } from "../protocol/algi.ts";
@@ -89,6 +90,10 @@ export function terminalAlgisiKur(d: TerminalAlgisiGirdisi): TerminalAlgisi {
     tikle(mantikTik, msSimdi) {
       const orion = d.orion();
       const kopru = d.kopru();
+
+      // Oyuncu durumunun (mesafe, "bana bakıyor") Orion'u nerede sandığı: bu bağ T1'den beri hiç kurulmamıştı, Orion hep SANDALYEDE sanılıyordu.
+      // Olay üretici ve dünya satırı Orion yürüyünce yanlış mesafe görüyordu.
+      if (orion) { const k = orion.durum().konum; oyuncu.orionKonumuAyarla({ x: k.x, y: k.y + GOVDE_ORTASI, z: k.z }); }
 
       // ── Dünya olayları: sürekli durumdan ayrık olaylar ──────────────────────
       if (orion && kopru) {

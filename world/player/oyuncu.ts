@@ -165,7 +165,7 @@ export class Oyuncu implements KameraHedefi {
   get yayici(): EtkilesimYayici { return this._yayici; }
 
   /** T2 avatarı hazır olduğunda gerçek Orion konumunu bağlar. */
-  orionKonumuAyarla(v: Vector3): void { this._orion.copyFrom(v); }
+  orionKonumuAyarla(v: { x: number; y: number; z: number }): void { this._orion.set(v.x, v.y, v.z); }
 
   /**
    * 20Hz mantık adımı. Hareket + çarpışma + etkileşim taraması.

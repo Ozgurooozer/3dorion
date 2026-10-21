@@ -236,3 +236,15 @@ test("menüden: başka bir etkileşim AÇIKKEN (oturuyorken) reddedilir", () => 
     assert.equal(oyuncu.etkilesimBaslat("bank", "otur"), false);
   } finally { motor.dispose(); }
 });
+
+test("orionKonumuAyarla: oyuncu durumundaki mesafe Orion'un GERÇEK konumuna göre (sandalyeye değil)", () => {
+  const { motor, oyuncu } = dunya();
+  try {
+    oyuncu.isinla(0, 0, 0);
+    oyuncu.orionKonumuAyarla({ x: 0, y: 1, z: 5 });
+    const uzak = oyuncu.oyuncuDurumu().mesafe;
+    oyuncu.orionKonumuAyarla({ x: 0, y: 1, z: 2 });
+    const yakin = oyuncu.oyuncuDurumu().mesafe;
+    assert.ok(uzak > 4.9 && yakin < 2.5 && yakin < uzak, `uzak ${uzak}, yakın ${yakin}`);
+  } finally { motor.dispose(); }
+});
