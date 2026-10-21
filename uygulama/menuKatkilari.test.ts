@@ -169,5 +169,33 @@ test("nesne: düzenlenemeyen nesnede (ofis eşyası) Düzenle altındaki üç ar
 
 test("zemin menüsü sırası: Orion | Asset ve düzenleme | Sohbet | Özellikler", () => {
   const a = adlar(zeminMenu({ ...bos, pano: { ad: "Bank" } })).filter((x) => x !== "—");
-  assert.deepEqual(a, ["Orion", "Asset", "Yapıştır (Bank)", "Sohbet", "Özellikler…"]);
+  assert.deepEqual(a, ["Orion", "Asset", "Yapıştır (Bank)", "Kopyalanamayanlar (ağaç, kaya, çim…)", "Sohbet", "Özellikler…"]);
+});
+
+test("dosya (Hafıza sekmesi): Düzenle… | Bağlama ekle | İçeriği kopyala, Adı kopyala; zemin/nesne öğeleri YOK", () => {
+  const m = menu({ tur: "dosya", dosya: { ad: "persona.md", aktif: false, sistem: false } });
+  assert.deepEqual(adlar(m), ["Düzenle…", "—", "Bağlama ekle", "—", "İçeriği kopyala", "Adı kopyala"]);
+  assert.deepEqual(yaprak(m, "Düzenle…").eylem, { tur: "mdAc", ad: "persona.md" });
+  assert.deepEqual(yaprak(m, "Bağlama ekle").eylem, { tur: "mdAktif", ad: "persona.md", aktif: true });
+  assert.deepEqual(yaprak(m, "İçeriği kopyala").eylem, { tur: "mdKopyala", ad: "persona.md" });
+  assert.deepEqual(yaprak(m, "Adı kopyala").eylem, { tur: "mdAdKopyala", ad: "persona.md" });
+});
+
+test("dosya: aktifse öğe 'Bağlamdan çıkar' olur ve yükü aktif=false'tur (aynı kimlik, ad değişir)", () => {
+  const m = menu({ tur: "dosya", dosya: { ad: "anlik-hafiza.md", aktif: true, sistem: true } });
+  assert.deepEqual(yaprak(m, "Bağlamdan çıkar").eylem, { tur: "mdAktif", ad: "anlik-hafiza.md", aktif: false });
+  assert.equal(m.some((d) => d.tur === "eylem" && d.ad === "Bağlama ekle"), false);
+});
+
+test("dosya menüsünde Sohbet ▸ Sıkıştır ve Özellikler… YOK (anlamsız); öteki hedeflerde kalır", () => {
+  const m = adlar(menu({ tur: "dosya", dosya: { ad: "a.md", aktif: false, sistem: false } }));
+  assert.equal(m.includes("Sohbet"), false);
+  assert.equal(m.includes("Özellikler…"), false);
+  assert.ok(adlar(menu({ tur: "orion", orion })).includes("Sohbet"));
+});
+
+test("zemin: 'Kopyalanamayanlar' satırı GRİ ve nedeni dekor olduğunu söyler (sessiz kalmaz)", () => {
+  const o = yaprak(zeminMenu({ ...bos, pano: null }), "Kopyalanamayanlar (ağaç, kaya, çim…)");
+  assert.equal(o.uygun, false);
+  assert.match(o.neden ?? "", /ağaç.*dekor/);
 });

@@ -94,6 +94,14 @@ export interface SemaPaneli {
    */
   tikla(u: number, v: number): boolean;
 
+  /**
+   * Şemanın şu anki karesini BAŞKA bir tuvale (Yapı çubuğu · Zihin sekmesi) çizer. `olcu()` ile AYNI piksel boyutunda olmalı: tıklama bölgeleri
+   * (`tikla`/`hedef`) son çizimden gelir, duvarla aynı yerleşimi paylaşırlar.
+   */
+  ciz(bag: CanvasRenderingContext2D): void;
+  /** Yüzeyin piksel boyutu (duvardaki dokuyla aynı). */
+  olcu(): YuzeyOlcusu;
+
   yokEt(): void;
 }
 
@@ -325,6 +333,9 @@ export function semaKur(ayar: SemaAyari): SemaPaneli {
       sonucYaz(mevcut.yazilabilir ? pano.yaz(dugmeAdi!, hedef) : pano.teyitIste(dugmeAdi!, hedef), mevcut);
       return true;
     },
+
+    ciz(bag) { ciz(bag, yuzey.olcu()); },
+    olcu() { return yuzey.olcu(); },
 
     yokEt() { yuzey.yokEt(); },
   };

@@ -159,6 +159,11 @@ export interface KopruAyari {
    * bütçeyi besler (mind/inisiyatif.ts `UyanisButcesi`). Verilmezse bütçe tutulmaz.
    */
   inisiyatifButcesi?: { sonuc(t: number, sureMs: number, token: number | undefined, eylemli: boolean): void };
+  /**
+   * Orion'un md dosyaları (Yapı çubuğu · Hafıza sekmesi, spec 32): aktif dosyalardan kurulmuş "NOTES" bölümü (`mind/mdBaglami.ts`; sınırlı, anlık hafıza tam).
+   * Her turda talimatın SONUNA eklenir; boş metin = ekleme yok. Çağrı ANINDA okunur (Ozyn dosyayı değiştirince sonraki tur görür). Verilmezse eklenmez.
+   */
+  mdBaglami?: () => string;
   /** Kendiliğinden turda dar araç kümesi (söz/bak/jest/poz) ve zincir bütçesi 0. Varsayılan AÇIK; `false` eski davranışa döner. */
   ozerkTur?: boolean;
   /** Hafıza giriş politikası (mind/aniSuzgeci.ts söz/hata kuralları). Varsayılan "yeni"; "eski" geri alma yoludur. */

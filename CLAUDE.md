@@ -8,7 +8,7 @@ Tez: **"AI'ın oturduğu oda — terminalini onun masasında açıyorsun."** Kod
 dokunmadan önce oradan ilgili spec'i aç (kararlar ölçüme dayanır, sezgiye değil). Açık işler: `docs/ACIK-ISLER.md`.
 
 **ODAK (2026-10-16 → 2026-10-30):** `world/level/`'a yeni özellik YOK, yalnız hata düzeltme (istisnayı Ozyn "istisna" diyerek verir). Tek soru:
-Orion günlük kullanımda işe yarıyor mu? (İstisna verildi 2026-10-17: oyun içi asset yerleştirme menüsü + hayalet + gizmo, spec 30; alt çubuk (Yapı çubuğu: Asset ve Zemin sekmeleri), spec 31; yalnız onlar.) Kayıt ve ön kayıtlı ölçüt: `docs/kullanim-defteri.md` (sonuca bakıp eşik değiştirilmez). `brain-lab/`'a dokunulmaz.
+Orion günlük kullanımda işe yarıyor mu? (İstisna verildi 2026-10-17: oyun içi asset yerleştirme menüsü + hayalet + gizmo, spec 30; alt çubuk (Yapı çubuğu: Asset, Zemin ve Hafıza sekmeleri), spec 31–32; yalnız onlar.) Kayıt ve ön kayıtlı ölçüt: `docs/kullanim-defteri.md` (sonuca bakıp eşik değiştirilmez). `brain-lab/`'a dokunulmaz.
 
 ## Komutlar
 ```

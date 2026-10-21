@@ -148,3 +148,71 @@ test("orion/zemin kancaları verilmezse boşluğa sağ tık sessiz kalır (eski 
   sag(-30);
   assert.deepEqual(durum.menu, []);
 });
+
+// ── Orion'u SOL tıkla seçmek: nesne değil ama seçilir (çerçeve), nesne seçimini bozmaz ──
+function orionluSol(orionMesafe: number | null) {
+  const kayit = new Map<string, Set<(e: FareOlayi) => void>>();
+  const tuval = {
+    addEventListener: (t: string, f: (e: FareOlayi) => void) => { (kayit.get(t) ?? kayit.set(t, new Set()).get(t)!).add(f); },
+    removeEventListener: (t: string, f: (e: FareOlayi) => void) => { kayit.get(t)?.delete(f); },
+  };
+  const nesneler = [BANK, RAF];
+  const gelen = { orion: [] as boolean[], altyazi: [] as string[], olaylar: [] as string[] };
+  const secim = secimDurumuKur({ nesneler: () => nesneler, degisti: (n) => { gelen.olaylar.push(`nesne:${n?.id ?? "yok"}`); } });
+  let mesafe = orionMesafe;
+  nesneSecimiKur({
+    tuval, imlec: { acik: true }, odakta: () => false, nesneler: () => nesneler,
+    isin: (x) => ({ kaynak: { x, y: 0, z: 0 }, yon: { x: 0, y: 0, z: 1 } }),
+    secim, menuAc: () => {},
+    orionuVur: () => mesafe, orionMenusu: () => {}, zeminMenusu: () => {},
+    orionSecimi: (s) => { gelen.orion.push(s); gelen.olaylar.push(`orion:${s}`); },
+    altyazi: (m) => { gelen.altyazi.push(m); },
+  });
+  const tikla = (tur: string, x: number) => { for (const f of kayit.get(tur) ?? []) f({ offsetX: x, offsetY: 0, clientX: x, clientY: 0, preventDefault: () => {} }); };
+  return { sol: (x: number) => tikla("click", x), sag: (x: number) => tikla("contextmenu", x), gelen, secim, orionMesafe: (m: number | null) => { mesafe = m; } };
+}
+
+test("sol tık Orion'a: Orion SEÇİLİR (çerçeve açılır, altyazı söyler), nesne seçimi boş kalır", () => {
+  const t = orionluSol(3);
+  t.sol(-30);
+  assert.deepEqual(t.gelen.orion, [true]);
+  assert.deepEqual(t.gelen.altyazi, ["seçildi: Orion · sağ tık: menü"]);
+  assert.equal(t.secim.oku(), null);
+});
+
+test("Orion seçiliyken bir NESNEYE sol tık: Orion çerçevesi kalkar, nesne seçilir (çerçeve sırası: önce Orion kapanır)", () => {
+  const t = orionluSol(null);
+  t.orionMesafe(3); t.sol(-30);
+  t.orionMesafe(null); t.sol(0);
+  assert.equal(t.secim.oku()?.id, "bank");
+  assert.deepEqual(t.gelen.olaylar, ["orion:true", "orion:false", "nesne:bank"]);
+});
+
+test("Orion seçiliyken BOŞLUĞA sol tık: Orion seçimi kalkar", () => {
+  const t = orionluSol(3);
+  t.sol(-30);
+  t.orionMesafe(null); t.sol(-30);
+  assert.deepEqual(t.gelen.orion, [true, false]);
+  assert.equal(t.gelen.altyazi.at(-1), "seçim kaldırıldı");
+});
+
+test("Orion bir nesnenin ARKASINDAysa sol tık nesneyi seçer (en yakın isabet)", () => {
+  const t = orionluSol(20);
+  t.sol(0);
+  assert.equal(t.secim.oku()?.id, "bank");
+  assert.deepEqual(t.gelen.orion, []);
+});
+
+test("Orion seçiliyken başka nesne seçilmişse önce o seçim kalkar (iki çerçeve birden olmaz)", () => {
+  const t = orionluSol(null);
+  t.sol(0);   // bank seçili
+  t.orionMesafe(3); t.sol(-30);   // Orion
+  assert.equal(t.secim.oku(), null);
+  assert.deepEqual(t.gelen.olaylar, ["nesne:bank", "nesne:yok", "orion:true"]);
+});
+
+test("sağ tık Orion'a: çerçeve de açılır", () => {
+  const t = orionluSol(3);
+  t.sag(-30);
+  assert.deepEqual(t.gelen.orion, [true]);
+});

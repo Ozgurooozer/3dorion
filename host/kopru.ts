@@ -9,6 +9,10 @@
 "use strict";
 import type { DosyaDurumu } from "../mind/hafizaGocu.ts";
 import type { DinlemeOlayi } from "./dinleme.js";
+import type { MdBilgisi } from "./mdDosyalari.js";
+
+/** md IPC sonucu: invoke hata nesnesinin `kod` alanını taşımaz, o yüzden sonuç nesnesi. */
+export type MdSonuc<T> = { ok: true; deger: T } | { ok: false; kod: string; mesaj: string };
 
 /** Ofisteki 3. monitörün olayları (host/webMonitor.js). */
 export type WebmonOlayi =
@@ -85,6 +89,12 @@ export interface Kopru {
   /** Durum defteri (spec 16 F2): SENKRON okuma; dosya yoksa ya da bozuksa boş dizi. */
   durumOku(): unknown[];
   durumYaz(kayitlar: unknown[]): void;
+  /** Orion'un md dosyaları (spec 32). Sonuç `{ ok, deger }` ya da `{ ok: false, kod, mesaj }`. */
+  mdListe(): Promise<MdSonuc<MdBilgisi[]>>;
+  mdOku(ad: string): Promise<MdSonuc<string>>;
+  mdYaz(ad: string, metin: string): Promise<MdSonuc<true>>;
+  mdYeni(ad: string, metin?: string): Promise<MdSonuc<true>>;
+  mdAktif(ad: string, aktif: boolean): Promise<MdSonuc<true>>;
   /**
    * Orion'un kulağı (host/dinleme.js, tools/nemotron-dinle.py): "baslat" süreci açar, "kayit"/"dur"
    * bas-konuş, "kapat" süreci kapatır. Dönüş: komut iletildi mi. Ses renderer'a GİRMEZ; çözülmüş

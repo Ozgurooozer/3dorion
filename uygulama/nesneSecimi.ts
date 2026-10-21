@@ -30,6 +30,8 @@ export interface NesneSecimiAyari {
   orionMenusu?: (x: number, y: number) => void;
   /** Sağ tık boş zemine: ışının zemini kestiği nokta (yoksa null) ile zemin menüsünü aç; zemin bulunamazsa (gökyüzü) menü açılmaz. */
   zeminMenusu?: (kaynak: Nokta3, yon: Nokta3, x: number, y: number) => void;
+  /** Orion seçildi / seçimi kalktı (çerçeve gösterimi için). Orion `Yer.nesneler`de değildir: `secim`e girmez, brain'e "seçili nesne" olarak da gitmez. */
+  orionSecimi?: (secili: boolean) => void;
   altyazi: (metin: string, ms?: number) => void;
 }
 
@@ -40,9 +42,29 @@ export function nesneSecimiKur(a: NesneSecimiAyari): { sok(): void } {
     return nesneSec(i.kaynak, i.yon, a.nesneler())?.nesne ?? null;
   };
 
+  let orionSecili = false;
+  /** Orion seçim çerçevesini aç/kapa (yalnız durum değişince bildirir). Nesne seçiminden ÖNCE çağrılır: nesne çerçevesi sonradan gelip üstüne yazar. */
+  const orionIsaretle = (secili: boolean): void => {
+    if (orionSecili === secili) return;
+    orionSecili = secili;
+    a.orionSecimi?.(secili);
+  };
+  /** Orion bir nesnenin önünde/içinde durabilir (bankta otururken): en yakın isabet kazanır, eşitlikte Orion. */
+  const orionKazandi = (nesne: { mesafe: number } | null, orion: number | null): boolean => orion !== null && (!nesne || orion <= nesne.mesafe);
+
   const solTik = (e: FareOlayi): void => {
     if (!etkin()) return;
-    const n = vurulan(e);
+    const i = a.isin(e.offsetX, e.offsetY);
+    const nesne = nesneSec(i.kaynak, i.yon, a.nesneler());
+    const orion = a.orionuVur?.(i.kaynak, i.yon) ?? null;
+    if (orionKazandi(nesne, orion)) {
+      a.secim.sec(null);
+      orionIsaretle(true);
+      a.altyazi("seçildi: Orion · sağ tık: menü", 1600);
+      return;
+    }
+    orionIsaretle(false);
+    const n = nesne?.nesne ?? null;
     a.secim.sec(n);
     a.altyazi(n ? `seçildi: ${n.ad} · sağ tık: menü` : "seçim kaldırıldı", 1600);
   };
@@ -53,7 +75,8 @@ export function nesneSecimiKur(a: NesneSecimiAyari): { sok(): void } {
     const i = a.isin(e.offsetX, e.offsetY);
     const nesne = nesneSec(i.kaynak, i.yon, a.nesneler());
     const orion = a.orionuVur?.(i.kaynak, i.yon) ?? null;
-    if (orion !== null && (!nesne || orion <= nesne.mesafe)) { a.orionMenusu?.(e.clientX, e.clientY); return; }
+    if (orionKazandi(nesne, orion)) { a.orionMenusu?.(e.clientX, e.clientY); orionIsaretle(true); return; }
+    orionIsaretle(false);
     if (nesne) { a.secim.sec(nesne.nesne); a.menuAc(nesne.nesne, e.clientX, e.clientY); return; }
     a.zeminMenusu?.(i.kaynak, i.yon, e.clientX, e.clientY);
   };

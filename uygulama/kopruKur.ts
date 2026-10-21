@@ -52,6 +52,8 @@ export interface KopruGirdisi {
   inisiyatifSimdi: () => number;
   /** Göz muayenesi sürerken beyin yeni tur başlatmasın (iki yönlü sıra; uygulama/gozlem.ts). */
   beyinKapisi?: () => boolean;
+  /** Orion'un aktif md dosyalarından kurulmuş NOTES bölümü (spec 32; boş = yok). Her turda çağrı anında okunur. */
+  mdBaglami?: () => string;
   /** Seçili nesne (spec 28): söz sözlüğü "buraya otur" gibi sözleri buna göre çözer. */
   secili?: () => SeciliNesne | null;
 }
@@ -117,6 +119,7 @@ export function kopruKur(g: KopruGirdisi): Kopru {
       ozerkTur: !g.inisiyatifEski,
       aniPolitikasi: new URLSearchParams(location.search).get("anipolitikasi") === "eski" ? "eski" : "yeni",
       ...(g.beyinKapisi ? { beyinKapisi: g.beyinKapisi } : {}),
+      ...(g.mdBaglami ? { mdBaglami: g.mdBaglami } : {}),
       hafizaKapasite: PANO_TELLERI.hafiza.kapasite,
       // SPEC 16: bağlama yalnız SORULAN girer (konum, son iş, eski konuşma…), yakın pencere küçük.
       // `?hafiza=otomatik` eski davranışı geri getirir — kıyas ölçüsü için (spec 16 P1).

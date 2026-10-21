@@ -58,6 +58,15 @@ const CAGRI = {
   dinleKomut:        "dinle:komut",
   /** Ofisteki 3. monitör (groma haritası, host/webMonitor.js): "ac" (adres) | "kapat" | "fare" (olay). */
   webmonKomut:       "webmon:komut",
+  /**
+   * Orion'un md dosyaları (Yapı çubuğu · Hafıza sekmesi, spec 32). Hepsi yanıt bekleyen çağrı; yanıt `{ ok: true, deger }` ya da
+   * `{ ok: false, kod, mesaj }` (invoke hata nesnesinin `kod` alanını taşımaz, o yüzden sonuç nesnesi).
+   */
+  mdListe:           "md:liste",
+  mdOku:             "md:oku",
+  mdYaz:             "md:yaz",
+  mdYeni:            "md:yeni",
+  mdAktif:           "md:aktif",
 };
 
 /** Main → renderer (tek yönlü olay). */

@@ -110,6 +110,12 @@ import { baglamMenusuKur } from "../world/arayuz/menu/baglamMenusu.ts";
 import { yerlestirmeKur } from "./yerlestirmeBaglantisi.ts";
 import { duzenlemeKipiKur } from "./duzenlemeKipi.ts";
 import { altCubukKur } from "../world/arayuz/altCubuk.ts";
+import { editorPenceresiKur } from "../world/arayuz/editorPenceresi.ts";
+import { hafizaSekmesi } from "./yapi/hafizaSekmesi.ts";
+import { zihinSekmesi } from "./yapi/zihinSekmesi.ts";
+import { mdDeposuKur, mdKaynaginiSec } from "./mdDeposu.ts";
+import { otomatikBlok } from "../mind/anlikHafiza.ts";
+import { ANLIK_HAFIZA } from "../mind/mdBaglami.ts";
 import { assetSekmesi } from "./yapi/assetSekmesi.ts";
 import { zeminSekmesi } from "./yapi/zeminSekmesi.ts";
 import { zeminKalemiKur } from "./zeminKalemi.ts";
@@ -121,7 +127,7 @@ import { MENU_KATKILARI, MENU_AYARI, type HedefMenuBaglami, type MenuEylemi, typ
 import { nesneEylemleri, type NesneEylemi } from "../world/yer/nesneEylemleri.ts";
 import { secimDurumuKur } from "./secimDurumu.ts";
 import { nesneSecimiKur } from "./nesneSecimi.ts";
-import { orionuVur, zeminNoktasi } from "../world/player/hedefSecici.ts";
+import { ORION_KUTUSU, orionuVur, zeminNoktasi } from "../world/player/hedefSecici.ts";
 import { zeminOzellikleri, orionOzellikleri } from "../world/yer/hedefEylemleri.ts";
 import { nesneEtkilesimiKur, seciliSozOlustur } from "./nesneEtkilesimi.ts";
 
@@ -157,6 +163,7 @@ const imlec = imlecKipiKur({
   engelli: () => rig.odakta || sohbet.acikMi() || onayKapisi.durum === "bekliyor",
   degisti: (acik) => {
     altCubuk.gorunur(acik);   // Yapı çubuğu yalnız imleç kipinde görünür (fare serbestken tıklanabilir)
+    editorPenceresi.gorunur(acik);   // düzenleyici pencereleri de (gizlenir, KAYBOLMAZ: yazılmış metin durur)
     if (!acik) { nesnePaneli.kapat(); baglamMenusu.kapat(); duzenleme.bitir(); zeminKalemi.sec(null); }
   },
 });
@@ -600,6 +607,11 @@ const baglamMenusu = baglamMenusuKur<MenuEylemi>({
       case "duzenle": duzenleme.duzenle(y.arac); break;
       case "duzenleBitir": duzenleme.bitir(); altyaziGoster("düzenleme bitti", 1200); break;
       case "kaldir": duzenleme.bitir(); void yerlestirme.kaldir(y.id); break;
+      // Hafıza sekmesindeki md dosyaları (spec 32).
+      case "mdAc": mdAc(y.ad); break;
+      case "mdAktif": mdAktifCevir(y.ad, y.aktif); break;
+      case "mdKopyala": void mdDeposu.oku(y.ad).then((m) => navigator.clipboard.writeText(m)).then(() => altyaziGoster(`${y.ad} kopyalandı`, 1500), (e: unknown) => altyaziGoster(`kopyalanamadı: ${e instanceof Error ? e.message : String(e)}`, 4000)); break;
+      case "mdAdKopyala": void navigator.clipboard.writeText(y.ad).then(() => altyaziGoster(`ad kopyalandı: ${y.ad}`, 1500), (e: unknown) => altyaziGoster(`kopyalanamadı: ${e instanceof Error ? e.message : String(e)}`, 4000)); break;
       default: { const hic: never = y; throw new Error(`menü: işlenmeyen eylem ${JSON.stringify(hic)}`); }
     }
   },
@@ -652,6 +664,38 @@ altCubuk.ekle(assetSekmesi({
   onizlemeAdresi: varlik,
 }));
 altCubuk.ekle(zeminSekmesi({ kalem: zeminKalemi, baglanti: zemin }));
+altCubuk.ekle(zihinSekmesi({ sema }));
+
+// ORION'UN MD DOSYALARI (Yapı çubuğu · Hafıza sekmesi, spec 32): persona, anlık hafıza, notlar. Aktif olanlar her turda talimatın SONUNA girer (sınırlı: `mind/mdBaglami.ts`);
+// anlık hafıza dosyasının otomatik bölümü durum defterinden sürekli güncellenir. Düzenleyici pencereleri `world/arayuz/editorPenceresi.ts`.
+const mdKaynagi = mdKaynaginiSec();
+let mdHata: string | null = mdKaynagi.hata;
+const mdDeposu = mdDeposuKur(mdKaynagi.kaynak);
+const editorPenceresi = editorPenceresiKur({
+  kaynak: { oku: (ad) => mdDeposu.oku(ad), yaz: (ad, metin) => mdDeposu.yaz(ad, metin) },
+  bilgi: (ad) => { const d = mdDeposu.liste().find((x) => x.ad === ad); return d ? (d.aktif ? "● bağlamda: Orion her turda okuyor" : "○ bağlamda değil") : null; },
+  not: (ad) => (ad === ANLIK_HAFIZA ? "İşaretli otomatik bölümü sistem günceller (konum, son iş, son konuşma); dışına yazdığın kalır ve bu dosya aktifken Orion'un bağlamına TAM girer." : null),
+  altyazi: altyaziGoster,
+});
+mdDeposu.dinle((o) => { if (o.tur === "icerik") void editorPenceresi.icerikDegisti(o.ad); editorPenceresi.tazele(); });
+function mdAc(ad: string): void { editorPenceresi.ac(ad).catch((e: unknown) => altyaziGoster(`${ad} açılamadı: ${e instanceof Error ? e.message : String(e)}`, 4000)); }
+function mdAktifCevir(ad: string, aktif: boolean): void {
+  mdDeposu.aktifYap(ad, aktif).then(() => altyaziGoster(aktif ? `${ad}: Orion artık okuyor` : `${ad}: bağlamdan çıkarıldı`, 1800), (e: unknown) => altyaziGoster(`${ad}: ${e instanceof Error ? e.message : String(e)}`, 4000));
+}
+altCubuk.ekle(hafizaSekmesi({
+  depo: mdDeposu, ac: mdAc, hata: () => mdHata, bildir: altyaziGoster,
+  menuAc: (ad, x, y) => {
+    const d = mdDeposu.liste().find((k) => k.ad === ad);
+    if (d) baglamMenusu.ac(menuKur<HedefMenuBaglami, MenuEylemi>({ hedef: { tur: "dosya", dosya: { ad: d.ad, aktif: d.aktif, sistem: d.sistem } } }, MENU_KATKILARI, MENU_AYARI), x, y);
+  },
+}));
+mdDeposu.baslat().then(() => console.log(`[MD] ${mdDeposu.liste().length} dosya, ${mdDeposu.liste().filter((d) => d.aktif).length} aktif`), (e: unknown) => { mdHata = e instanceof Error ? e.message : String(e); console.error("[MD] yüklenemedi:", mdHata); altyaziGoster(`md dosyaları yüklenemedi: ${mdHata}`, 5000); });
+// Anlık hafıza: durum defteri (konum, son iş, son konuşma) → dosyanın otomatik bölümü. Blok yalnız durum DEĞİŞİNCE değişir (mutlak saat), yazma yalnız o zaman olur.
+setInterval(() => {
+  const k = yol.al("kopru");
+  if (!k) return;
+  mdDeposu.anlikGuncelle(otomatikBlok(k.durum.kayitlar())).catch((e: unknown) => console.warn("[MD] anlık hafıza güncellenemedi:", e instanceof Error ? e.message : e));
+}, 4000);
 
 /** Hedefin menüsünü aç; "Özellikler…" aynı noktada `panel`i gösterir. */
 function hedefMenusuAc(hedef: MenuHedefi, panel: PanelNesne, x: number, y: number): void {
@@ -660,7 +704,17 @@ function hedefMenusuAc(hedef: MenuHedefi, panel: PanelNesne, x: number, y: numbe
   baglamMenusu.ac(menuKur<HedefMenuBaglami, MenuEylemi>({ hedef }, MENU_KATKILARI, MENU_AYARI), x, y);
 }
 const bosKutu = { x: 0, y: 0, z: 0, g: 0, yuk: 0, d: 0 };
+// Orion seçimi (sol/sağ tık): `Yer.nesneler`de olmadığı için `secim`e girmez; yalnız sarı çerçeve gösterilir ve Orion yürürse çerçeve onu izler.
+let orionSecili = false;
+function orionCercevesi(): void {
+  const d = yol.al("orion")?.durum();
+  if (!orionSecili || !d) { secimVurgusu.goster(null); return; }
+  const yuk = d.oturuyor_mu ? ORION_KUTUSU.oturur : ORION_KUTUSU.ayakta;
+  secimVurgusu.goster({ x: d.konum.x, y: d.konum.y + yuk / 2, z: d.konum.z, g: ORION_KUTUSU.genislik, yuk, d: ORION_KUTUSU.derinlik });
+}
+setInterval(() => { if (orionSecili) orionCercevesi(); }, 150);
 nesneSecimiKur({
+  orionSecimi: (s) => { orionSecili = s; orionCercevesi(); },
   tuval, imlec, odakta: () => rig.odakta, nesneler: () => yerler.ozyn.nesneler,
   orionuVur: (k, y) => { const d = yol.al("orion")?.durum(); return d ? orionuVur(k, y, d.konum, d.oturuyor_mu) : null; },
   orionMenusu: (x, y) => {
@@ -759,6 +813,7 @@ function beyniBagla(a: Avatar): void {
     hafizaKipi: HAFIZA_KIPI, inisiyatifEski: INISIYATIF_ESKI,
     orion: () => yol.al("orion"), inisiyatifSimdi: () => inisiyatifSimdi,
     beyinKapisi: () => gozlemSuruyor(),
+    mdBaglami: () => mdDeposu.baglam().metin,
     secili: seciliSoz,
   });
   yol.kaydet("kopru", kopru);

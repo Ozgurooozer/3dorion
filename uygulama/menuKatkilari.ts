@@ -30,7 +30,12 @@ export type MenuEylemi =
   | { tur: "duzenleBitir" }
   | { tur: "kaldir"; id: string }
   | { tur: "ozellikler" }
-  | { tur: "secimiKaldir" };
+  | { tur: "secimiKaldir" }
+  /** Hafıza sekmesindeki md dosyaları (spec 32): düzenleyicide aç, bağlama ekle/çıkar, içeriği/adı panoya kopyala. */
+  | { tur: "mdAc"; ad: string }
+  | { tur: "mdAktif"; ad: string; aktif: boolean }
+  | { tur: "mdKopyala"; ad: string }
+  | { tur: "mdAdKopyala"; ad: string };
 
 export type DuzenlemeAraci = "tasi" | "dondur" | "olcek";
 
@@ -40,8 +45,12 @@ export interface Uygunluk { uygun: boolean; neden?: string }
 /** Nesne menüsünün düzenleme bilgisi: bu nesne için Kopyala / Düzenle (gizmo) / Kaldır yapılabilir mi (gri ise nedeni). */
 export interface NesneDuzenleme { id: string; kopyalanabilir: Uygunluk; duzenlenebilir: Uygunluk; kaldirilabilir: Uygunluk }
 
+/** Hafıza sekmesindeki bir md dosyası (sağ tık menüsünün hedefi). */
+export interface MdDosyaMenusu { ad: string; aktif: boolean; sistem: boolean }
+
 export type MenuHedefi =
   | { tur: "zemin"; nokta: ZeminNoktasi; alan: YurumeAlani; yerlestirme?: ZeminYerlestirme }
+  | { tur: "dosya"; dosya: MdDosyaMenusu }
   | { tur: "orion"; orion: OrionBaglami }
   | { tur: "nesne"; ad: string; eylemler: readonly NesneEylemi[]; duzenleme?: NesneDuzenleme };
 
@@ -107,6 +116,9 @@ const assetKatkisi: HedefKatkisi = {
     }
     ogeler.push({ yol: [y.pano ? `Yapıştır (${y.pano.ad})` : "Yapıştır"], kimlik: "asset.yapistir", sira: 30, grup: "asset", uygun: y.pano !== null,
       ...(y.pano ? {} : { neden: "önce bir nesneye sağ tıkla ve Kopyala de" }), eylem: { tur: "yapistir" } });
+    // Ağaç/bank/lamba/kaya/çim level'da tek tek nesne değil, katmanın serptiği dekor: seçilemez, o yüzden kopyalanamaz. Sessiz kalmasın, nedeni menüde dursun.
+    ogeler.push({ yol: ["Kopyalanamayanlar (ağaç, kaya, çim…)"], kimlik: "asset.kopyalanamaz", sira: 31, grup: "asset", uygun: false,
+      neden: "ağaç, bank, sokak lambası, kaya, çim ve su kodla serpilen dekordur, tek tek nesne değil; Asset menüsünden benzerini yerleştir", eylem: { tur: "secimiKaldir" } });
     return ogeler;
   },
 };
@@ -133,13 +145,13 @@ const duzenlemeKatkisi: HedefKatkisi = {
 
 /** Her hedefte: "Sohbet ▸ Sıkıştır (/compact)": Orion'un hafızasını/sohbetini menüden sıkıştır (yazmakla aynı yol). */
 const sohbetKatkisi: HedefKatkisi = {
-  kimlik: "sohbet", hedefler: "hepsi",
+  kimlik: "sohbet", hedefler: ["zemin", "orion", "nesne"],
   ogeler: () => [{ yol: ["Sohbet", `Sıkıştır (${SIKISTIR_KOMUTU})`], kimlik: "menu.sohbet.sikistir", sira: 800, grup: "sohbet", uygun: true, eylem: { tur: "soz", metin: SIKISTIR_KOMUTU } }],
 };
 
 /** Her hedefin sonunda: "Özellikler…" (bilgi paneli). */
 const ozelliklerKatkisi: HedefKatkisi = {
-  kimlik: "ozellikler", hedefler: "hepsi",
+  kimlik: "ozellikler", hedefler: ["zemin", "orion", "nesne"],
   ogeler: () => [{ yol: ["Özellikler…"], kimlik: "menu.ozellikler", sira: 900, grup: "son", uygun: true, eylem: { tur: "ozellikler" } }],
 };
 
@@ -149,5 +161,23 @@ const secimiKaldirKatkisi: HedefKatkisi = {
   ogeler: () => [{ yol: ["Seçimi kaldır"], kimlik: "menu.secimiKaldir", sira: 910, grup: "son", uygun: true, eylem: { tur: "secimiKaldir" } }],
 };
 
+/**
+ * Hafıza sekmesindeki md dosyası: Düzenle… (çift tıkla da açılır) | Bağlama ekle / Bağlamdan çıkar | İçeriği kopyala, Adı kopyala.
+ * Anlık hafıza (sistem dosyası) da bağlamdan çıkarılabilir (Orion davranışı bozulursa emniyet valfi); bunu menü gri yapmaz, yalnız adı söyler.
+ */
+const dosyaKatkisi: HedefKatkisi = {
+  kimlik: "dosya", hedefler: ["dosya"],
+  ogeler: (b) => {
+    if (b.hedef.tur !== "dosya") return [];
+    const d = b.hedef.dosya;
+    return [
+      { yol: ["Düzenle…"], kimlik: "md.ac", sira: 10, grup: "dosya", uygun: true, eylem: { tur: "mdAc", ad: d.ad } },
+      { yol: [d.aktif ? "Bağlamdan çıkar" : "Bağlama ekle"], kimlik: "md.aktif", sira: 20, grup: "baglam", uygun: true, eylem: { tur: "mdAktif", ad: d.ad, aktif: !d.aktif } },
+      { yol: ["İçeriği kopyala"], kimlik: "md.kopyala", sira: 30, grup: "kopya", uygun: true, eylem: { tur: "mdKopyala", ad: d.ad } },
+      { yol: ["Adı kopyala"], kimlik: "md.adKopyala", sira: 31, grup: "kopya", uygun: true, eylem: { tur: "mdAdKopyala", ad: d.ad } },
+    ];
+  },
+};
+
 /** Menünün bütün katkıları (kayıt sırası önemsiz: sıra/grup öğelerin kendisinde). */
-export const MENU_KATKILARI: readonly HedefKatkisi[] = [zeminKatkisi, orionKatkisi, nesneKatkisi, assetKatkisi, duzenlemeKatkisi, sohbetKatkisi, ozelliklerKatkisi, secimiKaldirKatkisi];
+export const MENU_KATKILARI: readonly HedefKatkisi[] = [zeminKatkisi, orionKatkisi, nesneKatkisi, assetKatkisi, duzenlemeKatkisi, sohbetKatkisi, ozelliklerKatkisi, secimiKaldirKatkisi, dosyaKatkisi];

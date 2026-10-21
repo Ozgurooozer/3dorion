@@ -150,7 +150,9 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
       "world/arayuz/modelSeciciCekirdek.ts", "world/surfaces/duvar/semaCekirdek.ts",
       "world/arayuz/modelSecici.ts", "world/arayuz/stilPenceresi.ts",
       // Alt çubuk (Yapı çubuğu): sekmeli, açılır-kapanır alt panel çerçevesi; sekme içerikleri uygulama katmanında (uygulama/yapi/).
-      "world/arayuz/altCubuk.ts", "world/arayuz/altCubukModeli.ts"],
+      "world/arayuz/altCubuk.ts", "world/arayuz/altCubukModeli.ts",
+      // Oyun içi metin düzenleyici pencereleri (Hafıza sekmesi, spec 32); mantığı editorModeli.ts'te (aynı alt-sistem, kamu değil).
+      "world/arayuz/editorPenceresi.ts"],
     izinli: ["Protokol", "Level", "Editör"], tipIzinli: ["Kabuk"], urun: true,
   },
   {
@@ -176,7 +178,8 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
   {
     ad: "Kabuk", sorumluluk: "Electron ana süreci: pty, IPC, dosya depoları, yan süreçleri başlatma.",
     yollar: ["host/"],
-    kamu: ["host/kopru.ts", "host/kanallar.cjs", "host/levelDosyasi.js"],
+    // mdDosyalari.js: Orion'un md dosyaları (spec 32) — uygulama/mdDeposu.ts yalnız TİP alır (MdBilgisi); çalışma kodu renderer'a girmez (node:fs).
+    kamu: ["host/kopru.ts", "host/kanallar.cjs", "host/levelDosyasi.js", "host/mdDosyalari.js"],
     izinli: [], tipIzinli: ["Zihin"], urun: true,
   },
   {

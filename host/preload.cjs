@@ -50,4 +50,10 @@ contextBridge.exposeInMainWorld("kopru", {
   // Ofisteki 3. monitör (groma haritası): komut gider, kareler/durum olay olarak gelir.
   webmonKomut:      (komut, yuk) => ipcRenderer.invoke(CAGRI.webmonKomut, komut, yuk),
   webmonDinle:      (cb) => dinle(OLAY.webmonOlay, cb),
+  // Orion'un md dosyaları (spec 32): hepsi yanıt bekler; sonuç { ok, deger } ya da { ok:false, kod, mesaj }.
+  mdListe:          () => ipcRenderer.invoke(CAGRI.mdListe),
+  mdOku:            (ad) => ipcRenderer.invoke(CAGRI.mdOku, ad),
+  mdYaz:            (ad, metin) => ipcRenderer.invoke(CAGRI.mdYaz, ad, metin),
+  mdYeni:           (ad, metin) => ipcRenderer.invoke(CAGRI.mdYeni, ad, metin),
+  mdAktif:          (ad, aktif) => ipcRenderer.invoke(CAGRI.mdAktif, ad, aktif),
 });

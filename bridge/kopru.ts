@@ -1175,7 +1175,7 @@ export class Kopru {
     this._turHareketDisi = false;
     const sessiz = this._zincirSessiz;
     uyanis.anilar = anilar.length;
-    const talimat = talimatUret({
+    const temelTalimat = talimatUret({
       konusma: turler.has("duydum"),
       terminal: turler.has("terminal"),
       anilar: anilar.length > 0,
@@ -1183,6 +1183,10 @@ export class Kopru {
       gordum: turler.has("gordum"),
       ozerk: this._zincirKokeni === "inisiyatif" && this._ayar.ozerkTur !== false,
     });
+    // Ozyn'in aktif md dosyaları (spec 32) talimatın SONUNA: kimlik/duruş/araç kuralları önce gelir, notlar onları geçersiz kılamaz. Okuma hatası turu düşürmez.
+    let mdNotlari = "";
+    try { mdNotlari = this._ayar.mdBaglami?.() ?? ""; } catch (err) { console.warn("[MD] baglam okunamadi, notsuz devam:", err); }
+    const talimat = mdNotlari ? `${temelTalimat}\n\n${mdNotlari}` : temelTalimat;
 
     // ŞİMDİ (spec 06 K2/K3): anlık gözlemler dünya durumunun yanında,
     // yaşlarıyla. Anılarla aynı listede değil — karışması bu spec'in
