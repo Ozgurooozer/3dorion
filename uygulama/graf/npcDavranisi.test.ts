@@ -13,7 +13,7 @@ import type { Niyet, NiyetSonucu } from "../../protocol/niyet.ts";
 import { grafYetenegiKur, type AjanKapisi } from "./grafYetenegi.ts";
 import { GRAF_SABLONLARI, grafKutuphanesi, nobetciSablonu } from "./kutuphane.ts";
 import { grafCalistiriciKur, type GrafCalistirici } from "./grafCalistirici.ts";
-import { grafDinleyiciKur, olayYoluKur, DINLEME_AZAMI, type GrafDinleyici, type OlayYolu } from "./grafDinleyici.ts";
+import { grafDinleyiciKur, olayYoluKur, desenleriDondur, DINLEME_AZAMI, type GrafDinleyici, type OlayYolu } from "./grafDinleyici.ts";
 import { GrafDurumDeposu } from "./grafDurumu.ts";
 import { diyalogDenetimiKur, type DiyalogDenetimi } from "./diyalogDenetimi.ts";
 import { OLAY_TANIMLARI } from "./olayDugumleri.ts";
@@ -456,4 +456,35 @@ test("BEKÇİ: dinleme ve grafik durumu YALNIZ BELLEKTE (depolama/IPC adı geçm
     const kod = fs.readFileSync(path.join(KOK, d), "utf8").split("\n").filter((s) => !/^\s*(\/\/|\*|\/\*\*)/.test(s)).join("\n");
     assert.doesNotMatch(kod, /localStorage|sessionStorage|indexedDB|ipcRenderer|window\.|electron|fs\.|import .* from "\.\.\/\.\.\/host/, d);
   }
+});
+
+// ── ⚡ dinleme: desenler de dinleme anında dondurulur (onaylanan program sonradan değişmez) ──
+const selamlaDeseni = (soz: string) => graf(
+  [{ id: "g", tip: "fonksiyon.giris" }, { id: "m", tip: "veri.metin", ayar: { deger: soz } }, { id: "s", tip: "ajan.soyle" }, { id: "d", tip: "fonksiyon.donus" }],
+  [["g", "sonra", "s", "giris"], ["g", "kim", "s", "kim"], ["m", "deger", "s", "metin"], ["s", "sonra", "d", "giris"]],
+  { ad: "selamla", tur: "fonksiyon", girisler: [{ ad: "kim", tip: "ajan" }] });
+const desenliNobet = () => graf(
+  [{ id: "y", tip: "olay.ozyn_yaklasti", ayar: { ajan: "flash" } }, { id: "c", tip: "desen.cagir", ayar: { desen: "selamla" } }],
+  [["y", "sonra", "c", "giris"], ["y", "ajan", "c", "kim"]], { ad: "nobet" });
+
+test("dinleme kurulduktan SONRA desen dosyası değişse de çalışan program onaylanan kopyadır", ZAMAN, async () => {
+  const f = sahteKapi("flash", "Flash");
+  const desenler = [selamlaDeseni("ilk söz")];
+  const d = dunya({ kapilar: [f.kapi], grafikler: [desenliNobet()], desenler });
+  assert.deepEqual(d.dinleyici.dinlemeyeAl("nobet"), { ok: true });
+  desenler[0] = selamlaDeseni("DEĞİŞTİRİLDİ");   // dosya dinleme kurulduktan sonra elle/Orion tarafından değişti
+  d.yol.yay("flash", YAKLASTI);
+  await d.dinleyici.bitti();
+  assert.deepEqual(f.sozler, ["ilk söz"]);
+});
+
+test("desenleriDondur: iç içe desenleri toplar, döngüyü keser, olmayan deseni atlar ve KOPYA verir", () => {
+  const ic = graf([{ id: "g", tip: "fonksiyon.giris" }], [], { ad: "ic", tur: "fonksiyon" });
+  const dis = graf([{ id: "g", tip: "fonksiyon.giris" }, { id: "c", tip: "desen.cagir", ayar: { desen: "ic" } }, { id: "k", tip: "desen.cagir", ayar: { desen: "dis" } }, { id: "x", tip: "desen.cagir", ayar: { desen: "yok" } }],
+    [], { ad: "dis", tur: "fonksiyon" });
+  const kok = graf([{ id: "c", tip: "desen.cagir", ayar: { desen: "dis" } }], []);
+  const depo = [dis, ic];
+  const k = desenleriDondur(kok, (ad) => depo.find((g) => g.ad === ad) ?? null);
+  assert.deepEqual([...k.keys()].sort(), ["dis", "ic"]);
+  assert.notEqual(k.get("dis"), dis);
 });

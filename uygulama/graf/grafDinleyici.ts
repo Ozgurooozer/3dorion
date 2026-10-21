@@ -16,7 +16,7 @@
 // Orion'un kendi LLM'i aynı olaya zaten tepki verir; grafik de aynı bedeni sürseydi iki karar verici yarışırdı (spec 35 §4c).
 "use strict";
 import type { Graf } from "../../protocol/graf.ts";
-import { grafTurDenetle } from "./grafTurDenetimi.ts";
+import { DESEN_CAGIR_TIPI, grafTurDenetle } from "./grafTurDenetimi.ts";
 import { calismaBaslat, sonucSatiri, type BaslamisCalisma, type CalismaTabani, type SonCalisma } from "./grafCalistirici.ts";
 import { olayTetikleri } from "./olayDugumleri.ts";
 
@@ -96,8 +96,34 @@ export interface GrafDinleyici {
   bitti(): Promise<void>;
 }
 
+/**
+ * Dinlemeye alınan grafiğin (doğrudan ya da iç içe) çağırdığı DESENLERİN kopyası. Grafiğin kendisi kopyalanıyordu ama desenleri her tetikte
+ * depodan okunuyordu: dinleme kurulduktan sonra bir desen dosyası değişirse, Ozyn'in onayladığı program onaysız değişmiş olurdu (spec 35 §4c açığı).
+ * Bulunamayan ad atlanır (tür denetimi zaten reddetmiştir); döngü ziyaret kümesiyle kesilir.
+ */
+export function desenleriDondur(g: Graf, desen: (ad: string) => Graf | null): Map<string, Graf> {
+  const kopya = new Map<string, Graf>();
+  const kuyruk: Graf[] = [g];
+  while (kuyruk.length) {
+    const bu = kuyruk.pop()!;
+    for (const d of bu.dugumler) {
+      if (d.tip !== DESEN_CAGIR_TIPI) continue;
+      const ad = d.ayar?.["desen"];
+      if (typeof ad !== "string" || kopya.has(ad)) continue;
+      const x = desen(ad);
+      if (!x) continue;
+      const c = structuredClone(x);
+      kopya.set(ad, c);
+      kuyruk.push(c);
+    }
+  }
+  return kopya;
+}
+
 interface Kayit {
   satir: DinlemeSatiri;
+  /** Dinlemeye alındığı andaki desen kopyaları: tetikler depoyu değil bunları kullanır. */
+  desenler: Map<string, Graf>;
   birakicilar: (() => void)[];
   /** Son kabul edilen tetik anı, olay düğümü başına. */
   sonTetik: Map<string, number>;
@@ -130,7 +156,7 @@ export function grafDinleyiciKur<Y>(a: GrafDinleyiciAyari<Y>): GrafDinleyici {
     k.satir.calisiyor = true;
     a.gunluk?.("bilgi", `⚡ ${g.ad}: ${t.ajan} · ${t.olay} → çalışıyor`);
     // Her tetik dinlemeye alınan KOPYAYI yürütür (dosyanın şimdiki hâlini değil).
-    const b = calismaBaslat(structuredClone(g), a, { giris: { dugum: t.dugum, veri: o.ayrinti ?? {} } });
+    const b = calismaBaslat(structuredClone(g), { ...a, depo: { al: (x) => a.depo.al(x), desen: (x) => { const d = k.desenler.get(x); return d ? structuredClone(d) : null; } } }, { giris: { dugum: t.dugum, veri: o.ayrinti ?? {} } });
     k.suren = b;
     yay();
     const p = b.bitis.then((s) => {
@@ -172,6 +198,7 @@ export function grafDinleyiciKur<Y>(a: GrafDinleyiciAyari<Y>): GrafDinleyici {
       if (kapali) return { ok: false, neden: `'${kapali.ajan}' ajanının olayları grafiğe açık değil (açık: ${acik.join(", ") || "yok"}; Orion'un olaylarını kendi LLM'i dinler)` };
       const k: Kayit = {
         satir: { graf: ad, tetikler, tetik: 0, atlanan: { calisiyor: 0, soguma: 0 }, calisiyor: false, son: null },
+        desenler: desenleriDondur(g, (x) => a.depo.desen(x)),
         birakicilar: [], sonTetik: new Map(), suren: null,
       };
       kayitlar.set(ad, k);
