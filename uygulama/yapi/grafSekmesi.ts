@@ -10,13 +10,13 @@
 //   • Çalışırken canlı satır (şu anki düğüm: kimlik + tür adı, desen derinliği, süre); bitince son sonuç (bitti / durdu / hata + hangi düğüm).
 //   • ⚡ DİNLEMEYE AL (dilim 2) da YALNIZ GERÇEK TIKLAMAYLA: olay gelince çalıştırma iznidir (bekçi: grafDinleyici.test.ts). Dinlemedekiler sağda listelenir
 //     (tetik/atlanan sayıları, bırak, hepsini bırak); ■ bütün süren çalışmaları (▶ + olay) durdurur, dinlemeyi bırakmaz. Seçili grafiğin bellekteki
-//     değişkenleri Kontrol et altında (Durumu sıfırla).
+//     değişkenleri Kontrol et altında (Durumu sıfırla); dilim 3'te ajan kapsamlı değişkenler de.
+//   • NPC'LER (dilim 3): üçüncü şerit AYRI dosyada (npcSeridi.ts) — NPC kayıtları ve "⚡ NPC'yi dinlemeye al" (aynı `dinlemeyeAl`, aynı isTrusted kuralı).
 // Mantık saf modüllerde ve testli (grafCalistirici.ts, grafDeposu.ts, ajanDugumleri.ts); bu dosya yalnız çizer ve düğmeleri bağlar — DOM'u test edecek bir
 // tarayıcı ortamı bu projede yok (hafizaSekmesi.ts gibi), canlı deneme listesi spec 35'te.
 "use strict";
 import type { Sekme, SekmeAraci, SekmeIcerigi } from "../../world/arayuz/altCubuk.ts";
 import { grafAdiGecerli } from "../../protocol/graf.ts";
-import type { GrafDegeri } from "../../protocol/graf.ts";
 import type { GrafDeposu, GrafKaydi } from "../graf/grafDeposu.ts";
 import { canliSatir, sonucSatiri, type GrafCalistirici } from "../graf/grafCalistirici.ts";
 import type { GrafDinleyici } from "../graf/grafDinleyici.ts";
@@ -24,14 +24,18 @@ import { GRAF_SABLONLARI, yeniDesenSablonu } from "../graf/kutuphane.ts";
 import { olayTetikleri } from "../graf/olayDugumleri.ts";
 import { el } from "./graf/dom.ts";
 import { GRAF_SEKMESI_CSS } from "./grafSekmesiStili.ts";
+import type { GrafDurumDeposu } from "../graf/grafDurumu.ts";
+import { ajanDurumuOgesi, npcSeridiKur, type NpcSeridiAyari } from "./npcSeridi.ts";
 
 export interface GrafSekmesiAyari {
   depo: GrafDeposu;
   calistirici: GrafCalistirici;
   /** ⚡ Dinleme (dilim 2): olay tetikli çalışma. Kurulum yalnız buradan, yalnız gerçek tıklamayla. */
   dinleyici: GrafDinleyici;
-  /** Grafiklerin bellekteki değişkenleri (gösterim ve "Durumu sıfırla"). */
-  durum: { ozet(graf: string): Readonly<Record<string, GrafDegeri>>; sifirla(graf: string): boolean; dinle(f: (graf: string) => void): () => void };
+  /** Grafiklerin ve (dilim 3) ajanların bellekteki değişkenleri (gösterim ve "Durumu sıfırla"). */
+  durum: Pick<GrafDurumDeposu, "ozet" | "sifirla" | "dinle" | "ajanOzet" | "ajanSifirla" | "durumluAjanlar">;
+  /** Dilim 3: "NPC'ler" şeridi (ayrı dosya, npcSeridi.ts); verilmezse şerit yok. */
+  npc?: NpcSeridiAyari;
   /** Görsel editörde aç (dilim 2b). */
   ac: (ad: string) => void;
   /** JSON metin düzenleyicisinde aç (eski yol; korunur). */
@@ -92,7 +96,8 @@ function kur(sayfa: HTMLElement, arac: SekmeAraci, a: GrafSekmesiAyari): SekmeIc
   const dinleme = el("div", "gs-dinleme");
   const kontrol = el("div", "gs-kontrol");
   sag.append(dinleme, kontrol);
-  govde.append(grafikler.s, desenler.s, sag);
+  const npcSeridi = a.npc ? npcSeridiKur(a.npc) : null;
+  govde.append(grafikler.s, desenler.s, ...(npcSeridi ? [npcSeridi.kok] : []), sag);
   kok.append(ust, govde);
   sayfa.append(kok);
 
@@ -151,7 +156,7 @@ function kur(sayfa: HTMLElement, arac: SekmeAraci, a: GrafSekmesiAyari): SekmeIc
     if (!d.calisiyor && saat) { clearInterval(saat); saat = null; }
   });
   a.dinleyici.dinle(() => { dinlemeCiz(); dugmeleriCiz(); kartlariIsaretle(); satirCiz(); });
-  a.durum.dinle((g) => { if (g === secili && kontrol.childElementCount) kontrolEt(); });
+  a.durum.dinle((d) => { if ((d.kapsam === "ajan" || d.ad === secili) && kontrol.childElementCount) kontrolEt(); });
 
   // ── ▶ / ■ ──
   calistir.addEventListener("click", (e) => {
@@ -188,11 +193,11 @@ function kur(sayfa: HTMLElement, arac: SekmeAraci, a: GrafSekmesiAyari): SekmeIc
       const s = el("div", "gs-dinleme-satir");
       s.dataset.calisiyor = x.calisiyor ? "1" : "0";
       const atlanan = x.atlanan.calisiyor + x.atlanan.soguma;
-      const yazi = `${x.calisiyor ? "▶" : "⚡"} ${x.graf} · ${x.tetikler.map((t) => `${t.ajan}:${t.olay}`).join(", ")} · ${x.tetik} tetik${atlanan ? ` · ${atlanan} atlandı` : ""}`;
+      const yazi = `${x.calisiyor ? "▶" : "⚡"} ${x.npc ? `${x.anahtar} [NPC ${x.npc.ad}]` : x.graf} · ${x.tetikler.map((t) => `${t.ajan}:${t.olay}`).join(", ")} · ${x.tetik} tetik${atlanan ? ` · ${atlanan} atlandı` : ""}`;
       const metin = el("span", "", yazi);
       metin.title = `${yazi}\natlanan: ${x.atlanan.calisiyor} (zaten çalışıyordu) · ${x.atlanan.soguma} (soğuma)${x.son ? `\nson: ${sonucSatiri(x.son)}` : ""}`;
       const birak = dugme("bırak", "", "Dinlemeyi bırak");
-      birak.addEventListener("click", () => { birak.blur(); a.dinleyici.birak(x.graf); });
+      birak.addEventListener("click", () => { birak.blur(); a.dinleyici.birak(x.anahtar); });
       s.append(metin, birak);
       dinleme.append(s);
     }
@@ -242,6 +247,8 @@ function kur(sayfa: HTMLElement, arac: SekmeAraci, a: GrafSekmesiAyari): SekmeIc
       d.append(" ", sifirla);
     }
     kontrol.append(d);
+    // Dilim 3: ajan kapsamlı değişkenler (o ajanın bütün grafikleri paylaşır) — NPC kartındakiyle aynı gösterim.
+    const ajanlar = ajanDurumuOgesi(a.durum, kontrolEt); if (ajanlar) kontrol.append(ajanlar);
   }
   kontrolDugme.addEventListener("click", () => { kontrolDugme.blur(); kontrolEt(); });
   acDugme.addEventListener("click", () => { acDugme.blur(); if (secili) a.ac(secili); });
@@ -314,7 +321,7 @@ function kur(sayfa: HTMLElement, arac: SekmeAraci, a: GrafSekmesiAyari): SekmeIc
     const h = a.hata();
     grafikler.serit.replaceChildren(...(olaylar.length ? olaylar.map(kart) : [el("div", "gs-bos", h ? `Grafikler yüklenemedi: ${h}` : "Henüz grafik yok. ＋ Yeni grafik ile çalışan bir örnekle başla.")]));
     desenler.serit.replaceChildren(...(fonksiyonlar.length ? fonksiyonlar.map(kart) : [el("div", "gs-bos", "Henüz desen yok.")]));
-    kartlariIsaretle(); dugmeleriCiz(); satirCiz(); dinlemeCiz();
+    kartlariIsaretle(); dugmeleriCiz(); satirCiz(); dinlemeCiz(); npcSeridi?.ciz();
   }
   // Abonelik sekme ömrü boyunca açık: kaydedince kart (bozuk/açıklama) çubuk kapalıyken de güncel kalır.
   a.depo.dinle((o) => { if (o.tur === "liste") ciz(); });

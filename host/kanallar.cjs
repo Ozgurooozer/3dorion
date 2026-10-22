@@ -77,6 +77,15 @@ const CAGRI = {
   grafYeni:          "graf:yeni",
   grafSil:           "graf:sil",
   /**
+   * NPC kayıtları (spec 35 dilim 3, host/npcDosyalari.js): ad = kaydın adı (uzantısız). Sonuç biçimi grafiklerinkiyle aynı; biçimi renderer doğrular
+   * (protocol/npc.ts). DİNLEME/ÇALIŞTIRMA kanalı YOK: NPC'yi dinlemeye almak yalnız Ozyn'in renderer'daki gerçek tıklaması.
+   */
+  npcListe:          "npc:liste",
+  npcOku:            "npc:oku",
+  npcYaz:            "npc:yaz",
+  npcYeni:           "npc:yeni",
+  npcSil:            "npc:sil",
+  /**
    * Orion'un sesi (spec 34, host/sesler.js): kurulu/katalog sesleri, seçim (bir SONRAKİ cümleden geçerli), katalogdan indirme, yalnız indirileni silme.
    * Sonuç biçimi md'ninkiyle aynı (`{ ok, deger: SesDurumu }` | `{ ok: false, kod, mesaj }`); deneme cümlesi mevcut `sesUret` yolundan çalar.
    */

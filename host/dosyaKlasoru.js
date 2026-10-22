@@ -1,6 +1,7 @@
 // host/dosyaKlasoru.js — KULLANICI VERİSİNDEKİ METİN DOSYASI KLASÖRÜ: ortak çekirdek (spec 35 dilim 1'de md deposundan genelleştirildi). Saf Node (fs + path).
 //
-// İki kullanıcısı var: Orion'un md dosyaları (`mdDosyalari.js`, spec 32) ve düğüm grafikleri (`grafDosyalari.js`, spec 35). İkisi de aynı kurallarla
+// Kullanıcıları: Orion'un md dosyaları (`mdDosyalari.js`, spec 32), düğüm grafikleri (`grafDosyalari.js`, spec 35) ve NPC kayıtları (`npcDosyalari.js`,
+// spec 35 dilim 3; son ikisi `jsonKlasoru` üstünden: kayıt başına bir `<ad>.json`). Hepsi aynı kurallarla
 // yazılır; KOPYA YOK — ikinci bir deponun kendi atomik yazımını, ad denetimini, yok/var ayrımını yeniden yazması kuralların ayrışması demekti.
 // KURALLAR (mdDosyalari.test.ts + grafDosyalari.test.ts):
 //   1. ATOMİK YAZIM: önce `.tmp`, sonra yeniden adlandırma: yarıda kalan yazım hedefe dokunmaz.
@@ -81,5 +82,37 @@ export function dosyaKlasoru(t) {
       if (fs.existsSync(p)) throw kodluHata("var", `zaten var: ${ad}`);
       atomikYaz(p, metin);
     },
+  };
+}
+
+const JSON_UZANTISI = ".json";
+
+/**
+ * KAYIT BAŞINA BİR `<ad>.json` DOSYASI olan klasör (spec 35: düğüm grafikleri `grafDosyalari.js`, dilim 3'te NPC kayıtları `npcDosyalari.js`). Ad
+ * uzantısızdır (kaydın adı = dosyanın adı); liste uzantısız adla, ada göre sıralı. İkinci tür kendi ad→dosya çevirisini yazsaydı, aşağıdaki hata
+ * (geçersiz adı çekirdeğe bırakmak) orada yeniden doğabilirdi — KOPYA YOK, ikisi de buradan.
+ * @param {{ adGecerli: (ad: unknown) => boolean, boyutSiniri: number, etiket: string, adEtiketi: string }} t  `adGecerli` KAYDIN adının kuralı (uzantısız).
+ */
+export function jsonKlasoru(t) {
+  const klasor = dosyaKlasoru({
+    adGecerli: (d) => typeof d === "string" && d.endsWith(JSON_UZANTISI) && t.adGecerli(d.slice(0, -JSON_UZANTISI.length)),
+    boyutSiniri: t.boyutSiniri, etiket: t.etiket, adEtiketi: t.adEtiketi,
+  });
+  /**
+   * Kayıt adını dosya adına çevirir; geçersiz ad BURADA `gecersiz-ad` hatasıdır. Geçersiz adı olduğu gibi çekirdeğe bırakmak yanlıştı (dilim 1 testinde
+   * yakalandı): "x.json" kayıt adı olarak geçersizdir ama DOSYA adı olarak geçerlidir, yani "x" kaydının üstüne yazılırdı.
+   */
+  const dosya = (ad) => {
+    if (!t.adGecerli(ad)) throw kodluHata("gecersiz-ad", `geçersiz ${t.adEtiketi}: ${JSON.stringify(ad)} (harf, rakam, _ ve -; en çok 48)`);
+    return `${ad}${JSON_UZANTISI}`;
+  };
+  return {
+    /** Klasördeki kayıtlar (ad = dosya adı uzantısız), ada göre. */
+    liste: (dizin) => klasor.liste(dizin).map((d) => ({ ...d, ad: d.ad.slice(0, -JSON_UZANTISI.length) })).sort((a, b) => a.ad.localeCompare(b.ad, "tr")),
+    oku: (dizin, ad) => klasor.oku(dizin, dosya(ad)),
+    yaz: (dizin, ad, metin) => klasor.yaz(dizin, dosya(ad), metin),
+    yeni: (dizin, ad, metin) => klasor.yeni(dizin, dosya(ad), metin),
+    /** KALDIRIR (kalıcı silme değil: `.silinenler/<ad>.json.<zaman>`). */
+    kaldir: (dizin, ad, simdi) => klasor.kaldir(dizin, dosya(ad), simdi),
   };
 }

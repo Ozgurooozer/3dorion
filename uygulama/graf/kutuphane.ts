@@ -12,8 +12,18 @@ import type { GrafYetenegi } from "./grafYetenegi.ts";
 import { olayDugumleri } from "./olayDugumleri.ts";
 import { durumDugumleri } from "./durumDugumleri.ts";
 import { dunyaDugumleri } from "./dunyaDugumleri.ts";
+import { npcDugumleri } from "./npcDugumleri.ts";
+import { nobetciNpcSablonu } from "./npcSablonu.ts";
+import { animasyonDugumleri } from "./animasyonDugumleri.ts";
+import type { KlipOzeti } from "../../protocol/animasyon.ts";
 
-export function grafKutuphanesi(): DugumKaydi<GrafYetenegi> {
+/** Kütüphanenin dünyadan bilmesi gerekenler (kompozisyon kökü verir; verilmezse boş: test ve senaryo dünyası). */
+export interface GrafKutuphanesiAyari {
+  /** Yüklü animasyon klipleri (Dilim 5a), ÇAĞRI ANINDA: "Animasyon oynat"ın seçenekleri. Yükleme asenkron, liste sonradan dolar. */
+  klipler?: () => readonly KlipOzeti[];
+}
+
+export function grafKutuphanesi(ayar: GrafKutuphanesiAyari = {}): DugumKaydi<GrafYetenegi> {
   const k = new DugumKaydi<GrafYetenegi>();
   for (const t of cekirdekDugumler<GrafYetenegi>()) k.kaydet(t);
   for (const t of ajanDugumleri()) k.kaydet(t);
@@ -22,6 +32,10 @@ export function grafKutuphanesi(): DugumKaydi<GrafYetenegi> {
   for (const t of durumDugumleri<GrafYetenegi>()) k.kaydet(t);
   // Dilim 2c: dünya değişkenleri (saat, ajan/Ozyn durumu, mesafe, en yakın nesne, konum): salt okunur saf düğümler.
   for (const t of dunyaDugumleri()) k.kaydet(t);
+  // Dilim 3 (NPC sınıfı): örnek başına parametre (`npc.parametre`; `@ben` ve ajan kapsamlı değişken mevcut düğümlerin ayarıdır).
+  for (const t of npcDugumleri<GrafYetenegi>()) k.kaydet(t);
+  // Dilim 5a: JSON animasyon klibi oynat (Blueprint'in PlayAnimation'ı); seçenekler yüklü kliplerden.
+  for (const t of animasyonDugumleri(ayar.klipler ?? (() => []))) k.kaydet(t);
   return k;
 }
 
@@ -113,6 +127,7 @@ export function nobetciSablonu(ad: string): Graf {
 export const GRAF_SABLONLARI: readonly { id: string; ad: string; kur: (ad: string) => Graf }[] = [
   { id: "selam", ad: "Selam (▶: Flash gelir, el sallar)", kur: yeniGrafSablonu },
   { id: "nobetci", ad: "Nöbetçi (⚡ olayla: parola diyaloğu)", kur: nobetciSablonu },
+  { id: "nobetci_npc", ad: "Nöbetçi (NPC'li: @ben, parola parametresi, NPC başına sayaç)", kur: nobetciNpcSablonu },
 ];
 
 /** Örnek desen (girişli alt-grafik): verilen ajan el sallar, bekler, selam verir. Başka grafikte `desen.cagir` ile tek düğüm olur. */

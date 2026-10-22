@@ -22,6 +22,7 @@ import type { GrafYetenegi } from "./grafYetenegi.ts";
 import {
   DIYALOG_SECENEK_AZAMI, DIYALOG_SECENEK_ENAZ, DIYALOG_SURE_AZAMI_SN, DIYALOG_SURE_ENAZ_SN, DIYALOG_SURE_VARSAYILAN_SN, diyalogHatasi,
 } from "./diyalogDenetimi.ts";
+import { ajanCoz, benDenetle, benliAjanSecenekleri } from "./benAjani.ts";
 
 /** Ajan seçeneklerinin kaynağı: pin ortamındaki ajan defteri (denetim anında; Flash sonradan gelir). */
 const ajanSecenekleri = (o: PinOrtami): readonly string[] => o.ajanlar?.() ?? [];
@@ -88,7 +89,7 @@ async function hedefOku(c: DugumCalismasi<GrafYetenegi>, tur: HedefTuru): Promis
  * Niyeti doğrular, `kim`in kapısından yürütür ve SONUCU BEKLER. ■ beklerken gelirse çalışma 'durdu' olur ve ajana `dur` gider (iş kesilir).
  * Doğrulayıcının reddi düğüm hatasıdır (sessiz düşme yok); ajanın hatası nedeniyle döner.
  */
-async function yurut(c: DugumCalismasi<GrafYetenegi>, kim: { id: string; ad: string }, ham: unknown): Promise<DugumSonucu> {
+export async function yurut(c: DugumCalismasi<GrafYetenegi>, kim: { id: string; ad: string }, ham: unknown): Promise<DugumSonucu> {
   const r: Sonuc<Niyet> = niyetDogrula(ham);
   if (!r.ok) throw new Error(`niyet reddedildi: ${r.hata}`);
   const is = c.yetenek.niyetYurut(kim.id, r.deger);
@@ -154,14 +155,16 @@ export function ajanDugumleri(): DugumTanimi<GrafYetenegi>[] {
     // ── seçici / veri (saf) ──
     {
       tip: "ajan.sec", ad: "Ajan seç", kategori: "veri", saf: true,
-      aciklama: "Listeden bir ajan (Orion, Flash…); çıkışı eylem düğümlerinin 'kim' girişine bağlanır. Liste ajan defterinden gelir.",
-      ayarlar: [{ ad: "ajan", tip: "metin", secenekler: ajanSecenekleri, aciklama: "ajan kimliği" }],
-      pinler: (a) => {
-        if (typeof a["ajan"] !== "string" || !a["ajan"]) throw new Error("ajan seçilmedi (ayar.ajan: örn. \"flash\")");
+      aciklama: "Listeden bir ajan (Orion, Flash…) ya da @ben (bu grafiği çalıştıran NPC); çıkışı eylem düğümlerinin 'kim' girişine bağlanır. Liste ajan defterinden gelir.",
+      ayarlar: [{ ad: "ajan", tip: "metin", secenekler: benliAjanSecenekleri, aciklama: "ajan kimliği (@ben: bu NPC)" }],
+      pinler: (a, o) => {
+        if (typeof a["ajan"] !== "string" || !a["ajan"]) throw new Error("ajan seçilmedi (ayar.ajan: örn. \"flash\" ya da \"@ben\")");
+        benDenetle(a["ajan"], o, "ajan");
         return { girisler: [], cikislar: [{ ad: "ajan", tip: "ajan" }] };
       },
       calistir: (c) => {
-        const id = c.ayar["ajan"] as string;
+        // `@ben` çalışma BAĞLAMINDAN çözülür (dilim 3): grafiğin metni "@ben" kalır, iki NPC aynı kopyayı çalıştırır.
+        const id = ajanCoz(c.ayar["ajan"], c.ben) as string;
         const ajanlar = c.yetenek.ajanlar();
         if (!ajanlar.some((x) => x.id === id)) throw new Error(`bilinmeyen ajan '${id}' (var: ${ajanlar.map((x) => x.id).join(", ") || "yok"})`);
         return { cikti: { ajan: id } };

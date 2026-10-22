@@ -24,6 +24,9 @@ import type { Yer } from "../yer/yer.ts";
 import { ODA_YERI } from "../yer/odaYeri.ts";
 import { SANDALYE } from "../level/olculer.ts";
 import { PozMakinesi, hareketliMi } from "./durumMakinesi.ts";
+import type { AnimasyonKlibi, Uzuv } from "../../protocol/animasyon.ts";
+import type { KlipBulucu } from "./klipKutuphanesi.ts";
+import { atlananIzler, klipBittiMi } from "./klipOrnekleyici.ts";
 import {
   AVATAR_YARICAP, enYakinSerbest, noktaSerbestMi, yolBul, yolUzunlugu,
   type Nokta2,
@@ -162,6 +165,8 @@ export interface AvatarGorunumu {
   /** Aktif jest ve 0..1 ilerlemesi. */
   jest: Jest | null;
   jestIlerlemesi: number;
+  /** Oynayan JSON klibi (Dilim 5a) ya da null. Klip oynarken `jest` null'dır: klip jestin yerine geçer. */
+  klip: KlipGorunumu | null;
   /** Yürüme fazı 0..1 — ayak/kol salınımı. */
   yurumeFazi: number;
   /** Anlık hız (m/s) — beden salınım genliğini buna göre ölçekler. */
@@ -170,6 +175,14 @@ export interface AvatarGorunumu {
   agiz: number;
   /** Kalan yol — hata ayıklama/görselleştirme. */
   yol: readonly Nokta2[];
+}
+
+/** Oynayan klip: hangi niyetin, ne kadar geçti (sn, sarılmamış; örnekleyici sarar), anlamı (uzvu olmayan gövde bunu gösterir). */
+export interface KlipGorunumu {
+  readonly id: string;
+  readonly klip: AnimasyonKlibi;
+  readonly gecen: number;
+  readonly jest: Jest;
 }
 
 export interface YurutucuAyari {
@@ -194,6 +207,13 @@ export interface YurutucuAyari {
    * NEDEN: başsız deneme (2026-10-21) — iki avatar aynı sandalyeye "otur" alınca ikisi de AYNI noktaya oturdu, hata yok.
    */
   koltukDolu?: (capa: string) => string | null;
+  /**
+   * JSON klip kütüphanesi (spec 35 Dilim 5a): `jest` niyetinin `klip`i buradan ÇAĞRI ANINDA aranır (yükleme asenkron, kütüphane sonradan dolar).
+   * Verilmezse klipli jest nedenle `hata` döner (sessiz düz jeste düşmez).
+   */
+  klipler?: KlipBulucu;
+  /** Gövdenin klip uygulayabildiği uzuvlar (`AvatarIskeleti.klipUzuvlari`): uygulanamayan izler `basladi` sonucunda adlarıyla bildirilir. */
+  klipUzuvlari?: ReadonlySet<Uzuv>;
 }
 
 // ── İç iş tanımı ───────────────────────────────────────────────────────────
@@ -278,6 +298,10 @@ export class Yurutucu {
 
   private _jest: Jest | null = null;
   private _jestKalan = 0;
+  /** Oynayan klip (Dilim 5a). Süreli işten AYRI kanal: `git` klibi kesmez (yürürken el sallanır), yeni jest ve `dur` keser. */
+  private _klip: { id: string; klip: AnimasyonKlibi; gecen: number; jest: Jest } | null = null;
+  private _klipler: KlipBulucu | null;
+  private _klipUzuvlari: ReadonlySet<Uzuv> | null;
 
   private _bakis: Hedef | null = null;
   private _aktif: AktifIs | null = null;
@@ -300,6 +324,8 @@ export class Yurutucu {
     this._oyuncuKonumu = ayar.oyuncuKonumu ?? null;
     this._yer = ayar.yer ?? (() => ODA_YERI);
     this._koltukDolu = ayar.koltukDolu ?? null;
+    this._klipler = ayar.klipler ?? null;
+    this._klipUzuvlari = ayar.klipUzuvlari ?? null;
   }
 
   /**
@@ -370,6 +396,7 @@ export class Yurutucu {
       mesgul: this._aktif !== null,
       jest: this._jest,
       jestIlerlemesi: this._jest ? 1 - this._jestKalan / JEST_SURESI : 0,
+      klip: this._klip ? { ...this._klip } : null,
       yurumeFazi: this._yurumeFazi,
       hiz: this._hiz,
       agiz: this._agiz,
@@ -394,6 +421,14 @@ export class Yurutucu {
     if (this._jest) {
       this._jestKalan -= dt;
       if (this._jestKalan <= 0) { this._jest = null; this._jestKalan = 0; }
+    }
+    // Klip: süre dolunca `bitti` (grafiğin "bitene kadar bekle"si bunu bekler). Döngülü klip burada bitmez.
+    if (this._klip) {
+      this._klip.gecen += dt;
+      if (klipBittiMi(this._klip.klip, this._klip.gecen)) {
+        sonuclar.push({ niyet_id: this._klip.id, durum: "bitti", veri: { klip: this._klip.klip.ad } });
+        this._klip = null;
+      }
     }
 
     // 3) Aktif iş.
@@ -433,7 +468,7 @@ export class Yurutucu {
       case "kalk":  return this._kalk(id, cikti);
       case "dur":   return this._dur(id, cikti);
       case "poz":   return this._pozNiyeti(n.poz, id, cikti);
-      case "jest":  return this._jestNiyeti(n.jest, id, cikti);
+      case "jest":  return this._jestNiyeti(n, id, cikti);
       case "bak":   return this._bakNiyeti(n.hedef, id, cikti);
       case "al":    return this._al(n.nesne, id, cikti);
       case "birak": return this._birak(id, cikti);
@@ -618,6 +653,7 @@ export class Yurutucu {
     // döngüde sırayla tüketiliyor. Yürüyen/oynayan her şeyi kes:
     this._jest = null;
     this._jestKalan = 0;
+    this._klipIptal("dur", cikti);
     if (hareketliMi(this._poz.poz)) this._poz.gec("duruyor");
     this._hiz = 0;
     this._govdeHedefYaw = this._govdeYaw;
@@ -650,11 +686,43 @@ export class Yurutucu {
     cikti.push({ niyet_id: id, durum: "bitti" });
   }
 
-  private _jestNiyeti(j: Jest, id: string, cikti: NiyetSonucu[]): void {
-    this._jest = j;
+  private _jestNiyeti(n: Extract<Niyet, { tur: "jest" }>, id: string, cikti: NiyetSonucu[]): void {
+    if (n.klip !== undefined) return this._klipNiyeti(n.jest, n.klip, id, cikti);
+    // EN SON JEST KAZANIR: oynayan klip yeni bir jestle kesilir (eski jestin yerine yenisinin geçmesiyle aynı kural).
+    this._klipIptal("yeni jest", cikti);
+    this._jest = n.jest;
     this._jestKalan = JEST_SURESI;
     // Jest SURELI_NIYETLER içinde değil: anında biter, animasyon üstüne biner.
     cikti.push({ niyet_id: id, durum: "bitti" });
+  }
+
+  /**
+   * KLİPLİ JEST (Dilim 5a): SÜRELİ — `basladi`, klip bitince `bitti` (ilerle). Süreli işi (`git`) KESMEZ: yürürken el sallanır (anlık niyet kuralı).
+   * Bilinmeyen klip açık `hata` (yüklü klipler sayılır); o durumda oynayan klip de jest de DEĞİŞMEZ (bozuk istek iyi olanı kesmesin).
+   */
+  private _klipNiyeti(jest: Jest, ad: string, id: string, cikti: NiyetSonucu[]): void {
+    if (!this._klipler) { cikti.push(this._hata(id, `klip '${ad}' oynatılamaz: bu bedene klip kütüphanesi bağlanmadı.`)); return; }
+    const klip = this._klipler.bul(ad);
+    if (!klip) {
+      const var_ = this._klipler.adlar();
+      cikti.push(this._hata(id, `bilinmeyen klip: '${ad}' (yüklü: ${var_.length ? var_.join(", ") : "yok"}).`));
+      return;
+    }
+    this._klipIptal("yeni klip", cikti);
+    this._jest = null;
+    this._jestKalan = 0;
+    this._klip = { id, klip, gecen: 0, jest };
+    // Uygulanamayan izler SAYILIR (sessiz yutma yok): avatar günlüğe yazar, grafik sonucu okuyabilir. Kullanıcıya hata değildir.
+    const atlanan = this._klipUzuvlari ? atlananIzler(klip, this._klipUzuvlari) : [];
+    cikti.push({ niyet_id: id, durum: "basladi", veri: { klip: klip.ad, sure: klip.sure, dongu: klip.dongu, atlanan } });
+  }
+
+  /** Oynayan klibi keser ve `iptal` yayar (bekleyen grafik "iş kesildi" der). Sessiz kesme yok. */
+  private _klipIptal(neden: string, cikti: NiyetSonucu[]): void {
+    const k = this._klip;
+    if (!k) return;
+    this._klip = null;
+    cikti.push({ niyet_id: k.id, durum: "iptal", not: `'${k.klip.ad}' klibi kesildi (${neden})` });
   }
 
   private _bakNiyeti(h: Hedef | null, id: string, cikti: NiyetSonucu[]): void {

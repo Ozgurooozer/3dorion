@@ -60,6 +60,11 @@ export interface AjanSecenegi { readonly id: string; readonly ad: string }
 /** Başlamış bir ajan işi: sonucu ve ■ için kesici. */
 export interface AjanIsi {
   readonly sonuc: Promise<NiyetSonucu>;
+  /**
+   * İşin İLK cevabı (`basladi` ya da hemen gelen `bitti`/`hata`/`iptal`) — Dilim 5a: "Animasyon oynat" bitmesini beklemeyince bununla devam eder
+   * (klip kabul edildi mi, bilinmeyen klip mi). Verilmezse (sahte dünya) çağıran `sonuc`u bekler.
+   */
+  readonly kabul?: Promise<NiyetSonucu>;
   kes(): void;
 }
 
@@ -134,13 +139,20 @@ export function grafYetenegiKur(a: GrafYetenegiAyari): GrafYetenegi {
       // yedekte): aşılınca beden de durdurulur — yoksa grafik "zaman aşımı" derken Flash yürümeye devam ederdi; `dur`un `iptal`i avatarAdimi'nın
       // dinleyicisini de kapatır.
       const kes = (): void => kapi.niyet({ tur: "dur" }, kimlik(GRAF_NIYET_ONEKI));
-      const is = avatarAdimi({ niyet: (x, id) => kapi.niyet(x, id), sonucDinle: (cb) => kapi.sonucDinle(cb) }, n, sinir * 2, GRAF_NIYET_ONEKI);
+      // KABUL (Dilim 5a): bu niyetin İLK sonucu. Kimliği `avatarAdimi` üretir; kapıya giderken yakalanır. Dinleyici GÖNDERMEDEN önce kurulur
+      // (beden sonucu senkron da verebilir); ilk sonuçta ya da iş bitince kalkar.
+      let benimId: string | null = null;
+      let kabulCoz: (s: NiyetSonucu) => void = () => {};
+      const kabul = new Promise<NiyetSonucu>((c) => { kabulCoz = c; });
+      const kabulCik = kapi.sonucDinle((s) => { if (benimId !== null && s.niyet_id === benimId) { kabulCik(); kabulCoz(s); } });
+      const is = avatarAdimi({ niyet: (x, id) => { benimId = id; kapi.niyet(x, id); }, sonucDinle: (cb) => kapi.sonucDinle(cb) }, n, sinir * 2, GRAF_NIYET_ONEKI);
       let saat: ReturnType<typeof setTimeout> | undefined;
       const asim = new Promise<NiyetSonucu>((coz) => {
         saat = setTimeout(() => { kes(); coz({ niyet_id: kimlik(GRAF_NIYET_ONEKI), durum: "hata", not: `zaman aşımı (${Math.round(sinir / 1000)} sn): ${kapi.ad} durduruldu` }); }, sinir);
       });
       const sonuc = Promise.race([is, asim]).finally(() => clearTimeout(saat));
-      return { sonuc, kes };
+      void sonuc.then((s) => { kabulCik(); kabulCoz(s); });
+      return { sonuc, kabul, kes };
     },
   };
 }

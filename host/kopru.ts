@@ -108,6 +108,12 @@ export interface Kopru {
   grafYeni(ad: string, metin: string): Promise<IpcSonuc<true>>;
   /** Kalıcı silme değil: dosya `.silinenler/` altına taşınır. */
   grafSil(ad: string): Promise<IpcSonuc<true>>;
+  /** NPC kayıtları (spec 35 dilim 3): ad = kaydın adı (uzantısız). Dinleme kanalı YOK (Ozyn'in tıklaması renderer'da). Sil = `.silinenler/`e taşı. */
+  npcListe(): Promise<IpcSonuc<DosyaBilgisi[]>>;
+  npcOku(ad: string): Promise<IpcSonuc<string>>;
+  npcYaz(ad: string, metin: string): Promise<IpcSonuc<true>>;
+  npcYeni(ad: string, metin: string): Promise<IpcSonuc<true>>;
+  npcSil(ad: string): Promise<IpcSonuc<true>>;
   /**
    * Orion'un sesi (spec 34, host/sesler.js). Her işlem güncel durumu döner. `sesSec` bir SONRAKİ cümleden geçerli; `ORION_PIPER_MODEL` varken
    * `kilitli` kodla reddedilir. `sesIndir` yalnız katalogdaki adı kabul eder (adres renderer'dan gelmez); `sesSil` yalnız panelden indirileni.

@@ -138,7 +138,7 @@ test("çalışma görünümü: şu anki düğüm YALNIZ kendi grafiğinin sekmes
 
 test("çalışma görünümü: hata düğümü ve ⚡ dinlemede rozeti", () => {
   const c: CalistiriciDurumu = { calisiyor: null, son: { graf: "ana", durum: "hata", adim: 3, sureMs: 10, hata: "yol yok", hataDugumu: { graf: "ana", id: "git", tip: "ajan.git", ad: "Git", derinlik: 0 } } };
-  const d = [{ graf: "ana", tetikler: [], tetik: 0, atlanan: { calisiyor: 0, soguma: 0 }, calisiyor: false, son: null }];
+  const d = [{ anahtar: "ana", graf: "ana", npc: null, tetikler: [], tetik: 0, atlanan: { calisiyor: 0, soguma: 0 }, calisiyor: false, son: null }];
   const i = calismaIsareti(c, d, "ana", 0);
   assert.deepEqual([i.hataDugumu, i.hataMesaji, i.dinlemede, calismaIsareti(BOS, [], "ana", 0).dinlemede], ["git", "yol yok", true, false]);
 });

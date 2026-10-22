@@ -19,11 +19,15 @@ import type { AvatarGorunumu } from "./yurutucu.ts";
 import { aciSar } from "./yurutucu.ts";
 import { bostaHesapla } from "./bosta.ts";
 import { hareketliMi } from "./durumMakinesi.ts";
+import { klipOrnekle, klipZamani } from "./klipOrnekleyici.ts";
 
 /** Konum yumuşatma katsayısı (1/s). Büyük = daha sıkı takip. */
 const KONUM_YUMUSATMA = 14;
 /** Yaw yumuşatma katsayısı (1/s). */
 const YAW_YUMUSATMA = 12;
+
+/** Klibin çizim zamanı mantık zamanının en çok bu kadar (sn) önüne geçer: bir mantık tiki (20 Hz). */
+const KLIP_ONDE = 0.05;
 
 /** `elindekiGoster` uygulayan iskeletler (prosedürel) için isteğe bağlı kanca. */
 interface ElKancasi { elindekiGoster?(v: boolean): void }
@@ -42,6 +46,9 @@ export class Beden {
   private _hiz = 0;
   private _jest: AvatarGorunumu["jest"] = null;
   private _jestIlerleme = 0;
+  private _klip: AvatarGorunumu["klip"] = null;
+  /** Klibin ÇİZİM zamanı: mantık 20 Hz'de ilerler, çizim karesi arayı doldurur (20 fps'lik basamaklı kol olmasın). */
+  private _klipCizimGecen = 0;
   private _agiz = 0;
   private _elinde: string | null = null;
   /** Boşta hareket zamanı — dünya saatinden bağımsız, çizim zamanı yeter. */
@@ -74,6 +81,10 @@ export class Beden {
     this._hiz = g.hiz;
     this._jest = g.jest;
     this._jestIlerleme = g.jestIlerlemesi;
+    // Yeni klip (başka niyet) → çizim zamanı mantığa oturur; aynı klipte çizim önde gidebilir ama mantığın bir tik ötesine geçmez (KLIP_ONDE).
+    if (g.klip && g.klip.id !== this._klip?.id) this._klipCizimGecen = g.klip.gecen;
+    else if (g.klip) this._klipCizimGecen = Math.min(Math.max(this._klipCizimGecen, g.klip.gecen), g.klip.gecen + KLIP_ONDE);
+    this._klip = g.klip;
     this._agiz = g.agiz;
     if (this._elinde !== g.elinde) {
       this._elinde = g.elinde;
@@ -104,7 +115,16 @@ export class Beden {
     const b = bostaHesapla(this._t, this._tohum);
     const durgun = !hareketliMi(this._poz);
     i.bostaUygula(b.nefes * (durgun ? 1 : 0.35), durgun ? b.agirlik : 0);
-    if (this._jest) i.jestUygula(this._jest, this._jestIlerleme);
+    // KLİP (Dilim 5a) poz/boşta/bakıştan SONRA: onların üstüne biner. Klibi uygulayamayan gövde (LED yüz) klibin ANLAMINI jest olarak gösterir.
+    // Klip yokken de `klipUygula([])` çağrılır: iskelet geçen karede yazdığını geri alır (klip bitti/kesildi).
+    if (this._klip) {
+      this._klipCizimGecen = Math.min(this._klipCizimGecen + dt, this._klip.gecen + KLIP_ONDE);
+      if (i.klipUygula) i.klipUygula(klipOrnekle(this._klip.klip, this._klipCizimGecen));
+      else i.jestUygula(this._klip.jest, klipZamani(this._klip.klip, this._klipCizimGecen) / this._klip.klip.sure);
+    } else {
+      i.klipUygula?.([]);
+      if (this._jest) i.jestUygula(this._jest, this._jestIlerleme);
+    }
 
     // Ağız sesin, göz kırpma boştalığın: ağız açıkken göz kırpması bastırılmaz,
     // ikisi bağımsızdır (insanlar konuşurken de kırpar).

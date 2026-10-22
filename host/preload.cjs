@@ -62,6 +62,12 @@ contextBridge.exposeInMainWorld("kopru", {
   grafYaz:          (ad, metin) => ipcRenderer.invoke(CAGRI.grafYaz, ad, metin),
   grafYeni:         (ad, metin) => ipcRenderer.invoke(CAGRI.grafYeni, ad, metin),
   grafSil:          (ad) => ipcRenderer.invoke(CAGRI.grafSil, ad),
+  // NPC kayıtları (spec 35 dilim 3): aynı sonuç biçimi; dinleme kanalı yok (Ozyn'in tıklaması renderer'da).
+  npcListe:         () => ipcRenderer.invoke(CAGRI.npcListe),
+  npcOku:           (ad) => ipcRenderer.invoke(CAGRI.npcOku, ad),
+  npcYaz:           (ad, metin) => ipcRenderer.invoke(CAGRI.npcYaz, ad, metin),
+  npcYeni:          (ad, metin) => ipcRenderer.invoke(CAGRI.npcYeni, ad, metin),
+  npcSil:           (ad) => ipcRenderer.invoke(CAGRI.npcSil, ad),
   // Orion'un sesi (spec 34): hepsi yanıt bekler, sonuç { ok, deger: SesDurumu } ya da { ok:false, kod, mesaj }; indirme ilerlemesi olay olarak.
   sesListe:         () => ipcRenderer.invoke(CAGRI.sesListe),
   sesSec:           (ad) => ipcRenderer.invoke(CAGRI.sesSec, ad),

@@ -23,6 +23,8 @@
 "use strict";
 import type { Vec3 } from "../../protocol/temel.ts";
 import type { Jest, Poz } from "../../protocol/niyet.ts";
+import type { Uzuv } from "../../protocol/animasyon.ts";
+import type { UzuvDegeri } from "./klipOrnekleyici.ts";
 
 export interface IskeletBilgisi {
   /**
@@ -75,6 +77,17 @@ export interface AvatarIskeleti {
   gozKirp(kapali: number): void;
   gorunur(g: boolean): void;
   yokEt(): void;
+
+  /**
+   * KLİP (spec 35 Dilim 5a; isteğe bağlı): bu gövdede klip izinin GERÇEKTEN uygulanabildiği soyut uzuvlar (eşleme tablosu ∩ modelde bulunan
+   * düğüm, `uzuvEslemesi.ts`). Yoksa (LED yüz) klip izleri uygulanmaz; beden klibin anlamını (`jest`) `jestUygula` ile gösterir.
+   */
+  readonly klipUzuvlari?: ReadonlySet<Uzuv>;
+  /**
+   * Bu karenin klip değerleri (gövde uzayı, derece/metre). Boş dizi = klip yok: iskelet yazdıklarını geri alır. Kümede olmayan uzvun izi
+   * yok sayılır — sayımı yürütücü yapar (`atlananIzler`), burası değil.
+   */
+  klipUygula?(degerler: readonly UzuvDegeri[]): void;
 }
 
 /**

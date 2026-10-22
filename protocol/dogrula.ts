@@ -9,6 +9,7 @@ import {
   type Niyet, type NiyetTur, type OrtamNe, type SorKonusu,
 } from "./niyet.ts";
 import { capaCoz, type Hedef } from "./temel.ts";
+import { klipAdiGecerli } from "./animasyon.ts";
 
 export type Sonuc<T> = { ok: true; deger: T } | { ok: false; hata: string };
 
@@ -81,11 +82,15 @@ export function niyetDogrula(ham: unknown): Sonuc<Niyet> {
     case "jest": {
       if (!JESTLER.includes(o.jest as never))
         return { ok: false, hata: `jest geçersiz: ${String(o.jest)} (geçerli: ${JESTLER.join(", ")})` };
+      // Klip (Dilim 5a): yalnız AD biçimi burada; klibin VAR olup olmadığını beden bilir (çapa gibi: bilinmeyen ad `hata` sonucuyla döner).
+      if (o.klip !== undefined && !klipAdiGecerli(o.klip))
+        return { ok: false, hata: `klip geçersiz: ${JSON.stringify(o.klip)} (klip adı: küçük harf, rakam ve _)` };
+      const klip = o.klip === undefined ? {} : { klip: o.klip as string };
       if (o.hedef === undefined)
-        return { ok: true, deger: { tur: "jest", jest: o.jest as never } };
+        return { ok: true, deger: { tur: "jest", jest: o.jest as never, ...klip } };
       const h = hedefDogrula(o.hedef, "hedef");
       if (!h.ok) return h;
-      return { ok: true, deger: { tur: "jest", jest: o.jest as never, hedef: h.deger } };
+      return { ok: true, deger: { tur: "jest", jest: o.jest as never, hedef: h.deger, ...klip } };
     }
 
     case "bak": {

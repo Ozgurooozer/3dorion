@@ -171,7 +171,8 @@ const kontrolEt = (g: Graf, ajanlar: string[], desenler: Graf[] = []) => grafCal
 }).kontrol(g);
 
 test("Ajan seç: defterde olmayan kimlik DENETİMDE hata (hangi ajanların olduğunu söyler)", () => {
-  assert.match(kontrolEt(gitSoyle(), ["orion"]).join(), /s\.ajan: 'flash' geçersiz \(seçenekler: orion\)/);
+  // Dilim 3: listenin sonunda ayrılmış `@ben` (bu grafiği çalıştıran NPC) da söylenir.
+  assert.match(kontrolEt(gitSoyle(), ["orion"]).join(), /s\.ajan: 'flash' geçersiz \(seçenekler: orion, @ben\)/);
 });
 
 test("Ajan seç: liste ÇALIŞMA ANINDA okunur — Flash sonradan gelince aynı grafik denetimden geçer", () => {

@@ -5,6 +5,7 @@
 // dokunur (kompozisyon kökü verir): kütüphanede OLMAYAN bir yetenek grafikten çağrılamaz (sınır budur; terminal, güvenlik ayarları, protokol yoktur).
 "use strict";
 import type { Graf, GrafDegeri, PinTanimi } from "../../protocol/graf.ts";
+import type { NpcParametresi } from "../../protocol/npc.ts";
 
 export type DugumKategorisi = "olay" | "akis" | "veri" | "ajan" | "dunya" | "desen";
 
@@ -43,6 +44,20 @@ export interface PinOrtami {
    * "her ajan var" demez, ajan seçen grafik o denetimden geçmez (sessiz geçiş yerine nedenli hata).
    */
   ajanlar?(): readonly string[];
+  /**
+   * `@ben`in çözümü (dilim 3, NPC sınıfı). ÜÇ HÂL, bilerek:
+   *   • verilmez (undefined): Kontrol et / görsel editör — grafik bir NPC SINIFI olabilir, `@ben` ve `npc.parametre` GEÇERLİDİR (kimin olduğu dinlemede belli olur);
+   *   • null: bu çalışmanın NPC'si YOK (▶ Çalıştır, NPC'siz ⚡ dinleme) — `@ben` NEDENLE hata (sessiz geçiş yok);
+   *   • NPC: dinlemeye alınan NPC (ajanı + parametreleri) — `@ben` onun ajanıdır, parametre türleri denetimde ona göre bakılır.
+   */
+  ben?: NpcBaglami | null;
+}
+
+/** Bir çalışmanın NPC'si (`@ben`): kaydın adı, ajanı ve parametreleri (dinlemeye alındığı andaki KOPYA). */
+export interface NpcBaglami {
+  readonly ad: string;
+  readonly ajan: string;
+  readonly parametreler: Readonly<Record<string, NpcParametresi>>;
 }
 
 /** Ayarın izinli değerleri (sabit ya da ortamdan); seçenek listesi yoksa null. */
@@ -74,6 +89,15 @@ export interface DugumCalismasi<Y> {
   readonly tetik: CalismaTetigi | null;
   /** Grafiğin değişken alanı; çalıştıran vermediyse null (değişken düğümleri nedenle düşer, sessiz geçmez). */
   readonly degiskenler: DegiskenAlani | null;
+  /**
+   * AJANIN değişken alanı (dilim 3, Unreal "üye değişkeni"): o ajanın BÜTÜN grafiklerince paylaşılır (`kapsam: "ajan"`). Çalıştıran vermediyse null
+   * (ajan kapsamlı değişken düğümü nedenle düşer).
+   */
+  readonly ajanDegiskenleri: ((ajan: string) => DegiskenAlani) | null;
+  /** Bu çalışmanın NPC'si (`@ben`); ▶ ve NPC'siz dinlemede null. */
+  readonly ben: NpcBaglami | null;
+  /** Ajan defterinin kimlikleri şu an (ajan kapsamlı değişkenin sahibi defterde olmalı: yazım hatası sessizce yeni bir ajan alanı açmasın). */
+  ajanlar(): readonly string[];
   /** Yerel saat (0–24, kesirli): "Gün vakti" düğümü. Testte sahte saat. */
   saat(): number;
   readonly ayar: Readonly<Record<string, GrafDegeri>>;

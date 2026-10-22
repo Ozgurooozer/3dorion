@@ -29,18 +29,20 @@ function hataYeri(s: SonCalisma | null | undefined, graf: string): { id: string;
 }
 
 export function calismaIsareti(c: CalistiriciDurumu, dinleme: readonly DinlemeSatiri[], graf: string, simdi: number): CalismaIsareti {
-  const d = dinleme.find((x) => x.graf === graf) ?? null;
+  // Dilim 3: aynı grafiğin birden çok kaydı olabilir (tek başına + NPC'ler, `<graf>@<ajan>`): hepsi bu sekmenin grafiğidir.
+  const kayitlar = dinleme.filter((x) => x.graf === graf);
   const suren = c.calisiyor;
   const suan = suren?.suan && suren.suan.graf === graf ? suren.suan.id : null;
-  // Önce ▶'nin son sonucu (bu grafikse ya da bu desen içinde düştüyse), sonra olay çalışmasının.
-  const h = hataYeri(c.son, graf) ?? hataYeri(d?.son, graf);
+  // Önce ▶'nin son sonucu (bu grafikse ya da bu desen içinde düştüyse), sonra olay çalışmalarınınki.
+  let h = hataYeri(c.son, graf);
+  for (const d of kayitlar) h ??= hataYeri(d.son, graf);
   const satirTuru: CalismaIsareti["satirTuru"] = suren ? "calisiyor" : c.son ? c.son.durum : "";
   return {
     suan,
     hataDugumu: h?.id ?? null,
     hataMesaji: h?.mesaj ?? null,
-    calisiyor: suren?.graf === graf || !!d?.calisiyor,
-    dinlemede: !!d,
+    calisiyor: suren?.graf === graf || kayitlar.some((d) => d.calisiyor),
+    dinlemede: kayitlar.length > 0,
     satir: suren ? canliSatir(c, simdi) : c.son ? sonucSatiri(c.son) : "",
     satirTuru,
   };

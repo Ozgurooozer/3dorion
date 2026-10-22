@@ -7,11 +7,16 @@
 // DEĞİŞKENİN TÜRÜ DÜĞÜMDE YAZILI (`tip`: sayi | metin | bool), alanda değil: Oku'nun çıkış pini türüyle bağlanır (denetim Eğer'e metin bağlanmasını
 // yakalar). Alandaki değer başka türdeyse (biri "ziyaret"e metin yazdıysa) okuma HATADIR, sessiz dönüşüm yok. Hiç yazılmamış değişken türünün sıfırıdır
 // (0, "", false): Blueprint değişkeninin varsayılanı gibi; "ilk ziyaret" sayacı böylece kurulumsuz çalışır.
+//
+// KAPSAM (dilim 3, NPC sınıfı): `kapsam: "grafik"` (varsayılan; dilim 2'nin davranışı) ya da `"ajan"` — değişken `kim`in alanındadır, o ajanın bütün
+// grafikleri paylaşır, aynı grafiği çalıştıran başka ajan göremez (`grafDurumu.ts`). Alan seçimi ÇALIŞMA ANINDA `kim`den (bağlı Ajan seç @ben ya da
+// olayın `ajan` çıkışı): aynı dondurulmuş grafik iki NPC'de iki ayrı sayaç tutar.
 "use strict";
 import { grafAdiGecerli, type GrafDegeri, type PinTanimi } from "../../protocol/graf.ts";
 import { gununVakti } from "../../mind/zaman.ts";
-import { AKIS_GIRIS, AKIS_SONRA, type AyarTanimi, type DegiskenAlani, type DugumCalismasi, type DugumTanimi } from "./dugumKaydi.ts";
+import { AKIS_GIRIS, AKIS_SONRA, type AyarTanimi, type DegiskenAlani, type DugumCalismasi, type DugumTanimi, type PinOrtami } from "./dugumKaydi.ts";
 import { degiskenDegeriHatasi } from "./grafDurumu.ts";
+import { ajanCoz, benDenetle, benliAjanSecenekleri } from "./benAjani.ts";
 
 export const DEGISKEN_TIPLERI = ["sayi", "metin", "bool"] as const;
 export type DegiskenTipi = (typeof DEGISKEN_TIPLERI)[number];
@@ -36,11 +41,33 @@ export function gunVaktiAdi(saat: number): GunVakti {
 }
 
 const sifiri = (t: DegiskenTipi): GrafDegeri => (t === "sayi" ? 0 : t === "metin" ? "" : false);
-const turuMu = (t: DegiskenTipi, v: unknown): boolean => (t === "sayi" ? typeof v === "number" : t === "metin" ? typeof v === "string" : typeof v === "boolean");
-const TUR_ADI: Record<DegiskenTipi, string> = { sayi: "sayı", metin: "metin", bool: "doğru/yanlış" };
+export const turuMu = (t: DegiskenTipi, v: unknown): boolean => (t === "sayi" ? typeof v === "number" : t === "metin" ? typeof v === "string" : typeof v === "boolean");
+export const TUR_ADI: Record<DegiskenTipi, string> = { sayi: "sayı", metin: "metin", bool: "doğru/yanlış" };
 
-const AD_AYARI: AyarTanimi = { ad: "ad", tip: "metin", aciklama: "değişkenin adı (harf, rakam, _ ve -; grafiğe özel)", ornek: "sayac" };
+const AD_AYARI: AyarTanimi = { ad: "ad", tip: "metin", aciklama: "değişkenin adı (harf, rakam, _ ve -; kapsamına özel)", ornek: "sayac" };
 const TIP_AYARI: AyarTanimi = { ad: "tip", tip: "metin", varsayilan: "sayi", secenekler: DEGISKEN_TIPLERI, aciklama: "değişkenin türü" };
+
+/**
+ * KAPSAM (dilim 3): `grafik` VARSAYILAN — ayarsız eski grafikler dilim 2'deki gibi grafik başına alanı kullanır (geriye uyumlu, testli). `ajan`: değişken
+ * `kim`in (Unreal üye değişkeni); `kim` pini çıkar (bağla: Ajan seç @ben ya da olayın `ajan` çıkışı; bağsızsa `kim` ayarı, `@ben` dahil).
+ */
+export const DEGISKEN_KAPSAMLARI = ["grafik", "ajan"] as const;
+export type DegiskenKapsami = (typeof DEGISKEN_KAPSAMLARI)[number];
+const KAPSAM_AYARI: AyarTanimi = {
+  ad: "kapsam", tip: "metin", varsayilan: "grafik", secenekler: DEGISKEN_KAPSAMLARI,
+  aciklama: "grafik: bu grafiğin değişkeni · ajan: 'kim'in değişkeni — o ajanın BÜTÜN grafikleri paylaşır (aynı grafik iki NPC'de iki ayrı sayaç)",
+};
+const KIM_AYARI: AyarTanimi = { ad: "kim", tip: "metin", secenekler: benliAjanSecenekleri, aciklama: "ajan kapsamında değişkenin sahibi (bağ yoksa; @ben = bu NPC)" };
+const KIM_PINI: PinTanimi = { ad: "kim", tip: "ajan" };
+
+/** Kapsam ayarı (denetimde fırlatır). `ajan` kapsamında bağsız `kim` ayarı `@ben` ise NPC'siz çalışmada nedenle düşer (`benDenetle`). */
+function kapsamOku(a: Readonly<Record<string, GrafDegeri>>, o?: PinOrtami): DegiskenKapsami {
+  const k = a["kapsam"] ?? "grafik";
+  if (!DEGISKEN_KAPSAMLARI.includes(k as DegiskenKapsami)) throw new Error(`kapsam: '${String(k)}' geçersiz (seçenekler: ${DEGISKEN_KAPSAMLARI.join(", ")})`);
+  if (k === "ajan" && o) benDenetle(a["kim"], o, "kim");
+  return k as DegiskenKapsami;
+}
+const kapsamPinleri = (a: Readonly<Record<string, GrafDegeri>>, o: PinOrtami): PinTanimi[] => (kapsamOku(a, o) === "ajan" ? [KIM_PINI] : []);
 
 /** Ad ve tür ayarları (denetimde: `pinler` fırlatınca hata listesine düşer). */
 function adVeTip(a: Readonly<Record<string, GrafDegeri>>): { ad: string; tip: DegiskenTipi } {
@@ -52,14 +79,26 @@ function adVeTip(a: Readonly<Record<string, GrafDegeri>>): { ad: string; tip: De
   return { ad, tip: tip as DegiskenTipi };
 }
 
-function alanAl<Y>(c: DugumCalismasi<Y>): DegiskenAlani {
-  if (!c.degiskenler) throw new Error("bu çalışmanın değişken alanı yok (değişken düğümleri yalnız Graf sekmesinden ▶ ya da dinlemeyle çalışır)");
-  return c.degiskenler;
+/**
+ * Düğümün alanı, kapsamına göre. Ajan kapsamında sahip `kim`den okunur (`@ben` çözülür) ve DEFTERDE olmalı: "flsh" yazım hatası sessizce yeni bir ajan
+ * alanı açıp sayacı kaybetmesin (sessiz geçiş yok).
+ */
+async function alanAl<Y>(c: DugumCalismasi<Y>): Promise<DegiskenAlani> {
+  if (kapsamOku(c.ayar) === "grafik") {
+    if (!c.degiskenler) throw new Error("bu çalışmanın değişken alanı yok (değişken düğümleri yalnız Graf sekmesinden ▶ ya da dinlemeyle çalışır)");
+    return c.degiskenler;
+  }
+  if (!c.ajanDegiskenleri) throw new Error("bu çalışmanın ajan değişken alanı yok (ajan kapsamlı değişken yalnız Graf sekmesinden ▶ ya da dinlemeyle çalışır)");
+  const kim = ajanCoz(await c.giris("kim"), c.ben);
+  if (typeof kim !== "string" || !kim) throw new Error(`kim: ajan kapsamlı değişkenin sahibi bir ajan olmalı (Ajan seç'e bağla ya da ayar.kim ver; gelen: ${JSON.stringify(kim)})`);
+  const var_ = c.ajanlar();
+  if (!var_.includes(kim)) throw new Error(`kim: bilinmeyen ajan '${kim}' (var: ${var_.join(", ") || "yok"})`);
+  return c.ajanDegiskenleri(kim);
 }
 
 /** Alandaki değer, düğümün türüyle. Yoksa türün sıfırı; başka türdeyse HATA. */
-function oku<Y>(c: DugumCalismasi<Y>, ad: string, tip: DegiskenTipi): GrafDegeri {
-  const v = alanAl(c).oku(ad);
+function oku(alan: DegiskenAlani, ad: string, tip: DegiskenTipi): GrafDegeri {
+  const v = alan.oku(ad);
   if (v === undefined) return sifiri(tip);
   if (!turuMu(tip, v)) throw new Error(`'${ad}' ${TUR_ADI[tip]} değil (içinde ${JSON.stringify(v)} var): başka bir düğüm başka türle yazmış`);
   return v;
@@ -91,43 +130,44 @@ export function durumDugumleri<Y>(): DugumTanimi<Y>[] {
     // ── değişkenler ──
     {
       tip: DEGISKEN_DUGUMU.oku, ad: "Değişken oku", kategori: "veri", saf: true,
-      aciklama: "Grafiğin değişkenini okur (bellekte; uygulama kapanınca gider). Hiç yazılmadıysa türünün sıfırı: 0, \"\" ya da false.",
-      ayarlar: [AD_AYARI, TIP_AYARI],
-      pinler: (a) => ({ girisler: [], cikislar: [{ ad: "deger", tip: adVeTip(a).tip }] }),
-      calistir: (c) => { const { ad, tip } = adVeTip(c.ayar); return { cikti: { deger: oku(c, ad, tip) } }; },
+      aciklama: "Değişkeni okur (bellekte; uygulama kapanınca gider). Kapsam: grafik (bu grafiğin) ya da ajan ('kim'in; o ajanın bütün grafikleri paylaşır). Hiç yazılmadıysa türünün sıfırı: 0, \"\" ya da false.",
+      ayarlar: [AD_AYARI, TIP_AYARI, KAPSAM_AYARI, KIM_AYARI],
+      pinler: (a, o) => ({ girisler: kapsamPinleri(a, o), cikislar: [{ ad: "deger", tip: adVeTip(a).tip }] }),
+      calistir: async (c) => { const { ad, tip } = adVeTip(c.ayar); return { cikti: { deger: oku(await alanAl(c), ad, tip) } }; },
     },
     {
       tip: DEGISKEN_DUGUMU.yaz, ad: "Değişken yaz", kategori: "veri", saf: false,
-      aciklama: "Grafiğin değişkenine değer yazar (sayı, metin, doğru/yanlış; tür ayardan). 'deger' bağlı değilse ayar.deger.",
-      ayarlar: [AD_AYARI, TIP_AYARI],
-      pinler: (a) => {
+      aciklama: "Değişkene değer yazar (sayı, metin, doğru/yanlış; tür ayardan). 'deger' bağlı değilse ayar.deger. Kapsam: grafik ya da ajan ('kim'in).",
+      ayarlar: [AD_AYARI, TIP_AYARI, KAPSAM_AYARI, KIM_AYARI],
+      pinler: (a, o) => {
         const { tip } = adVeTip(a);
         // Bağsız 'deger' ayardan okunur; türü burada denetlenir (denetimde yakalansın, çalışma ortasında değil).
         const d = a["deger"];
         if (d !== undefined && d !== null && !turuMu(tip, d)) throw new Error(`deger: ${TUR_ADI[tip]} olmalı (tip: ${tip}; gelen: ${JSON.stringify(d)})`);
-        return { girisler: [AKIS_GIRIS, { ad: "deger", tip }], cikislar: [AKIS_SONRA] };
+        return { girisler: [AKIS_GIRIS, ...kapsamPinleri(a, o), { ad: "deger", tip }], cikislar: [AKIS_SONRA] };
       },
       calistir: async (c) => {
         const { ad, tip } = adVeTip(c.ayar);
         const v = await c.giris("deger");
         if (!turuMu(tip, v)) throw new Error(`deger: ${TUR_ADI[tip]} olmalı (gelen: ${JSON.stringify(v)})`);
-        alanAl(c).yaz(ad, v as GrafDegeri);
+        (await alanAl(c)).yaz(ad, v as GrafDegeri);
         return { sonra: "sonra" };
       },
     },
     {
       tip: DEGISKEN_DUGUMU.artir, ad: "Değişken artır", kategori: "veri", saf: false,
-      aciklama: "Sayı değişkenine 'miktar' ekler (varsayılan 1; eksi de olur) ve yeni değeri verir. Hiç yazılmadıysa 0'dan başlar (ziyaret sayacı).",
-      ayarlar: [AD_AYARI, { ad: "miktar", tip: "sayi", varsayilan: 1, en: -1_000_000, cok: 1_000_000 }],
-      pinler: (a) => { adVeTip({ ...a, tip: "sayi" }); return { girisler: [AKIS_GIRIS, { ad: "miktar", tip: "sayi" }], cikislar: [AKIS_SONRA, { ad: "deger", tip: "sayi" }] }; },
+      aciklama: "Sayı değişkenine 'miktar' ekler (varsayılan 1; eksi de olur) ve yeni değeri verir. Hiç yazılmadıysa 0'dan başlar (ziyaret sayacı). Kapsam: grafik ya da ajan ('kim'in).",
+      ayarlar: [AD_AYARI, { ad: "miktar", tip: "sayi", varsayilan: 1, en: -1_000_000, cok: 1_000_000 }, KAPSAM_AYARI, KIM_AYARI],
+      pinler: (a, o) => { adVeTip({ ...a, tip: "sayi" }); return { girisler: [AKIS_GIRIS, ...kapsamPinleri(a, o), { ad: "miktar", tip: "sayi" }], cikislar: [AKIS_SONRA, { ad: "deger", tip: "sayi" }] }; },
       calistir: async (c) => {
         const { ad } = adVeTip({ ...c.ayar, tip: "sayi" });
         const m = await c.giris("miktar");
         if (typeof m !== "number" || !Number.isFinite(m)) throw new Error(`miktar: sayı olmalı (gelen: ${JSON.stringify(m)})`);
-        const yeni = (oku(c, ad, "sayi") as number) + m;
+        const alan = await alanAl(c);
+        const yeni = (oku(alan, ad, "sayi") as number) + m;
         const h = degiskenDegeriHatasi(yeni);
         if (h) throw new Error(`'${ad}': ${h}`);
-        alanAl(c).yaz(ad, yeni);
+        alan.yaz(ad, yeni);
         return { cikti: { deger: yeni }, sonra: "sonra" };
       },
     },
@@ -172,6 +212,19 @@ export function durumDugumleri<Y>(): DugumTanimi<Y>[] {
       aciklama: "a ile b'yi yan yana yazar (\"Ziyaret: \" + 3). Sayı ve doğru/yanlış yazıya çevrilir.",
       pinler: () => ({ girisler: [{ ad: "a", tip: "herhangi" }, { ad: "b", tip: "herhangi" }], cikislar: [{ ad: "metin", tip: "metin" }] }),
       calistir: async (c) => ({ cikti: { metin: yaziya(await c.giris("a"), "a") + yaziya(await c.giris("b"), "b") } }),
+    },
+    {
+      // Dilim 3: parola artık NPC'nin parametresi — diyaloğun seçtiği metin parametreyle karşılaştırılır (Karşılaştır yalnız sayı alır).
+      tip: "metin.esit", ad: "Metin eşit mi", kategori: "veri", saf: true,
+      aciklama: "a ile b aynı metin mi (baştaki/sondaki boşluk yok sayılır; 'harf' kapalıysa büyük/küçük harf de). Seçilen diyalog cevabı = NPC'nin parolası gibi.",
+      ayarlar: [{ ad: "harf", tip: "bool", varsayilan: false, aciklama: "büyük/küçük harf duyarlı mı" }],
+      pinler: () => ({ girisler: [{ ad: "a", tip: "metin" }, { ad: "b", tip: "metin" }], cikislar: [BOOL("sonuc")] }),
+      calistir: async (c) => {
+        const a = await c.giris("a"), b = await c.giris("b");
+        if (typeof a !== "string" || typeof b !== "string") throw new Error(`a ve b metin olmalı (gelen: ${typeof a}, ${typeof b})`);
+        const n = (s: string) => (c.ayar["harf"] === true ? s.trim() : s.trim().toLocaleLowerCase("tr"));
+        return { cikti: { sonuc: n(a) === n(b) } };
+      },
     },
   ];
 }

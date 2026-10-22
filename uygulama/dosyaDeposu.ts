@@ -110,6 +110,22 @@ export function calismayanDosyaKaynagi(neden: string, hata: HataYap): DosyaKayna
   return { liste: async () => [], oku: h, yaz: h, yeni: h };
 }
 
+/**
+ * Çalışma ortamına göre kaynak (grafikler ve NPC kayıtları, dilim 3'te ortaklaştı): kabuk dört işlemi de veriyorsa host dosyaları (IPC; `sil` varsa o da),
+ * değilse localStorage (`yerel`, konsolda uyarı: `npm run dev`), ikisi de yoksa NEDENLİ çalışmayan kaynak. `ipc` alanları preload'un ok işlevleridir
+ * (`this` gerekmez); kabuk sürümü eski olabilir, her alan yokluğa karşı korunur.
+ */
+export function kaynakSec(
+  ipc: Partial<DosyaIpcYuzu<DosyaBilgisi>> | undefined, yerel: (d: Depo) => DosyaKaynagi, hata: HataYap, a: { ne: string; onek: string },
+): { kaynak: DosyaKaynagi; hata: string | null } {
+  const liste = ipc?.liste, oku = ipc?.oku, yaz = ipc?.yaz, yeni = ipc?.yeni, sil = ipc?.sil;
+  if (liste && oku && yaz && yeni) return { kaynak: ipcDosyaKaynagi({ liste, oku, yaz, yeni, ...(sil ? { sil } : {}) }, hata), hata: null };
+  const depo = tarayiciDeposu();
+  if (!depo) { const neden = `${a.ne} için ne kabuk ne localStorage var`; return { kaynak: calismayanDosyaKaynagi(neden, hata), hata: neden }; }
+  console.warn(`${a.onek} kabuk yok (npm run dev): ${a.ne} tarayıcı deposunda tutulur`);
+  return { kaynak: yerel(depo), hata: null };
+}
+
 /** Tarayıcı deposu (yoksa ya da erişim reddedilirse null). */
 export function tarayiciDeposu(): Depo | null {
   try { return globalThis.localStorage ?? null; } catch { return null; }

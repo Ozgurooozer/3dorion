@@ -22,7 +22,7 @@ Spec 35'in eki. Kaynak: Epic dokümantasyonu (değişkenler, fonksiyonlar, makro
 | Function/Macro kütüphanesi | desenler tek klasör | var |
 
 ## 2. Sonuç: önerilen sıradaki işler (etkisine göre)
-1. **Ajan kapsamlı değişken** + grafiği ajana bağlama ("NPC sınıfı" = `NpcTanimi` + grafik + parametreler). 300 ajan hedefi ve "iki nöbetçi" buna bağlı; bugün sayaç grafik başına, iki ajan paylaşır.
+1. **Ajan kapsamlı değişken** + grafiği ajana bağlama ("NPC sınıfı" = `NpcTanimi` + grafik + parametreler). 300 ajan hedefi ve "iki nöbetçi" buna bağlı; bugün sayaç grafik başına, iki ajan paylaşır. → **YAZILDI 2026-10-22** (spec 35 §4g "Dilim 3": `kapsam: ajan`, `@ben`, `npc.parametre` = Instance Editable, NPC kaydı; fonksiyon-yerel kapsam YAPILMADI; canlıda görülmedi).
 2. **Çok akış çıkışlı desen (makro)** ve **saf desen**.
 3. Değişkene varsayılan değer / ipucu; Instance Editable parametre.
 4. Editör: watch (değer izleme), Reroute, Comment, "Promote to variable".

@@ -1,0 +1,40 @@
+{
+  "surum": 1,
+  "ad": "dusun",
+  "aciklama": "Düşünür: baş yana ve öne eğik, sağ el çeneye doğru kalkar.",
+  "jest": "bekliyor",
+  "sure": 3.0,
+  "dongu": false,
+  "izler": [
+    { "uzuv": "bas", "kanal": "donme_z", "anahtarlar": [
+      { "t": 0, "deger": 0, "yumusatma": "yumusak" },
+      { "t": 0.5, "deger": 10 },
+      { "t": 2.5, "deger": 10, "yumusatma": "yumusak" },
+      { "t": 3.0, "deger": 0 }
+    ] },
+    { "uzuv": "bas", "kanal": "donme_x", "anahtarlar": [
+      { "t": 0, "deger": 0, "yumusatma": "yumusak" },
+      { "t": 0.5, "deger": 8 },
+      { "t": 2.5, "deger": 8, "yumusatma": "yumusak" },
+      { "t": 3.0, "deger": 0 }
+    ] },
+    { "uzuv": "sag_kol", "kanal": "donme_x", "anahtarlar": [
+      { "t": 0, "deger": 0, "yumusatma": "yumusak" },
+      { "t": 0.6, "deger": -35 },
+      { "t": 2.4, "deger": -35, "yumusatma": "yumusak" },
+      { "t": 3.0, "deger": 0 }
+    ] },
+    { "uzuv": "sag_kol", "kanal": "donme_y", "anahtarlar": [
+      { "t": 0, "deger": 0, "yumusatma": "yumusak" },
+      { "t": 0.6, "deger": -35 },
+      { "t": 2.4, "deger": -35, "yumusatma": "yumusak" },
+      { "t": 3.0, "deger": 0 }
+    ] },
+    { "uzuv": "sag_on_kol", "kanal": "donme_x", "anahtarlar": [
+      { "t": 0, "deger": 0, "yumusatma": "yumusak" },
+      { "t": 0.6, "deger": -110 },
+      { "t": 2.4, "deger": -110, "yumusatma": "yumusak" },
+      { "t": 3.0, "deger": 0 }
+    ] }
+  ]
+}

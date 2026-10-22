@@ -34,6 +34,9 @@ import { PBRMaterial } from "@babylonjs/core/Materials/PBR/pbrMaterial";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { BOY } from "./prosedurel.ts";
+import { uzuvlariCoz } from "./uzuvEslemesi.ts";
+import { uzuvSurucusuKur } from "./uzuvSurucusu.ts";
+import type { UzuvDegeri } from "./klipOrnekleyici.ts";
 
 /** VRM 0.x blend shape preset adayları — ağız açıklığı için sırayla aranır. */
 const AGIZ_ADLARI = ["a", "aa", "vrc.v_aa", "mouth_a", "jawopen", "viseme_aa", "fcl_mth_a"];
@@ -82,7 +85,11 @@ export async function vrmIskeletYukle(sahne: Scene, yol: string, gorunus: Iskele
       else if (m.material instanceof StandardMaterial) m.material.diffuseColor = renk.clone();
     }
   }
-  ayar.parent = kok;
+  // Klip kökü (Dilim 5a): kök ile ölçek/yön düzeltmesi ARASINDA, ayak hizasında ve metre ölçeğinde. Klibin `kok` uzvu (eğilme, zıplama) buna yazılır
+  // ve kol/baş dönmeleri bunun çerçevesinde okunur; kökün kendisi konum/yaw taşımaya devam eder.
+  const klipKok = new TransformNode(`${onek}_klip_kok`, sahne);
+  klipKok.parent = kok;
+  ayar.parent = klipKok;
   disKok.parent = ayar;
 
   // ── Ölçüm: yön ve boy ───────────────────────────────────────────────────
@@ -258,9 +265,24 @@ export async function vrmIskeletYukle(sahne: Scene, yol: string, gorunus: Iskele
   }
 
   function jestUygula(_jest: Jest | null, _ilerleme: number): void {
-    // Klip yok — jest bu iskelette görünmez. Sessiz değil: `bilgi.kaynak`
-    // klip sayısını taşıyor ve HUD onu basıyor.
+    // Modelde jest klibi yok — yordamsal jest bu iskelette görünmez. Sessiz değil: `bilgi.kaynak` klip sayısını taşıyor ve HUD onu basıyor.
+    // GÖRÜNEN YOL (Dilim 5a): `jest` niyetinin `klip` alanı → JSON klibi kemiklere `klipUygula` ile biner (aşağıda).
   }
+
+  // ── JSON klip (Dilim 5a) ────────────────────────────────────────────────
+  // Kemikler glTF'te TransformNode'a bağlı; ad BU YÜKLEMENİN düğümlerinde aranır (sahnede aranmaz: Orion ile Flash aynı glb'den aynı adları taşır,
+  // `getTransformNodeByName` ilkini dönüp Flash'ın klibini Orion'un koluna uygulardı).
+  const kemikDugumleri = uzuvlariCoz("vrm", (ad) => sonuc.transformNodes.find((n) => n.name === ad) ?? null);
+  if (kemikDugumleri.eksik.length > 0) {
+    console.warn(`[avatar/vrm] '${yol}' içinde klip uzuvlarının kemiği yok: ${kemikDugumleri.eksik.join(", ")} — bu izler atlanacak.`);
+  }
+  const surucu = uzuvSurucusuKur(klipKok, kemikDugumleri.dugumler);
+  let bekleyenKlip: readonly UzuvDegeri[] = [];
+  // ZAMANLAMA: kemikleri `bosta`/`yuru` klibi her karede `scene.animate()` içinde yazar. Orion'un çizim güncellemesi `scene.render()`dan ÖNCE koşar
+  // (giris.ts döngüsü), Flash'ınki `onBeforeRender`da (animasyondan sonra, bakış denetleyicisiyle). Klip ikisinin de ÜSTÜNE binsin diye değerler
+  // burada saklanır ve render hedeflerinden hemen önce (animasyon + bütün onBeforeRender işleri bittikten sonra, iskelet hazırlanmadan önce) uygulanır.
+  const klipGozcusu = sahne.onBeforeRenderTargetsRenderObservable.add(() => surucu.uygula(bekleyenKlip));
+  function klipUygula(degerler: readonly UzuvDegeri[]): void { bekleyenKlip = degerler; }
 
   function agizUygula(aciklik: number): void {
     const a = Math.min(1, Math.max(0, aciklik));
@@ -280,10 +302,12 @@ export async function vrmIskeletYukle(sahne: Scene, yol: string, gorunus: Iskele
   function gorunur(g: boolean): void { kok.setEnabled(g); }
 
   function yokEt(): void {
+    sahne.onBeforeRenderTargetsRenderObservable.remove(klipGozcusu);
     for (const g of klipler) g.dispose();
     for (const s of sonuc.skeletons) s.dispose();
     for (const m of sonuc.meshes) m.dispose();
     ayar.dispose();
+    klipKok.dispose();
     kok.dispose();
   }
 
@@ -295,5 +319,6 @@ export async function vrmIskeletYukle(sahne: Scene, yol: string, gorunus: Iskele
     bilgi, konumUygula, cizimKonumu,
     govdeUygula, basUygula, pozUygula, jestUygula,
     agizUygula, bostaUygula, gozKirp, gorunur, yokEt,
+    klipUzuvlari: surucu.uzuvlar, klipUygula,
   };
 }

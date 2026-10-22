@@ -48,7 +48,11 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
     kamu: ["protocol/temel.ts", "protocol/niyet.ts", "protocol/algi.ts", "protocol/dogrula.ts",
       "protocol/pano.ts", "protocol/bedenTanimi.ts", "protocol/index.ts",
       // Düğüm grafiği biçimi (spec 35): Orion/Ozyn programları; yorumlayıcı ve editör uygulama katmanında.
-      "protocol/graf.ts"],
+      "protocol/graf.ts",
+      // NPC kaydı biçimi (spec 35 dilim 3): ajan + grafikler + parametreler; dinleme ve depo uygulama katmanında.
+      "protocol/npc.ts",
+      // Animasyon klibi biçimi (spec 35 Dilim 5a): `jest` niyetinin `klip`i; gövdeye eşleme ve oynatma world/avatar/'da.
+      "protocol/animasyon.ts"],
     izinli: [], urun: true,
   },
   {

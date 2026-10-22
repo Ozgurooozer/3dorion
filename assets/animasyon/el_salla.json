@@ -1,0 +1,25 @@
+{
+  "surum": 1,
+  "ad": "el_salla",
+  "aciklama": "Sağ kolu yana-yukarı kaldırır, ön kolla üç kez sallar, indirir.",
+  "jest": "el_salliyor",
+  "sure": 2.4,
+  "dongu": false,
+  "izler": [
+    { "uzuv": "sag_kol", "kanal": "donme_z", "anahtarlar": [
+      { "t": 0, "deger": 0, "yumusatma": "yumusak" },
+      { "t": 0.45, "deger": 130 },
+      { "t": 1.95, "deger": 130, "yumusatma": "yumusak" },
+      { "t": 2.4, "deger": 0 }
+    ] },
+    { "uzuv": "sag_on_kol", "kanal": "donme_z", "anahtarlar": [
+      { "t": 0.45, "deger": 0, "yumusatma": "yumusak" },
+      { "t": 0.7, "deger": 30, "yumusatma": "yumusak" },
+      { "t": 0.95, "deger": -25, "yumusatma": "yumusak" },
+      { "t": 1.2, "deger": 30, "yumusatma": "yumusak" },
+      { "t": 1.45, "deger": -25, "yumusatma": "yumusak" },
+      { "t": 1.7, "deger": 30, "yumusatma": "yumusak" },
+      { "t": 1.95, "deger": 0 }
+    ] }
+  ]
+}

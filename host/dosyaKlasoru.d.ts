@@ -15,3 +15,13 @@ export interface DosyaKlasoru {
   kaldir(dizin: string, ad: string, simdi?: () => number): void;
 }
 export function dosyaKlasoru(t: { adGecerli: (ad: unknown) => boolean; boyutSiniri: number; etiket: string; adEtiketi: string }): DosyaKlasoru;
+/** Kayıt başına bir `<ad>.json` olan klasör (grafikler, NPC kayıtları): ad uzantısız; geçersiz ad `gecersiz-ad`. */
+export interface JsonKlasoru {
+  liste(dizin: string): DosyaBilgisi[];
+  oku(dizin: string, ad: string): string;
+  yaz(dizin: string, ad: string, metin: string): void;
+  yeni(dizin: string, ad: string, metin: string): void;
+  /** Kalıcı silmez: `<dizin>/.silinenler/<ad>.json.<zaman>`a taşır. Yoksa `yok`. */
+  kaldir(dizin: string, ad: string, simdi?: () => number): void;
+}
+export function jsonKlasoru(t: { adGecerli: (ad: unknown) => boolean; boyutSiniri: number; etiket: string; adEtiketi: string }): JsonKlasoru;

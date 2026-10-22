@@ -1,0 +1,22 @@
+{
+  "surum": 1,
+  "ad": "selam_ver",
+  "aciklama": "Hafif eğilerek selam: gövde ve baş öne, bekler, doğrulur.",
+  "jest": "gülümsüyor",
+  "sure": 2.0,
+  "dongu": false,
+  "izler": [
+    { "uzuv": "govde", "kanal": "donme_x", "anahtarlar": [
+      { "t": 0, "deger": 0, "yumusatma": "yumusak" },
+      { "t": 0.6, "deger": 22 },
+      { "t": 1.3, "deger": 22, "yumusatma": "yumusak" },
+      { "t": 2.0, "deger": 0 }
+    ] },
+    { "uzuv": "bas", "kanal": "donme_x", "anahtarlar": [
+      { "t": 0, "deger": 0, "yumusatma": "yumusak" },
+      { "t": 0.6, "deger": 12 },
+      { "t": 1.3, "deger": 12, "yumusatma": "yumusak" },
+      { "t": 2.0, "deger": 0 }
+    ] }
+  ]
+}

@@ -12,7 +12,7 @@
 "use strict";
 import type { Scene } from "@babylonjs/core/scene";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
-import { avatarKur, type Avatar } from "../../world/avatar/index.ts";
+import { avatarKur, type Avatar, type KlipBulucu } from "../../world/avatar/index.ts";
 import type { Saat } from "../../world/engine/tik.ts";
 import type { Yer } from "../../world/yer/yer.ts";
 import type { GunlukEkrani } from "../../world/surfaces/duvar/gunluk.ts";
@@ -42,6 +42,8 @@ export interface FlashBaglantisiGirdisi {
   sahne: Scene;
   saat: Saat;
   vrmYolu: string;
+  /** JSON animasyon klipleri (spec 35 Dilim 5a; Orion'la AYNI kap). Verilmezse Flash'ın klipli jesti nedenle `hata` döner. */
+  klipler?: KlipBulucu;
   yer: () => Yer;
   oyuncuKonumu: () => Vec3;
   koltuklar: Koltuklar;
@@ -74,6 +76,7 @@ export async function flashBaglantisiKur(g: FlashBaglantisiGirdisi): Promise<Fla
     spawn: { x: FLASH_DOGUM.x, y: 0, z: FLASH_DOGUM.z },
     vrmYolu: g.vrmYolu,
     vrmZorla: true,   // Orion'la aynı karar (giris.ts): low-poly beden, yüz sonra
+    ...(g.klipler ? { klipler: g.klipler } : {}),
     yer: g.yer,
     oyuncuKonumu: g.oyuncuKonumu,
     ad: FLASH.id, renk: FLASH.renk,

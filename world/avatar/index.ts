@@ -19,6 +19,7 @@ import { iskeletSec } from "./iskeletSecim.ts";
 import { vrmIskeletYukle } from "./vrm.ts";
 import type { AvatarIskeleti } from "./iskelet.ts";
 import type { Yer } from "../yer/yer.ts";
+import type { KlipBulucu } from "./klipKutuphanesi.ts";
 
 /**
  * Varsayılan karakter dosyası — vite `publicDir: assets` sayesinde kök altında.
@@ -59,6 +60,11 @@ export interface AvatarAyari {
   renk?: string;
   /** Oturma izni (spec 33): çapa başka bir bedenin koltuğuysa onun adı, boşsa null; yürütücüye geçer. Verilmezse her koltuk boş. */
   koltukDolu?: (capa: string) => string | null;
+  /**
+   * JSON animasyon klipleri (spec 35 Dilim 5a): `jest` niyetinin `klip`i buradan aranır. Kap boş verilip sonradan doldurulabilir (yükleme asenkron).
+   * Verilmezse klipli jest nedenle `hata` döner.
+   */
+  klipler?: KlipBulucu;
 }
 
 export interface Avatar {
@@ -120,17 +126,32 @@ export async function avatarKur(ayar: AvatarAyari): Promise<Avatar> {
   }
 
   const spawn = ayar.spawn ?? { x: 0, y: 0, z: 0 };
-  const yurutucu = new Yurutucu({ spawn, yaw: ayar.yaw ?? 0, oyuncuKonumu: ayar.oyuncuKonumu, yer: ayar.yer, ...(ayar.koltukDolu ? { koltukDolu: ayar.koltukDolu } : {}) });
+  const yurutucu = new Yurutucu({
+    spawn, yaw: ayar.yaw ?? 0, oyuncuKonumu: ayar.oyuncuKonumu, yer: ayar.yer, ...(ayar.koltukDolu ? { koltukDolu: ayar.koltukDolu } : {}),
+    ...(ayar.klipler ? { klipler: ayar.klipler } : {}),
+    // Uzvu olmayan gövde (LED yüz) boş küme: her iz "uygulanamadı" sayılır, klibin anlamı jest olarak görünür.
+    klipUzuvlari: iskelet.klipUzuvlari ?? new Set(),
+  });
   const beden = new Beden(iskelet);
   beden.yerlestir(spawn.x, spawn.y, spawn.z, ayar.yaw ?? 0);
 
   const dinleyiciler = new Set<(s: NiyetSonucu) => void>();
+  /** Uygulanamayan izleri günlüğe BİR KEZ (klip başına) yaz: el sallayan grafik her turda aynı satırı basmasın. */
+  const bildirilenKlipler = new Set<string>();
+  const atlananiBildir = (s: NiyetSonucu): void => {
+    if (s.durum !== "basladi" || !s.veri || !("atlanan" in s.veri)) return;
+    const v = s.veri as { klip?: unknown; atlanan?: unknown };
+    if (!Array.isArray(v.atlanan) || v.atlanan.length === 0 || typeof v.klip !== "string" || bildirilenKlipler.has(v.klip)) return;
+    bildirilenKlipler.add(v.klip);
+    console.warn(`[avatar] ${ayar.ad ?? "orion"} gövdesinde (${iskelet.bilgi.tur}) '${v.klip}' klibinin ${v.atlanan.length} izi uygulanamadı: ${v.atlanan.join(", ")} (bu gövdede o uzuv yok)`);
+  };
 
   // TÜM mantık 20 Hz tikinde. `runRenderLoop` içinde mantık YOK (K1).
   const birak = ayar.saat.dinle((_t, dt) => {
     const sonuclar = yurutucu.ilerle(dt);
     beden.mantikUygula(yurutucu.gorunum());
     for (const s of sonuclar) {
+      atlananiBildir(s);
       for (const d of dinleyiciler) {
         // Bir dinleyicinin hatası dünyayı durdurmaz ama SESSİZ de kalmaz.
         try { d(s); } catch (err) { console.error("[avatar] sonuç dinleyicisi hatası:", err); }
@@ -167,3 +188,7 @@ export { prosedurelIskelet } from "./prosedurel.ts";
 export { vrmIskeletYukle } from "./vrm.ts";
 export type { AvatarIskeleti, IskeletBilgisi } from "./iskelet.ts";
 export { orionGozuKur } from "./goz.ts";
+// JSON animasyon klipleri (spec 35 Dilim 5a): kütüphane + yükleyici kompozisyon kökünde kurulur (okuma `fetch`), gövde tablosu belge/ölçüm için.
+export { klipKutuphanesiKur, klipleriYukle, KLIP_DIZINI, KLIP_LISTESI } from "./klipKutuphanesi.ts";
+export type { KlipBulucu, KlipKutuphanesi, KlipHatasi } from "./klipKutuphanesi.ts";
+export { UZUV_ESLEMESI } from "./uzuvEslemesi.ts";

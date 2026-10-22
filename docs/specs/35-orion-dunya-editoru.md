@@ -1,6 +1,6 @@
 # Spec 35 — Orion dünyanın editörü, Ozyn mimar: Blueprint benzeri JSON düğüm grafiği
 
-Tarih: 2026-10-21 · Durum: **Dilim 0 bitti** (biçim + tür denetimi + saf yorumlayıcı, testli) · **Dilim 1 YAZILDI** (ajan düğümleri, grafik deposu, Graf sekmesi; testli, başsız; Graf sekmesi ve ajanların gerçek yürüyüşü canlıda GÖRÜLMEDİ) · **Dilim 2 YAZILDI** (NPC davranışı: ⚡ olay dinleme, değişkenler + koşul, seçimli diyalog, nöbetçi şablonu; testli, canlıda GÖRÜLMEDİ, §4c) · **Dilim 2b YAZILDI** (görsel düğüm editörü: saf mantık testli, DOM/SVG canlıda GÖRÜLMEDİ, §4e) · 3–5 sırada.
+Tarih: 2026-10-21 · Durum: **Dilim 0 bitti** (biçim + tür denetimi + saf yorumlayıcı, testli) · **Dilim 1 YAZILDI** (ajan düğümleri, grafik deposu, Graf sekmesi; testli, başsız; Graf sekmesi ve ajanların gerçek yürüyüşü canlıda GÖRÜLMEDİ) · **Dilim 2 YAZILDI** (NPC davranışı: ⚡ olay dinleme, değişkenler + koşul, seçimli diyalog, nöbetçi şablonu; testli, canlıda GÖRÜLMEDİ, §4c) · **Dilim 2b YAZILDI** (görsel düğüm editörü: saf mantık testli, DOM/SVG canlıda GÖRÜLMEDİ, §4e) · **Dilim 3 YAZILDI** (NPC sınıfı: ajan kapsamlı değişken, `@ben`, NPC parametresi, NPC kaydı + dinleme; testli, canlıda GÖRÜLMEDİ, §4g) · **Dilim 5a YAZILDI** (JSON animasyon klibi + "Animasyon oynat" düğümü; testli, kemik yeri başsız ölçüldü, görüntü canlıda GÖRÜLMEDİ, §4f) · 3b–5 sırada.
 Plan: `C:\Users\ozigo\.claude\plans\expressive-coalescing-mist.md` (onaylı). Araştırma: Opus ajanı raporu (scratchpad `modulerlesme-arastirma/rapor.md`).
 
 ## 1. İstek ve kararlar (Ozyn, 2026-10-21)
@@ -296,6 +296,229 @@ istediğini KANITLAMAZ — yalnız canlı denemede görülür.
     **Kopyasını oluştur** → yeni sekme açılmalı. `.silinenler/` klasöründe eski dosya.
 18. Graf sekmesinde bozuk bir dosyaya çift tık → görsel editör yerine JSON düzenleyici açılmalı (altyazı nedenini söyler).
 
+## 4f. Dilim 5a — JSON animasyon klibi ("Animasyon oynat", Blueprint'in PlayAnimation'ı) [TEST · başsız ölçüm · canlıda GÖRÜLMEDİ]
+Ozyn (2026-10-22): grafikle "belirli bir animasyonu oynat" diyebilmeli; Graf'ın Jest düğümü (el_salliyor) low-poly bedende görünmüyordu (§4b canlı listesi madde 3).
+
+### Keşif (başsız ölçüm: NullEngine + gerçek `assets/orion-lowpoly.glb`, 2026-10-22) [ÖLÇÜLDÜ]
+**Varsayım YANLIŞTI:** low-poly beden tek mesh (`orion_govde`, 15 000 köşe) ama **iskeletli**: 1 iskelet `orion_rig`, **52 kemik** (VRM humanoid adları: hips, spine, chest, upperChest, neck, head, left/right Shoulder/UpperArm/LowerArm/Hand + 30 parmak, left/right UpperLeg/LowerLeg/Foot/Toes), her kemik aynı adlı bir TransformNode'a bağlı (54 TN; + `orion_govde`, `orion_rig`). glb'de 5 klip: `bosta` (240 kare), `yuru` (70), `otur` (48), `oturuyor` (240), `kalk` (42); her biri 156 hedef = 52 kemik × (öteleme, dönme, ölçek). Jest klibi YOK. Yüzü +Z, `rightHand` +X'te (gövdenin kendi sağı). Morph target 0 (ağız/göz yok).
+
+**El sallamanın görünmeme NEDENİ:** Orion da Flash da `vrmZorla: true` ile low-poly bedeni kullanır (`giris.ts`, `flashBaglantisi.ts`) → `vrm.ts`'in `jestUygula`'sı BOŞ (modelde jest klibi yok). Kemik eksikliği değil: kemikler var, onları süren kod yoktu.
+
+| gövde türü | ne zaman | kontrol edilebilir adlı düğümler | `jestUygula` | düz `el_salliyor` görünür mü |
+|---|---|---|---|---|
+| `vrm` (low-poly glb) | bugün Orion + Flash (`vrmZorla`) | 52 kemik TN'si (yukarıda) | **boş** | **HAYIR** (kod yok) |
+| `prosedurel` (blok robot) | VRM yüklenemezse | `kok`, `kalca`, `boyun` (baş pivotu), `omuzL/R`, `bacakL/R` (TN); kol/baş/gövde kutu mesh | omuz/boyun/göz/çene yordamsal | EVET — ama `omuzR`'yi kaldırır: `omuzR` −X'te = gövdenin **SOL** kolu (ölçüldü; prosedürelde `L/R` omuz-bacakta ters adlı, gözde doğru) |
+| `ledyuz` (donanım) | yalnız LED test düzeneği | yok (gövdesiz) | yüz hâli (`gülümsüyor`→happy…) | hayır — `el_salliyor`'un yüz karşılığı yok (nötr) |
+
+Yan bulgular (bu dilimde DÜZELTİLMEDİ, ölçülmedi): (a) Orion'un çizim güncellemesi `scene.render()`'dan ÖNCE koşar (`giris.ts` döngüsü), `bosta` klibi baş kemiğini de yazdığı için `BoneLookController`'ın baş dönüşü Orion'da büyük olasılıkla EZİLİYOR (Flash'ta `onBeforeRender`'da, animasyondan sonra: ezilmez). (b) `vrm.ts` `pozUygula` "eğiliyor"da `disKok.rotation.x` yazar; glTF kökünde `rotationQuaternion` dolu olduğu için Babylon bu Euler'i yok sayar — eğilme pozu VRM'de görünmüyor olabilir.
+
+### Yapılan [TEST]
+| Dosya | İş |
+|---|---|
+| `protocol/animasyon.ts` | klip BİÇİMİ: `surum`, `ad` (= dosya adı, `[a-z0-9_]`), `jest` (klibin anlamı), `sure` (0 < s ≤ 10), `dongu`, `izler[{uzuv, kanal, anahtarlar[{t, deger, yumusatma}]}]`; `klipDogrula` (temiz kopya, tavan: 24 iz, iz başına 32 anahtar, ±180°, ±0.5 m, sonlu sayı, t süre içinde ve KESİN artan, çift uzuv+kanal reddi, öteleme yalnız `kok`), `klipOzeti`. Eksenler GÖVDE UZAYINDA (yüz +Z, sağ +X): donme_x + öne eğilir, donme_y + sağa döner, donme_z + sağ taraf kalkar |
+| `protocol/niyet.ts` · `dogrula.ts` | `jest` niyetine isteğe bağlı **`klip`** alanı (alan eklemek kırıcı değil, `SURUM` aynı); doğrulayıcı yalnız ad biçimine bakar, klipsiz jest ESKİ biçimde döner |
+| `world/avatar/klipOrnekleyici.ts` | saf örnekleyici: `klipZamani` (döngüsüz kısma, döngülü sarma), `klipBittiMi` (döngülü ASLA), `yumusat` (dogrusal/yumusak=smoothstep/basamak; segmentin BAŞINDAKİ anahtardan), `izDegeri`, `klipOrnekle`, `uzuvPozlari`, `atlananIzler` |
+| `world/avatar/uzuvEslemesi.ts` | soyut uzuv → gövde düğümü tablosu (vrm: 13 uzvun hepsi; prosedürel: kok, govde→kalca, bas→boyun, sag_kol→omuzL, sol_kol→omuzR, bacaklar; ledyuz: boş) + `uzuvlariCoz` (modelde bulunmayan "eksik" sayılır) |
+| `world/avatar/uzuvSurucusu.ts` | Babylon sürücüsü: klip dönmesi o anki duruşun (bosta/yürüme/poz) ÜSTÜNE, eklem etrafında, gövde uzayında (`yerel × P·R·P⁻¹`; glTF kökünün −1 aynası ve boy ölçeği eşlenikte sadeleşir); birikme kalkanı; `kok` uzvu iskeletin kendi ara düğümüne (`<önek>_klip_kok`) |
+| `world/avatar/klipKutuphanesi.ts` | kütüphane kabı (boş kurulur, yükleme bitince dolar; çağrı anında okunur) + saf yükleyici (`liste.json` + `<ad>.json`; bozuk dosya NEDENİYLE düşer, sağlamlar yüklenir) |
+| `world/avatar/{yurutucu,beden,iskelet,vrm,prosedurel,index}.ts` | Yürütücü: klipli jest SÜRELİ (`basladi` → süre dolunca `bitti`; veri: klip, süre, döngü, **atlanan izler**); ayrı kanal (git kesmez; yeni jest/klip ve `dur` keser → `iptal`); bilinmeyen klip nedenli `hata`. Beden: klip değerlerini poz/boşta/bakıştan SONRA verir, çizim zamanı mantığın en çok 1 tik önünde; klipsiz gövdede klibin `jest`'i. VRM: kemik BU yüklemede aranır (Orion/Flash aynı adları taşır), değerler `onBeforeRenderTargetsRender`'da uygulanır (animasyon + bakış denetleyicisinden sonra). Avatar: uygulanamayan izleri klip başına BİR KEZ `console.warn` ("… klibinin 1 izi uygulanamadı: sag_on_kol.donme_x") |
+| `assets/animasyon/` | `liste.json` + 5 klip: `el_salla` (2.4 sn), `basla_onayla` (1.2), `basla_reddet` (1.4), `selam_ver` (2.0, hafif eğilme), `dusun` (3.0, baş eğik + el çeneye) — hepsi döngüsüz, bitişte 0 |
+| `uygulama/graf/animasyonDugumleri.ts` | **`ajan.animasyon` "Animasyon oynat"** (kategori ajan): ayar `klip` (seçenekler yüklü kliplerden, `secenekleriCoz` çalışma anı), `bekle` (varsayılan true: BİTENE dek; false: kabulde devam), `kim`. Jest düğümüyle AYNI yol (`niyetDogrula` → `yurut` → ajanın tek eylem yolu). Döngülü klip + bekle → denetimde HATA |
+| değişen | `grafYetenegi.ts` (`AjanIsi.kabul`: işin ilk cevabı — dar ek), `ajanDugumleri.ts` (`yurut` dışa), `kutuphane.ts` (`grafKutuphanesi({ klipler })`), `giris.ts` (kütüphane kurulumu + `fetch` yükleyici, Orion/Flash/grafiğe aynı kap), `flashBaglantisi.ts` (`klipler`), `tools/altSistemler.ts` (`protocol/animasyon.ts` kamu) |
+
+`bridge/araclar.ts` DEĞİŞMEDİ: Orion'un `dunya_jest` şeması `klip` sunmaz (bekçi testi); klip bugün yalnız grafikten.
+
+**Başsız ölçüm** (`klipGovdesi.test.ts`, gövde-kökü çerçevesi, m; KEMİK yeri, deri değil): taban sağ el (0.22, 0.87, 0.11), baş (0, 1.57, 0.03), omuz y 1.38 → `el_salla` 1.0 sn: el **(0.54, 1.73, 0.11)** başın üstünde, sağda; ön kol iki uçta el x'i > 5 cm değişir; bitince el yine omzun altında. `selam_ver` 0.9 sn: baş (0, 1.52, 0.22) — 19 cm öne, ayak yerinde. `dusun` 1.5 sn: el (−0.02, 1.38, 0.20) — ortada, omuz hizasında, önde (çenenin ~12 cm altı: "çeneye doğru", tam çene değil). `basla_onayla`: başın ileri yönü aşağı döner; `basla_reddet`: yatayda döner. İki beden: Flash'ın klibi Orion'un koluna gitmez.
+
+### Görünürlük tablosu (hangi iz hangi gövdede uygulanır)
+| uzuv | vrm (low-poly) | prosedürel | ledyuz |
+|---|---|---|---|
+| kok (bütün beden: eğilme/zıplama) | ✓ ara düğüm | ✓ ara düğüm | — |
+| govde · gogus · boyun · bas | ✓ spine · chest · neck · head | ✓ kalca · — · — · boyun pivotu | — |
+| sag/sol_kol | ✓ Right/LeftUpperArm | ✓ omuzL / omuzR | — |
+| sag/sol_on_kol · sag/sol_el | ✓ LowerArm · Hand | — (kol tek kutu) | — |
+| sag/sol_bacak | ✓ UpperLeg | ✓ bacakL / bacakR | — |
+Uygulanamayan iz KULLANICIYA hata değildir: klip uygulanabilen kısmıyla oynar, `basladi` sonucu `atlanan` listesini taşır, günlükte (konsol) bir kez yazar. LED yüzde klibin `jest`'i yüz hâli olarak görünür.
+
+### Kararlar ve nedenleri
+- **Yeni niyet türü YOK**: `jest` niyetine `klip` alanı. Jest zaten "anlık hareket"tir; `jest` alanı zorunlu kaldı (klibin anlamı) — eski tüketiciler (benlik, LED yüz, köprü) değişmeden çalışır.
+- **Klipli jest süreli, kanalı ayrı**: `git` klibi kesmez (yürürken el sallanır — anlık niyet kuralı); yeni jest ya da klip keser ("en son jest kazanır", düz jestteki kural), `dur` keser. Kesilen klip `iptal` yayar (grafik "iş kesildi" der; sessiz kesme yok). Bilinmeyen klip oynayanı KESMEZ.
+- **Döngülü klip kendiliğinden bitmez**: grafik onu bekleyemez (denetimde nedenli ret: sonsuz bekleme yerine). `bekle: false` ile oynar; ■ çalışma sürdükçe keser (kanca çalışmanın sonuna dek kurulu). Kütüphanedeki beşi döngüsüz.
+- **Katman, ezme değil**: klip `bosta`/`yuru`'nun üstüne eklenir (gövde uzayında); `bosta` kapatılmadı. Neden: kollar dışındaki kemikler canlı kalsın, klip bitince ayrı bir "dinlenme pozuna dön" adımı gerekmesin.
+- **Eksen kuralı gövde uzayında, gövde başına tabloda değil**: aynı JSON iki gövdede aynı yöne kaldırır (prosedürelde `sag_kol` → +X'teki `omuzL`, ölçüldü). Tabloda işaret/eksen çevirisi YOK; gerekirse eşleme kemik başına eksen düzeltmesiyle büyür.
+- **Kütüphane kap, yükleme asenkron**: bedenler ve grafik boş kapla kurulur, `fetch` bitince dolar (bedenlerin yüklenmesi beklemez). Kütüphane dolmadan Kontrol et "seçenekler: yok" der (sessiz geçiş yok).
+- **Depo repoda** (`assets/animasyon/`, Vite publicDir): tarayıcı klasör listeleyemediği için `liste.json`; bekçi klasörle aynı olduğunu sınar. Kullanıcı verisi klasörü ve Orion'un klip yazması bu dilimde YOK.
+
+### Bozma denemesi
+Betik `scratchpad/klip-bozma.cjs` (yedek `klip-bozma-yedek/`; adı bilerek ayrı — aynı scratchpad'i başka ajan kullanıyordu ve ilk betiğimin üstüne yazmıştı). Her mutant tek dosyada tek değişiklik, dosya önce yedeklendi, ilgili testler 120 sn zaman aşımıyla, yedekten geri kondu, bayt bayt karşılaştırıldı (16/16 AYNI; `git checkout` yok). Taban önce yeşil koşuldu.
+
+| # | bozma | sonuç |
+|---|---|---|
+| 1 | iz tavanı yok | **yakalandı** (iz tavanı) |
+| 2 | döngüsüz klip hiç bitmiyor | **yakalandı** (örnekleyici, yürütücü 2, düğüm uçtan uca). Gövde testleri GEÇTİ: zaman süreye kısıldığı için el yine iner — "bitmiyor" bedende görünmez, sonuçta görünür |
+| 3 | `dur` klibi kesmiyor | **yakalandı** (yürütücü + VRM "el bir sonraki karede aşağıda") — ilk koşuda dosya CRLF'e dönmüştü, desen tutmadı ve ATLANDI; satır sonu LF'e döndürülüp yeniden koşuldu |
+| 4 | eşlemesiz iz sessizce yutuluyor (`atlanan` hep boş) | **yakalandı** (yürütücü + prosedürel gövde uyarısı) |
+| 5 | süre 0/negatif kabul | **yakalandı** |
+| 6 | klip adı seçenek denetimi yok | **yakalandı** (2) |
+| 7 | birikme kalkanı yok | **yakalandı** (4 VRM testi) |
+| 8 | kemik sahnede aranıyor (Flash'ın klibi Orion'un koluna) | **yakalandı** (iki beden) |
+| 9 | `bekle: false`ta ■ kancası hemen bırakılıyor | **yakalandı** |
+| 10 | `donme_z` işareti ters | **yakalandı** (VRM + prosedürel) |
+| 11 | gövde uzayı yok (dönme kemiğin yerel ekseninde) | **yakalandı** (el_salla, dusun) |
+| 12 | `liste.json`'dan bir klip unutuldu | **yakalandı** (bekçi) |
+| 13 | yeni düz jest klibi kesmiyor | **yakalandı** (ilk koşuda #3 gibi CRLF yüzünden atlanmıştı) |
+| 14 | bekle (varsayılan) kabulde devam ediyor | **yakalandı** (4) |
+| 15 | öteleme her uzuvda kabul | **yakalandı** |
+| 16 | tek bozuk klip bütün kütüphaneyi düşürüyor | **yakalandı** |
+
+Dürüst not: ilk koşuda #2 ve #14'te düğüm testi dosyası kırmızı yaktı ama SÜREÇ 120 sn asılı kaldı (uçtan uca testin saati ve grafiğin 60 sn adım tavanı zamanlayıcısı süreci ayakta tutuyordu). Testin saati `unref` edildi, sahte dünyanın adım tavanı 2.5 sn yapıldı; ikinci koşuda ikisi de zaman aşımsız kırmızı.
+
+### Açıklar [YAZILDI-KOŞULMADI]
+- **Canlıda HİÇBİR ŞEY görülmedi** (pencere açan koşu yapılmadı): derinin kemikle doğru eğildiği (ağırlıklar), kolun gövdenin İÇİNDEN geçip geçmediği (çarpışma yok), açıların göze doğru gelip gelmediği, ön kol sallamasının "el sallama" gibi okunup okunmadığı. Ölçülen yalnız kemik/düğüm YERİ.
+- Klip sınırında yumuşak geçiş (harmanlama) yok: klip başlarken/biterken değer 0'dan başlar/0'da biter diye yazıldı; bitişte 0 olmayan klip (Ozyn'in yazacağı) kolu sıçratır (kütüphanedekiler için bekçi var, kullanıcı klibi için yok).
+- Flash'ın boşta kıpırtısı (`mind/ajanda.ts`, 15–30 sn'de bir düz jest) grafiğin klibini KESER → grafik "iş kesildi" der (§7 açık (a)'nın klip hâli; ölçülmedi).
+- Orion'un baş bakışı (BoneLookController) ile `bas` izi Flash'ta üst üste biner (bakış önce, klip sonra); Orion'da bakış zaten eziliyor olabilir (yan bulgu a).
+- `jest` niyetinin `hedef`'i klipte kullanılmaz (işaret etme klibi hedefe yönelmez).
+- Dosya `fetch`'i paketli (file://) Electron'da denenmedi; `nesneSistemi.ts` aynı kalıbı kullanıyor.
+
+### Kalıcı çözüm seçenekleri (karar Ozyn'in; `project-orion-3b-model-karari` bekliyor) — kod YAZILMADI
+1. **Bugünkü rig yeter (öneri: önce canlı dene)**: low-poly beden zaten 52 kemikli; JSON klipler bu dilimle kemiklere biniyor. Eksik olan yalnız göz kontrolü. Canlı denemede kol gövdeye giriyorsa ya da deri kötü eğiliyorsa →
+2. **Blender'da jest klipleri bake et**: `tools/avatar-blender/` hattı (`klipler.py`, `bake.py`) `bosta/yuru/otur` gibi `el_salla` vb. üretebilir; glb'deki AnimationGroup'u `vrm.ts` jest adına göre oynatır (JSON klip yerine ya da yanında). Artı: sanatçı kalitesi, IK; eksi: her klip için Blender turu, Orion/Ozyn oyunda yazamaz.
+3. **JSON'dan glb'ye**: JSON klibi Blender'a aktarıp (betik) bake etmek — iki dünyanın arası; iş fazla.
+4. **ComfyUI 3B / yeni model**: yeni gövde üretimi (rigli) — 3B model kararına bağlı; rig yoksa bu dilimin eşleme tablosu yeni gövdeye yeni satırdır (VRM humanoid adlarını taşıyorsa satır gerekmez).
+5. **Prosedürelde ön kol**: blok gövdeye dirsek pivotu eklemek (ucuz) — prosedürel yalnız yedek gövde olduğu için öncelik düşük.
+
+### Canlı deneme listesi (Ozyn; pencere açan koşu sorulmadan yapılmadı)
+1. `npm start` → konsolda `[KLIP] 5 klip yüklendi: el_salla, basla_onayla, basla_reddet, selam_ver, dusun`; `[KLIP] … ` uyarısı OLMAMALI.
+2. Graf → ＋ Yeni grafik → editörde palet "animasyon" → **Animasyon oynat**; klip seçeneğinde beş ad. `kim: flash`, `klip: el_salla` → Başla'ya bağla → Ctrl+S → ▶: Flash sağ kolunu yana-yukarı kaldırmalı, ön kolu üç kez sallamalı, indirmeli (~2.4 sn); satır klip bitince `✓ … bitti`. **Kol gövdeye giriyor mu, deri yırtılıyor mu, el başın üstüne çıkıyor mu — bak.**
+3. Aynısı `kim: orion` ile (Orion'un çizim sırası farklı: klip yine görünmeli).
+4. `basla_onayla`, `basla_reddet`, `selam_ver`, `dusun` tek tek: baş öne/yana, gövde öne eğilme, el çeneye. Yönler doğru mu (sağ/sol, öne/geri)?
+5. `bekle` kapalı + arkasına **Git (ozyn)**: Flash yürürken el sallamalı (klip yürüyüşün üstüne biner).
+6. `el_salla` sürerken **■**: kol hemen inmeli, satır `■ … durduruldu`.
+7. Klip JSON'unu boz (`assets/animasyon/el_salla.json`'da `"sure": 99`) → yeniden başlat: konsolda `[KLIP] el_salla.json: sure: 99 aralık dışı…`, günlükte uyarı, öteki dört klip çalışır; Kontrol et `'el_salla' geçersiz (seçenekler: …)`. Dosyayı geri al.
+8. Flash yürürken (`Git`) **Jest** (düz `el_salliyor`) düğümü: hâlâ görünmez (beklenen; düz jest için klip eşlemesi yapılmadı).
+
+## 4g. Dilim 3 — NPC sınıfı: ajan kapsamlı değişken, `@ben`, NPC parametresi, NPC kaydı + dinleme [TEST · canlıda GÖRÜLMEDİ]
+Gerekçe: 35b §2.1 (Unreal "Blueprint Class": tür bir kez yazılır, örnekleri çoğalır, her örneğin kendi üye değişkenleri ve "Instance Editable" parametreleri
+vardır). Dilim 2'de değişken GRAFİK başına ve olay düğümünün `ajan`ı sabitti: aynı Nöbetçi grafiğini iki ajan kullansa ziyaret sayacı PAYLAŞILIRDI. Hedef:
+300 NPC'ye veriyle ölçeklenen "NPC sınıfı" — **bir grafik, birçok ajan, ayrı durum**. (Dilim numarası 3 bu işe verildi; eski "3. dünya düzenleme" §6'da 3b.)
+
+| Dosya | İş |
+|---|---|
+| `protocol/npc.ts` | NPC kaydı biçimi + elle doğrulayıcı (temiz kopya; tavanlar: graf 8, parametre 32, metin 200; ad kuralı = `grafAdiGecerli`, aynı fonksiyon) |
+| `uygulama/graf/benAjani.ts` | `@ben`: seçenekler, denetim (`benDenetle`, `npcGerekli`), çalışma anı çözümü (`ajanCoz`) |
+| `uygulama/graf/npcDugumleri.ts` | `npc.parametre` (saf): `ad`, `tip`, `varsayilan` (giriş pini), çıkış `deger` + `kayitta` |
+| `uygulama/graf/npcSablonu.ts` | "Nöbetçi (NPC'li)" şablonu (`@ben`, parola parametresi, ajan kapsamlı sayaç); eski Nöbetçi DEĞİŞMEDİ |
+| `uygulama/graf/npcDeposu.ts` | NPC deposu (`<userData>/orion-npc/<ad>.json`; localStorage `orion.npc.v1` geliştirmede) |
+| `uygulama/dogruDosyaDeposu.ts` | grafik deposundan GENELLEŞTİRİLEN doğrulanan-kayıt çekirdeği (doğrula → kanonik yaz, ad = dosya adı, bozuk dosya listede nedeniyle); `grafDeposu.ts` artık bunun üstünde (testleri değişmeden yeşil) |
+| `host/npcDosyalari.js` (+ `.d.ts`) | host deposu; `host/dosyaKlasoru.js`'e `jsonKlasoru` (ad → `<ad>.json`, kaldır = `.silinenler/`) eklendi, `grafDosyalari.js` onun üstüne alındı (kopya yok) |
+| `uygulama/yapi/npcSeridi.ts` | Graf sekmesi · "NPC'ler" şeridi (DOM, testsiz) |
+| değişen | `dugumKaydi.ts` (`PinOrtami.ben`, `NpcBaglami`, `DugumCalismasi.ben/ajanDegiskenleri/ajanlar`), `grafDurumu.ts` (ajan alanı), `durumDugumleri.ts` (`kapsam`, `kim`, `metin.esit`), `olayDugumleri.ts` + `ajanDugumleri.ts` (`ajan.sec`) (`@ben`), `yorumlayici.ts`, `grafCalistirici.ts` (`ben`), `grafDinleyici.ts` (NPC dinleme), `kutuphane.ts` (kayıt + şablon satırı), `editor/calismaGorunumu.ts` (bir grafiğin birden çok kaydı), `dosyaDeposu.ts` (`kaynakSec`: grafik ve NPC kaynak seçimi ortak), `grafSekmesi.ts` (şerit bağı, ajan durumu, bırak anahtarla), `host/kanallar.cjs` · `preload.cjs` · `kopru.ts` · `main.js` (`npc:liste/oku/yaz/yeni/sil`; dinleme kanalı YOK), `giris.ts` kablosu, `tools/altSistemler.ts` (`protocol/npc.ts` kamu) |
+
+NPC kaydı (örnek): `{ "surum": 1, "ad": "kapi_nobetcisi", "ajan": "flash", "graflar": ["nobetci"], "parametreler": { "parola": "Ay ışığı", "gece_basi": 21 } }`
+
+### Kararlar ve nedenleri
+- **Ajan kapsamlı değişken** (`kapsam`: `grafik` VARSAYILAN | `ajan`): `ajan` kapsamında değişken `kim`in alanındadır (Unreal üye değişkeni), o ajanın BÜTÜN
+  grafikleri paylaşır, başka ajan göremez; pin listesi kapsama göre değişir (`kim` ajan pini; bağsızsa `kim` ayarı, `@ben` dahil). Ayarsız eski grafikler
+  dilim 2'deki gibi GRAFİK alanını kullanır (testli; bozma #6). Sahip ÇALIŞMA ANINDA defterde olmalı: "flsh" yazım hatası sessizce yeni bir alan açmasın.
+  Ad çakışması bilerek mümkün (iki grafik aynı ajanın `ziyaret`ini paylaşır: üye değişkeni budur). Tavanlar: ajan başına 32 değişken, metin 200, en çok
+  512 ajanın alanı (300 NPC + pay; ölçülmedi); çözülmemiş `@ben` alan açamaz. **YALNIZ BELLEKTE** (kalıcılık YOK: uygulama kapanınca sayaçlar gider; kalıcı
+  durum = sürüm/göç/bozuk dosya sözleşmesi, ayrı karar). Graf sekmesi Kontrol et altında ve NPC kartında ajan durumu + ajan başına "sıfırla".
+- **`@ben`** = "bu grafiği çalıştıran NPC": olay düğümlerinin `ajan`ında, `ajan.sec`in `ajan`ında ve ajan kapsamlı değişkenin `kim` ayarında. Çözüm
+  ÇALIŞMA BAĞLAMINDA (`DugumCalismasi.ben`, denetimde `PinOrtami.ben`) — grafiğin kopyasında "@ben"i değiştirmek YAPILMADI: dinleyicinin dondurduğu kopya
+  (ve `desenleriDondur`un desen kopyaları) Ozyn'in onayladığı metnin aynısı kalır, aynı kopya iki NPC'de çalışır (testli). `PinOrtami.ben` üç hâlli:
+  verilmez = Kontrol et / görsel editör (grafik bir SINIF: `@ben` geçerli), `null` = ▶ ya da NPC'siz ⚡ (NEDENLİ hata: "grafik bir NPC sınıfı: yalnız NPC
+  şeridinden…"), NPC = çözülür. Yorumlayıcıya `ben` verilmezse null sayılır (çalışma anında "sınıf serbestliği" yok). Eylem düğümlerinin `kim` AYARI
+  `@ben` almaz (bağla: Ajan seç @ben ya da olayın `ajan` çıkışı; olayın `ajan` çıkışı ÇÖZÜLMÜŞ kimliktir).
+- **`npc.parametre`** (Instance Editable): NPC kaydındaki parametreyi okur, yoksa `varsayilan` (giriş pini; bağsızsa ayar — zorunlu: kaydı eksik NPC de
+  çalışsın); `kayitta` çıkışı kayıttan mı geldiğini söyler. Yalnız NPC çalışmasında (▶'de nedenli hata). TÜR uyuşmazlığı DİNLEMEYE ALIRKEN reddedilir
+  (NPC denetimde biliniyor; ilk yaklaşmada patlamaz) ve çalışma anında ikinci kez bakılır. Parola için **`metin.esit`** eklendi (Karşılaştır yalnız sayı alır;
+  boşluk ve — `harf` kapalıyken — büyük/küçük harf yok sayılır).
+- **NPC dinleme = aynı giriş**: `grafDinleyici.dinlemeyeAl(npc)` (grafik adı yerine NPC kaydı); ikinci bir çalıştırma yolu YAZILMADI. Kaydın her grafiği o
+  NPC'nin ajanı için ayrı kayıt (anahtar `<graf>@<ajan>`); çakışma/soğuma/tek-çalışma KAYIT başına; `DINLEME_AZAMI` (8) NPC grafikleri dahil TOPLAM.
+  Kurulum **ATOMİK** (bir grafik reddedilirse hiçbiri kurulmaz; neden `'<npc>' · <graf>: …`). Kaydın `ajan`ı DEFTERDE olmalı (dinlemeye alırken; kayıt
+  biçimi bilmez). **Aynı grafik aynı ajan için iki kez dinlenmez** (tek başına + NPC, ya da iki NPC; iki program aynı bedeni sürerdi); ayrı ajanlar serbest.
+  NPC'nin parametreleri dinleme anının kopyası (kayıt sonradan değişse de dinlenen NPC değişmez; bırak + yeniden kur). `npcBirak` bütün kayıtlarını bırakır.
+- **GÜVENLİK KURALI DEĞİŞMEDİ**: "⚡ NPC'yi dinlemeye al" yalnız `isTrusted` tıklama; bırakmak serbest; silmenin ikinci adımı gerçek tık. Bekçi kalibrasyonu
+  (`npcDavranisi.test.ts`): izin listesi artık dosya başına TAM çağrı sayısı (`calistirmaDugmeleri` 1+1, `grafSekmesi` 1+1, `npcSeridi` 0+1) ve desenler
+  geniş (`.calistir(` / `.dinlemeyeAl(` her alıcıda: takma adla çağrı sayıdan kaçamaz). Eski "en az 2 çağrı" kuralı ▶'siz şeridi reddederdi ve fazladan
+  bir çağrıyı saymazdı. Host'ta NPC için dinleme/çalıştırma kanalı yok (bekçi: `host/npcDosyalari.test.ts`); Orion'un araç yüzeyine (`bridge/araclar.ts`)
+  hiçbir şey eklenmedi; bridge/mind/flash `uygulama/graf/`'a uzanmaz (mevcut bekçi).
+- **Kopya yok**: host'ta `jsonKlasoru` (grafik + NPC), renderer'da `dogruDepoKur` (grafik + NPC) ve `kaynakSec` (IPC / localStorage / çalışmayan); NPC ad
+  kuralı grafiklerin AYNI fonksiyonu (protokolde ve host'ta; bekçi testleri). Modülerlik: graf → ajanlar tek yön korunuyor (`tools/grafYonBekcisi.test.ts`
+  yeşil); `GrafYetenegi`ne yeni yetenek EKLENMEDİ (NPC bağlamı çalışma bağlamında, yetenek değil).
+- **Arayüz**: Graf sekmesinde üçüncü şerit "NPC'ler" (ayrı dosya; `grafSekmesi.ts` net +7 satır, 322 → 329): kartlar (ajan · grafikler · ajan durumu), ＋ Yeni NPC
+  (ad + ajan + olay grafiği → kayıt, parametreler boş → JSON penceresi açılır), ⚡ NPC'yi dinlemeye al / bırak, Metin (JSON penceresi: `editorPenceresi`
+  deseninin üçüncü örneği), Durumu sıfırla, Sil (iki adım, kaldır → `.silinenler`). Parametreleri satır içi düzenleyen form YAZILMADI (JSON yeterli sayıldı).
+
+### Testler
+39 yeni test: `protocol/npc.test.ts` 6, `host/npcDosyalari.test.ts` 6 (ad kuralı protokolle aynı + kanal bekçisi dahil), `uygulama/graf/npcDeposu.test.ts` 6,
+`uygulama/graf/npcSinifi.test.ts` 21 (depo, geriye uyum, kapsam, `@ben` ×4, parametre ×2, dinleme kuralları ×6, iki NPC ayrı sayaç/parola, üye değişkeni,
+şablon). Değişen beklentiler (bilinçli): Ajan seç seçenek metni sonunda `@ben`; tavan metni "8 dinleme kaydı"; şablon listesinde `nobetci_npc`; isTrusted
+bekçisi (yukarıda). Kuzey yıldızı testi: iki NPC (flash "Ay ışığı", gardiyan "Kırmızı") aynı Nöbetçi (NPC'li) grafiği — Flash'a "Kırmızı" → "Geçemezsin.",
+gardiyana "Kırmızı" → "Geç.", ikinci Flash ziyaretinde "Ziyaret: 2", gardiyan 1; grafiğin kendi alanı boş. Bütün takım: bkz. bozma tablosunun altı.
+
+### Bozma denemesi
+Betik (scratchpad `bozma.cjs`): her mutant tek dosyada tek değişiklik, dosya önce yedeklendi, 9 test dosyası 120 sn zaman aşımıyla koşuldu, yedekten geri
+kondu ve bayt bayt aynı olduğu doğrulandı (18/18 AYNI; `git checkout` yok).
+
+| # | bozma | 1. koşu | 2. koşu |
+|---|---|---|---|
+| 1 | iki NPC sayacı paylaşıyor (ajan alanı kök grafiğin adıyla) | **yakalandı** (4: iki NPC, üye değişkeni, kapsam, @ben) | — |
+| 2 | `@ben` denetimi yok (NPC'siz ▶/dinleme denetimden geçer) | **yakalandı** (1: NPC'siz dinleme) | — |
+| 3 | `@ben` çözülmeden geçiyor (`ajanCoz` NPC yoksa '@ben'i aynen verir) | **YAKALANMADI**: denetim (`benDenetle`) önce düştüğü için ikinci savunmaya hiç ulaşılmıyordu | doğrudan düğüm çağrısı testi eklendi → **yakalandı** |
+| 4 | olay düğümünün `ajan` çıkışı çözülmemiş '@ben' | **yakalandı** (4) | — |
+| 5 | NPC dinleme `isTrusted`'sız | **yakalandı** (bekçi) | — |
+| 6 | grafik kapsamı bozuk: `kapsamOku`nun `?? "grafik"` yedeği `"ajan"` | **YAKALANMADI**: EŞDEĞER mutant — ayarın `varsayilan`ı çözümde zaten birleşiyor, yedek ölü kod | gerçek bozma: kapsam ayarının varsayılanı `"ajan"` → **yakalandı** (12 kırmızı + 1 iptal: eski grafikler) |
+| 7 | NPC parametresi tür denetimi yok | **yakalandı** | — |
+| 8 | ajan alanı tavanı yok | **yakalandı** | — |
+| 9 | NPC'de toplam dinleme tavanı yok | **yakalandı** | — |
+| 10 | kaldır yerine KALICI silme (host `jsonKlasoru`) | **yakalandı** (2: grafik + NPC) | — |
+| 11 | aynı grafik aynı ajan için iki kez dinleniyor (çakışma denetimi yok) | **yakalandı** | — |
+| 12 | dinleme anahtarı ajanı yok sayıyor | **yakalandı** (6) | — |
+| 13 | NPC kurulumu atomik değil | **yakalandı** | — |
+| 14 | NPC parametreleri kaydın nesnesi (kopya değil) | **YAKALANMADI**: EŞDEĞER — `npcDogrula` zaten temiz kopya veriyor (iki savunma; biri kalkınca öteki tutuyor) | aynı sonuç (bilerek bırakıldı) |
+| 15 | NPC'nin ajanı defterde mi denetimi yok | **yakalandı** | — |
+
+Bütün takım: **5027 test**. Dilimin ilk tam koşusunda (5026 test) tek kırmızı bilinen "ova bütün yerleşimleri dönüşsüz"; son iki koşuda ona ek olarak AYNI ANDA
+yazılan Dilim 5a'nın (§4f) `animasyonDugumleri.test.ts` / `world/avatar/*Klip*` testlerinden 4–5'i koşudan koşuya DEĞİŞEN biçimde kırmızı (zamanlama/yarım iş;
+tek başına koşunca başka testler düşüyor ya da hepsi geçiyor) — bu dilimin dosyalarıyla ilişkisi görülmedi, ama kanıtlanmadı da (taban, Dilim 5a bitince
+yeniden koşulmalı). Taban 4891; fark bu dilimin 39 testi + Dilim 5a'nın testleri. `typecheck` temiz, `vite build` scratchpad'e geçti (dist/'e yazılmadı).
+Mimari/alt-sistem/tip kaçışı/Flash LLM'siz/yön bekçileri yeşil.
+
+### Açıklar [YAZILDI-KOŞULMADI]
+- **DOM'un HİÇBİRİ canlıda görülmedi** (NPC şeridi, ＋ Yeni NPC formu, JSON penceresinin NPC örneği, Kontrol et altındaki ajan durumu). Şeridin dar Graf
+  sekmesinde (üç şerit + sağ panel) sığıp sığmadığı ölçülmedi.
+- İkinci NPC bedeni YOK (kapsam dışı): bugün defterde Orion ve Flash var; Orion'un olayları grafiğe kapalı → canlıda gerçek "iki NPC" denenemez, yalnız
+  Flash ile tek NPC. İki NPC yalnız saf testte (sahte kapılar) kanıtlı.
+- Kalıcılık yok: ajan sayaçları ve dinleme uygulama kapanınca gider (bilerek).
+- Görsel editörün sol paneli "Değişkenler" listesi kapsamı ayırmıyor (aynı ad grafik + ajan kapsamında tek satır görünür); `＋ Değişken` grafik kapsamlı
+  düğüm ekler (ajan kapsamı Ayrıntılar'dan seçilir). Editör kodu bu iş için değiştirilmedi (kayıt-temelli: pinler kapsama göre kendiliğinden değişir).
+- NPC kaydı yeniden adlandırma/kopya yok (Metin ile yeni kayıt). Kaydın `graflar`ındaki grafik silinir/yeniden adlandırılırsa kayıt bozulmaz ama
+  dinlemeye alırken "yüklenemedi" der.
+- Eylem düğümlerinin `kim` AYARI `@ben` almaz (bilinçli; bağla). Diyalog seçenekleri ayar olduğu için NPC parametresiyle değiştirilemez (parola cevaplardan
+  biri olmalı; şablon üç sabit cevap gösterir).
+- `npc.parametre` kayıtta olmayan parametrede varsayılana döner — yazım hatası ("parloa") sessiz değil ama yalnız `kayitta=false` ile görünür.
+- **Makro (çok akış çıkışlı desen) ve saf desen bu işte YAPILMADI** (35b §2.2 sırada). Bu dilimdeki `@ben` desenin içinde de çözülür (desen çağıranın
+  bağlamını görür), yani makro geldiğinde ek iş gerekmez; saf desen için desen çerçevesinin `ben`i aynı kalmalı (not).
+
+### Canlı deneme listesi (Ozyn; pencere açan koşu sorulmadan yapılmadı)
+1. `npm start` → Tab → Y → **Graf**: üç şerit (Grafikler · Desenler · **NPC'ler**) ve sağ panel. NPC şeridinde "Henüz NPC yok…". Konsolda `[NPC] 0 NPC kaydı`.
+2. **＋ Yeni grafik** → şablon **Nöbetçi (NPC'li…)** → ad `nobetci_sinif` → Enter. Kontrol et: "✓ hata yok". **▶ Çalıştır**: satır `✗ … '@ben' çözülemez — grafik bir NPC sınıfı…`, Flash kıpırdamamalı.
+3. Grafik seçiliyken **⚡ Dinlemeye al** (grafik tek başına): "dinlemeye alınamadı: Kontrol et: yaklasti: ajan: '@ben' çözülemez…".
+4. NPC şeridi **＋ Yeni NPC** → ad `kapi_flash`, ajan Flash, grafik `nobetci_sinif` → Enter: kart `👤 kapi_flash · flash · nobetci_sinif`, JSON penceresi açılır.
+   `"parametreler": { "parola": "Kırmızı" }` yaz → Ctrl+S → "kaydedildi". Bozuk değer dene (`"parola": null`) → "KAYDEDİLEMEDİ: biçim: parametreler.parola…".
+5. Kartı seç → **⚡ NPC'yi dinlemeye al**: kart ⚡, sağda `⚡ nobetci_sinif@flash [NPC kapi_flash] · flash:ozyn_yaklasti · 0 tetik`.
+6. Flash'a yürü: "Hoş geldin yolcu. Ziyaret: 1", "Dur! Parola?" → **1 (Ay ışığı)** → "Geçemezsin." (bu NPC'nin parolası Kırmızı). Uzaklaş-yaklaş (5 sn sonra) → **2 (Kırmızı)** → "Geç.", "Ziyaret: 2".
+   Kartta ve Kontrol et altında "Ajan durumu… flash: ziyaret = 2"; **Durumu sıfırla** → 0.
+7. `"parola": 21` yap, Ctrl+S, bırak → yeniden kur: "dinlemeye alınamadı: 'kapi_flash' · nobetci_sinif: Kontrol et: parola_param: 'parola': NPC 'kapi_flash' kaydında sayı (21) ama düğüm metin bekliyor…".
+8. Dinlemedeyken JSON'da parolayı değiştir + Ctrl+S, yaklaş: ESKİ parola geçerli (kopya); bırak + yeniden kur → yeni.
+9. Eski **Nöbetçi** şablonundan bir grafik (`nobetci`) ⚡ dinlemeye al, sonra `kapi_flash`'ın `graflar`ına `"nobetci"` ekle → NPC'yi dinlemeye al: "'nobetci' zaten flash için dinlemede…" (aynı grafik aynı ajanda tek kayıt).
+10. JSON'da `"ajan": "hayalet"` → kaydedilir; dinlemeye al: "ajan 'hayalet' ajan defterinde yok (var: orion, flash)".
+11. Konsolda `document.querySelectorAll('.gs-dinle')[1].click()` (NPC şeridinin düğmesi) → NPC dinlemeye ALINMAMALI (isTrusted).
+12. NPC'yi bırak → **Sil** → "Emin misin?" → tekrar → kart gider; `<userData>/orion-npc/.silinenler/kapi_flash.json.<zaman>` durmalı.
+13. Uygulamayı kapat-aç: NPC kaydı durur, dinleme ve `ziyaret` sayacı gitmiş olmalı.
+
 ## 5. Editör kütüphanesi spike'ı (pencere açılmadan) [ÖLÇÜLDÜ: paket incelendi, repoya kurulmadı]
 - `@comfyorg/litegraph` 0.17.2: **MIT**, ESM + tipler, bağımlılık yok, son güncelleme 2026-10-02 (ComfyUI'nin editörü). Orijinal `litegraph.js` 0.7.18 Ocak 2024'ten beri durgun.
 - **Bulgu:** paketin sayı alanı istemi kullanıcının yazdığı ifadeyi `eval` ediyor (düzenli ifade yalnız başı denetliyor: "1+…" ile başlayan her şey çalışır). Yazan yalnız Ozyn olduğu için risk düşük ama ana pencere `sandbox:false` ve CSP yok: LiteGraph seçilirse sayı alanları **kendi** alanlarımızla değiştirilmeli ya da o istem kapatılmalı. Karar dilim 2'de (LiteGraph vs kendi SVG editörümüz).
@@ -304,9 +527,10 @@ istediğini KANITLAMAZ — yalnız canlı denemede görülür.
 1. ~~Ajan eylem düğümleri + Ajan seç/Nesne bul + ▶/■ + günlük~~ → §4b (Emret yapılmadı: grafikten başka ajana söz teslimi gereksiz, eylem düğümleri ajanı doğrudan sürer).
 2. ~~NPC davranışı (olay tetikleyici + dinleme, değişkenler, mantık, gün vakti, seçimli diyalog)~~ → §4c (dilim 2 numarası Ozyn'in 2026-10-21 isteğine verildi).
 2b. ~~Görsel editör (Graf sekmesinden tam ekran düzenleyici) + desen kaydet/kullan + aktif düğüm vurgusu~~ → §4e (YAZILDI, canlıda görülmedi).
-3. Dünya düzenleme düğümleri (yerleştirme katmanı) + geri al + öneri farkı.
+3. ~~NPC sınıfı (ajan kapsamlı değişken, `@ben`, NPC parametresi, NPC kaydı + dinleme)~~ → §4g (dilim 3 numarası 2026-10-22'de bu işe verildi; YAZILDI, canlıda görülmedi).
+3b. Dünya düzenleme düğümleri (yerleştirme katmanı) + geri al + öneri farkı.
 4. Orion `dunya_oku` / `dunya_oner` (önerir, asla çalıştırmaz; yalnız editör kipinde).
-5. Tarif (balta/ağaç primitifleri + bileşenler), JSON animasyon (el sallama — bugün `jestUygula` boş), Etkileş (kes) → ağaç kesme demosu.
+5. Tarif (balta/ağaç primitifleri + bileşenler), ~~JSON animasyon (el sallama)~~ → §4f Dilim 5a, Etkileş (kes) → ağaç kesme demosu.
 
 ## 7. Açıklar
 - Canlıda hiçbir şey görülmedi: Graf sekmesinin DOM'u testsiz (bu projede tarayıcı test ortamı yok; mantık saf modüllerde testli).

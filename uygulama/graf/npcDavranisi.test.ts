@@ -223,7 +223,7 @@ test(`tavan: en çok ${DINLEME_AZAMI} grafik aynı anda dinler`, () => {
   const d = dunya({ kapilar: [f.kapi], grafikler: l });
   for (let i = 0; i < DINLEME_AZAMI; i++) assert.deepEqual(d.dinleyici.dinlemeyeAl(`g${i}`), { ok: true });
   const r = d.dinleyici.dinlemeyeAl(`g${DINLEME_AZAMI}`);
-  assert.match(r.ok ? "" : r.neden, /en çok 8 grafik/);
+  assert.match(r.ok ? "" : r.neden, /en çok 8 dinleme kaydı/);
 });
 
 test("aynı grafik tek çalışma: ▶ sürerken gelen olay atlanır; olay çalışması sürerken ▶ reddedilir", ZAMAN, async () => {
@@ -390,7 +390,7 @@ test("diyalogTusu: kapalıyken, sohbet/terminal/onay (serbest değil), yazı ala
 
 // ── nöbetçi şablonu ──
 test("nöbetçi şablonu 'Yeni' listesinde, biçimden ve denetimden geçer", () => {
-  assert.deepEqual(GRAF_SABLONLARI.map((s) => s.id), ["selam", "nobetci"]);
+  assert.deepEqual(GRAF_SABLONLARI.map((s) => s.id), ["selam", "nobetci", "nobetci_npc"]);
   const g = nobetciSablonu("nobetci");
   assert.equal(grafDogrula(JSON.parse(JSON.stringify(g))).ok, true);
   assert.deepEqual(dunya({ kapilar: [sahteKapi("flash", "Flash").kapi] }).calistirici.kontrol(g), []);
@@ -436,14 +436,20 @@ const uretimDosyalari = (): string[] => {
 };
 
 /**
- * ▶ ve ⚡ çağrılarının BİLİNÇLİ İZİN LİSTESİ: Graf sekmesi (dilim 1–2) ve görsel editörün düğmeleri (dilim 2b). Yeni bir çağrı yeri bu listeye gerekçeyle
- * girmeden geçemez; listedeki her dosyanın HER çağrısı aşağıdaki isTrusted bekçisinden geçer.
+ * ▶ ve ⚡ çağrılarının BİLİNÇLİ İZİN LİSTESİ, dosya başına BEKLENEN ÇAĞRI SAYISIYLA: Graf sekmesi (dilim 1–2), görsel editörün düğmeleri (dilim 2b) ve
+ * NPC şeridi (dilim 3: yalnız ⚡ — "NPC'yi dinlemeye al", ▶ yok). Yeni bir çağrı yeri bu listeye gerekçeyle girmeden geçemez; listedeki her dosyanın HER
+ * çağrısı aşağıdaki isTrusted bekçisinden geçer. Kalibrasyon (dilim 3): eskiden "dosya başına en az 2 çağrı" aranıyordu — ▶'siz NPC şeridini reddederdi,
+ * ama bir dosyaya fazladan (denetimsiz bırakılabilecek) bir çağrı eklenmesini de saymıyordu; şimdi sayı TAM eşleşmeli.
  */
-const CALISTIRMA_YERLERI = ["uygulama/yapi/graf/calistirmaDugmeleri.ts", "uygulama/yapi/grafSekmesi.ts"];
+const CALISTIRMA_YERLERI: Readonly<Record<string, { calistir: number; dinlemeyeAl: number }>> = {
+  "uygulama/yapi/graf/calistirmaDugmeleri.ts": { calistir: 1, dinlemeyeAl: 1 },
+  "uygulama/yapi/grafSekmesi.ts": { calistir: 1, dinlemeyeAl: 1 },
+  "uygulama/yapi/npcSeridi.ts": { calistir: 0, dinlemeyeAl: 1 },
+};
 
 test("BEKÇİ: `dinlemeyeAl` üretimde yalnız izin listesindeki yerlerden çağrılır; arka katmanlar (bridge/mind/flash) dinleyiciye uzanmaz", () => {
   const l = uretimDosyalari();
-  assert.deepEqual(l.filter((d) => /\.dinlemeyeAl\(/.test(fs.readFileSync(path.join(KOK, d), "utf8"))), CALISTIRMA_YERLERI);
+  assert.deepEqual(l.filter((d) => /\.dinlemeyeAl\(/.test(fs.readFileSync(path.join(KOK, d), "utf8"))).sort(), Object.keys(CALISTIRMA_YERLERI).sort());
   assert.deepEqual(l.filter((d) => /^(bridge|mind|flash)\//.test(d) && /grafDinleyici|diyalogDenetimi/.test(fs.readFileSync(path.join(KOK, d), "utf8"))), []);
 });
 
@@ -462,17 +468,19 @@ function isTrustedYoklamasi(kaynak: string, cagri: number): string | null {
 
 test("BEKÇİ: izin listesindeki her dosyada ▶ ve ⚡ çağrılarının HER BİRİ, tıklama işleyicisinde ÖNCE `isTrusted`a bakar", () => {
   const sorunlar: string[] = [];
-  for (const d of CALISTIRMA_YERLERI) {
+  for (const [d, beklenen] of Object.entries(CALISTIRMA_YERLERI)) {
     const kaynak = fs.readFileSync(path.join(KOK, d), "utf8");
-    let n = 0;
-    for (const desen of [/\.calistirici\.calistir\(/g, /\.dinleyici\.dinlemeyeAl\(/g]) {
-      for (const m of kaynak.matchAll(desen)) {
-        n++;
+    // Desenler GENİŞ: `.calistir(` her alıcıda (yalnız `calistirici.` değil), `.dinlemeyeAl(` her alıcıda (yalnız `dinleyici.` değil) — takma adla
+    // (`const d = a.dinleyici; d.dinlemeyeAl(…)`) yapılan çağrı sayıdan kaçamasın.
+    for (const [tur, desen] of [["calistir", /\.calistir\(/g], ["dinlemeyeAl", /\.dinlemeyeAl\(/g]] as const) {
+      const bulunan = [...kaynak.matchAll(desen)];
+      // Sayı TAM: fazladan bir çağrı (ikinci ⚡ düğmesi) ya da eksik (çağrı başka adla yapılıyor) bekçinin bilmediği bir yol demektir.
+      if (bulunan.length !== beklenen[tur]) sorunlar.push(`${d}: ${tur} çağrısı ${beklenen[tur]} bekleniyordu, ${bulunan.length} bulundu`);
+      for (const m of bulunan) {
         const neden = isTrustedYoklamasi(kaynak, m.index);
         if (neden) sorunlar.push(`${d}:${kaynak.slice(0, m.index).split("\n").length} ${m[0]} — ${neden}`);
       }
     }
-    if (n < 2) sorunlar.push(`${d}: ▶ ve ⚡ çağrısı bekleniyordu (${n} bulundu): bekçi ne sınadığını bilmeli`);
   }
   assert.deepEqual(sorunlar, []);
 });

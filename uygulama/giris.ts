@@ -40,7 +40,7 @@ import { odaKur } from "../world/level/oda.ts";
 import type { Yer } from "../world/yer/yer.ts";
 import { Oyuncu } from "../world/player/oyuncu.ts";
 import { EtkilesimOlaylari } from "../world/player/etkilesim.ts";
-import { avatarKur, orionGozuKur, VARSAYILAN_VRM, type Avatar } from "../world/avatar/index.ts";
+import { avatarKur, orionGozuKur, VARSAYILAN_VRM, klipKutuphanesiKur, klipleriYukle, type Avatar } from "../world/avatar/index.ts";
 import { monitorKur, type Monitor } from "../world/surfaces/terminal/monitor.ts";
 import { tahtaKur, type Tahta } from "../world/surfaces/tahta/tahta.ts";
 import { gunlukKur, type GunlukEkrani } from "../world/surfaces/duvar/gunluk.ts";
@@ -146,6 +146,7 @@ import { grafYetenegiKur, type AjanKapisi } from "./graf/grafYetenegi.ts";
 import { govdeDurumundan, okumaSuresiMs } from "./ajanlar/ajanGovdesi.ts";
 import { grafKutuphanesi } from "./graf/kutuphane.ts";
 import { grafDeposuKur, grafKaynaginiSec } from "./graf/grafDeposu.ts";
+import { npcDeposuKur, npcKaynaginiSec } from "./graf/npcDeposu.ts";
 import { grafCalistiriciKur, type GrafCalistirici } from "./graf/grafCalistirici.ts";
 import { grafDinleyiciKur, olayYoluKur, type GrafDinleyici } from "./graf/grafDinleyici.ts";
 import { GrafDurumDeposu } from "./graf/grafDurumu.ts";
@@ -188,6 +189,7 @@ const imlec = imlecKipiKur({
     altCubuk.gorunur(acik);   // Yapı çubuğu yalnız imleç kipinde görünür (fare serbestken tıklanabilir)
     editorPenceresi.gorunur(acik);   // düzenleyici pencereleri de (gizlenir, KAYBOLMAZ: yazılmış metin durur)
     grafPenceresi.gorunur(acik);     // grafiklerin JSON düzenleyicisi de (spec 35)
+    npcPenceresi.gorunur(acik);      // NPC kayıtlarınınki de (spec 35 dilim 3)
     orionAyarPaneli.gorunur(acik);   // Orion'un ayar paneli de (spec 34; fare kilitliyken tıklanamaz — gizlenir, seçim sürer)
     if (!acik) { nesnePaneli.kapat(); baglamMenusu.kapat(); duzenleme.bitir(); zeminKalemi.sec(null); }
   },
@@ -280,6 +282,18 @@ const ajanaEmret = (kime: string, soz: string): { ok: boolean; not: string } => 
 const koltuklar = new Koltuklar();
 /** Orion Flash'ın dünyaya bağlantısı (spec 33; aşağıda, ajan defterinden sonra kurulur). Yoksa null. */
 let flashBag: FlashBaglantisi | null = null;
+// JSON ANİMASYON KLİPLERİ (spec 35 Dilim 5a): `assets/animasyon/` (liste.json + <ad>.json). Kap BOŞ kurulur ve bedenlere/grafiğe hemen verilir; yükleme
+// bitince dolar (bedenler beklemesin). Bozuk klip nedeniyle günlükte; sağlamlar yine yüklenir.
+const klipler = klipKutuphanesiKur();
+void klipleriYukle(async (yol) => {
+  const y = await fetch(varlik(yol));
+  if (!y.ok) throw new Error(`HTTP ${y.status}`);
+  return y.text();
+}).then((r) => {
+  klipler.doldur(r.klipler, r.hatalar);
+  console.log(`[KLIP] ${r.klipler.length} klip yüklendi: ${r.klipler.map((k) => k.ad).join(", ")}`);
+  for (const h of r.hatalar) { console.warn(`[KLIP] ${h.dosya}: ${h.neden}`); gunluk.ekle("uyari", "klip", `${h.dosya}: ${h.neden}`); }
+});
 void avatarKur({
   sahne, saat,
   spawn: { x: 0.9, y: 0, z: -1.2 },
@@ -287,9 +301,10 @@ void avatarKur({
   // Ozyn'in kararı (2026-09-27): low-poly beden varsayılan, YÜZ SONRA gelecek.
   // Modelde ağız/göz blend shape'i yok; seçim kuralı (iskeletSecim.ts) onu
   // reddedip prosedürel robota düşerdi. Bilinen bedel: TTS ağız senkronu ve
-  // göz kırpma görünmez, `jest` klibi yok (el sallama görünmez) — `?yuzdene`
+  // göz kırpma görünmez, modelde `jest` klibi yok (düz jest görünmez; JSON klibi — `klip` alanı, Dilim 5a — kemiklere biner) — `?yuzdene`
   // bunu dürüstçe KALDI diye raporlar. Yüz eklenince bu satır kalkmalı.
   vrmZorla: true,
+  klipler,
   yer: () => yerler.orion,
   // bak {tip:"oyuncu"} için: avatar oyuncunun yerini buradan öğrenir.
   oyuncuKonumu: () => oyuncu.oyuncuDurumu().konum,
@@ -817,7 +832,7 @@ diyalogKutusuKur({
   tusSerbest: () => oyuncu.oyuncuDurumu().etkilesim !== "monitor" && !sohbet.acikMi() && onayKapisi.durum !== "bekliyor",
 });
 const grafTabani = {
-  kayit: grafKutuphanesi(), depo: grafDeposu,
+  kayit: grafKutuphanesi({ klipler: () => klipler.ozetler() }), depo: grafDeposu,
   yetenek: grafYetenegiKur({
     ajanlar: () => ajanlar.hepsi().map((x) => ({ id: x.id, ad: x.ad })), kapi: grafKapisi,
     nesneler: () => yerler.ozyn.nesneler, capalar: () => yerler.ozyn.capalar,
@@ -848,11 +863,31 @@ const grafEditoru = grafEditoruKur({
   metinAc: grafAc, altyazi: altyaziGoster, izin: () => imlec.acik || imlec.ac(),
   gorunurlukDegisti: (acik) => { orionAyarPaneli.gorunur(!acik && imlec.acik); if (acik) { nesnePaneli.kapat(); baglamMenusu.kapat(); duzenleme.bitir(); zeminKalemi.sec(null); } },
 });
+// NPC SINIFI (spec 35 dilim 3): NPC kayıtları (ajan + grafikler + parametreler; `<userData>/orion-npc/`), JSON penceresi (üçüncü örnek), Graf sekmesinin
+// "NPC'ler" şeridi. Dinlemeye alma aynı `grafDinleyici.dinlemeyeAl` (yalnız gerçek tık); ajan kapsamlı değişkenler `grafDurumu`nda (bellekte).
+const npcKaynagi = npcKaynaginiSec();
+let npcHata: string | null = npcKaynagi.hata;
+const npcDeposu = npcDeposuKur(npcKaynagi.kaynak);
+const npcPenceresi = editorPenceresiKur({
+  kaynak: { oku: (ad) => npcDeposu.oku(ad), yaz: (ad, metin) => npcDeposu.yaz(ad, metin) },
+  bilgi: (ad) => { const k = npcDeposu.liste().find((x) => x.ad === ad); return !k ? null : k.hata ? `✗ ${k.hata}` : `NPC · ${k.ajan} · ${k.graflar.join(", ")}`; },
+  not: () => "NPC kaydı (JSON): ajan, graflar, parametreler (örn. \"parola\"). Ctrl+S biçimi doğrular; dinlemedeki NPC'yi değiştirmez (bırak + yeniden kur).",
+  degistiNotu: "kaydedildi (biçim doğrulandı, okunur biçime çevrildi)",
+  altyazi: altyaziGoster,
+});
+npcDeposu.dinle((o) => { if (o.tur === "icerik") void npcPenceresi.icerikDegisti(o.ad); npcPenceresi.tazele(); });
 altCubuk.ekle(grafSekmesi({
   depo: grafDeposu, calistirici: grafCalistirici, dinleyici: grafDinleyici, durum: grafDurumu, ac: (ad) => grafEditoru.ac(ad), metinAc: grafAc, adIslemi: grafEditoru,
   hata: () => grafHata, bildir: altyaziGoster,
+  npc: {
+    depo: npcDeposu, dinleyici: grafDinleyici, durum: grafDurumu, hata: () => npcHata, bildir: altyaziGoster,
+    graflar: () => grafDeposu.liste().filter((k) => k.tur === "olay" && !k.hata).map((k) => k.ad),
+    ajanlar: () => ajanlar.hepsi().map((x) => ({ id: x.id, ad: x.ad })),
+    metinAc: (ad) => { npcPenceresi.ac(ad).catch((e: unknown) => altyaziGoster(`${ad} açılamadı: ${e instanceof Error ? e.message : String(e)}`, 4000)); },
+  },
 }));
 grafDeposu.baslat().then(() => console.log(`[GRAF] ${grafDeposu.liste().length} grafik/desen`), (e: unknown) => { grafHata = e instanceof Error ? e.message : String(e); console.error("[GRAF] yüklenemedi:", grafHata); });
+npcDeposu.baslat().then(() => console.log(`[NPC] ${npcDeposu.liste().length} NPC kaydı`), (e: unknown) => { npcHata = e instanceof Error ? e.message : String(e); console.error("[NPC] yüklenemedi:", npcHata); });
 
 /** Hedefin menüsünü aç; "Özellikler…" aynı noktada `panel`i gösterir. */
 function hedefMenusuAc(hedef: MenuHedefi, panel: PanelNesne, x: number, y: number): void {
@@ -962,7 +997,7 @@ const girdi = new MetinGirdi();
   const q = new URLSearchParams(location.search);
   if (!q.has("sessiz") && !q.has("flashsiz") && istenenSenaryolar(location.search).length === 0) {
     flashBaglantisiKur({
-      sahne, saat, vrmYolu: varlik(VARSAYILAN_VRM), yer: () => yerler.ozyn, oyuncuKonumu: () => oyuncu.oyuncuDurumu().konum,
+      sahne, saat, vrmYolu: varlik(VARSAYILAN_VRM), klipler, yer: () => yerler.ozyn, oyuncuKonumu: () => oyuncu.oyuncuDurumu().konum,
       koltuklar, ajanlar, altyazi: altyaziGoster, altyaziEkle: altyaziGoster.ekle, gunluk, secili: seciliSoz, sema: flashSemaKancasi(flashZihni),
       oyuncuDurumu: () => oyuncu.oyuncuDurumu(),
     }).then((b) => {

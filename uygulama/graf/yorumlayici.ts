@@ -12,9 +12,11 @@
 // kancaları dünyadaki işi de durdurur (bedene `dur`). Hata, oluştuğu grafikle (desen içindeyse desenin adı) döner.
 // Dilim 2: çalışma bir DÜNYA OLAYI düğümünden de başlayabilir (`giris`: dinlemedeki grafik; kim kurdu, ne zaman: grafDinleyici.ts); düğümler grafiğin
 // bellekteki değişken alanını (`degiskenler`) ve yerel saati görür.
+// Dilim 3 (NPC sınıfı): çalışmanın NPC'si (`ben`: `@ben`in ajanı + parametreler) ve ajanların değişken alanları (`ajanDegiskenleri`) BAĞLAMDADIR;
+// grafik metni değiştirilmez (aynı dondurulmuş kopya iki NPC'de çalışır).
 "use strict";
 import type { Graf, PinUcu } from "../../protocol/graf.ts";
-import type { CalismaTetigi, DegiskenAlani, DugumCalismasi, DugumKaydi, DugumSonucu } from "./dugumKaydi.ts";
+import type { CalismaTetigi, DegiskenAlani, DugumCalismasi, DugumKaydi, DugumSonucu, NpcBaglami, PinOrtami } from "./dugumKaydi.ts";
 import { FONKSIYON_DONUS_TIPI, FONKSIYON_GIRIS_TIPI, BASLA_TIPI, dugumleriCoz, grafTurDenetle, type CozulmusDugum } from "./grafTurDenetimi.ts";
 
 export interface CalismaSinirlari {
@@ -53,6 +55,13 @@ export interface CalismaAyari<Y> {
   giris?: { dugum: string; veri?: Readonly<Record<string, unknown>> };
   /** Grafiğin değişken alanı (bellekte, grafik başına). Verilmezse değişken düğümleri nedenle düşer. */
   degiskenler?: DegiskenAlani;
+  /** Ajanların değişken alanları (dilim 3, `kapsam: "ajan"`). Verilmezse ajan kapsamlı değişken düğümleri nedenle düşer. */
+  ajanDegiskenleri?: (ajan: string) => DegiskenAlani;
+  /**
+   * Bu çalışmanın NPC'si (dilim 3, `@ben`): dinleyici NPC'nin kaydından verir. Verilmezse NULL sayılır — çalışma anında "Kontrol et"in serbestliği YOK:
+   * `@ben`li grafik ▶ ile ya da NPC'siz başlarsa kök çerçevenin denetimi nedenle düşer.
+   */
+  ben?: NpcBaglami | null;
   /** Yerel saat (0–24); varsayılan bilgisayarın saati. */
   saat?: () => number;
 }
@@ -108,7 +117,10 @@ export function grafCalistir<Y>(g: Graf, a: CalismaAyari<Y>): Calisma {
   /** ■ kancaları (`durdurulunca`): dünyadaki süren işi kesenler. Çalışma bitince temizlenir (geç ■ eski bir işi kesmesin). */
   const durunca = new Set<() => void>();
 
-  const ortam = { desen: (ad: string) => a.desen(ad), buGraf: null, ajanlar: () => a.ajanlar?.() ?? [] };
+  const ben = a.ben ?? null;
+  const ajanlar = (): readonly string[] => a.ajanlar?.() ?? [];
+  // `ben` her zaman TANIMLI (NPC ya da null): çalışma anı denetimi Kontrol et'in "@ben serbest" hâline düşmesin.
+  const ortam: PinOrtami = { desen: (ad: string) => a.desen(ad), buGraf: null, ajanlar, ben };
   const saat = a.saat ?? (() => { const d = new Date(); return d.getHours() + d.getMinutes() / 60; });
   const tetik: CalismaTetigi | null = a.giris ? { dugum: a.giris.dugum, veri: a.giris.veri ?? {} } : null;
 
@@ -187,6 +199,9 @@ export function grafCalistir<Y>(g: Graf, a: CalismaAyari<Y>): Calisma {
       dugumId: id,
       tetik,
       degiskenler: a.degiskenler ?? null,
+      ajanDegiskenleri: a.ajanDegiskenleri ?? null,
+      ben,
+      ajanlar,
       saat,
       ayar: d.ayar,
       giris: (pin) => girisDegeri(c, id, pin),

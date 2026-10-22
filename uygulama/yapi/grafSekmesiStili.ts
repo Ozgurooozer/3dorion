@@ -45,4 +45,6 @@ export const GRAF_SEKMESI_CSS = `
 .gs-dinleme .gs-dugme { padding: 1px 8px; font-size: 11px; }
 .gs-yeni select { background: #121726; color: #eef1fa; border: 1px solid #2a3246; border-radius: 6px; padding: 3px 6px; font: inherit; }
 .gs-durum { margin-top: 8px; color: #9fb0d8; }
+.gs-npc-arac { display: flex; flex-wrap: wrap; gap: 4px; padding-bottom: 6px; }
+.gs-npc-arac .gs-dugme, .gs-durum .gs-dugme { padding: 1px 8px; font-size: 11px; }
 `;

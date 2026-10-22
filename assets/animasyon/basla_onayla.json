@@ -1,0 +1,18 @@
+{
+  "surum": 1,
+  "ad": "basla_onayla",
+  "aciklama": "Başla 'evet': iki kez öne eğip kaldırır.",
+  "jest": "başını_sallıyor",
+  "sure": 1.2,
+  "dongu": false,
+  "izler": [
+    { "uzuv": "bas", "kanal": "donme_x", "anahtarlar": [
+      { "t": 0, "deger": 0, "yumusatma": "yumusak" },
+      { "t": 0.2, "deger": 14, "yumusatma": "yumusak" },
+      { "t": 0.45, "deger": -4, "yumusatma": "yumusak" },
+      { "t": 0.7, "deger": 14, "yumusatma": "yumusak" },
+      { "t": 0.95, "deger": -4, "yumusatma": "yumusak" },
+      { "t": 1.2, "deger": 0 }
+    ] }
+  ]
+}

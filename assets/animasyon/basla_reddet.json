@@ -1,0 +1,18 @@
+{
+  "surum": 1,
+  "ad": "basla_reddet",
+  "aciklama": "Başla 'hayır': başı iki kez sağa-sola çevirir.",
+  "jest": "kaş_çatıyor",
+  "sure": 1.4,
+  "dongu": false,
+  "izler": [
+    { "uzuv": "bas", "kanal": "donme_y", "anahtarlar": [
+      { "t": 0, "deger": 0, "yumusatma": "yumusak" },
+      { "t": 0.2, "deger": -18, "yumusatma": "yumusak" },
+      { "t": 0.5, "deger": 18, "yumusatma": "yumusak" },
+      { "t": 0.8, "deger": -18, "yumusatma": "yumusak" },
+      { "t": 1.1, "deger": 18, "yumusatma": "yumusak" },
+      { "t": 1.4, "deger": 0 }
+    ] }
+  ]
+}

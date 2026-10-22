@@ -8,7 +8,7 @@
 // Canlı satır: şu anki düğüm (kimlik + tür adı) ve desen derinliği; son sonuç: bitti/durdu/hata + hangi düğüm (desen içindeyse desenin adı).
 "use strict";
 import type { Graf } from "../../protocol/graf.ts";
-import type { DugumKaydi } from "./dugumKaydi.ts";
+import type { DugumKaydi, NpcBaglami } from "./dugumKaydi.ts";
 import { grafTurDenetle } from "./grafTurDenetimi.ts";
 import type { GrafDurumDeposu } from "./grafDurumu.ts";
 import { grafCalistir, type Calisma, type CalismaSinirlari } from "./yorumlayici.ts";
@@ -75,9 +75,10 @@ export interface BaslamisCalisma {
  * (hangi düğüm, desen içindeyse desenin adı) kurar. ▶ çalıştırıcısı ve olay dinleyicisi bunu paylaşır: ikinci kopya olsaydı biri "saf düğüm canlı
  * satırda görünmez" kuralını ya da hata yerini unuturdu.
  */
-export function calismaBaslat<Y>(g: Graf, a: CalismaTabani<Y>, ek: { giris?: { dugum: string; veri?: Readonly<Record<string, unknown>> }; suan?: (d: SuankiDugum) => void } = {}): BaslamisCalisma {
+export function calismaBaslat<Y>(g: Graf, a: CalismaTabani<Y>, ek: { giris?: { dugum: string; veri?: Readonly<Record<string, unknown>> }; suan?: (d: SuankiDugum) => void; ben?: NpcBaglami | null } = {}): BaslamisCalisma {
   const simdi = a.simdi ?? (() => Date.now());
   const baslangic = simdi();
+  const durum = a.durum;
   let son: SuankiDugum | null = null;
   /** Düğümün türü ve görünen adı: kök grafikte ya da (desen çerçevesindeyse) desende aranır. */
   const dugumBilgisi = (graf: string, id: string, derinlik: number): SuankiDugum => {
@@ -88,8 +89,10 @@ export function calismaBaslat<Y>(g: Graf, a: CalismaTabani<Y>, ek: { giris?: { d
   const calisma = grafCalistir(g, {
     kayit: a.kayit, desen: (x) => a.depo.desen(x), ajanlar: a.ajanlar, yetenek: a.yetenek,
     ...(a.simdi ? { simdi: a.simdi } : {}), ...(a.uyu ? { uyu: a.uyu } : {}), ...(a.sinir ? { sinir: a.sinir } : {}),
-    ...(a.durum ? { degiskenler: a.durum.alan(g.ad) } : {}), ...(a.saat ? { saat: a.saat } : {}),
+    ...(durum ? { degiskenler: durum.alan(g.ad), ajanDegiskenleri: (x: string) => durum.ajanAlani(x) } : {}), ...(a.saat ? { saat: a.saat } : {}),
     ...(ek.giris ? { giris: ek.giris } : {}),
+    // `@ben` (dilim 3): ▶ çalıştırıcısı vermez (null: @ben'li grafik nedenle düşer), dinleyici NPC'nin kaydından verir.
+    ben: ek.ben ?? null,
     olay: (o) => {
       if (o.tur !== "dugum") return;
       const b = dugumBilgisi(o.graf, o.id, o.derinlik);

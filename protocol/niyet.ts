@@ -28,8 +28,14 @@ export type Jest = (typeof JESTLER)[number];
 export type Niyet =
   /** Duruşu değiştir. */
   | { tur: "poz";      poz: Poz }
-  /** Anlık jest oynat. `hedef` verilirse jest ona yönelir (ör. işaret_ediyor). */
-  | { tur: "jest";     jest: Jest; hedef?: Hedef }
+  /**
+   * Anlık jest oynat. `hedef` verilirse jest ona yönelir (ör. işaret_ediyor).
+   * `klip` (spec 35 Dilim 5a) verilirse beden jestin yerine o ANİMASYON KLİBİNİ oynatır (`protocol/animasyon.ts`; ad = `assets/animasyon/<ad>.json`):
+   * niyet SÜRELİ olur — `basladi`, klip bitince `bitti` (döngülü klip bitmez; `dur` ya da yeni jest keser → `iptal`). `jest` yine zorunludur: klibin
+   * anlamıdır (günlük, uzvu olmayan gövde onu gösterir). Alan eklemek kırıcı değil (SOZLESME.md); Orion'un araç şeması bu alanı SUNMAZ
+   * (bridge/araclar.ts değişmedi: token bütçesi), klip bugün yalnız Ozyn'in grafiğinden gelir.
+   */
+  | { tur: "jest";     jest: Jest; hedef?: Hedef; klip?: string }
   /** Başı/gövdeyi hedefe çevir. `birak` = serbest bakışa dön. */
   | { tur: "bak";      hedef: Hedef | null }
   /** Hedefe yürü. `mesafe` = hedefin kaç metre yakınında duracağı. */

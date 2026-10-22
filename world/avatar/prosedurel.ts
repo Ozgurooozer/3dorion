@@ -22,6 +22,8 @@ import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import type { Jest, Poz } from "../../protocol/niyet.ts";
 import { BEDEN } from "../../protocol/bedenTanimi.ts";
 import type { AvatarIskeleti, IskeletBilgisi, IskeletGorunusu } from "./iskelet.ts";
+import { uzuvlariCoz } from "./uzuvEslemesi.ts";
+import { uzuvSurucusuKur } from "./uzuvSurucusu.ts";
 
 /**
  * Hedef boy — VRM yolu da bu boya normalize edilir, ikisi aynı ölçekte durur.
@@ -74,8 +76,12 @@ export function prosedurelIskelet(sahne: Scene, gorunus: IskeletGorunusu = {}): 
   // ── Hiyerarşi: kök → kalça → gövde → boyun → baş ───────────────────────
   // Oturma ve eğilme kalçadan, bakış boyundan döner. Ayrı pivotlar olmasaydı
   // "baş ayrı, gövde ayrı" isteği kökten döndürmeye çöker (donuk kafa dönüşü).
+  // Klip kökü (Dilim 5a): kök ile kalça ARASINDA, ayak hizasında. Klibin `kok` uzvu (bütün beden: eğilme, zıplama) buna yazılır; kökün kendisi
+  // konum/yaw'ı taşımaya devam eder (her karede `konumUygula`/`govdeUygula` yazar, klip ezilmesin diye ayrı düğüm).
+  const klipKok = new TransformNode(`${o}_klip_kok`, sahne);
+  klipKok.parent = kok;
   const kalca = new TransformNode(`${o}_kalca`, sahne);
-  kalca.parent = kok;
+  kalca.parent = klipKok;
   kalca.position.y = BOY * 0.52;
 
   const govde = kutu(`${o}_govde_mesh`, BOY * 0.32, BOY * 0.36, BOY * 0.18, govdeMat);
@@ -308,10 +314,16 @@ export function prosedurelIskelet(sahne: Scene, gorunus: IskeletGorunusu = {}): 
   function konumUygula(x: number, y: number, z: number): void { kok.position.set(x, y, z); }
   function cizimKonumu() { return { x: kok.position.x, y: kok.position.y, z: kok.position.z }; }
 
+  // KLİP (Dilim 5a): eşleme tablosundaki düğümler (omuzlar, bacaklar, boyun, kalça). Poz/jest kodundan SONRA uygulanır (beden.ts sırası), onların
+  // üstüne biner. Ön kol, el, göğüs bu gövdede yok: o izler atlanır ve sayılır.
+  const surucu = uzuvSurucusuKur(klipKok, uzuvlariCoz("prosedurel", (ad) => sahne.getTransformNodeByName(`${o}_${ad}`)).dugumler);
+
   const iskelet: AvatarIskeleti & { elindekiGoster(v: boolean): void } = {
     bilgi, konumUygula, cizimKonumu,
     govdeUygula, basUygula, pozUygula, jestUygula,
     agizUygula, bostaUygula, gozKirp, gorunur, yokEt,
+    klipUzuvlari: surucu.uzuvlar,
+    klipUygula: (d) => surucu.uygula(d),
     elindekiGoster(v: boolean) { tutulan.setEnabled(v); },
   };
   return iskelet;
