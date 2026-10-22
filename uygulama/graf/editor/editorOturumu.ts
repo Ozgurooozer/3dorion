@@ -9,8 +9,8 @@ import type { Graf, GrafBagi, GrafDegeri, PinTipi } from "../../../protocol/graf
 import type { Sonuc } from "../../../protocol/dogrula.ts";
 import type { DugumKaydi, PinOrtami } from "../dugumKaydi.ts";
 import { dugumleriCozYapili, grafTurDenetleYapili, type CozulmusDugum, type DenetimHatasi } from "../grafTurDenetimi.ts";
-import { gecmisKur, type Gecmis } from "./gecmis.ts";
-import { BASLANGIC_GORUNUMU, type Gorunum, type Nokta } from "./tuvalMatematigi.ts";
+import { gecmisKur, type Gecmis } from "../../duzenleyici/gecmis.ts";
+import { BASLANGIC_GORUNUMU, type Gorunum, type Nokta } from "../../duzenleyici/tuvalMatematigi.ts";
 import { bagEkle, bagKaldir, dugumEkle, dugumleriSil, dugumleriTasi, konumlariKoy, secimiKopyala, yapistir, type GrafBilgisi, type Pano } from "./grafIslemleri.ts";
 import { ayarDegistirVeBuda, grafBilgisiVeBuda, type BudananBag } from "./pinBudama.ts";
 import { bagDenetle, uyumluIlkPin, type PinRef } from "./bagKurali.ts";

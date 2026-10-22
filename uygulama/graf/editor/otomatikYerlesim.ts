@@ -8,7 +8,7 @@
 // Döngülü (bozuk) grafikte sonsuz yol olmasın: yol uzunluğu düğüm sayısıyla tavanlı.
 "use strict";
 import type { Graf } from "../../../protocol/graf.ts";
-import type { Nokta } from "./tuvalMatematigi.ts";
+import type { Nokta } from "../../duzenleyici/tuvalMatematigi.ts";
 
 export const SUTUN_ARALIGI = 280;
 export const SATIR_ARALIGI = 150;

@@ -18,6 +18,7 @@ import { GrafDurumDeposu } from "./grafDurumu.ts";
 import { diyalogDenetimiKur, type DiyalogDenetimi } from "./diyalogDenetimi.ts";
 import { OLAY_TANIMLARI } from "./olayDugumleri.ts";
 import { diyalogTusu } from "../yapi/diyalogKutusu.ts";
+import { isTrustedYoklamasi } from "../../tools/isTrustedBekcisi.ts";
 
 const ZAMAN = { timeout: 3000 };
 
@@ -458,13 +459,7 @@ test("BEKÇİ: `dinlemeyeAl` üretimde yalnız izin listesindeki yerlerden çağ
  * ve yalnız "if (!e.isTrusted" metni aranıyordu; şimdi HER dosyada HER çağrı, işleyici `(e) =>` ile başlamalı ve denetim `return` etmeli
  * (yalnız günlüğe yazan bir `if (!e.isTrusted) console.warn(...)` geçmesin).
  */
-function isTrustedYoklamasi(kaynak: string, cagri: number): string | null {
-  const bas = kaynak.lastIndexOf('addEventListener("click"', cagri);
-  if (bas < 0) return "tıklama işleyicisinin içinde değil";
-  if (!kaynak.startsWith('addEventListener("click", (e) =>', bas)) return "işleyici olay parametresini (e) almıyor";
-  if (!/if \(!e\.isTrusted[^)]*\)\s*return;/.test(kaynak.slice(bas, cagri))) return "çağrıdan önce `if (!e.isTrusted…) return;` yok";
-  return null;
-}
+// Yoklamanın kendisi sekans bekçisiyle ORTAK (tools/isTrustedBekcisi.ts, spec 36); kalibrasyon örnekleri aşağıda.
 
 test("BEKÇİ: izin listesindeki her dosyada ▶ ve ⚡ çağrılarının HER BİRİ, tıklama işleyicisinde ÖNCE `isTrusted`a bakar", () => {
   const sorunlar: string[] = [];

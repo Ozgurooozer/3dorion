@@ -24,6 +24,8 @@ rem    3dorion.bat eylemdene  otur / bana gel / bilgisayari ac / tahtaya git (sp
 rem    3dorion.bat baglamdene temiz baglam (spec 16): neredesin / neredeydin / ne konusmustuk
 rem    3dorion.bat takipdene  "beni takip et": Ozyn uzaklasinca Orion yanina geliyor mu
 rem    3dorion.bat kapidene   birlesik dunya: kapi acilir/kapanir, Orion yuruyerek cikar-doner, gorunum gecisi, cizim butcesi (spec 27)
+rem    3dorion.bat klipdene   JSON animasyon klipleri Orion'un govdesinde: kareler ORION_SS_DIR'e PNG (spec 35 f4.f)
+rem    3dorion.bat sekansdene ornek sekanslar (Sekans sekmesi, spec 36) gercek oynaticiyla: kareler ORION_SS_DIR'e PNG
 rem    3dorion.bat ovadene    Orion ovada: gel, takip, kapiya git, otur, bak, jest, algi, gec (spec 26 F4)
 rem    3dorion.bat gozlemdene Goz muayenesi (O tusu): Orion'un gozunden kare, yerel gorme modeli, panelde onizleme + cevap
 rem    3dorion.bat gromadene  Ofisteki 3. monitor (groma haritasi): sayfa, kare, dolu doku, tekerlek/tiklama (docs/olcum/on-kayit-groma-monitoru-1.md)
@@ -96,6 +98,8 @@ if /i "%MOD%"=="baglamdene" goto :baglamdene
 if /i "%MOD%"=="takipdene" goto :takipdene
 if /i "%MOD%"=="kapidene" goto :kapidene
 if /i "%MOD%"=="gozdene" goto :gozdene
+if /i "%MOD%"=="klipdene" goto :klipdene
+if /i "%MOD%"=="sekansdene" goto :sekansdene
 if /i "%MOD%"=="ovadene" goto :ovadene
 if /i "%MOD%"=="ortamdene" goto :ortamdene
 if /i "%MOD%"=="efektdene" goto :efektdene
@@ -280,6 +284,32 @@ set "ORION_GROMADENE=1"
 set "ORION_SMOKE=1"
 set "ORION_SMOKE_MS=60000"
 rem Beyin kapali porta: model yuklenmesin.
+set "ORION_BEYIN=dis"
+set "ORION_BEYIN_ADRES=http://127.0.0.1:9"
+call npx electron .
+goto :son
+
+:klipdene
+echo [klipdene] JSON animasyon klipleri Orion'un gercek govdesinde oynuyor mu: her klip icin kareler ORION_SS_DIR'e PNG olarak yazilir (spec 35 f4.f)
+call npx vite build
+if errorlevel 1 goto :hata
+set "ORION_KLIPDENE=1"
+set "ORION_SMOKE=1"
+set "ORION_SMOKE_MS=70000"
+if "%ORION_SS_DIR%"=="" set "ORION_SS_DIR=%TEMP%\klipdene"
+set "ORION_BEYIN=dis"
+set "ORION_BEYIN_ADRES=http://127.0.0.1:9"
+call npx electron .
+goto :son
+
+:sekansdene
+echo [sekansdene] ornek sekanslar (assets/sekans) Orion'da oynar, Durdur keser, Sekans sekmesi ve editor acilir: kareler ORION_SS_DIR'e PNG (spec 36)
+call npx vite build
+if errorlevel 1 goto :hata
+set "ORION_SEKANSDENE=1"
+set "ORION_SMOKE=1"
+set "ORION_SMOKE_MS=90000"
+if "%ORION_SS_DIR%"=="" set "ORION_SS_DIR=%TEMP%\sekansdene"
 set "ORION_BEYIN=dis"
 set "ORION_BEYIN_ADRES=http://127.0.0.1:9"
 call npx electron .

@@ -6,7 +6,7 @@ import type { DugumKaydi } from "../../graf/dugumKaydi.ts";
 import type { CalismaIsareti } from "../../graf/editor/calismaGorunumu.ts";
 import type { EditorOturumu, KomutSonucu } from "../../graf/editor/editorOturumu.ts";
 import type { PinRef } from "../../graf/editor/bagKurali.ts";
-import type { Nokta } from "../../graf/editor/tuvalMatematigi.ts";
+import type { Nokta } from "../../duzenleyici/tuvalMatematigi.ts";
 
 export type MesajTuru = "bilgi" | "iyi" | "uyari" | "hata";
 

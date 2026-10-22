@@ -17,7 +17,7 @@ import type { GrafDinleyici } from "../../graf/grafDinleyici.ts";
 import { calismaIsareti, sinirliSiklik } from "../../graf/editor/calismaGorunumu.ts";
 import { dugumEkleKomutu, oturumKur, type EditorOturumu, type KomutSonucu } from "../../graf/editor/editorOturumu.ts";
 import { editorKomutu } from "../../graf/editor/kisayollar.ts";
-import { sekmeListesiKur } from "../../graf/editor/sekmeler.ts";
+import { sekmeListesiKur } from "../../duzenleyici/sekmeler.ts";
 import { EDITOR_CSS } from "./editorStili.ts";
 import type { EditorBaglami, MesajTuru } from "./editorBaglami.ts";
 import { dugme, el, yaziAlaniMi } from "./dom.ts";
@@ -26,7 +26,7 @@ import { paletKur } from "./paletKutusu.ts";
 import { ayrintiPaneliKur } from "./ayrintiPaneli.ts";
 import { grafigimPaneliKur } from "./grafigimPaneli.ts";
 import { calistirmaDugmeleriKur } from "./calistirmaDugmeleri.ts";
-import { adKutusuKur, sekmeSeridiKur } from "./sekmeSeridi.ts";
+import { adKutusuKur, sekmeSeridiKur } from "../ortak/sekmeSeridi.ts";
 import { altSeritKur, bantKur, ipucuSeridiKur, yardimKutusuKur } from "./bilgiSeritleri.ts";
 import { komutYurutucuKur } from "./komutlar.ts";
 import { sekmeDosyalariKur } from "./sekmeDosyalari.ts";
@@ -105,13 +105,16 @@ export function grafEditoruKur(a: GrafEditoruAyari): GrafEditoru {
   govde.append(sol.kok, tuval.kok, sag.kok);
 
   // ── üst çubuk ──
-  const seritler = sekmeSeridiKur({
-    sekmeler,
+  const seritler = sekmeSeridiKur<EditorOturumu>({
+    sekmeler, onek: "ge",
+    kirli: (o) => o.gecmis.kirli(),
+    etiket: (ad, o) => `${o.graf().tur === "fonksiyon" ? "🧩 " : ""}${ad}`,
+    ipucu: (ad, o) => `${o.graf().tur === "fonksiyon" ? "desen" : "grafik"} '${ad}'${o.gecmis.kirli() ? " — kaydedilmemiş değişiklik var (Ctrl+S)" : ""}`,
     rozet: (ad) => (a.calistirici.durum().calisiyor?.graf === ad || a.dinleyici.calisiyorMu(ad) ? "▶" : a.dinleyici.dinlemedeMi(ad) ? "⚡" : ""),
     sec: (ad) => { sekmeler.etkinYap(ad); palet.kapat(); tazele(); },
     kapandi: () => { if (!sekmeler.hepsi().length) bildir("Bütün sekmeler kapandı. Graf sekmesinden bir grafik aç."); tazele(); },
   });
-  const adKutusu = adKutusuKur((m) => bildir(m, "hata"));
+  const adKutusu = adKutusuKur((m) => bildir(m, "hata"), (m) => dugme(m), "ge");
   const satir = el("div", "ge-satir");
   const kaydetDugme = dugme("Kaydet", "", "Ctrl+S — biçim doğrulanır, bozuksa yazılmaz");
   const calisma = calistirmaDugmeleriKur({

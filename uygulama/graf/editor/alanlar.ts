@@ -12,6 +12,7 @@
 import { GRAF_SINIRLARI, type GrafDegeri, type PinTanimi } from "../../../protocol/graf.ts";
 import type { Sonuc } from "../../../protocol/dogrula.ts";
 import { secenekleriCoz, type DugumPinleri, type DugumTanimi, type PinOrtami } from "../dugumKaydi.ts";
+import { sayiMetniCoz } from "../../duzenleyici/sayiAlani.ts";
 
 export interface AlanTanimi {
   ad: string;
@@ -48,8 +49,6 @@ export function dugumAlanlari(t: DugumTanimi<unknown>, pinler: DugumPinleri | nu
 /** Bir giriş pininin satır içi alanı (yoksa null: bağ ister). */
 export const pinAlani = (alanlar: readonly AlanTanimi[], pin: string): AlanTanimi | null => alanlar.find((a) => a.ad === pin) ?? null;
 
-const SAYI_DESENI = /^[+-]?(\d+(\.\d*)?|\.\d+)(e[+-]?\d+)?$/i;
-
 /**
  * Yazılanı değere çevirir. `undefined` = ayarı sil. Hata = YAZILMAZ (neden döner). Bool alan onay kutusundan `boolean` alır.
  */
@@ -60,15 +59,8 @@ export function alanDegeriCoz(a: AlanTanimi, ham: string | boolean): Sonuc<GrafD
     return { ok: false, hata: `${a.ad}: doğru/yanlış olmalı` };
   }
   const s = String(ham);
-  if (a.tip === "sayi") {
-    const t = s.trim().replace(",", ".");
-    if (t === "") return { ok: true, deger: undefined };
-    if (!SAYI_DESENI.test(t)) return { ok: false, hata: `${a.ad}: sayı olmalı (gelen: ${JSON.stringify(s)}; ifade hesaplanmaz)` };
-    const n = Number(t);
-    if (!Number.isFinite(n)) return { ok: false, hata: `${a.ad}: sonlu sayı olmalı` };
-    if ((a.en !== undefined && n < a.en) || (a.cok !== undefined && n > a.cok)) return { ok: false, hata: `${a.ad}: ${n} aralık dışı (${a.en ?? "-∞"}–${a.cok ?? "∞"})` };
-    return { ok: true, deger: n };
-  }
+  // Sayı kuralı (eval yok, virgül, aralık) sekans editörüyle ORTAK: `uygulama/duzenleyici/sayiAlani.ts`.
+  if (a.tip === "sayi") return sayiMetniCoz(a.ad, s, { ...(a.en !== undefined ? { en: a.en } : {}), ...(a.cok !== undefined ? { cok: a.cok } : {}) });
   if (a.secenekler) {
     if (!a.secenekler.includes(s)) return { ok: false, hata: `${a.ad}: '${s}' geçersiz (seçenekler: ${a.secenekler.map((x) => x || "(boş)").join(", ") || "yok"})` };
     return { ok: true, deger: s };

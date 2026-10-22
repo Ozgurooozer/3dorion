@@ -19,13 +19,16 @@
 import type { Niyet, NiyetSonucu } from "../../protocol/niyet.ts";
 import { kimlik, type Vec3 } from "../../protocol/temel.ts";
 import type { AjanGovdesi } from "../ajanlar/ajanGovdesi.ts";
+import { ELLE_NIYET_ONEKI, type AjanKapisi } from "../ajanlar/ajanKapisi.ts";
 import type { Capa } from "../../world/level/capalar.ts";
 import type { Nesne } from "../../world/level/nesneKaydi.ts";
 import { avatarAdimi } from "../niyetYurutucu.ts";
 import type { DiyalogIsi, DiyalogIstegi } from "./diyalogDenetimi.ts";
 
-/** Grafiğin ajan niyetlerinin kimlik öneki: Ozyn'in eli (bkz. `mind/refleks.ts` `refleks.sonuc.elle_hata`, `mind/benlik.ts` `eden`). */
-export const GRAF_NIYET_ONEKI = "elle";
+/** Grafiğin ajan niyetlerinin kimlik öneki: Ozyn'in eli (bkz. `mind/refleks.ts` `refleks.sonuc.elle_hata`, `mind/benlik.ts` `eden`). Sekansla AYNI önek (tek kaynak). */
+export const GRAF_NIYET_ONEKI = ELLE_NIYET_ONEKI;
+// Kapı arayüzü ajanlara ait (spec 36: sekans oynatıcısı da kullanır); graf parçaları eskisi gibi buradan alır.
+export type { AjanKapisi };
 /**
  * Tek ajan adımının tavanı. Grafiğin toplam tavanı 120 sn (yorumlayıcı) ama o yalnız düğüm BAŞLARKEN bakılır; bozuk ya da sıkışmış bir beden grafiği
  * orada asmasın diye her adımın kendi tavanı var. 60 sn: ova'da uzun bir yürüyüşe yeter (Orion'un program adımı 30 sn, oda ölçeğinde). Ölçülmedi.
@@ -37,22 +40,6 @@ export interface OzynDurumu {
   readonly konum: Vec3;
   /** Etkileştiği yüzey (monitor, bank…); yoksa null. */
   readonly etkilesim: string | null;
-}
-
-/** Bir ajanın grafiğe açtığı kapı (bedeni olan ajan). */
-export interface AjanKapisi {
-  readonly id: string;
-  readonly ad: string;
-  /** Ajanın TEK eylem yolu (Orion: `niyetiYurut`; Flash: kendi beden kapısı). */
-  niyet(n: Niyet, id: string): void;
-  /** Bedenin niyet sonuçları. */
-  sonucDinle(cb: (s: NiyetSonucu) => void): () => void;
-  /** Söz hattı: söylenince (çalınınca/okununca) çözülür; söyleyemezse fırlatır. */
-  soyle(metin: string): Promise<void>;
-  /** Sözü kes (■). Verilmezse söz kesilmez (altyazı kendi süresinde gider). */
-  sus?(): void;
-  /** Gövdenin anlık durumu (okuma). Verilmezse Dünya değişkeni düğümleri bu ajan için nedenle düşer. */
-  govde?(): AjanGovdesi | null;
 }
 
 export interface AjanSecenegi { readonly id: string; readonly ad: string }

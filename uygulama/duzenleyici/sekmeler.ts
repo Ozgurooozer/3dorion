@@ -1,5 +1,5 @@
-// uygulama/graf/editor/sekmeler.ts — EDİTÖR SEKMELERİ ("farklı canvas'lar", spec 35 dilim 2b): açık grafik/desen sekmeleri, etkin sekme, KAPATMA ONAYI.
-// SAF; sekmenin içeriği (geçmiş, görünüm, seçim) türden bağımsız `S` olarak tutulur.
+// uygulama/duzenleyici/sekmeler.ts — EDİTÖR SEKMELERİ ("farklı canvas'lar", spec 35 dilim 2b): açık grafik/desen sekmeleri, etkin sekme, KAPATMA ONAYI.
+// SAF; sekmenin içeriği (geçmiş, görünüm, seçim) türden bağımsız `S` olarak tutulur. Graf editörü ve sekans editörü (spec 36) ORTAK kullanır (tarafsız klasör).
 //
 // Unreal'in Event Graph / Fonksiyon sekmeleri gibi: aynı anda birden çok grafik açık; aynı grafik ikinci kez açılırsa yeni sekme DOĞMAZ, var olan etkin
 // olur. KAPATMA KURALI: kaydedilmemiş değişikliği olan sekme ONAYSIZ kapanmaz — ilk istek "onay gerek" döner (arayüz "Kaydedilmemiş değişiklik:

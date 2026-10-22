@@ -1,0 +1,15 @@
+{
+  "surum": 1,
+  "ad": "dusun_onayla",
+  "aciklama": "Örnek: Orion düşünür (dusun klibi: baş eğik, el çeneye), sonra başıyla iki kez 'evet' der (baş izi). 4,5 sn.",
+  "fps": 30,
+  "sure_kare": 135,
+  "aralik": {"bas":0,"bit":135},
+  "baglamalar": [
+    {"id":"b1","ajan":"orion"}
+  ],
+  "izler": [
+    {"id":"dusun","baglama":"b1","tur":"klip","gizli":false,"kilitli":false,"bolumler":[{"klip":"dusun","baslangic_kare":0,"uzunluk_kare":90,"ofset_kare":0}]},
+    {"id":"onay","baglama":"b1","tur":"uzuv","gizli":false,"kilitli":false,"uzuv":"bas","kanal":"donme_x","anahtarlar":[{"kare":0,"deger":0,"yumusatma":"dogrusal"},{"kare":95,"deger":0,"yumusatma":"yumusak"},{"kare":102,"deger":14,"yumusatma":"yumusak"},{"kare":109,"deger":-3,"yumusatma":"yumusak"},{"kare":116,"deger":14,"yumusatma":"yumusak"},{"kare":125,"deger":0,"yumusatma":"dogrusal"}]}
+  ]
+}

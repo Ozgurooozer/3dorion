@@ -1,5 +1,6 @@
-// uygulama/graf/editor/tuvalMatematigi.ts — GÖRSEL EDİTÖRÜN TUVAL MATEMATİĞİ (spec 35 dilim 2b): dünya ↔ ekran dönüşümü, imleç merkezli yakınlaştırma,
-// kaydırma, "sığdır" ve kutu seçimi. SAF: DOM yok (tuval katmanı `uygulama/yapi/graf/` bunu çağırır; testler burada).
+// uygulama/duzenleyici/tuvalMatematigi.ts — GÖRSEL EDİTÖRÜN TUVAL MATEMATİĞİ (spec 35 dilim 2b): dünya ↔ ekran dönüşümü, imleç merkezli yakınlaştırma,
+// kaydırma, "sığdır" ve kutu seçimi. SAF: DOM yok (tuval katmanı `uygulama/yapi/graf/` bunu çağırır; testler burada). Sekans editörünün zaman ekseni
+// (spec 36, `uygulama/sekans/editor/zamanEkseni.ts`) AYNI yakınlaştırma formülünü kendi ölçek sınırlarıyla kullanır: bu yüzden tarafsız klasörde.
 //
 // Dünya koordinatı = grafiğin `GrafDugumu.konum` birimi (piksel ölçek 1'de). Görünüm üç sayıdır: ekrandaki dünya başlangıcı (x, y) ve ölçek.
 //   ekran = dünya · ölçek + (x, y)        dünya = (ekran − (x, y)) / ölçek
@@ -28,9 +29,9 @@ export const kaydir = (g: Gorunum, dx: number, dy: number): Gorunum => ({ x: g.x
  * `carpan` kadar yakınlaştırır (>1 yakın, <1 uzak); `imlec` (ekran) noktasının altındaki dünya noktası SABİT kalır. Ölçek [OLCEK_EN, OLCEK_COK]
  * dışına çıkmaz (sınıra dayanınca sabit nokta yine korunur: etkin çarpan küçülür).
  */
-export function yakinlastir(g: Gorunum, imlec: Nokta, carpan: number): Gorunum {
+export function yakinlastir(g: Gorunum, imlec: Nokta, carpan: number, sinir: { en: number; cok: number } = { en: OLCEK_EN, cok: OLCEK_COK }): Gorunum {
   if (!Number.isFinite(carpan) || carpan <= 0) return g;
-  const olcek = sinirla(g.olcek * carpan, OLCEK_EN, OLCEK_COK);
+  const olcek = sinirla(g.olcek * carpan, sinir.en, sinir.cok);
   const d = ekrandanDunyaya(g, imlec);
   return { x: imlec.x - d.x * olcek, y: imlec.y - d.y * olcek, olcek };
 }

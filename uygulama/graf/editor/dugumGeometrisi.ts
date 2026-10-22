@@ -7,7 +7,7 @@
 "use strict";
 import type { GrafDugumu, PinTanimi } from "../../../protocol/graf.ts";
 import type { DugumPinleri } from "../dugumKaydi.ts";
-import type { Kutu, Nokta } from "./tuvalMatematigi.ts";
+import type { Kutu, Nokta } from "../../duzenleyici/tuvalMatematigi.ts";
 
 export const DUGUM_OLCU = {
   genislik: 230,

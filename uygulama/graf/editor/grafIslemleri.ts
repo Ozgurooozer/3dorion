@@ -7,7 +7,7 @@
 "use strict";
 import { GRAF_SINIRLARI, grafAdiGecerli, grafDogrula, type Graf, type GrafBagi, type GrafDegeri, type GrafDugumu, type PinTanimi } from "../../../protocol/graf.ts";
 import type { Sonuc } from "../../../protocol/dogrula.ts";
-import type { Nokta } from "./tuvalMatematigi.ts";
+import type { Nokta } from "../../duzenleyici/tuvalMatematigi.ts";
 
 const hata = (m: string): Sonuc<never> => ({ ok: false, hata: m });
 

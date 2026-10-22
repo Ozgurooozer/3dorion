@@ -154,6 +154,8 @@ import { diyalogDenetimiKur } from "./graf/diyalogDenetimi.ts";
 import { diyalogKutusuKur } from "./yapi/diyalogKutusu.ts";
 import { grafSekmesi } from "./yapi/grafSekmesi.ts";
 import { grafEditoruKur } from "./yapi/graf/grafEditoru.ts";
+import { geciciKlipKatmaniKur } from "./sekans/geciciKlipler.ts";
+import { sekansKur } from "./yapi/sekans/kurulum.ts";
 
 const tuval = document.getElementById("tuval") as HTMLCanvasElement;
 const hud = document.getElementById("hud") as HTMLDivElement;
@@ -190,6 +192,7 @@ const imlec = imlecKipiKur({
     editorPenceresi.gorunur(acik);   // düzenleyici pencereleri de (gizlenir, KAYBOLMAZ: yazılmış metin durur)
     grafPenceresi.gorunur(acik);     // grafiklerin JSON düzenleyicisi de (spec 35)
     npcPenceresi.gorunur(acik);      // NPC kayıtlarınınki de (spec 35 dilim 3)
+    sekansSistemi.pencere.gorunur(acik);   // sekansların JSON penceresi de (spec 36)
     orionAyarPaneli.gorunur(acik);   // Orion'un ayar paneli de (spec 34; fare kilitliyken tıklanamaz — gizlenir, seçim sürer)
     if (!acik) { nesnePaneli.kapat(); baglamMenusu.kapat(); duzenleme.bitir(); zeminKalemi.sec(null); }
   },
@@ -285,6 +288,9 @@ let flashBag: FlashBaglantisi | null = null;
 // JSON ANİMASYON KLİPLERİ (spec 35 Dilim 5a): `assets/animasyon/` (liste.json + <ad>.json). Kap BOŞ kurulur ve bedenlere/grafiğe hemen verilir; yükleme
 // bitince dolar (bedenler beklemesin). Bozuk klip nedeniyle günlükte; sağlamlar yine yüklenir.
 const klipler = klipKutuphanesiKur();
+// SEKANS (spec 36): bedenlerin klip bulucusu = kütüphane + oynayan sekansın derlenmiş GEÇİCİ klipleri (`sekans__…`). Sekans bedene ikinci bir kapıdan değil,
+// bu katmandaki klibi isteyen mevcut `jest` niyetiyle oynar. Grafiğin "Animasyon oynat" seçenekleri kütüphaneden (geçici klipler orada görünmez).
+const bedenKlipleri = geciciKlipKatmaniKur(klipler);
 void klipleriYukle(async (yol) => {
   const y = await fetch(varlik(yol));
   if (!y.ok) throw new Error(`HTTP ${y.status}`);
@@ -304,7 +310,7 @@ void avatarKur({
   // göz kırpma görünmez, modelde `jest` klibi yok (düz jest görünmez; JSON klibi — `klip` alanı, Dilim 5a — kemiklere biner) — `?yuzdene`
   // bunu dürüstçe KALDI diye raporlar. Yüz eklenince bu satır kalkmalı.
   vrmZorla: true,
-  klipler,
+  klipler: bedenKlipleri,
   yer: () => yerler.orion,
   // bak {tip:"oyuncu"} için: avatar oyuncunun yerini buradan öğrenir.
   oyuncuKonumu: () => oyuncu.oyuncuDurumu().konum,
@@ -861,7 +867,7 @@ function grafAc(ad: string): void { grafPenceresi.ac(ad).catch((e: unknown) => a
 const grafEditoru = grafEditoruKur({
   depo: grafDeposu, calistirici: grafCalistirici, dinleyici: grafDinleyici, kayit: grafTabani.kayit, ajanlar: grafTabani.ajanlar,
   metinAc: grafAc, altyazi: altyaziGoster, izin: () => imlec.acik || imlec.ac(),
-  gorunurlukDegisti: (acik) => { orionAyarPaneli.gorunur(!acik && imlec.acik); if (acik) { nesnePaneli.kapat(); baglamMenusu.kapat(); duzenleme.bitir(); zeminKalemi.sec(null); } },
+  gorunurlukDegisti: (acik) => { orionAyarPaneli.gorunur(!acik && imlec.acik); if (acik) { sekansSistemi.editor.gizle(); nesnePaneli.kapat(); baglamMenusu.kapat(); duzenleme.bitir(); zeminKalemi.sec(null); } },
 });
 // NPC SINIFI (spec 35 dilim 3): NPC kayıtları (ajan + grafikler + parametreler; `<userData>/orion-npc/`), JSON penceresi (üçüncü örnek), Graf sekmesinin
 // "NPC'ler" şeridi. Dinlemeye alma aynı `grafDinleyici.dinlemeyeAl` (yalnız gerçek tık); ajan kapsamlı değişkenler `grafDurumu`nda (bellekte).
@@ -888,6 +894,20 @@ altCubuk.ekle(grafSekmesi({
 }));
 grafDeposu.baslat().then(() => console.log(`[GRAF] ${grafDeposu.liste().length} grafik/desen`), (e: unknown) => { grafHata = e instanceof Error ? e.message : String(e); console.error("[GRAF] yüklenemedi:", grafHata); });
 npcDeposu.baslat().then(() => console.log(`[NPC] ${npcDeposu.liste().length} NPC kaydı`), (e: unknown) => { npcHata = e instanceof Error ? e.message : String(e); console.error("[NPC] yüklenemedi:", npcHata); });
+
+// SEKANS (spec 36; Unreal Sequencer'ın küçük hâli): zaman çizelgesi, uzuv izleri, klip bölümleri; `<userData>/orion-sekans/`, örnekler `assets/sekans/`.
+// Editör ekranın alt yarısında (3B görünüm üstte kalır). Oynatma YALNIZ editörün ▶'si (gerçek tık); ajanlara grafiğin AYNI kapısından (`grafKapisi`).
+// Orion'un araç yüzeyinde sekans yok. Graf editörüyle aynı anda açılmaz (biri açılınca öteki gizlenir).
+const sekansSistemi = sekansKur({
+  klipler, katman: bedenKlipleri, kapi: grafKapisi, ajanlar: () => ajanlar.hepsi().map((x) => x.id),
+  oku: async (yol) => { const y = await fetch(varlik(yol)); if (!y.ok) throw new Error(`HTTP ${y.status}`); return y.text(); },
+  altyazi: altyaziGoster, izin: () => imlec.acik || imlec.ac(),
+  gorunurlukDegisti: (acik) => { orionAyarPaneli.gorunur(!acik && imlec.acik); if (acik) { grafEditoru.gizle(); nesnePaneli.kapat(); baglamMenusu.kapat(); duzenleme.bitir(); zeminKalemi.sec(null); } },
+  gunluk: (seviye, metin) => gunluk.ekle(seviye, "sekans", metin),
+  senaryoKosusu: istenenSenaryolar(location.search).includes("sekansdene"),
+  sekmeAc: (id) => altCubuk.ac(id),
+});
+altCubuk.ekle(sekansSistemi.sekme);
 
 /** Hedefin menüsünü aç; "Özellikler…" aynı noktada `panel`i gösterir. */
 function hedefMenusuAc(hedef: MenuHedefi, panel: PanelNesne, x: number, y: number): void {
@@ -997,7 +1017,7 @@ const girdi = new MetinGirdi();
   const q = new URLSearchParams(location.search);
   if (!q.has("sessiz") && !q.has("flashsiz") && istenenSenaryolar(location.search).length === 0) {
     flashBaglantisiKur({
-      sahne, saat, vrmYolu: varlik(VARSAYILAN_VRM), klipler, yer: () => yerler.ozyn, oyuncuKonumu: () => oyuncu.oyuncuDurumu().konum,
+      sahne, saat, vrmYolu: varlik(VARSAYILAN_VRM), klipler: bedenKlipleri, yer: () => yerler.ozyn, oyuncuKonumu: () => oyuncu.oyuncuDurumu().konum,
       koltuklar, ajanlar, altyazi: altyaziGoster, altyaziEkle: altyaziGoster.ekle, gunluk, secili: seciliSoz, sema: flashSemaKancasi(flashZihni),
       oyuncuDurumu: () => oyuncu.oyuncuDurumu(),
     }).then((b) => {
@@ -1242,6 +1262,7 @@ const senaryoBaglami: SenaryoBaglami = {
   doktor,
   webMonitoru,
   gozlem,
+  sekans: sekansSistemi.senaryo,
 };
 for (const ad of istenenSenaryolar(location.search)) {
   void import(`./senaryolar/${ad}.ts`)

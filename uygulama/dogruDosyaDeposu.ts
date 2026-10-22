@@ -33,6 +33,8 @@ export interface DogruDepoAyari<T, E> {
   adinSozu: string;
   /** Konsol öneki ("[graf]"). */
   gunluk: string;
+  /** Kaydın ad değiştirilmiş kopyası (yeniden adlandırma/kopya için); verilmezse o iki işlem nedenle reddedilir. */
+  adla?(t: T, ad: string): T;
 }
 
 export interface DogruDepo<T, E> {
@@ -53,6 +55,14 @@ export interface DogruDepo<T, E> {
   sil(ad: string): Promise<void>;
   dinle(f: (o: DepoOlayi) => void): () => void;
   bitti(): Promise<void>;
+  /**
+   * YENİDEN ADLANDIR (spec 35 dilim 2b'de grafik deposundaydı; spec 36'da sekans da kullandığı için buraya genelleştirildi): yeni adla YENİ dosya +
+   * eskisini KALDIR (`.silinenler/`; kalıcı silme yok). Bozuk/olmayan kaynak, geçersiz/var olan yeni ad, kaldırmayı bilmeyen kaynak HİÇ yazmadan reddedilir.
+   * `engel(eski, t)`: türe özgü ret nedeni (grafik: başka grafiklerin çağırdığı desen) ya da null. Yalnız `adla` verilmiş depoda çalışır.
+   */
+  yenidenAdlandir(eski: string, yeni: string, engel?: (eski: string, t: T) => string | null): Promise<void>;
+  /** KOPYASINI OLUŞTUR: aynı içerik yeni adla (varsa hata). Bozuk dosyanın kopyası alınmaz. */
+  kopyasiniOlustur(ad: string, yeni: string): Promise<void>;
   /** Türe özgü işlemler için (grafiğin yeniden adlandırması): aynı iş sırası, aynı doğrulama, tazeleme, önbellekten düşürme. */
   readonly ic: {
     sirala<R>(is: () => Promise<R>): Promise<R>;
@@ -101,7 +111,38 @@ export function dogruDepoKur<T, E>(a: DogruDepoAyari<T, E>): DogruDepo<T, E> {
     return r.deger;
   }
 
+  /** Yeniden adlandırma/kopyanın ortak ön koşulları: kaynak geçerli ve yüklü, yeni ad geçerli ve boş. Yeni adlı kaydı döner (içerik aynı). */
+  function yeniAdliKopya(ad: string, yeni: string): T {
+    if (!a.adla) throw new DosyaHatasi("hata", `${a.etiket}: yeniden adlandırma/kopya bu depoda yok`);
+    if (!a.adGecerli(yeni)) throw new DosyaHatasi("gecersiz-ad", `geçersiz ${a.etiket} adı: ${JSON.stringify(yeni)} (harf, rakam, _ ve -; boşluk yok)`);
+    if (liste.some((k) => k.ad === yeni)) throw new DosyaHatasi("var", `'${yeni}' adı zaten var`);
+    const t = onbellek.get(ad);
+    const varMi = liste.some((k) => k.ad === ad);
+    if (!t) throw new DosyaHatasi(varMi ? "gecersiz-icerik" : "yok", varMi ? `'${ad}' bozuk: önce düzelt (Metin)` : `'${ad}' yok`);
+    return a.adla(structuredClone(t), yeni);
+  }
+
   return {
+    yenidenAdlandir: (eski, yeni, engel) => sira.sirala(async () => {
+      if (eski === yeni) return;
+      const t = yeniAdliKopya(eski, yeni);
+      if (!kaynak.sil) throw new DosyaHatasi("hata", "bu kaynakta kaldırma yok: yeniden adlandırılamaz (Kopyasını oluştur kullan)");
+      const neden = engel?.(eski, t) ?? null;
+      if (neden) throw new DosyaHatasi("hata", neden);
+      await kaynak.yeni(yeni, a.metin(dogrula(yeni, JSON.stringify(t))));
+      try { await kaynak.sil(eski); }
+      catch (err) {
+        await tazele();
+        throw new DosyaHatasi("hata", `'${yeni}' yazıldı ama '${eski}' kaldırılamadı (ikisi de duruyor): ${err instanceof Error ? err.message : String(err)}`);
+      }
+      onbellek.delete(eski);
+      await tazele();
+    }),
+    kopyasiniOlustur: (ad, yeni) => sira.sirala(async () => {
+      const t = yeniAdliKopya(ad, yeni);
+      await kaynak.yeni(yeni, a.metin(dogrula(yeni, JSON.stringify(t))));
+      await tazele();
+    }),
     baslat: () => sira.sirala(tazele),
     liste: () => liste,
     al: (ad) => onbellek.get(ad) ?? null,

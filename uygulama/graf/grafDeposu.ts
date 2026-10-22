@@ -84,18 +84,8 @@ export function grafDeposuKur(kaynak: DosyaKaynagi): GrafDeposu {
   // ortaklaştırıldı); burada grafiğe özgü olan: desen kuralları, yeniden adlandırma, kopya.
   const d = dogruDepoKur<Graf, { tur: Graf["tur"] | null; aciklama: string | null }>({
     kaynak, coz: grafMetniCoz, adi: (g) => g.ad, metin: grafMetni, ek: (g) => ({ tur: g?.tur ?? null, aciklama: g?.aciklama ?? null }),
-    adGecerli: grafAdiGecerli, etiket: "grafik", adinSozu: "grafın adı", gunluk: "[graf]",
+    adGecerli: grafAdiGecerli, etiket: "grafik", adinSozu: "grafın adı", gunluk: "[graf]", adla: (g, ad) => ({ ...g, ad }),
   });
-
-  /** Yeniden adlandırma/kopyanın ortak ön koşulları: kaynak geçerli ve yüklü, yeni ad geçerli ve boş. Yeni adlı grafiği döner (içerik aynı). */
-  function yeniAdliKopya(ad: string, yeni: string): Graf {
-    if (!grafAdiGecerli(yeni)) throw new DosyaHatasi("gecersiz-ad", `geçersiz grafik adı: ${JSON.stringify(yeni)} (harf, rakam, _ ve -; boşluk yok)`);
-    const liste = d.liste();
-    if (liste.some((k) => k.ad === yeni)) throw new DosyaHatasi("var", `'${yeni}' adı zaten var`);
-    const g = d.al(ad);
-    if (!g) throw new DosyaHatasi(liste.some((k) => k.ad === ad) ? "gecersiz-icerik" : "yok", liste.some((k) => k.ad === ad) ? `'${ad}' bozuk: önce düzelt (Metin)` : `'${ad}' yok`);
-    return { ...structuredClone(g), ad: yeni };
-  }
 
   const desenKullananlar = (ad: string): string[] => d.gecerliler()
     .filter((g) => g.ad !== ad && g.dugumler.some((x) => x.tip === DESEN_CAGIR_TIPI && x.ayar?.["desen"] === ad)).map((g) => g.ad).sort();
@@ -110,26 +100,12 @@ export function grafDeposuKur(kaynak: DosyaKaynagi): GrafDeposu {
     yeni: d.yeni,
     sil: d.sil,
     desenKullananlar,
-    yenidenAdlandir: (eski, yeni) => d.ic.sirala(async () => {
-      if (eski === yeni) return;
-      const g = yeniAdliKopya(eski, yeni);
-      if (!kaynak.sil) throw new DosyaHatasi("hata", "bu kaynakta kaldırma yok: yeniden adlandırılamaz (Kopyasını oluştur kullan)");
-      const kullanan = g.tur === "fonksiyon" ? desenKullananlar(eski) : [];
-      if (kullanan.length) throw new DosyaHatasi("hata", `'${eski}' deseni şunlarda kullanılıyor: ${kullanan.join(", ")} — adı değişirse onlar kırılır; önce onlardaki Desen düğümünü değiştir ya da Kopyasını oluştur`);
-      await kaynak.yeni(yeni, grafMetni(d.ic.dogrula(yeni, JSON.stringify(g))));
-      try { await kaynak.sil(eski); }
-      catch (err) {
-        await d.ic.tazele();
-        throw new DosyaHatasi("hata", `'${yeni}' yazıldı ama '${eski}' kaldırılamadı (ikisi de duruyor): ${err instanceof Error ? err.message : String(err)}`);
-      }
-      d.ic.unut(eski);
-      await d.ic.tazele();
+    // Yeniden adlandırma/kopyanın ortak kuralları çekirdekte (spec 36'da sekans deposuyla ortaklaştı); grafiğe özgü olan: kullanılan desen adı değişmez.
+    yenidenAdlandir: (eski, yeni) => d.yenidenAdlandir(eski, yeni, (e, g) => {
+      const kullanan = g.tur === "fonksiyon" ? desenKullananlar(e) : [];
+      return kullanan.length ? `'${e}' deseni şunlarda kullanılıyor: ${kullanan.join(", ")} — adı değişirse onlar kırılır; önce onlardaki Desen düğümünü değiştir ya da Kopyasını oluştur` : null;
     }),
-    kopyasiniOlustur: (ad, yeni) => d.ic.sirala(async () => {
-      const g = yeniAdliKopya(ad, yeni);
-      await kaynak.yeni(yeni, grafMetni(d.ic.dogrula(yeni, JSON.stringify(g))));
-      await d.ic.tazele();
-    }),
+    kopyasiniOlustur: d.kopyasiniOlustur,
     dinle: d.dinle,
     bitti: d.bitti,
   };

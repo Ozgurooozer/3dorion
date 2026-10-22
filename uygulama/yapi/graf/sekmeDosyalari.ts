@@ -12,7 +12,7 @@ import { grafMetni, type GrafDeposu } from "../../graf/grafDeposu.ts";
 import type { GrafCalistirici } from "../../graf/grafCalistirici.ts";
 import type { GrafDinleyici } from "../../graf/grafDinleyici.ts";
 import type { EditorOturumu } from "../../graf/editor/editorOturumu.ts";
-import type { SekmeListesi } from "../../graf/editor/sekmeler.ts";
+import type { SekmeListesi } from "../../duzenleyici/sekmeler.ts";
 import type { MesajTuru } from "./editorBaglami.ts";
 
 export interface SekmeDosyalariAyari {

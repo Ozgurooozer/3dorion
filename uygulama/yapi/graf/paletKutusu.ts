@@ -7,7 +7,7 @@
 import type { PinTipi } from "../../../protocol/graf.ts";
 import { paletGrupla, paletOgeleri, paletSuz, type PaletOgesi } from "../../graf/editor/palet.ts";
 import { PIN_TIP_ADI, type PinRef } from "../../graf/editor/bagKurali.ts";
-import type { Nokta } from "../../graf/editor/tuvalMatematigi.ts";
+import type { Nokta } from "../../duzenleyici/tuvalMatematigi.ts";
 import type { EditorBaglami } from "./editorBaglami.ts";
 import { el } from "./dom.ts";
 

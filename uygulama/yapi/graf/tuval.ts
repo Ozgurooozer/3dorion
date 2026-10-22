@@ -10,7 +10,7 @@
 import type { GrafBagi, PinTipi } from "../../../protocol/graf.ts";
 import { uyumlu } from "../../graf/grafTurDenetimi.ts";
 import { DESEN_CAGIR_TIPI } from "../../graf/grafTurDenetimi.ts";
-import { IZGARA, dunyadanEkrana, ekrandanDunyaya, izgarayaYasla, kaydir, koselerdenKutu, kutularKesisir, sigdir as sigdirGorunumu, tekerlekCarpani, yakinlastir, type Nokta } from "../../graf/editor/tuvalMatematigi.ts";
+import { IZGARA, dunyadanEkrana, ekrandanDunyaya, izgarayaYasla, kaydir, koselerdenKutu, kutularKesisir, sigdir as sigdirGorunumu, tekerlekCarpani, yakinlastir, type Nokta } from "../../duzenleyici/tuvalMatematigi.ts";
 import { bagUcu, bagYolu, dugumKutusu, pinBul, type DugumKutusu } from "../../graf/editor/dugumGeometrisi.ts";
 import { bagKaldirKomutu, bagKomutu, tasiKomutu } from "../../graf/editor/editorOturumu.ts";
 import { bagTipi, type PinRef } from "../../graf/editor/bagKurali.ts";

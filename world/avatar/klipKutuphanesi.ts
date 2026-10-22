@@ -71,8 +71,8 @@ export function klipMetniCoz(dosyaAdi: string, metin: string): Sonuc<AnimasyonKl
   return r;
 }
 
-/** `liste.json` metnini çözer: tekil, geçerli klip adları dizisi. */
-export function klipListesiCoz(metin: string): Sonuc<string[]> {
+/** `liste.json` metnini çözer: tekil, geçerli adlar dizisi. `adGecerli` verilmezse klip adı kuralı (sekans örnekleri kendi ad kuralını verir, spec 36). */
+export function klipListesiCoz(metin: string, adGecerli: (ad: unknown) => ad is string = klipAdiGecerli): Sonuc<string[]> {
   let ham: unknown;
   try { ham = JSON.parse(metin); }
   catch (err) { return { ok: false, hata: `JSON okunamadı: ${err instanceof Error ? err.message : String(err)}` }; }
@@ -80,7 +80,7 @@ export function klipListesiCoz(metin: string): Sonuc<string[]> {
   if (ham.length > KLIP_LISTE_AZAMI) return { ok: false, hata: `en çok ${KLIP_LISTE_AZAMI} klip` };
   const adlar: string[] = [];
   for (const [i, a] of ham.entries()) {
-    if (!klipAdiGecerli(a)) return { ok: false, hata: `[${i}]: klip adı geçersiz: ${JSON.stringify(a)}` };
+    if (!adGecerli(a)) return { ok: false, hata: `[${i}]: klip adı geçersiz: ${JSON.stringify(a)}` };
     if (adlar.includes(a)) return { ok: false, hata: `'${a}' iki kez` };
     adlar.push(a);
   }
@@ -88,32 +88,41 @@ export function klipListesiCoz(metin: string): Sonuc<string[]> {
 }
 
 /**
- * Klasörü yükler. `oku(yol)` metni döner ya da fırlatır (dosya yok, ağ hatası). Liste okunamazsa HİÇ klip yok ve tek hata listenin hatasıdır; tek bir
- * klip okunamazsa yalnız o düşer. Hiç fırlatmaz: sonuç her zaman bir rapor.
+ * LİSTELİ VARLIK KLASÖRÜ yükleyicisi (genel): `<dizin>/liste.json` + her ad için `<dizin>/<ad>.json`. İki kullanıcı: klipler (aşağıda) ve sekans örnekleri
+ * (`assets/sekans/`, spec 36 — `uygulama/sekans/ornekler.ts`); ikinci kopya yazılmasın diye genel. Liste okunamazsa HİÇ öğe yok ve tek hata listenin
+ * hatasıdır; tek bir dosya okunamazsa yalnız o düşer (nedeni dosya adıyla). Hiç fırlatmaz. Sıra liste sırasıdır.
  */
-export async function klipleriYukle(oku: (yol: string) => Promise<string>, dizin = KLIP_DIZINI): Promise<{ klipler: AnimasyonKlibi[]; hatalar: KlipHatasi[] }> {
+export async function listeliKlasoruYukle<T extends { ad: string }>(
+  oku: (yol: string) => Promise<string>, dizin: string, coz: (dosya: string, metin: string) => Sonuc<T>, adGecerli?: (ad: unknown) => ad is string,
+): Promise<{ ogeler: T[]; hatalar: KlipHatasi[] }> {
   const neden = (err: unknown): string => (err instanceof Error ? err.message : String(err));
   let liste: string[];
   try {
-    const r = klipListesiCoz(await oku(`${dizin}/${KLIP_LISTESI}`));
-    if (!r.ok) return { klipler: [], hatalar: [{ dosya: KLIP_LISTESI, neden: r.hata }] };
+    const r = klipListesiCoz(await oku(`${dizin}/${KLIP_LISTESI}`), adGecerli);
+    if (!r.ok) return { ogeler: [], hatalar: [{ dosya: KLIP_LISTESI, neden: r.hata }] };
     liste = r.deger;
   } catch (err) {
-    return { klipler: [], hatalar: [{ dosya: KLIP_LISTESI, neden: `okunamadı: ${neden(err)}` }] };
+    return { ogeler: [], hatalar: [{ dosya: KLIP_LISTESI, neden: `okunamadı: ${neden(err)}` }] };
   }
-  const klipler: AnimasyonKlibi[] = [];
+  const ogeler: T[] = [];
   const hatalar: KlipHatasi[] = [];
   await Promise.all(liste.map(async (ad) => {
     const dosya = `${ad}.json`;
     try {
-      const r = klipMetniCoz(dosya, await oku(`${dizin}/${dosya}`));
-      if (r.ok) klipler.push(r.deger); else hatalar.push({ dosya, neden: r.hata });
+      const r = coz(dosya, await oku(`${dizin}/${dosya}`));
+      if (r.ok) ogeler.push(r.deger); else hatalar.push({ dosya, neden: r.hata });
     } catch (err) {
       hatalar.push({ dosya, neden: `okunamadı: ${neden(err)}` });
     }
   }));
   // Liste sırası korunur (Promise.all bitiş sırasıyla iterdi): seçenek listesi her açılışta aynı sırada.
-  klipler.sort((a, b) => liste.indexOf(a.ad) - liste.indexOf(b.ad));
+  ogeler.sort((a, b) => liste.indexOf(a.ad) - liste.indexOf(b.ad));
   hatalar.sort((a, b) => a.dosya.localeCompare(b.dosya));
-  return { klipler, hatalar };
+  return { ogeler, hatalar };
+}
+
+/** Klip klasörünü yükler (genel yükleyici + klip çözücü). Hiç fırlatmaz: sonuç her zaman bir rapor. */
+export async function klipleriYukle(oku: (yol: string) => Promise<string>, dizin = KLIP_DIZINI): Promise<{ klipler: AnimasyonKlibi[]; hatalar: KlipHatasi[] }> {
+  const r = await listeliKlasoruYukle(oku, dizin, klipMetniCoz);
+  return { klipler: r.ogeler, hatalar: r.hatalar };
 }

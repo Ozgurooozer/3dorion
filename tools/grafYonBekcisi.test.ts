@@ -7,24 +7,11 @@
 "use strict";
 import test from "node:test";
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import path from "node:path";
-import { KOK, depoYolu, ithaller, kaynaklar } from "./ithaller.ts";
+import { klasorMetinleri, yasakIthaller } from "./ithaller.ts";
 
-/** `klasor` altındaki üretim dosyalarından, çözülen yolu `yasak` önekiyle başlayan her import'u (tip dahil) listeler. */
-export function ihlaller(metinler: ReadonlyMap<string, string>, yasak: readonly string[]): string[] {
-  const cikti: string[] = [];
-  for (const [dosya, metin] of metinler) {
-    for (const i of ithaller(metin)) {
-      const hedef = path.posix.normalize(path.posix.join(path.posix.dirname(dosya), i.yol));
-      if (yasak.some((y) => hedef.startsWith(y))) cikti.push(`${dosya} → ${hedef}`);
-    }
-  }
-  return cikti;
-}
-
-const oku = (klasor: string): Map<string, string> => new Map(
-  kaynaklar(path.join(KOK, klasor), { testler: false }).map((f) => [depoYolu(f), fs.readFileSync(f, "utf8")] as const));
+/** `klasor` altındaki üretim dosyalarından, çözülen yolu `yasak` önekiyle başlayan her import'u (tip dahil) listeler (ortak: tools/ithaller.ts, spec 36). */
+const ihlaller = yasakIthaller;
+const oku = klasorMetinleri;
 
 test("bekçi kalibrasyonu: ajan dosyası graf'tan içe aktarırsa (tip de olsa) yakalanır; yorumdaki örnek sayılmaz", () => {
   const m = new Map([

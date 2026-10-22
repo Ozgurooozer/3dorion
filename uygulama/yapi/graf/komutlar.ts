@@ -4,7 +4,7 @@
 import { geriAl, kopyalaKomutu, silKomutu, yapistirKomutu, yinele, type EditorOturumu, type KomutSonucu } from "../../graf/editor/editorOturumu.ts";
 import type { EditorKomutu } from "../../graf/editor/kisayollar.ts";
 import type { Pano } from "../../graf/editor/grafIslemleri.ts";
-import { dunyadanEkrana } from "../../graf/editor/tuvalMatematigi.ts";
+import { dunyadanEkrana } from "../../duzenleyici/tuvalMatematigi.ts";
 import type { MesajTuru } from "./editorBaglami.ts";
 import type { Tuval } from "./tuval.ts";
 import type { PaletKutusu } from "./paletKutusu.ts";

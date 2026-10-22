@@ -1,4 +1,6 @@
-// uygulama/graf/editor/gecmis.ts — GERİ AL / YİNELE YIĞINI ve KİRLİ İŞARETİ (spec 35 dilim 2b). SAF, genel (değer türünden bağımsız).
+// uygulama/duzenleyici/gecmis.ts — GERİ AL / YİNELE YIĞINI ve KİRLİ İŞARETİ (spec 35 dilim 2b). SAF, genel (değer türünden bağımsız).
+// İki kullanıcısı var: düğüm grafiği editörü (`uygulama/graf/editor/`) ve sekans editörü (`uygulama/sekans/editor/`, spec 36). Bu yüzden ikisinin de
+// DIŞINDA, tarafsız klasörde (spec 36: sekans graf motorunu içe aktarmaz; kopya da yazılmaz — `tools/sekansYonBekcisi.test.ts`).
 //
 // Anlık görüntü (snapshot) yığını: her değişiklik grafiğin YENİ bir kopyasıdır (grafIslemleri.ts değiştirilemez), yığın onları olduğu gibi tutar —
 // "ters işlem" yazmak yerine eski hâle dönülür (hata payı yok: ne kaydedildiyse o döner). Kurallar:

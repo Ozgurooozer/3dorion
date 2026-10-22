@@ -114,6 +114,12 @@ export interface Kopru {
   npcYaz(ad: string, metin: string): Promise<IpcSonuc<true>>;
   npcYeni(ad: string, metin: string): Promise<IpcSonuc<true>>;
   npcSil(ad: string): Promise<IpcSonuc<true>>;
+  /** Sekanslar (spec 36): ad = sekansın adı (uzantısız). Oynatma kanalı YOK (▶ renderer'da, Ozyn'in gerçek tıklamasıyla). Sil = `.silinenler/`e taşı. */
+  sekansListe(): Promise<IpcSonuc<DosyaBilgisi[]>>;
+  sekansOku(ad: string): Promise<IpcSonuc<string>>;
+  sekansYaz(ad: string, metin: string): Promise<IpcSonuc<true>>;
+  sekansYeni(ad: string, metin: string): Promise<IpcSonuc<true>>;
+  sekansSil(ad: string): Promise<IpcSonuc<true>>;
   /**
    * Orion'un sesi (spec 34, host/sesler.js). Her işlem güncel durumu döner. `sesSec` bir SONRAKİ cümleden geçerli; `ORION_PIPER_MODEL` varken
    * `kilitli` kodla reddedilir. `sesIndir` yalnız katalogdaki adı kabul eder (adres renderer'dan gelmez); `sesSil` yalnız panelden indirileni.

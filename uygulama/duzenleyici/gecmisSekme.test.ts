@@ -1,4 +1,4 @@
-// uygulama/graf/editor/gecmisSekme.test.ts — geri al / yinele yığını (TAVANLI, kirli işareti) ve editör sekmeleri (kirli sekme ONAYSIZ KAPANMAZ).
+// uygulama/duzenleyici/gecmisSekme.test.ts — geri al / yinele yığını (TAVANLI, kirli işareti) ve editör sekmeleri (kirli sekme ONAYSIZ KAPANMAZ).
 "use strict";
 import test from "node:test";
 import assert from "node:assert/strict";

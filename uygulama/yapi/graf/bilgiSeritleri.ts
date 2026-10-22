@@ -6,18 +6,14 @@ import type { EditorOturumu } from "../../graf/editor/editorOturumu.ts";
 import { KISAYOLLAR } from "../../graf/editor/kisayollar.ts";
 import type { MesajTuru } from "./editorBaglami.ts";
 import { dugme, el } from "./dom.ts";
+import { ipucuSeridi } from "../ortak/dom.ts";
 
 const IPUCU_ANAHTARI = "orion.grafEditoru.ipucu.v1";
 
 /** "Ne yapabilirim" şeridi: ilk açılışta görünür, "Anladım" saklanır (depo yoksa her açılışta görünür: zararsız, kalıcı durum değil). */
 export function ipucuSeridiKur(): HTMLElement {
-  const kok = el("div", "ge-ipucu");
-  const gizli = (() => { try { return localStorage.getItem(IPUCU_ANAHTARI) === "1"; } catch { return false; } })();
-  if (gizli) kok.style.display = "none";
-  const anladim = dugme("Anladım", "", "Bu ipucunu bir daha gösterme");
-  anladim.addEventListener("click", () => { kok.style.display = "none"; try { localStorage.setItem(IPUCU_ANAHTARI, "1"); } catch { /* depo yok: yalnız bu oturum */ } });
-  kok.append(el("span", "", "Sağ tık ya da Boşluk: düğüm ekle · pinden sürükle: bağla (boşluğa bırak: uyan düğümler) · tekerlek: yakınlaş · F: sığdır · Ctrl+S kaydet · ▶ kaydedilmiş hâli çalıştırır · ? kısayollar"), anladim);
-  return kok;
+  // Şeridin kendisi sekans editörüyle ortak (uygulama/yapi/ortak/dom.ts, spec 36); burada graf'ın metni ve anahtarı.
+  return ipucuSeridi(IPUCU_ANAHTARI, "Sağ tık ya da Boşluk: düğüm ekle · pinden sürükle: bağla (boşluğa bırak: uyan düğümler) · tekerlek: yakınlaş · F: sığdır · Ctrl+S kaydet · ▶ kaydedilmiş hâli çalıştırır · ? kısayollar", "ge-ipucu", dugme);
 }
 
 /** Dış değişiklik bandı: dosya editör dışında değişti (kirli sekmede) ya da kalktı. */

@@ -1,4 +1,4 @@
-// uygulama/graf/editor/tuvalMatematigi.test.ts — tuval matematiği: ekran↔dünya gidiş-dönüş, İMLEÇ MERKEZLİ yakınlaştırmanın sabit noktası, ölçek
+// uygulama/duzenleyici/tuvalMatematigi.test.ts — tuval matematiği: ekran↔dünya gidiş-dönüş, İMLEÇ MERKEZLİ yakınlaştırmanın sabit noktası, ölçek
 // tavanı, sığdır, kutu seçimi, ızgara. Ölçülmüş tolerans: kayan nokta hatası 1e-9 piksel.
 "use strict";
 import test from "node:test";

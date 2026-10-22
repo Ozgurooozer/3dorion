@@ -54,6 +54,25 @@ export function kaynaklar(klasor: string, secenek: { testler: boolean; atla?: re
   });
 }
 
+/**
+ * İç yön bekçileri (`tools/grafYonBekcisi.test.ts`, `tools/sekansYonBekcisi.test.ts`) için: dosya → metin haritasında, çözülen yolu `yasak` öneklerinden
+ * biriyle başlayan her import (tip dahil) "kaynak → hedef" olarak. Önce graf bekçisindeydi; sekans bekçisi ikinci kopyayı yazmasın diye buraya alındı.
+ */
+export function yasakIthaller(metinler: ReadonlyMap<string, string>, yasak: readonly string[]): string[] {
+  const cikti: string[] = [];
+  for (const [dosya, metin] of metinler) {
+    for (const i of ithaller(metin)) {
+      const hedef = path.posix.normalize(path.posix.join(path.posix.dirname(dosya), i.yol));
+      if (yasak.some((y) => hedef.startsWith(y))) cikti.push(`${dosya} → ${hedef}`);
+    }
+  }
+  return cikti;
+}
+
+/** Klasörün üretim dosyaları (test hariç) → metin, depo yoluyla. */
+export const klasorMetinleri = (klasor: string): Map<string, string> => new Map(
+  kaynaklar(path.join(KOK, klasor), { testler: false }).map((f) => [depoYolu(f), fs.readFileSync(f, "utf8")] as const));
+
 /** Depo köküne göre POSIX yol ("world/avatar/index.ts"). */
 export function depoYolu(dosya: string): string {
   return path.relative(KOK, dosya).split(path.sep).join("/");

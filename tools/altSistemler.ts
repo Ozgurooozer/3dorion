@@ -52,7 +52,9 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
       // NPC kaydı biçimi (spec 35 dilim 3): ajan + grafikler + parametreler; dinleme ve depo uygulama katmanında.
       "protocol/npc.ts",
       // Animasyon klibi biçimi (spec 35 Dilim 5a): `jest` niyetinin `klip`i; gövdeye eşleme ve oynatma world/avatar/'da.
-      "protocol/animasyon.ts"],
+      "protocol/animasyon.ts",
+      // Sekans biçimi (spec 36): zaman çizelgesi (bağlama, uzuv izi, klip bölümü); değerlendirme, oynatma ve editör uygulama katmanında.
+      "protocol/sekans.ts"],
     izinli: [], urun: true,
   },
   {

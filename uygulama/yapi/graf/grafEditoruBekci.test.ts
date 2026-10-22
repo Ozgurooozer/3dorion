@@ -30,7 +30,8 @@ test("BEKÇİ (tuş sızıntısı): odak dışarıdayken pencere yakalayıcısı
 });
 
 test("BEKÇİ (kirli sekme): ✕ kapatmayı modele SORAR — onay yalnız aynı sekmenin ikinci tıkında verilir", () => {
-  const k = oku("sekmeSeridi.ts");
+  // Şerit spec 36'da ortak klasöre taşındı (graf ve sekans editörü aynı dosyayı kullanır): kural ikisi için de buradan sınanır.
+  const k = oku("../ortak/sekmeSeridi.ts");
   const cagrilar = [...k.matchAll(/a\.sekmeler\.kapat\(([^)]*)\)/g)].map((m) => m[1]);
   assert.deepEqual(cagrilar, ["s.ad, onayBekleyen === s.ad"]);
 });

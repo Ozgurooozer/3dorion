@@ -16,6 +16,7 @@ import { durumYolu, hafizaDosyasiOku, hafizaDosyasiYaz, hafizaYolu } from "./haf
 import { mdAktifYap, mdDizini, mdListe, mdOku, mdTohumla, mdYaz, mdYeni } from "./mdDosyalari.js";
 import { grafDizini, grafListe, grafOku, grafSil, grafYaz, grafYeni } from "./grafDosyalari.js";
 import { npcDizini, npcListe, npcOku, npcSil, npcYaz, npcYeni } from "./npcDosyalari.js";
+import { sekansDizini, sekansListe, sekansOku, sekansSil, sekansYaz, sekansYeni } from "./sekansDosyalari.js";
 import { kararYaziciKur, ogretimYolu, ogretimleriOku, satirlariOku, yeniSatirlar } from "./kararDosyasi.js";
 import { mcpSunucuKur } from "./mcpSunucu.js";
 import { ollamaHazirla, ollamaAdresi } from "./ollamaSunucu.js";
@@ -91,6 +92,15 @@ function pencereAc() {
   // Karar satırları (spec 08) günlüğe BASILMAZ, dosyaya eklenir: her algı bir
   // satır — günlüğü boğardı ve kaydın asıl yeri zaten dosya.
   pencere.webContents.on("console-message", (_e, _sev, mesaj) => {
+    // `klipdene`: senaryo "[KLIPSS] <ad>" basar, o anki pencere <ORION_SS_DIR>/<ad>.png olarak yazılır (görsel kanıt; spec 35 §4f).
+    const kareAdi = /^\[KLIPSS\] ([\w.-]+)$/.exec(mesaj)?.[1];
+    if (kareAdi && process.env.ORION_SS_DIR && pencere && !pencere.isDestroyed()) {
+      const dizin = process.env.ORION_SS_DIR;
+      pencere.webContents.capturePage().then((g) => {
+        fs.mkdirSync(dizin, { recursive: true });
+        fs.writeFileSync(path.join(dizin, `${kareAdi}.png`), g.toPNG());
+      }).catch((e) => console.error("[KLIPSS] kare alinamadi:", e?.message ?? e));
+    }
     if (kararYazici.yaz(mesaj)) return;
     console.log(`[renderer] ${mesaj}`);
   });
@@ -153,6 +163,9 @@ function pencereAc() {
   if (process.env.ORION_EFEKTDENE === "1") parcalar.push("efektdene=1", "sessiz=1", "komut=1");
   if (process.env.ORION_GROMADENE === "1") parcalar.push("gromadene=1", "sessiz=1");
   if (process.env.ORION_GOZLEMDENE === "1") parcalar.push("gozlemdene=1", "sessiz=1");
+  if (process.env.ORION_KLIPDENE === "1") parcalar.push("klipdene=1", "sessiz=1");
+  // Sekans (spec 36): örnek sekansları gerçek oynatıcıyla oynatır, editörü açar; kareler `[KLIPSS] <ad>` satırıyla ORION_SS_DIR'e (yukarıdaki yakalayıcı).
+  if (process.env.ORION_SEKANSDENE === "1") parcalar.push("sekansdene=1", "sessiz=1");
   // Spec 25 Faz 2: görme. `ORION_GOZ` görme modelini seçer (varsayılan bridge/goz.ts'te).
   if (process.env.ORION_GOZDENE === "1") parcalar.push("gozdene=1", "sessiz=1");
   if (process.env.ORION_GOZ) parcalar.push(`goz=${encodeURIComponent(process.env.ORION_GOZ)}`);
@@ -437,6 +450,15 @@ ipcMain.handle(CAGRI.npcOku, (_e, ad) => ipcSonucu(() => npcOku(NPC_DIZINI, ad))
 ipcMain.handle(CAGRI.npcYaz, (_e, ad, metin) => ipcSonucu(() => { npcYaz(NPC_DIZINI, ad, metin); return true; }));
 ipcMain.handle(CAGRI.npcYeni, (_e, ad, metin) => ipcSonucu(() => { npcYeni(NPC_DIZINI, ad, metin); return true; }));
 ipcMain.handle(CAGRI.npcSil, (_e, ad) => ipcSonucu(() => { npcSil(NPC_DIZINI, ad); console.log(`[npc] kaldırıldı (.silinenler): ${ad}`); return true; }));
+
+// ---- sekanslar (spec 36) ---------------------------------------------------------
+// Zaman çizelgeleri (bağlama, uzuv izi, klip bölümü): kullanıcı verisinde. Biçimi renderer doğrular; OYNATMA kanalı YOK (▶ Ozyn'in gerçek tıklaması renderer'da).
+const SEKANS_DIZINI = sekansDizini(process.env, app.getPath("userData"), os.tmpdir());
+ipcMain.handle(CAGRI.sekansListe, () => ipcSonucu(() => sekansListe(SEKANS_DIZINI)));
+ipcMain.handle(CAGRI.sekansOku, (_e, ad) => ipcSonucu(() => sekansOku(SEKANS_DIZINI, ad)));
+ipcMain.handle(CAGRI.sekansYaz, (_e, ad, metin) => ipcSonucu(() => { sekansYaz(SEKANS_DIZINI, ad, metin); return true; }));
+ipcMain.handle(CAGRI.sekansYeni, (_e, ad, metin) => ipcSonucu(() => { sekansYeni(SEKANS_DIZINI, ad, metin); return true; }));
+ipcMain.handle(CAGRI.sekansSil, (_e, ad) => ipcSonucu(() => { sekansSil(SEKANS_DIZINI, ad); console.log(`[sekans] kaldırıldı (.silinenler): ${ad}`); return true; }));
 
 // ---- MCP ucu (spec 05 Aşama 1) --------------------------------------------
 // Odadaki `claude` buraya bağlanıp Orion'un bedenini sürer. İstekler IPC ile

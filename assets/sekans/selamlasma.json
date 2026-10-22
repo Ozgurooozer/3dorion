@@ -1,0 +1,15 @@
+{
+  "surum": 1,
+  "ad": "selamlasma",
+  "aciklama": "Örnek: Orion el sallar (el_salla klibi), sonra başını öne eğip selam verir (baş izi). 3,5 sn.",
+  "fps": 30,
+  "sure_kare": 105,
+  "aralik": {"bas":0,"bit":105},
+  "baglamalar": [
+    {"id":"b1","ajan":"orion"}
+  ],
+  "izler": [
+    {"id":"el","baglama":"b1","tur":"klip","gizli":false,"kilitli":false,"bolumler":[{"klip":"el_salla","baslangic_kare":0,"uzunluk_kare":72,"ofset_kare":0}]},
+    {"id":"bas","baglama":"b1","tur":"uzuv","gizli":false,"kilitli":false,"uzuv":"bas","kanal":"donme_x","anahtarlar":[{"kare":0,"deger":0,"yumusatma":"dogrusal"},{"kare":66,"deger":0,"yumusatma":"yumusak"},{"kare":80,"deger":14,"yumusatma":"yumusak"},{"kare":92,"deger":14,"yumusatma":"yumusak"},{"kare":104,"deger":0,"yumusatma":"dogrusal"}]}
+  ]
+}

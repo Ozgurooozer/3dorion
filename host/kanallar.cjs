@@ -86,6 +86,15 @@ const CAGRI = {
   npcYeni:           "npc:yeni",
   npcSil:            "npc:sil",
   /**
+   * Sekanslar (spec 36, host/sekansDosyalari.js): ad = sekansın adı (uzantısız). Sonuç biçimi grafiklerinkiyle aynı; biçimi renderer doğrular
+   * (protocol/sekans.ts). OYNATMA kanalı YOK: sekans renderer'da, yalnız Ozyn'in gerçek ▶ tıklamasıyla oynar.
+   */
+  sekansListe:       "sekans:liste",
+  sekansOku:         "sekans:oku",
+  sekansYaz:         "sekans:yaz",
+  sekansYeni:        "sekans:yeni",
+  sekansSil:         "sekans:sil",
+  /**
    * Orion'un sesi (spec 34, host/sesler.js): kurulu/katalog sesleri, seçim (bir SONRAKİ cümleden geçerli), katalogdan indirme, yalnız indirileni silme.
    * Sonuç biçimi md'ninkiyle aynı (`{ ok, deger: SesDurumu }` | `{ ok: false, kod, mesaj }`); deneme cümlesi mevcut `sesUret` yolundan çalar.
    */

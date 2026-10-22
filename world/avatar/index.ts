@@ -189,6 +189,9 @@ export { vrmIskeletYukle } from "./vrm.ts";
 export type { AvatarIskeleti, IskeletBilgisi } from "./iskelet.ts";
 export { orionGozuKur } from "./goz.ts";
 // JSON animasyon klipleri (spec 35 Dilim 5a): kütüphane + yükleyici kompozisyon kökünde kurulur (okuma `fetch`), gövde tablosu belge/ölçüm için.
-export { klipKutuphanesiKur, klipleriYukle, KLIP_DIZINI, KLIP_LISTESI } from "./klipKutuphanesi.ts";
+export { klipKutuphanesiKur, klipleriYukle, listeliKlasoruYukle, KLIP_DIZINI, KLIP_LISTESI } from "./klipKutuphanesi.ts";
+// Sekans (spec 36): değerlendirici klibin örnekleyicisini KULLANIR (yumuşatma ve zaman kuralı tek yerde; kopya yok).
+export { izDegeri, klipOrnekle, klipZamani } from "./klipOrnekleyici.ts";
+export type { UzuvDegeri } from "./klipOrnekleyici.ts";
 export type { KlipBulucu, KlipKutuphanesi, KlipHatasi } from "./klipKutuphanesi.ts";
 export { UZUV_ESLEMESI } from "./uzuvEslemesi.ts";

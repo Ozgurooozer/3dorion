@@ -6,22 +6,12 @@
 "use strict";
 import type { GrafDegeri } from "../../../protocol/graf.ts";
 import { alanYazisi, type AlanTanimi } from "../../graf/editor/alanlar.ts";
+import { dugmeYap, el, yaziAlaniMi } from "../ortak/dom.ts";
 
-export const el = <K extends keyof HTMLElementTagNameMap>(ad: K, sinif = "", metin = ""): HTMLElementTagNameMap[K] => {
-  const e = document.createElement(ad); if (sinif) e.className = sinif; if (metin) e.textContent = metin; return e;
-};
+// Ortak yardımcılar (sekans editörüyle paylaşılır; spec 36): `el`, `yaziAlaniMi` burada yeniden dışa verilir, graf parçaları eskisi gibi buradan alır.
+export { el, yaziAlaniMi };
 
-export const dugme = (metin: string, sinif = "", ipucu = ""): HTMLButtonElement => {
-  const b = el("button", `ge-dugme ${sinif}`.trim(), metin); b.type = "button"; if (ipucu) b.title = ipucu; return b;
-};
-
-/** Olayın hedefi bir yazı alanı mı (orada tuş harftir; editör komutları çalışmaz). */
-export const yaziAlaniMi = (h: EventTarget | null): boolean => {
-  const e = h as HTMLElement | null;
-  if (!e?.matches) return false;
-  if (e.isContentEditable || e.matches("textarea, select")) return true;
-  return e.matches("input") && !e.matches("input[type=checkbox], input[type=radio], input[type=button], input[type=range]");
-};
+export const dugme = dugmeYap("ge-dugme");
 
 /**
  * Ayar alanının girdisi. `degisti(ham)` kullanıcı değeri bitirince (Enter, odak kaybı, seçim) çağrılır; kabul edilmezse çağıran `geriYukle` ile eski

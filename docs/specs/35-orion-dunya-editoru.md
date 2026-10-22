@@ -523,6 +523,8 @@ Mimari/alt-sistem/tip kaçışı/Flash LLM'siz/yön bekçileri yeşil.
 - `@comfyorg/litegraph` 0.17.2: **MIT**, ESM + tipler, bağımlılık yok, son güncelleme 2026-10-02 (ComfyUI'nin editörü). Orijinal `litegraph.js` 0.7.18 Ocak 2024'ten beri durgun.
 - **Bulgu:** paketin sayı alanı istemi kullanıcının yazdığı ifadeyi `eval` ediyor (düzenli ifade yalnız başı denetliyor: "1+…" ile başlayan her şey çalışır). Yazan yalnız Ozyn olduğu için risk düşük ama ana pencere `sandbox:false` ve CSP yok: LiteGraph seçilirse sayı alanları **kendi** alanlarımızla değiştirilmeli ya da o istem kapatılmalı. Karar dilim 2'de (LiteGraph vs kendi SVG editörümüz).
 
+> Zaman çizelgesi (klipleri ve uzuv anahtarlarını kare kare dizen Sekans, Unreal Sequencer karşılığı): bkz. **spec 36** (`docs/specs/36-orion-sekans.md`).
+
 ## 6. Sıradaki dilimler
 1. ~~Ajan eylem düğümleri + Ajan seç/Nesne bul + ▶/■ + günlük~~ → §4b (Emret yapılmadı: grafikten başka ajana söz teslimi gereksiz, eylem düğümleri ajanı doğrudan sürer).
 2. ~~NPC davranışı (olay tetikleyici + dinleme, değişkenler, mantık, gün vakti, seçimli diyalog)~~ → §4c (dilim 2 numarası Ozyn'in 2026-10-21 isteğine verildi).
