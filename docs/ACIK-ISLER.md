@@ -25,5 +25,5 @@ Otomatik GI (`?gi=hacim`), shader/stil/ufuk işleri, kendi stilimiz seçimi, ye�
 
 ## Teknik borç
 - `giris.ts` 815 satır ve `saat.dinle` gövdesi (kökte iş mantığı); `bridge/kopru.ts` 1435 satır; B5 (ofis dosyalarını `world/oda/`ya taşı); ayar normalizasyonu 5 kopya; `semaCizim.ts` testsiz.
-- Groma sunucusu kapalıyken `host/webMonitor` her ~2–3 sn `http://localhost:4747` bağlanmayı deniyor ve log'a `ERR_CONNECTION_REFUSED` basıyor (geri çekilme yok; canlı log 2026-10-16).
+- Groma sunucusu kapalıyken `host/webMonitor` her ~2–3 sn `http://localhost:4747` bağlanmayı deniyor ve log'a `ERR_CONNECTION_REFUSED` basıyor (canlı log 2026-10-16). **KAPATILDI 2026-10-22:** yeniden deneme 5 sn'den başlayıp ikiye katlanıyor, en çok 60 sn; yüklenince başa döner (`host/webMonitor.js`, test + mutasyon).
 - Ollama yetim `llama-server` VRAM tutuyor (temizleme betiği yok); duman koşuları `ORION_KARAR_DOSYASI` verilmezse gerçek karar kaydına yazıyor; `OPENCODE_SERVER_PASSWORD` ayarsız.

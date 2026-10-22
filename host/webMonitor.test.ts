@@ -111,6 +111,21 @@ test("sayfa yüklenemezse 'kapali' bildirilir ve 5 sn sonra yeniden denenir; yü
   assert.ok(olaylar.some((o) => o.olay === "durum" && o.d === "acik"));
 });
 
+test("yeniden deneme GERİ ÇEKİLİR: 5 → 10 → 20 → 40 → 60 → 60 sn; yüklenince 5 sn'e döner", () => {
+  const { m, p, zamanlayicilar } = kur();
+  m.ac();
+  const bekleyenler: number[] = [];
+  for (let i = 0; i < 6; i++) {
+    p.tetikle("did-fail-load", {}, -102, "ERR_CONNECTION_REFUSED", "http://localhost:4747/", true);
+    bekleyenler.push(zamanlayicilar.at(-1)!.ms);
+    zamanlayicilar.at(-1)!.f();
+  }
+  assert.deepEqual(bekleyenler, [5000, 10000, 20000, 40000, 60000, 60000]);
+  p.tetikle("did-finish-load");
+  p.tetikle("did-fail-load", {}, -102, "ERR_CONNECTION_REFUSED", "http://localhost:4747/", true);
+  assert.equal(zamanlayicilar.at(-1)!.ms, 5000);
+});
+
 test("alt çerçeve hatası ve iptal (-3) 'kapali' sayılmaz", () => {
   const { m, p, olaylar } = kur();
   m.ac();

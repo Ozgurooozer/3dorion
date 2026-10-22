@@ -6,7 +6,8 @@
 // sayfa piksellerine burada çevrilir: renderer sayfanın boyutunu bilmek zorunda değil.
 //
 // GÜVENLİK: yalnız yerel adres (localhost/127.0.0.1/::1, http). Başka adres `ac`ta REDDEDİLİR (oyun, internetten rastgele sayfa yüklemez); klavye iletilmez,
-// yalnız fare ve tekerlek. Sunucu kapalıysa `kapali` durumu bildirilir ve 5 sn'de bir yeniden denenir (groma sonradan açılırsa kendiliğinden bağlanır).
+// yalnız fare ve tekerlek. Sunucu kapalıysa `kapali` durumu bildirilir ve yeniden denenir: 5 sn ile başlar, her başarısızlıkta ikiye katlanır, en çok 60 sn (groma sonradan açılırsa kendiliğinden bağlanır;
+// her deneme Electron'un konsoluna `ERR_CONNECTION_REFUSED` basar — geri çekilme 2026-10-22: sunucu günlerce kapalıyken günlüğü 5 sn'de bir kirletiyordu, docs/ACIK-ISLER.md).
 import { createRequire } from "node:module";
 
 // Electron YALNIZ gerçek pencere açılırken yüklenir: birim testleri (Node) `electron` paketini ESM olarak içe aktaramaz.
@@ -14,7 +15,8 @@ const electron = () => createRequire(import.meta.url)("electron");
 
 export const VARSAYILAN_ADRES = "http://localhost:4747";
 export const GENISLIK = 1008, YUKSEKLIK = 600;   // ekranın en-boy oranı (0,74 × 0,44 m ≈ 1,68)
-const YENIDEN_DENE_MS = 5000;
+export const YENIDEN_DENE_MS = 5000;
+export const YENIDEN_DENE_AZAMI_MS = 60_000;
 const EN_AZ_KARE_ARALIGI_MS = 110;                // ≈ 9 kare/sn üst sınırı
 
 /** Yalnız yerel http adresi. Dışarıya açık sayfa yüklenmez. */
@@ -50,6 +52,7 @@ export class WebMonitor {
     this._adres = null;
     this._sonKare = 0;
     this._tekrar = null;
+    this._bekleme = YENIDEN_DENE_MS;
   }
 
   get acik() { return this._pencere !== null; }
@@ -63,7 +66,7 @@ export class WebMonitor {
     const wc = p.webContents;
     wc.setFrameRate?.(9);
     wc.on("paint", (_e, _kirli, resim) => this._kare(resim));
-    wc.on("did-finish-load", () => this._olayVer({ olay: "durum", d: "acik" }));
+    wc.on("did-finish-load", () => { this._bekleme = YENIDEN_DENE_MS; this._olayVer({ olay: "durum", d: "acik" }); });
     wc.on("did-fail-load", (_e, kod, _aciklama, _url, anaCerceve) => {
       if (anaCerceve === false || kod === -3) return;   // alt çerçeve / iptal: gürültü
       this._olayVer({ olay: "durum", d: "kapali" });
@@ -85,7 +88,9 @@ export class WebMonitor {
 
   _yenidenDene() {
     if (this._tekrar || !this._pencere) return;
-    this._tekrar = this._zamanlayici(() => { this._tekrar = null; this._yukle(); }, YENIDEN_DENE_MS);
+    const ms = this._bekleme;
+    this._bekleme = Math.min(YENIDEN_DENE_AZAMI_MS, this._bekleme * 2);   // bir sonraki başarısızlık daha geç dener; yükleme başarılı olunca başa döner
+    this._tekrar = this._zamanlayici(() => { this._tekrar = null; this._yukle(); }, ms);
   }
 
   _kare(resim) {
