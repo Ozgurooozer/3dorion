@@ -130,3 +130,30 @@ test("yerel kaynak: kurallar host'unkiyle aynı (yok / var / geçersiz ad), tek 
   await assert.rejects(k.yeni("a.json", ""), (e: DosyaHatasi) => e.kod === "gecersiz-ad");
   assert.deepEqual([...b.m.keys()], [YEREL_GRAF_ANAHTARI]);
 });
+
+test("sil: grafik listeden ve önbellekten gider; yoksa nedenli hata; kaynak silmeyi bilmiyorsa nedenli hata", async () => {
+  const s = sayanKaynak();
+  const depo = grafDeposuKur(s.k);
+  await depo.baslat();
+  await depo.yeni(yeniGrafSablonu("selam"));
+  assert.deepEqual(depo.liste().map((k) => k.ad), ["selam"]);
+  await depo.sil("selam");
+  assert.deepEqual([depo.liste().length, depo.al("selam")], [0, null]);
+  await assert.rejects(depo.sil("selam"), /grafik yok: selam/);
+  const silmez = grafDeposuKur({ liste: async () => [], oku: async () => "", yaz: async () => {}, yeni: async () => {} });
+  await assert.rejects(silmez.sil("x"), /silme yok/);
+  await assert.rejects(depo.sil("../x"), /geçersiz grafik adı/);
+});
+
+test("desenKullananlar: deseni 'Desen' düğümüyle çağıran grafikleri söyler (silmeden önce uyarı); kendi kendini ve başka deseni saymaz", async () => {
+  const s = sayanKaynak();
+  const depo = grafDeposuKur(s.k);
+  await depo.baslat();
+  await depo.yeni(yeniDesenSablonu("selamla"));
+  const g = yeniGrafSablonu("kullanan");
+  g.dugumler.push({ id: "c", tip: "desen.cagir", ayar: { desen: "selamla" } });
+  await depo.yeni(g);
+  await depo.yeni(yeniGrafSablonu("kullanmayan"));
+  assert.deepEqual(depo.desenKullananlar("selamla"), ["kullanan"]);
+  assert.deepEqual(depo.desenKullananlar("yokboyle"), []);
+});

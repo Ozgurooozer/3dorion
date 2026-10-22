@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { GRAF_BOYUT_SINIRI, grafAdiGecerli, grafDizini, grafListe, grafOku, grafYaz, grafYeni } from "./grafDosyalari.js";
+import { GRAF_BOYUT_SINIRI, grafAdiGecerli, grafDizini, grafListe, grafOku, grafSil, grafYaz, grafYeni } from "./grafDosyalari.js";
 import { grafAdiGecerli as protokolAdi, GRAF_SINIRLARI } from "../protocol/graf.ts";
 
 function gecici(): string { return fs.mkdtempSync(path.join(os.tmpdir(), "orion-graf-test-")); }
@@ -54,4 +54,22 @@ test("boyut sınırı ve metin olmayan içerik reddedilir, dosya değişmez", ()
   assert.equal(kod(() => grafYaz(d, "a", "x".repeat(GRAF_BOYUT_SINIRI + 1))), "cok-buyuk");
   assert.equal(kod(() => grafYaz(d, "a", 5 as unknown as string)), "gecersiz-icerik");
   assert.equal(grafOku(d, "a"), "kalsın");
+});
+
+test("SİL = KALDIR: dosya listeden gider ama .silinenler altında zaman damgalı KOPYA olarak kalır (kalıcı silme yok); yoksa 'yok', geçersiz ad 'gecersiz-ad'", () => {
+  const d = gecici();
+  grafYeni(d, "selam", "{\"a\":1}");
+  grafSil(d, "selam", () => 42);
+  assert.deepEqual(grafListe(d), []);
+  assert.equal(fs.existsSync(path.join(d, "selam.json")), false);
+  assert.equal(fs.readFileSync(path.join(d, ".silinenler", "selam.json.42"), "utf8"), "{\"a\":1}");
+  assert.deepEqual([kod(() => grafSil(d, "selam")), kod(() => grafSil(d, "../x"))], ["yok", "gecersiz-ad"]);
+  grafYeni(d, "selam", "{\"b\":2}");   // aynı ad yeniden kullanılabilir; eski içerik .silinenler'de
+  assert.equal(grafOku(d, "selam"), "{\"b\":2}");
+});
+
+test("silinenler klasörü liste'ye karışmaz", () => {
+  const d = gecici();
+  grafYeni(d, "a", "x"); grafSil(d, "a"); grafYeni(d, "b", "y");
+  assert.deepEqual(grafListe(d).map((x) => x.ad), ["b"]);
 });

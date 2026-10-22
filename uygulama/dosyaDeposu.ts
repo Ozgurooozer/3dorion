@@ -26,6 +26,8 @@ export interface DosyaKaynagi<B extends DosyaBilgisi = DosyaBilgisi> {
   oku(ad: string): Promise<string>;
   yaz(ad: string, metin: string): Promise<void>;
   yeni(ad: string, metin: string): Promise<void>;
+  /** Dosyayı kaldırır (host'ta `.silinenler/`e taşır). Her tür sunmaz: md deposu sistem dosyalarını silmez, bu yüzden isteğe bağlı. */
+  sil?(ad: string): Promise<void>;
 }
 
 /** Host IPC'sinin dört işlemi (preload `window.kopru.<tür>*`). */
@@ -34,6 +36,7 @@ export interface DosyaIpcYuzu<B> {
   oku(ad: string): Promise<IpcSonuc<string>>;
   yaz(ad: string, metin: string): Promise<IpcSonuc<true>>;
   yeni(ad: string, metin: string): Promise<IpcSonuc<true>>;
+  sil?(ad: string): Promise<IpcSonuc<true>>;
 }
 
 type HataYap = (kod: string, mesaj: string) => Error;
@@ -46,6 +49,7 @@ export function ipcDosyaKaynagi<B extends DosyaBilgisi>(y: DosyaIpcYuzu<B>, hata
     oku: async (ad) => ac(await y.oku(ad)),
     yaz: async (ad, metin) => { ac(await y.yaz(ad, metin)); },
     yeni: async (ad, metin) => { ac(await y.yeni(ad, metin)); },
+    ...(y.sil ? { sil: async (ad: string) => { ac(await y.sil!(ad)); } } : {}),
   };
 }
 
@@ -95,6 +99,7 @@ export function yerelDosyaKaynagi<E extends object>(depo: Depo, a: YerelKaynakAy
       if (d[ad]) throw a.hata("var", `zaten var: ${ad}`);
       d[ad] = { ...a.yeniEk(ad), metin, degisti: simdi() }; yaz(d);
     },
+    async sil(ad) { dene(ad); const d = oku(); var_(d, ad); delete d[ad]; yaz(d); },
     async ekGuncelle(ad, ek) { dene(ad); const d = oku(); d[ad] = { ...var_(d, ad), ...ek }; yaz(d); },
   };
 }

@@ -4,7 +4,7 @@
 // yazılır; KOPYA YOK — ikinci bir deponun kendi atomik yazımını, ad denetimini, yok/var ayrımını yeniden yazması kuralların ayrışması demekti.
 // KURALLAR (mdDosyalari.test.ts + grafDosyalari.test.ts):
 //   1. ATOMİK YAZIM: önce `.tmp`, sonra yeniden adlandırma: yarıda kalan yazım hedefe dokunmaz.
-//   2. YAZ var olanı günceller (yoksa `yok`: yanlış adla yeni dosya doğmasın); YENİ yalnız yoksa yazar (varsa `var`: başkasının üstüne yazılmaz). Silme YOK.
+//   2. YAZ var olanı günceller (yoksa `yok`: yanlış adla yeni dosya doğmasın); YENİ yalnız yoksa yazar (varsa `var`: başkasının üstüne yazılmaz). SİLME = KALDIR (`kaldir`): dosya kalıcı silinmez, klasörün `.silinenler/` altına `<ad>.<zaman>` olarak taşınır (yanlış tıklama geri alınabilir, Ozyn'in programı kaybolmaz).
 //   3. AD kuralı kullanıcının (`adGecerli`); klasör gezme her kuralda yasak olmalı (yol ayracı, `..`). Boyut sınırı kullanıcının.
 //   4. Klasör yeri: env değişkeni > senaryo koşusu (`ORION_SMOKE=1`: geçici klasör, gerçek veriye yazılmaz) > kullanıcı verisi.
 import fs from "node:fs";
@@ -64,6 +64,14 @@ export function dosyaKlasoru(t) {
       boyutDene(metin);
       if (!fs.existsSync(p)) throw kodluHata("yok", `${t.etiket} yok: ${ad} (yeni dosya için YENİ)`);
       atomikYaz(p, metin);
+    },
+    /** Dosyayı `.silinenler/` altına taşır (kalıcı silme yok); yoksa `yok`. Listede artık görünmez. */
+    kaldir(dizin, ad, simdi = Date.now) {
+      const p = yol(dizin, ad);
+      if (!fs.existsSync(p)) throw kodluHata("yok", `${t.etiket} yok: ${ad}`);
+      const cop = path.join(dizin, ".silinenler");
+      fs.mkdirSync(cop, { recursive: true });
+      fs.renameSync(p, path.join(cop, `${ad}.${simdi()}`));
     },
     /** Yeni dosya; varsa `var`. */
     yeni(dizin, ad, metin = "") {

@@ -61,6 +61,7 @@ contextBridge.exposeInMainWorld("kopru", {
   grafOku:          (ad) => ipcRenderer.invoke(CAGRI.grafOku, ad),
   grafYaz:          (ad, metin) => ipcRenderer.invoke(CAGRI.grafYaz, ad, metin),
   grafYeni:         (ad, metin) => ipcRenderer.invoke(CAGRI.grafYeni, ad, metin),
+  grafSil:          (ad) => ipcRenderer.invoke(CAGRI.grafSil, ad),
   // Orion'un sesi (spec 34): hepsi yanıt bekler, sonuç { ok, deger: SesDurumu } ya da { ok:false, kod, mesaj }; indirme ilerlemesi olay olarak.
   sesListe:         () => ipcRenderer.invoke(CAGRI.sesListe),
   sesSec:           (ad) => ipcRenderer.invoke(CAGRI.sesSec, ad),

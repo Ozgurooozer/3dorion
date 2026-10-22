@@ -9,3 +9,5 @@ export function grafListe(dizin: string): DosyaBilgisi[];
 export function grafOku(dizin: string, ad: string): string;
 export function grafYaz(dizin: string, ad: string, metin: string): void;
 export function grafYeni(dizin: string, ad: string, metin: string): void;
+/** Kalıcı silmez: `<dizin>/.silinenler/<ad>.json.<zaman>`a taşır. Yoksa `yok`. */
+export function grafSil(dizin: string, ad: string, simdi?: () => number): void;

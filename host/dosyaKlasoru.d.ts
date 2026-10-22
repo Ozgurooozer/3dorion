@@ -11,5 +11,7 @@ export interface DosyaKlasoru {
   oku(dizin: string, ad: string): string;
   yaz(dizin: string, ad: string, metin: string): void;
   yeni(dizin: string, ad: string, metin?: string): void;
+  /** Kalıcı silmez: `<dizin>/.silinenler/<ad>.<zaman>`a taşır. Yoksa `yok`. */
+  kaldir(dizin: string, ad: string, simdi?: () => number): void;
 }
 export function dosyaKlasoru(t: { adGecerli: (ad: unknown) => boolean; boyutSiniri: number; etiket: string; adEtiketi: string }): DosyaKlasoru;

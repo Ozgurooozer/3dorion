@@ -12,6 +12,7 @@
 import { grafAdiGecerli, grafDogrula, type Graf } from "../../protocol/graf.ts";
 import type { Sonuc } from "../../protocol/dogrula.ts";
 import { kabukKoprusu } from "../kabuk.ts";
+import { DESEN_CAGIR_TIPI } from "./grafTurDenetimi.ts";
 import {
   DosyaHatasi, calismayanDosyaKaynagi, ipcDosyaKaynagi, isSirasi, tarayiciDeposu, yerelDosyaKaynagi,
   type Depo, type DosyaBilgisi, type DosyaIpcYuzu, type DosyaKaynagi,
@@ -70,6 +71,10 @@ export interface GrafDeposu {
   yaz(ad: string, metin: string): Promise<string>;
   /** Yeni grafik (adı grafın adı; varsa hata). */
   yeni(g: Graf): Promise<void>;
+  /** Grafiği/deseni KALDIRIR (host'ta `.silinenler/`e taşınır, kalıcı silme değil). Kaynak silmeyi bilmiyorsa nedenli hata. */
+  sil(ad: string): Promise<void>;
+  /** Bu deseni `Desen` düğümüyle çağıran grafikler/desenler (silmeden önce uyarı). Bozuk dosyalar bakılamaz, sayılmaz. */
+  desenKullananlar(ad: string): string[];
   dinle(f: (o: GrafOlayi) => void): () => void;
   /** Testler: bekleyen yazma işleri bitene dek. */
   bitti(): Promise<void>;
@@ -131,6 +136,15 @@ export function grafDeposuKur(kaynak: DosyaKaynagi): GrafDeposu {
       await kaynak.yeni(g.ad, yazilan);
       await tazele();
     }),
+    sil: (ad) => sira.sirala(async () => {
+      if (!grafAdiGecerli(ad)) throw new DosyaHatasi("gecersiz-ad", `geçersiz grafik adı: ${JSON.stringify(ad)}`);
+      if (!kaynak.sil) throw new DosyaHatasi("hata", "bu kaynakta silme yok");
+      await kaynak.sil(ad);
+      grafikler.delete(ad);
+      await tazele();
+    }),
+    desenKullananlar: (ad) => [...grafikler.values()]
+      .filter((g) => g.ad !== ad && g.dugumler.some((d) => d.tip === DESEN_CAGIR_TIPI && d.ayar?.["desen"] === ad)).map((g) => g.ad).sort(),
     dinle(f) { dinleyiciler.add(f); return () => { dinleyiciler.delete(f); }; },
     bitti: () => sira.bitti(),
   };
@@ -147,9 +161,9 @@ export function yerelGrafKaynagi(depo: Depo, simdi: () => number = Date.now): Do
 /** Çalışma ortamına göre kaynak: Electron'da host dosyaları (IPC), değilse localStorage; ikisi de yoksa nedenli çalışmayan kaynak. */
 export function grafKaynaginiSec(): { kaynak: DosyaKaynagi; hata: string | null } {
   const k = kabukKoprusu();
-  const liste = k?.grafListe, oku = k?.grafOku, yaz = k?.grafYaz, yeni = k?.grafYeni;   // preload işlevleri ok işlevi: `this` gerekmez
+  const liste = k?.grafListe, oku = k?.grafOku, yaz = k?.grafYaz, yeni = k?.grafYeni, sil = k?.grafSil;   // preload işlevleri ok işlevi: `this` gerekmez
   if (liste && oku && yaz && yeni) {
-    const y: DosyaIpcYuzu<DosyaBilgisi> = { liste: () => liste(), oku: (ad) => oku(ad), yaz: (ad, m) => yaz(ad, m), yeni: (ad, m) => yeni(ad, m) };
+    const y: DosyaIpcYuzu<DosyaBilgisi> = { liste: () => liste(), oku: (ad) => oku(ad), yaz: (ad, m) => yaz(ad, m), yeni: (ad, m) => yeni(ad, m), ...(sil ? { sil: (ad) => sil(ad) } : {}) };
     return { kaynak: ipcDosyaKaynagi(y, grafHatasi), hata: null };
   }
   const depo = tarayiciDeposu();

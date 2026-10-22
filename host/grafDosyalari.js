@@ -39,3 +39,5 @@ export function grafListe(dizin) {
 export function grafOku(dizin, ad) { return klasor.oku(dizin, dosya(ad)); }
 export function grafYaz(dizin, ad, metin) { klasor.yaz(dizin, dosya(ad), metin); }
 export function grafYeni(dizin, ad, metin) { klasor.yeni(dizin, dosya(ad), metin); }
+/** Grafiği KALDIRIR (kalıcı silme değil: `.silinenler/` altına taşınır; Ozyn'in programı yanlış tıklamayla kaybolmasın). */
+export function grafSil(dizin, ad, simdi) { klasor.kaldir(dizin, dosya(ad), simdi); }

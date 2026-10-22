@@ -20,6 +20,7 @@ import type { GrafDeposu, GrafKaydi } from "../graf/grafDeposu.ts";
 import { canliSatir, sonucSatiri, type GrafCalistirici } from "../graf/grafCalistirici.ts";
 import type { GrafDinleyici } from "../graf/grafDinleyici.ts";
 import { GRAF_SABLONLARI, yeniDesenSablonu } from "../graf/kutuphane.ts";
+import { olayTetikleri } from "../graf/olayDugumleri.ts";
 
 export interface GrafSekmesiAyari {
   depo: GrafDeposu;
@@ -67,6 +68,8 @@ const CSS = `
 .gs-kontrol .gs-tamam { color: #8fe0a8; }
 .gs-bos { grid-column: 1 / -1; padding: 10px 2px; color: #7c88a6; }
 .gs-dinle:not(:disabled) { border-color: #a87a2a; color: #ffcf8a; }
+.gs-sil:not(:disabled) { border-color: #7a3030; color: #ff9c84; }
+.gs-sil[data-emin="1"] { background: #4a1f1f; border-color: #ff6b5c; color: #fff; }
 .gs-kart[data-dinliyor="1"] { border-color: #a87a2a; }
 .gs-sag { width: 320px; flex: none; display: flex; flex-direction: column; gap: 8px; min-height: 0; border-left: 1px solid #222c41; padding-left: 10px; }
 .gs-sag .gs-kontrol { width: auto; border-left: 0; padding-left: 0; flex: 1; min-height: 0; }
@@ -106,6 +109,7 @@ function kur(sayfa: HTMLElement, arac: SekmeAraci, a: GrafSekmesiAyari): SekmeIc
   const dinleDugme = dugme("⚡ Dinlemeye al", "gs-dinle", "Seçili grafik olay gelince (Ozyn Flash'a yaklaştı…) çalışsın — yalnız senin tıklamanla; uygulama kapanınca biter");
   const kontrolDugme = dugme("Kontrol et", "", "Kaydedilmiş hâlin biçim ve tür denetimi");
   const acDugme = dugme("Aç", "", "Seçili grafiği düzenleyicide aç (JSON)");
+  const silDugme = dugme("Sil", "gs-sil", "Seçili grafiği/deseni kaldır (dosya silinmez, .silinenler klasörüne taşınır)");
   const yeniGraf = dugme("＋ Yeni grafik", "", "Çalışan bir örnekle başlar (şablon seç): selam — Flash yanına gelir, el sallar; nöbetçi — yaklaşınca parola sorar");
   const yeniDesen = dugme("＋ Yeni desen", "", "Girişli alt-grafik: başka bir grafikte 'Desen' düğümüyle tek düğüm olarak çağrılır");
   const yeniKutu = el("div", "gs-yeni"); yeniKutu.style.display = "none";
@@ -116,7 +120,7 @@ function kur(sayfa: HTMLElement, arac: SekmeAraci, a: GrafSekmesiAyari): SekmeIc
   for (const s of GRAF_SABLONLARI) { const o = el("option", "", s.ad); o.value = s.id; sablonSec.append(o); }
   sablonSec.addEventListener("keydown", (e) => e.stopPropagation());
   yeniKutu.append(sablonSec, yeniGirdi, yeniHata);
-  ust.append(satir, calistir, durdur, dinleDugme, kontrolDugme, acDugme, yeniKutu, yeniGraf, yeniDesen);
+  ust.append(satir, calistir, durdur, dinleDugme, kontrolDugme, acDugme, silDugme, yeniKutu, yeniGraf, yeniDesen);
 
   const govde = el("div", "gs-govde");
   const sutun = (baslik: string) => { const s = el("div", "gs-sutun"); const serit = el("div", "gs-serit"); s.append(el("div", "gs-baslik", baslik), serit); return { s, serit }; };
@@ -161,9 +165,19 @@ function kur(sayfa: HTMLElement, arac: SekmeAraci, a: GrafSekmesiAyari): SekmeIc
     // Seçili grafik dinlemedeyse aynı düğme BIRAKIR (bırakmak her zaman serbest); değilse kurar (yalnız gerçek tıklama).
     const dinlemede = !!k && a.dinleyici.dinlemedeMi(k.ad);
     dinleDugme.textContent = dinlemede ? "⚡ Dinlemeyi bırak" : "⚡ Dinlemeye al";
-    dinleDugme.disabled = !k || (!dinlemede && (!!k.hata || k.tur !== "olay"));
+    const g = k ? a.depo.al(k.ad) : null;
+    const olaysiz = !!g && g.tur === "olay" && olayTetikleri(g).length === 0;
+    dinleDugme.disabled = !k || (!dinlemede && (!!k.hata || k.tur !== "olay" || olaysiz));
+    // Neden gri/ne yapar: "olay düğümü yok" hatasını tıklamadan ÖNCE söyle (selam şablonu ▶ ile çalışır, olay dinlemez).
+    dinleDugme.title = dinlemede ? "Dinlemeyi bırak"
+      : olaysiz ? "Bu grafikte olay düğümü yok (Başla ile ▶ çalışır). Dinlemek için 'Ozyn yaklaştı' gibi bir olay düğümü gerekir — ＋ Yeni grafik → Nöbetçi şablonu bir örnek"
+      : "Seçili grafik olay gelince (Ozyn Flash'a yaklaştı…) çalışsın — yalnız senin tıklamanla; uygulama kapanınca biter";
     kontrolDugme.disabled = !k;
     acDugme.disabled = !k;
+    const silNeden = !k ? "önce bir grafik seç" : (a.calistirici.durum().calisiyor?.graf === k.ad || a.dinleyici.calisiyorMu(k.ad)) ? "çalışıyor (önce ■ Durdur)" : dinlemede ? "dinlemede (önce bırak)" : "";
+    silDugme.disabled = silNeden !== "";
+    if (silNeden) silDugme.title = `Silinemez: ${silNeden}`;
+    silDugme.textContent = "Sil"; silDugme.dataset.emin = "0";
   }
   a.calistirici.dinle((d) => {
     satirCiz(); dugmeleriCiz(); kartlariIsaretle();
@@ -217,6 +231,25 @@ function kur(sayfa: HTMLElement, arac: SekmeAraci, a: GrafSekmesiAyari): SekmeIc
       dinleme.append(s);
     }
   }
+
+  // ── Sil (iki adım: ilk tık "Emin misin?", ikinci tık kaldırır; kaldırılan dosya .silinenler'e taşınır) ──
+  silDugme.addEventListener("click", (e) => {
+    silDugme.blur();
+    if (!secili) return;
+    const ad = secili;
+    if (silDugme.dataset.emin !== "1") {
+      // Desen başka grafiklerde kullanılıyorsa silinmez: o grafikler çalışırken 'yok' hatası verirdi.
+      const kullanan = a.depo.desenKullananlar(ad);
+      if (kullanan.length) { a.bildir(`'${ad}' deseni şunlarda kullanılıyor: ${kullanan.join(", ")} — önce onlardan çıkar`, 5000); return; }
+      silDugme.dataset.emin = "1"; silDugme.textContent = `Emin misin? '${ad}'`;
+      setTimeout(() => { if (silDugme.dataset.emin === "1") { silDugme.dataset.emin = "0"; silDugme.textContent = "Sil"; } }, 4000);
+      return;
+    }
+    // Silmeye de YALNIZ gerçek tıklama (yanlışlıkla/betikle program kaybı olmasın).
+    if (!e.isTrusted) return;
+    a.depo.sil(ad).then(() => { a.bildir(`'${ad}' kaldırıldı (dosya .silinenler klasörüne taşındı)`, 3000); secili = null; kontrol.replaceChildren(); ciz(); },
+      (err: unknown) => { a.bildir(`silinemedi: ${err instanceof Error ? err.message : String(err)}`, 5000); silDugme.dataset.emin = "0"; silDugme.textContent = "Sil"; });
+  });
 
   // ── Kontrol et ──
   function kontrolEt(): void {

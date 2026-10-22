@@ -106,6 +106,8 @@ export interface Kopru {
   grafOku(ad: string): Promise<IpcSonuc<string>>;
   grafYaz(ad: string, metin: string): Promise<IpcSonuc<true>>;
   grafYeni(ad: string, metin: string): Promise<IpcSonuc<true>>;
+  /** Kalıcı silme değil: dosya `.silinenler/` altına taşınır. */
+  grafSil(ad: string): Promise<IpcSonuc<true>>;
   /**
    * Orion'un sesi (spec 34, host/sesler.js). Her işlem güncel durumu döner. `sesSec` bir SONRAKİ cümleden geçerli; `ORION_PIPER_MODEL` varken
    * `kilitli` kodla reddedilir. `sesIndir` yalnız katalogdaki adı kabul eder (adres renderer'dan gelmez); `sesSil` yalnız panelden indirileni.
