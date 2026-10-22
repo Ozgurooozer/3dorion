@@ -157,3 +157,54 @@ test("desenKullananlar: deseni 'Desen' düğümüyle çağıran grafikleri söyl
   assert.deepEqual(depo.desenKullananlar("selamla"), ["kullanan"]);
   assert.deepEqual(depo.desenKullananlar("yokboyle"), []);
 });
+
+// ── dilim 2b: yeniden adlandır / kopyasını oluştur ──
+test("yeniden adlandır: yeni adla durur (içerikteki ad da yeni), eskisi listeden gider", async () => {
+  const depo = grafDeposuKur(sayanKaynak().k);
+  await depo.baslat();
+  await depo.yeni(yeniGrafSablonu("eski"));
+  await depo.yenidenAdlandir("eski", "yeni");
+  assert.deepEqual([depo.liste().map((k) => k.ad), depo.al("yeni")?.ad, depo.al("eski")], [["yeni"], "yeni", null]);
+});
+
+test("yeniden adlandır: başka grafiğin ÇAĞIRDIĞI desen reddedilir (çağıranlar sessizce kırılmasın), iki dosya da yerinde", async () => {
+  const depo = grafDeposuKur(sayanKaynak().k);
+  await depo.baslat();
+  await depo.yeni(yeniDesenSablonu("selamla"));
+  const g = yeniGrafSablonu("kullanan");
+  g.dugumler.push({ id: "c", tip: "desen.cagir", ayar: { desen: "selamla" } });
+  await depo.yeni(g);
+  await assert.rejects(depo.yenidenAdlandir("selamla", "selamla2"), /kullanılıyor: kullanan/);
+  assert.deepEqual(depo.liste().map((k) => k.ad), ["kullanan", "selamla"]);
+});
+
+test("yeniden adlandır: var olan ada, geçersiz ada ve bozuk dosyaya olmaz", async () => {
+  const s = sayanKaynak();
+  await s.ham.yeni("bozuk", "{bu json değil");
+  const depo = grafDeposuKur(s.k);
+  await depo.baslat();
+  await depo.yeni(yeniGrafSablonu("a"));
+  await depo.yeni(yeniGrafSablonu("b"));
+  await assert.rejects(depo.yenidenAdlandir("a", "b"), /zaten var/);
+  await assert.rejects(depo.yenidenAdlandir("a", "iki sözcük"), /geçersiz grafik adı/);
+  await assert.rejects(depo.yenidenAdlandir("bozuk", "duzgun"), /bozuk: önce düzelt/);
+});
+
+test("yeniden adlandır: kaynak kaldırmayı bilmiyorsa HİÇ YAZMADAN reddedilir (iki kopya oluşmaz)", async () => {
+  const s = sayanKaynak();
+  const { sil: _sil, ...silmeyen } = s.k;
+  const depo = grafDeposuKur(silmeyen);
+  await depo.baslat();
+  await depo.yeni(yeniGrafSablonu("a"));
+  s.yazilan.length = 0;
+  await assert.rejects(depo.yenidenAdlandir("a", "b"), /kaldırma yok/);
+  assert.deepEqual(s.yazilan, []);
+});
+
+test("kopyasını oluştur: ikisi de durur, kopyanın içindeki ad yeni ad", async () => {
+  const depo = grafDeposuKur(sayanKaynak().k);
+  await depo.baslat();
+  await depo.yeni(yeniGrafSablonu("asil"));
+  await depo.kopyasiniOlustur("asil", "kopya");
+  assert.deepEqual([depo.liste().map((k) => k.ad), depo.al("kopya")?.ad, depo.al("kopya")?.dugumler.length], [["asil", "kopya"], "kopya", yeniGrafSablonu("x").dugumler.length]);
+});

@@ -159,9 +159,11 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
       "world/arayuz/altCubuk.ts", "world/arayuz/altCubukModeli.ts",
       // Oyun içi metin düzenleyici pencereleri (Hafıza sekmesi, spec 32); mantığı editorModeli.ts'te (aynı alt-sistem, kamu değil).
       "world/arayuz/editorPenceresi.ts",
-      // Ajan ayar paneli (spec 34): Orion seçilince soldaki bölümlü pencere; modeli ayarPaneliModeli.ts, jetonları arayuzJetonlari.ts (aynı alt-sistem, kamu değil).
+      // Ajan ayar paneli (spec 34): Orion seçilince soldaki bölümlü pencere; modeli ayarPaneliModeli.ts, jetonları arayuzJetonlari.ts (dilim 2b'den beri kamu, aşağıda).
       // Bölümler uygulama katmanında (uygulama/ayar/).
-      "world/arayuz/ayarPaneli.ts"],
+      "world/arayuz/ayarPaneli.ts",
+      // Yapı ailesinin renk/yazı jetonları: görsel düğüm editörü (uygulama/yapi/graf/, spec 35 dilim 2b) aynı koyu paleti kullanır — üçüncü bir kopya yerine.
+      "world/arayuz/arayuzJetonlari.ts"],
     izinli: ["Protokol", "Level", "Editör"], tipIzinli: ["Kabuk"], urun: true,
   },
   {

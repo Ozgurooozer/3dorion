@@ -142,7 +142,8 @@ import { girdiAdaptoruKur } from "./ajanlar/girdiAdaptoru.ts";
 import { emirHedefleri as emirHedefleriBul, emirTeslim } from "./ajanlar/emir.ts";
 import { Koltuklar } from "./ajanlar/koltuklar.ts";
 import { flashBaglantisiKur, type FlashBaglantisi } from "./ajanlar/flashBaglantisi.ts";
-import { govdeDurumundan, grafYetenegiKur, okumaSuresiMs, type AjanKapisi } from "./graf/grafYetenegi.ts";
+import { grafYetenegiKur, type AjanKapisi } from "./graf/grafYetenegi.ts";
+import { govdeDurumundan, okumaSuresiMs } from "./ajanlar/ajanGovdesi.ts";
 import { grafKutuphanesi } from "./graf/kutuphane.ts";
 import { grafDeposuKur, grafKaynaginiSec } from "./graf/grafDeposu.ts";
 import { grafCalistiriciKur, type GrafCalistirici } from "./graf/grafCalistirici.ts";
@@ -151,6 +152,7 @@ import { GrafDurumDeposu } from "./graf/grafDurumu.ts";
 import { diyalogDenetimiKur } from "./graf/diyalogDenetimi.ts";
 import { diyalogKutusuKur } from "./yapi/diyalogKutusu.ts";
 import { grafSekmesi } from "./yapi/grafSekmesi.ts";
+import { grafEditoruKur } from "./yapi/graf/grafEditoru.ts";
 
 const tuval = document.getElementById("tuval") as HTMLCanvasElement;
 const hud = document.getElementById("hud") as HTMLDivElement;
@@ -839,7 +841,17 @@ const grafPenceresi = editorPenceresiKur({
 });
 grafDeposu.dinle((o) => { if (o.tur === "icerik") void grafPenceresi.icerikDegisti(o.ad); grafPenceresi.tazele(); });
 function grafAc(ad: string): void { grafPenceresi.ac(ad).catch((e: unknown) => altyaziGoster(`${ad} açılamadı: ${e instanceof Error ? e.message : String(e)}`, 4000)); }
-altCubuk.ekle(grafSekmesi({ depo: grafDeposu, calistirici: grafCalistirici, dinleyici: grafDinleyici, durum: grafDurumu, ac: grafAc, hata: () => grafHata, bildir: altyaziGoster }));
+// GÖRSEL EDİTÖR (spec 35 dilim 2b): tam ekran tuval (Graf sekmesinde çift tık / Aç); JSON penceresi "Metin" olarak korunur. Açılınca fare serbest (imleç
+// kipi) ve Orion'un ayar paneli gizlenir; yerleştirme hayaleti ve zemin kalemi biter (tuş yakalayıcıları editörden önce kuruldu: Esc/Ctrl+Z'yi onlar alırdı).
+const grafEditoru = grafEditoruKur({
+  depo: grafDeposu, calistirici: grafCalistirici, dinleyici: grafDinleyici, kayit: grafTabani.kayit, ajanlar: grafTabani.ajanlar,
+  metinAc: grafAc, altyazi: altyaziGoster, izin: () => imlec.acik || imlec.ac(),
+  gorunurlukDegisti: (acik) => { orionAyarPaneli.gorunur(!acik && imlec.acik); if (acik) { nesnePaneli.kapat(); baglamMenusu.kapat(); duzenleme.bitir(); zeminKalemi.sec(null); } },
+});
+altCubuk.ekle(grafSekmesi({
+  depo: grafDeposu, calistirici: grafCalistirici, dinleyici: grafDinleyici, durum: grafDurumu, ac: (ad) => grafEditoru.ac(ad), metinAc: grafAc, adIslemi: grafEditoru,
+  hata: () => grafHata, bildir: altyaziGoster,
+}));
 grafDeposu.baslat().then(() => console.log(`[GRAF] ${grafDeposu.liste().length} grafik/desen`), (e: unknown) => { grafHata = e instanceof Error ? e.message : String(e); console.error("[GRAF] yüklenemedi:", grafHata); });
 
 /** Hedefin menüsünü aç; "Özellikler…" aynı noktada `panel`i gösterir. */

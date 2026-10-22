@@ -1,6 +1,7 @@
 // uygulama/yapi/grafSekmesi.ts — ALT ÇUBUK · GRAF SEKMESİ (spec 35 dilim 1, MVP): grafikler ve desenler, Kontrol et, ▶ Çalıştır / ■ Durdur. DOM katmanı.
 //
-// Görsel düğüm editörü DEĞİL (dilim 2): düzenleme mevcut metin düzenleyici penceresiyle JSON'dur (çift tık ya da "Aç"). Burası listeler, denetler ve çalıştırır.
+// Düzenleme GÖRSEL EDİTÖRDE (dilim 2b, uygulama/yapi/graf/grafEditoru.ts): çift tık ya da "Aç". JSON metin görünümü korunur ("Metin": eski düzenleyici
+// penceresi). Burası listeler, denetler, çalıştırır; "Yeniden adlandır" ve "Kopyasını oluştur" editörün aynı işlemini çağırır (kurallar tek yerde).
 //   • Kartlar iki şeritte: Grafikler (▶ ile çalışan programlar) ve Desenler (başka grafikten tek düğüm olarak çağrılan alt-grafikler). Bozuk dosya kırmızı ve
 //     nedeniyle görünür (sessiz kayıp yok). Tık seçer, çift tık düzenleyicide açar.
 //   • Kontrol et: kaydedilmiş hâlin biçim hatası (depo) ya da tür denetimi (kütüphane) — hatalar satır satır.
@@ -21,6 +22,8 @@ import { canliSatir, sonucSatiri, type GrafCalistirici } from "../graf/grafCalis
 import type { GrafDinleyici } from "../graf/grafDinleyici.ts";
 import { GRAF_SABLONLARI, yeniDesenSablonu } from "../graf/kutuphane.ts";
 import { olayTetikleri } from "../graf/olayDugumleri.ts";
+import { el } from "./graf/dom.ts";
+import { GRAF_SEKMESI_CSS } from "./grafSekmesiStili.ts";
 
 export interface GrafSekmesiAyari {
   depo: GrafDeposu;
@@ -29,74 +32,30 @@ export interface GrafSekmesiAyari {
   dinleyici: GrafDinleyici;
   /** Grafiklerin bellekteki değişkenleri (gösterim ve "Durumu sıfırla"). */
   durum: { ozet(graf: string): Readonly<Record<string, GrafDegeri>>; sifirla(graf: string): boolean; dinle(f: (graf: string) => void): () => void };
-  /** Düzenleyici penceresinde aç (JSON). */
+  /** Görsel editörde aç (dilim 2b). */
   ac: (ad: string) => void;
+  /** JSON metin düzenleyicisinde aç (eski yol; korunur). */
+  metinAc: (ad: string) => void;
+  /** Yeniden adlandır / kopyasını oluştur: görsel editörün işlemi (açık sekme kirliyse, çalışıyorsa, dinlemedeyse reddeder; kullanılan desen reddedilir). */
+  adIslemi: { yenidenAdlandir(eski: string, yeni: string): Promise<void>; kopyasiniOlustur(ad: string, yeni: string): Promise<void> };
   /** Depo yüklenemediyse nedeni. */
   hata: () => string | null;
   bildir: (metin: string, ms?: number) => void;
 }
 
-const CSS = `
-.gs-kok { display: flex; flex-direction: column; height: 100%; min-height: 0; }
-.gs-ust { display: flex; align-items: center; gap: 8px; padding: 8px 14px 4px; flex-wrap: wrap; }
-.gs-satir { flex: 1; min-width: 200px; font: 12px/1.4 'Cascadia Mono', Consolas, monospace; color: #aab4d0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.gs-satir[data-tur="calisiyor"] { color: #8fe0a8; }
-.gs-satir[data-tur="hata"] { color: #ff8c84; }
-.gs-satir[data-tur="durdu"] { color: #ffb454; }
-.gs-dugme { background: #121726; color: #d7dcea; border: 1px solid #2a3246; border-radius: 6px; padding: 3px 11px; font: inherit; cursor: pointer; white-space: nowrap; }
-.gs-dugme:hover:not(:disabled) { border-color: #58c1ff; }
-.gs-dugme:disabled { opacity: 0.4; cursor: default; }
-.gs-calistir:not(:disabled) { border-color: #2f8f5a; color: #8fe0a8; }
-.gs-durdur:not(:disabled) { border-color: #c2563f; color: #ff9c84; }
-.gs-yeni { display: flex; align-items: center; gap: 6px; }
-.gs-yeni input { width: 150px; background: #121726; color: #eef1fa; border: 1px solid #2a3246; border-radius: 6px; padding: 3px 9px; font: inherit; user-select: text; }
-.gs-yeni-hata { color: #ff8c84; font-size: 12px; }
-.gs-govde { flex: 1; min-height: 0; display: flex; gap: 10px; padding: 4px 14px 10px; }
-.gs-sutun { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 0; }
-.gs-baslik { color: #7c88a6; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; padding: 2px 0 4px; }
-.gs-serit { flex: 1; min-height: 0; overflow: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); grid-auto-rows: 64px; gap: 8px; align-content: start; }
-.gs-kart { display: flex; flex-direction: column; gap: 3px; padding: 8px 10px; background: #151c2b; border: 1px solid #222c41; border-radius: 9px; cursor: pointer; overflow: hidden; }
-.gs-kart:hover { border-color: #4a69b0; }
-.gs-kart[data-secili="1"] { border-color: #58c1ff; background: #182238; }
-.gs-kart[data-bozuk="1"] { border-color: #7a3030; }
-.gs-kart[data-calisiyor="1"] { border-color: #2f8f5a; }
-.gs-ad { font-weight: 600; color: #eef1fa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.gs-alt { color: #6b7794; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.gs-kart[data-bozuk="1"] .gs-alt { color: #ff8c84; }
-.gs-kontrol { width: 300px; flex: none; overflow: auto; font-size: 12px; color: #aab4d0; border-left: 1px solid #222c41; padding-left: 10px; }
-.gs-kontrol li { margin: 0 0 4px 14px; color: #ffcf8a; }
-.gs-kontrol .gs-tamam { color: #8fe0a8; }
-.gs-bos { grid-column: 1 / -1; padding: 10px 2px; color: #7c88a6; }
-.gs-dinle:not(:disabled) { border-color: #a87a2a; color: #ffcf8a; }
-.gs-sil:not(:disabled) { border-color: #7a3030; color: #ff9c84; }
-.gs-sil[data-emin="1"] { background: #4a1f1f; border-color: #ff6b5c; color: #fff; }
-.gs-kart[data-dinliyor="1"] { border-color: #a87a2a; }
-.gs-sag { width: 320px; flex: none; display: flex; flex-direction: column; gap: 8px; min-height: 0; border-left: 1px solid #222c41; padding-left: 10px; }
-.gs-sag .gs-kontrol { width: auto; border-left: 0; padding-left: 0; flex: 1; min-height: 0; }
-.gs-dinleme { font-size: 12px; color: #aab4d0; max-height: 45%; overflow: auto; }
-.gs-dinleme-satir { display: flex; align-items: center; gap: 6px; padding: 2px 0; }
-.gs-dinleme-satir span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.gs-dinleme-satir[data-calisiyor="1"] span { color: #8fe0a8; }
-.gs-dinleme .gs-dugme { padding: 1px 8px; font-size: 11px; }
-.gs-yeni select { background: #121726; color: #eef1fa; border: 1px solid #2a3246; border-radius: 6px; padding: 3px 6px; font: inherit; }
-.gs-durum { margin-top: 8px; color: #9fb0d8; }
-`;
 
 export function grafSekmesi(a: GrafSekmesiAyari): Sekme {
   return {
     id: "graf", ad: "Graf", simge: "🧩", sira: 50,
-    ipucu: "Orion ve Flash'ı süren programlar (düğüm grafiği): seç · çift tık JSON'u düzenle · Kontrol et · ▶ çalıştır · ■ durdur",
+    ipucu: "Orion ve Flash'ı süren programlar (düğüm grafiği): seç · çift tık görsel editör · Metin: JSON · Kontrol et · ▶ çalıştır · ■ durdur",
     kur(sayfa, arac): SekmeIcerigi { return kur(sayfa, arac, a); },
   };
 }
 
 function kur(sayfa: HTMLElement, arac: SekmeAraci, a: GrafSekmesiAyari): SekmeIcerigi {
   const stil = document.createElement("style");
-  stil.textContent = CSS;
+  stil.textContent = GRAF_SEKMESI_CSS;
   document.head.append(stil);
-  const el = <K extends keyof HTMLElementTagNameMap>(ad: K, sinif = "", metin = ""): HTMLElementTagNameMap[K] => {
-    const e = document.createElement(ad); if (sinif) e.className = sinif; if (metin) e.textContent = metin; return e;
-  };
   const dugme = (metin: string, sinif = "", ipucu = ""): HTMLButtonElement => {
     const b = el("button", `gs-dugme ${sinif}`.trim(), metin); b.type = "button"; if (ipucu) b.title = ipucu; return b;
   };
@@ -108,7 +67,10 @@ function kur(sayfa: HTMLElement, arac: SekmeAraci, a: GrafSekmesiAyari): SekmeIc
   const durdur = dugme("■ Durdur", "gs-durdur", "Süren bütün grafikleri hemen durdur (▶ ve olayla çalışanlar; yürüyen ajan da durur, açık diyalog kapanır)");
   const dinleDugme = dugme("⚡ Dinlemeye al", "gs-dinle", "Seçili grafik olay gelince (Ozyn Flash'a yaklaştı…) çalışsın — yalnız senin tıklamanla; uygulama kapanınca biter");
   const kontrolDugme = dugme("Kontrol et", "", "Kaydedilmiş hâlin biçim ve tür denetimi");
-  const acDugme = dugme("Aç", "", "Seçili grafiği düzenleyicide aç (JSON)");
+  const acDugme = dugme("Aç", "", "Seçili grafiği görsel editörde aç (düğümler, bağlar; çift tık da açar)");
+  const metinDugme = dugme("Metin", "", "Seçili grafiği JSON metin düzenleyicisinde aç");
+  const adDugme = dugme("Yeniden adlandır", "", "Seçili grafiğin adını değiştir (başka grafiğin çağırdığı desen yeniden adlandırılamaz)");
+  const kopyaDugme = dugme("Kopyasını oluştur", "", "Seçili grafiğin aynı içerikli, yeni adlı kopyası");
   const silDugme = dugme("Sil", "gs-sil", "Seçili grafiği/deseni kaldır (dosya silinmez, .silinenler klasörüne taşınır)");
   const yeniGraf = dugme("＋ Yeni grafik", "", "Çalışan bir örnekle başlar (şablon seç): selam — Flash yanına gelir, el sallar; nöbetçi — yaklaşınca parola sorar");
   const yeniDesen = dugme("＋ Yeni desen", "", "Girişli alt-grafik: başka bir grafikte 'Desen' düğümüyle tek düğüm olarak çağrılır");
@@ -120,7 +82,7 @@ function kur(sayfa: HTMLElement, arac: SekmeAraci, a: GrafSekmesiAyari): SekmeIc
   for (const s of GRAF_SABLONLARI) { const o = el("option", "", s.ad); o.value = s.id; sablonSec.append(o); }
   sablonSec.addEventListener("keydown", (e) => e.stopPropagation());
   yeniKutu.append(sablonSec, yeniGirdi, yeniHata);
-  ust.append(satir, calistir, durdur, dinleDugme, kontrolDugme, acDugme, silDugme, yeniKutu, yeniGraf, yeniDesen);
+  ust.append(satir, calistir, durdur, dinleDugme, kontrolDugme, acDugme, metinDugme, adDugme, kopyaDugme, silDugme, yeniKutu, yeniGraf, yeniDesen);
 
   const govde = el("div", "gs-govde");
   const sutun = (baslik: string) => { const s = el("div", "gs-sutun"); const serit = el("div", "gs-serit"); s.append(el("div", "gs-baslik", baslik), serit); return { s, serit }; };
@@ -173,7 +135,11 @@ function kur(sayfa: HTMLElement, arac: SekmeAraci, a: GrafSekmesiAyari): SekmeIc
       : olaysiz ? "Bu grafikte olay düğümü yok (Başla ile ▶ çalışır). Dinlemek için 'Ozyn yaklaştı' gibi bir olay düğümü gerekir — ＋ Yeni grafik → Nöbetçi şablonu bir örnek"
       : "Seçili grafik olay gelince (Ozyn Flash'a yaklaştı…) çalışsın — yalnız senin tıklamanla; uygulama kapanınca biter";
     kontrolDugme.disabled = !k;
-    acDugme.disabled = !k;
+    acDugme.disabled = !k || !!k.hata;
+    acDugme.title = k?.hata ? "bozuk dosya görsel editörde açılmaz: Metin ile düzelt" : "Seçili grafiği görsel editörde aç (düğümler, bağlar; çift tık da açar)";
+    metinDugme.disabled = !k;
+    adDugme.disabled = !k || !!k.hata;
+    kopyaDugme.disabled = !k || !!k.hata;
     const silNeden = !k ? "önce bir grafik seç" : (a.calistirici.durum().calisiyor?.graf === k.ad || a.dinleyici.calisiyorMu(k.ad)) ? "çalışıyor (önce ■ Durdur)" : dinlemede ? "dinlemede (önce bırak)" : "";
     silDugme.disabled = silNeden !== "";
     if (silNeden) silDugme.title = `Silinemez: ${silNeden}`;
@@ -279,16 +245,20 @@ function kur(sayfa: HTMLElement, arac: SekmeAraci, a: GrafSekmesiAyari): SekmeIc
   }
   kontrolDugme.addEventListener("click", () => { kontrolDugme.blur(); kontrolEt(); });
   acDugme.addEventListener("click", () => { acDugme.blur(); if (secili) a.ac(secili); });
+  metinDugme.addEventListener("click", () => { metinDugme.blur(); if (secili) a.metinAc(secili); });
+  adDugme.addEventListener("click", () => { adDugme.blur(); if (secili) yeniAc("ad"); });
+  kopyaDugme.addEventListener("click", () => { kopyaDugme.blur(); if (secili) yeniAc("kopya"); });
 
-  // ── yeni grafik / desen ──
-  let yeniTur: "olay" | "fonksiyon" = "olay";
+  // ── yeni grafik / desen; aynı kutu yeniden adlandırma ve kopya adı için de (kip) ──
+  let yeniTur: "olay" | "fonksiyon" | "ad" | "kopya" = "olay";
   const yeniKapat = () => { yeniKutu.style.display = "none"; yeniGraf.style.display = ""; yeniDesen.style.display = ""; yeniGirdi.value = ""; yeniHata.textContent = ""; };
-  const yeniAc = (tur: "olay" | "fonksiyon") => {
+  const yeniAc = (tur: typeof yeniTur) => {
     yeniTur = tur;
     yeniGraf.style.display = "none"; yeniDesen.style.display = "none"; yeniKutu.style.display = "flex";
     sablonSec.style.display = tur === "olay" ? "" : "none";
-    yeniGirdi.placeholder = tur === "olay" ? "grafik adı (örn. selam)" : "desen adı (örn. selamla)";
-    yeniGirdi.focus();
+    yeniGirdi.placeholder = tur === "olay" ? "grafik adı (örn. selam)" : tur === "fonksiyon" ? "desen adı (örn. selamla)" : tur === "ad" ? `'${secili}' için yeni ad` : `'${secili}' kopyasının adı`;
+    yeniGirdi.value = tur === "ad" ? secili ?? "" : tur === "kopya" ? `${secili ?? ""}_kopya` : "";
+    yeniGirdi.focus(); yeniGirdi.select();
   };
   yeniGraf.addEventListener("click", () => { yeniGraf.blur(); yeniAc("olay"); });
   yeniDesen.addEventListener("click", () => { yeniDesen.blur(); yeniAc("fonksiyon"); });
@@ -299,6 +269,14 @@ function kur(sayfa: HTMLElement, arac: SekmeAraci, a: GrafSekmesiAyari): SekmeIc
     e.preventDefault();
     const ad = yeniGirdi.value.trim();
     if (!grafAdiGecerli(ad)) { yeniHata.textContent = "geçersiz ad (harf, rakam, _ ve -; boşluk yok)"; return; }
+    if (yeniTur === "ad" || yeniTur === "kopya") {
+      const eski = secili;
+      if (!eski) { yeniKapat(); return; }
+      if (yeniTur === "ad" && ad === eski) { yeniKapat(); return; }
+      const is = yeniTur === "ad" ? a.adIslemi.yenidenAdlandir(eski, ad) : a.adIslemi.kopyasiniOlustur(eski, ad);
+      void is.then(() => { yeniKapat(); secili = ad; ciz(); }, (err: unknown) => { yeniHata.textContent = err instanceof Error ? err.message : String(err); });
+      return;
+    }
     if (kayit(ad)) { yeniHata.textContent = "bu ad zaten var"; return; }
     const sablon = GRAF_SABLONLARI.find((s) => s.id === sablonSec.value) ?? GRAF_SABLONLARI[0]!;
     const g = yeniTur === "olay" ? sablon.kur(ad) : yeniDesenSablonu(ad);
@@ -311,10 +289,11 @@ function kur(sayfa: HTMLElement, arac: SekmeAraci, a: GrafSekmesiAyari): SekmeIc
   function kart(k: GrafKaydi): HTMLElement {
     const c = el("div", "gs-kart");
     c.dataset.bozuk = k.hata ? "1" : "0";
-    c.title = `${k.ad}${k.aciklama ? `\n${k.aciklama}` : ""}${k.hata ? `\n✗ ${k.hata}` : ""}\nTık: seç · Çift tık: düzenle`;
+    c.title = `${k.ad}${k.aciklama ? `\n${k.aciklama}` : ""}${k.hata ? `\n✗ ${k.hata}` : ""}\nTık: seç · Çift tık: ${k.hata ? "JSON'u düzelt (Metin)" : "görsel editörde aç"}`;
     c.append(el("div", "gs-ad", `${k.tur === "fonksiyon" ? "🧩" : k.hata ? "⚠" : "▶"} ${k.ad}`), el("div", "gs-alt", k.hata ? `bozuk: ${k.hata}` : k.aciklama ?? ""));
     c.addEventListener("click", () => { secili = k.ad; kontrol.replaceChildren(); kartlariIsaretle(); dugmeleriCiz(); });
-    c.addEventListener("dblclick", () => a.ac(k.ad));
+    // Bozuk dosya görsel editörde açılamaz (biçim çözülemedi): çift tık onu JSON düzenleyicide açar.
+    c.addEventListener("dblclick", () => (k.hata ? a.metinAc(k.ad) : a.ac(k.ad)));
     kartlar.set(k.ad, c);
     return c;
   }
@@ -339,5 +318,5 @@ function kur(sayfa: HTMLElement, arac: SekmeAraci, a: GrafSekmesiAyari): SekmeIc
   }
   // Abonelik sekme ömrü boyunca açık: kaydedince kart (bozuk/açıklama) çubuk kapalıyken de güncel kalır.
   a.depo.dinle((o) => { if (o.tur === "liste") ciz(); });
-  return { goster() { ciz(); arac.ipucu("Tık: seç · Çift tık: JSON'u düzenle (Ctrl+S kaydeder, biçimi doğrular) · Kontrol et · ▶ / ■"); } };
+  return { goster() { ciz(); arac.ipucu("Tık: seç · Çift tık / Aç: görsel editör · Metin: JSON · Kontrol et · ▶ / ■"); } };
 }

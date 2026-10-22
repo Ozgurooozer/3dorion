@@ -12,7 +12,8 @@ import { AKIS_GIRIS, AKIS_SONRA } from "./dugumKaydi.ts";
 import { grafKutuphanesi } from "./kutuphane.ts";
 import { grafTurDenetle } from "./grafTurDenetimi.ts";
 import { grafCalistir } from "./yorumlayici.ts";
-import { grafYetenegiKur, type AjanGovdesi, type AjanKapisi, type OzynDurumu } from "./grafYetenegi.ts";
+import type { AjanGovdesi } from "../ajanlar/ajanGovdesi.ts";
+import { grafYetenegiKur, type AjanKapisi, type OzynDurumu } from "./grafYetenegi.ts";
 
 const ZAMAN = { timeout: 3000 };
 

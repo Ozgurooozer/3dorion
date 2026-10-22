@@ -12,7 +12,7 @@
 // seçimi YOK (YAGNI, plan dilim 6). Tip ve çözücü şimdiden küme seçimini anlıyor ki ilk küme geldiğinde girdi yolu değişmesin.
 "use strict";
 import type { Algi } from "../../protocol/algi.ts";
-import type { AjanGovdesi } from "../graf/grafYetenegi.ts";
+import type { AjanGovdesi } from "./ajanGovdesi.ts";
 import type { Niyet, NiyetSonucu } from "../../protocol/niyet.ts";
 
 /** Ayrılmış hedef: kayıtlı bütün ajanlar ("ikisi birden"). Bir ajanın kimliği olamaz. */

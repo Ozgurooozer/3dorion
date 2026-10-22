@@ -18,6 +18,7 @@
 "use strict";
 import type { Niyet, NiyetSonucu } from "../../protocol/niyet.ts";
 import { kimlik, type Vec3 } from "../../protocol/temel.ts";
+import type { AjanGovdesi } from "../ajanlar/ajanGovdesi.ts";
 import type { Capa } from "../../world/level/capalar.ts";
 import type { Nesne } from "../../world/level/nesneKaydi.ts";
 import { avatarAdimi } from "../niyetYurutucu.ts";
@@ -30,24 +31,6 @@ export const GRAF_NIYET_ONEKI = "elle";
  * orada asmasın diye her adımın kendi tavanı var. 60 sn: ova'da uzun bir yürüyüşe yeter (Orion'un program adımı 30 sn, oda ölçeğinde). Ölçülmedi.
  */
 export const GRAF_ADIM_SINIRI_MS = 60_000;
-
-/** Sözün okunma süresi (ms): ses yokken (Flash; Piper kurulu değil) sonraki düğüm sözü EZMESİN diye beklenir. Kaba kestirim, ölçülmedi. */
-export function okumaSuresiMs(metin: string): number {
-  return Math.min(8000, Math.max(1500, metin.length * 60));
-}
-
-/** Ajan gövdesinin anlık durumu (Dünya değişkenleri: Ajan durumu, Ozyn'e mesafe, En yakın nesne). */
-export interface AjanGovdesi {
-  readonly konum: Vec3;
-  /** Süreli bir iş yapıyor (yürüyor, oturmaya gidiyor). */
-  readonly mesgul: boolean;
-  readonly oturuyor: boolean;
-}
-
-/** Bir gövdenin protokol durumundan (`OrionDurumu`) grafiğe açılan kısmı: tek dönüşüm, Orion ve Flash aynı yerden geçer. */
-export function govdeDurumundan(d: { konum: Vec3; mesgul: boolean; oturuyor_mu: boolean }): AjanGovdesi {
-  return { konum: { ...d.konum }, mesgul: d.mesgul, oturuyor: d.oturuyor_mu };
-}
 
 /** Ozyn'in anlık durumu (Dünya değişkenleri). */
 export interface OzynDurumu {

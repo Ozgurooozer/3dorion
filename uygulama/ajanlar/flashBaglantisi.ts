@@ -26,7 +26,7 @@ import { flashKur, type Flash } from "../../flash/flashKur.ts";
 import { FLASH } from "../../flash/npcTanimi.ts";
 import { Takipci } from "../takip.ts";
 import { avatarAdimi } from "../niyetYurutucu.ts";
-import { govdeDurumundan, okumaSuresiMs } from "../graf/grafYetenegi.ts";
+import { govdeDurumundan, okumaSuresiMs } from "./ajanGovdesi.ts";
 import { ajanAlgisiKur } from "./ajanAlgisi.ts";
 import type { UretilenOlay } from "../../world/olayUretici.ts";
 import type { AjanDefteri } from "./ajanKaydi.ts";
@@ -131,7 +131,7 @@ export async function flashBaglantisiKur(g: FlashBaglantisiGirdisi): Promise<Fla
   g.sahne.onBeforeRenderObservable.add(() => avatar.cizimGuncelle(Math.min(g.sahne.getEngine().getDeltaTime(), 100) / 1000));
 
   // Grafiğin kapısı (spec 35): niyet bedenin kendisine, sonuç bedenden, söz yukarıdaki satırdan. Ses yok: söz okuma süresi kadar bekletilir ki sonraki düğüm
-  // altyazıyı hemen ezmesin (`okumaSuresiMs`, uygulama/graf/grafYetenegi.ts).
+  // altyazıyı hemen ezmesin (`okumaSuresiMs`, ajanGovdesi.ts).
   g.ajanlar.kaydet({
     id: FLASH.id, ad: FLASH.ad, renk: FLASH.renk, kume: null, hitapAyiklar: true,
     niyet: (n, id) => { avatar.niyet(n, id); }, sonucDinle: (cb) => avatar.sonucDinle(cb),

@@ -26,6 +26,11 @@ export interface AyarTanimi {
    */
   secenekler?: readonly string[] | ((o: PinOrtami) => readonly string[]);
   aciklama?: string;
+  /**
+   * Görsel editörün (dilim 2b) YENİ düğüme yazdığı ilk değer — `varsayilan` DEĞİL: varsayılan, ayar yokken denetim ve çalışmanın kullandığı değerdir;
+   * değişken adının varsayılanı bilerek yoktur (ad açıkça yazılmalı). Örnek yalnız palette'ten eklenen düğümün JSON'una bir kez yazılır, Ozyn değiştirir.
+   */
+  ornek?: GrafDegeri;
 }
 
 /** Pin/ayar çözümünde düğümün dış dünyadan bilmesi gerekenler (desen deposu, ajan defteri). */

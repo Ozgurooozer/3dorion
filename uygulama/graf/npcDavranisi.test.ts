@@ -435,20 +435,56 @@ const uretimDosyalari = (): string[] => {
   return ["uygulama", "bridge", "mind", "flash", "world", "voice", "protocol"].flatMap(tara);
 };
 
-test("BEKÇİ: `dinlemeyeAl` üretimde yalnız Graf sekmesinden çağrılır; arka katmanlar (bridge/mind/flash) dinleyiciye uzanmaz", () => {
+/**
+ * ▶ ve ⚡ çağrılarının BİLİNÇLİ İZİN LİSTESİ: Graf sekmesi (dilim 1–2) ve görsel editörün düğmeleri (dilim 2b). Yeni bir çağrı yeri bu listeye gerekçeyle
+ * girmeden geçemez; listedeki her dosyanın HER çağrısı aşağıdaki isTrusted bekçisinden geçer.
+ */
+const CALISTIRMA_YERLERI = ["uygulama/yapi/graf/calistirmaDugmeleri.ts", "uygulama/yapi/grafSekmesi.ts"];
+
+test("BEKÇİ: `dinlemeyeAl` üretimde yalnız izin listesindeki yerlerden çağrılır; arka katmanlar (bridge/mind/flash) dinleyiciye uzanmaz", () => {
   const l = uretimDosyalari();
-  assert.deepEqual(l.filter((d) => /\.dinlemeyeAl\(/.test(fs.readFileSync(path.join(KOK, d), "utf8"))), ["uygulama/yapi/grafSekmesi.ts"]);
+  assert.deepEqual(l.filter((d) => /\.dinlemeyeAl\(/.test(fs.readFileSync(path.join(KOK, d), "utf8"))), CALISTIRMA_YERLERI);
   assert.deepEqual(l.filter((d) => /^(bridge|mind|flash)\//.test(d) && /grafDinleyici|diyalogDenetimi/.test(fs.readFileSync(path.join(KOK, d), "utf8"))), []);
 });
 
-test("BEKÇİ: Graf sekmesinde ▶ ve ⚡ çağrısının tıklama işleyicisi `isTrusted`a bakar (ÖNCE bakar, sonra çağırır)", () => {
-  const kaynak = fs.readFileSync(path.join(KOK, "uygulama/yapi/grafSekmesi.ts"), "utf8");
-  for (const cagri of ["a.calistirici.calistir(", "a.dinleyici.dinlemeyeAl("]) {
-    const i = kaynak.indexOf(cagri);
-    assert.ok(i > 0, `${cagri} yok`);
-    const isleyici = kaynak.slice(kaynak.lastIndexOf('addEventListener("click"', i), i);
-    assert.match(isleyici, /if \(!e\.isTrusted/, `${cagri} isTrusted denetimi olmadan çağrılıyor`);
+/**
+ * Bir çağrının tıklama işleyicisi ÇAĞRIDAN ÖNCE `if (!e.isTrusted …) return;` taşıyor mu. Kalibrasyon (dilim 2b): eskiden yalnız Graf sekmesinin İLK çağrısı
+ * ve yalnız "if (!e.isTrusted" metni aranıyordu; şimdi HER dosyada HER çağrı, işleyici `(e) =>` ile başlamalı ve denetim `return` etmeli
+ * (yalnız günlüğe yazan bir `if (!e.isTrusted) console.warn(...)` geçmesin).
+ */
+function isTrustedYoklamasi(kaynak: string, cagri: number): string | null {
+  const bas = kaynak.lastIndexOf('addEventListener("click"', cagri);
+  if (bas < 0) return "tıklama işleyicisinin içinde değil";
+  if (!kaynak.startsWith('addEventListener("click", (e) =>', bas)) return "işleyici olay parametresini (e) almıyor";
+  if (!/if \(!e\.isTrusted[^)]*\)\s*return;/.test(kaynak.slice(bas, cagri))) return "çağrıdan önce `if (!e.isTrusted…) return;` yok";
+  return null;
+}
+
+test("BEKÇİ: izin listesindeki her dosyada ▶ ve ⚡ çağrılarının HER BİRİ, tıklama işleyicisinde ÖNCE `isTrusted`a bakar", () => {
+  const sorunlar: string[] = [];
+  for (const d of CALISTIRMA_YERLERI) {
+    const kaynak = fs.readFileSync(path.join(KOK, d), "utf8");
+    let n = 0;
+    for (const desen of [/\.calistirici\.calistir\(/g, /\.dinleyici\.dinlemeyeAl\(/g]) {
+      for (const m of kaynak.matchAll(desen)) {
+        n++;
+        const neden = isTrustedYoklamasi(kaynak, m.index);
+        if (neden) sorunlar.push(`${d}:${kaynak.slice(0, m.index).split("\n").length} ${m[0]} — ${neden}`);
+      }
+    }
+    if (n < 2) sorunlar.push(`${d}: ▶ ve ⚡ çağrısı bekleniyordu (${n} bulundu): bekçi ne sınadığını bilmeli`);
   }
+  assert.deepEqual(sorunlar, []);
+});
+
+test("BEKÇİ'nin kendisi: isTrusted yoklaması bozuk işleyicileri yakalar (kalibrasyon örnekleri)", () => {
+  const cagri = (k: string) => isTrustedYoklamasi(k, k.indexOf(".calistirici.calistir("));
+  assert.equal(cagri('x.addEventListener("click", (e) => { if (!e.isTrusted) return; a.calistirici.calistir(ad); });'), null);
+  assert.equal(cagri('x.addEventListener("click", (e) => { if (!e.isTrusted || !secili) return; a.calistirici.calistir(ad); });'), null);
+  assert.match(cagri('x.addEventListener("click", (e) => { a.calistirici.calistir(ad); });') ?? "", /isTrusted/);
+  assert.match(cagri('x.addEventListener("click", (e) => { if (!e.isTrusted) console.warn("x"); a.calistirici.calistir(ad); });') ?? "", /isTrusted/);
+  assert.match(cagri('x.addEventListener("click", () => { a.calistirici.calistir(ad); });') ?? "", /parametresini/);
+  assert.match(cagri("a.calistirici.calistir(ad);") ?? "", /tıklama/);
 });
 
 test("BEKÇİ: dinleme ve grafik durumu YALNIZ BELLEKTE (depolama/IPC adı geçmez: uygulama kapanınca dinleme kalmaz)", () => {

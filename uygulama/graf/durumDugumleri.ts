@@ -14,7 +14,9 @@ import { AKIS_GIRIS, AKIS_SONRA, type AyarTanimi, type DegiskenAlani, type Dugum
 import { degiskenDegeriHatasi } from "./grafDurumu.ts";
 
 export const DEGISKEN_TIPLERI = ["sayi", "metin", "bool"] as const;
-type DegiskenTipi = (typeof DEGISKEN_TIPLERI)[number];
+export type DegiskenTipi = (typeof DEGISKEN_TIPLERI)[number];
+/** Değişken düğümlerinin türleri: görsel editörün "Değişkenler" listesi (uygulama/graf/editor/degiskenler.ts) bunları tarar — tür adı tek yerde. */
+export const DEGISKEN_DUGUMU = { oku: "degisken.oku", yaz: "degisken.yaz", artir: "degisken.artir" } as const;
 
 /** Gün vakitleri (Türkçe, ASCII kimlik): `mind/zaman.ts` `gununVakti`nin beş İngilizce sözünden türer (kopya kural yok; bekçi: durumDugumleri.test.ts). */
 export const GUN_VAKITLERI = ["sabah", "ogle", "aksam", "gece"] as const;
@@ -37,7 +39,7 @@ const sifiri = (t: DegiskenTipi): GrafDegeri => (t === "sayi" ? 0 : t === "metin
 const turuMu = (t: DegiskenTipi, v: unknown): boolean => (t === "sayi" ? typeof v === "number" : t === "metin" ? typeof v === "string" : typeof v === "boolean");
 const TUR_ADI: Record<DegiskenTipi, string> = { sayi: "sayı", metin: "metin", bool: "doğru/yanlış" };
 
-const AD_AYARI: AyarTanimi = { ad: "ad", tip: "metin", aciklama: "değişkenin adı (harf, rakam, _ ve -; grafiğe özel)" };
+const AD_AYARI: AyarTanimi = { ad: "ad", tip: "metin", aciklama: "değişkenin adı (harf, rakam, _ ve -; grafiğe özel)", ornek: "sayac" };
 const TIP_AYARI: AyarTanimi = { ad: "tip", tip: "metin", varsayilan: "sayi", secenekler: DEGISKEN_TIPLERI, aciklama: "değişkenin türü" };
 
 /** Ad ve tür ayarları (denetimde: `pinler` fırlatınca hata listesine düşer). */
@@ -63,7 +65,7 @@ function oku<Y>(c: DugumCalismasi<Y>, ad: string, tip: DegiskenTipi): GrafDegeri
   return v;
 }
 
-const BOOL = (ad: string): PinTanimi => ({ ad, tip: "bool" });
+export const BOOL = (ad: string): PinTanimi => ({ ad, tip: "bool" });
 async function boolOku<Y>(c: DugumCalismasi<Y>, pin: string): Promise<boolean> {
   const v = await c.giris(pin);
   if (typeof v !== "boolean") throw new Error(`${pin}: doğru/yanlış olmalı (gelen: ${JSON.stringify(v)})`);
@@ -88,14 +90,14 @@ export function durumDugumleri<Y>(): DugumTanimi<Y>[] {
   return [
     // ── değişkenler ──
     {
-      tip: "degisken.oku", ad: "Değişken oku", kategori: "veri", saf: true,
+      tip: DEGISKEN_DUGUMU.oku, ad: "Değişken oku", kategori: "veri", saf: true,
       aciklama: "Grafiğin değişkenini okur (bellekte; uygulama kapanınca gider). Hiç yazılmadıysa türünün sıfırı: 0, \"\" ya da false.",
       ayarlar: [AD_AYARI, TIP_AYARI],
       pinler: (a) => ({ girisler: [], cikislar: [{ ad: "deger", tip: adVeTip(a).tip }] }),
       calistir: (c) => { const { ad, tip } = adVeTip(c.ayar); return { cikti: { deger: oku(c, ad, tip) } }; },
     },
     {
-      tip: "degisken.yaz", ad: "Değişken yaz", kategori: "veri", saf: false,
+      tip: DEGISKEN_DUGUMU.yaz, ad: "Değişken yaz", kategori: "veri", saf: false,
       aciklama: "Grafiğin değişkenine değer yazar (sayı, metin, doğru/yanlış; tür ayardan). 'deger' bağlı değilse ayar.deger.",
       ayarlar: [AD_AYARI, TIP_AYARI],
       pinler: (a) => {
@@ -114,7 +116,7 @@ export function durumDugumleri<Y>(): DugumTanimi<Y>[] {
       },
     },
     {
-      tip: "degisken.artir", ad: "Değişken artır", kategori: "veri", saf: false,
+      tip: DEGISKEN_DUGUMU.artir, ad: "Değişken artır", kategori: "veri", saf: false,
       aciklama: "Sayı değişkenine 'miktar' ekler (varsayılan 1; eksi de olur) ve yeni değeri verir. Hiç yazılmadıysa 0'dan başlar (ziyaret sayacı).",
       ayarlar: [AD_AYARI, { ad: "miktar", tip: "sayi", varsayilan: 1, en: -1_000_000, cok: 1_000_000 }],
       pinler: (a) => { adVeTip({ ...a, tip: "sayi" }); return { girisler: [AKIS_GIRIS, { ad: "miktar", tip: "sayi" }], cikislar: [AKIS_SONRA, { ad: "deger", tip: "sayi" }] }; },

@@ -368,7 +368,8 @@ test("▶ TEK YERDEN: çalıştırıcının `calistir`ı üretim kodunda yalnız
     e.isDirectory() ? tara(path.join(klasor, e.name)) : /\.ts$/.test(e.name) && !/\.test\.ts$/.test(e.name) ? [path.join(klasor, e.name).split(path.sep).join("/")] : []);
   const uretim = ["uygulama", "bridge", "mind", "flash", "world", "voice", "protocol"].flatMap(tara);
   const cagiranlar = uretim.filter((d) => /calistirici\.calistir\(/.test(fs.readFileSync(path.join(kok, d), "utf8")));
-  assert.deepEqual(cagiranlar, ["uygulama/yapi/grafSekmesi.ts"]);
+  // BİLİNÇLİ İZİN LİSTESİ (dilim 2b): Graf sekmesi ve görsel editörün ▶ düğmesi. Her çağrının isTrusted'a baktığını npcDavranisi.test.ts sınar.
+  assert.deepEqual(cagiranlar, ["uygulama/yapi/graf/calistirmaDugmeleri.ts", "uygulama/yapi/grafSekmesi.ts"]);
   const arka = uretim.filter((d) => /^(bridge|mind|flash)\//.test(d) && /uygulama\/graf\//.test(fs.readFileSync(path.join(kok, d), "utf8")));
   assert.deepEqual(arka, []);
 });

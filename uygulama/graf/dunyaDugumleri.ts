@@ -6,17 +6,18 @@
 //
 // Konum DEĞERİ `{ x, y, z }` (metre, protokol `Vec3`). Düğümler ayrıca `x` ve `z` sayı çıkışı verir: karşılaştırma düğümü sayı ister, "x < 3" konum nesnesiyle
 // yazılamaz. Mesafe YATAYDIR (x–z düzlemi): ajanla Ozyn'in göz hizası farkı "yaklaştı" kararına karışmasın.
+// Kategori `dunya` (dilim 2b): görsel editörün palette'inde ve "Benim grafiğim" panelindeki "Dünya değişkenleri" kısayolunda bu grup tek yerden çıkar.
 "use strict";
 import { NESNE_TURLERI } from "../../world/level/cekirdek/anlam.ts";
+import type { PinTanimi } from "../../protocol/graf.ts";
 import type { Vec3 } from "../../protocol/temel.ts";
 import type { DugumTanimi, DugumCalismasi } from "./dugumKaydi.ts";
 import type { GrafYetenegi } from "./grafYetenegi.ts";
-import { KIM, KIM_AYARI, kimOku, konumMu, nesneMi } from "./ajanDugumleri.ts";
-import { gecerliSaat } from "./durumDugumleri.ts";
+import { KIM, KIM_AYARI, kimOku, nesneMi } from "./ajanDugumleri.ts";
+import { BOOL, gecerliSaat } from "./durumDugumleri.ts";
 
-/** Sayı çıkışı yardımcıları (okunurluk). */
-const SAYI = (ad: string) => ({ ad, tip: "sayi" as const });
-const BOOL = (ad: string) => ({ ad, tip: "bool" as const });
+/** Sayı çıkışı (okunurluk); bool pini Dilim 2'nin `BOOL`u (kopya yok). */
+const SAYI = (ad: string): PinTanimi => ({ ad, tip: "sayi" });
 
 /** İki konum arasındaki YATAY uzaklık (m). */
 export const yatayMesafe = (a: Vec3, b: Vec3): number => Math.hypot(a.x - b.x, a.z - b.z);
@@ -40,7 +41,7 @@ function ozynKonumu(c: DugumCalismasi<GrafYetenegi>) {
 export function dunyaDugumleri(): DugumTanimi<GrafYetenegi>[] {
   return [
     {
-      tip: "saat.simdi", ad: "Saat", kategori: "veri", saf: true,
+      tip: "saat.simdi", ad: "Saat", kategori: "dunya", saf: true,
       aciklama: "Şimdiki saat (bilgisayarın yerel saati). 'saat' kesirlidir (14:30 → 14.5): 'Karşılaştır' ile \"12'den önce mi\" diye sorulur.",
       pinler: () => ({ girisler: [], cikislar: [SAYI("saat"), SAYI("tam_saat"), SAYI("dakika")] }),
       calistir: (c) => {
@@ -50,7 +51,7 @@ export function dunyaDugumleri(): DugumTanimi<GrafYetenegi>[] {
       },
     },
     {
-      tip: "veri.konum", ad: "Konum", kategori: "veri", saf: true,
+      tip: "veri.konum", ad: "Konum", kategori: "dunya", saf: true,
       aciklama: "Sabit bir nokta (metre; y zemin yüksekliği, genelde 0). 'Git' düğümünün hedefi 'konum' ise buna bağlanır.",
       ayarlar: [
         { ad: "x", tip: "sayi", varsayilan: 0, en: -KONUM_AZAMI, cok: KONUM_AZAMI },
@@ -61,7 +62,7 @@ export function dunyaDugumleri(): DugumTanimi<GrafYetenegi>[] {
       calistir: (c) => ({ cikti: { konum: { x: c.ayar["x"] as number, y: c.ayar["y"] as number, z: c.ayar["z"] as number } } }),
     },
     {
-      tip: "ajan.durum", ad: "Ajan durumu", kategori: "veri", saf: true,
+      tip: "ajan.durum", ad: "Ajan durumu", kategori: "dunya", saf: true,
       aciklama: "Bir ajanın gövdesi şu an: konumu (x, z dahil), iş yapıyor mu (yürüyor/oturmaya gidiyor), oturuyor mu. Bedeni yoksa nedenli hata.",
       ayarlar: [KIM_AYARI],
       pinler: () => ({ girisler: [KIM], cikislar: [{ ad: "konum", tip: "konum" }, SAYI("x"), SAYI("z"), BOOL("mesgul"), BOOL("oturuyor")] }),
@@ -71,7 +72,7 @@ export function dunyaDugumleri(): DugumTanimi<GrafYetenegi>[] {
       },
     },
     {
-      tip: "ozyn.durum", ad: "Ozyn durumu", kategori: "veri", saf: true,
+      tip: "ozyn.durum", ad: "Ozyn durumu", kategori: "dunya", saf: true,
       aciklama: "Ozyn şu an: konumu (x, z dahil) ve etkileştiği yüzey (monitor, bank… yoksa boş metin).",
       pinler: () => ({ girisler: [], cikislar: [{ ad: "konum", tip: "konum" }, SAYI("x"), SAYI("z"), { ad: "yuzey", tip: "metin" }] }),
       calistir: (c) => {
@@ -80,7 +81,7 @@ export function dunyaDugumleri(): DugumTanimi<GrafYetenegi>[] {
       },
     },
     {
-      tip: "ozyn.mesafe", ad: "Ozyn'e mesafe", kategori: "veri", saf: true,
+      tip: "ozyn.mesafe", ad: "Ozyn'e mesafe", kategori: "dunya", saf: true,
       aciklama: "Bir ajanın Ozyn'e YATAY uzaklığı (metre). 'Karşılaştır' ile \"3 m'den yakın mı\" diye sorulur.",
       ayarlar: [KIM_AYARI],
       pinler: () => ({ girisler: [KIM], cikislar: [SAYI("mesafe")] }),
@@ -90,7 +91,7 @@ export function dunyaDugumleri(): DugumTanimi<GrafYetenegi>[] {
       },
     },
     {
-      tip: "nesne.en_yakin", ad: "En yakın nesne", kategori: "veri", saf: true,
+      tip: "nesne.en_yakin", ad: "En yakın nesne", kategori: "dunya", saf: true,
       aciklama: "Ajana en yakın nesne (isteğe bağlı tür süzgeci ve en uzak menzil). Eşit uzaklıkta kimlik sırasındaki ilk. Menzilde nesne yoksa nedenli HATA.",
       ayarlar: [
         { ad: "tur", tip: "metin", varsayilan: "", secenekler: ["", ...NESNE_TURLERI], aciklama: "tür süzgeci (boş: hepsi)" },
