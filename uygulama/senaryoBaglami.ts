@@ -76,6 +76,8 @@ export interface SenaryoBaglami {
   readonly gozlem: Gozlem;
   /** Sekans (spec 36; `sekansdene`): örnekler, gerçek oynatıcı, Sekans sekmesi ve editör. Oynatma yalnız `?sekansdene=1` ya da `?kimododene=1` (spec 37) koşusunda. */
   readonly sekans: SekansSenaryoYuzu;
+  /** Graf editörü (`grafdene`, spec 38 §6): kayıtlı grafik adları, editörü aç/gizle. */
+  readonly graf: { adlar(): string[]; ac(ad: string): void; gizle(): void; acikMi(): boolean; /** Senaryo koşusunun geçici deposuna küçük bir deneme grafiği yazar; adı döner. */ ornekOlustur(): Promise<string> };
   readonly ortam: {
     tanim(): LevelTanimi | null;
     kipAyarla(kip: "oturum" | "kalici"): void;
@@ -109,7 +111,7 @@ export const SENARYOLAR = [
   "terminaldene", "otodene", "gorudene", "sessizdene", "davranis", "tezdene", "gordene", "admindene",
   "zihindene", "onaydene", "tahtabeyin", "becerdene", "bakdene", "acidene", "saglobdene",
   "senaryodene", "eylemdene", "benlikdene", "apidene", "tahtadene", "hafizadene", "yuzdene", "baglamdene", "takipdene",
-  "kapidene", "gozdene", "ovadene", "ortamdene", "gidene", "efektdene", "gromadene", "gozlemdene", "klipdene", "sekansdene", "kimododene", "rigdene", "kameradene",
+  "kapidene", "gozdene", "ovadene", "ortamdene", "gidene", "efektdene", "gromadene", "gozlemdene", "klipdene", "sekansdene", "kimododene", "rigdene", "kameradene", "grafdene",
 ] as const;
 export type SenaryoAdi = (typeof SENARYOLAR)[number];
 

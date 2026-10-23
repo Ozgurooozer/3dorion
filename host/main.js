@@ -171,6 +171,7 @@ function pencereAc() {
   // Control Rig ve kamera (spec 38): rig kontrolleri, halka sürükleme, anahtar; isimli kameralar, kesmeler, önizleme. Kareler aynı yakalayıcıyla.
   if (process.env.ORION_RIGDENE === "1") parcalar.push("rigdene=1", "sessiz=1");
   if (process.env.ORION_KAMERADENE === "1") parcalar.push("kameradene=1", "sessiz=1");
+  if (process.env.ORION_GRAFDENE === "1") parcalar.push("grafdene=1", "sessiz=1");
   // Spec 25 Faz 2: görme. `ORION_GOZ` görme modelini seçer (varsayılan bridge/goz.ts'te).
   if (process.env.ORION_GOZDENE === "1") parcalar.push("gozdene=1", "sessiz=1");
   if (process.env.ORION_GOZ) parcalar.push(`goz=${encodeURIComponent(process.env.ORION_GOZ)}`);

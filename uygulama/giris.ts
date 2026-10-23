@@ -1268,6 +1268,12 @@ const senaryoBaglami: SenaryoBaglami = {
   webMonitoru,
   gozlem,
   sekans: sekansSistemi.senaryo,
+  graf: { adlar: () => grafDeposu.liste().filter((k) => !k.hata && k.tur === "olay").map((k) => k.ad), ac: (ad) => grafEditoru.ac(ad), gizle: () => grafEditoru.gizle(), acikMi: () => grafEditoru.acikMi(),
+    async ornekOlustur() {
+      const ad = "grafdene_ornek";
+      if (!grafDeposu.liste().some((k) => k.ad === ad)) await grafDeposu.yeni({ surum: 1, ad, tur: "olay", girisler: [], cikislar: [], dugumler: [{ id: "b", tip: "olay.basla", konum: [40, 40] }, { id: "sonra", tip: "akis.bekle", ayar: { ms: 500 }, konum: [300, 40] }], baglar: [{ kaynak: ["b", "sonra"], hedef: ["sonra", "giris"] }] });
+      return ad;
+    } },
 };
 for (const ad of istenenSenaryolar(location.search)) {
   void import(`./senaryolar/${ad}.ts`)

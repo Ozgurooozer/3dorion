@@ -27,6 +27,10 @@ import { ayrintiPaneliKur } from "./ayrintiPaneli.ts";
 import { grafigimPaneliKur } from "./grafigimPaneli.ts";
 import { calistirmaDugmeleriKur } from "./calistirmaDugmeleri.ts";
 import { adKutusuKur, sekmeSeridiKur } from "../ortak/sekmeSeridi.ts";
+import { kabukStiliEkle } from "../ortak/kabukStili.ts";
+import { menuCubuguKur } from "../ortak/menuCubugu.ts";
+import { AYIRICI, type Menu } from "../ortak/menuModeli.ts";
+import { dugmeYap } from "../ortak/dom.ts";
 import { altSeritKur, bantKur, ipucuSeridiKur, yardimKutusuKur } from "./bilgiSeritleri.ts";
 import { komutYurutucuKur } from "./komutlar.ts";
 import { sekmeDosyalariKur } from "./sekmeDosyalari.ts";
@@ -62,6 +66,7 @@ let stilEkli = false;
 
 export function grafEditoruKur(a: GrafEditoruAyari): GrafEditoru {
   if (!stilEkli) { const s = document.createElement("style"); s.textContent = EDITOR_CSS; document.head.append(s); stilEkli = true; }
+  kabukStiliEkle();
   const sekmeler = sekmeListesiKur<EditorOturumu>((o) => o.gecmis.kirli());
   const ortam = (): PinOrtami => ({ desen: (x) => a.depo.desen(x), buGraf: null, ajanlar: a.ajanlar });
   let acik = false;
@@ -121,24 +126,60 @@ export function grafEditoruKur(a: GrafEditoruAyari): GrafEditoru {
     calistirici: a.calistirici, dinleyici: a.dinleyici, depo: a.depo, ad: () => etkin()?.ad ?? null,
     kirli: () => etkin()?.icerik.gecmis.kirli() ?? false, bildir,
   });
-  const metinDugme = dugme("Metin", "", "JSON metin görünümü (eski düzenleyici; Ctrl+S orada da kaydeder)");
-  const adDugme = dugme("Yeniden adlandır", "", "Grafiğin adını değiştir (ad = dosya adı; kullanılan desen yeniden adlandırılmaz)");
-  const kopyaDugme = dugme("Kopyasını oluştur", "", "Aynı içerikle yeni adlı grafik");
-  const sigdirDugme = dugme("Sığdır", "", "F — grafiği ekrana sığdır");
-  const yardimDugme = dugme("?", "", "Kısayollar (? / F1)");
-  const kapatDugme = dugme("✕", "", "Editörü gizle (Esc) — sekmeler ve kaydedilmemiş değişiklik bellekte kalır");
-  ust.append(seritler.kok, adKutusu.kok, el("span", "ge-bosluk"), satir, kaydetDugme, ...calisma.ogeler, metinDugme, adDugme, kopyaDugme, sigdirDugme, yardimDugme, kapatDugme);
+  const arac = dugmeYap("kb-arac");
+  const geriD = arac("↶", "", "Ctrl+Z — geri al"), yineleD = arac("↷", "", "Ctrl+Y — yinele");
+  const sigdirDugme = arac("⤢ Sığdır", "", "F — grafiği ekrana sığdır (seçim varsa seçimi)");
+  const paletD = arac("＋ Düğüm", "", "Boşluk ya da sağ tık — düğüm paleti");
+  const kapatDugme = arac("✕", "", "Editörü gizle (Esc) — sekmeler ve kaydedilmemiş değişiklik bellekte kalır");
+  kaydetDugme.className = "kb-arac"; kaydetDugme.textContent = "💾 Kaydet";
+  const grup = (...c: HTMLElement[]) => { const g = el("div", "kb-grup"); g.append(...c); return g; };
+  const aracSatiri = el("div", "kb-aracsatiri");
+  aracSatiri.append(grup(geriD, yineleD), grup(paletD, sigdirDugme), grup(...calisma.ogeler), el("span", "kb-bosluk"), satir, kaydetDugme, kapatDugme);
+  ust.append(seritler.kok, adKutusu.kok);
+
+  // ── menüler (eskiden hepsi tek satıra sıkışmış düğmelerdi: Metin, Yeniden adlandır, Kopyasını oluştur, ?) ──
+  const o = (): EditorOturumu | null => etkin()?.icerik ?? null;
+  const menuler = (): Menu[] => [
+    { ad: "Dosya", satirlar: [
+      { etiket: "Kaydet", kisayol: "Ctrl+S", etkin: () => !!etkin() && etkin()!.icerik.dis !== "silindi", calistir: () => { void kaydet(); } },
+      AYIRICI,
+      { etiket: "Yeniden adlandır…", etkin: () => !!etkin(), calistir: () => { const s = etkin(); if (s) adKutusu.ac("yeni ad:", s.ad, (yeni) => yenidenAdlandir(s.ad, yeni)); } },
+      { etiket: "Kopyasını oluştur…", etkin: () => !!etkin(), calistir: () => { const s = etkin(); if (s) adKutusu.ac("kopyanın adı:", `${s.ad}_kopya`, async (yeni) => { await kopyasiniOlustur(s.ad, yeni); ac(yeni); }); } },
+      { etiket: "JSON (metin) görünümü", ipucu: "Eski metin düzenleyici; Ctrl+S orada da kaydeder", etkin: () => !!etkin(), calistir: () => { const s = etkin(); if (s) a.metinAc(s.ad); } },
+      AYIRICI,
+      { etiket: "Editörü gizle", kisayol: "Esc", calistir: () => escIste() },
+    ] },
+    { ad: "Düzen", satirlar: [
+      { etiket: "Geri al", kisayol: "Ctrl+Z", etkin: () => !!o(), calistir: () => komut("geriAl") },
+      { etiket: "Yinele", kisayol: "Ctrl+Y", etkin: () => !!o(), calistir: () => komut("yinele") },
+      AYIRICI,
+      { etiket: "Kes", kisayol: "Ctrl+X", etkin: () => !!o(), calistir: () => komut("kes") },
+      { etiket: "Kopyala", kisayol: "Ctrl+C", etkin: () => !!o(), calistir: () => komut("kopyala") },
+      { etiket: "Yapıştır", kisayol: "Ctrl+V", etkin: () => !!o(), calistir: () => komut("yapistir") },
+      { etiket: "Çoğalt", kisayol: "Ctrl+D", etkin: () => !!o(), calistir: () => komut("cogalt") },
+      { etiket: "Sil", kisayol: "Delete", etkin: () => !!o(), calistir: () => komut("sil") },
+      AYIRICI,
+      { etiket: "Tümünü seç", kisayol: "Ctrl+A", etkin: () => !!o(), calistir: () => komut("tumunuSec") },
+    ] },
+    { ad: "Görünüm", satirlar: [
+      { etiket: "Grafiği sığdır", kisayol: "F", etkin: () => !!o(), calistir: () => komut("sigdir") },
+      { etiket: "Düğüm paleti", kisayol: "Boşluk", etkin: () => !!o(), calistir: () => komut("palet") },
+    ] },
+    { ad: "Çalıştır", satirlar: [
+      { etiket: "▶ Çalıştır, ⚡ Dinle — araç çubuğundaki düğmeler", ipucu: "Çalıştırmak ve dinlemeye almak yalnız senin gerçek tıklamanla çalışır: menüden ya da kısayoldan olmaz", etkin: () => false, calistir: () => undefined },
+      { etiket: "■ Durdur", etkin: () => a.calistirici.durum().calisiyor !== null || a.dinleyici.liste().some((x) => x.calisiyor), calistir: () => { a.calistirici.durdur(); a.dinleyici.durdur(); } },
+    ] },
+    { ad: "Yardım", satirlar: [{ etiket: "Kısayollar", kisayol: "?", calistir: () => yardim.degistir() }] },
+  ];
+  const menu = menuCubuguKur(menuler);
+  kok.prepend(menu.kok);
+  ust.after(aracSatiri);
 
   kaydetDugme.addEventListener("click", () => { kaydetDugme.blur(); void kaydet(); });
-  metinDugme.addEventListener("click", () => { metinDugme.blur(); const s = etkin(); if (s) a.metinAc(s.ad); });
-  adDugme.addEventListener("click", () => { adDugme.blur(); const s = etkin(); if (s) adKutusu.ac("yeni ad:", s.ad, (yeni) => yenidenAdlandir(s.ad, yeni)); });
-  kopyaDugme.addEventListener("click", () => {
-    kopyaDugme.blur();
-    const s = etkin();
-    if (s) adKutusu.ac("kopyanın adı:", `${s.ad}_kopya`, async (yeni) => { await kopyasiniOlustur(s.ad, yeni); ac(yeni); });
-  });
+  geriD.addEventListener("click", () => { geriD.blur(); komut("geriAl"); });
+  yineleD.addEventListener("click", () => { yineleD.blur(); komut("yinele"); });
+  paletD.addEventListener("click", () => { paletD.blur(); komut("palet"); });
   sigdirDugme.addEventListener("click", () => { sigdirDugme.blur(); tuval.sigdir(); });
-  yardimDugme.addEventListener("click", () => { yardimDugme.blur(); yardim.degistir(); });
   kapatDugme.addEventListener("click", () => { kapatDugme.blur(); escIste(); });
 
   function ustCiz(): void {
@@ -148,7 +189,8 @@ export function grafEditoruKur(a: GrafEditoruAyari): GrafEditoru {
     const c = b.calisma();
     satir.textContent = c?.satir ?? ""; satir.dataset.tur = c?.satirTuru ?? ""; satir.title = satir.textContent;
     kaydetDugme.disabled = !s || s.icerik.dis === "silindi";
-    for (const d of [metinDugme, adDugme, kopyaDugme, sigdirDugme]) d.disabled = !s;
+    for (const d of [geriD, yineleD, paletD, sigdirDugme]) d.disabled = !s;
+    menu.ciz();
   }
 
   /** Bir parça yazı alanında odaktaysa (ayar yazılıyor) onu çizme: yazılan yarım metin silinmesin; odak çıkınca çizilir. */
@@ -210,7 +252,7 @@ export function grafEditoruKur(a: GrafEditoruAyari): GrafEditoru {
 
   // ── tuşlar ──
   function escIste(): void {
-    if (palet.kapat() || adKutusu.kapat() || tuval.iptal()) return;
+    if (menu.kapat() || palet.kapat() || adKutusu.kapat() || tuval.iptal()) return;
     if (yardim.acikMi()) { yardim.degistir(false); return; }
     const kirli = sekmeler.kirliler();
     if (kirli.length && performance.now() - escZamani > ESC_ONAY_MS) {

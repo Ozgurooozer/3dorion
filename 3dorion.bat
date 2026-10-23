@@ -29,6 +29,7 @@ rem    3dorion.bat sekansdene ornek sekanslar (Sekans sekmesi, spec 36) gercek o
 rem    3dorion.bat kimododene Kimodo'dan cevrilen kimodo_* sekanslari Orion'da (spec 37): kareler ORION_SS_DIR'e PNG
 rem    3dorion.bat rigdene    Control Rig (spec 38): kontrol sekilleri, halka surukleme, auto-key anahtar, geri al; kareler ORION_SS_DIR'e PNG
 rem    3dorion.bat kameradene Sekans kamerasi (spec 38): isimli kameralar, kesmeler, onizleme, oynatma; kareler ORION_SS_DIR'e PNG
+rem    3dorion.bat grafdene   Graf editoru yeni kabuk (spec 38): menu cubugu, arac cubugu, Esc zinciri; kareler ORION_SS_DIR'e PNG
 rem    3dorion.bat ovadene    Orion ovada: gel, takip, kapiya git, otur, bak, jest, algi, gec (spec 26 F4)
 rem    3dorion.bat gozlemdene Goz muayenesi (O tusu): Orion'un gozunden kare, yerel gorme modeli, panelde onizleme + cevap
 rem    3dorion.bat gromadene  Ofisteki 3. monitor (groma haritasi): sayfa, kare, dolu doku, tekerlek/tiklama (docs/olcum/on-kayit-groma-monitoru-1.md)
@@ -106,6 +107,7 @@ if /i "%MOD%"=="sekansdene" goto :sekansdene
 if /i "%MOD%"=="kimododene" goto :kimododene
 if /i "%MOD%"=="rigdene" goto :rigdene
 if /i "%MOD%"=="kameradene" goto :kameradene
+if /i "%MOD%"=="grafdene" goto :grafdene
 if /i "%MOD%"=="ovadene" goto :ovadene
 if /i "%MOD%"=="ortamdene" goto :ortamdene
 if /i "%MOD%"=="efektdene" goto :efektdene
@@ -355,6 +357,19 @@ set "ORION_KAMERADENE=1"
 set "ORION_SMOKE=1"
 set "ORION_SMOKE_MS=120000"
 if "%ORION_SS_DIR%"=="" set "ORION_SS_DIR=%TEMP%\kameradene"
+set "ORION_BEYIN=dis"
+set "ORION_BEYIN_ADRES=http://127.0.0.1:9"
+call npx electron .
+goto :son
+
+:grafdene
+echo [grafdene] Graf editoru yeni kabuk (spec 38): menu cubugu, arac cubugu, Esc zinciri; kareler ORION_SS_DIR'e PNG
+call npx vite build
+if errorlevel 1 goto :hata
+set "ORION_GRAFDENE=1"
+set "ORION_SMOKE=1"
+set "ORION_SMOKE_MS=60000"
+if "%ORION_SS_DIR%"=="" set "ORION_SS_DIR=%TEMP%\grafdene"
 set "ORION_BEYIN=dis"
 set "ORION_BEYIN_ADRES=http://127.0.0.1:9"
 call npx electron .
