@@ -79,6 +79,10 @@ export class KameraRig {
   private _sinematik: { konum: Vector3; bakis: Vector3; kalan: number } | null = null;
   /** Odak kipi: terminal gibi bir yüzeyde sabitlenmiş kamera. Fare bozamaz. */
   private _odak: { konum: Vector3; bakis: Vector3 } | null = null;
+  /** SEKANS kamerası (spec 38 §7): sekansın o karedeki tam pozu. Odaktan ve sinematikten ÖNCE gelir; yumuşatma yok (poz kareden kareye zaten sürekli). */
+  private _sekans: { konum: Vector3; bakis: Vector3; fov: number } | null = null;
+  /** Sekans kamerası başlamadan önceki görüş alanı (bırakılınca geri konur). */
+  private _fovOnce = 0.9;
 
   /** Işın testinde yok sayılacak mesh'ler (oyuncu gövdesi, cam, manzara). */
   private _isinDisi = new Set<AbstractMesh>();
@@ -261,10 +265,45 @@ export class KameraRig {
   sinematikBitir(): void { this._sinematik = null; }
 
   /**
+   * Sekans kamerası (spec 38 §7): kamerayı bu pozda TUTAR (konum, bakılan nokta, dikey görüş alanı — radyan). Her karede çağrılır (poz değişir);
+   * `sekansKamerasiBirak()` oyuncunun kendi kamerasına döner ve görüş alanını geri koyar. Yumuşatma yok: sekans değerlendirmesi kareden kareye sürekli.
+   */
+  sekansKamerasi(konum: Vector3, bakis: Vector3, fov: number): void {
+    if (!this._sekans) this._fovOnce = this.kamera.fov;
+    this._sekans = { konum: konum.clone(), bakis: bakis.clone(), fov };
+    this.guncelle(0);   // hedef poz hemen (20 Hz tikini beklemeden)
+  }
+
+  sekansKamerasiBirak(): void {
+    if (!this._sekans) return;
+    this._sekans = null;
+    this.kamera.fov = this._fovOnce;
+  }
+
+  get sekansKamerasiAktif(): boolean { return this._sekans !== null; }
+
+  /** Şu anki görünüm: konum, 3 m önündeki bakış noktası ve görüş alanı (kamera eklerken "şu anki görünümden"). */
+  gorunum(): { konum: Vector3; hedef: Vector3; fov: number } {
+    const k = this.kamera.position.clone();
+    const cp = Math.cos(this.kamera.rotation.x);
+    const yon = new Vector3(cp * Math.sin(this.kamera.rotation.y), -Math.sin(this.kamera.rotation.x), cp * Math.cos(this.kamera.rotation.y));
+    return { konum: k, hedef: k.add(yon.scale(3)), fov: this._sekans ? this._fovOnce : this.kamera.fov };
+  }
+
+  /**
    * 20Hz mantık adımı. Hedef pozu hesaplar; kamerayı DOĞRUDAN taşımaz.
    */
   guncelle(dt: number): void {
     if (this._gecis < 1) this._gecis = Math.min(1, this._gecis + dt / GECIS_SURESI);
+
+    // Sekans kamerası her şeyden önce gelir (Ozyn ▶ ya da kamera önizlemesi isteyince sahne onun kadrajıdır).
+    if (this._sekans) {
+      this._hedefKonum.copyFrom(this._sekans.konum);
+      const y = this._sekans.bakis.subtract(this._sekans.konum);
+      this._hedefYaw = Math.atan2(y.x, y.z);
+      this._hedefPitch = -Math.atan2(y.y, Math.hypot(y.x, y.z) || 1e-6);
+      return;
+    }
 
     // Odak, sinematikten önce gelir ve süresizdir.
     if (this._odak) {
@@ -363,6 +402,14 @@ export class KameraRig {
   }
 
   cizimGuncelle(dt: number): void {
+    if (this._sekans) {
+      // Sekans kadrajı: YUMUŞATMASIZ, tam poz (kesme anı tek karede; harman zaten sekans değerlendirmesinde).
+      this.kamera.position.copyFrom(this._hedefKonum);
+      this.kamera.rotationQuaternion = null;
+      this.kamera.rotation.set(this._hedefPitch, this._hedefYaw, 0);
+      this.kamera.fov = this._sekans.fov;
+      return;
+    }
     // Kare hızından bağımsız yumuşatma: exp(-k·dt).
     // 1. şahısta kamera göze YAPIŞIR (k=1): gecikme baş sallanması gibi hissedilir.
     // Ama ODAKTA değil — orada kamera gözden ayrılıp ekranın önüne gider ve bu

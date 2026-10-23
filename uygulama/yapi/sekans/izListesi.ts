@@ -7,6 +7,7 @@
 import { KANALLAR, UZUVLAR, otelemeMi, type Kanal, type Uzuv } from "../../../protocol/animasyon.ts";
 import { BEN, SEKANS_FPS } from "../../../protocol/sekans.ts";
 import { etkinBolum, uzuvIziDegeri } from "../../sekans/degerlendir.ts";
+import { etkinKesme } from "../../sekans/kameraDegerlendir.ts";
 import { satirlar } from "../../sekans/editor/izDuzeni.ts";
 import { baglamaEkle, baglamaSil, izBayrak, izSil, klipIziEkle, uzuvIziEkle } from "../../sekans/editor/sekansIslemleri.ts";
 import { dugmeYap, el } from "../ortak/dom.ts";
@@ -70,6 +71,17 @@ export function izListesiKur(b: SekansBaglami): { kok: HTMLElement; ciz(): void 
     baglamaDugme.disabled = !secenekler.length;
     for (const r of satirlar(s)) {
       const satir = el("div", "sk-ssatir"); satir.style.height = `${r.h}px`; satir.dataset.tur = r.tur;
+      if (r.tur === "kamera") {
+        // Kamera satırı (spec 38 §7): sekansın kamera kesmeleri; playhead'deki etkin kamera yazılır, tık Kamera sekmesini açar.
+        const e = etkinKesme(s, k), kam = e ? (s.kameralar ?? []).find((x) => x.id === e.kesme.kamera) : null;
+        satir.dataset.secili = o.secim.tur === "kesme" ? "1" : "0";
+        const d = el("span", "sk-deger", kam ? kam.ad : "—"); d.title = "playhead'deki kamera (ilk kesmeden önce oyunun kendi kamerası)";
+        satir.append(el("span", "sk-ad", `🎥 Kamera · ${(s.kameralar ?? []).length} kamera, ${(s.kesmeler ?? []).length} kesme`), d);
+        satir.title = "Kamera kesmeleri: çift tık = playhead'e kesme ekle · Kamera sekmesi: kameraları düzenle";
+        satir.addEventListener("click", () => { b.yanSekmeAc("kamera"); });
+        liste.append(satir);
+        continue;
+      }
       if (r.tur === "baglama") {
         const id = r.baglama.id;
         satir.dataset.secili = o.secim.tur === "baglama" && o.secim.id === id ? "1" : "0";

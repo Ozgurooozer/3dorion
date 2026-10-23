@@ -19,7 +19,7 @@ import type { AvatarGorunumu } from "./yurutucu.ts";
 import { aciSar } from "./yurutucu.ts";
 import { bostaHesapla } from "./bosta.ts";
 import { hareketliMi } from "./durumMakinesi.ts";
-import { klipOrnekle, klipZamani } from "./klipOrnekleyici.ts";
+import { klipOrnekle, klipZamani, type UzuvDegeri } from "./klipOrnekleyici.ts";
 
 /** Konum yumuşatma katsayısı (1/s). Büyük = daha sıkı takip. */
 const KONUM_YUMUSATMA = 14;
@@ -49,6 +49,7 @@ export class Beden {
   private _klip: AvatarGorunumu["klip"] = null;
   /** Klibin ÇİZİM zamanı: mantık 20 Hz'de ilerler, çizim karesi arayı doldurur (20 fps'lik basamaklı kol olmasın). */
   private _klipCizimGecen = 0;
+  private _rigPozu: readonly UzuvDegeri[] | null = null;
   private _agiz = 0;
   private _elinde: string | null = null;
   /** Boşta hareket zamanı — dünya saatinden bağımsız, çizim zamanı yeter. */
@@ -117,7 +118,10 @@ export class Beden {
     i.bostaUygula(b.nefes * (durgun ? 1 : 0.35), durgun ? b.agirlik : 0);
     // KLİP (Dilim 5a) poz/boşta/bakıştan SONRA: onların üstüne biner. Klibi uygulayamayan gövde (LED yüz) klibin ANLAMINI jest olarak gösterir.
     // Klip yokken de `klipUygula([])` çağrılır: iskelet geçen karede yazdığını geri alır (klip bitti/kesildi).
-    if (this._klip) {
+    if (this._rigPozu) {
+      // CONTROL RIG (spec 38): sekansın o karedeki pozu klibin yerine geçer (klip oynuyorsa da: rig modunda Ozyn sahneyi tutuyor).
+      i.klipUygula?.(this._rigPozu);
+    } else if (this._klip) {
       this._klipCizimGecen = Math.min(this._klipCizimGecen + dt, this._klip.gecen + KLIP_ONDE);
       if (i.klipUygula) i.klipUygula(klipOrnekle(this._klip.klip, this._klipCizimGecen));
       else i.jestUygula(this._klip.jest, klipZamani(this._klip.klip, this._klipCizimGecen) / this._klip.klip.sure);
@@ -131,6 +135,12 @@ export class Beden {
     i.agizUygula(this._agiz);
     i.gozKirp(b.gozKapali);
   }
+
+  /** Control Rig: verilen uzuv değerleri her karede klibin yerine uygulanır; null = rig modu kapalı (klip yolu geri gelir). */
+  rigPozu(degerler: readonly UzuvDegeri[] | null): void { this._rigPozu = degerler; }
+
+  /** Çizilen (yumuşatılmış) gövde yaw'ı, radyan. */
+  cizimYaw(): number { return this._cizimYaw; }
 
   gorunur(g: boolean): void { this.iskelet.gorunur(g); }
   yokEt(): void { this.iskelet.yokEt(); }

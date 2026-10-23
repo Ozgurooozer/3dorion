@@ -20,6 +20,8 @@ import { vrmIskeletYukle } from "./vrm.ts";
 import type { AvatarIskeleti } from "./iskelet.ts";
 import type { Yer } from "../yer/yer.ts";
 import type { KlipBulucu } from "./klipKutuphanesi.ts";
+import type { Uzuv } from "../../protocol/animasyon.ts";
+import type { UzuvDegeri } from "./klipOrnekleyici.ts";
 
 /**
  * Varsayılan karakter dosyası — vite `publicDir: assets` sayesinde kök altında.
@@ -88,6 +90,15 @@ export interface Avatar {
   cizimKonumu(): Vec3;
   /** Tuttuğu koltuk (kanonik çapa adı) ya da null — oturmaya giderken de tutar (spec 33). */
   koltugu(): string | null;
+  /**
+   * CONTROL RIG (spec 38): uzuv değerleri (gövde uzayı, derece/metre) klibin YERİNE her karede uygulanır — sekansın bir karesini bedende göstermek,
+   * rig ile pozu düzenlemek için. null = rig modu kapalı. Karar vermez; yalnız sunum (jest/klip niyet yolu değişmez).
+   */
+  rigPozu(degerler: readonly UzuvDegeri[] | null): void;
+  /** Uzvun eklem noktasının dünya konumu (rig kontrol şekilleri buraya konur); gövdede yoksa null. */
+  uzuvKonumu(u: Uzuv): Vec3 | null;
+  /** Gövdenin ÇİZİLEN yaw'ı (radyan, dünya): rig şekilleri gövdeyle hizalansın. */
+  cizimYaw(): number;
 }
 
 /**
@@ -178,6 +189,9 @@ export async function avatarKur(ayar: AvatarAyari): Promise<Avatar> {
     /** Avatarın EKRANDA göründüğü konum (mantık konumu değil). Testler için. */
     cizimKonumu: () => iskelet.cizimKonumu(),
     koltugu: () => yurutucu.koltugu(),
+    rigPozu: (d) => beden.rigPozu(d),
+    uzuvKonumu: (u) => iskelet.uzuvKonumu?.(u) ?? null,
+    cizimYaw: () => beden.cizimYaw(),
     yokEt() { birak(); dinleyiciler.clear(); beden.yokEt(); },
   };
 }
@@ -195,3 +209,13 @@ export { izDegeri, klipOrnekle, klipZamani } from "./klipOrnekleyici.ts";
 export type { UzuvDegeri } from "./klipOrnekleyici.ts";
 export type { KlipBulucu, KlipKutuphanesi, KlipHatasi } from "./klipKutuphanesi.ts";
 export { UZUV_ESLEMESI } from "./uzuvEslemesi.ts";
+// Control Rig (spec 38): kontrol kaydı, poz/sürükleme matematiği, sahne gösterimi ve kanonik zincirler uygulama katmanına BU yüzden açılır (alt-sistem kamu yüzü).
+export { rigGosterimiKur } from "./rig/gosterim.ts";
+export type { RigGosterimi, RigKaynagi, RigVurusu } from "./rig/gosterim.ts";
+export { KONTROLLER, kontrolBul, uzuvKontrolu, zincirKontrolleri } from "./rig/kontroller.ts";
+export type { Kontrol } from "./rig/kontroller.ts";
+export { RIG_EKSENLERI, dereceYazisi, eksendeDondur, eulerEsit, kisEuler } from "./rig/poz.ts";
+export type { Euler, RigEkseni } from "./rig/poz.ts";
+export { surukleAcisi } from "./rig/surukleme.ts";
+export type { V3 } from "./rig/surukleme.ts";
+export { ZINCIR_ADLARI } from "./zincirler.ts";

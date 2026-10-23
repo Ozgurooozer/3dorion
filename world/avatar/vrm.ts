@@ -37,6 +37,7 @@ import { BOY } from "./prosedurel.ts";
 import { uzuvlariCoz } from "./uzuvEslemesi.ts";
 import { uzuvSurucusuKur } from "./uzuvSurucusu.ts";
 import type { UzuvDegeri } from "./klipOrnekleyici.ts";
+import type { Uzuv } from "../../protocol/animasyon.ts";
 
 /** VRM 0.x blend shape preset adayları — ağız açıklığı için sırayla aranır. */
 const AGIZ_ADLARI = ["a", "aa", "vrc.v_aa", "mouth_a", "jawopen", "viseme_aa", "fcl_mth_a"];
@@ -283,6 +284,16 @@ export async function vrmIskeletYukle(sahne: Scene, yol: string, gorunus: Iskele
   // burada saklanır ve render hedeflerinden hemen önce (animasyon + bütün onBeforeRender işleri bittikten sonra, iskelet hazırlanmadan önce) uygulanır.
   const klipGozcusu = sahne.onBeforeRenderTargetsRenderObservable.add(() => surucu.uygula(bekleyenKlip));
   function klipUygula(degerler: readonly UzuvDegeri[]): void { bekleyenKlip = degerler; }
+  /** Control Rig: eklem noktasının dünya konumu (animasyon yazdıktan sonraki hâl; zincir kökten tazelenir). */
+  function uzuvKonumu(u: Uzuv): { x: number; y: number; z: number } | null {
+    const d = kemikDugumleri.dugumler.get(u);
+    if (!d) return null;
+    const zincir: TransformNode[] = [];
+    for (let x: TransformNode | null = d; x; x = x.parent as TransformNode | null) zincir.push(x);
+    for (let i = zincir.length - 1; i >= 0; i--) zincir[i]!.computeWorldMatrix(true);
+    const p = d.getAbsolutePosition();
+    return { x: p.x, y: p.y, z: p.z };
+  }
 
   function agizUygula(aciklik: number): void {
     const a = Math.min(1, Math.max(0, aciklik));
@@ -319,6 +330,6 @@ export async function vrmIskeletYukle(sahne: Scene, yol: string, gorunus: Iskele
     bilgi, konumUygula, cizimKonumu,
     govdeUygula, basUygula, pozUygula, jestUygula,
     agizUygula, bostaUygula, gozKirp, gorunur, yokEt,
-    klipUzuvlari: surucu.uzuvlar, klipUygula,
+    klipUzuvlari: surucu.uzuvlar, klipUygula, uzuvKonumu,
   };
 }

@@ -28,7 +28,7 @@ export function diyalogTusu(
 }
 
 const CSS = `
-#diyalogKutusu { position: fixed; left: 50%; bottom: calc(7% + var(--alt-cubuk, 0px) + 58px); transform: translateX(-50%); z-index: 32;
+#diyalogKutusu { position: fixed; left: 50%; bottom: calc(7% + max(var(--alt-cubuk, 0px), var(--editor-alt, 0px)) + 58px); transform: translateX(-50%); z-index: 32;
   min-width: 300px; max-width: 62ch; padding: 10px 14px 12px; border-radius: 8px; background: rgba(7,7,13,.9); border: 1px solid #2a3246;
   color: #e6e9f5; font: 15px/1.45 "Segoe UI", system-ui, sans-serif; display: none; flex-direction: column; gap: 8px; user-select: none; }
 #diyalogKutusu[data-acik="1"] { display: flex; }

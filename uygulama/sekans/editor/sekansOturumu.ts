@@ -17,7 +17,9 @@ export type Secim =
   | { tur: "anahtar"; refs: AnahtarRef[] }
   | { tur: "bolum"; iz: string; i: number }
   | { tur: "iz"; iz: string }
-  | { tur: "baglama"; id: string };
+  | { tur: "baglama"; id: string }
+  /** Kamera kesmesi (kare = kimlik; bir karede tek kesme). */
+  | { tur: "kesme"; kare: number };
 
 export interface KomutSonucu { ok: boolean; mesaj?: string }
 

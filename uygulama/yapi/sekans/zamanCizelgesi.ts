@@ -7,7 +7,8 @@
 "use strict";
 import { koselerdenKutu, tekerlekCarpani } from "../../duzenleyici/tuvalMatematigi.ts";
 import { SEKANS_FPS } from "../../../protocol/sekans.ts";
-import { anahtarKonumlari, anahtarVurus, bolumKutulari, bolumVurus, DUZEN, kutudakiAnahtarlar, refAnahtari, satirBul, satirlar, toplamYukseklik, type AnahtarRef } from "../../sekans/editor/izDuzeni.ts";
+import { anahtarKonumlari, anahtarVurus, bolumKutulari, bolumVurus, DUZEN, kesmeKutulari, kesmeVurus, kutudakiAnahtarlar, refAnahtari, satirBul, satirlar, toplamYukseklik, type AnahtarRef } from "../../sekans/editor/izDuzeni.ts";
+import { kesmeAyarla, kesmeEkle } from "../../sekans/editor/kameraIslemleri.ts";
 import { anahtarEkle, bolumEkle } from "../../sekans/editor/sekansIslemleri.ts";
 import { araligaSigdir, cetvelIsaretleri, kareX, xTamKare, zamanKaydir, zamanYakinlastir } from "../../sekans/editor/zamanEkseni.ts";
 import { el } from "../ortak/dom.ts";
@@ -17,7 +18,9 @@ type Durum =
   | { tur: "scrub" }
   | { tur: "kaydir"; x0: number; gx: number }
   | { tur: "surukle"; x0: number; y0: number }
-  | { tur: "kutu"; x0: number; y0: number; ek: AnahtarRef[] };
+  | { tur: "kutu"; x0: number; y0: number; ek: AnahtarRef[] }
+  /** Kamera kesmesini sürükle: bırakınca TEK işlem (kesmeAyarla); sürerken yalnız kutu kayar. */
+  | { tur: "kesme"; kare: number; x0: number; yeni: number };
 
 export interface ZamanCizelgesi { kok: HTMLElement; ciz(): void; playheadCiz(): void; sigdir(): void; iptal(): boolean }
 
@@ -61,6 +64,16 @@ export function zamanCizelgesiKur(b: SekansBaglami): ZamanCizelgesi {
     const disari = (x0: number, x1: number) => { const d = el("div", "sk-disari"); d.style.left = `${x0}px`; d.style.width = `${Math.max(0, x1 - x0)}px`; govde.append(d); };
     disari(kareX(g, 0), kareX(g, s.aralik.bas)); disari(kareX(g, s.aralik.bit), kareX(g, s.sure_kare));
     for (const [tur, k] of [["bas", s.aralik.bas], ["bit", s.aralik.bit]] as const) { const m = el("div", "sk-sinir"); m.dataset.tur = tur; m.style.left = `${kareX(g, k)}px`; m.title = tur === "bas" ? "▶ başı" : "▶ sonu"; govde.append(m); }
+    for (const k of kesmeKutulari(s, l, g)) {
+      const kam = (s.kameralar ?? []).find((x) => x.id === k.kamera);
+      const d = el("div", "sk-kesme", `${kam?.ad ?? k.kamera}${k.gecis === "yumusak" ? " ↝" : ""}`);
+      Object.assign(d.style, { left: `${k.x}px`, width: `${Math.max(2, k.g)}px`, top: `${k.y}px`, height: `${k.h}px` });
+      d.dataset.secili = o.secim.tur === "kesme" && o.secim.kare === k.kare ? "1" : "0";
+      d.dataset.kare = String(k.kare);
+      d.title = `kamera kesmesi · kare ${k.kare}: ${kam?.ad ?? k.kamera}${k.gecis === "yumusak" ? " (yumuşak geçiş)" : ""}
+sürükle: kareyi değiştir · tık: Kamera sekmesinde düzenle`;
+      govde.append(d);
+    }
     for (const k of bolumKutulari(l, g)) {
       const iz = s.izler.find((x) => x.id === k.iz);
       const bl = iz?.tur === "klip" ? iz.bolumler[k.i] : undefined;
@@ -132,6 +145,13 @@ export function zamanCizelgesiKur(b: SekansBaglami): ZamanCizelgesi {
     if (e.button !== 0) return;
     e.preventDefault();
     const l = satirlar(o.sekans());
+    const kv = kesmeVurus(kesmeKutulari(o.sekans(), l, o.gorunum), p.x, p.y);
+    if (kv !== null) {
+      o.secim = { tur: "kesme", kare: kv };
+      durum = { tur: "kesme", kare: kv, x0: p.x, yeni: kv };
+      govde.setPointerCapture(e.pointerId); b.yanSekmeAc("kamera"); b.tazele();
+      return;
+    }
     const a = anahtarVurus(anahtarKonumlari(l, o.gorunum), p.x, p.y);
     if (a) {
       if (e.shiftKey) {
@@ -165,6 +185,13 @@ export function zamanCizelgesiKur(b: SekansBaglami): ZamanCizelgesi {
     const o = b.oturum();
     if (!o || !durum) return;
     if (durum.tur === "kaydir") { o.gorunum = { x: durum.gx + (e.clientX - durum.x0), olcek: o.gorunum.olcek }; b.tazele(); return; }
+    if (durum.tur === "kesme") {
+      const p = yerel(e), d = durum;
+      d.yeni = xTamKare(o.gorunum, p.x - d.x0 + kareX(o.gorunum, d.kare), o.sekans().sure_kare);
+      const kutuEl = govde.querySelector<HTMLElement>(`.sk-kesme[data-kare="${d.kare}"]`);
+      if (kutuEl) kutuEl.style.left = `${kareX(o.gorunum, d.yeni)}px`;
+      return;
+    }
     if (durum.tur === "surukle") { const r = o.surukle(e.clientX - durum.x0, e.clientY - durum.y0, e.shiftKey); if (r && !r.ok && r.mesaj) b.bildir(r.mesaj, "uyari"); ciz(); return; }
     if (durum.tur === "kutu") {
       const p = yerel(e), k = koselerdenKutu({ x: durum.x0, y: durum.y0 }, p);
@@ -183,6 +210,13 @@ export function zamanCizelgesiKur(b: SekansBaglami): ZamanCizelgesi {
     durum = null;
     kutu.style.display = "none";
     if (d?.tur === "surukle") b.sonuc(b.oturum()?.surukleBitir() ?? null);
+    else if (d?.tur === "kesme") {
+      const o = b.oturum();
+      if (o && d.yeni !== d.kare) {
+        const r = kesmeAyarla(o.sekans(), d.kare, { kare: d.yeni });
+        b.sonuc(r.ok ? o.uygula({ ok: true, deger: r.deger.sekans }, `kesme taşındı: kare ${d.kare} → ${r.deger.kare}`, { tur: "kesme", kare: r.deger.kare }) : { ok: false, mesaj: r.hata });
+      } else b.tazele();
+    }
     else if (d) b.tazele();
   };
   govde.addEventListener("pointerup", birak);
@@ -194,6 +228,12 @@ export function zamanCizelgesiKur(b: SekansBaglami): ZamanCizelgesi {
     if (!o) return;
     const p = yerel(e), s = o.sekans(), l = satirlar(s);
     const r = satirBul(l, p.y);
+    if (r?.tur === "kamera") {
+      const kare = xTamKare(o.gorunum, p.x, s.sure_kare), kam = b.seciliKamera() ?? s.kameralar?.[0]?.id ?? null;
+      if (!kam) { b.bildir("önce Kamera sekmesinden bir kamera ekle (＋ Şu anki görünümden)", "uyari"); b.yanSekmeAc("kamera"); return; }
+      b.sonuc(o.uygula(kesmeEkle(s, kare, kam), `kamera kesmesi eklendi: kare ${kare}`, { tur: "kesme", kare }));
+      return;
+    }
     if (r?.tur !== "iz" || bolumVurus(bolumKutulari(l, o.gorunum), p.x, p.y)) return;
     const kare = xTamKare(o.gorunum, p.x, s.sure_kare);
     if (r.iz.tur === "uzuv") { b.sonuc(o.uygula(anahtarEkle(s, r.iz.id, kare), `anahtar eklendi: ${r.iz.id} · kare ${kare}`, { tur: "anahtar", refs: [{ iz: r.iz.id, kare }] })); return; }

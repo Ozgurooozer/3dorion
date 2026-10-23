@@ -7,8 +7,9 @@
 "use strict";
 import { KANALLAR, KLIP_SINIRLARI, UZUVLAR, YUMUSATMALAR, otelemeMi, type Kanal, type Uzuv, type Yumusatma } from "../../../protocol/animasyon.ts";
 import type { Sonuc } from "../../../protocol/dogrula.ts";
-import { BEN, SEKANS_SINIRLARI, type Sekans } from "../../../protocol/sekans.ts";
+import { BEN, KAMERA_GECISLERI, SEKANS_SINIRLARI, type KameraGecisi, type Sekans } from "../../../protocol/sekans.ts";
 import { sayiMetniCoz, type SayiKurali } from "../../duzenleyici/sayiAlani.ts";
+import { kesmeAyarla } from "./kameraIslemleri.ts";
 import { aciklamaAyarla, anahtarAyarla, aralikAyarla, baglamaAjani, bolumDuzenle, izBayrak, izUzuvKanal, sureAyarla } from "./sekansIslemleri.ts";
 import type { Secim } from "./sekansOturumu.ts";
 import { sureYazisi } from "./zamanEkseni.ts";
@@ -33,6 +34,19 @@ const kareAlani = (ad: string, etiket: string, k: number, en: number, cok: numbe
   ({ ad, etiket, tur: "sayi", deger: String(k), kural: { tamsayi: true, en, cok }, ipucu: `kare (30 = 1 sn) · şimdi ${sureYazisi(k)}${ek}` });
 
 export function ayrintiAlanlari(s: Sekans, secim: Secim, o: AyrintiOrtami): Ayrinti {
+  if (secim.tur === "kesme") {
+    const k = (s.kesmeler ?? []).find((x) => x.kare === secim.kare);
+    if (k) return {
+      baslik: `Kamera kesmesi · kare ${k.kare}`,
+      alanlar: [
+        kareAlani("kare", "kare", k.kare, 0, s.sure_kare),
+        { ad: "kamera", etiket: "kamera", tur: "secim", deger: k.kamera, secenekler: (s.kameralar ?? []).map((x) => x.id), ipucu: "bu kareden sonraki kesmeye dek bu kamera" },
+        { ad: "gecis", etiket: "geçiş", tur: "secim", deger: k.gecis, secenekler: KAMERA_GECISLERI, ipucu: "kesme: ani · yumusak: önceki kameradan harmanlar" },
+        kareAlani("gecis_kare", "geçiş süresi", k.gecis_kare, 0, SEKANS_SINIRLARI.harman_kare, " · yalnız 'yumusak'"),
+      ],
+      bilgi: ["Kamera sekmesinde kameraları düzenle; kamera satırına çift tık yeni kesme ekler."],
+    };
+  }
   if (secim.tur === "anahtar" && secim.refs.length === 1) {
     const r = secim.refs[0]!;
     const iz = s.izler.find((x) => x.id === r.iz);
@@ -125,6 +139,14 @@ export function ayrintiUygula(s: Sekans, secim: Secim, a: AyrintiAlani, ham: str
   }
   if (a.tur === "secim" && a.secenekler && !a.secenekler.includes(String(ham))) return { ok: false, hata: `${a.etiket}: '${String(ham)}' geçersiz (seçenekler: ${a.secenekler.join(", ")})` };
   const sar = (r: Sonuc<Sekans>, yeni?: Secim): Sonuc<{ sekans: Sekans; secim?: Secim }> => (r.ok ? { ok: true, deger: { sekans: r.deger, ...(yeni ? { secim: yeni } : {}) } } : r);
+  if (secim.tur === "kesme") {
+    const alan = a.ad === "kare" ? { kare: sayi! } : a.ad === "kamera" ? { kamera: String(ham) } : a.ad === "gecis" ? { gecis: ham as KameraGecisi } : { gecis_kare: sayi! };
+    // 'yumusak'a geçerken süre 0 kalırsa biçim reddeder: ilk kez yumuşak yapılıyorsa makul bir süre (15 kare) verilir.
+    const mevcut = (s.kesmeler ?? []).find((x) => x.kare === secim.kare);
+    const ek = a.ad === "gecis" && ham === "yumusak" && mevcut && mevcut.gecis_kare < 1 ? { gecis_kare: 15 } : {};
+    const r = kesmeAyarla(s, secim.kare, { ...alan, ...ek });
+    return r.ok ? { ok: true, deger: { sekans: r.deger.sekans, secim: { tur: "kesme", kare: r.deger.kare } } } : r;
+  }
   if (secim.tur === "anahtar" && secim.refs.length === 1) {
     const alan = a.ad === "kare" ? { kare: sayi! } : a.ad === "deger" ? { deger: sayi! } : { yumusatma: ham as Yumusatma };
     const r = anahtarAyarla(s, secim.refs[0]!, alan);

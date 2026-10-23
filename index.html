@@ -5,14 +5,15 @@
 <title>Orion — Sanal Alan</title>
 <style>
   html, body { margin: 0; height: 100%; background: #07070d; overflow: hidden; }
-  #tuval { width: 100%; height: 100%; display: block; outline: none; touch-action: none; }
+  /* Editör (Sekans) ve Yapı çubuğu açıkken tuval küçülür: sahne dokun arkasında KALMAZ (spec 38 §6). */
+  #tuval { width: 100%; height: calc(100% - max(var(--alt-cubuk, 0px), var(--editor-alt, 0px))); display: block; outline: none; touch-action: none; }
   #hud {
     position: fixed; left: 10px; top: 8px; z-index: 10; pointer-events: none;
     font: 11px/1.5 "Cascadia Code", Consolas, monospace; color: #7d8bb5;
     text-shadow: 0 1px 2px #000; white-space: pre;
   }
   #altyazi {
-    position: fixed; left: 50%; bottom: calc(7% + var(--alt-cubuk, 0px)); transform: translateX(-50%); z-index: 31;
+    position: fixed; left: 50%; bottom: calc(7% + max(var(--alt-cubuk, 0px), var(--editor-alt, 0px))); transform: translateX(-50%); z-index: 31;
     max-width: 62ch; padding: 10px 16px; border-radius: 6px;
     background: rgba(7,7,13,.72); color: #e6e9f5;
     font: 15px/1.45 "Segoe UI", system-ui, sans-serif; text-align: center; white-space: pre-line;   /* pre-line: yığılan ajan satırları (Orion + Flash) alt alta */
@@ -79,7 +80,7 @@
     border-radius: 4px; padding: 1px 6px; font-family: inherit;
   }
   #sohbet {
-    position: fixed; left: 50%; bottom: calc(18px + var(--alt-cubuk, 0px)); transform: translateX(-50%);
+    position: fixed; left: 50%; bottom: calc(18px + max(var(--alt-cubuk, 0px), var(--editor-alt, 0px))); transform: translateX(-50%);
     z-index: 11; width: min(620px, 86vw); display: none;
   }
   #sohbet[data-acik="1"] { display: block; }

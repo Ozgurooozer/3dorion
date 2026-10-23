@@ -569,6 +569,8 @@ motor.runRenderLoop(() => {
 });
 
 addEventListener("resize", () => motor.resize());
+// Tuval, açık editörün/Yapı çubuğunun yüksekliği kadar küçülür (index.html `--editor-alt`, `--alt-cubuk`): sahne dokun ÜSTÜNDE tam görünür. Boyut değişince motor da değişsin.
+new ResizeObserver(() => motor.resize()).observe(tuval);
 
 // Dünya yayıcısı (world/player/etkilesim.ts) → yol: world/ yolu görmez, çeviri kökte. Abone olan uygulama modülleri yalnız yolu bilir.
 EtkilesimOlaylari.dinle("basladi", (o) => yol.yayinla("etkilesim.basladi", o));
@@ -899,13 +901,15 @@ npcDeposu.baslat().then(() => console.log(`[NPC] ${npcDeposu.liste().length} NPC
 // Editör ekranın alt yarısında (3B görünüm üstte kalır). Oynatma YALNIZ editörün ▶'si (gerçek tık); ajanlara grafiğin AYNI kapısından (`grafKapisi`).
 // Orion'un araç yüzeyinde sekans yok. Graf editörüyle aynı anda açılmaz (biri açılınca öteki gizlenir).
 const sekansSistemi = sekansKur({
+  // Control Rig + kamera (spec 38): sahne, tuval, Orion'un bedeni ve canlı kamera. Rig yalnız Orion'u düzenler (Flash'ın bedeni sonraki iş).
+  sahne, tuval, avatar: (ajan) => (ajan === "orion" ? yol.al("orion") : null), kameraRig: rig,
   klipler, katman: bedenKlipleri, kapi: grafKapisi, ajanlar: () => ajanlar.hepsi().map((x) => x.id),
   oku: async (yol) => { const y = await fetch(varlik(yol)); if (!y.ok) throw new Error(`HTTP ${y.status}`); return y.text(); },
   altyazi: altyaziGoster, izin: () => imlec.acik || imlec.ac(),
   gorunurlukDegisti: (acik) => { orionAyarPaneli.gorunur(!acik && imlec.acik); if (acik) { grafEditoru.gizle(); nesnePaneli.kapat(); baglamMenusu.kapat(); duzenleme.bitir(); zeminKalemi.sec(null); } },
   gunluk: (seviye, metin) => gunluk.ekle(seviye, "sekans", metin),
   // Senaryo yüzü (oynatma) yalnız sekans senaryolarında: sekansdene (spec 36), kimododene (spec 37).
-  senaryoKosusu: istenenSenaryolar(location.search).some((s) => s === "sekansdene" || s === "kimododene"),
+  senaryoKosusu: istenenSenaryolar(location.search).some((s) => s === "sekansdene" || s === "kimododene" || s === "rigdene" || s === "kameradene"),
   sekmeAc: (id) => altCubuk.ac(id),
 });
 altCubuk.ekle(sekansSistemi.sekme);

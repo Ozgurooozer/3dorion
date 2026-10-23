@@ -7,10 +7,15 @@
 // `senaryoKosusu` değilse oynatmayı NEDENLE reddeder (bekçi: sekansBekci.test.ts — buradaki `sekansiOynat(` çağrısından önce bu denetim olmalı).
 // Senaryo bağlamı yalnız dinamik yüklenen senaryo modüllerine verilir (window'da değil).
 "use strict";
+import type { Scene } from "@babylonjs/core/scene";
+import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { Sekme } from "../../../world/arayuz/altCubuk.ts";
 import { editorPenceresiKur, type EditorPenceresi } from "../../../world/arayuz/editorPenceresi.ts";
 import type { Sekans } from "../../../protocol/sekans.ts";
-import type { KlipBulucu } from "../../../world/avatar/index.ts";
+import type { Avatar, KlipBulucu } from "../../../world/avatar/index.ts";
+import { rigKipiKur, type RigKipi } from "../../rig/rigKipi.ts";
+import { kameraOynaticiKur, type KameraOynatici } from "../../sekans/kameraOynatici.ts";
+import { fovDerece, fovRadyan } from "../../sekans/editor/kameraYardimcilari.ts";
 import type { GeciciKlipKatmani } from "../../sekans/geciciKlipler.ts";
 import { sekansOynaticiKur, type OynatmaDurumu, type OynatmaIstegi, type SekansKapisi, type SekansOynatici } from "../../sekans/oynatici.ts";
 import { sekansDeposuKur, sekansKaynaginiSec, type SekansDeposu } from "../../sekans/sekansDeposu.ts";
@@ -18,7 +23,21 @@ import { ornekKutuphanesiKur, ornekleriYukle } from "../../sekans/ornekler.ts";
 import { sekansEditoruKur, type SekansEditoru } from "./sekansEditoru.ts";
 import { bosAd, sekansSekmesi } from "./sekansSekmesi.ts";
 
+/** Sekans kamerasının sürdüğü canlı kamera (`KameraRig`in alt kümesi; başsız testte sahte). */
+export interface SekansKameraRig {
+  sekansKamerasi(konum: Vector3, bakis: Vector3, fov: number): void;
+  sekansKamerasiBirak(): void;
+  readonly sekansKamerasiAktif: boolean;
+  gorunum(): { konum: Vector3; hedef: Vector3; fov: number };
+}
+
 export interface SekansKurulumAyari {
+  /** Control Rig (spec 38) ve kamera (spec 38 §7) için sahne, tuval, bedenler ve canlı kamera. */
+  sahne: Scene;
+  tuval: HTMLElement;
+  /** Ajan kimliği (orion, flash) → beden; bedensiz null. Rig yalnız Orion'un bedenini düzenler. */
+  avatar(ajan: string): Avatar | null;
+  kameraRig: SekansKameraRig;
   /** Klip KÜTÜPHANESİ (bölüm adları/süreleri; geçici klipler değil). */
   klipler: KlipBulucu;
   /** Bedenlerin klip bulucusu (kütüphane + geçici sekans klipleri). */
@@ -49,6 +68,9 @@ export interface SekansSenaryoYuzu {
   /** Örneğin kopyasını (senaryo koşusunda geçici klasöre) alıp editörde açar; açılan sekansın adı ya da null. */
   ornegiAc(ad: string): Promise<string | null>;
   readonly editor: SekansEditoru;
+  /** Control Rig kipi (rigdene) ve kamera önizlemesi (kameradene). */
+  readonly rig: RigKipi;
+  readonly kamera: KameraOynatici;
 }
 
 export interface SekansSistemi {
@@ -58,6 +80,8 @@ export interface SekansSistemi {
   oynatici: SekansOynatici;
   depo: SekansDeposu;
   senaryo: SekansSenaryoYuzu;
+  rig: RigKipi;
+  kamera: KameraOynatici;
 }
 
 export function sekansKur(a: SekansKurulumAyari): SekansSistemi {
@@ -75,7 +99,34 @@ export function sekansKur(a: SekansKurulumAyari): SekansSistemi {
   });
   depo.dinle((o) => { if (o.tur === "icerik") void pencere.icerikDegisti(o.ad); pencere.tazele(); });
   const metinAc = (ad: string) => { pencere.ac(ad).catch((e: unknown) => a.altyazi(`${ad} açılamadı: ${e instanceof Error ? e.message : String(e)}`, 4000)); };
-  const editor = sekansEditoruKur({ depo, oynatici, klipler: a.klipler, ajanlar: a.ajanlar, metinAc, altyazi: a.altyazi, izin: a.izin, gorunurlukDegisti: a.gorunurlukDegisti });
+  // Kamera: ▶ sürerken oynatma karesinin, durunca (isteğe bağlı) playhead'in kamerasını canlı kameraya verir (spec 38 §7).
+  const kamera = kameraOynaticiKur({
+    oynatici,
+    surucu: { uygula: (p) => { if (p) a.kameraRig.sekansKamerasi(new Vector3(...p.konum), new Vector3(...p.hedef), fovRadyan(p.fov)); else a.kameraRig.sekansKamerasiBirak(); } },
+    kareGozcusu: (f) => { const g = a.sahne.onBeforeRenderObservable.add(f); return () => { a.sahne.onBeforeRenderObservable.remove(g); }; },
+  });
+  // Control Rig: sahnede kontrol şekilleri, halka sürükleme, auto-key (spec 38). `editorRef` editör kurulunca dolar (rig önce kurulur: editör onu ister).
+  let editorRef: SekansEditoru | null = null;
+  const rig = rigKipiKur({
+    sahne: a.sahne, tuval: a.tuval, avatar: a.avatar, klipler: a.klipler,
+    oynuyor: (ad) => oynatici.durum().calisiyor?.sekans === ad,
+    degisti: () => editorRef?.tazele(),
+    altyazi: a.altyazi,
+  });
+  const editor = sekansEditoruKur({
+    depo, oynatici, klipler: a.klipler, ajanlar: a.ajanlar, metinAc, altyazi: a.altyazi, izin: a.izin, gorunurlukDegisti: a.gorunurlukDegisti, rig,
+    kamera: {
+      oynatici: kamera,
+      // Önizleme sürerken canlı kamera sekansın kamerasıdır: oyuncunun görünümü yok (null).
+      gorunum: () => {
+        if (a.kameraRig.sekansKamerasiAktif) return null;
+        const g = a.kameraRig.gorunum();
+        return { konum: [g.konum.x, g.konum.y, g.konum.z], hedef: [g.hedef.x, g.hedef.y, g.hedef.z], fov: Math.round(fovDerece(g.fov)) };
+      },
+      orion: () => { const o = a.avatar("orion"); return o ? { konum: o.cizimKonumu(), yaw: o.cizimYaw() } : null; },
+    },
+  });
+  editorRef = editor;
   const sekme = sekansSekmesi({ depo, ornekler, oynatici, editor, ajanlar: a.ajanlar, metinAc, hata: () => depoHata, bildir: a.altyazi });
 
   const yuklendi = Promise.all([
@@ -105,7 +156,7 @@ export function sekansKur(a: SekansKurulumAyari): SekansSistemi {
       await depo.yeni({ ...structuredClone(s), ad: yeni });
       return editor.ac(yeni) ? yeni : null;
     },
-    editor,
+    editor, rig, kamera,
   };
-  return { sekme, pencere, editor, oynatici, depo, senaryo };
+  return { sekme, pencere, editor, oynatici, depo, senaryo, rig, kamera };
 }

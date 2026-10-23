@@ -4,7 +4,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { sekansDogrula, type Sekans } from "../../../protocol/sekans.ts";
-import { DUZEN, anahtarKonumlari, anahtarVurus, bolumKutulari, bolumVurus, izSatiri, kutudakiAnahtarlar, satirBul, satirlar } from "./izDuzeni.ts";
+import { DUZEN, anahtarKonumlari, anahtarVurus, bolumKutulari, bolumVurus, izSatiri, kesmeKutulari, kesmeVurus, kutudakiAnahtarlar, satirBul, satirlar } from "./izDuzeni.ts";
 import {
   ZAMAN_OLCEGI, araligaSigdir, cetvelAdimi, cetvelIsaretleri, eksenKisiti, kareX, kareYazisi, kareyiYasla, sureYazisi, xKare, xTamKare, zamanYakinlastir,
 } from "./zamanEkseni.ts";
@@ -70,10 +70,11 @@ test("Shift eksen kısıtı: baskın eksen kalır, öteki sıfırlanır; Shift's
   assert.deepEqual([eksenKisiti(12, 5, true), eksenKisiti(3, -9, true), eksenKisiti(3, -9, false)], [{ dx: 12, dy: 0 }, { dx: 0, dy: -9 }, { dx: 3, dy: -9 }]);
 });
 
-test("satırlar: bağlama başlığı + o bağlamanın izleri (dosya sırasıyla), y aralıksız artar", () => {
+test("satırlar: en üstte KAMERA satırı, sonra bağlama başlığı + o bağlamanın izleri (dosya sırasıyla), y aralıksız artar", () => {
   const l = satirlar(sekans());
-  assert.deepEqual(l.map((s) => [s.tur === "iz" ? s.iz.id : `#${s.baglama.id}`, s.y]),
-    [["#b1", 0], ["bas", DUZEN.baslik], ["kol", DUZEN.baslik + DUZEN.satir], ["#b2", DUZEN.baslik + 2 * DUZEN.satir], ["k", 2 * DUZEN.baslik + 2 * DUZEN.satir]]);
+  const k = DUZEN.satir;   // kamera satırı yüksekliği
+  assert.deepEqual(l.map((s) => [s.tur === "kamera" ? "#kamera" : s.tur === "iz" ? s.iz.id : `#${s.baglama.id}`, s.y]),
+    [["#kamera", 0], ["#b1", k], ["bas", k + DUZEN.baslik], ["kol", k + DUZEN.baslik + DUZEN.satir], ["#b2", k + DUZEN.baslik + 2 * DUZEN.satir], ["k", k + 2 * DUZEN.baslik + 2 * DUZEN.satir]]);
 });
 
 test("HİZALAMA: bir izin elması ve bölümü, sol sütundaki AYNI satırın ortasında", () => {
@@ -85,7 +86,7 @@ test("HİZALAMA: bir izin elması ve bölümü, sol sütundaki AYNI satırın or
 
 test("satırBul: y'deki satır; satırların altında null", () => {
   const l = satirlar(sekans());
-  assert.deepEqual([satirBul(l, DUZEN.baslik + 3)?.tur === "iz", satirBul(l, 10_000)], [true, null]);
+  assert.deepEqual([satirBul(l, DUZEN.satir + DUZEN.baslik + 3)?.tur === "iz", satirBul(l, 3)?.tur === "kamera", satirBul(l, 10_000)], [true, true, null]);
 });
 
 test("anahtar vuruşu: 7 px içindeki EN YAKIN elmas; uzakta null", () => {
@@ -109,4 +110,22 @@ test("dar bölümde iç bölge kalır (kenar en çok üçte bir): ortasından tu
   const l = satirlar(sekans()), g = { x: 0, olcek: 0.3 };   // 40 kare → 12 px
   const k = bolumKutulari(l, g)[0]!;
   assert.equal(bolumVurus([k], k.x + k.g / 2, k.y + 2)?.bolge, "ic");
+});
+
+test("kesme kutuları: her kesme kendi karesinden sonrakine (sonuncu sekansın sonuna) uzanır, kamera satırında", () => {
+  const s0 = sekans();
+  const s = { ...s0, kameralar: [{ id: "a", ad: "A", konum: [0, 1, 3], hedef: [0, 1, 0], fov: 50 }], kesmeler: [{ kare: 10, kamera: "a", gecis: "kesme", gecis_kare: 0 }, { kare: 40, kamera: "a", gecis: "yumusak", gecis_kare: 10 }] } as typeof s0;
+  const l = satirlar(s), g = { x: 0, olcek: 2 };
+  const k = kesmeKutulari(s, l, g);
+  assert.deepEqual(k.map((b) => [b.kare, b.x, b.g]), [[10, 20, 60], [40, 80, (s.sure_kare - 40) * 2]]);
+  assert.ok(k.every((b) => b.y >= 0 && b.y + b.h <= DUZEN.satir), "kamera satırının içinde");
+  assert.equal(kesmeVurus(k, 30, 10), 10);
+  assert.equal(kesmeVurus(k, 90, 10), 40);
+  assert.equal(kesmeVurus(k, 5, 10), null, "ilk kesmeden önce boş");
+  assert.equal(kesmeVurus(k, 30, 100), null, "kamera satırı dışı");
+});
+
+test("kesme kutuları: kesmesiz sekansta boş", () => {
+  const s = sekans();
+  assert.deepEqual(kesmeKutulari(s, satirlar(s), { x: 0, olcek: 2 }), []);
 });

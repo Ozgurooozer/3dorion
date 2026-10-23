@@ -11,7 +11,7 @@ import { DUZEN as D } from "../../sekans/editor/izDuzeni.ts";
 export const SOL_GENISLIK = 270;
 
 export const SEKANS_CSS = `
-.sk-kok { position: fixed; left: 0; right: 0; bottom: 0; height: 46vh; min-height: 330px; z-index: 30; display: none; flex-direction: column; background: rgba(8,11,19,0.985);
+.sk-kok { position: fixed; left: 0; right: 0; bottom: 0; height: 46vh; min-height: 220px; z-index: 30; display: none; flex-direction: column; background: rgba(8,11,19,0.985);
   color: ${R.yazi}; font: ${YAPI_YAZI.govde}; user-select: none; outline: none; border-top: 2px solid ${R.vurgu}; }
 .sk-kok[data-acik="1"] { display: flex; }
 .sk-dugme { background: ${R.dugme}; color: ${R.yazi}; border: 1px solid ${R.cizgi}; border-radius: 6px; padding: 2px 9px; font: inherit; cursor: pointer; white-space: nowrap; }
@@ -74,6 +74,10 @@ export const SEKANS_CSS = `
 .sk-playhead::before { content: ""; position: absolute; top: 0; left: -7px; border: 6px solid transparent; border-top: 8px solid #ffd27a; }
 .sk-secim-kutusu { position: absolute; border: 1px dashed ${R.vurgu}; background: rgba(88,193,255,0.08); pointer-events: none; display: none; z-index: 5; }
 .sk-bos { padding: 18px; color: ${R.yaziSoluk}; }
+.sk-sag-ic { padding: 8px 10px; font-size: 12px; color: ${R.yaziOrta}; }
+.sk-kesme { position: absolute; box-sizing: border-box; background: #17504a; border: 1px solid #2f9a8d; border-radius: 4px; color: ${R.yaziParlak}; font-size: 11px; padding: 0 8px; overflow: hidden;
+  white-space: nowrap; text-overflow: ellipsis; display: flex; align-items: center; cursor: grab; }
+.sk-kesme[data-secili="1"] { border-color: #ffb454; box-shadow: 0 0 0 1px #ffb454; }
 .sk-sag { width: 290px; flex: none; overflow: auto; padding: 8px 10px; border-left: 1px solid ${R.cizgi}; font-size: 12px; color: ${R.yaziOrta}; }
 .sk-baslik2 { color: ${R.yaziSoluk}; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; margin: 8px 0 4px; } .sk-baslik2:first-child { margin-top: 0; }
 .sk-alanlar { display: grid; grid-template-columns: auto 1fr; gap: 3px 8px; align-items: center; }

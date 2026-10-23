@@ -88,6 +88,11 @@ export interface AvatarIskeleti {
    * yok sayılır — sayımı yürütücü yapar (`atlananIzler`), burası değil.
    */
   klipUygula?(degerler: readonly UzuvDegeri[]): void;
+  /**
+   * Control Rig (spec 38): uzvun eklem noktasının DÜNYA konumu (bu karedeki; ebeveyn zinciri tazelenerek). Uzvu olmayan gövdede null. Kontrol şekilleri
+   * buraya konur; Babylon'a bağlı olmayan Vec3 döner.
+   */
+  uzuvKonumu?(u: Uzuv): Vec3 | null;
 }
 
 /**

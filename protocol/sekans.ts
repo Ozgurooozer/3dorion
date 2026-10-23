@@ -16,6 +16,9 @@
 //   • KLİP BÖLÜMÜ (section): `assets/animasyon/<klip>.json` klibinin sekanstaki bir oynanışı: başlangıç karesi, uzunluk, klibin içindeki başlangıç ofseti
 //     (kırpılan baş). Bölüm klipten uzunsa döngüsüz klip SON değerinde durur (klibin kendi kuralı); bir izin bölümleri ÜST ÜSTE BİNMEZ (iki klip aynı
 //     uzvu aynı anda yazmak isterse ikinci bir iz açılır: değerleri toplanır — uygulama/sekans/degerlendir.ts).
+//   • KAMERA (spec 38 §7): sekansın İSİMLİ kameraları (`kameralar`: konum, hedef, görüş alanı) ve KAMERA KESMELERİ (`kesmeler`: şu karede şu kameraya geç,
+//     "kesme" ani ya da "yumusak" N karede harmanlı). İz değil, üst düzey alan: kamera bir ajana bağlı değil, sahnenin kendisidir (Unreal'daki Camera Cut
+//     izi gibi tek). Alanlar İSTEĞE BAĞLI (yoksa kamera yok; eski dosyalar aynen geçerli, sürüm değişmez). İlk kesmeden ÖNCE oyunun kendi kamerası sürer.
 //   • `gizli` iz değerlendirilmez (Unreal'daki "mute"), `kilitli` iz editörde değiştirilmez. İkisi de dosyada tutulur (Ozyn'in kararı kalıcıdır).
 // Eksenler, birimler ve öteleme kuralı klibinkiyle AYNI (gövde uzayı; öteleme yalnız `kok`).
 "use strict";
@@ -33,7 +36,11 @@ export const SEKANS_FPS = 30;
  * zorunda kalıyordu — ölçüldü), iz başına 256 anahtar (kare başına bir anahtarla 8.5 sn — elle yazılan için bol), iz başına 32 bölüm, klip içi ofset en çok
  * 300 kare (klip tavanı 10 sn). Ölçülmedi; editörün çizim yükü bu sayılarla sınırlı kalsın diye.
  */
-export const SEKANS_SINIRLARI = { sure_kare: 1800, baglama: 8, iz: 64, anahtar: 256, bolum: 32, ofset_kare: KLIP_SINIRLARI.sure * SEKANS_FPS, ad: 48, id: 32, aciklama: 300 } as const;
+export const SEKANS_SINIRLARI = {
+  sure_kare: 1800, baglama: 8, iz: 64, anahtar: 256, bolum: 32, ofset_kare: KLIP_SINIRLARI.sure * SEKANS_FPS, ad: 48, id: 32, aciklama: 300,
+  /** Kamera: sekans başına 8 isimli kamera, 64 kesme, ad en çok 32, koordinat ±1000 m, görüş alanı 10–120°, harman en çok 90 kare (3 sn). */
+  kamera: 8, kesme: 64, kamera_ad: 32, koordinat: 1000, fov_en_az: 10, fov_en_cok: 120, harman_kare: 90,
+} as const;
 
 export const IZ_TURLERI = ["uzuv", "klip"] as const;
 export type IzTuru = (typeof IZ_TURLERI)[number];
@@ -83,6 +90,16 @@ export interface SekansKlipIzi extends IzOrtak {
 
 export type SekansIzi = UzuvIzi | SekansKlipIzi;
 
+export type Nokta3 = [number, number, number];
+export const KAMERA_GECISLERI = ["kesme", "yumusak"] as const;
+export type KameraGecisi = (typeof KAMERA_GECISLERI)[number];
+
+/** İsimli kamera: dünya konumu, baktığı nokta (metre) ve dikey görüş alanı (derece). */
+export interface SekansKamerasi { id: string; ad: string; konum: Nokta3; hedef: Nokta3; fov: number }
+
+/** "Bu karede şu kameraya geç": `kesme` ani; `yumusak` önceki kameradan `gecis_kare` karede harmanlar (önceki kamera yoksa ani). */
+export interface KameraKesmesi { kare: number; kamera: string; gecis: KameraGecisi; gecis_kare: number }
+
 export interface Baglama {
   id: string;
   /** Ajan defteri kimliği ("orion", "flash") ya da `@ben`. */
@@ -103,6 +120,10 @@ export interface Sekans {
   aralik: OynatmaAraligi;
   baglamalar: Baglama[];
   izler: SekansIzi[];
+  /** İsimli kameralar (boşsa alan yazılmaz). */
+  kameralar?: SekansKamerasi[];
+  /** Kamera kesmeleri, kareye göre KESİN artan (boşsa alan yazılmaz). */
+  kesmeler?: KameraKesmesi[];
 }
 
 /** Sekans adı kuralı grafik/NPC adınınkiyle AYNI (dosya adı olarak güvenli: harf, rakam, _ ve -; en çok 48). Kopya kural yok: aynı fonksiyon. */
@@ -166,6 +187,53 @@ function bolumlerDogrula(v: unknown, alan: string, sure: number): Sonuc<KlipBolu
   for (let i = 1; i < l.length; i++) {
     const o = l[i - 1]!, s = l[i]!;
     if (s.baslangic_kare < o.baslangic_kare + o.uzunluk_kare) return hata(`${alan}: '${o.klip}' (${o.baslangic_kare}–${o.baslangic_kare + o.uzunluk_kare}) ile '${s.klip}' (${s.baslangic_kare}…) üst üste biniyor (bir izde bölümler ayrı; aynı anda iki klip için ikinci bir klip izi aç)`);
+  }
+  return { ok: true, deger: l };
+}
+
+const SAYI3 = (v: unknown): v is Nokta3 => Array.isArray(v) && v.length === 3 && v.every((x) => typeof x === "number" && Number.isFinite(x));
+
+function kameralarDogrula(v: unknown): Sonuc<SekansKamerasi[]> {
+  if (!Array.isArray(v)) return hata("kameralar: dizi olmalı");
+  if (v.length > SEKANS_SINIRLARI.kamera) return hata(`kameralar: en çok ${SEKANS_SINIRLARI.kamera} (gelen ${v.length})`);
+  const l: SekansKamerasi[] = [];
+  for (const [i, k] of v.entries()) {
+    const ya = `kameralar[${i}]`;
+    if (!nesneMi(k)) return hata(`${ya}: nesne olmalı`);
+    if (!kimlikGecerli(k.id)) return hata(`${ya}.id geçersiz: ${JSON.stringify(k.id)} (küçük harf, rakam, _)`);
+    if (l.some((x) => x.id === k.id)) return hata(`${ya}.id: '${k.id}' iki kez`);
+    if (typeof k.ad !== "string" || !k.ad.trim() || k.ad.length > SEKANS_SINIRLARI.kamera_ad) return hata(`${ya}.ad: 1–${SEKANS_SINIRLARI.kamera_ad} karakterlik metin olmalı`);
+    for (const alan of ["konum", "hedef"] as const) {
+      const n = k[alan];
+      if (!SAYI3(n)) return hata(`${ya}.${alan}: [x, y, z] üç sayı olmalı`);
+      if (n.some((x) => Math.abs(x) > SEKANS_SINIRLARI.koordinat)) return hata(`${ya}.${alan}: koordinat ±${SEKANS_SINIRLARI.koordinat} m dışında`);
+    }
+    const konum = k.konum as Nokta3, hedef = k.hedef as Nokta3;
+    if (Math.hypot(konum[0] - hedef[0], konum[1] - hedef[1], konum[2] - hedef[2]) < 0.01) return hata(`${ya}: konum ile hedef aynı nokta (yön belirsiz; en az 1 cm uzakta olmalı)`);
+    if (typeof k.fov !== "number" || !Number.isFinite(k.fov) || k.fov < SEKANS_SINIRLARI.fov_en_az || k.fov > SEKANS_SINIRLARI.fov_en_cok) return hata(`${ya}.fov: ${SEKANS_SINIRLARI.fov_en_az}–${SEKANS_SINIRLARI.fov_en_cok}° olmalı (gelen ${String(k.fov)})`);
+    l.push({ id: k.id, ad: k.ad.trim(), konum: [...konum], hedef: [...hedef], fov: k.fov });
+  }
+  return { ok: true, deger: l };
+}
+
+function kesmelerDogrula(v: unknown, sure: number, kameralar: readonly SekansKamerasi[]): Sonuc<KameraKesmesi[]> {
+  if (!Array.isArray(v)) return hata("kesmeler: dizi olmalı");
+  if (v.length > SEKANS_SINIRLARI.kesme) return hata(`kesmeler: en çok ${SEKANS_SINIRLARI.kesme} (gelen ${v.length})`);
+  const l: KameraKesmesi[] = [];
+  for (const [i, k] of v.entries()) {
+    const ya = `kesmeler[${i}]`;
+    if (!nesneMi(k)) return hata(`${ya}: nesne olmalı`);
+    if (!tamsayi(k.kare) || k.kare < 0 || k.kare > sure) return hata(`${ya}.kare: 0–${sure} tamsayı olmalı`);
+    const o = l[l.length - 1];
+    if (o && k.kare <= o.kare) return hata(`${ya}.kare: kesmeler karece KESİN artmalı (${o.kare} → ${k.kare})`);
+    if (typeof k.kamera !== "string" || !kameralar.some((x) => x.id === k.kamera)) return hata(`${ya}.kamera: ${JSON.stringify(k.kamera)} kameralarda yok (var: ${kameralar.map((x) => x.id).join(", ") || "yok"})`);
+    const gecis = k.gecis ?? "kesme";
+    if (!KAMERA_GECISLERI.includes(gecis as KameraGecisi)) return hata(`${ya}.gecis geçersiz: ${JSON.stringify(k.gecis)} (geçerli: ${KAMERA_GECISLERI.join(", ")})`);
+    let gk: unknown = k.gecis_kare ?? 0;
+    if (!tamsayi(gk) || gk < 0 || gk > SEKANS_SINIRLARI.harman_kare) return hata(`${ya}.gecis_kare: 0–${SEKANS_SINIRLARI.harman_kare} tamsayı olmalı`);
+    if (gecis === "yumusak" && gk < 1) return hata(`${ya}: 'yumusak' geçiş için gecis_kare en az 1 olmalı (ani geçiş için 'kesme')`);
+    if (gecis === "kesme") gk = 0;
+    l.push({ kare: k.kare, kamera: k.kamera, gecis: gecis as KameraGecisi, gecis_kare: gk as number });
   }
   return { ok: true, deger: l };
 }
@@ -236,11 +304,15 @@ export function sekansDogrula(ham: unknown): Sonuc<Sekans> {
     }
     izler.push(r.deger);
   }
+  let kameralar: SekansKamerasi[] = [], kesmeler: KameraKesmesi[] = [];
+  if (ham.kameralar !== undefined) { const r = kameralarDogrula(ham.kameralar); if (!r.ok) return r; kameralar = r.deger; }
+  if (ham.kesmeler !== undefined) { const r = kesmelerDogrula(ham.kesmeler, sure, kameralar); if (!r.ok) return r; kesmeler = r.deger; }
   return {
     ok: true,
     deger: {
       surum: SEKANS_SURUMU, ad: ham.ad, ...(typeof ham.aciklama === "string" ? { aciklama: ham.aciklama } : {}),
       fps: SEKANS_FPS, sure_kare: sure, aralik, baglamalar, izler,
+      ...(kameralar.length ? { kameralar } : {}), ...(kesmeler.length ? { kesmeler } : {}),
     },
   };
 }

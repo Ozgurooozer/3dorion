@@ -62,7 +62,7 @@ const ANAHTAR = "orion.ayarPaneli.v1";
 
 const CSS = `
 #ayarPaneli { position: fixed; left: 16px; top: 64px; z-index: 34; width: min(320px, calc(100vw - 32px));
-  max-height: calc(100vh - 64px - 80px - var(--alt-cubuk, 0px)); display: none; flex-direction: column;
+  max-height: calc(100vh - 64px - 80px - max(var(--alt-cubuk, 0px), var(--editor-alt, 0px))); display: none; flex-direction: column;
   background: ${R.zemin}; color: ${R.yazi}; border: 1px solid ${R.cizgi}; border-radius: 10px; font: ${YAPI_YAZI.govde}; user-select: none; overflow: hidden; }
 #ayarPaneli[data-gorunur="1"] { display: flex; }
 #ayarPaneli .ap-bas { display: flex; align-items: center; gap: 8px; padding: 9px 10px 8px 12px; border-bottom: 1px solid ${R.cizgi}; }

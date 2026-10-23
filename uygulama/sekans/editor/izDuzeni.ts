@@ -12,12 +12,14 @@ import { kareX, type ZamanGorunumu } from "./zamanEkseni.ts";
 export const DUZEN = { cetvel: 26, baslik: 22, satir: 28, elmas: 5, kenar: 6, vurus: 7 } as const;
 
 export type Satir =
+  /** Kamera satırı (spec 38 §7): her sekansta EN ÜSTTE, tek; kamera kesmeleri burada çizilir. */
+  | { tur: "kamera"; y: number; h: number }
   | { tur: "baglama"; baglama: Baglama; y: number; h: number }
   | { tur: "iz"; iz: SekansIzi; baglama: Baglama; y: number; h: number };
 
 export function satirlar(s: Sekans): Satir[] {
-  const l: Satir[] = [];
-  let y = 0;
+  const l: Satir[] = [{ tur: "kamera", y: 0, h: DUZEN.satir }];
+  let y = DUZEN.satir;
   for (const b of s.baglamalar) {
     l.push({ tur: "baglama", baglama: b, y, h: DUZEN.baslik }); y += DUZEN.baslik;
     for (const iz of s.izler) if (iz.baglama === b.id) { l.push({ tur: "iz", iz, baglama: b, y, h: DUZEN.satir }); y += DUZEN.satir; }
@@ -85,3 +87,21 @@ export function bolumVurus(k: readonly BolumKutusu[], x: number, y: number): { i
   }
   return null;
 }
+
+export interface KesmeKutusu { kare: number; kamera: string; x: number; g: number; y: number; h: number; gecis: "kesme" | "yumusak" }
+
+/** Kamera kesmelerinin kutuları: her kesme kendi karesinden SONRAKİ kesmeye (sonuncu sekansın sonuna) dek uzanır — Unreal'daki Camera Cut izi gibi. */
+export function kesmeKutulari(s: Sekans, l: readonly Satir[], g: ZamanGorunumu): KesmeKutusu[] {
+  const r = l.find((x) => x.tur === "kamera");
+  const kesmeler = s.kesmeler ?? [];
+  if (!r) return [];
+  return kesmeler.map((k, i) => {
+    const bit = kesmeler[i + 1]?.kare ?? s.sure_kare;
+    const x = kareX(g, k.kare);
+    return { kare: k.kare, kamera: k.kamera, x, g: kareX(g, bit) - x, y: r.y + 3, h: r.h - 6, gecis: k.gecis };
+  });
+}
+
+/** (x, y)'deki kesme kutusu (yoksa null). */
+export const kesmeVurus = (k: readonly KesmeKutusu[], x: number, y: number): number | null =>
+  k.find((b) => y >= b.y && y <= b.y + b.h && x >= b.x && x <= b.x + b.g)?.kare ?? null;

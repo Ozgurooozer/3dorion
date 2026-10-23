@@ -21,4 +21,8 @@ export interface SekansBaglami {
   oynayanKare(): number | null;
   /** Oynamayı durdur (scrub oynatmayı keser). */
   durdur(): void;
+  /** Sağ paneldeki bir sekmeyi aç (ayrinti, rig, kamera). */
+  yanSekmeAc(id: string): void;
+  /** Kamera sekmesinde seçili kameranın kimliği (kesme eklerken; yoksa null). */
+  seciliKamera(): string | null;
 }

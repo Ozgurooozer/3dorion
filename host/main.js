@@ -168,6 +168,9 @@ function pencereAc() {
   if (process.env.ORION_SEKANSDENE === "1") parcalar.push("sekansdene=1", "sessiz=1");
   // Kimodo hattı (spec 37): kimodo_* örnek sekanslarını oynatır; kareler aynı yakalayıcıyla.
   if (process.env.ORION_KIMODODENE === "1") parcalar.push("kimododene=1", "sessiz=1");
+  // Control Rig ve kamera (spec 38): rig kontrolleri, halka sürükleme, anahtar; isimli kameralar, kesmeler, önizleme. Kareler aynı yakalayıcıyla.
+  if (process.env.ORION_RIGDENE === "1") parcalar.push("rigdene=1", "sessiz=1");
+  if (process.env.ORION_KAMERADENE === "1") parcalar.push("kameradene=1", "sessiz=1");
   // Spec 25 Faz 2: görme. `ORION_GOZ` görme modelini seçer (varsayılan bridge/goz.ts'te).
   if (process.env.ORION_GOZDENE === "1") parcalar.push("gozdene=1", "sessiz=1");
   if (process.env.ORION_GOZ) parcalar.push(`goz=${encodeURIComponent(process.env.ORION_GOZ)}`);

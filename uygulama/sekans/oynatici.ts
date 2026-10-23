@@ -45,7 +45,11 @@ export interface OynatmaIstegi {
   ben?: string | null;
 }
 
-export interface SuruyorBilgisi { sekans: string; plan: OynatmaPlani; aralik: OynatmaAraligi; t0: number; ajanlar: string[] }
+export interface SuruyorBilgisi {
+  sekans: string; plan: OynatmaPlani; aralik: OynatmaAraligi; t0: number; ajanlar: string[];
+  /** Başlarken sekansın kamera verisi (ANLIK GÖRÜNTÜ: oynarken düzenleme kamerayı değiştirmez; `kameraOynatici.ts` bunu okur). */
+  kamera: Pick<Sekans, "kameralar" | "kesmeler">;
+}
 export interface OynatmaSonucu { sekans: string; durum: "bitti" | "durdu" | "hata"; neden?: string; kare: number }
 export interface OynatmaDurumu { calisiyor: SuruyorBilgisi | null; son: OynatmaSonucu | null }
 
@@ -114,7 +118,9 @@ export function sekansOynaticiKur(a: SekansOynaticiAyari): SekansOynatici {
     const no = ++sayac;
     const d = sekansiDerle(s, a.katman, istek.baslangic, istek.dongu, (b) => `${GECICI_ONEK}${no}_${b}`);
     if (d.eksikKlipler.length) return { ok: false, neden: `bilinmeyen klip: ${d.eksikKlipler.join(", ")} (yüklü: ${a.katman.adlar().join(", ") || "yok"})` };
-    if (!d.klipler.length) return { ok: false, neden: "oynatılacak hareket yok (bütün izler boş ya da gizli)" };
+    // Yalnız KAMERA kesmesi olan sekans da oynar (beden hareketsiz; kamera sahneyi gezdirir): süreyi saat bitirir, beden `bitti` beklenmez.
+    const yalnizKamera = !d.klipler.length && (s.kesmeler?.length ?? 0) > 0;
+    if (!d.klipler.length && !yalnizKamera) return { ok: false, neden: "oynatılacak hareket yok (bütün izler boş ya da gizli; kamera kesmesi de yok)" };
     for (const b of d.bos) a.gunluk?.("uyari", `${s.ad}: bağlama '${b}' hiç hareket etmiyor (niyet gönderilmedi)`);
     // 3. Geçici klipler katmana; her bağlamaya AYNI niyet yolundan klipli jest. Dinleyici GÖNDERMEDEN önce kurulur (beden senkron cevap verebilir).
     const yeni = { abonelikler: [] as (() => void)[], kapilar: [...kapilar.values()], klipAdlari: [] as string[], bekleyen: new Set<string>(), saat: undefined as ReturnType<typeof setTimeout> | undefined };
@@ -124,7 +130,7 @@ export function sekansOynaticiKur(a: SekansOynaticiAyari): SekansOynatici {
       yeni.klipAdlari.push(klip.ad);
     }
     is = yeni;
-    calisiyor = { sekans: s.ad, plan: d.plan, aralik: { ...s.aralik }, t0: simdi(), ajanlar: s.baglamalar.map((b) => kapilar.get(b.id)!.id) };
+    calisiyor = { sekans: s.ad, plan: d.plan, aralik: { ...s.aralik }, t0: simdi(), ajanlar: s.baglamalar.map((b) => kapilar.get(b.id)!.id), kamera: structuredClone({ ...(s.kameralar ? { kameralar: s.kameralar } : {}), ...(s.kesmeler ? { kesmeler: s.kesmeler } : {}) }) };
     const ad = s.ad;
     for (const { baglama, klip } of d.klipler) {
       const kp = kapilar.get(baglama)!;
@@ -147,7 +153,8 @@ export function sekansOynaticiKur(a: SekansOynaticiAyari): SekansOynatici {
       if (is !== yeni) return son?.durum === "hata" ? { ok: false, neden: son.neden ?? "başlamadı" } : { ok: true };
     }
     const pay = a.bitisPayiMs ?? BITIS_PAYI_MS;
-    if (!d.plan.dongu) yeni.saat = setTimeout(() => { if (is === yeni) bitir({ sekans: ad, durum: "hata", neden: `zaman aşımı: beden ${(d.plan.sure + pay / 1000).toFixed(1)} sn içinde 'bitti' demedi` }, true); }, d.plan.sure * 1000 + pay);
+    if (yalnizKamera) { if (!d.plan.dongu) yeni.saat = setTimeout(() => { if (is === yeni) bitir({ sekans: ad, durum: "bitti" }, false); }, d.plan.sure * 1000); }
+    else if (!d.plan.dongu) yeni.saat = setTimeout(() => { if (is === yeni) bitir({ sekans: ad, durum: "hata", neden: `zaman aşımı: beden ${(d.plan.sure + pay / 1000).toFixed(1)} sn içinde 'bitti' demedi` }, true); }, d.plan.sure * 1000 + pay);
     a.gunluk?.("bilgi", `${ad}: ▶ ${d.plan.dongu ? "döngüde" : "bir kez"} · ${d.klipler.length} bağlama · kare ${d.plan.kareler[0]} → ${s.aralik.bit}`);
     yay();
     return { ok: true };
