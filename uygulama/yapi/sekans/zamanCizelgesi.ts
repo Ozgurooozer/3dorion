@@ -3,7 +3,7 @@
 //
 // HESAP DOM'DA YAPILMAZ: nerede ne çizileceği ve farenin neye değdiği saf görünüm modelinden (`uygulama/sekans/editor/izDuzeni.ts`, `zamanEkseni.ts`;
 // testli); sürüklemenin kuralları oturumdan (`sekansOturumu.ts`: önizleme, yaslama, Shift eksen kısıtı, tek geri al adımı). Burası yalnız çizer ve olayları
-// oturuma çevirir. Çizim her değişiklikte baştan (en çok 32 iz × 256 anahtar; ölçülmedi). Canlıda GÖRÜLMEDİ (spec 36 canlı deneme listesi).
+// oturuma çevirir. Çizim her değişiklikte baştan (en çok 64 iz × 256 anahtar; ölçülmedi). Canlıda GÖRÜLMEDİ (spec 36 canlı deneme listesi).
 "use strict";
 import { koselerdenKutu, tekerlekCarpani } from "../../duzenleyici/tuvalMatematigi.ts";
 import { SEKANS_FPS } from "../../../protocol/sekans.ts";

@@ -84,9 +84,10 @@ test("BEKÇİ: assets/sekans/liste.json klasördeki dosyalarla AYNI (unutulan da
   assert.deepEqual(liste, disk);
 });
 
-test("örnekler HATASIZ yüklenir: selamlasma ve dusun_onayla", async () => {
+test("örnekler HATASIZ yüklenir: selamlasma, dusun_onayla ve 8 Kimodo çevirisi (spec 37)", async () => {
   const r = await ornekleriYukle(oku);
-  assert.deepEqual([r.ornekler.map((s) => s.ad), r.hatalar], [["selamlasma", "dusun_onayla"], []]);
+  const kimodo = ["bekle", "dusun", "el_salla", "kos", "onayla", "otur", "yuru", "zipla"].map((a) => `kimodo_${a}`);
+  assert.deepEqual([r.ornekler.map((s) => s.ad), r.hatalar], [["selamlasma", "dusun_onayla", ...kimodo], []]);
 });
 
 test("örneklerin bütün klip bölümleri KÜTÜPHANEDE var (oynatıcı eksik klipte reddederdi)", async () => {
@@ -94,10 +95,10 @@ test("örneklerin bütün klip bölümleri KÜTÜPHANEDE var (oynatıcı eksik k
   const kl = await klipleriYukle(oku);
   k.doldur(kl.klipler, kl.hatalar);
   const r = await ornekleriYukle(oku);
-  assert.deepEqual(r.ornekler.map((s) => eksikKlipler(s, k)), [[], []]);
+  assert.deepEqual(r.ornekler.flatMap((s) => eksikKlipler(s, k)), []);
 });
 
 test("örnekler Orion'a bağlı (senaryo koşusunda Flash kurulmaz: sekansdene Orion'la oynatır)", async () => {
   const r = await ornekleriYukle(oku);
-  assert.deepEqual(r.ornekler.map((s) => s.baglamalar.map((b) => b.ajan)), [["orion"], ["orion"]]);
+  assert.deepEqual(r.ornekler.filter((s) => JSON.stringify(s.baglamalar.map((b) => b.ajan)) !== '["orion"]').map((s) => s.ad), []);
 });

@@ -29,10 +29,11 @@ export const SEKANS_FPS = 30;
 
 /**
  * Tavanlar: bozuk bir dosya ya da LLM çıktısı editörü/bedeni boğmasın. Süre 60 sn (1800 kare): bir sahne; daha uzunu sekans zinciridir. 8 bağlama (odada
- * bugün 2 ajan), 32 iz, iz başına 256 anahtar (kare başına bir anahtarla 8.5 sn — elle yazılan için bol), iz başına 32 bölüm, klip içi ofset en çok
+ * bugün 2 ajan), 64 iz (spec 37: tam beden hareketi 17 uzuv × 3 dönme + kök ötelemesi = 52–54 iz; 32'de Kimodo çevirisi 10–15°'lik izleri atmak
+ * zorunda kalıyordu — ölçüldü), iz başına 256 anahtar (kare başına bir anahtarla 8.5 sn — elle yazılan için bol), iz başına 32 bölüm, klip içi ofset en çok
  * 300 kare (klip tavanı 10 sn). Ölçülmedi; editörün çizim yükü bu sayılarla sınırlı kalsın diye.
  */
-export const SEKANS_SINIRLARI = { sure_kare: 1800, baglama: 8, iz: 32, anahtar: 256, bolum: 32, ofset_kare: KLIP_SINIRLARI.sure * SEKANS_FPS, ad: 48, id: 32, aciklama: 300 } as const;
+export const SEKANS_SINIRLARI = { sure_kare: 1800, baglama: 8, iz: 64, anahtar: 256, bolum: 32, ofset_kare: KLIP_SINIRLARI.sure * SEKANS_FPS, ad: 48, id: 32, aciklama: 300 } as const;
 
 export const IZ_TURLERI = ["uzuv", "klip"] as const;
 export type IzTuru = (typeof IZ_TURLERI)[number];

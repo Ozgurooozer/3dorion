@@ -166,6 +166,8 @@ function pencereAc() {
   if (process.env.ORION_KLIPDENE === "1") parcalar.push("klipdene=1", "sessiz=1");
   // Sekans (spec 36): örnek sekansları gerçek oynatıcıyla oynatır, editörü açar; kareler `[KLIPSS] <ad>` satırıyla ORION_SS_DIR'e (yukarıdaki yakalayıcı).
   if (process.env.ORION_SEKANSDENE === "1") parcalar.push("sekansdene=1", "sessiz=1");
+  // Kimodo hattı (spec 37): kimodo_* örnek sekanslarını oynatır; kareler aynı yakalayıcıyla.
+  if (process.env.ORION_KIMODODENE === "1") parcalar.push("kimododene=1", "sessiz=1");
   // Spec 25 Faz 2: görme. `ORION_GOZ` görme modelini seçer (varsayılan bridge/goz.ts'te).
   if (process.env.ORION_GOZDENE === "1") parcalar.push("gozdene=1", "sessiz=1");
   if (process.env.ORION_GOZ) parcalar.push(`goz=${encodeURIComponent(process.env.ORION_GOZ)}`);

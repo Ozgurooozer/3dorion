@@ -13,6 +13,7 @@
 "use strict";
 import type { Uzuv } from "../../protocol/animasyon.ts";
 import type { IskeletBilgisi } from "./iskelet.ts";
+import { butunEklemler } from "./zincirler.ts";
 
 /** Bütün bedeni taşıyan, iskeletin KENDİ eklediği ara düğüm (ayak hizasında): eğilme/zıplama buna uygulanır, modele dokunmadan. */
 export const KOK_DUGUMU = "@kok";
@@ -23,19 +24,10 @@ export const KOK_DUGUMU = "@kok";
  * pivotunda) — `bas` boyun pivotuna gider, `boyun` ise aynı düğümü İKİNCİ kez döndürmesin diye eşlenmez.
  */
 export const UZUV_ESLEMESI: Readonly<Record<IskeletBilgisi["tur"], Readonly<Partial<Record<Uzuv, string>>>>> = {
-  vrm: {
-    kok: KOK_DUGUMU,
-    govde: "spine", gogus: "chest", boyun: "neck", bas: "head",
-    sag_kol: "rightUpperArm", sag_on_kol: "rightLowerArm", sag_el: "rightHand",
-    sol_kol: "leftUpperArm", sol_on_kol: "leftLowerArm", sol_el: "leftHand",
-    sag_bacak: "rightUpperLeg", sol_bacak: "leftUpperLeg",
-  },
-  prosedurel: {
-    kok: KOK_DUGUMU,
-    govde: "kalca", bas: "boyun",
-    sag_kol: "omuzL", sol_kol: "omuzR",
-    sag_bacak: "bacakL", sol_bacak: "bacakR",
-  },
+  // Tek kaynak ZİNCİR TABLOSU (spec 37 §3, `zincirler.ts`): kemik adları orada; burada yalnız türetilir (kopya tablo yok). Bekçi:
+  // klipKutuphanesi.test.ts (VRM bütün uzuvları kapsar) ve kimodoCevir.test.ts (prosedürel tablo eski hâliyle aynı).
+  vrm: { kok: KOK_DUGUMU, ...Object.fromEntries(butunEklemler().map((e) => [e.uzuv, e.kemik.vrm])) },
+  prosedurel: { kok: KOK_DUGUMU, ...Object.fromEntries(butunEklemler().flatMap((e) => (e.kemik.prosedurel ? [[e.uzuv, e.kemik.prosedurel]] : []))) },
   ledyuz: {},
 };
 

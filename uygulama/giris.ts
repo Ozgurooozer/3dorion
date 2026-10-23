@@ -904,7 +904,8 @@ const sekansSistemi = sekansKur({
   altyazi: altyaziGoster, izin: () => imlec.acik || imlec.ac(),
   gorunurlukDegisti: (acik) => { orionAyarPaneli.gorunur(!acik && imlec.acik); if (acik) { grafEditoru.gizle(); nesnePaneli.kapat(); baglamMenusu.kapat(); duzenleme.bitir(); zeminKalemi.sec(null); } },
   gunluk: (seviye, metin) => gunluk.ekle(seviye, "sekans", metin),
-  senaryoKosusu: istenenSenaryolar(location.search).includes("sekansdene"),
+  // Senaryo yüzü (oynatma) yalnız sekans senaryolarında: sekansdene (spec 36), kimododene (spec 37).
+  senaryoKosusu: istenenSenaryolar(location.search).some((s) => s === "sekansdene" || s === "kimododene"),
   sekmeAc: (id) => altCubuk.ac(id),
 });
 altCubuk.ekle(sekansSistemi.sekme);

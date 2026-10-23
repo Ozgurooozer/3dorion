@@ -78,7 +78,7 @@ test("aralık: 0 ≤ bas < bit ≤ süre", () => {
 });
 
 test(`tavanlar: en çok ${SEKANS_SINIRLARI.iz} iz, iz başına ${SEKANS_SINIRLARI.anahtar} anahtar, ${SEKANS_SINIRLARI.baglama} bağlama`, () => {
-  assert.match(bozuk((s) => { s.izler = Array.from({ length: SEKANS_SINIRLARI.iz + 1 }, (_, i) => ({ id: `k${i}`, baglama: "b1", tur: "klip", bolumler: [] })); }), /en çok 32 iz/);
+  assert.match(bozuk((s) => { s.izler = Array.from({ length: SEKANS_SINIRLARI.iz + 1 }, (_, i) => ({ id: `k${i}`, baglama: "b1", tur: "klip", bolumler: [] })); }), new RegExp(`en çok ${SEKANS_SINIRLARI.iz} iz`));
   assert.match(bozuk((s) => { s.sure_kare = 1800; izler(s)[0]!.anahtarlar = Array.from({ length: SEKANS_SINIRLARI.anahtar + 1 }, (_, i) => ({ kare: i, deger: 0 })); }), /en çok 256 anahtar/);
   assert.match(bozuk((s) => { s.baglamalar = Array.from({ length: SEKANS_SINIRLARI.baglama + 1 }, (_, i) => ({ id: `b${i}`, ajan: `a${i}` })); }), /en çok 8/);
 });

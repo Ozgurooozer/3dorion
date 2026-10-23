@@ -74,7 +74,7 @@ export interface SenaryoBaglami {
   readonly webMonitoru: WebMonitoru;
   /** Göz muayenesi (`gozlemdene`): Orion'un gözünden kare → görme modeli → panel. */
   readonly gozlem: Gozlem;
-  /** Sekans (spec 36; `sekansdene`): örnekler, gerçek oynatıcı, Sekans sekmesi ve editör. Oynatma yalnız `?sekansdene=1` koşusunda. */
+  /** Sekans (spec 36; `sekansdene`): örnekler, gerçek oynatıcı, Sekans sekmesi ve editör. Oynatma yalnız `?sekansdene=1` ya da `?kimododene=1` (spec 37) koşusunda. */
   readonly sekans: SekansSenaryoYuzu;
   readonly ortam: {
     tanim(): LevelTanimi | null;
@@ -109,7 +109,7 @@ export const SENARYOLAR = [
   "terminaldene", "otodene", "gorudene", "sessizdene", "davranis", "tezdene", "gordene", "admindene",
   "zihindene", "onaydene", "tahtabeyin", "becerdene", "bakdene", "acidene", "saglobdene",
   "senaryodene", "eylemdene", "benlikdene", "apidene", "tahtadene", "hafizadene", "yuzdene", "baglamdene", "takipdene",
-  "kapidene", "gozdene", "ovadene", "ortamdene", "gidene", "efektdene", "gromadene", "gozlemdene", "klipdene", "sekansdene",
+  "kapidene", "gozdene", "ovadene", "ortamdene", "gidene", "efektdene", "gromadene", "gozlemdene", "klipdene", "sekansdene", "kimododene",
 ] as const;
 export type SenaryoAdi = (typeof SENARYOLAR)[number];
 

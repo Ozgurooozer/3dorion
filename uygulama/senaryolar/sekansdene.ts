@@ -11,7 +11,7 @@
 // Görsel karar insana/denetçiye ait: senaryo kareleri üretir, "doğru görünüyor" demez. Flash senaryo koşusunda kurulmaz (örnekler Orion'a bağlı).
 "use strict";
 import type { SenaryoBaglami } from "../senaryoBaglami.ts";
-import { Vector3 } from "@babylonjs/core/Maths/math.vector";
+import { orionuKarsiyaAl } from "../senaryoSahnesi.ts";
 import { zamanYakinlastir } from "../sekans/editor/zamanEkseni.ts";
 
 export async function kos(d: SenaryoBaglami): Promise<void> {
@@ -31,15 +31,8 @@ export async function kos(d: SenaryoBaglami): Promise<void> {
   kontrol("K0 Orion gövdesi ve iki örnek hazır", !!orion && !!selam && !!dusun, `örnekler: ${ornekler.map((s) => s.ad).join(", ") || "yok"}`);
   if (!orion || !selam || !dusun) { console.log(`[SEKANSDENE] KALDI — ${gecen}/${gecen + kalan}`); return; }
 
-  // Sahne (klipdene'nin kurulumu): Ozyn kameranın arkasına, Orion ona döner; dönünce bakış serbest (baş izini ezmesin).
-  const k = orion.durum().konum;
-  d.oyuncu.isinla(k.x, k.z + 4.2, Math.PI);
-  d.niyetiYurut({ tur: "bak", hedef: { tip: "oyuncu" } }, "sekansdene_bak");
-  await bekle(2500);
-  d.rig.odakKilitle(new Vector3(k.x, 1.05, k.z), 2.6, 0.1, new Vector3(0, 0, 1));
-  await bekle(1500);
-  d.niyetiYurut({ tur: "bak", hedef: null }, "sekansdene_bak_birak");
-  await bekle(400);
+  // Sahne (ortak kurulum: orionuKarsiyaAl.ts): Ozyn kameranın arkasına, Orion ona döner; dönünce bakış serbest (baş izini ezmesin).
+  await orionuKarsiyaAl(d, "sekansdene");
   await kare("00_dinlenme");
 
   // ── K1–K2: selamlasma bir kez, sonuna dek ──

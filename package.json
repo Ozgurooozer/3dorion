@@ -11,6 +11,7 @@
     "exp": "node --experimental-strip-types brain-lab/experiments/lab.ts",
     "lab": "vite brain-lab/viewer --port 5190",
     "ogret": "node --experimental-strip-types tools/ogret.ts gozden",
+    "kimodo:hepsi": "node --experimental-strip-types tools/kimodo/hepsi.ts",
     "editor-dene": "node tools/editor-dene.mjs",
     "build": "vite build",
     "start": "npm run build && electron ."

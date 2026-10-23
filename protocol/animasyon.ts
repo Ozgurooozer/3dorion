@@ -30,6 +30,9 @@ export const UZUVLAR = [
   "kok", "govde", "gogus", "boyun", "bas",
   "sag_kol", "sag_on_kol", "sag_el", "sol_kol", "sol_on_kol", "sol_el",
   "sag_bacak", "sol_bacak",
+  // Spec 37 (Kimodo hattı, 2026-10-23): tam beden hareketi (yürüme, oturma, zıplama) diz, ayak ve pelvis ister; diz olmadan bacak sopa gibi sallanır.
+  // Sona eklendi (eski sıra değişmesin). Prosedürel gövdede yoklar (izleri atlanır ve sayılır).
+  "kalca", "sag_diz", "sol_diz", "sag_ayak", "sol_ayak",
 ] as const;
 export type Uzuv = (typeof UZUVLAR)[number];
 

@@ -21,7 +21,7 @@ kısmı 403; §6 "çekirdek 12 madde"). Kararlar Ozyn'in onayıyla (yer, biçim,
 - **Klip bölümü** `{klip, baslangic_kare, uzunluk_kare, ofset_kare}`: klibin sekanstaki bir oynanışı; ofset = kırpılan baş. Bölüm klipten uzunsa döngüsüz klip
   son değerinde durur. Bir izde bölümler sıralı ve üst üste BİNMEZ (aynı anda iki klip = ikinci klip izi).
 - `gizli` = değerlendirilmez (Unreal "mute"), `kilitli` = editörde değiştirilemez; ikisi de dosyada.
-- **Tavanlar** (`SEKANS_SINIRLARI`): süre 1800 kare (60 sn), 8 bağlama, 32 iz, iz başına 256 anahtar, iz başına 32 bölüm, ofset ≤ 300 kare (klip tavanı 10 sn),
+- **Tavanlar** (`SEKANS_SINIRLARI`): süre 1800 kare (60 sn), 8 bağlama, 64 iz (2026-10-23'e dek 32; tam beden Kimodo çevirisi için artırıldı — spec 37 §5), iz başına 256 anahtar, iz başına 32 bölüm, ofset ≤ 300 kare (klip tavanı 10 sn),
   ad 48, kimlik 32 (`[a-z0-9_]`), açıklama 300. Değer klibin tavanı (±180°, ±0,5 m; öteleme yalnız `kok`). Ölçülmedi.
 - Doğrulayıcı reddi sessiz değil: **yol + neden** (`izler[0].anahtarlar[1].kare: tamsayı olmalı…`). Temiz kopya (bilinmeyen alan atılır, bölümler sıralanır).
 - Ad kuralı grafik/NPC adınınkiyle AYNI fonksiyon (`sekansAdiGecerli = grafAdiGecerli`; host'ta da aynısı, bekçi testi).
@@ -173,7 +173,7 @@ Kareler `ORION_SS_DIR` (varsayılan `%TEMP%\sekansdene`). K0–K6 GECTI/KALDI sa
 - Scrub'da bedende önizleme yok; `@ben` editörden çözülmez (graf düğümü "Sekans oynat" gelince anlam kazanır); Flash'ın boşta kıpırtısı sekansı keser.
 - Oynatma aralığının yeşil/kırmızı işaretleri SÜRÜKLENMEZ (yalnız Ayrıntılar'da, seçim yokken `▶ başı/sonu`); sekans süresi de yalnız Ayrıntılar'dan.
 - Olay izi, eğri/ease editörü, bölüm harmanı (blend), kamera izi, alt-sekans, kopyala/yapıştır (anahtar), çoklu sekmede aynı anda iki sekans oynatma YOK.
-- Büyük sekansta (32 iz × 256 anahtar) her değişiklikte tam yeniden çizim — performans ölçülmedi. Derleme 1800 kare × kanal; süresi ölçülmedi (testlerde < 2 ms, 120 kare).
+- Büyük sekansta (64 iz × 256 anahtar; Kimodo örnekleri ~50 iz) her değişiklikte tam yeniden çizim — performans ölçülmedi. Derleme 1800 kare × kanal; süresi ölçülmedi (testlerde < 2 ms, 120 kare).
 
 ## 9. Canlı deneme listesi (Ozyn; pencere açan koşu sorulmadan yapılmadı)
 1. `npm start` → konsolda `[SEKANS] 2 örnek: selamlasma, dusun_onayla` ve `[SEKANS] 0 sekans`; `[SEKANS] örnek …` uyarısı OLMAMALI.
@@ -200,5 +200,8 @@ Kareler `ORION_SS_DIR` (varsayılan `%TEMP%\sekansdene`). K0–K6 GECTI/KALDI sa
     `<userData>/orion-sekans/.silinenler/` altında dosya.
 17. Konsolda `document.querySelector('.sk-oynat').click()` → OYNAMAMALI (isTrusted).
 18. `npm run dev` (Electron'suz): sekanslar localStorage'da (konsolda uyarı); bağlamayı `flash` yap (Flash'lı oturumda) → ▶ Flash oynamalı.
+
+**Kimodo hattı (spec 37):** metinden üretilen hareket (BVH) → sekans çeviricisi `tools/kimodoCevir.ts`, örnekler `assets/sekans/kimodo_*.json`, zincir modeli
+`world/avatar/zincirler.ts`, canlı kare koşusu `3dorion.bat kimododene` — bkz. `docs/specs/37-kimodo-hatti.md`.
 
 Otomatik kare koşusu: `3dorion.bat sekansdene` (bkz. §7 sonu ve senaryo dosyası `uygulama/senaryolar/sekansdene.ts`).

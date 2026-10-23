@@ -8,7 +8,7 @@
 // Görsel karar insana/denetçiye ait: senaryo kareleri üretir, "doğru görünüyor" demez.
 "use strict";
 import type { SenaryoBaglami } from "../senaryoBaglami.ts";
-import { Vector3 } from "@babylonjs/core/Maths/math.vector";
+import { orionuKarsiyaAl } from "../senaryoSahnesi.ts";
 
 /** Her klip: ad ve süresi (assets/animasyon/<ad>.json `sure`; klip bitişi sonuçtan da doğrulanır). */
 const KLIPLER = [
@@ -31,18 +31,8 @@ export async function kos(d: SenaryoBaglami): Promise<void> {
   const orion = d.orion;
   if (!orion) { kontrol("K0 Orion gövdesi hazır", false); console.log("[KLIPDENE] KALDI — 0/1"); return; }
 
-  // Sahne: Orion boştayken masaya (-Z) döner, bu yüzden `isinla` yaw'ı tutmaz (ilk üç koşuda görüldü). Ozyn kameranın ARKASINA geçer (kamera +Z'de, ona bakar)
-  // ve Orion'a "oyuncuya bak" denir: boyun sınırı aşılınca gövde kendi döner, yüzü kameraya gelir.
-  const k = orion.durum().konum;
-  d.oyuncu.isinla(k.x, k.z + 4.2, Math.PI);
-  d.niyetiYurut({ tur: "bak", hedef: { tip: "oyuncu" } }, "klipdene_bak");
-  await bekle(2500);
-  const hedef = new Vector3(k.x, 1.05, k.z);
-  d.rig.odakKilitle(hedef, 2.6, 0.1, new Vector3(0, 0, 1));
-  await bekle(1500);
-  // Gövde döndükten sonra bakış serbest: "oyuncuya bak" sürerken baş sürekli ona kilitlenir, baş klibini (onay/ret) ezip ölçümü bozar (4. koşuda şüphelendik).
-  d.niyetiYurut({ tur: "bak", hedef: null }, "klipdene_bak_birak");
-  await bekle(400);
+  // Sahne: Orion yüzü kameraya dönük (ortak kurulum ve nedenleri: orionuKarsiyaAl.ts).
+  const k = (await orionuKarsiyaAl(d, "klipdene"))!;
   log(`Orion (${k.x.toFixed(2)}, ${k.z.toFixed(2)}) iskelet=${orion.iskeletBilgisi().tur}`);
 
   const sonuclar = new Map<string, { durum: string; not?: string; t: number }>();
