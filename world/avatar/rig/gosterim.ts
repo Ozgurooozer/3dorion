@@ -138,7 +138,8 @@ export function rigGosterimiKur(sahne: Scene, kaynak: RigKaynagi): RigGosterimi 
 
   const secilen = (): KontrolCizimi | null => cizimler.find((c) => c.kontrol.id === secili) ?? null;
 
-  const gozcu = sahne.onBeforeRenderObservable.add(() => {
+  /** Şekilleri ve halkaları şu anki kemik konumlarına taşır (her karede ve tıklamadan HEMEN önce: pick bir kare eski dünya matrisine bakmasın). */
+  function guncelle(): void {
     if (!acik) return;
     kok.rotation.y = 0;
     const yaw = kaynak.cizimYaw();
@@ -163,7 +164,8 @@ export function rigGosterimiKur(sahne: Scene, kaynak: RigKaynagi): RigGosterimi 
       const r = Math.max(s.kontrol.yaricap * 1.9, 0.14);
       halkaDugumu.scaling.setAll(r);
     }
-  });
+  }
+  const gozcu = sahne.onBeforeRenderObservable.add(guncelle);
 
   const eksenVekt: Record<RigEkseni, Vector3> = { x: new Vector3(1, 0, 0), y: new Vector3(0, 1, 0), z: new Vector3(0, 0, 1) };
   const merkezKonumu = (): V3 | null => { const sc = secilen(), p = sc ? kaynak.uzuvKonumu(sc.kontrol.uzuv) : null; return p ? [p.x, p.y, p.z] : null; };
@@ -190,6 +192,9 @@ export function rigGosterimiKur(sahne: Scene, kaynak: RigKaynagi): RigGosterimi 
       const sec = enYakinHalka({ merkez: m, y: yonu("y"), x: yonu("x"), z: yonu("z"), yaricap: halkaDugumu.scaling.x }, ekranaKoyF(), x, y, HALKA_TUTMA_PIKSEL);
       if (sec) return { tur: "halka", eksen: sec.eksen, nokta: sec.nokta };
     }
+    // Kontrol hedefleri: konumları şimdi tazele ve dünya matrislerini zorla (aksi hâlde tıklama bir kare eski konuma bakar, hareketli elde ıskalar).
+    guncelle();
+    for (const c of cizimler) if (c.acik) { c.dugum.computeWorldMatrix(true); for (const m of c.dugum.getChildMeshes()) m.computeWorldMatrix(true); }
     const olcek = 1 / sahne.getEngine().getHardwareScalingLevel();
     const h = sahne.pick(x * olcek, y * olcek, (mm) => mm.metadata?.rig === true && mm.isEnabled(), false);
     if (!h?.hit || !h.pickedMesh) return null;

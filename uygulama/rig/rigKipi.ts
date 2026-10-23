@@ -58,6 +58,11 @@ export interface RigKipi {
   readonly gosterim: RigGosterimi;
   /** Hangi bağlama/ajan düzenleniyor. */
   baglama(): { id: string; ajan: string } | null;
+  /**
+   * Poz önizleme (rig kapalıyken de): verilen sekansın playhead karesindeki poz bedende gösterilir (null = kapalı). Editör açıkken her `tazele`de bildirir:
+   * zaman çizelgesinde kare kare ilerlemek, ■ ile durmak ve bir sonraki kareye gitmek bedeni de ilerletir.
+   */
+  pozOnizleme(o: SekansOturumu | null, ad: string | null): void;
 }
 
 /** `@ben` editörden oynatırken çözülmez; rig bunu Orion'a çözer (rig Orion'un bedenini düzenler). */
@@ -83,18 +88,24 @@ export function rigKipiKur(a: RigKipiAyari): RigKipi {
   const kare = (): number => oturum?.kare ?? 0;
 
   // Poz yenileme: sekans (kimliği) ya da kare değişince bedene yeniden verilir.
+  // POZ ÖNİZLEME (rig kapalıyken de): editör açıkken beden HER ZAMAN playhead karesindeki pozda (kare kare ilerleme, hata ayıklama). Rig açıksa onun
+  // bağlamı (sürükleme önizlemesi dahil), değilse editörün bildirdiği (`pozOnizleme`). ▶ sürerken bırakılır (oynatma klip yolundan gider).
+  let pOturum: SekansOturumu | null = null, pAd: string | null = null;
   let sonSekans: Sekans | null = null, sonKare = -1, sonBeden: Avatar | null = null, poz = false;
+  const birakPoz = (): void => { if (poz) { sonBeden?.rigPozu(null); poz = false; sonSekans = null; sonBeden = null; } };
   const gozcu = a.sahne.onBeforeRenderObservable.add(() => {
-    if (!acik || !bag || !ad) return;
-    const b = beden();
-    const oynuyor = a.oynuyor(ad);
-    if (oynuyor) { if (poz) { sonBeden?.rigPozu(null); poz = false; sonSekans = null; } return; }
-    const s = sekansi();
-    if (!s || !b) return;
-    if (!poz || s !== sonSekans || kare() !== sonKare || b !== sonBeden) {
+    const rigde = acik && oturum !== null && bag !== null && ad !== null;
+    const o = rigde ? oturum : pOturum, adi = rigde ? ad : pAd;
+    if (!o || !adi) { birakPoz(); return; }
+    const bg = rigde ? bag : bagBul(o.sekans());
+    const b = bg ? a.avatar(ajanaCoz(bg.ajan)) : null;
+    if (a.oynuyor(adi)) { birakPoz(); return; }
+    const s = rigde ? sekansi() : o.sekans();
+    if (!s || !b || !bg) { birakPoz(); return; }
+    if (!poz || s !== sonSekans || o.kare !== sonKare || b !== sonBeden) {
       if (b !== sonBeden) sonBeden?.rigPozu(null);
-      b.rigPozu(baglamaDegerleri(s, bag.id, kare(), a.klipler));
-      sonSekans = s; sonKare = kare(); sonBeden = b; poz = true;
+      b.rigPozu(baglamaDegerleri(s, bg.id, o.kare, a.klipler));
+      sonSekans = s; sonKare = o.kare; sonBeden = b; poz = true;
     }
   });
 
@@ -239,6 +250,7 @@ export function rigKipiKur(a: RigKipiAyari): RigKipi {
     suruklemede: () => surukle !== null,
     dinle(f) { dinleyiciler.add(f); return () => { dinleyiciler.delete(f); }; },
     baglama: () => bag,
+    pozOnizleme(o, adi) { pOturum = o; pAd = adi; },
   };
   void gozcu;
   return rig;

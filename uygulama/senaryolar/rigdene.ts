@@ -145,8 +145,29 @@ export async function kos(d: SenaryoBaglami): Promise<void> {
   const sekilSon = d.sahne.transformNodes.filter((n) => n.name.startsWith("rig_k_") && n.isEnabled()).length;
   kontrol("R9 rig kapandı: şekiller gizlendi", !d.sekans.rig.acikMi() && sekilSon === 0, `açık=${d.sekans.rig.acikMi()} · şekil=${sekilSon}`);
   await kare("09_rig_kapali");
+  // R10: RİG KAPALIYKEN de beden playhead karesinde (kare kare ilerleme): kareyi kaydır, adımla, ▶ ile oyna, ■ ile durdur.
+  const git = async (k: number) => { oturum.kareyeGit(k); d.sekans.editor.tazele(); await bekle(450); };
+  await git(5); const pA = orion.uzuvKonumu("sag_el");
+  await git(60); const pB = orion.uzuvKonumu("sag_el");
+  kontrol("R10 rig kapalıyken playhead kareyi kaydırınca beden poza girer (kare 5 ↔ 60: el 10 cm+ farklı)", !d.sekans.rig.acikMi() && uzaklik(pA, pB) > 0.1, `fark ${uzaklik(pA, pB).toFixed(3)} m`);
+  await kare("10_kare_60_rigsiz");
+  await git(30); const p30 = orion.uzuvKonumu("sag_el");
+  oturum.adim(3); d.sekans.editor.tazele(); await bekle(450);
+  const p33 = orion.uzuvKonumu("sag_el");
+  kontrol("R10b kareyi 3 ileri adımlamak bedeni de ilerletir (kare 30 → 33)", oturum.kare === 33 && uzaklik(p30, p33) > 0.004, `kare=${oturum.kare} · fark ${uzaklik(p30, p33).toFixed(4)} m`);
+  oturum.kareyeGit(0); d.sekans.editor.tazele(); await bekle(400);
+  const p0 = orion.uzuvKonumu("sag_el");
+  const oy2 = d.sekans.oynat(oturum.sekans(), { baslangic: 0, dongu: false });
+  await bekle(900);
+  d.sekans.durdur();
+  await bekle(600);
+  const sonKare = oturum.kare, pDur = orion.uzuvKonumu("sag_el");
+  kontrol("R10c ■ ile durunca playhead durulan karede, beden o karenin pozunda", oy2.ok && sonKare > 5 && uzaklik(p0, pDur) > 0.04, `durulan kare=${sonKare} · el kare 0'dan ${uzaklik(p0, pDur).toFixed(3)} m uzakta`);
+  await kare("11_durulan_kare");
   d.sekans.editor.gizle();
   await bekle(500);
+  const pSerbest = orion.uzuvKonumu("sag_el");
+  kontrol("R10d editör kapanınca beden poz önizlemesini bırakır (el durulan kareden ayrıldı)", uzaklik(pDur, pSerbest) > 0.03, `fark ${uzaklik(pDur, pSerbest).toFixed(3)} m`);
   // İmleç kipinde Yapı çubuğunun şeridi görünür kalır (`--alt-cubuk`): tuval onun kadar kısa, editör payı (`--editor-alt`) ise kalkmış olmalı.
   const stil = getComputedStyle(document.documentElement);
   const yapiPayi = parseFloat(stil.getPropertyValue("--alt-cubuk")) || 0, editorPayi = parseFloat(stil.getPropertyValue("--editor-alt")) || 0;

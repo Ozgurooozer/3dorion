@@ -273,6 +273,7 @@ export function sekansEditoruKur(a: SekansEditoruAyari): SekansEditoru {
     if (!acik) return;
     try {
       rigSenkron();
+      a.rig.pozOnizleme(etkin()?.icerik ?? null, etkin()?.ad ?? null);   // beden playhead karesinde (rig kapalıyken de)
       seritler.ciz(); oynatma.ciz(); bantCiz(); menu.ciz();
       const x = o();
       const k = b.oynayanKare() ?? x?.kare ?? 0;
@@ -406,6 +407,7 @@ export function sekansEditoruKur(a: SekansEditoruAyari): SekansEditoru {
   function gizle(): void {
     if (!acik) return;
     acik = false;
+    a.rig.pozOnizleme(null, null);      // beden normal davranışına döner
     rigSenkron();                       // rig kapanır (kipi istek olarak kalır: tekrar açılınca geri gelir)
     kameraPaneli.kapat();
     menu.kapat();
