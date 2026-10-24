@@ -48,3 +48,16 @@ test("tek olayda açı sınırlanır (en çok 0,35 rad ≈ 20°)", () => {
 test("nokta merkezdeyse 0", () => {
   assert.equal(surukleAcisi([0, 0, 0], [0, 0, 1], [0, 0, 0], onden, 0, -5), 0);
 });
+
+test("taşı oku: sağa sürüklemek X okunda artı metre; piksel/metre ölçeği (100 px = 1 m)", async () => {
+  const { surukleOtelemesi } = await import("./surukleme.ts");
+  assert.ok(Math.abs(surukleOtelemesi([0, 0, 0], [1, 0, 0], onden, 20, 0) - 0.2) < 1e-9);
+  assert.ok(Math.abs(surukleOtelemesi([0, 0, 0], [1, 0, 0], onden, -10, 0) + 0.1) < 1e-9);
+  assert.ok(Math.abs(surukleOtelemesi([0, 0, 0], [0, 1, 0], onden, 0, -20) - 0.2) < 1e-9, "Y oku ekranda yukarı: fare yukarı = artı");
+});
+
+test("taşı oku: kameraya bakan eksende 0, tek olayda en çok 0,25 m", async () => {
+  const { surukleOtelemesi } = await import("./surukleme.ts");
+  assert.equal(surukleOtelemesi([0, 0, 0], [0, 0, 1], onden, 50, 50), 0);
+  assert.equal(surukleOtelemesi([0, 0, 0], [1, 0, 0], onden, 5000, 0), 0.25);
+});

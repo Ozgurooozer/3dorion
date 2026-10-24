@@ -77,7 +77,7 @@ export async function kos(d: SenaryoBaglami): Promise<void> {
     const p = ek([m[0] + (y[0] + z[0]) * h, m[1] + (y[1] + z[1]) * h, m[2] + (y[2] + z[2]) * h]);
     halka = g.vurus(p.x, p.y);
   }
-  kontrol("R4 X döndürme halkası tıklanabiliyor", halka?.tur === "halka" && halka.eksen === "x", `vurus=${halka ? (halka.tur === "halka" ? `halka ${halka.eksen}` : `kontrol ${halka.id}`) : "yok"}`);
+  kontrol("R4 X döndürme halkası tıklanabiliyor", halka?.tur === "halka" && halka.eksen === "x", `vurus=${halka ? (halka.tur === "halka" ? `halka ${halka.eksen}` : halka.tur === "ok" ? `ok ${halka.eksen}` : `kontrol ${halka.id}`) : "yok"}`);
 
   // R5: halkayı sürükle, bırak; el hareket etti mi, iz/anahtar yazıldı mı.
   oturum.kareyeGit(30);
@@ -138,6 +138,85 @@ export async function kos(d: SenaryoBaglami): Promise<void> {
   await kare("08_oynarken");
   d.sekans.durdur();
   kontrol("R8 ▶ oynatma rig kipi açıkken de çalışır ve ■ durdurur", oy.ok && oynuyor, oy.ok ? `oynuyordu=${oynuyor}` : oy.neden);
+
+  // R11–R15: standart gizmo (Taşı/Döndür, Gövde/Dünya), gruplar, kaydırıcı önizlemesi, panel yapısı.
+  const rig = d.sekans.rig;
+  const dugumAcik = (ad: string) => d.sahne.getTransformNodeByName(ad)?.isEnabled() === true;
+  const git2 = async (k: number) => { oturum.kareyeGit(k); d.sekans.editor.tazele(); await bekle(450); };
+  await git2(40);
+  rig.kipAyarla("tasi"); rig.sec("k_kalca");
+  await bekle(500);
+  kontrol("R11 Taşı kipi: Pelvis seçiliyken oklar görünür, halkalar gizli", dugumAcik("rig_oklar") && !dugumAcik("rig_halkalar") && rig.tasimaDestegi().ok, `oklar=${dugumAcik("rig_oklar")} halkalar=${dugumAcik("rig_halkalar")}`);
+  await kare("12_tasi_oklari");
+  const gm = g.merkez(), gx = g.eksenYonu("x");
+  const okNokta = gm ? ek([gm[0] + gx[0] * 0.2, gm[1] + gx[1] * 0.2, gm[2] + gx[2] * 0.2]) : null;
+  const okVurus = okNokta ? g.vurus(okNokta.x, okNokta.y) : null;
+  kontrol("R11b X okuna tıklama oku buluyor", okVurus?.tur === "ok" && okVurus.eksen === "x", `vurus=${JSON.stringify(okVurus)}`);
+  const pelvisOnce = orion.uzuvKonumu("kalca"), otOnce = rig.seciliOteleme();
+  const baslar = rig.otelemeBasla("x");
+  for (let i = 0; i < 12; i++) { rig.surukleHareket(14, 0); await bekle(25); }
+  rig.surukleBitir();
+  await bekle(500);
+  const pelvisSonra = orion.uzuvKonumu("kalca"), otSonra = rig.seciliOteleme();
+  kontrol("R11c ok sürükleme: kök ötelemesi anahtar oldu ve pelvis taşındı", baslar && !!otOnce && !!otSonra && Math.abs(otSonra.x - otOnce.x) > 0.03 && uzaklik(pelvisOnce, pelvisSonra) > 0.03, `kök x ${otOnce?.x.toFixed(3)} → ${otSonra?.x.toFixed(3)} m · pelvis ${uzaklik(pelvisOnce, pelvisSonra).toFixed(3)} m`);
+  await kare("13_pelvis_tasindi");
+  const gerial2 = oturum.geriAl(); d.sekans.editor.tazele(); await bekle(500);
+  const pelvisGeri = orion.uzuvKonumu("kalca");
+  kontrol("R11d Ctrl+Z taşımayı geri aldı", gerial2.ok && uzaklik(pelvisOnce, pelvisGeri) < 0.02, `fark ${uzaklik(pelvisOnce, pelvisGeri).toFixed(4)} m`);
+  rig.sec("k_sol_el"); await bekle(300);
+  kontrol("R12 Taşı el için KAPALI ve nedeni söyleniyor, ok çizilmiyor", !rig.tasimaDestegi().ok && /IK/.test(rig.tasimaDestegi().neden ?? "") && !dugumAcik("rig_oklar"), `neden=${rig.tasimaDestegi().neden ?? "yok"}`);
+
+  rig.kipAyarla("dondur"); rig.sec("k_sol_on_kol"); await bekle(300);
+  rig.uzayAyarla("govde"); await bekle(300);
+  const xGovde = g.eksenYonu("x");
+  rig.uzayAyarla("dunya"); await bekle(300);
+  const xDunya = g.eksenYonu("x"), yDunya = g.eksenYonu("y");
+  const elOnce = orion.uzuvKonumu("sol_el");
+  const dr2 = rig.dondur("x", 40); d.sekans.editor.tazele(); await bekle(450);
+  const elSonra = orion.uzuvKonumu("sol_el");
+  kontrol("R13 Dünya yönü: halka eksenleri dünya eksenlerine hizalı (gövdeninkinden farklı olabilir) ve dünya ekseninde döndürme eli taşır",
+    Math.abs(xDunya[0] - 1) < 1e-3 && Math.abs(yDunya[1] - 1) < 1e-3 && dr2.ok && uzaklik(elOnce, elSonra) > 0.03,
+    `dünya X=${xDunya.map((v) => v.toFixed(2)).join(",")} · gövde X=${xGovde.map((v) => v.toFixed(2)).join(",")} · el ${uzaklik(elOnce, elSonra).toFixed(3)} m`);
+  await kare("14_dunya_yonu");
+  oturum.geriAl(); rig.uzayAyarla("govde"); d.sekans.editor.tazele(); await bekle(300);
+
+  // R14: gruplar — sol kolu kur, sağa yansıt, sıfırla, pozu kopyala/yapıştır.
+  await git2(70);
+  rig.sec("k_sol_kol"); rig.kanalAyarla("z", -60);
+  const yans = rig.grubuYansit("sol_kol");
+  d.sekans.editor.tazele(); await bekle(300);
+  rig.sec("k_sag_kol");
+  const sagZ = rig.seciliEuler()?.z ?? 0;
+  kontrol("R14 sol kol sağa YANSITILDI (z −60° → +60°)", yans.ok && Math.abs(sagZ - 60) < 0.5, `${yans.mesaj ?? ""} · sağ kol z=${sagZ.toFixed(1)}°`);
+  await kare("15_yansitma");
+  const sifir = rig.grubuSifirla("sol_kol");
+  rig.sec("k_sol_kol");
+  const solZ = rig.seciliEuler()?.z ?? 99;
+  kontrol("R14b sol kol grubu SIFIRLANDI, sağ kol aynı kaldı", sifir.ok && Math.abs(solZ) < 0.5 && Math.abs((rig.seciliEuler() ? sagZ : 0) - 60) < 0.5, `${sifir.mesaj ?? ""} · sol z=${solZ.toFixed(2)}°`);
+  rig.pozKopyala();
+  await git2(80);
+  const yap = rig.pozYapistir();
+  rig.sec("k_sag_kol");
+  kontrol("R14c poz kopyala/yapıştır: kare 70'in duruşu kare 80'e yazıldı", yap.ok && Math.abs((rig.seciliEuler()?.z ?? 0) - 60) < 0.5, `${yap.mesaj ?? ""} · kare 80 sağ kol z=${(rig.seciliEuler()?.z ?? 0).toFixed(1)}°`);
+
+  // R15: kaydırıcı önizlemesi geri al yığınına GİRMEZ; bırakınca yazılır.
+  await git2(50);
+  rig.sec("k_bas");
+  const yigin = oturum.gecmis.simdiki();
+  const oncekiX = rig.seciliEuler()?.x ?? 0;   // kare 50'de Kimodo'nun kendi baş dönmesi (0 değil)
+  rig.kanalOnizle("x", 35); await bekle(200);
+  const onizEuler = rig.seciliEuler()?.x ?? 0, yiginAyni = oturum.gecmis.simdiki() === yigin;
+  rig.kanalOnizleBirak(); await bekle(200);
+  const sonEuler = rig.seciliEuler()?.x ?? 0;
+  kontrol("R15 kaydırıcı önizlemesi: değer görünür (35°), geri al yığınına girmez, bırakılınca eski değere döner", Math.abs(onizEuler - 35) < 0.5 && yiginAyni && Math.abs(sonEuler - oncekiX) < 0.5, `önizleme x=${onizEuler.toFixed(1)}° · yığın aynı=${yiginAyni} · bırakınca x=${sonEuler.toFixed(1)}° (önceki ${oncekiX.toFixed(1)}°)`);
+
+  // Panel yapısı: 5 grup, 17 kontrol çipi, Ölçek düğmesi KAPALI.
+  d.sekans.editor.yanSekmeAc("rig"); d.sekans.editor.tazele(); await bekle(300);
+  const gruplar = document.querySelectorAll(".rg-grup").length, cipler = document.querySelectorAll(".rg-kontrol").length;
+  const olcekD = [...document.querySelectorAll<HTMLButtonElement>(".rg-seg")].find((x) => (x.textContent ?? "").includes("Ölçek"));
+  kontrol("R16 panel: 5 grup, 17 kontrol çipi, Ölçek düğmesi var ve KAPALI", gruplar === 5 && cipler === 17 && !!olcekD && olcekD.disabled, `grup=${gruplar} çip=${cipler} ölçek kapalı=${olcekD?.disabled}`);
+  rig.sec("k_sol_on_kol"); await bekle(300);
+  await kare("16_rig_paneli");
 
   // R9: rig kapanınca beden tabana döner (rig pozu bırakıldı).
   d.sekans.editor.rigDegistir(false);

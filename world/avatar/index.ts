@@ -211,11 +211,11 @@ export type { KlipBulucu, KlipKutuphanesi, KlipHatasi } from "./klipKutuphanesi.
 export { UZUV_ESLEMESI } from "./uzuvEslemesi.ts";
 // Control Rig (spec 38): kontrol kaydı, poz/sürükleme matematiği, sahne gösterimi ve kanonik zincirler uygulama katmanına BU yüzden açılır (alt-sistem kamu yüzü).
 export { rigGosterimiKur } from "./rig/gosterim.ts";
-export type { RigGosterimi, RigKaynagi, RigVurusu } from "./rig/gosterim.ts";
-export { KONTROLLER, kontrolBul, uzuvKontrolu, zincirKontrolleri } from "./rig/kontroller.ts";
-export type { Kontrol } from "./rig/kontroller.ts";
-export { RIG_EKSENLERI, dereceYazisi, eksendeDondur, eulerEsit, kisEuler } from "./rig/poz.ts";
+export type { RigGosterimi, RigKaynagi, RigModu, RigUzayi, RigVurusu } from "./rig/gosterim.ts";
+export { KONTROLLER, KONTROL_GRUPLARI, grupBul, karsiUzuv, kontrolBul, uzuvGrubu, uzuvKontrolu, zincirKontrolleri } from "./rig/kontroller.ts";
+export type { Kontrol, KontrolGrubu } from "./rig/kontroller.ts";
+export { RIG_EKSENLERI, dereceYazisi, dunyaEkseniGovdeye, eksendeDondur, eksenVektorundeDondur, eulerEsit, kisEuler, yansit } from "./rig/poz.ts";
 export type { Euler, RigEkseni } from "./rig/poz.ts";
-export { surukleAcisi } from "./rig/surukleme.ts";
+export { surukleAcisi, surukleOtelemesi } from "./rig/surukleme.ts";
 export type { V3 } from "./rig/surukleme.ts";
 export { ZINCIR_ADLARI } from "./zincirler.ts";

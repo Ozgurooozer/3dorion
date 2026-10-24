@@ -49,3 +49,12 @@ test("çizgi parçası uçlarının ötesi tutulmaz: teğetin uzantısındaki uz
   assert.equal(enYakinHalka(duzen, onden, 100, -300, 8), null);
   assert.equal(enYakinHalka(duzen, onden, 400, 0, 8), null, "Y halkasının çizgisinin uzantısı");
 });
+
+test("ok seçimi: eksen doğru parçasına en yakın ok; eşik dışı null; parçanın ötesi tutulmaz", async () => {
+  const { enYakinOk } = await import("./halkaSecimi.ts");
+  const d = { merkez: [0, 0, 0] as [number, number, number], x: [1, 0, 0] as [number, number, number], y: [0, 1, 0] as [number, number, number], z: [0, 0, 1] as [number, number, number], uzunluk: 1 };
+  assert.equal(enYakinOk(d, onden, 50, 0, 8)?.eksen, "x");        // x oku: (0,0)→(100,0)
+  assert.equal(enYakinOk(d, onden, 0, -60, 8)?.eksen, "y");       // y oku ekranda yukarı
+  assert.equal(enYakinOk(d, onden, 300, 0, 8), null, "okun ötesi");
+  assert.equal(enYakinOk(d, onden, 40, -40, 8), null, "iki okun da uzağı");
+});

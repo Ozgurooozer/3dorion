@@ -6,7 +6,7 @@
 // Renk Unreal kuralı: orta sarı, SAĞ kırmızı, SOL mavi (taraf = gövdenin kendi tarafı).
 "use strict";
 import type { Uzuv } from "../../../protocol/animasyon.ts";
-import { KANONIK_ZINCIRLER, kanonikUzuvlar, uzuvZinciri, type ZincirAdi } from "../iskelet/kanonik.ts";
+import { KANONIK_KOK, KANONIK_ZINCIRLER, kanonikUzuvlar, uzuvZinciri, type ZincirAdi } from "../iskelet/kanonik.ts";
 
 export const KONTROL_SEKILLERI = ["halka", "kutu", "disk"] as const;
 export type KontrolSekli = (typeof KONTROL_SEKILLERI)[number];
@@ -63,6 +63,28 @@ export const uzuvKontrolu = (u: Uzuv): Kontrol | null => KONTROLLER.find((k) => 
 export function zincirKontrolleri(ad: ZincirAdi): Kontrol[] {
   const z = KANONIK_ZINCIRLER.find((x) => x.ad === ad);
   return z ? z.uzuvlar.map((u) => uzuvKontrolu(u)!).filter(Boolean) : [];
+}
+
+/**
+ * GRUPLAR (panel ve toplu işlemler): gövde ve baş (pelvis, omurga, göğüs, boyun, baş) + dört uzuv. Kanonik zincirlerden türetilir: yeni zincir = yeni grup.
+ * `karsi`: yansıtmanın karşı grubu (sol kol ↔ sağ kol); gövdenin karşısı yok.
+ */
+export interface KontrolGrubu { id: string; ad: string; uzuvlar: readonly Uzuv[]; karsi: string | null }
+
+const GRUP_ADI: Record<string, string> = { govde: "Gövde ve baş", sol_kol: "Sol kol", sag_kol: "Sağ kol", sol_bacak: "Sol bacak", sag_bacak: "Sağ bacak" };
+
+export const KONTROL_GRUPLARI: readonly KontrolGrubu[] = [
+  { id: "govde", ad: GRUP_ADI.govde!, karsi: null, uzuvlar: [KANONIK_KOK, ...KANONIK_ZINCIRLER.filter((z) => z.taraf === "orta").flatMap((z) => z.uzuvlar)] },
+  ...KANONIK_ZINCIRLER.filter((z) => z.taraf !== "orta").map((z): KontrolGrubu => ({ id: z.ad, ad: GRUP_ADI[z.ad] ?? z.ad, karsi: z.taraf === "sag" ? z.ad.replace("sag_", "sol_") : z.ad.replace("sol_", "sag_"), uzuvlar: z.uzuvlar })),
+];
+
+export const grupBul = (id: string): KontrolGrubu | null => KONTROL_GRUPLARI.find((g) => g.id === id) ?? null;
+/** Uzvun bulunduğu grup. */
+export const uzuvGrubu = (u: Uzuv): KontrolGrubu | null => KONTROL_GRUPLARI.find((g) => g.uzuvlar.includes(u)) ?? null;
+/** Sol↔sağ eşi (`sag_kol` ↔ `sol_kol`); eşi olmayan (gövde, baş) için null. */
+export function karsiUzuv(u: Uzuv): Uzuv | null {
+  const a = u.startsWith("sag_") ? u.replace("sag_", "sol_") : u.startsWith("sol_") ? u.replace("sol_", "sag_") : null;
+  return a && kanonikUzuvlar().includes(a as Uzuv) ? (a as Uzuv) : null;
 }
 
 /** Şekil rengi (#rrggbb): Unreal kuralı. Seçilince açılır. */

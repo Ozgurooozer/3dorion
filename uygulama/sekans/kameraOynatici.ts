@@ -23,7 +23,11 @@ export interface KameraOynatici {
   yokEt(): void;
 }
 
-export function kameraOynaticiKur(a: { oynatici: SekansOynatici; surucu: KameraSurucusu; kareGozcusu: (f: () => void) => () => void }): KameraOynatici {
+export function kameraOynaticiKur(a: {
+  oynatici: SekansOynatici; surucu: KameraSurucusu; kareGozcusu: (f: () => void) => () => void;
+  /** Editörün SERBEST kamerası (orbit/pan/uç; spec 38 §7): sekans kamerası (▶ ya da önizleme) YOKSA bu pozda tutulur; null = oyunun kendi kamerası. */
+  serbest?: () => KameraPozu | null;
+}): KameraOynatici {
   let onizleme: (() => { sekans: Pick<Sekans, "kameralar" | "kesmeler">; kare: number } | null) | null = null;
   let uygulandi = false;
 
@@ -32,13 +36,15 @@ export function kameraOynaticiKur(a: { oynatici: SekansOynatici; surucu: KameraS
 
   const dur = a.kareGozcusu(() => {
     const c = a.oynatici.durum().calisiyor;
+    let poz: KameraPozu | null;
     if (c) {
       const k = a.oynatici.kare();
-      ver(c.kamera.kesmeler?.length && k !== null ? kameraPozu(c.kamera, k) : null);
-      return;
+      poz = c.kamera.kesmeler?.length && k !== null ? kameraPozu(c.kamera, k) : null;
+    } else {
+      const o = onizleme?.() ?? null;
+      poz = o ? kameraPozu(o.sekans, o.kare) : null;
     }
-    const o = onizleme?.() ?? null;
-    ver(o ? kameraPozu(o.sekans, o.kare) : null);
+    ver(poz ?? a.serbest?.() ?? null);   // sekans kamerası yoksa (ilk kesmeden önce dahil) serbest kamera
   });
 
   return {

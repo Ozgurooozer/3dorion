@@ -14,6 +14,21 @@ export const RIG_CSS = `
 .rg-alanlar label { grid-column: 1 / -1; color: ${R.yaziOrta}; margin-top: 4px; }
 .rg-alanlar small { grid-column: 1 / -1; margin-top: -2px; }
 .rg-adim { min-width: 24px; padding: 0 6px; }
+.rg-segment { display: flex; align-items: center; gap: 4px; margin: 3px 0; }
+.rg-etiket { width: 44px; color: ${R.yaziSoluk}; }
+.rg-seg[data-secili="1"] { border-color: ${R.vurgu}; color: ${R.yaziParlak}; background: rgba(88,193,255,0.2); }
+.rg-gruplar { display: flex; flex-direction: column; gap: 6px; }
+.rg-grup { border: 1px solid ${R.kartCizgi}; border-radius: 8px; background: ${R.kart}; padding: 5px 7px; }
+.rg-grup-ust { display: flex; align-items: center; gap: 4px; margin-bottom: 4px; }
+.rg-grup-ad { flex: 1; color: ${R.yaziParlak}; font-weight: 600; }
+.rg-mini { padding: 0 7px; font-size: 11px; }
+.rg-cipler { display: flex; flex-wrap: wrap; gap: 3px; }
+.rg-kontrol[data-anahtar="1"] { color: #ffd27a; }
+.rg-kanal { margin: 6px 0 2px; }
+.rg-kanal-baslik { display: flex; justify-content: space-between; color: ${R.yaziOrta}; }
+.rg-kaydirici { width: 100%; margin: 3px 0; accent-color: ${R.vurgu}; }
+.rg-kanal-alt { display: flex; align-items: center; gap: 4px; }
+.rg-sayi { width: 64px; text-align: right; }
 .kp-satir { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin: 3px 0; }
 .kp-liste { display: flex; flex-direction: column; gap: 2px; margin: 4px 0; }
 .kp-oge { display: flex; align-items: center; gap: 6px; padding: 3px 8px; border: 1px solid ${R.kartCizgi}; border-radius: 6px; background: ${R.kart}; cursor: pointer; }

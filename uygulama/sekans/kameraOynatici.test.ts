@@ -17,13 +17,13 @@ const sekans = (): Sekans => {
   const d = kesmeEkle(s, 60, "kamera_2"); if (!d.ok) throw new Error(d.hata); return d.deger;
 };
 
-function kur() {
+function kur(serbest?: () => KameraPozu | null) {
   const gelenler: (KameraPozu | null)[] = [];
   let kare: number | null = null;
   let calisiyor: OynatmaDurumu["calisiyor"] = null;
   const oynatici = { durum: () => ({ calisiyor, son: null }), kare: () => kare } as unknown as SekansOynatici;
   let dongu: (() => void) | null = null;
-  const k = kameraOynaticiKur({ oynatici, surucu: { uygula: (p) => { gelenler.push(p); } }, kareGozcusu: (f) => { dongu = f; return () => { dongu = null; }; } });
+  const k = kameraOynaticiKur({ oynatici, surucu: { uygula: (p) => { gelenler.push(p); } }, kareGozcusu: (f) => { dongu = f; return () => { dongu = null; }; }, ...(serbest ? { serbest } : {}) });
   return {
     k, gelenler, kare: () => dongu?.(),
     oyna: (s: Sekans, f: number | null) => { calisiyor = { sekans: "t", plan: { kareler: [], sure: 4, dongu: false }, aralik: { bas: 0, bit: 120 }, t0: 0, ajanlar: [], kamera: { kameralar: s.kameralar!, kesmeler: s.kesmeler! } }; kare = f; },
@@ -87,4 +87,30 @@ test("kamerasız sekans oynarken kamera hiç uygulanmaz", () => {
   const bos = { kameralar: undefined, kesmeler: undefined } as unknown as Sekans;
   t.oyna(bos, 20); t.kare(); t.kare();
   assert.equal(t.gelenler.length, 0);
+});
+
+const SERBEST: KameraPozu = { konum: [9, 9, 9], hedef: [0, 1, 0], fov: 60, kamera: "serbest" };
+
+test("serbest kamera: sekans kamerası yokken uygulanır; kamerasız sekans ▶ sırasında da serbest kalır", () => {
+  const t = kur(() => SERBEST);
+  t.kare();
+  assert.equal(t.gelenler.at(-1)?.kamera, "serbest");
+  const bos = { kameralar: undefined, kesmeler: undefined } as unknown as Sekans;
+  t.oyna(bos, 20); t.kare();
+  assert.equal(t.gelenler.at(-1)?.kamera, "serbest", "kesmesiz sekans oynarken serbest kamera sürer");
+});
+
+test("serbest kamera: sekansın kesme kamerası serbest olanın ÜSTÜNDE; ilk kesmeden önce serbeste döner", () => {
+  const t = kur(() => SERBEST), s = sekans();
+  t.oyna(s, 70); t.kare();
+  assert.equal(t.gelenler.at(-1)?.kamera, "kamera_2");
+  t.oyna(s, 5); t.kare();
+  assert.equal(t.gelenler.at(-1)?.kamera, "serbest", "ilk kesme kare 10: öncesinde serbest kamera");
+});
+
+test("serbest kamera null dönünce oyuna bırakılır (editör kapandı)", () => {
+  let acik = true;
+  const t = kur(() => (acik ? SERBEST : null));
+  t.kare(); acik = false; t.kare(); t.kare();
+  assert.deepEqual(t.gelenler.map((p) => p?.kamera ?? null), ["serbest", null]);
 });

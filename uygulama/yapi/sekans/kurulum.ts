@@ -15,7 +15,9 @@ import type { Sekans } from "../../../protocol/sekans.ts";
 import type { Avatar, KlipBulucu } from "../../../world/avatar/index.ts";
 import { rigKipiKur, type RigKipi } from "../../rig/rigKipi.ts";
 import { kameraOynaticiKur, type KameraOynatici } from "../../sekans/kameraOynatici.ts";
-import { fovDerece, fovRadyan } from "../../sekans/editor/kameraYardimcilari.ts";
+import { fovDerece, fovRadyan, orionKarsisi } from "../../sekans/editor/kameraYardimcilari.ts";
+import { serbestKameradan, serbestKonum } from "../../sekans/editor/serbestKamera.ts";
+import { serbestKameraGirdisiKur } from "./serbestKameraGirdisi.ts";
 import type { GeciciKlipKatmani } from "../../sekans/geciciKlipler.ts";
 import { sekansOynaticiKur, type OynatmaDurumu, type OynatmaIstegi, type SekansKapisi, type SekansOynatici } from "../../sekans/oynatici.ts";
 import { sekansDeposuKur, sekansKaynaginiSec, type SekansDeposu } from "../../sekans/sekansDeposu.ts";
@@ -99,11 +101,22 @@ export function sekansKur(a: SekansKurulumAyari): SekansSistemi {
   });
   depo.dinle((o) => { if (o.tur === "icerik") void pencere.icerikDegisti(o.ad); pencere.tazele(); });
   const metinAc = (ad: string) => { pencere.ac(ad).catch((e: unknown) => a.altyazi(`${ad} açılamadı: ${e instanceof Error ? e.message : String(e)}`, 4000)); };
+  // Serbest kamera (spec 38 §7): editör açıkken orbit/pan/zoom/uç; sekans kamerası yokken canlı kamerayı bu tutar.
+  const kareGozcusu = (f: () => void) => { const g = a.sahne.onBeforeRenderObservable.add(f); return () => { a.sahne.onBeforeRenderObservable.remove(g); }; };
+  const serbest = serbestKameraGirdisiKur({ tuval: a.tuval, kareGozcusu });
+  /** Orion'un karşısından ilk kadraj (Orion yoksa oyuncunun görünümünden). */
+  const orionKadraji = () => {
+    const o = a.avatar("orion");
+    if (o) { const g = orionKarsisi(o.cizimKonumu(), o.cizimYaw(), 3.4); return serbestKameradan(g.konum, g.hedef, 50); }
+    const g = a.kameraRig.gorunum();
+    return serbestKameradan([g.konum.x, g.konum.y, g.konum.z], [g.hedef.x, g.hedef.y, g.hedef.z], Math.round(fovDerece(g.fov)));
+  };
   // Kamera: ▶ sürerken oynatma karesinin, durunca (isteğe bağlı) playhead'in kamerasını canlı kameraya verir (spec 38 §7).
   const kamera = kameraOynaticiKur({
+    serbest: () => serbest.poz(),
     oynatici,
     surucu: { uygula: (p) => { if (p) a.kameraRig.sekansKamerasi(new Vector3(...p.konum), new Vector3(...p.hedef), fovRadyan(p.fov)); else a.kameraRig.sekansKamerasiBirak(); } },
-    kareGozcusu: (f) => { const g = a.sahne.onBeforeRenderObservable.add(f); return () => { a.sahne.onBeforeRenderObservable.remove(g); }; },
+    kareGozcusu,
   });
   // Control Rig: sahnede kontrol şekilleri, halka sürükleme, auto-key (spec 38). `editorRef` editör kurulunca dolar (rig önce kurulur: editör onu ister).
   let editorRef: SekansEditoru | null = null;
@@ -117,13 +130,17 @@ export function sekansKur(a: SekansKurulumAyari): SekansSistemi {
     depo, oynatici, klipler: a.klipler, ajanlar: a.ajanlar, metinAc, altyazi: a.altyazi, izin: a.izin, gorunurlukDegisti: a.gorunurlukDegisti, rig,
     kamera: {
       oynatici: kamera,
-      // Önizleme sürerken canlı kamera sekansın kamerasıdır: oyuncunun görünümü yok (null).
+      // Önizleme sürerken canlı kamera sekansın kamerasıdır: görünüm yok (null). Serbest kamera açıkken "şu anki görünüm" ONUN gözüdür (orbit ile kurduğun kadraj).
       gorunum: () => {
+        if (kamera.onizlemeAcikMi()) return null;
+        const sk = serbest.durum();
+        if (serbest.aktifMi() && sk) return { konum: serbestKonum(sk), hedef: [...sk.hedef], fov: Math.round(sk.fov) };
         if (a.kameraRig.sekansKamerasiAktif) return null;
         const g = a.kameraRig.gorunum();
         return { konum: [g.konum.x, g.konum.y, g.konum.z], hedef: [g.hedef.x, g.hedef.y, g.hedef.z], fov: Math.round(fovDerece(g.fov)) };
       },
       orion: () => { const o = a.avatar("orion"); return o ? { konum: o.cizimKonumu(), yaw: o.cizimYaw() } : null; },
+      serbest: { ac: () => serbest.ac(orionKadraji), kapat: () => serbest.kapat(), odakla: () => serbest.ayarla(orionKadraji()), aktifMi: () => serbest.aktifMi() },
     },
   });
   editorRef = editor;

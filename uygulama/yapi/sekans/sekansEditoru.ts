@@ -54,7 +54,11 @@ export interface SekansEditoruAyari {
   /** Control Rig (spec 38): sahnede kontrol şekilleri, auto-key. */
   rig: RigKipi;
   /** Kamera (spec 38 §7): önizleme sürücüsü, oyuncunun görünümü (derece görüş alanı), Orion'un konumu. */
-  kamera: { oynatici: KameraOynatici; gorunum(): { konum: Nokta3; hedef: Nokta3; fov: number } | null; orion(): { konum: { x: number; y: number; z: number }; yaw: number } | null };
+  kamera: {
+    oynatici: KameraOynatici; gorunum(): { konum: Nokta3; hedef: Nokta3; fov: number } | null; orion(): { konum: { x: number; y: number; z: number }; yaw: number } | null;
+    /** Serbest kamera (orbit/pan/zoom/uç): editör açılınca ac, gizlenince kapat; odakla Orion'un karşısına alır. */
+    serbest: { ac(): void; kapat(): void; odakla(): void; aktifMi(): boolean };
+  };
 }
 
 export interface SekansEditoru {
@@ -152,13 +156,14 @@ export function sekansEditoruKur(a: SekansEditoruAyari): SekansEditoru {
   const sigdirD = arac("⤢ Sığdır", "", "F — oynatma aralığını ekrana sığdır");
   const rigD = arac("🦴 Rig", "", "Control Rig: karakteri poz moduna al; sahnede şekillere tıkla, halkaları sürükle (değişiklik anahtar olur)");
   const kameraD = arac("🎥 Kamera", "", "Kamera sekmesini aç: isimli kameralar ve kesmeler");
+  const odakD = arac("🎯 Orion", "", "Serbest kamerayı Orion'un karşısına al. Sahnede: sağ tuş sürükle = orbit · orta tuş = pan · tekerlek = yakınlaş · sağ tuş + WASD/QE = uç (Shift hızlı)");
   const kaydetD = arac("💾 Kaydet", "", "Ctrl+S — biçim doğrulanır, bozuksa yazılmaz");
   const kapatD = arac("✕", "", "Editörü gizle (Esc) — sekmeler ve kaydedilmemiş değişiklik bellekte kalır");
   const playheadYazi = el("span", "kb-okuma");
   const aracSatiri = el("div", "kb-aracsatiri");
   aracSatiri.append(
     grup(basaD, geriD, ...oynatma.ogeler.slice(0, 2), ileriD, sonaD, oynatma.ogeler[2]!),
-    grup(anahtarD, yaslaD, sigdirD), grup(rigD, kameraD), playheadYazi, el("span", "kb-bosluk"), oynatma.satir, kaydetD, kapatD,
+    grup(anahtarD, yaslaD, sigdirD), grup(rigD, kameraD, odakD), playheadYazi, el("span", "kb-bosluk"), oynatma.satir, kaydetD, kapatD,
   );
 
   // ── menüler ──
@@ -216,7 +221,7 @@ export function sekansEditoruKur(a: SekansEditoruAyari): SekansEditoru {
   const menu = menuCubuguKur(menuler);
 
   kok.append(dok.tutamak, menu.kok, sekmeSatiri, aracSatiri,
-    ipucuSeridi("orion.sekansEditoru.ipucu.v2", "Cetvele tık/sürükle: playhead · ◆ anahtarı sürükle · mavi bölümü taşı · çift tık: ekle · 🦴 Rig: karakteri sahnede poza sok · 🎥 Kamera: kameralar ve kesmeler · tekerlek: yakınlaş · kenardan sürükle: editörü büyüt/küçült", "sk-ipucu", dugme),
+    ipucuSeridi("orion.sekansEditoru.ipucu.v3", "Cetvele tık/sürükle: playhead (beden o karede) · ← → kare kare · ◆ anahtarı sürükle · çift tık: ekle · 🦴 Rig · 🎥 Kamera · SAHNEDE: sağ tuş sürükle = orbit, orta tuş = pan, tekerlek = yakınlaş, sağ tuş + WASD/QE = uç · kenardan sürükle: editörü büyüt/küçült", "sk-ipucu", dugme),
     bant, govde, alt);
 
   // ── araç çubuğu olayları ──
@@ -229,6 +234,7 @@ export function sekansEditoruKur(a: SekansEditoruAyari): SekansEditoru {
   sigdirD.addEventListener("click", () => { sigdirD.blur(); zaman.sigdir(); });
   rigD.addEventListener("click", () => { rigD.blur(); rigDegistir(!rigIstegi); });
   kameraD.addEventListener("click", () => { kameraD.blur(); yan?.sec("kamera"); });
+  odakD.addEventListener("click", () => { odakD.blur(); a.kamera.serbest.odakla(); bildir("serbest kamera Orion'un karşısında", "iyi"); });
   kaydetD.addEventListener("click", () => { kaydetD.blur(); void kaydet(); });
   kapatD.addEventListener("click", () => { kapatD.blur(); escIste(); });
 
@@ -279,13 +285,14 @@ export function sekansEditoruKur(a: SekansEditoruAyari): SekansEditoru {
       const k = b.oynayanKare() ?? x?.kare ?? 0;
       playheadYazi.textContent = x ? `▸ ${kareYazisi(k)}` : "";
       kaydetD.disabled = !x || x.dis === "silindi";
-      for (const d of [anahtarD, yaslaD, sigdirD, rigD, kameraD, basaD, geriD, ileriD, sonaD]) d.disabled = !x;
+      for (const d of [anahtarD, yaslaD, sigdirD, rigD, kameraD, odakD, basaD, geriD, ileriD, sonaD]) d.disabled = !x;
       yaslaD.dataset.acik = x?.yasla ? "1" : "0";
       rigD.dataset.acik = a.rig.acikMi() ? "1" : "0";
       yan?.rozet("rig", a.rig.acikMi() ? "●" : "");
       zaman.ciz(); sol.ciz();
       const odak = document.activeElement;
-      if (!(odak && yan?.kok.contains(odak) && yaziAlaniMi(odak))) { sag.ciz(); rigPaneli.ciz(); kameraPaneli.ciz(); }   // yazılan yarım değer silinmesin
+      const duzenleniyor = odak && yan?.kok.contains(odak) && (yaziAlaniMi(odak) || (odak as HTMLElement).matches?.("input[type=range]"));   // yazılan yarım değer ve sürüklenen kaydırıcı silinmesin
+      if (!duzenleniyor) { sag.ciz(); rigPaneli.ciz(); kameraPaneli.ciz(); }   // yazılan yarım değer silinmesin
       const eksik = x ? eksikKlipler(x.sekans(), a.klipler) : [];
       if (eksik.length && mesaj.dataset.tur !== "hata") bildir(`⚠ kütüphanede olmayan klip: ${eksik.join(", ")} — bu sekans oynatılamaz (bölümün klibini Ayrıntılar'dan değiştir)`, "uyari");
       durumOkuma.textContent = x ? `${x.sekans().izler.length} iz · ${(x.sekans().kameralar ?? []).length} kamera · ${x.sekans().sure_kare} kare` : "";
@@ -392,6 +399,7 @@ export function sekansEditoruKur(a: SekansEditoruAyari): SekansEditoru {
         if (!kok.isConnected) document.body.append(kok);
         kok.dataset.acik = "1";
         dok.goster(true);
+        a.kamera.serbest.ac();
         addEventListener("keydown", yakala, { capture: true });
         addEventListener("keyup", yakala, { capture: true });
         a.gorunurlukDegisti?.(true);
@@ -408,6 +416,7 @@ export function sekansEditoruKur(a: SekansEditoruAyari): SekansEditoru {
     if (!acik) return;
     acik = false;
     a.rig.pozOnizleme(null, null);      // beden normal davranışına döner
+    a.kamera.serbest.kapat();           // serbest kamera bırakılır: oyuncunun kendi kamerası
     rigSenkron();                       // rig kapanır (kipi istek olarak kalır: tekrar açılınca geri gelir)
     kameraPaneli.kapat();
     menu.kapat();

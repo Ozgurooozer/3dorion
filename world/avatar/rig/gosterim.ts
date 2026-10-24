@@ -21,7 +21,7 @@ import { kanonikAta } from "../iskelet/kanonik.ts";
 import { KONTROLLER, kontrolRengi, type Kontrol } from "./kontroller.ts";
 import { RIG_EKSENLERI, type RigEkseni } from "./poz.ts";
 import type { EkranaKoy, V3 } from "./surukleme.ts";
-import { enYakinHalka } from "./halkaSecimi.ts";
+import { enYakinHalka, enYakinOk } from "./halkaSecimi.ts";
 
 /** Gösterimin avatardan istedikleri (Avatar'ın alt kümesi: sahte kaynakla başsız denenebilir). */
 export interface RigKaynagi {
@@ -32,11 +32,19 @@ export interface RigKaynagi {
 
 export type RigVurusu =
   | { tur: "kontrol"; id: string }
-  | { tur: "halka"; eksen: RigEkseni; nokta: V3 };
+  | { tur: "halka"; eksen: RigEkseni; nokta: V3 }
+  /** Taşı okunun ucu tutuldu (merkezden eksen yönünde). */
+  | { tur: "ok"; eksen: RigEkseni };
+
+/** Gizmo yönü: gövde eksenleri (gövdeyle döner) ya da dünya eksenleri. */
+export type RigUzayi = "govde" | "dunya";
+export interface RigModu { /** Döndürme halkaları görünsün mü. */ halka: boolean; /** Taşı okları görünsün mü. */ ok: boolean; uzay: RigUzayi }
 
 export interface RigGosterimi {
   etkin(a: boolean): void;
   etkinMi(): boolean;
+  /** Gizmo kipi: hangi tutamaçlar (halka/ok) ve hangi yönde (gövde/dünya) çizilsin. */
+  modAyarla(m: RigModu): void;
   seciliYap(id: string | null): void;
   /** Tuval pikselinde (CSS) tıklanan şey; yoksa null. Döndürme halkası kontrolden ÖNCE sayılır. */
   vurus(x: number, y: number): RigVurusu | null;
@@ -58,6 +66,9 @@ const TUTMA_KALINLIK = 0.05;
 const DONDURME_GORUNUR = 0.07;
 /** Halka seçimi: imleç halkanın ekrandaki çizgisine en çok bu kadar piksel uzaksa tutulur. */
 const HALKA_TUTMA_PIKSEL = 11;
+/** Taşı oku: uzunluk (m) ve tutma payı (px). */
+const OK_UZUNLUK = 0.34;
+const OK_TUTMA_PIKSEL = 12;
 
 function malzeme(sahne: Scene, ad: string, renk: Color3): StandardMaterial {
   const m = new StandardMaterial(ad, sahne);
@@ -132,6 +143,25 @@ export function rigGosterimiKur(sahne: Scene, kaynak: RigKaynagi): RigGosterimi 
     halkalar.set(e, { gorsel: g });
   }
   halkaDugumu.setEnabled(false);
+  // Taşı okları: halkalarla AYNI yönde duran ayrı düğüm (silindir + koni; X kırmızı, Y yeşil, Z mavi).
+  const okDugumu = new TransformNode("rig_oklar", sahne);
+  okDugumu.parent = kok;
+  for (const e of RIG_EKSENLERI) {
+    const g = MeshBuilder.CreateCylinder(`rig_ok_${e}`, { diameter: 0.012, height: OK_UZUNLUK * 0.82 }, sahne);
+    const uc = MeshBuilder.CreateCylinder(`rig_ok_uc_${e}`, { diameterTop: 0, diameterBottom: 0.05, height: OK_UZUNLUK * 0.22 }, sahne);
+    const m = malzeme(sahne, `rig_okm_${e}`, RENK[e]);
+    for (const x of [g, uc]) { x.material = m; isaretle(x, { rig: false }); x.parent = okDugumu; }
+    // Silindir ekseni varsayılan Y: eksene göre döndür ve ekseni boyunca kaydır.
+    const yon = e === "x" ? new Vector3(1, 0, 0) : e === "y" ? new Vector3(0, 1, 0) : new Vector3(0, 0, 1);
+    for (const [x, uzak] of [[g, OK_UZUNLUK * 0.41], [uc, OK_UZUNLUK * 0.89]] as const) {
+      x.position.copyFrom(yon.scale(uzak));
+      if (e === "x") x.rotation.z = -Math.PI / 2; if (e === "z") x.rotation.x = Math.PI / 2;
+    }
+  }
+  okDugumu.setEnabled(false);
+  let okAcik = false;
+  const okGoster = (g: boolean): void => { if (g !== okAcik) { okAcik = g; okDugumu.setEnabled(g); } };
+  let mod: RigModu = { halka: true, ok: false, uzay: "govde" };
   let halkaAcik = false;
   const halkaGoster = (g: boolean): void => { if (g !== halkaAcik) { halkaAcik = g; halkaDugumu.setEnabled(g); } };
   const kontrolGoster = (c: KontrolCizimi, g: boolean): void => { if (g !== c.acik) { c.acik = g; c.dugum.setEnabled(g); } };
@@ -157,12 +187,16 @@ export function rigGosterimiKur(sahne: Scene, kaynak: RigKaynagi): RigGosterimi 
     }
     const s = secilen();
     const sp = s ? kaynak.uzuvKonumu(s.kontrol.uzuv) : null;
-    halkaGoster(sp !== null && s !== null);
+    halkaGoster(sp !== null && s !== null && mod.halka);
+    okGoster(sp !== null && s !== null && mod.ok);
     if (s && sp) {
+      const yonu = mod.uzay === "govde" ? Quaternion.RotationYawPitchRoll(yaw, 0, 0) : Quaternion.Identity();
       halkaDugumu.position.set(sp.x, sp.y, sp.z);
-      halkaDugumu.rotationQuaternion = Quaternion.RotationYawPitchRoll(yaw, 0, 0);
+      halkaDugumu.rotationQuaternion = yonu;
       const r = Math.max(s.kontrol.yaricap * 1.9, 0.14);
       halkaDugumu.scaling.setAll(r);
+      okDugumu.position.set(sp.x, sp.y, sp.z);
+      okDugumu.rotationQuaternion = yonu.clone();
     }
   }
   const gozcu = sahne.onBeforeRenderObservable.add(guncelle);
@@ -188,6 +222,10 @@ export function rigGosterimiKur(sahne: Scene, kaynak: RigKaynagi): RigGosterimi 
     if (!acik) return null;
     // Seçili kontrolün döndürme halkaları ÖNCE (üst üste binen kalın tıklama tüpleri yanlış halkayı seçerdi): ekranda çizgiye en yakın halka.
     const m = merkezKonumu();
+    if (okAcik && m) {
+      const sec = enYakinOk({ merkez: m, x: yonu("x"), y: yonu("y"), z: yonu("z"), uzunluk: OK_UZUNLUK }, ekranaKoyF(), x, y, OK_TUTMA_PIKSEL);
+      if (sec) return { tur: "ok", eksen: sec.eksen };
+    }
     if (halkaAcik && m) {
       const sec = enYakinHalka({ merkez: m, y: yonu("y"), x: yonu("x"), z: yonu("z"), yaricap: halkaDugumu.scaling.x }, ekranaKoyF(), x, y, HALKA_TUTMA_PIKSEL);
       if (sec) return { tur: "halka", eksen: sec.eksen, nokta: sec.nokta };
@@ -203,7 +241,8 @@ export function rigGosterimiKur(sahne: Scene, kaynak: RigKaynagi): RigGosterimi 
   }
 
   return {
-    etkin(a) { acik = a; if (!a) { for (const c of cizimler) kontrolGoster(c, false); halkaGoster(false); } },
+    etkin(a) { acik = a; if (!a) { for (const c of cizimler) kontrolGoster(c, false); halkaGoster(false); okGoster(false); } },
+    modAyarla(m) { mod = { ...m }; },
     etkinMi: () => acik,
     seciliYap(id) {
       secili = id;

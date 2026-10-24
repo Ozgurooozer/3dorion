@@ -4,7 +4,7 @@
 // sürükler ("sol dirsek gövdenin yan ekseninde 20° daha bük"): yeni dönme = Eksen(açı) · mevcut dönme (gövde uzayında SOLDAN çarpım), sonra YENİDEN Euler
 // (matris.ts; öncekine en yakın çözüm, ±180 sarma ve gimbal dikkate alınır). Üç kanalı ayrı ayrı oynatmak gimbal'da şaşırtırdı.
 "use strict";
-import { Rx, Ry, Rz, DERECE, carp, eulerdenMatris, matristenEuler, type Euler, type M3 } from "./matris.ts";
+import { Rx, Ry, Rz, DERECE, carp, eksenAci, eulerdenMatris, matristenEuler, type Euler, type M3, type V3 } from "./matris.ts";
 
 export type { Euler };
 export type RigEkseni = "x" | "y" | "z";
@@ -20,6 +20,29 @@ export function eksendeDondur(mevcut: Euler, eksen: RigEkseni, derece: number): 
   const r = carp(eksenMatrisi(eksen, derece), eulerdenMatris(mevcut.x, mevcut.y, mevcut.z));
   const { gimbal: _g, ...e } = matristenEuler(r, mevcut);
   return e;
+}
+
+/**
+ * Keyfi GÖVDE-UZAYI ekseni etrafında döndürme (birim vektör): Dünya yönü için dünya ekseni önce gövdeye çevrilir (`dunyaEkseniGovdeye`), sonra burada kullanılır.
+ * Gövde ekseni x/y/z ile `eksendeDondur` aynı sonucu verir.
+ */
+export function eksenVektorundeDondur(mevcut: Euler, eksen: V3, derece: number): Euler {
+  const r = carp(eksenAci(eksen, derece * DERECE), eulerdenMatris(mevcut.x, mevcut.y, mevcut.z));
+  const { gimbal: _g, ...e } = matristenEuler(r, mevcut);
+  return e;
+}
+
+/** Dünya ekseni → gövde ekseni: gövde `yaw` (radyan; Babylon Ry) kadar dönük olduğundan dünya vektörü −yaw ile gövde uzayına alınır. */
+export function dunyaEkseniGovdeye(eksen: V3, yaw: number): V3 {
+  const c = Math.cos(-yaw), s = Math.sin(-yaw);
+  return [c * eksen[0] + s * eksen[2], eksen[1], -s * eksen[0] + c * eksen[2]];
+}
+
+/** Sol↔sağ yansıtma (gövdenin orta düzlemi, x → −x): R' = M·R·M, M = diag(−1, 1, 1). Yan eksen (x) dönmesi aynı kalır, y ve z işaret değiştirir. */
+export function yansit(e: Euler): Euler {
+  const M: M3 = [-1, 0, 0, 0, 1, 0, 0, 0, 1];
+  const { gimbal: _g, ...y } = matristenEuler(carp(M, carp(eulerdenMatris(e.x, e.y, e.z), M)), e);
+  return y;
 }
 
 export const eulerEsit = (a: Euler, b: Euler, tolerans = 1e-6): boolean => Math.abs(a.x - b.x) <= tolerans && Math.abs(a.y - b.y) <= tolerans && Math.abs(a.z - b.z) <= tolerans;

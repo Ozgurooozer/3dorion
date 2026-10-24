@@ -52,3 +52,18 @@ export function enYakinHalka(d: HalkaDuzeni, ekranaKoy: EkranaKoy, x: number, y:
   }
   return en;
 }
+
+export interface OkDuzeni { merkez: V3; x: V3; y: V3; z: V3; /** Ok uzunluğu (m). */ uzunluk: number }
+
+/** İmlece en yakın TAŞI oku (merkezden eksen yönünde `uzunluk` boyunca doğru parçası; ekranda ≤ `esik` px); yoksa null. Eşitlikte X, Y, Z sırası. */
+export function enYakinOk(d: OkDuzeni, ekranaKoy: EkranaKoy, x: number, y: number, esik: number): { eksen: RigEkseni; uzaklik: number } | null {
+  const a = ekranaKoy(d.merkez);
+  let en: { eksen: RigEkseni; uzaklik: number } | null = null;
+  for (const e of ["x", "y", "z"] as const) {
+    const v = e === "x" ? d.x : e === "y" ? d.y : d.z;
+    const b = ekranaKoy([d.merkez[0] + v[0] * d.uzunluk, d.merkez[1] + v[1] * d.uzunluk, d.merkez[2] + v[2] * d.uzunluk]);
+    const r = parcayaUzaklik(x, y, a.x, a.y, b.x, b.y);
+    if (r.uzak <= esik && (!en || r.uzak < en.uzaklik - 1e-9)) en = { eksen: e, uzaklik: r.uzak };
+  }
+  return en;
+}

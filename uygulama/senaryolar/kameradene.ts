@@ -102,10 +102,6 @@ export async function kos(d: SenaryoBaglami): Promise<void> {
   await bekle(300);
   kontrol("C4 ▶ sırasında kamera 1. kameradan 2. kameraya gitti", r.ok && uzaklik(pBas, k1.konum) < 0.3 && uzaklik(pSon, k2.konum) < 0.3, r.ok ? `başta ${uzaklik(pBas, k1.konum).toFixed(2)} m (1. kamera), sonda ${uzaklik(pSon, k2.konum).toFixed(2)} m (2. kamera)` : r.neden);
   await kare("06_oynatma_bitti");
-  await bekle(1500);
-  const geriPoz = kamPoz();
-  kontrol("C4b oynatma bitince kamera oyuncuya döndü (2. kameradan uzak)", !d.rig.sekansKamerasiAktif && uzaklik(geriPoz, k2.konum) > 0.5 && uzaklik(geriPoz, sonrakiOyuncu) < 0.6,
-    `aktif=${d.rig.sekansKamerasiAktif} · 2. kameradan ${uzaklik(geriPoz, k2.konum).toFixed(2)} m · oyuncu görünümüne ${uzaklik(geriPoz, sonrakiOyuncu).toFixed(2)} m (ilk oyuncu poz ${uzaklik(oyuncuPoz, sonrakiOyuncu).toFixed(2)} m)`);
 
   // C5: yalnız kamera kesmeli, hareketsiz sekans oynar ve biter.
   const bos = sekansDogrula({ surum: 1, ad: "kamera_denemesi", fps: 30, sure_kare: 60, baglamalar: [{ id: "b1", ajan: "orion" }], izler: [], kameralar: oturum.sekans().kameralar, kesmeler: [{ kare: 0, kamera: k1.id }, { kare: 30, kamera: k2.id }] });
@@ -116,8 +112,43 @@ export async function kos(d: SenaryoBaglami): Promise<void> {
     kontrol("C5 yalnız kamera kesmeli sekans oynar ve 'bitti' olur", r5.ok && son?.sekans === "kamera_denemesi" && son.durum === "bitti", r5.ok ? `son=${son?.durum ?? "yok"}${son?.neden ? ` (${son.neden})` : ""}` : r5.neden);
   } else kontrol("C5 yalnız kamera kesmeli sekans oynar", false, bos.hata);
 
+  // C6: SERBEST KAMERA (orbit, zoom, uç) — editör açıkken sahnede gerçek fare/klavye olaylarıyla (sağ tuş sürükle, tekerlek, sağ tuş + W).
+  const tuval = d.sahne.getEngine().getRenderingCanvas()!;
+  const orionKonum = d.orion!.durum().konum;
+  const orionMerkez: number[] = [orionKonum.x, orionKonum.y + 1.15, orionKonum.z];
+  const sk0 = kamPoz();
+  const ptr = (tur: string, init: PointerEventInit) => tuval.dispatchEvent(new PointerEvent(tur, { bubbles: true, cancelable: true, pointerId: 7, ...init }));
+  ptr("pointerdown", { button: 2, buttons: 2, clientX: 400, clientY: 200 });
+  for (let i = 1; i <= 10; i++) { ptr("pointermove", { clientX: 400 + i * 20, clientY: 200 + i * 3 }); await bekle(20); }
+  ptr("pointerup", { button: 2, clientX: 600, clientY: 230 });
+  await bekle(300);
+  const sk1 = kamPoz();
+  kontrol("C6 orbit: sağ tuş sürükleyince kamera döndü, Orion'a uzaklık korundu", uzaklik(sk0, sk1) > 0.5 && Math.abs(uzaklik(sk0, orionMerkez) - uzaklik(sk1, orionMerkez)) < 0.15,
+    `kamera ${uzaklik(sk0, sk1).toFixed(2)} m yer değiştirdi · Orion'a uzaklık ${uzaklik(sk0, orionMerkez).toFixed(2)} → ${uzaklik(sk1, orionMerkez).toFixed(2)} m`);
+  await kare("07_orbit");
+  tuval.dispatchEvent(new WheelEvent("wheel", { bubbles: true, cancelable: true, deltaY: -300 }));
+  await bekle(300);
+  const sk2 = kamPoz();
+  kontrol("C6b zoom: tekerlek yukarı kamerayı Orion'a yaklaştırdı", uzaklik(sk2, orionMerkez) < uzaklik(sk1, orionMerkez) - 0.3, `${uzaklik(sk1, orionMerkez).toFixed(2)} → ${uzaklik(sk2, orionMerkez).toFixed(2)} m`);
+  ptr("pointerdown", { button: 2, buttons: 2, clientX: 400, clientY: 200 });
+  document.body.dispatchEvent(new KeyboardEvent("keydown", { code: "KeyW", key: "w", bubbles: true }));
+  await bekle(700);
+  document.body.dispatchEvent(new KeyboardEvent("keyup", { code: "KeyW", key: "w", bubbles: true }));
+  ptr("pointerup", { button: 2, clientX: 400, clientY: 200 });
+  await bekle(250);
+  const sk3 = kamPoz();
+  kontrol("C6c uç: sağ tuş + W kamerayı ileri taşıdı", uzaklik(sk2, sk3) > 0.8, `${uzaklik(sk2, sk3).toFixed(2)} m ilerledi`);
+  ptr("pointerup", { button: 2, clientX: 400, clientY: 200 });
+  const t0b = kamPoz();
+  document.body.dispatchEvent(new KeyboardEvent("keydown", { code: "KeyW", key: "w", bubbles: true }));
+  await bekle(400);
+  document.body.dispatchEvent(new KeyboardEvent("keyup", { code: "KeyW", key: "w", bubbles: true }));
+  kontrol("C6d sağ tuş basılı DEĞİLKEN W kamerayı oynatmaz", uzaklik(t0b, kamPoz()) < 0.05, `${uzaklik(t0b, kamPoz()).toFixed(3)} m`);
   d.sekans.editor.gizle();
-  await bekle(500);
+  await bekle(1800);
+  const geriPoz = kamPoz();
+  kontrol("C4b editör kapanınca kamera oyuncuya döndü (serbest kameradan uzak, oyuncu görünümüne yakın)", !d.rig.sekansKamerasiAktif && uzaklik(geriPoz, sk3) > 0.5 && uzaklik(geriPoz, oyuncuPoz) < 0.6,
+    `aktif=${d.rig.sekansKamerasiAktif} · editörden önceki oyuncu görünümüne ${uzaklik(geriPoz, oyuncuPoz).toFixed(2)} m`);
   d.rig.odakBirak();
   bitir();
 }

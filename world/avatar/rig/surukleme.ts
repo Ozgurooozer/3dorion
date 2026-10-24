@@ -35,3 +35,14 @@ export function surukleAcisi(merkez: V3, eksen: V3, nokta: V3, ekranaKoy: Ekrana
   const sinir = enBuyukAdim;                                                // tek fare olayında en çok ~20°
   return Math.max(-sinir, Math.min(sinir, aci));
 }
+
+/**
+ * TAŞI oku sürükleme: fare farkı (piksel) → eksen boyunca metre. Eksenin BİR METRESİNİN ekrandaki izdüşümü `s` (piksel/metre); fare farkının ona izdüşümü metreyi verir.
+ * Eksen kameraya doğru bakıyorsa (izdüşümü ~0) yön yoktur → 0 (sonsuz hassasiyet yok). Tek olayda en çok 0,25 m.
+ */
+export function surukleOtelemesi(merkez: V3, eksen: V3, ekranaKoy: EkranaKoy, dx: number, dy: number, enBuyuk = 0.25): number {
+  const a = ekranaKoy(merkez), b = ekranaKoy(topla(merkez, eksen));
+  const sx = b.x - a.x, sy = b.y - a.y, s2 = sx * sx + sy * sy;
+  if (s2 < 1e-6) return 0;
+  return Math.max(-enBuyuk, Math.min(enBuyuk, (dx * sx + dy * sy) / s2));
+}
