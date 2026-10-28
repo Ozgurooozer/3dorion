@@ -104,3 +104,13 @@ Veri açık ve erişimi kolay:
 
 Zihin duvarına connectome'dan ilham alan bir görselleştirme yapılabilir ama
 bu SÜS olur; işlevsel katkısı yok.
+
+## Orion'a telefondan uzaktan bağlanma (Ozyn, 2026-10-28)
+
+Amaç: bu bilgisayardaki Orion'a telefondan, Claude Code `/remote-control` gibi bağlanmak; görsel geri bildirim şart. Anydesk tarzı da olur.
+Yollar (süreler TAHMİN, hiçbiri denenmedi):
+- **A. Hazır uzaktan masaüstü** (Tailscale + Sunshine/Moonlight, Parsec, AnyDesk): bugün, 1–2 saat, kod yok.
+- **B. Kendi mobil web sayfası (PWA)**: `host/`ta küçük HTTP + WebSocket sunucusu; söz `sozAlindi`'den girer (yeni eylem yolu YOK). Görüntü: `capturePage` JPEG 5–10 fps; akıcısı canvas `captureStream` + WebRTC. MVP 1–2 gün, cilalı 3–5 gün, WebRTC +2–3 gün. Spec 41 adayı.
+- **C. Yerel uygulama** (Flutter/React Native): 2–3 hafta; B yeterliyse gereksiz.
+Öneri: önce A, ihtiyaç netleşince B.
+Güvenlik: internete port açma, yalnız Tailscale + eşleştirme token'ı; telefondan komut onayı yeni bir onay yolu açar → ilk sürümde YOK (yalnız görme + konuşma); ▶ ⚡ `isTrusted` kuralı uzaktan sentetik tıklamayla çalışmaz (bilinçli).
