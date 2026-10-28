@@ -4,7 +4,7 @@
 // rozete tık aktif/pasif çevirir. Üstte özet: kaç dosya, kaç token bağlama giriyor, neyin sınıra takılıp girmediği (sessiz değil). Mantık `mind/mdBaglami.ts`te (testli);
 // burası çizer. Dosyalar host'tadır (`uygulama/mdDeposu.ts`): bu sekme yalnız depoyla konuşur.
 "use strict";
-import type { Sekme, SekmeAraci, SekmeIcerigi } from "../../world/arayuz/altCubuk.ts";
+import type { Sekme, SekmeAraci, SekmeIcerigi } from "./ortak/yapiPaneli.ts";
 import type { MdBilgisi, MdDeposu } from "../mdDeposu.ts";
 import { ANLIK_HAFIZA, mdAdiGecerli } from "../../mind/mdBaglami.ts";
 

@@ -28,7 +28,7 @@ export interface GozPaneliAyari {
 }
 
 const CSS = `
-#gozPaneli { position: fixed; top: 64px; right: 16px; width: min(520px, calc(100vw - 32px)); z-index: 55; display: none; flex-direction: column; gap: 8px;
+#gozPaneli { position: fixed; top: 64px; right: calc(16px + var(--dok-sag, 0px));   /* dok sağ bölgesinin dışında (spec 41) */ width: min(520px, calc(100vw - 32px)); z-index: 55; display: none; flex-direction: column; gap: 8px;
   background: rgba(10,14,24,0.96); color: #d7dcea; border: 1px solid #2a3246; border-radius: 10px; padding: 12px 14px; font: 13px/1.45 'Segoe UI', system-ui, sans-serif;
   box-shadow: none; }
 #gozPaneli[data-acik="1"] { display: flex; }

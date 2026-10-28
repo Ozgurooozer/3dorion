@@ -4,7 +4,7 @@
 // tık hayaleti bırakır. Sol listeden süzgeç (Tümü / ★ Favoriler / Son kullanılan / kategoriler), üstte arama; ★ ile favori. Hangi kartın görüneceği
 // `assetSuzgeci.ts`te (testli); burası çizer. Katalog dünya hazır olunca yüklenir: o zamana dek "yükleniyor" yazar ve yarım saniyede bir yoklar.
 "use strict";
-import type { Sekme, SekmeAraci, SekmeIcerigi } from "../../world/arayuz/altCubuk.ts";
+import type { Sekme, SekmeAraci, SekmeIcerigi } from "./ortak/yapiPaneli.ts";
 import type { AssetKarti } from "../assetListesi.ts";
 import { SUZGEC_FAVORI, SUZGEC_SON, SUZGEC_TUM, favoriDegistir, kartlariSuz, listeyiOku, listeyiYaz, sonEkle, suzgeciDogrula, suzgecSayilari } from "./assetSuzgeci.ts";
 

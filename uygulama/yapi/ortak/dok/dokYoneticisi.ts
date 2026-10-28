@@ -22,6 +22,12 @@ export interface DokPaneli {
   /** Sahibi için şu an anlamlı mı (ör. editör açık). Varsayılan true. Görünmeyen panel sekme/bölge açmaz. */
   gorunur?: boolean;
   ipucu?: string;
+  /** Sekme başlığındaki simge (emoji ya da 1–2 karakter). */
+  simge?: string;
+  /** Panel ekranda göründüğünde (etkin sekme ya da yüzer pencere) — içeriği tembel kurmak için. */
+  goster?(): void;
+  /** Panel ekrandan gittiğinde (sekme değişti, bölge kapandı, imleç kipi kapandı). */
+  gizle?(): void;
 }
 
 export interface DokYoneticisi {
@@ -32,6 +38,16 @@ export interface DokYoneticisi {
   sec(id: string): void;
   /** Sekme başlığındaki işaret (ör. "●"). */
   rozet(id: string, metin: string): void;
+  /** Etkin sekmenin yanında, şeridin sağında tek satır bağlam ipucu ("sol tık seç · Esc çık"). Panel etkin değilse yazılır, görünmez. */
+  bilgi(id: string, metin: string): void;
+  /** Bütün panelleri gizle/göster (Y). Düzen ve kayıt değişmez. */
+  tumunuGoster(g: boolean): void;
+  /** İmleç kipi açık mı: fare serbestken panel bölgeleri tıklanabilir ve görünür (kapalıyken oyun alanını daraltmaz). */
+  kipGorunur(g: boolean): void;
+  /** Panellerin ŞU AN görünür olup olmadığı (imleç kipi açık VE gizlenmemiş). */
+  gorunurMu(): boolean;
+  /** Y ile gizlenmemiş mi (imleç kipinden bağımsız). */
+  acikMi(): boolean;
   duzen(): Duzen;
   tasi(id: string, bolge: Bolge, sira?: number): Sonuc;
   kapat(id: string): void;
@@ -58,21 +74,33 @@ export function dokYoneticisiKur(anahtar: string): DokYoneticisi {
   kok.append(depo, ipucuKutusu);
 
   const kayitlar: PanelKaydi[] = [];
-  const paneller = new Map<string, { p: DokPaneli; rozet: string; gorunur: boolean }>();
+  const paneller = new Map<string, { p: DokPaneli; rozet: string; gorunur: boolean; bilgi: string }>();
   const ham = (() => { try { return localStorage.getItem(anahtar); } catch { return null; } })();
   let duzen: Duzen = varsayilanDuzen([]);
   let degisti = false;   // kullanıcı bu oturumda düzeni değiştirdi mi (sonradan kaydolan panel için kayıtlı metin mi yoksa canlı düzen mi okunur)
   let surukle: string | null = null, cizimBekliyor = false;
   let ipucuZamani: ReturnType<typeof setTimeout> | undefined;
+  // Görünürlük iki kapılı: imleç kipi (fare serbest değilken panel tıklanamaz, oyun alanı daralmaz) VE Y ile gizlenmemiş olmalı.
+  let kipAcik = false, tumuAcik = true;
+  let canli = new Set<string>();   // ekranda şu an görünen paneller (goster/gizle geçişleri için)
+  const acikOrtam = (): boolean => kipAcik && tumuAcik;
 
   const kaydetDepo = (): void => { try { localStorage.setItem(anahtar, serilestir(duzen)); } catch { /* depo yok: yalnız bu açılış */ } };
-  const gorunenler = (b: Bolge): string[] => duzen.gruplar[b].filter((id) => paneller.get(id)?.gorunur);
+  const gorunenler = (b: Bolge): string[] => acikOrtam() ? duzen.gruplar[b].filter((id) => paneller.get(id)?.gorunur) : [];
   const etkinOf = (b: KenarBolge): string | null => { const g = gorunenler(b); return duzen.etkin[b] && g.includes(duzen.etkin[b]!) ? duzen.etkin[b] : (g[0] ?? null); };
   const ad = (id: string): string => paneller.get(id)?.p.kayit.ad ?? id;
 
   function ipucu(metin: string): void {
     ipucuKutusu.textContent = metin; ipucuKutusu.dataset.acik = "1";
     clearTimeout(ipucuZamani); ipucuZamani = setTimeout(() => { ipucuKutusu.dataset.acik = "0"; }, IPUCU_MS);
+  }
+
+  /** Bölgenin payını sahneye yazar: sol/sağ/alt için `--dok-*`; alt bölge ayrıca `--alt-cubuk` (altyazı, sohbet ve sahnenin alt payı bundan okur). `null` = bölge kapalı. */
+  function boyutuYay(b: KenarBolge, px: number | null): void {
+    const s = document.documentElement.style;
+    if (px === null) { s.removeProperty(`--dok-${b}`); if (b === "alt") s.removeProperty("--alt-cubuk"); return; }
+    s.setProperty(`--dok-${b}`, `${px}px`);
+    if (b === "alt") s.setProperty("--alt-cubuk", `${px}px`);
   }
 
   // ── çizim ──
@@ -83,11 +111,12 @@ export function dokYoneticisiKur(anahtar: string): DokYoneticisi {
     for (const b of KENAR_BOLGELER) {
       const r = bolgeler[b], ids = gorunenler(b), etkin = etkinOf(b);
       r.kok.dataset.acik = ids.length ? "1" : "0";
-      if (ids.length) document.documentElement.style.setProperty(`--dok-${b}`, `${duzen.boyut[b]}px`);
-      else document.documentElement.style.removeProperty(`--dok-${b}`);
+      if (ids.length) boyutuYay(b, duzen.boyut[b]);
+      else boyutuYay(b, null);
       const kapatDugme = el("button", "dk-ikon", "✕"); kapatDugme.type = "button"; kapatDugme.title = "Etkin paneli kapat (Pencere menüsünden geri açılır)";
       kapatDugme.addEventListener("click", () => { kapatDugme.blur(); const e = etkinOf(b); if (e) kapat(e); });
-      r.serit.replaceChildren(...ids.map((id) => sekmeYap(id, id === etkin)), el("span", "dk-bosluk"), kapatDugme);
+      const bilgi = el("span", "dk-bilgi", etkin ? (paneller.get(etkin)?.bilgi ?? "") : "");
+      r.serit.replaceChildren(...ids.map((id) => sekmeYap(id, id === etkin)), el("span", "dk-bosluk"), bilgi, kapatDugme);
       for (const id of ids) {
         const ic = paneller.get(id)!.p.icerik;
         ic.dataset.dok = "1"; ic.dataset.etkin = id === etkin ? "1" : "0"; kullanilan.add(id);
@@ -110,13 +139,23 @@ export function dokYoneticisiKur(anahtar: string): DokYoneticisi {
     for (const [id, v] of paneller) if (!kullanilan.has(id) && v.p.icerik.parentElement !== depo) depo.append(v.p.icerik);   // kapalı/görünmeyen: gizli depo
     // Boş bölgelerin sürükleme hedefi kenar şeridi olarak görünür
     for (const b of KENAR_BOLGELER) hedefler[b].dataset.var = gorunenler(b).length === 0 ? "1" : "0";
+    // Ekranda görünenler: her kenarda yalnız ETKİN sekme (içeriği görünür), yüzerlerin hepsi. Geçişte callback'ler bir kez çağrılır.
+    const simdi = new Set<string>();
+    for (const b of KENAR_BOLGELER) { const e = etkinOf(b); if (e) simdi.add(e); }
+    for (const id of yuzerIds) simdi.add(id);
+    const giden = [...canli].filter((id) => !simdi.has(id)), gelen = [...simdi].filter((id) => !canli.has(id));
+    canli = simdi;   // önce yaz: callback içinde ciz() çağrılırsa geçişler yinelenmez
+    for (const id of giden) paneller.get(id)?.p.gizle?.();
+    for (const id of gelen) paneller.get(id)?.p.goster?.();
   }
 
   function sekmeYap(id: string, etkin: boolean): HTMLButtonElement {
     const s = el("button", "dk-sekme"); s.type = "button"; s.draggable = true; s.dataset.panel = id; s.dataset.etkin = etkin ? "1" : "0";
-    const roz = paneller.get(id)?.rozet;
-    s.textContent = roz ? `${ad(id)} ${roz}` : ad(id);
-    s.title = `${paneller.get(id)?.p.ipucu ?? ad(id)} — sürükleyip başka bölgeye bırak`;
+    const p = paneller.get(id);
+    if (p?.p.simge) s.append(el("span", "dk-simge", p.p.simge));
+    s.append(ad(id));
+    if (p?.rozet) s.append(el("span", "dk-rozet", p.rozet));
+    s.title = `${p?.p.ipucu ?? ad(id)} — sürükleyip başka bölgeye bırak`;
     s.addEventListener("click", () => { s.blur(); duzen = etkinYap(duzen, id); kaydetDepo(); ciz(); });
     s.addEventListener("dragstart", (e) => {
       surukle = id; s.dataset.surukleniyor = "1";
@@ -233,7 +272,7 @@ export function dokYoneticisiKur(anahtar: string): DokYoneticisi {
       const hareket = (m: PointerEvent): void => {
         const kutu = r.getBoundingClientRect();
         duzen = boyutAyarla(duzen, b, b === "sol" ? m.clientX : b === "sag" ? innerWidth - m.clientX : kutu.bottom - m.clientY);
-        document.documentElement.style.setProperty(`--dok-${b}`, `${duzen.boyut[b]}px`);
+        boyutuYay(b, duzen.boyut[b]);
       };
       const bitir = (): void => {
         tutamak.dataset.surukle = "0"; tutamak.removeEventListener("pointermove", hareket); tutamak.removeEventListener("pointerup", bitir); tutamak.removeEventListener("pointercancel", bitir);
@@ -281,7 +320,7 @@ export function dokYoneticisiKur(anahtar: string): DokYoneticisi {
     kok,
     kaydet(p) {
       if (paneller.has(p.kayit.id)) throw new Error(`dok paneli zaten kayıtlı: ${p.kayit.id}`);
-      kayitlar.push(p.kayit); paneller.set(p.kayit.id, { p, rozet: "", gorunur: p.gorunur ?? true });
+      kayitlar.push(p.kayit); paneller.set(p.kayit.id, { p, rozet: "", gorunur: p.gorunur ?? true, bilgi: "" });
       duzen = oku(degisti ? serilestir(duzen) : ham, kayitlar);
       p.icerik.dataset.dok = "1"; depo.append(p.icerik);
       ciz();
@@ -296,9 +335,14 @@ export function dokYoneticisiKur(anahtar: string): DokYoneticisi {
     sifirla,
     ekrandaMi(id) {
       const v = paneller.get(id), b = panelBolgesi(duzen, id);
-      if (!v || !v.gorunur || !b || duzen.kapali.includes(id)) return false;
+      if (!v || !v.gorunur || !b || duzen.kapali.includes(id) || !acikOrtam()) return false;
       return b === "yuzer" || etkinOf(b) === id;
     },
+    bilgi(id, metin) { const v = paneller.get(id); if (!v || v.bilgi === metin) return; v.bilgi = metin; ciz(); },
+    tumunuGoster(g) { if (tumuAcik === g) return; tumuAcik = g; ciz(); },
+    kipGorunur(g) { if (kipAcik === g) return; kipAcik = g; ciz(); },
+    gorunurMu: acikOrtam,
+    acikMi: () => tumuAcik,
     iceriyor: (n) => !!n && kok.contains(n),
     menuSatirlari() {
       const satirlar: MenuSatiri[] = kayitlar.map((k): MenuSatiri => ({

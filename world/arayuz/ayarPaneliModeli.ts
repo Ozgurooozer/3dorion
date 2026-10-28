@@ -1,6 +1,6 @@
 // world/arayuz/ayarPaneliModeli.ts — AJAN AYAR PANELİ MODELİ (spec 34): bölüm kaydı + panel açık/kapalı + hangi ajanın paneli + bölümlerin açık/kapalı hâli. SAF.
 //
-// Panel bir ÇERÇEVEDİR (Yapı çubuğunun sekme kaydıyla aynı fikir, `altCubukModeli.ts`): içerik bölümlerden gelir (`uygulama/ayar/*`), yeni özellik = yeni bölüm.
+// Panel bir ÇERÇEVEDİR (Yapı panellerinin sekme kaydıyla aynı fikir, `uygulama/yapi/ortak/yapiPaneli.ts`): içerik bölümlerden gelir (`uygulama/ayar/*`), yeni özellik = yeni bölüm.
 // Çekirdek bölümleri TANIMAZ; yalnız kimlik, ad, sıra ve hangi ajanlara ait olduklarını bilir. Bugün yalnız Orion'un paneli var; Flash (spec 33) ya da sonraki
 // ajan aynı kayda kendi bölümünü `ajanlar: ["flash"]` diye ekler — çekirdek değişmez.
 //   • Sıra: `sira` küçük önce; eşitse ekleme sırası. Aynı kimlik iki kez eklenemez (HATA: sessizce üstüne yazmak bölümü kaybettirirdi).

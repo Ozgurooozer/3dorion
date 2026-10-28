@@ -161,8 +161,6 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
       // Mesh'siz şema (spec 33): duvarı olmayan ajanın (Flash) zihin akışı; Yapı çubuğu · Zihin sekmesinin ajan sayfası.
       "world/surfaces/duvar/semaTuvali.ts",
       "world/arayuz/modelSecici.ts", "world/arayuz/stilPenceresi.ts",
-      // Alt çubuk (Yapı çubuğu): sekmeli, açılır-kapanır alt panel çerçevesi; sekme içerikleri uygulama katmanında (uygulama/yapi/).
-      "world/arayuz/altCubuk.ts", "world/arayuz/altCubukModeli.ts",
       // Oyun içi metin düzenleyici pencereleri (Hafıza sekmesi, spec 32); mantığı editorModeli.ts'te (aynı alt-sistem, kamu değil).
       "world/arayuz/editorPenceresi.ts",
       // Ajan ayar paneli (spec 34): Orion seçilince soldaki bölümlü pencere; modeli ayarPaneliModeli.ts, jetonları arayuzJetonlari.ts (dilim 2b'den beri kamu, aşağıda).

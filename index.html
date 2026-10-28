@@ -5,15 +5,17 @@
 <title>Orion — Sanal Alan</title>
 <style>
   html, body { margin: 0; height: 100%; background: #07070d; overflow: hidden; }
-  /* Editör (Sekans) ve Yapı çubuğu açıkken tuval küçülür: sahne dokun arkasında KALMAZ (spec 38 §6). */
-  #tuval { width: calc(100% - var(--dok-sol, 0px) - var(--dok-sag, 0px)); margin-left: var(--dok-sol, 0px); margin-top: var(--editor-ust, 0px); height: calc(100% - var(--editor-ust, 0px) - var(--dok-alt, 0px) - max(var(--alt-cubuk, 0px), var(--editor-alt, 0px))); display: block; outline: none; touch-action: none; }
+  /* ALT YIĞIN: dok'un alt bölgesi (--alt-cubuk) + sekans editörünün payı (--editor-alt). Tuval, altyazı ve sohbet bunun üstünde durur (spec 41). */
+  html { --alt-yigin: calc(var(--alt-cubuk, 0px) + var(--editor-alt, 0px)); }
+  /* Editör (Sekans) ve dok açıkken tuval küçülür: sahne dokun arkasında KALMAZ (spec 38 §6). Yan bölgeler tuvalin kenarını --dok-sol/sag ile daraltır. */
+  #tuval { width: calc(100% - var(--dok-sol, 0px) - var(--dok-sag, 0px)); margin-left: var(--dok-sol, 0px); margin-top: var(--editor-ust, 0px); height: calc(100% - var(--editor-ust, 0px) - var(--alt-yigin, 0px)); display: block; outline: none; touch-action: none; }
   #hud {
     position: fixed; left: calc(10px + var(--dok-sol, 0px)); top: calc(8px + var(--editor-ust, 0px)); z-index: 10; pointer-events: none;
     font: 11px/1.5 "Cascadia Code", Consolas, monospace; color: #7d8bb5;
     text-shadow: 0 1px 2px #000; white-space: pre;
   }
   #altyazi {
-    position: fixed; left: 50%; bottom: calc(7% + max(var(--alt-cubuk, 0px), var(--editor-alt, 0px))); transform: translateX(-50%); z-index: 31;
+    position: fixed; left: 50%; bottom: calc(7% + var(--alt-yigin, 0px)); transform: translateX(-50%); z-index: 31;
     max-width: 62ch; padding: 10px 16px; border-radius: 6px;
     background: rgba(7,7,13,.72); color: #e6e9f5;
     font: 15px/1.45 "Segoe UI", system-ui, sans-serif; text-align: center; white-space: pre-line;   /* pre-line: yığılan ajan satırları (Orion + Flash) alt alta */
@@ -80,7 +82,7 @@
     border-radius: 4px; padding: 1px 6px; font-family: inherit;
   }
   #sohbet {
-    position: fixed; left: 50%; bottom: calc(18px + max(var(--alt-cubuk, 0px), var(--editor-alt, 0px))); transform: translateX(-50%);
+    position: fixed; left: 50%; bottom: calc(18px + var(--alt-yigin, 0px)); transform: translateX(-50%);
     z-index: 11; width: min(620px, 86vw); display: none;
   }
   #sohbet[data-acik="1"] { display: block; }

@@ -1,5 +1,7 @@
 # Spec 31 — Yapı çubuğu (alt çubuk): sekmeli, açılır-kapanır alt panel
 
+> **Spec 41 ile değişti:** sabit alt şerit (`altCubuk.ts`) kaldırıldı; sekmeler artık dok panelleri (`uygulama/yapi/ortak/yapiPaneli.ts`). Aşağıdaki şerit ve Y davranışı tarihsel.
+
 **Durum:** YAZILDI (testli), canlıda GÖRÜLMEDİ. Odak istisnası (Ozyn, 2026-10-18: "asset manager altta açılır kapanır, Sims gibi; zemin kalemi ikinci sekme; ileride çok sekme").
 
 ## Ne yapar

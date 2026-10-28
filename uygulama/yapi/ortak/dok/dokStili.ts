@@ -7,14 +7,17 @@ export const DOK_CSS = `
 .dk-kok { position: fixed; inset: 0; pointer-events: none; z-index: 35; font: ${YAPI_YAZI.govde}; color: ${R.yazi}; }
 .dk-kok > * { pointer-events: auto; }
 .dk-depo { display: none; }
-/* Bölgeler: sol/sağ üstten alt dok payına kadar, alt tam genişlik; alt kenar Yapı çubuğu/editör payının ÜSTÜNDE */
+/* Bölgeler: sol/sağ üstten alt yığının (alt bölge + editör payı, --alt-yigin) üstüne kadar; alt bölge editör payının ÜSTÜNDE oturur (index.html). */
 .dk-bolge { position: fixed; display: none; flex-direction: column; box-sizing: border-box; background: #0c111e; border: 0 solid ${R.cizgi}; overflow: hidden; }
 .dk-bolge[data-acik="1"] { display: flex; }
-.dk-bolge[data-bolge="sol"] { left: 0; top: var(--editor-ust, 0px); width: var(--dok-sol, 300px); bottom: calc(var(--dok-alt, 0px) + max(var(--alt-cubuk, 0px), var(--editor-alt, 0px))); border-right-width: 1px; }
-.dk-bolge[data-bolge="sag"] { right: 0; top: var(--editor-ust, 0px); width: var(--dok-sag, 310px); bottom: calc(var(--dok-alt, 0px) + max(var(--alt-cubuk, 0px), var(--editor-alt, 0px))); border-left-width: 1px; }
-.dk-bolge[data-bolge="alt"] { left: 0; right: 0; bottom: max(var(--alt-cubuk, 0px), var(--editor-alt, 0px)); height: var(--dok-alt, 240px); border-top-width: 1px; }
-.dk-seritler { display: flex; align-items: stretch; flex: none; border-bottom: 1px solid ${R.cizgi}; background: #0a0f1b; min-height: 28px; }
-.dk-sekme { display: flex; align-items: center; gap: 4px; padding: 0 12px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: ${R.yaziOrta}; font: inherit; cursor: grab; white-space: nowrap; }
+.dk-bolge[data-bolge="sol"] { left: 0; top: var(--editor-ust, 0px); width: var(--dok-sol, 300px); bottom: var(--alt-yigin, 0px); border-right-width: 1px; }
+.dk-bolge[data-bolge="sag"] { right: 0; top: var(--editor-ust, 0px); width: var(--dok-sag, 310px); bottom: var(--alt-yigin, 0px); border-left-width: 1px; }
+.dk-bolge[data-bolge="alt"] { left: 0; right: 0; bottom: var(--editor-alt, 0px); height: var(--dok-alt, 240px); border-top-width: 1px; }
+.dk-seritler { display: flex; align-items: stretch; flex: none; border-bottom: 1px solid ${R.cizgi}; background: #0a0f1b; min-height: 30px; }
+.dk-sekme { display: flex; align-items: center; gap: 6px; padding: 0 14px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: ${R.yaziOrta}; font: inherit; cursor: grab; white-space: nowrap; }
+.dk-simge { font-size: 14px; line-height: 1; }
+.dk-rozet { color: ${R.uyari}; font-size: 9px; line-height: 1; }
+.dk-bilgi { align-self: center; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 10px; color: ${R.yaziSoluk}; font-size: 12px; }
 .dk-sekme:hover { color: ${R.yaziParlak}; }
 .dk-sekme[data-etkin="1"] { color: ${R.yaziParlak}; border-bottom-color: ${R.vurgu}; background: rgba(88,193,255,0.08); }
 .dk-sekme[data-surukleniyor="1"] { opacity: 0.4; }
@@ -23,7 +26,9 @@ export const DOK_CSS = `
 .dk-ikon { width: 26px; border: 0; background: transparent; color: ${R.yaziOrta}; font: inherit; cursor: pointer; }
 .dk-ikon:hover { color: ${R.yaziParlak}; background: rgba(255,255,255,0.06); }
 .dk-icerik { flex: 1; min-height: 0; overflow: auto; position: relative; }
-.dk-icerik > [data-dok] { display: none; } .dk-icerik > [data-dok][data-etkin="1"] { display: block; }
+/* Her panel kendi konum bağlamıdır: içindeki mutlak öğeler (boş durum metni, düğüm tuvali) bölgeye değil panele göre yerleşir ve taşmaz. */
+.dk-icerik > [data-dok] { display: none; } .dk-icerik > [data-dok][data-etkin="1"] { display: block; position: relative; overflow: hidden; height: 100%; box-sizing: border-box; }
+.dk-yuzer-icerik > [data-dok] { position: relative; overflow: hidden; height: 100%; box-sizing: border-box; }
 /* Sekans editörünün eski sağ sütun stilleri (sabit genişlik/kenar) dokta bölgenin genişliğine uyar */
 .dk-icerik .sk-sag, .dk-yuzer-icerik .sk-sag { width: auto; border-left: 0; }
 .dk-tutamak { position: absolute; z-index: 5; background: transparent; }
@@ -37,9 +42,9 @@ export const DOK_CSS = `
 .dk-kok[data-surukle="1"] .dk-hedef[data-var="1"] { display: flex; }
 .dk-hedef[data-izinli="0"] { border-color: #6b7280; background: rgba(107,114,128,0.14); color: #9ca3af; }
 .dk-hedef[data-ustunde="1"][data-izinli="1"] { background: rgba(88,193,255,0.26); }
-.dk-hedef[data-bolge="sol"] { left: 0; top: var(--editor-ust, 0px); bottom: calc(var(--dok-alt, 0px) + max(var(--alt-cubuk, 0px), var(--editor-alt, 0px))); width: 120px; }
-.dk-hedef[data-bolge="sag"] { right: 0; top: var(--editor-ust, 0px); bottom: calc(var(--dok-alt, 0px) + max(var(--alt-cubuk, 0px), var(--editor-alt, 0px))); width: 120px; }
-.dk-hedef[data-bolge="alt"] { left: 0; right: 0; bottom: max(var(--alt-cubuk, 0px), var(--editor-alt, 0px)); height: 90px; }
+.dk-hedef[data-bolge="sol"] { left: 0; top: var(--editor-ust, 0px); bottom: var(--alt-yigin, 0px); width: 120px; }
+.dk-hedef[data-bolge="sag"] { right: 0; top: var(--editor-ust, 0px); bottom: var(--alt-yigin, 0px); width: 120px; }
+.dk-hedef[data-bolge="alt"] { left: 0; right: 0; bottom: var(--editor-alt, 0px); height: 90px; }
 .dk-hedef[data-bolge="yuzer"] { left: 50%; top: 45%; width: 200px; height: 70px; margin-left: -100px; }
 .dk-bolge[data-hedef="1"] { outline: 2px dashed ${R.vurgu}; outline-offset: -2px; }
 .dk-ipucu { position: fixed; left: 50%; top: calc(var(--editor-ust, 0px) + 12px); transform: translateX(-50%); max-width: 70vw; padding: 7px 14px; border-radius: 8px; background: #2a1620; border: 1px solid #a8475f; color: #ffd6df; font-size: 12px; z-index: 60; display: none; pointer-events: none; }

@@ -15,7 +15,7 @@
 // Mantık saf modüllerde ve testli (grafCalistirici.ts, grafDeposu.ts, ajanDugumleri.ts); bu dosya yalnız çizer ve düğmeleri bağlar — DOM'u test edecek bir
 // tarayıcı ortamı bu projede yok (hafizaSekmesi.ts gibi), canlı deneme listesi spec 35'te.
 "use strict";
-import type { Sekme, SekmeAraci, SekmeIcerigi } from "../../world/arayuz/altCubuk.ts";
+import type { Sekme, SekmeAraci, SekmeIcerigi } from "./ortak/yapiPaneli.ts";
 import { grafAdiGecerli } from "../../protocol/graf.ts";
 import type { GrafDeposu, GrafKaydi } from "../graf/grafDeposu.ts";
 import { canliSatir, sonucSatiri, type GrafCalistirici } from "../graf/grafCalistirici.ts";

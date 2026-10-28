@@ -38,7 +38,7 @@ export interface BedenPaneliAyari {
 }
 
 const CSS = `
-#bedenPaneli { position: fixed; top: 64px; left: 16px; width: min(340px, calc(100vw - 32px)); z-index: 55; display: none; flex-direction: column; gap: 8px;
+#bedenPaneli { position: fixed; top: 64px; left: calc(16px + var(--dok-sol, 0px));   /* dok sol bölgesinin dışında (spec 41) */ width: min(340px, calc(100vw - 32px)); z-index: 55; display: none; flex-direction: column; gap: 8px;
   background: rgba(10,14,24,0.96); color: #d7dcea; border: 1px solid #2a3246; border-radius: 10px; padding: 12px 14px; font: 13px/1.45 'Segoe UI', system-ui, sans-serif;
   box-shadow: none; }
 #bedenPaneli[data-acik="1"] { display: flex; }

@@ -4,7 +4,7 @@
 // `zeminBaglantisi.ts`te; burası yalnız bunları kullanıcıya açar. Araç seçmek kalemi AÇAR (ve çubuğu indirmez: sahneyi tam görerek çalışılabilsin); aynı araca
 // tekrar tık kalemi bırakır. "Dosyadaki zemine dön" iki adımlıdır (geri alınabilir olsa da yanlışlıkla tıklanmasın).
 "use strict";
-import type { Sekme, SekmeAraci, SekmeIcerigi } from "../../world/arayuz/altCubuk.ts";
+import type { Sekme, SekmeAraci, SekmeIcerigi } from "./ortak/yapiPaneli.ts";
 import type { ZeminKalemi } from "../zeminKalemi.ts";
 import type { ZeminBaglantisi } from "../zeminBaglantisi.ts";
 import { KALEM_SINIRLARI, ZEMIN_ARACLARI, aracBilgisi, gucEtiketi } from "../zeminAraclari.ts";

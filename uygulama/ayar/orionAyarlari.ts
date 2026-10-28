@@ -34,10 +34,12 @@ export interface OrionAyarlariGirdisi {
   hafiza: { esik: () => number; mdToplam: () => number };
   /** Eklenti defteri (spec 40): motorun açılıp kapanan parçaları. */
   eklentiler: EklentiDefteri;
+  /** Panelin yuvası: dok paneli (spec 41) — ayar paneli kendini bunun içine gömer. */
+  ata: HTMLElement;
 }
 
 export function orionAyarlariKur(g: OrionAyarlariGirdisi): AyarPaneli {
-  const panel = ayarPaneliKur({ kapatildi: g.kapatildi, bildir: g.bildir });
+  const panel = ayarPaneliKur({ kapatildi: g.kapatildi, bildir: g.bildir, ata: g.ata });
   const sekme = (id: "zihin" | "hafiza", ad: string) => (): true | string => (g.sekmeAc(id) ? true : `${ad} sekmesi açılamadı`);
   panel.ekle(beyinBolumu({ kaynak: g.modelKaynagi, pencereAc: g.modelPenceresi }));
   panel.ekle(sesBolumu({ kaynak: sesKaynaginiSec(), dene: g.soyle }));

@@ -9,7 +9,7 @@
 "use strict";
 import type { Scene } from "@babylonjs/core/scene";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
-import type { Sekme } from "../../../world/arayuz/altCubuk.ts";
+import type { Sekme } from "../ortak/yapiPaneli.ts";
 import { editorPenceresiKur, type EditorPenceresi } from "../../../world/arayuz/editorPenceresi.ts";
 import type { Sekans } from "../../../protocol/sekans.ts";
 import type { Avatar, KlipBulucu } from "../../../world/avatar/index.ts";

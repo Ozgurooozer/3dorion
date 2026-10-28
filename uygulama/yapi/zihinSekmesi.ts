@@ -8,7 +8,7 @@
 // şeridi taşardı). Seçim modeli saf ve ortak (`uygulama/ajanlar/cipModeli.ts`, sohbet hedefiyle aynı); burada yalnız çizim. Orion'un
 // sayfası duvardaki şemanın kendisidir (yukarıdaki kural); Flash'ın duvarı yok, sayfası mesh'siz şemadır (`semaTuvali.ts`, tıklanmaz).
 "use strict";
-import type { Sekme, SekmeAraci, SekmeIcerigi } from "../../world/arayuz/altCubuk.ts";
+import type { Sekme, SekmeAraci, SekmeIcerigi } from "./ortak/yapiPaneli.ts";
 import type { SemaPaneli } from "../../world/surfaces/duvar/sema.ts";
 import { CipSecimi } from "../ajanlar/cipModeli.ts";
 import { ORION_AJANI } from "../ajanlar/ajanKaydi.ts";

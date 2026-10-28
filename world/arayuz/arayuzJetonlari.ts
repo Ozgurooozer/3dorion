@@ -1,9 +1,7 @@
 // world/arayuz/arayuzJetonlari.ts — Yapı ailesi DOM panellerinin renk ve yazı JETONLARI (spec 34).
 //
-// Yapı çubuğu (`altCubuk.ts`) ve Hafıza sekmesi (`uygulama/yapi/hafizaSekmesi.ts`) bu değerleri CSS'lerinde düz yazıyor; ajan ayar paneli
-// (`ayarPaneli.ts`) onlarla AYNI görünmeli. Üçüncü bir kopya yerine değerler burada; panel bunları kullanır. Eski iki dosyanın CSS'ini bu turda
-// yeniden yazmadım (canlıda görülmemiş görünüm riski) — onun yerine `arayuzJetonlari.test.ts` her jetonun o dosyalarda AYNEN geçtiğini sınar:
-// biri rengini değiştirirse test kırılır ve ikisi birlikte güncellenir (CLAUDE.md: "ayrıştıklarında kırılan bir test").
+// Yapı panelleri (`uygulama/yapi/ortak/dok/dokStili.ts`) bu değerleri DOĞRUDAN içe aktarır (tek kaynak, kopya yok); ajan ayar paneli (`ayarPaneli.ts`) ve
+// Hafıza sekmesi onlarla AYNI görünmeli. `arayuzJetonlari.test.ts` dok CSS'inin jetonları içe aktardığını sınar: kopya geri gelirse test kırılır.
 "use strict";
 
 export const YAPI_RENK = {

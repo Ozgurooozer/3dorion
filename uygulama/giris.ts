@@ -110,7 +110,7 @@ import { nesnePaneliKur, type PanelNesne } from "../world/arayuz/nesnePaneli.ts"
 import { baglamMenusuKur } from "../world/arayuz/menu/baglamMenusu.ts";
 import { yerlestirmeKur } from "./yerlestirmeBaglantisi.ts";
 import { duzenlemeKipiKur } from "./duzenlemeKipi.ts";
-import { altCubukKur } from "../world/arayuz/altCubuk.ts";
+import { yapiPaneliKur } from "./yapi/ortak/yapiPaneli.ts";
 import { editorPenceresiKur } from "../world/arayuz/editorPenceresi.ts";
 import { hafizaSekmesi } from "./yapi/hafizaSekmesi.ts";
 import { zihinSekmesi } from "./yapi/zihinSekmesi.ts";
@@ -200,7 +200,7 @@ const imlec = imlecKipiKur({
   kilidiIste: () => rig.fareKilitIste(),
   engelli: () => rig.odakta || sohbet.acikMi() || onayKapisi.durum === "bekliyor",
   degisti: (acik) => {
-    altCubuk.gorunur(acik);   // Yapı çubuğu yalnız imleç kipinde görünür (fare serbestken tıklanabilir)
+    yapi.gorunur(acik);   // Yapı panelleri yalnız imleç kipinde görünür (fare serbestken tıklanabilir)
     anaMenu.imlecKipi(acik);   // pencere tepesindeki ana menü şeridi de (spec 39 D2; açık editör varsa kapanınca da kalır)
     if (!acik) projePenceresi.kapat();   // proje tarayıcısı da (fare kilitlenince tıklanamaz)
     editorPenceresi.gorunur(acik);   // düzenleyici pencereleri de (gizlenir, KAYBOLMAZ: yazılmış metin durur)
@@ -586,7 +586,7 @@ motor.runRenderLoop(() => {
 });
 
 addEventListener("resize", () => motor.resize());
-// Tuval, açık editörün/Yapı çubuğunun yüksekliği kadar küçülür (index.html `--editor-alt`, `--alt-cubuk`): sahne dokun ÜSTÜNDE tam görünür. Boyut değişince motor da değişsin.
+// Tuval, açık editörün ve dok alt bölgesinin yüksekliği kadar küçülür (index.html `--editor-alt`, `--alt-cubuk`, `--alt-yigin`): sahne dokun ÜSTÜNDE tam görünür. Boyut değişince motor da değişsin.
 new ResizeObserver(() => motor.resize()).observe(tuval);
 
 // Dünya yayıcısı (world/player/etkilesim.ts) → yol: world/ yolu görmez, çeviri kökte. Abone olan uygulama modülleri yalnız yolu bilir.
@@ -750,12 +750,6 @@ const zeminKalemi = zeminKalemiKur({
 });
 /** Asset hayaleti (kart ya da menü): zemin kalemi açıksa önce o bırakılır — ikisi aynı tıklamayı isteyemez. */
 function cagirHayalet(varlikAdi: string, ad: string): void { zeminKalemi.sec(null); void duzenleme.cagir(varlikAdi, ad); }
-// YAPI ÇUBUĞU (Y): ekranın altında açılır-kapanır, sekmeli panel. Sekmeler bağımsız modüller (`uygulama/yapi/`); yeni özellik = yeni sekme (`altCubuk.ekle`).
-// Çubuk imleç kipinde görünür; Y (ya da sekmeye tık) paneli açar ve imleç kipini de açar (açılamıyorsa — odak, sohbet, onay — açılmaz).
-const altCubuk = altCubukKur({
-  tusSerbest: () => oyuncu.oyuncuDurumu().etkilesim === null && !sohbet.acikMi() && onayKapisi.durum !== "bekliyor",
-  izin: () => imlec.acik || imlec.ac(),
-});
 // ANA MENÜ ŞERİDİ + PROJE TARAYICISI (spec 39 D2): pencere tepesinde Dosya/Pencere (+ açık editörün menüleri, birleşir); proje açmak uygulamayı yeniden başlatır.
 // `sekansSistemi` aşağıda kurulur: kirli sekme sorusu tıklama ANINDA okunur. Electron'suz (yalnız vite) projeler yok: satırlar pasif.
 const kopruVar = typeof window.kopru?.projeListe === "function";
@@ -765,6 +759,14 @@ const projePenceresi = projePenceresiKur({
 });
 // Dok sistemi (spec 39 D3): paneller sol/sağ/alt bölgeye ya da yüzer pencereye bırakılır; düzen hatırlanır. Editörler panellerini ona kaydeder.
 const dokSistemi = dokYoneticisiKur("orion.dok.v1");
+/** Orion ayar paneli dok kimliği (spec 41): Pencere menüsü ve açma/kapama bu adla konuşur. */
+const ORION_AYAR_PANELI_KIMLIGI = "orion-ayar";
+// YAPI PANELLERİ (Y, spec 41): Asset, Zemin, Hafıza, Zihin, Graf, Sekans — dok panelleridir (sol/sağ/alt/yüzer bölgeye sürüklenir, düzen hatırlanır).
+// Sekmeler bağımsız modüller (`uygulama/yapi/`); yeni özellik = yeni sekme (`yapi.ekle`). Yazı yazılırken tuşlar harftir; imleç kipi açılamıyorsa (odak, sohbet, onay) açılmaz.
+const yapi = yapiPaneliKur(dokSistemi, {
+  tusSerbest: () => oyuncu.oyuncuDurumu().etkilesim === null && !sohbet.acikMi() && onayKapisi.durum !== "bekliyor",
+  izin: () => imlec.acik || imlec.ac(),
+});
 // EKLENTİ DEFTERİ (spec 40): motorun açılıp kapanan parçaları. Kayıt localStorage'da; senaryo koşusunda (gerçek kayda yazılmasın) ve `?eklenti=` ile (ORION_EKLENTI) geçersiz kılınır.
 const eklentiler = eklentiDefteriKur({
   depo: istenenSenaryolar(location.search).length ? null : { oku: () => { try { return localStorage.getItem("orion.eklentiler.v1"); } catch { return null; } }, yaz: (m) => { try { localStorage.setItem("orion.eklentiler.v1", m); } catch { /* depo yok: yalnız bu oturum */ } } },
@@ -785,7 +787,7 @@ const anaMenu = anaMenuKur(() => [
     { etiket: "Proje klasörünü göster", etkin: () => kopruVar, calistir: () => { void window.kopru.projeKlasorGoster(); } },
   ] },
   { ad: "Pencere", satirlar: [
-    { etiket: "Yapı çubuğu", kisayol: "Y", isaretli: () => altCubuk.acikMi(), calistir: () => altCubuk.degistir() },
+    { etiket: "Yapı panelleri", kisayol: "Y", ipucu: "Asset, Zemin, Hafıza, Zihin, Graf, Sekans: gizle / göster (düzen kalır)", isaretli: () => yapi.acikMi(), calistir: () => yapi.degistir() },
     { etiket: "Eklentiler…", ipucu: "Motorun açılıp kapanan parçaları (Orion ayarları ▸ Eklentiler)", calistir: () => { if (!imlec.acik) imlec.ac(); orionPaneliniAc(true); } },
     { etiket: "İçerik gezgini", kisayol: "I", ipucu: "Content Browser: proje ve motor dosyaları", isaretli: () => dokSistemi.ekrandaMi(ICERIK_PANELI_KIMLIGI), calistir: () => icerikGezginiDegistir() },
     AYIRICI,
@@ -793,7 +795,7 @@ const anaMenu = anaMenuKur(() => [
   ] },
 ]);
 if (kopruVar) void window.kopru.projeBilgi().then((r) => { if (r.ok && r.deger) anaMenu.etiket(`📁 ${r.deger.ad}`); });
-altCubuk.ekle(assetSekmesi({
+yapi.ekle(assetSekmesi({
   kartlar: () => yerlestirme.kartlar(),
   cagir: cagirHayalet,
   cagrilan: () => duzenleme.cagrilan(),
@@ -801,10 +803,10 @@ altCubuk.ekle(assetSekmesi({
   hayaletDegisince: (f) => duzenleme.dinle(f),
   onizlemeAdresi: varlik,
 }));
-altCubuk.ekle(zeminSekmesi({ kalem: zeminKalemi, baglanti: zemin }));
+yapi.ekle(zeminSekmesi({ kalem: zeminKalemi, baglanti: zemin }));
 // Zihin sekmesi AJAN ÇİPLERİYLE (spec 33): Orion'un sayfası duvardaki şema, Flash'ınki mesh'siz şema (duvarı yok; Flash kurulunca beslenir).
 const flashZihni = semaTuvaliKur({ tanim: FLASH_SEMASI, olcu: sema.olcu() });
-altCubuk.ekle(zihinSekmesi({
+yapi.ekle(zihinSekmesi({
   sema,
   sayfalar: () => [{ ...ORION_AJANI, sema }, ...(ajanlar.al(FLASH.id) ? [{ id: FLASH.id, ad: FLASH.ad, renk: FLASH.renk, sema: flashZihni }] : [])],
   sayfaDegisti: (cb) => ajanlar.dinle(cb),
@@ -835,7 +837,7 @@ function mdAc(ad: string): void { editorPenceresi.ac(ad).catch((e: unknown) => a
 function mdAktifCevir(ad: string, aktif: boolean): void {
   mdDeposu.aktifYap(ad, aktif).then(() => altyaziGoster(aktif ? `${ad}: Orion artık okuyor` : `${ad}: bağlamdan çıkarıldı`, 1800), (e: unknown) => altyaziGoster(`${ad}: ${e instanceof Error ? e.message : String(e)}`, 4000));
 }
-altCubuk.ekle(hafizaSekmesi({
+yapi.ekle(hafizaSekmesi({
   depo: mdDeposu, ac: mdAc, hata: () => mdHata, bildir: altyaziGoster,
   menuAc: (ad, x, y) => {
     const d = mdDeposu.liste().find((k) => k.ad === ad);
@@ -938,7 +940,7 @@ const npcPenceresi = editorPenceresiKur({
   altyazi: altyaziGoster,
 });
 npcDeposu.dinle((o) => { if (o.tur === "icerik") void npcPenceresi.icerikDegisti(o.ad); npcPenceresi.tazele(); });
-altCubuk.ekle(grafSekmesi({
+yapi.ekle(grafSekmesi({
   depo: grafDeposu, calistirici: grafCalistirici, dinleyici: grafDinleyici, durum: grafDurumu, ac: (ad) => grafEditoru.ac(ad), metinAc: grafAc, adIslemi: grafEditoru,
   hata: () => grafHata, bildir: altyaziGoster,
   npc: {
@@ -965,9 +967,9 @@ const sekansSistemi = sekansKur({
   gunluk: (seviye, metin) => gunluk.ekle(seviye, "sekans", metin),
   // Senaryo yüzü (oynatma) yalnız sekans senaryolarında: sekansdene (spec 36), kimododene (spec 37).
   senaryoKosusu: istenenSenaryolar(location.search).some((s) => s === "sekansdene" || s === "kimododene" || s === "rigdene" || s === "kameradene"),
-  sekmeAc: (id) => altCubuk.ac(id),
+  sekmeAc: (id) => yapi.ac(id),
 });
-altCubuk.ekle(sekansSistemi.sekme);
+yapi.ekle(sekansSistemi.sekme);
 
 // İÇERİK GEZGİNİ (spec 39 D4; Unreal Content Browser): proje ve motor dosyaları, dok paneli (Pencere ▸ İçerik). Çift tık türünün editörünü açar; dosya işlemleri host'ta
 // (`host/icerik.js`: Engine salt okunur, silme = .silinenler). Sekans/graf/NPC dosyası değişince depoları tazeler (kendi listeleri bellekte durur).
@@ -1056,22 +1058,33 @@ const flashAktoru = {
 };
 // ORION'UN AYAR PANELİ (spec 34): Orion seçilince (sol/sağ tık) ekranın SOLUNDA açılır, seçim kalkınca kapanır; ✕/Esc seçimi de bırakır. Bölümler bağımsız
 // modüller (`uygulama/ayar/`): Beyin modeli (M seçicinin AYNI kaynağı), Ses (Piper; host/sesler.js), Hafıza notları (md deposu), Refleksler, Bağlam (pano telleri), Kısayollar.
+// Orion'un ayar paneli DOK PANELİDİR (spec 41): Orion seçilince sağ bölgede açılır (sürüklenip taşınır), seçim kalkınca gizlenir. Kabı dok'a verilir.
+const orionAyarKabi = document.createElement("div");
+dokSistemi.kaydet({
+  kayit: { id: ORION_AYAR_PANELI_KIMLIGI, ad: "Orion", bolgeler: ["sag", "sol", "yuzer"], varsayilan: "sag" },
+  icerik: orionAyarKabi, simge: "⚙", gorunur: false,
+  ipucu: "Orion ayarları: beyin modeli, ses, hafıza notları, refleksler, eklentiler",
+});
 const orionAyarPaneli = orionAyarlariKur({
   bildir: altyaziGoster,
-  kapatildi: () => nesneSecimi.bedenSeciminiBirak(),
+  ata: orionAyarKabi,
+  kapatildi: () => { dokSistemi.gorunur(ORION_AYAR_PANELI_KIMLIGI, false); nesneSecimi.bedenSeciminiBirak(); },
   pano: () => yol.al("pano"),
   modelKaynagi: () => yol.al("modelKaynagi"),
   modelPenceresi: () => yol.al("modelSecici")?.ac(),
   soyle: (metin) => orionSesi.soyle(metin),
   md: { depo: mdDeposu, ac: mdAc, hata: () => mdHata },
-  sekmeAc: (id) => altCubuk.ac(id),
+  sekmeAc: (id) => yapi.ac(id),
   yetki: yetkiAnahtarlari(location.search),
   komut: PANO_TELLERI.refleks.komut,
   hafiza: { esik: PANO_TELLERI.hafiza.otoEsik, mdToplam: PANO_TELLERI.hafiza.mdToplam },
   eklentiler,
 });
 const orionPaneliniAc = (secili: boolean): void => {
-  if (secili) orionAyarPaneli.ac({ id: ORION_AJANI.id, ad: ORION_AJANI.ad, renk: ORION_AJANI.renk }); else orionAyarPaneli.kapat();
+  if (!secili) { orionAyarPaneli.kapat(); dokSistemi.gorunur(ORION_AYAR_PANELI_KIMLIGI, false); return; }
+  if (!orionAyarPaneli.ac({ id: ORION_AJANI.id, ad: ORION_AJANI.ad, renk: ORION_AJANI.renk })) return;
+  dokSistemi.gorunur(ORION_AYAR_PANELI_KIMLIGI, true);
+  dokSistemi.sec(ORION_AYAR_PANELI_KIMLIGI);
 };
 const nesneSecimi = nesneSecimiKur({
   orionSecimi: (secili) => { bedenSecimi("orion")(secili); orionPaneliniAc(secili); },

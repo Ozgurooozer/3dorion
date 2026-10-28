@@ -62,9 +62,11 @@ const ANAHTAR = "orion.ayarPaneli.v1";
 
 const CSS = `
 #ayarPaneli { position: fixed; left: 16px; top: 64px; z-index: 34; width: min(320px, calc(100vw - 32px));
-  max-height: calc(100vh - 64px - 80px - max(var(--alt-cubuk, 0px), var(--editor-alt, 0px))); display: none; flex-direction: column;
+  max-height: calc(100vh - 64px - 80px - var(--alt-yigin, 0px)); display: none; flex-direction: column;
   background: ${R.zemin}; color: ${R.yazi}; border: 1px solid ${R.cizgi}; border-radius: 10px; font: ${YAPI_YAZI.govde}; user-select: none; overflow: hidden; }
 #ayarPaneli[data-gorunur="1"] { display: flex; }
+/* Dok paneline gömülü (ata verildi): konum ve çerçeve kabın, boyut kabın; kendi kenarlığı ve yüzen konumu yok. */
+#ayarPaneli.ap-gomulu { position: relative; left: auto; top: auto; z-index: auto; width: auto; max-height: none; height: 100%; box-sizing: border-box; border: 0; border-radius: 0; box-shadow: none; }
 #ayarPaneli .ap-bas { display: flex; align-items: center; gap: 8px; padding: 9px 10px 8px 12px; border-bottom: 1px solid ${R.cizgi}; }
 #ayarPaneli .ap-nokta { width: 9px; height: 9px; border-radius: 50%; background: var(--ap-renk, ${R.vurgu}); flex: 0 0 auto; }
 #ayarPaneli .ap-baslik-yazi { flex: 1; font-weight: 600; color: ${R.yaziParlak}; }
@@ -132,6 +134,7 @@ export function ayarPaneliKur(a: AyarPaneliAyari = {}): AyarPaneli {
   };
 
   const kok = el("div"); kok.id = "ayarPaneli"; kok.dataset.gorunur = "0";
+  if (a.ata) kok.classList.add("ap-gomulu");
   kok.setAttribute("role", "dialog");
   const bas = el("div", "ap-bas");
   const nokta = el("span", "ap-nokta");

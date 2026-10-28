@@ -7,7 +7,7 @@
 //   • ▶ BURADA YOK: oynatmak editörün ▶ düğmesinden (tek yer; isTrusted bekçisi). Burası listeler ve dosya işlerini yapar.
 //   • SİL = KALDIR (`.silinenler/`, kalıcı silme yok), iki adım ve ikinci adım yalnız gerçek tık. Oynayan ya da açık-kirli sekans silinmez.
 "use strict";
-import type { Sekme, SekmeAraci, SekmeIcerigi } from "../../../world/arayuz/altCubuk.ts";
+import type { Sekme, SekmeAraci, SekmeIcerigi } from "../ortak/yapiPaneli.ts";
 import { BEN, sekansAdiGecerli, type Sekans } from "../../../protocol/sekans.ts";
 import { yeniSekans, type SekansDeposu, type SekansKaydi } from "../../sekans/sekansDeposu.ts";
 import type { OrnekKutuphanesi } from "../../sekans/ornekler.ts";

@@ -16,8 +16,8 @@ export const GRAF_SEKMESI_CSS = `
 .gs-yeni { display: flex; align-items: center; gap: 6px; }
 .gs-yeni input { width: 150px; background: #121726; color: #eef1fa; border: 1px solid #2a3246; border-radius: 6px; padding: 3px 9px; font: inherit; user-select: text; }
 .gs-yeni-hata { color: #ff8c84; font-size: 12px; }
-.gs-govde { flex: 1; min-height: 0; display: flex; gap: 10px; padding: 4px 14px 10px; }
-.gs-sutun { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 0; }
+.gs-govde { flex: 1; min-height: 0; display: flex; flex-wrap: wrap; gap: 10px; padding: 4px 14px 10px; }   /* dar panelde (yan dok) sütunlar alt alta sarılır, taşmaz */
+.gs-sutun { flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; min-height: 0; }
 .gs-baslik { color: #7c88a6; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; padding: 2px 0 4px; }
 .gs-serit { flex: 1; min-height: 0; overflow: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); grid-auto-rows: 64px; gap: 8px; align-content: start; }
 .gs-kart { display: flex; flex-direction: column; gap: 3px; padding: 8px 10px; background: #151c2b; border: 1px solid #222c41; border-radius: 9px; cursor: pointer; overflow: hidden; }
@@ -36,7 +36,7 @@ export const GRAF_SEKMESI_CSS = `
 .gs-sil:not(:disabled) { border-color: #7a3030; color: #ff9c84; }
 .gs-sil[data-emin="1"] { background: #4a1f1f; border-color: #ff6b5c; color: #fff; }
 .gs-kart[data-dinliyor="1"] { border-color: #a87a2a; }
-.gs-sag { width: 320px; flex: none; display: flex; flex-direction: column; gap: 8px; min-height: 0; border-left: 1px solid #222c41; padding-left: 10px; }
+.gs-sag { flex: 0 1 320px; min-width: 240px; max-width: 100%; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px; min-height: 0; border-left: 1px solid #222c41; padding-left: 10px; }
 .gs-sag .gs-kontrol { width: auto; border-left: 0; padding-left: 0; flex: 1; min-height: 0; }
 .gs-dinleme { font-size: 12px; color: #aab4d0; max-height: 45%; overflow: auto; }
 .gs-dinleme-satir { display: flex; align-items: center; gap: 6px; padding: 2px 0; }
