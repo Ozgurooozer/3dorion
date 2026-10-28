@@ -1,0 +1,282 @@
+{
+ "senaryo": "tuzak2",
+ "model": "gemma4:e4b",
+ "n": 5,
+ "tarih": "2026-10-28T19:31:02.238Z",
+ "ozet": [
+  {
+   "kol": "kapali",
+   "H": 3,
+   "S": 100,
+   "C": 6,
+   "R": 0
+  },
+  {
+   "kol": "cozucu",
+   "H": 3,
+   "S": 100,
+   "C": 6,
+   "R": 0
+  },
+  {
+   "kol": "dogrulayici",
+   "H": 1.4,
+   "S": 80,
+   "C": 6.4,
+   "R": 10
+  }
+ ],
+ "karar": "RED",
+ "ham": [
+  {
+   "kol": "kapali",
+   "tekrar": 1,
+   "H": 3,
+   "S": true,
+   "C": 6,
+   "R": 0,
+   "tavan": false,
+   "ms": 20434,
+   "niyetler": [
+    "bak(pipe wall cluster):hata",
+    "soyle:bitti",
+    "bak(pipe wall cluster):hata",
+    "soyle:bitti",
+    "bak(pipe wall cluster):hata"
+   ]
+  },
+  {
+   "kol": "kapali",
+   "tekrar": 2,
+   "H": 3,
+   "S": true,
+   "C": 6,
+   "R": 0,
+   "tavan": false,
+   "ms": 12034,
+   "niyetler": [
+    "soyle:bitti",
+    "bak(pipe wall cluster):hata",
+    "bak(pipe wall cluster):hata",
+    "soyle:bitti",
+    "bak(pipe wall cluster):hata",
+    "soyle:bitti"
+   ]
+  },
+  {
+   "kol": "kapali",
+   "tekrar": 3,
+   "H": 3,
+   "S": true,
+   "C": 6,
+   "R": 0,
+   "tavan": false,
+   "ms": 11268,
+   "niyetler": [
+    "soyle:bitti",
+    "bak(pipe wall cluster):hata",
+    "bak(pipe wall cluster):hata",
+    "bak(pipe wall cluster):hata"
+   ]
+  },
+  {
+   "kol": "kapali",
+   "tekrar": 4,
+   "H": 3,
+   "S": true,
+   "C": 6,
+   "R": 0,
+   "tavan": false,
+   "ms": 11846,
+   "niyetler": [
+    "soyle:bitti",
+    "bak(pipe wall cluster):hata",
+    "soyle:bitti",
+    "bak(pipe wall cluster):hata",
+    "bak(pipe wall cluster):hata"
+   ]
+  },
+  {
+   "kol": "kapali",
+   "tekrar": 5,
+   "H": 3,
+   "S": true,
+   "C": 6,
+   "R": 0,
+   "tavan": false,
+   "ms": 11832,
+   "niyetler": [
+    "soyle:bitti",
+    "bak(pipe wall cluster):hata",
+    "soyle:bitti",
+    "bak(pipe wall cluster):hata",
+    "soyle:bitti",
+    "bak(pipe wall cluster):hata"
+   ]
+  },
+  {
+   "kol": "cozucu",
+   "tekrar": 1,
+   "H": 3,
+   "S": true,
+   "C": 6,
+   "R": 0,
+   "tavan": false,
+   "ms": 14258,
+   "niyetler": [
+    "bak(pipe wall cluster):hata",
+    "bak(pipe wall cluster):hata",
+    "soyle:bitti",
+    "bak(pipe wall cluster):hata",
+    "soyle:bitti"
+   ]
+  },
+  {
+   "kol": "cozucu",
+   "tekrar": 2,
+   "H": 3,
+   "S": true,
+   "C": 6,
+   "R": 0,
+   "tavan": false,
+   "ms": 11426,
+   "niyetler": [
+    "soyle:bitti",
+    "bak(pipe wall cluster):hata",
+    "bak(pipe wall cluster):hata",
+    "bak(pipe wall cluster):hata"
+   ]
+  },
+  {
+   "kol": "cozucu",
+   "tekrar": 3,
+   "H": 3,
+   "S": true,
+   "C": 6,
+   "R": 0,
+   "tavan": false,
+   "ms": 11411,
+   "niyetler": [
+    "soyle:bitti",
+    "bak(pipe wall cluster):hata",
+    "bak(pipe wall cluster):hata",
+    "bak(pipe wall cluster):hata"
+   ]
+  },
+  {
+   "kol": "cozucu",
+   "tekrar": 4,
+   "H": 3,
+   "S": true,
+   "C": 6,
+   "R": 0,
+   "tavan": false,
+   "ms": 11610,
+   "niyetler": [
+    "bak(pipe wall cluster):hata",
+    "bak(pipe wall cluster):hata",
+    "soyle:bitti",
+    "bak(pipe wall cluster):hata",
+    "soyle:bitti"
+   ]
+  },
+  {
+   "kol": "cozucu",
+   "tekrar": 5,
+   "H": 3,
+   "S": true,
+   "C": 6,
+   "R": 0,
+   "tavan": false,
+   "ms": 12010,
+   "niyetler": [
+    "bak(pipe wall cluster):hata",
+    "soyle:bitti",
+    "bak(pipe wall cluster):hata",
+    "soyle:bitti",
+    "bak(pipe wall cluster):hata",
+    "soyle:bitti"
+   ]
+  },
+  {
+   "kol": "dogrulayici",
+   "tekrar": 1,
+   "H": 1,
+   "S": true,
+   "C": 6,
+   "R": 2,
+   "tavan": false,
+   "ms": 14855,
+   "niyetler": [
+    "bak(pipe wall cluster):hata",
+    "soyle:bitti",
+    "sor:bitti",
+    "sor:bitti"
+   ]
+  },
+  {
+   "kol": "dogrulayici",
+   "tekrar": 2,
+   "H": 1,
+   "S": false,
+   "C": 6,
+   "R": 2,
+   "tavan": false,
+   "ms": 11437,
+   "niyetler": [
+    "bak(pipe wall cluster):hata",
+    "sor:bitti",
+    "sor:bitti"
+   ]
+  },
+  {
+   "kol": "dogrulayici",
+   "tekrar": 3,
+   "H": 1,
+   "S": true,
+   "C": 6,
+   "R": 2,
+   "tavan": false,
+   "ms": 11419,
+   "niyetler": [
+    "bak(pipe wall cluster):hata",
+    "sor:bitti",
+    "soyle:bitti",
+    "sor:bitti"
+   ]
+  },
+  {
+   "kol": "dogrulayici",
+   "tekrar": 4,
+   "H": 1,
+   "S": true,
+   "C": 6,
+   "R": 2,
+   "tavan": false,
+   "ms": 11634,
+   "niyetler": [
+    "soyle:bitti",
+    "bak(pipe wall cluster):hata",
+    "sor:bitti",
+    "sor:bitti"
+   ]
+  },
+  {
+   "kol": "dogrulayici",
+   "tekrar": 5,
+   "H": 3,
+   "S": true,
+   "C": 8,
+   "R": 2,
+   "tavan": false,
+   "ms": 13033,
+   "niyetler": [
+    "bak(pipe wall cluster):hata",
+    "sor:bitti",
+    "soyle:bitti",
+    "git(tahta):hata",
+    "bak(pipe wall cluster):hata"
+   ]
+  }
+ ]
+}

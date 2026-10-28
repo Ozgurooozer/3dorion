@@ -1,0 +1,243 @@
+{
+ "senaryo": "tuzak2",
+ "model": "nemotron-3-nano:4b",
+ "n": 5,
+ "tarih": "2026-10-28T20:05:34.017Z",
+ "ozet": [
+  {
+   "kol": "kapali",
+   "H": 0.4,
+   "S": 60,
+   "C": 3.6,
+   "R": 0
+  },
+  {
+   "kol": "cozucu",
+   "H": 0.4,
+   "S": 60,
+   "C": 3.4,
+   "R": 0
+  },
+  {
+   "kol": "dogrulayici",
+   "H": 1.2,
+   "S": 0,
+   "C": 5.6,
+   "R": 7
+  }
+ ],
+ "karar": "RED",
+ "ham": [
+  {
+   "kol": "kapali",
+   "tekrar": 1,
+   "H": 0,
+   "S": true,
+   "C": 3,
+   "R": 0,
+   "tavan": true,
+   "ms": 52405,
+   "niyetler": [
+    "soyle:bitti",
+    "odaklan:bitti"
+   ]
+  },
+  {
+   "kol": "kapali",
+   "tekrar": 2,
+   "H": 1,
+   "S": false,
+   "C": 4,
+   "R": 0,
+   "tavan": false,
+   "ms": 16925,
+   "niyetler": [
+    "bak():bitti",
+    "bak(tahta):hata"
+   ]
+  },
+  {
+   "kol": "kapali",
+   "tekrar": 3,
+   "H": 1,
+   "S": true,
+   "C": 4,
+   "R": 0,
+   "tavan": false,
+   "ms": 17674,
+   "niyetler": [
+    "soyle:bitti",
+    "bak():bitti",
+    "bak(tahta):hata"
+   ]
+  },
+  {
+   "kol": "kapali",
+   "tekrar": 4,
+   "H": 0,
+   "S": true,
+   "C": 4,
+   "R": 0,
+   "tavan": false,
+   "ms": 18157,
+   "niyetler": [
+    "soyle:bitti"
+   ]
+  },
+  {
+   "kol": "kapali",
+   "tekrar": 5,
+   "H": 0,
+   "S": false,
+   "C": 3,
+   "R": 0,
+   "tavan": false,
+   "ms": 14442,
+   "niyetler": [
+    "ortam:bitti",
+    "ortam:bitti",
+    "ortam:bitti"
+   ]
+  },
+  {
+   "kol": "cozucu",
+   "tekrar": 1,
+   "H": 0,
+   "S": false,
+   "C": 3,
+   "R": 0,
+   "tavan": false,
+   "ms": 18885,
+   "niyetler": [
+    "odaklan:bitti",
+    "odaklan:bitti"
+   ]
+  },
+  {
+   "kol": "cozucu",
+   "tekrar": 2,
+   "H": 0,
+   "S": true,
+   "C": 3,
+   "R": 0,
+   "tavan": false,
+   "ms": 17297,
+   "niyetler": [
+    "soyle:bitti",
+    "soyle:bitti",
+    "bak():bitti",
+    "odaklan:bitti"
+   ]
+  },
+  {
+   "kol": "cozucu",
+   "tekrar": 3,
+   "H": 1,
+   "S": false,
+   "C": 4,
+   "R": 0,
+   "tavan": false,
+   "ms": 19330,
+   "niyetler": [
+    "odaklan:bitti",
+    "bak(tahta):hata",
+    "odaklan:bitti"
+   ]
+  },
+  {
+   "kol": "cozucu",
+   "tekrar": 4,
+   "H": 0,
+   "S": true,
+   "C": 3,
+   "R": 0,
+   "tavan": false,
+   "ms": 17709,
+   "niyetler": [
+    "soyle:bitti"
+   ]
+  },
+  {
+   "kol": "cozucu",
+   "tekrar": 5,
+   "H": 1,
+   "S": true,
+   "C": 4,
+   "R": 0,
+   "tavan": false,
+   "ms": 17470,
+   "niyetler": [
+    "soyle:bitti",
+    "bak():bitti",
+    "bak(tahta):hata"
+   ]
+  },
+  {
+   "kol": "dogrulayici",
+   "tekrar": 1,
+   "H": 1,
+   "S": false,
+   "C": 6,
+   "R": 2,
+   "tavan": false,
+   "ms": 23193,
+   "niyetler": [
+    "bak(pipe wall cluster):hata"
+   ]
+  },
+  {
+   "kol": "dogrulayici",
+   "tekrar": 2,
+   "H": 1,
+   "S": false,
+   "C": 4,
+   "R": 0,
+   "tavan": false,
+   "ms": 16477,
+   "niyetler": [
+    "bak(pipe wall cluster):hata",
+    "otur:bitti"
+   ]
+  },
+  {
+   "kol": "dogrulayici",
+   "tekrar": 3,
+   "H": 1,
+   "S": false,
+   "C": 6,
+   "R": 2,
+   "tavan": false,
+   "ms": 20924,
+   "niyetler": [
+    "bak(pipe wall cluster):hata"
+   ]
+  },
+  {
+   "kol": "dogrulayici",
+   "tekrar": 4,
+   "H": 1,
+   "S": false,
+   "C": 6,
+   "R": 2,
+   "tavan": false,
+   "ms": 21170,
+   "niyetler": [
+    "bak(pipe wall cluster):hata"
+   ]
+  },
+  {
+   "kol": "dogrulayici",
+   "tekrar": 5,
+   "H": 2,
+   "S": false,
+   "C": 6,
+   "R": 1,
+   "tavan": false,
+   "ms": 19130,
+   "niyetler": [
+    "bak(koridor):hata",
+    "bak(pipe wall cluster):hata"
+   ]
+  }
+ ]
+}

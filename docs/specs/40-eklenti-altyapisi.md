@@ -48,3 +48,16 @@ Kip faydası ölçülene dek KAPALI. `tools/kip-olc.ts` + `docs/olcum/on-kayit-d
 - **Tuzak-2** (oda tarifi dünyanın reddettiği hedefi gösterir, 3 ardışık söz): kapalı H=3,00 · Çözücü H=3,40 · Doğrulayıcı H=3,20 (ret 10); hiçbir kolda `soyle` yok (S=0) → **Doğrulayıcı RED**, Çözücü yalnız gözlem (fark yok).
 - Okuma: Doğrulayıcı gerçekten devreye girdi (10 ret) ama `gemma4:e2b` ret mesajındaki geçerli hedef listesini kullanmadı; `bak(tahta)` gibi olmayan bir ada kaydı, sonra eski hedefe döndü. Not: sahte dünya `tahta` takma adını reddeder, gerçek oda kabul edebilir.
 - Karar: kip varsayılan KAPALI kalır. Daha güçlü modelle (ör. `gemma4:e4b`, `qwen3:4b`) tekrar ölçmek ayrı ön kayıt ister. Tek model, n=5: genelleme yok.
+
+### Çok modelli tuzak-2 (n=5, üç kol; ön kayıt: `on-kayit-dusunme-kipi.md` son ek bölüm)
+| model | kapalı H / S% | Doğrulayıcı H / S% / ret | karar |
+|---|---|---|---|
+| gemma4:e2b | 3,00 / 0 | 3,20 / 0 / 10 | RED |
+| gemma4:e4b | 3,00 / 100 | **1,40** / 80 / 10 | RED (H şartı sağlandı, S −20 puan > −10 sınırı) |
+| qwen3:4b | 0,00 / 60 | 0,00 / 20 / 1 | RED (tuzağa düşmedi) |
+| nemotron-3-nano:4b | 0,40 / 60 | 1,20 / 0 / 7 | RED (kipten KÖTÜLEŞTİ) |
+| phi4-mini | 0,80 / 100 | 0,40 / 60 / 0 | BELİRSİZ (R=0) |
+| lfm25-tb | 0,00 / 0 | 0,00 / 0 / 0 | BELİRSİZ (R=0) |
+- Genel hüküm (ön kayıt: ≥3 ölçülebilir modelin yarısı KABUL): **0 KABUL → "kanıt yok"**. Kip varsayılan KAPALI kalır.
+- Gözlem: tuzağa yalnız iki gemma düştü (kapalı H=3); öteki dört model kendi başına durdu. Ret mekaniği çalışıyor (gemma4:e4b'de hata yarıdan fazla azaldı) ama "ret → modelin kendi düzeltmesi" modele bağlı: e4b'de işe yarıyor, nemotron'da kötüleştiriyor, e2b'de etkisiz.
+- Mimari okuma: kanca yeri (köprü `_ciktiyiIsle`) doğru; zayıf halka reddin düzeltmeyi modele bırakması. Aday (ÖLÇÜLMEDİ, ayrı ön kayıt ister): ikinci ardışık retten sonra modele sormadan deterministik geri dönüş (ısrarı kesip Ozyn'e tek cümle söyletmek).

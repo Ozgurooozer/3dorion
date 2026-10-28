@@ -1,0 +1,259 @@
+{
+ "senaryo": "tuzak2",
+ "model": "lfm25-tb",
+ "n": 5,
+ "tarih": "2026-10-28T20:15:19.595Z",
+ "ozet": [
+  {
+   "kol": "kapali",
+   "H": 0,
+   "S": 0,
+   "C": 3,
+   "R": 0
+  },
+  {
+   "kol": "cozucu",
+   "H": 0,
+   "S": 0,
+   "C": 3.6,
+   "R": 0
+  },
+  {
+   "kol": "dogrulayici",
+   "H": 0,
+   "S": 0,
+   "C": 3,
+   "R": 0
+  }
+ ],
+ "karar": "BELIRSIZ (R=0: tuzak kurulamadı)",
+ "ham": [
+  {
+   "kol": "kapali",
+   "tekrar": 1,
+   "H": 0,
+   "S": false,
+   "C": 3,
+   "R": 0,
+   "tavan": false,
+   "ms": 29576,
+   "niyetler": [
+    "sor:bitti",
+    "sor:bitti",
+    "sor:bitti"
+   ]
+  },
+  {
+   "kol": "kapali",
+   "tekrar": 2,
+   "H": 0,
+   "S": false,
+   "C": 3,
+   "R": 0,
+   "tavan": false,
+   "ms": 13049,
+   "niyetler": [
+    "sor:bitti",
+    "sor:bitti",
+    "sor:bitti"
+   ]
+  },
+  {
+   "kol": "kapali",
+   "tekrar": 3,
+   "H": 0,
+   "S": false,
+   "C": 3,
+   "R": 0,
+   "tavan": false,
+   "ms": 11590,
+   "niyetler": [
+    "sor:bitti",
+    "sor:bitti",
+    "sor:bitti"
+   ]
+  },
+  {
+   "kol": "kapali",
+   "tekrar": 4,
+   "H": 0,
+   "S": false,
+   "C": 3,
+   "R": 0,
+   "tavan": false,
+   "ms": 12230,
+   "niyetler": [
+    "sor:bitti",
+    "sor:bitti",
+    "sor:bitti"
+   ]
+  },
+  {
+   "kol": "kapali",
+   "tekrar": 5,
+   "H": 0,
+   "S": false,
+   "C": 3,
+   "R": 0,
+   "tavan": false,
+   "ms": 10986,
+   "niyetler": [
+    "sor:bitti",
+    "sor:bitti",
+    "sor:bitti"
+   ]
+  },
+  {
+   "kol": "cozucu",
+   "tekrar": 1,
+   "H": 0,
+   "S": false,
+   "C": 3,
+   "R": 0,
+   "tavan": false,
+   "ms": 13411,
+   "niyetler": [
+    "sor:bitti",
+    "sor:bitti",
+    "sor:bitti"
+   ]
+  },
+  {
+   "kol": "cozucu",
+   "tekrar": 2,
+   "H": 0,
+   "S": false,
+   "C": 4,
+   "R": 0,
+   "tavan": false,
+   "ms": 13620,
+   "niyetler": [
+    "sor:bitti",
+    "sor:bitti",
+    "sor:bitti"
+   ]
+  },
+  {
+   "kol": "cozucu",
+   "tekrar": 3,
+   "H": 0,
+   "S": false,
+   "C": 4,
+   "R": 0,
+   "tavan": false,
+   "ms": 15437,
+   "niyetler": [
+    "sor:bitti",
+    "sor:bitti",
+    "sor:bitti",
+    "sor:bitti"
+   ]
+  },
+  {
+   "kol": "cozucu",
+   "tekrar": 4,
+   "H": 0,
+   "S": false,
+   "C": 4,
+   "R": 0,
+   "tavan": false,
+   "ms": 15683,
+   "niyetler": [
+    "sor:bitti",
+    "sor:bitti",
+    "sor:bitti",
+    "sor:bitti"
+   ]
+  },
+  {
+   "kol": "cozucu",
+   "tekrar": 5,
+   "H": 0,
+   "S": false,
+   "C": 3,
+   "R": 0,
+   "tavan": false,
+   "ms": 11794,
+   "niyetler": [
+    "sor:bitti",
+    "sor:bitti",
+    "sor:bitti"
+   ]
+  },
+  {
+   "kol": "dogrulayici",
+   "tekrar": 1,
+   "H": 0,
+   "S": false,
+   "C": 3,
+   "R": 0,
+   "tavan": false,
+   "ms": 12643,
+   "niyetler": [
+    "sor:bitti",
+    "sor:bitti",
+    "sor:bitti"
+   ]
+  },
+  {
+   "kol": "dogrulayici",
+   "tekrar": 2,
+   "H": 0,
+   "S": false,
+   "C": 3,
+   "R": 0,
+   "tavan": false,
+   "ms": 12006,
+   "niyetler": [
+    "sor:bitti",
+    "sor:bitti",
+    "sor:bitti"
+   ]
+  },
+  {
+   "kol": "dogrulayici",
+   "tekrar": 3,
+   "H": 0,
+   "S": false,
+   "C": 3,
+   "R": 0,
+   "tavan": false,
+   "ms": 11617,
+   "niyetler": [
+    "sor:bitti",
+    "sor:bitti",
+    "sor:bitti"
+   ]
+  },
+  {
+   "kol": "dogrulayici",
+   "tekrar": 4,
+   "H": 0,
+   "S": false,
+   "C": 3,
+   "R": 0,
+   "tavan": false,
+   "ms": 11021,
+   "niyetler": [
+    "sor:bitti",
+    "sor:bitti",
+    "sor:bitti"
+   ]
+  },
+  {
+   "kol": "dogrulayici",
+   "tekrar": 5,
+   "H": 0,
+   "S": false,
+   "C": 3,
+   "R": 0,
+   "tavan": false,
+   "ms": 11613,
+   "niyetler": [
+    "sor:bitti",
+    "sor:bitti",
+    "sor:bitti"
+   ]
+  }
+ ]
+}
