@@ -21,12 +21,17 @@ export function atomikYaz(hedef, metin) {
 }
 
 /**
- * Klasör yolu. Öncelik: `env[envAdi]` > senaryo koşusu (`ORION_SMOKE=1`: `<gecici>/<klasor>-deneme`) > `<kullaniciVerisi>/<klasor>`.
+ * Klasör yolu. Öncelik: `env[envAdi]` > senaryo koşusu (`ORION_SMOKE=1`: `<gecici>/<klasor>-deneme`) > açık projenin içerik klasörü (`projeDizini`,
+ * spec 39: sekans/graf/NPC projenin `Content/`ündedir) > `<kullaniciVerisi>/<klasor>` (projesiz eski yer; md gibi Orion'a ait olanlar hep burada).
  * @param {Record<string, string | undefined>} env
+ * @param {string} [projeDizini]
  */
-export function klasorDizini(env, envAdi, klasor, kullaniciVerisi, gecici) {
+export function klasorDizini(env, envAdi, klasor, kullaniciVerisi, gecici, projeDizini) {
   if (env[envAdi]) return env[envAdi];
-  if (env.ORION_SMOKE === "1") return path.join(gecici, `${klasor}-deneme`);
+  // İçerik gezgini senaryosu (spec 39 D4) kartları projenin Content/ünde görmek zorunda; SMOKE'ta proje kökü zaten geçici olduğundan gerçek veriye yazılmaz.
+  const icerikSenaryosu = env.ORION_ICERIKDENE === "1" && !!projeDizini;
+  if (env.ORION_SMOKE === "1" && !icerikSenaryosu) return path.join(gecici, `${klasor}-deneme`);
+  if (projeDizini) return projeDizini;
   return path.join(kullaniciVerisi, klasor);
 }
 

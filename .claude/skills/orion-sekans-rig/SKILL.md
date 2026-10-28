@@ -40,7 +40,8 @@ Rig/Panel/Zaman çizelgesi  ──oturum.uygula──► geri al yığını (TEK
 | Değerlendirme, derleme, oynatıcı, depo | `uygulama/sekans/{degerlendir,derleyici,oynatici,sekansDeposu}.ts` |
 | Editör saf mantığı (oturum, işlemler, kısayollar, ayrıntı alanları, zaman ekseni, iz düzeni) | `uygulama/sekans/editor/*` |
 | Editör DOM (ana denetimci, zaman çizelgesi, sol izler, ayrıntılar, kamera paneli, oynatma düğmeleri) | `uygulama/yapi/sekans/*` |
-| Ortak kabuk (menü modeli+çubuğu, yan sekmeler, dok boyutu, stil) | `uygulama/yapi/ortak/{menuModeli,menuCubugu,yanSekmeler,dokBoyutu,kabukStili,dom}.ts` |
+| Ana menü şeridi (pencere tepesi, katkı + birleşim) | `uygulama/yapi/ortak/{anaMenu,menuBirlestir}.ts`; proje tarayıcısı `uygulama/yapi/proje/` |
+| Ortak kabuk (menü modeli+çubuğu, yan sekmeler, dok boyutu, stil) | `uygulama/yapi/ortak/{menuModeli,menuCubugu,anaMenu,yanSekmeler,dokBoyutu,kabukStili,dom}.ts`; **dok sistemi** (spec 39 D3) `uygulama/yapi/ortak/dok/{dokDuzeni,dokYoneticisi,dokStili}.ts` |
 | **Rig saf çekirdek** (Babylon YOK) | `world/avatar/rig/{matris,poz,kontroller,surukleme,halkaSecimi}.ts` |
 | Rig Babylon katmanı (şekiller, halkalar, oklar) | `world/avatar/rig/gosterim.ts` |
 | Rig mantığı/denetleyici | `uygulama/rig/{anahtarla,grupIslemleri,rigKipi}.ts` |
@@ -61,10 +62,10 @@ Rig/Panel/Zaman çizelgesi  ──oturum.uygula──► geri al yığını (TEK
 **Toplu işlemler (`grupIslemleri`):** `topluAyarla` uzuv uzuv; biri reddedilirse **hiçbiri yazılmaz**. Yansıtma = `R' = M·R·M`, M=diag(−1,1,1) (y,z işaret değiştirir).
 **Kamera önceliği (`kameraOynatici`, her kare):** ▶ sürüyorsa oynatma karesinin kesme kamerası → yoksa Kamera sekmesi önizlemesi → yoksa **serbest kamera** (editör açıkken) → yoksa `null` = oyuncunun kamerası. Pozlar `KameraRig.sekansKamerasi` ile yumuşatmasız uygulanır; `null` olunca `sekansKamerasiBirak`.
 **Serbest kamera (`serbestKamera.ts` saf + `serbestKameraGirdisi.ts` DOM):** hedef etrafında küresel (yatay, yükselti ±85°, mesafe 0,3–40 m). Sağ tuş sürükle = orbit, orta tuş = pan, tekerlek = zoom, sağ tuş+WASD/QE = uç, Alt+sol = orbit. Olaylar capture + `stopImmediatePropagation` (oyuna gitmez); klavye dinleyicisi editörden önce kurulur ve durdurmaz.
-**Tuval boyutu:** editör açıkken `--editor-alt` CSS değişkeni; `index.html` `#tuval` yüksekliğini `max(--alt-cubuk, --editor-alt)` kadar kısar, `ResizeObserver` motoru boyutlar. Altyazı/sohbet/diyalog payı bilir.
+**Tuval boyutu:** üstte ana menü şeridi `--editor-ust` (30 px; imleç kipinde ya da editör açıkken), altta editör açıkken `--editor-alt` CSS değişkeni; `index.html` `#tuval` yüksekliğini `max(--alt-cubuk, --editor-alt)` kadar kısar, `ResizeObserver` motoru boyutlar. Altyazı/sohbet/diyalog payı bilir.
 
 ## 5. Arayüz özeti (menüler, araç çubuğu, kısayollar)
-**Sekans editörü** (altta, tutamakla yeniden boyutlanır): Menü çubuğu **Dosya** (Kaydet, Yeniden adlandır, Kopyasını oluştur, JSON görünümü, Gizle) · **Düzen** (Geri al/Yinele, Anahtar ekle, Sil, Tümünü seç) · **Görünüm** (Yaslama, Sığdır, sekmeler) · **Oynat** (▶ menüde YOK — yalnız araç çubuğu düğmesi; Durdur, Döngü, Başa/Sona, anahtar atla) · **Ekle** (Kamera…, Kesme) · **Rig** (Rig kipi, sıfırla, seçimi bırak) · **Yardım**.
+**Sekans editörü** (altta, tutamakla yeniden boyutlanır; MENÜ ÇUBUĞU artık pencerenin TEPESİNDE: `uygulama/yapi/ortak/anaMenu.ts`, editör `anaMenu.katki(...)` ile menülerini katar, uygulamanın Dosya/Pencere menüleriyle birleşir — spec 39 D2): Menü çubuğu **Dosya** (Kaydet, Yeniden adlandır, Kopyasını oluştur, JSON görünümü, Gizle) · **Düzen** (Geri al/Yinele, Anahtar ekle, Sil, Tümünü seç) · **Görünüm** (Yaslama, Sığdır, sekmeler) · **Oynat** (▶ menüde YOK — yalnız araç çubuğu düğmesi; Durdur, Döngü, Başa/Sona, anahtar atla) · **Ekle** (Kamera…, Kesme) · **Rig** (Rig kipi, sıfırla, seçimi bırak) · **Yardım**.
 Araç çubuğu: ⏮ ◀ ▶ ■ ▶| ⏭ ⟳ | ◆ Anahtar · 🧲 Yasla · ⤢ Sığdır | 🦴 Rig · 🎥 Kamera · 🎯 Orion | kare okuması | 💾 Kaydet ✕. Sağ sekmeler: **Ayrıntılar · Rig · Kamera**. Sol: iz listesi (en üstte 🎥 Kamera satırı). Orta: zaman çizelgesi.
 **Kısayollar** (`uygulama/sekans/editor/kisayollar.ts`, tek kaynak): ← → kare, Shift+←→ 10 kare, Home/End, `,` `.` anahtara atla, K anahtar ekle, N yasla, F sığdır, Delete, Ctrl+S/Z/Y/A, ?, Esc (önce açık menü, sonra editör). **▶ için kısayol YOK** (güvenlik).
 **Rig paneli**: Gizmo [Döndür|Taşı|Ölçek(KAPALI)] · Yön [Gövde|Dünya] · Gruplar (çipler, ◆ = bu karede anahtar, Sıfırla, ⇄ yansıt) · Poz (kopyala/yapıştır/hepsini sıfırla) · seçili kontrolün kaydırıcı+sayı+±+↺.
@@ -77,7 +78,7 @@ Araç çubuğu: ⏮ ◀ ▶ ■ ▶| ⏭ ⟳ | ◆ Anahtar · 🧲 Yasla · ⤢ 
 - **Yeni rig işlemi (toplu):** `grupIslemleri.ts`'e saf fonksiyon (`topluAyarla` kullan: yarım kalmaz) → `RigKipi` arayüzü + uygulaması (`topluYaz` ile tek adım) → `rigPaneli.ts` düğmesi → test + `rigdene` kontrolü.
 - **Yeni sekans alanı (kamera gibi):** `protocol/sekans.ts` (isteğe bağlı alan, boşsa YAZILMAZ, `SEKANS_SURUMU` değişmez; **yeni iz TÜRÜ yeni sürüm kararıdır**) + doğrulama + `kameraIslemleri` benzeri işlemler + biçim testi.
 - **Yeni gizmo kipi:** `gosterim.ts` (düğüm + `modAyarla`), `halkaSecimi.ts` (ekran uzayı seçim), `rigKipi.ts` (kip + sürükleme türü), panel.
-- **Yeni editör paneli:** `yanSekmelerKur` listesine `{ id, etiket, icerik }`; `tazele()` içinde çiz; yazı/kaydırıcı odaktaysa yeniden çizme (korunan koşul var).
+- **Yeni editör paneli:** `yanSekmeleriDokaBagla` listesine `{ id, etiket, icerik, bolgeler? }` (panel dok sisteminde sürüklenebilir; kimlik `sekans-<id>`, saf kural `dok/dokDuzeni.ts`); `tazele()` içinde çiz; yazı/kaydırıcı odaktaysa yeniden çizme (korunan koşul var).
 - **Yeni senaryo:** `uygulama/senaryolar/<ad>dene.ts` + `SENARYOLAR` (`senaryoBaglami.ts`) + `host/main.js` `ORION_<AD>DENE` + `3dorion.bat` etiketi (CRLF) — örnek: `rigdene.ts`, `kameradene.ts`, `grafdene.ts`.
 
 ## 7. Güvenlik ve sınırlar (değişmez)
@@ -99,7 +100,21 @@ node --experimental-strip-types --import ./tools/babylon-cozucu.mjs --test <dosy
 Beklenen (2026-10-24): `rigdene` 27/27, `kameradene` 12/12, `grafdene` 11/11, `sekansdene` 7/7, `klipdene` 5/5. **`kimododene` 8/9 olabilir**: Orion'un `ajanda_*` jesti sekansı son anda keser (eski açık; kesen niyet kimliğine bak). Senaryolar **oyun KAPALIYKEN** koşar (pencere açar); açıksa Ozyn'den kapatmasını iste, Electron/ollama/piper süreçlerini ÖLDÜRME. Kareler `%TEMP%\<ad>dene\*.png`: Read ile aç ve bak (görmediğini "görüldü" deme).
 **Bozma denemesi:** yeni saf mantık için ≥12 mutant: dosyayı yedekle → tek ifadeyi boz → ilgili testler kırmızı mı → geri koy → bayt karşılaştır. Taban önce yeşil olmalı. Eşdeğer mutantı açıkla.
 
+## 9b. Proje / İçerik / Dok / Önizleme / Outliner (spec 39) dosya haritası
+- Host: `host/proje.js` (proje kökü), `host/icerik.js` (Content/Engine adres çözümü, liste, adlandır, çoğalt, sil→`.silinenler`, içe aktar). Kanal adları `host/kanallar.cjs` (+ preload + kopru.ts + main.js üçlüsü).
+- Model (saf): `uygulama/icerik/icerikModeli.ts`, `uygulama/yapi/onizleme/{varlikModeli,varlikOzeti}.ts`, `uygulama/yapi/outliner/outlinerModeli.ts`, `uygulama/yapi/ortak/dok/dokDuzeni.ts`.
+- DOM: `uygulama/yapi/icerik/icerikPaneli.ts`, `uygulama/yapi/onizleme/varlikPenceresi.ts`, `uygulama/yapi/outliner/outlinerPaneli.ts`, `dok/dokYoneticisi.ts`. Kablolama `uygulama/giris.ts`; senaryolar `icerikdene`, `dokdene`, `projedene`.
+- Yeni dok paneli: `dokSistemi` kaydına `{id, ad, bolgeler, varsayilan, baslangicKapali?}`; içerik DOM'unu panel kökü verir; senaryo arayüzünü `senaryoBaglami.ts`'e ekle.
+- Babylon ikinci motor (önizleme): kurulumdan/yüklemeden sonra `EngineStore._LastCreatedScene` ve `Instances` sırasını ana sahneye geri döndür.
+- Content adresleri `Content/…` yazılabilir, `Engine/…` salt okunur; Orion'un araç yüzeyine eklenmez.
+
+## 9c. Eklenti (spec 40) dosya haritası
+- Sözleşme `protocol/eklenti.ts`; defter `uygulama/eklenti/eklentiDefteri.ts` (saf); Ayar bölümü `uygulama/ayar/eklentilerBolumu.ts`; mevcut özellikler `uygulama/eklentiler/mevcutOzellikler.ts`; kip `uygulama/eklentiler/dusunmeKipi/`.
+- Yeni eklenti = `Eklenti {bildirim, kur?}` yaz, `giris.ts`'te `eklentiler.kaydet`. Köprüye takılmak için `KopruKancasi` (`bridge/kopruKancalari.ts`): `kancalar: () => …` canlı okunur. Kapıya yalnız `eklentiler.acikMi/istenenAcik` konur, mantık taşınmaz.
+- Eklenti Orion'un araç yüzeyine EKLENMEZ. Senaryo: `eklentidene`; `ORION_EKLENTI="id:1,id:0,id=secenek"`.
+
 ## 10. Bilinen tuzaklar (para ödenmiş)
+- **Araç tuzağı:** Bash/Python heredoc içinde `\\` tek `\`'a çöker (regex'ler sessizce bozulur). Ters bölü içeren her şeyi Write/Edit ile yaz; sonra bozma/testle doğrula.
 - **Her karede `setEnabled`** (Babylon) ışık kaynaklarını yeniden hesaplatır: FPS 100→5. Yalnız durum DEĞİŞİNCE çağır.
 - **İnce tıklama hedefi / kalın üst üste tüp:** seçimi ekran uzayında yap, piksel payı sabit tut.
 - **Tıklamadan önce konum/matris tazele** (`gosterim.vurus` bunu yapar); aksi hâlde hareketli elde ıskalar.

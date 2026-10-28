@@ -20,7 +20,7 @@ import type { Yuzey, YuzeyOlcusu } from "../yuzey.ts";
 // kurar ve `panoBagla` ile takar. Böylece yüzey `mind/`i hiç görmez.
 import type { Pano, DugmeGoruntu } from "../../../protocol/pano.ts";
 import { semaDurumuKur, semaAlani, dugumBulUv, dugumTanim, uvdenPiksel } from "./semaCekirdek.ts";
-import type { Dugum, DugumDurumu, SemaDurumu } from "./semaCekirdek.ts";
+import type { Dugum, DugumDurumu, SemaDurumu, SemaTanimi } from "./semaCekirdek.ts";
 import { cizSema, cizDetay, cizTeyit, type Bolge } from "./semaCizim.ts";
 import { cizHafizaBulutu, type BulutKelimesi } from "./hafizaBulutu.ts";
 import { cizKuralGrafigi, type KuralGrafigiVerisi } from "./kuralGrafigi.ts";
@@ -30,6 +30,8 @@ export interface SemaAyari {
   mesh: AbstractMesh;
   genislikM: number;
   yukseklikM: number;
+  /** Çizilecek şema tanımı (eklenti katkısı, spec 40); her karede okunur. Verilmezse Orion'unki. */
+  tanim?: () => SemaTanimi;
 }
 
 export interface SemaPaneli {
@@ -221,7 +223,7 @@ export function semaKur(ayar: SemaAyari): SemaPaneli {
       bolgeler = cizKuralGrafigi(bag, o, { grafik: veri, secili: kuralSecili });
     }
     else if (secim !== null) bolgeler = cizDetay(bag, o, secim, { durum, pano, simdi, sonYazma, sonYazmaAn });
-    else bolgeler = cizSema(bag, o, { durum, altDurum, simdi });
+    else bolgeler = cizSema(bag, o, { durum, altDurum, simdi, ...(ayar.tanim ? { tanim: ayar.tanim() } : {}) });
   }
 
   /** Yazma sonucunu alt şeride koy. "teyit bekleniyor" ret değil, sonraki adım. */

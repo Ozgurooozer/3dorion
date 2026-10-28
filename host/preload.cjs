@@ -1,9 +1,13 @@
 // host/preload.cjs — contextIsolation köprüsü. Yüzey host/kopru.ts ile aynı.
 // CJS bilerek: preload ESM'de sandbox:false ile güvenilir değil.
 "use strict";
-const { contextBridge, ipcRenderer } = require("electron");
+const { contextBridge, ipcRenderer, webUtils } = require("electron");
 
 const { CAGRI, OLAY } = require("./kanallar.cjs");
+const { birakYollariKur } = require("./birakYollari.cjs");
+
+// Explorer'dan bırakılan dosyaların yolu bırakma ANINDA (yakalama aşaması) burada okunur; File nesnesi köprüden geçirilmez (host/birakYollari.cjs).
+const birakYollari = birakYollariKur(window, (f) => webUtils.getPathForFile(f));
 
 /** Dinleyici sarmalayıcı: abonelikten çıkma fonksiyonu döner (sızıntı önlemi). */
 function dinle(kanal, cb) {
@@ -74,6 +78,31 @@ contextBridge.exposeInMainWorld("kopru", {
   sekansYaz:        (ad, metin) => ipcRenderer.invoke(CAGRI.sekansYaz, ad, metin),
   sekansYeni:       (ad, metin) => ipcRenderer.invoke(CAGRI.sekansYeni, ad, metin),
   sekansSil:        (ad) => ipcRenderer.invoke(CAGRI.sekansSil, ad),
+  // Proje (spec 39): açık projenin özeti ve level'ı; aynı sonuç biçimi.
+  projeBilgi:       () => ipcRenderer.invoke(CAGRI.projeBilgi),
+  projeLevelOku:    (ad) => ipcRenderer.invoke(CAGRI.projeLevelOku, ad),
+  // Proje tarayıcısı (D2): aç projeyi CANLI değiştirmez, uygulamayı yeniden başlatır.
+  projeListe:       () => ipcRenderer.invoke(CAGRI.projeListe),
+  projeYeni:        (ad, sablon) => ipcRenderer.invoke(CAGRI.projeYeni, ad, sablon),
+  projeAc:          (ad) => ipcRenderer.invoke(CAGRI.projeAc, ad),
+  projeKlasorGoster: () => ipcRenderer.invoke(CAGRI.projeKlasorGoster),
+  // İçerik gezgini (D4): adresli dosya işlemleri; aynı sonuç biçimi.
+  icerikListe:      (kok) => ipcRenderer.invoke(CAGRI.icerikListe, kok),
+  icerikIkili:      (adres) => ipcRenderer.invoke(CAGRI.icerikIkili, adres),
+  icerikMetin:      (adres) => ipcRenderer.invoke(CAGRI.icerikMetin, adres),
+  icerikYeniKlasor: (adres) => ipcRenderer.invoke(CAGRI.icerikYeniKlasor, adres),
+  icerikAdlandir:   (adres, yeniAd) => ipcRenderer.invoke(CAGRI.icerikAdlandir, adres, yeniAd),
+  icerikCogalt:     (adres) => ipcRenderer.invoke(CAGRI.icerikCogalt, adres),
+  icerikSil:        (adres) => ipcRenderer.invoke(CAGRI.icerikSil, adres),
+  icerikIceAktar:   (hedefAdres) => ipcRenderer.invoke(CAGRI.icerikIceAktar, hedefAdres),
+  icerikTasi:       (adres, hedefKlasor) => ipcRenderer.invoke(CAGRI.icerikTasi, adres, hedefKlasor),
+  // Explorer'dan bırakılan dosyalar: yollar yalnız burada (webUtils) çözülür; ana süreç uzantı/boyut/hedef kuralını yine uygular.
+  icerikBirakAktar: (hedefAdres, dosyalar) => {
+    const yollar = birakYollari.al(dosyalar);
+    if (!yollar.length) return Promise.resolve({ ok: false, kod: "yol-yok", mesaj: "bırakılan dosyanın yolu alınamadı (İçe aktar düğmesiyle seçici kullanılabilir)" });
+    return ipcRenderer.invoke(CAGRI.icerikBirakAktar, hedefAdres, yollar);
+  },
+  icerikGoster:     (adres) => ipcRenderer.invoke(CAGRI.icerikGoster, adres),
   // Orion'un sesi (spec 34): hepsi yanıt bekler, sonuç { ok, deger: SesDurumu } ya da { ok:false, kod, mesaj }; indirme ilerlemesi olay olarak.
   sesListe:         () => ipcRenderer.invoke(CAGRI.sesListe),
   sesSec:           (ad) => ipcRenderer.invoke(CAGRI.sesSec, ad),

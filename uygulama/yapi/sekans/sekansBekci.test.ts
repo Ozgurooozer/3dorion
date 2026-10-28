@@ -67,6 +67,13 @@ test("BEKÇİ (tuş sızıntısı): odak dışarıdayken pencere yakalayıcısı
   }
 });
 
+test("BEKÇİ (tuş sızıntısı): proje tarayıcısı (.pp-kok) iki editörün pencere yakalayıcısında İSTİSNA — yoksa Esc'i yutulur (spec 39 D2: projedene P13 yakaladı)", () => {
+  for (const yol of ["uygulama/yapi/sekans/sekansEditoru.ts", "uygulama/yapi/graf/grafEditoru.ts"]) {
+    assert.match(oku(yol), /closest\?\.\("\.ep-pencere, \.pp-kok"\)/, yol);
+  }
+  assert.match(oku("uygulama/yapi/proje/projePenceresi.ts"), /el\("div", "pp-kok"\)/, "sınıf adı değişirse istisna sessizce kırılmasın");
+});
+
 test("BEKÇİ (sil): Sekans sekmesinde silmenin ikinci adımı gerçek tık ister", () => {
   const k = oku("uygulama/yapi/sekans/sekansSekmesi.ts");
   const i = k.indexOf("a.depo.sil(");

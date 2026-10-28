@@ -26,6 +26,23 @@ import type { stilPenceresiKur } from "../world/arayuz/stilPenceresi.ts";
 import type { ortamBaglantisiKur } from "./ortamBaglantisi.ts";
 import type { OrtamGunlugu } from "./ortamDeposu.ts";
 
+/**
+ * Ova'nın tanımı AÇIK PROJEDEN (spec 39 D1): `Content/Levels/<varsayılan>/…level.json`. Repodaki `ova.level.json` motorun ŞABLONUdur; proje onun
+ * kopyasını taşır. Proje yoksa (vite tek başına, Electron'suz ya da proje hazırlanamadı) şablon okunur — sessiz değil, konsola yazılır.
+ */
+async function ovaTanimiOku(): Promise<unknown> {
+  const k = typeof window !== "undefined" ? window.kopru : undefined;
+  if (k?.projeBilgi) {
+    const b = await k.projeBilgi();
+    if (b.ok && b.deger) {
+      const r = await k.projeLevelOku(b.deger.varsayilanLevel);
+      if (r.ok) { console.log(`[PROJE] level: ${b.deger.ad} / ${b.deger.varsayilanLevel}`); return JSON.parse(r.deger) as unknown; }
+      console.error(`[PROJE] level okunamadı (${r.kod}: ${r.mesaj}) — motorun şablonu (ova) kullanılıyor`);
+    } else console.warn(`[PROJE] açık proje yok${b.ok ? "" : ` (${b.mesaj})`} — motorun şablonu (ova) kullanılıyor`);
+  }
+  return (await fetch(ovaAdresi)).json() as Promise<unknown>;
+}
+
 /** Ozyn'in ve Orion'un yeri. Okuma serbest; yazma yalnız bu modülde (geçişler ve birleşik dünya açılışı). */
 export interface Yerler { ozyn: Yer; orion: Yer }
 
@@ -81,7 +98,7 @@ export function yerGecisiKur(d: YerGecisiGirdisi): YerGecisi {
     if (disari || gecisSuruyor) return false;
     gecisSuruyor = true;
     try {
-      const tanim: unknown = await (await fetch(ovaAdresi)).json();
+      const tanim = await ovaTanimiOku();
       disari = await levelSahnesiKur({ sahne, tanim, ad: "ova", oda, kamera: rig.kamera, golgeAtanlar: [oyuncu.govde] });
       const yer = disari.yer;
       // Orion, Ozyn'le AYNI yerdeyse beraber çıkar (Ozyn'in kararı, 2026-10-11); kendi başına başka yerdeyse kalır (C6).
@@ -187,7 +204,7 @@ export function yerGecisiKur(d: YerGecisiGirdisi): YerGecisi {
     void (async () => {
       try {
         await oda.hazir;
-        const tanim: unknown = await (await fetch(ovaAdresi)).json();
+        const tanim = await ovaTanimiOku();
         const orionKok = () => sahne.getTransformNodeByName("orion_vrm_kok") ?? sahne.getTransformNodeByName("orion_kok");
         const b = await birlesikDunyaKur({
           sahne, tanim, oda, kamera: rig.kamera, golgeAtanlar: [oyuncu.govde], ufuk: ufukAcikMi(location.search),

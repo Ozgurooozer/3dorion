@@ -30,6 +30,10 @@ rem    3dorion.bat kimododene Kimodo'dan cevrilen kimodo_* sekanslari Orion'da (
 rem    3dorion.bat rigdene    Control Rig (spec 38): kontrol sekilleri, halka surukleme, auto-key anahtar, geri al; kareler ORION_SS_DIR'e PNG
 rem    3dorion.bat kameradene Sekans kamerasi (spec 38): isimli kameralar, kesmeler, onizleme, oynatma; kareler ORION_SS_DIR'e PNG
 rem    3dorion.bat grafdene   Graf editoru yeni kabuk (spec 38): menu cubugu, arac cubugu, Esc zinciri; kareler ORION_SS_DIR'e PNG
+rem    3dorion.bat projedene  Motor/proje ayrimi (spec 39): gecici proje acilir, level projeden okunur, dunya kurulur
+rem    3dorion.bat eklentidene Eklenti altyapisi (spec 40): defter, Ayarlar-Eklentiler, mevcut ozelliklerin kapilari
+rem    3dorion.bat dokdene    Dok sistemi (spec 39 D3): bolgeler, surukle-birak, izin kurali, boyut, yuzer, kalicilik
+rem    3dorion.bat icerikdene Icerik gezgini (spec 39 D4): agac, kartlar, cift tik, sag tik, adlandir/cogalt/sil, ice aktar, onizleme resmi (gecici projede)
 rem    3dorion.bat ovadene    Orion ovada: gel, takip, kapiya git, otur, bak, jest, algi, gec (spec 26 F4)
 rem    3dorion.bat gozlemdene Goz muayenesi (O tusu): Orion'un gozunden kare, yerel gorme modeli, panelde onizleme + cevap
 rem    3dorion.bat gromadene  Ofisteki 3. monitor (groma haritasi): sayfa, kare, dolu doku, tekerlek/tiklama (docs/olcum/on-kayit-groma-monitoru-1.md)
@@ -108,6 +112,10 @@ if /i "%MOD%"=="kimododene" goto :kimododene
 if /i "%MOD%"=="rigdene" goto :rigdene
 if /i "%MOD%"=="kameradene" goto :kameradene
 if /i "%MOD%"=="grafdene" goto :grafdene
+if /i "%MOD%"=="projedene" goto :projedene
+if /i "%MOD%"=="eklentidene" goto :eklentidene
+if /i "%MOD%"=="dokdene" goto :dokdene
+if /i "%MOD%"=="icerikdene" goto :icerikdene
 if /i "%MOD%"=="ovadene" goto :ovadene
 if /i "%MOD%"=="ortamdene" goto :ortamdene
 if /i "%MOD%"=="efektdene" goto :efektdene
@@ -357,6 +365,60 @@ set "ORION_KAMERADENE=1"
 set "ORION_SMOKE=1"
 set "ORION_SMOKE_MS=120000"
 if "%ORION_SS_DIR%"=="" set "ORION_SS_DIR=%TEMP%\kameradene"
+set "ORION_BEYIN=dis"
+set "ORION_BEYIN_ADRES=http://127.0.0.1:9"
+call npx electron .
+goto :son
+
+:icerikdene
+echo [icerikdene] Icerik gezgini (spec 39 D4): agac, kartlar, cift tik, sag tik, adlandir/cogalt/sil, ice aktar; kareler ORION_SS_DIR'e PNG
+call npx vite build
+if errorlevel 1 goto :hata
+set "ORION_ICERIKDENE=1"
+set "ORION_SMOKE=1"
+set "ORION_SMOKE_MS=90000"
+if "%ORION_SS_DIR%"=="" set "ORION_SS_DIR=%TEMP%\icerikdene"
+rem Ice aktarilacak dosyalar (dosya secici senaryoda acilmaz): iki gercek png + desteklenmeyen bir klasor
+set "ORION_ICE_AKTAR=%~dp0assets\poster-1.png;%~dp0assets\window-city.png;%~dp0assets\kaynak"
+set "ORION_BEYIN=dis"
+set "ORION_BEYIN_ADRES=http://127.0.0.1:9"
+call npx electron .
+goto :son
+
+:eklentidene
+echo [eklentidene] Eklenti altyapisi (spec 40): defter, Ayarlar ^> Eklentiler, mevcut ozelliklerin kapilari; kareler ORION_SS_DIR'e PNG
+call npx vite build
+if errorlevel 1 goto :hata
+set "ORION_EKLENTIDENE=1"
+set "ORION_SMOKE=1"
+set "ORION_SMOKE_MS=60000"
+if "%ORION_SS_DIR%"=="" set "ORION_SS_DIR=%TEMP%\eklentidene"
+set "ORION_BEYIN=dis"
+set "ORION_BEYIN_ADRES=http://127.0.0.1:9"
+call npx electron .
+goto :son
+
+:dokdene
+echo [dokdene] Dok sistemi (spec 39 D3): bolgeler, surukle-birak, izin kurali, boyut, yuzer, kalicilik; kareler ORION_SS_DIR'e PNG
+call npx vite build
+if errorlevel 1 goto :hata
+set "ORION_DOKDENE=1"
+set "ORION_SMOKE=1"
+set "ORION_SMOKE_MS=90000"
+if "%ORION_SS_DIR%"=="" set "ORION_SS_DIR=%TEMP%\dokdene"
+set "ORION_BEYIN=dis"
+set "ORION_BEYIN_ADRES=http://127.0.0.1:9"
+call npx electron .
+goto :son
+
+:projedene
+echo [projedene] Motor/proje ayrimi (spec 39): gecici kokte proje, level projeden, birlesik dunya kurulur
+call npx vite build
+if errorlevel 1 goto :hata
+set "ORION_PROJEDENE=1"
+set "ORION_SMOKE=1"
+set "ORION_SMOKE_MS=60000"
+if "%ORION_SS_DIR%"=="" set "ORION_SS_DIR=%TEMP%\projedene"
 set "ORION_BEYIN=dis"
 set "ORION_BEYIN_ADRES=http://127.0.0.1:9"
 call npx electron .

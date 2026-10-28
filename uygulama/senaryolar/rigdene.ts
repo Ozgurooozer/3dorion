@@ -247,10 +247,11 @@ export async function kos(d: SenaryoBaglami): Promise<void> {
   await bekle(500);
   const pSerbest = orion.uzuvKonumu("sag_el");
   kontrol("R10d editör kapanınca beden poz önizlemesini bırakır (el durulan kareden ayrıldı)", uzaklik(pDur, pSerbest) > 0.03, `fark ${uzaklik(pDur, pSerbest).toFixed(3)} m`);
-  // İmleç kipinde Yapı çubuğunun şeridi görünür kalır (`--alt-cubuk`): tuval onun kadar kısa, editör payı (`--editor-alt`) ise kalkmış olmalı.
+  // İmleç kipinde Yapı çubuğunun şeridi (`--alt-cubuk`) ve pencere tepesindeki ana menü şeridi (`--editor-ust`, spec 39 D2) görünür kalır: tuval ikisi kadar kısa,
+  // editör payı (`--editor-alt`) ise kalkmış olmalı.
   const stil = getComputedStyle(document.documentElement);
-  const yapiPayi = parseFloat(stil.getPropertyValue("--alt-cubuk")) || 0, editorPayi = parseFloat(stil.getPropertyValue("--editor-alt")) || 0;
-  kontrol("R9b editör gizlenince tuval editör payını bıraktı", editorPayi === 0 && Math.abs((tuval?.clientHeight ?? 0) - (innerHeight - yapiPayi)) <= 2, `tuval ${tuval?.clientHeight ?? 0} px · pencere ${innerHeight} px · Yapı çubuğu ${yapiPayi} px · editör payı ${editorPayi} px`);
+  const yapiPayi = parseFloat(stil.getPropertyValue("--alt-cubuk")) || 0, editorPayi = parseFloat(stil.getPropertyValue("--editor-alt")) || 0, ustPayi = parseFloat(stil.getPropertyValue("--editor-ust")) || 0;
+  kontrol("R9b editör gizlenince tuval editör payını bıraktı", editorPayi === 0 && Math.abs((tuval?.clientHeight ?? 0) - (innerHeight - yapiPayi - ustPayi)) <= 2, `tuval ${tuval?.clientHeight ?? 0} px · pencere ${innerHeight} px · Yapı çubuğu ${yapiPayi} px · ana menü ${ustPayi} px · editör payı ${editorPayi} px`);
   d.rig.odakBirak();
   bitir();
 }

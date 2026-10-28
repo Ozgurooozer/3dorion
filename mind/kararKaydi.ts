@@ -204,6 +204,10 @@ export interface UyanisSatiri {
   dunya: string;
   /** Temiz sohbette (spec 16 F5b) yazılır: bağlama hafıza girmedi, söz hafızaya yazılmadı. */
   sohbetKipi?: "temiz";
+  /** Eklenti kancası etkinse (spec 40) kancaların adları ("dusunme-kipi"); kancasız uyanışta yazılmaz. */
+  kip?: string;
+  /** Kancaların reddettiği çağrı sayısı (yalnız >0 ise yazılır). */
+  kancaReddi?: number;
   /** Yönlendiricinin tetiklenen kuralları (spec 16 F4; yalnız yönlendirici kipinde; boş = hiçbir şey istenmedi). */
   hafizaIstegi?: string[];
   /** Bağlamın ölçüsü (spec 16 F0): bölüm başına karakter; beyin verirse girdi token sayısı. */

@@ -95,6 +95,32 @@ const CAGRI = {
   sekansYeni:        "sekans:yeni",
   sekansSil:         "sekans:sil",
   /**
+   * Proje (spec 39, host/proje.js): açık projenin özeti (ad, klasör, varsayılan level) ve projenin level'ını okuma. Sonuç biçimi md'ninkiyle aynı.
+   * Proje değiştirme (aç/yeni) D2 kanallarıdır.
+   */
+  projeBilgi:        "proje:bilgi",
+  projeLevelOku:     "proje:level-oku",
+  /** Proje tarayıcısı (D2): liste, yeni (şablondan), aç (yeniden başlatır), klasörde göster. */
+  projeListe:        "proje:liste",
+  projeYeni:         "proje:yeni",
+  projeAc:           "proje:ac",
+  projeKlasorGoster: "proje:klasor-goster",
+  /**
+   * İçerik gezgini (spec 39 D4, host/icerik.js): adres = `Content/…` (proje, yazılabilir) | `Engine/…` (motor, salt okunur). Sonuç biçimi md'ninkiyle aynı.
+   * İçe aktar dosya seçiciyi ana süreçte açar (renderer yol vermez); sil = `Content/.silinenler`e taşı.
+   */
+  icerikListe:       "icerik:liste",
+  icerikIkili:       "icerik:ikili",
+  icerikMetin:       "icerik:metin",
+  icerikYeniKlasor:  "icerik:yeni-klasor",
+  icerikAdlandir:    "icerik:adlandir",
+  icerikCogalt:      "icerik:cogalt",
+  icerikSil:         "icerik:sil",
+  icerikIceAktar:    "icerik:ice-aktar",
+  icerikTasi:        "icerik:tasi",
+  icerikBirakAktar:  "icerik:birak-aktar",
+  icerikGoster:      "icerik:goster",
+  /**
    * Orion'un sesi (spec 34, host/sesler.js): kurulu/katalog sesleri, seçim (bir SONRAKİ cümleden geçerli), katalogdan indirme, yalnız indirileni silme.
    * Sonuç biçimi md'ninkiyle aynı (`{ ok, deger: SesDurumu }` | `{ ok: false, kod, mesaj }`); deneme cümlesi mevcut `sesUret` yolundan çalar.
    */

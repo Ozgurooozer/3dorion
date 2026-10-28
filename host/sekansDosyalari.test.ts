@@ -24,6 +24,9 @@ test("AD KURALI protokolünkiyle AYNI ve grafiklerin kopyasının KENDİSİ (ü�
 test("dizin: env > senaryo (geçici) > kullanıcı verisi; grafiklerin ve NPC'lerin klasöründen AYRI", () => {
   assert.deepEqual([sekansDizini({ ORION_SEKANS_DIZINI: "/x" }, "/u", "/t"), sekansDizini({ ORION_SMOKE: "1" }, "/u", "/t"), sekansDizini({ ORION_GRAF_DIZINI: "/g" }, "/u", "/t")],
     ["/x", path.join("/t", "orion-sekans-deneme"), path.join("/u", "orion-sekans")]);
+  // spec 39: açık proje varsa projenin Content/Sequences'ı; env ve senaryo yine önce gelir (senaryo gerçek projeye yazmaz).
+  assert.deepEqual([sekansDizini({}, "/u", "/t", "/p/Sequences"), sekansDizini({ ORION_SMOKE: "1" }, "/u", "/t", "/p/Sequences"), sekansDizini({ ORION_SEKANS_DIZINI: "/x" }, "/u", "/t", "/p/Sequences")],
+    ["/p/Sequences", path.join("/t", "orion-sekans-deneme"), "/x"]);
 });
 
 test("yeni → oku → yaz: '<ad>.json'; varsa 'var', yoksa 'yok'; geçersiz ad 'gecersiz-ad' ve klasör DIŞINA yazılmaz", () => {

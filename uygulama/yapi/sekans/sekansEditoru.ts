@@ -1,6 +1,7 @@
 // uygulama/yapi/sekans/sekansEditoru.ts — SEKANS EDİTÖRÜ (spec 36 S2, yeniden yerleşim spec 38 §6): ekranın altında yeniden boyutlanır dok.
 //
-// YERLEŞİM (üstten alta): boyut tutamağı · MENÜ ÇUBUĞU (Dosya, Düzen, Görünüm, Oynat, Ekle, Rig, Yardım) · sekme satırı (açık sekanslar, adı değiştir) ·
+// YERLEŞİM: PENCERENİN TEPESİNDE sabit MENÜ ŞERİDİ (Dosya, Düzen, Görünüm, Oynat, Ekle, Rig, Yardım; sağda sekans adı + kare; Blender/Unreal gibi, `--editor-ust`),
+// altta dok (üstten alta): boyut tutamağı · sekme satırı (açık sekanslar, adı değiştir) ·
 // ARAÇ ÇUBUĞU (oynatma, anahtar/yasla/sığdır, 🦴 Rig, 🎥 Kamera, playhead okuması, Kaydet) · gövde: SOL iz listesi | ZAMAN çizelgesi | SAĞ sekmeler
 // (Ayrıntılar · Rig · Kamera) · durum çubuğu. Dok açıkken 3B sahne dokun ÜSTÜNDE kalır (tuval küçülür, `--editor-alt`; dokBoyutu.ts): karakter dokun
 // arkasında kesilmez. Eskiden her şey tek satıra sıkışmış düğmelerdi (Metin, Yeniden adlandır, Kopyasını oluştur…): artık menülerde.
@@ -8,7 +9,7 @@
 // MANTIK SAF MODÜLLERDE (`uygulama/sekans/`, `uygulama/sekans/editor/`; testli). Kaydetme mevcut depo (`sekansDeposu.yaz`: biçim doğrulanır, bozuk diske
 // gitmez); oynatma mevcut oynatıcı (`oynatmaDugmeleri.ts`: yalnız gerçek tık; menüde ▶ YOK — çalıştıran Ozyn'in düğmesidir).
 // TUŞLAR OYUNA SIZMAZ (graf editörünün kalıbı, yapi/graf/grafEditoru.ts): kök keydown/keyup/keypress'i durdurur; odak dokun dışına (3B tuval, gövde) düşerse
-// pencere yakalayıcısı (yalnız açıkken kurulu) yutar — JSON penceresi (`.ep-pencere`) ve başka yazı alanları hariç. Bekçi: sekansBekci.test.ts.
+// pencere yakalayıcısı (yalnız açıkken kurulu) yutar — JSON penceresi (`.ep-pencere`), proje tarayıcısı (`.pp-kok`) ve başka yazı alanları hariç. Bekçi: sekansBekci.test.ts.
 // HATA OLURSA OYUN KİLİTLİ KALMAZ: çizimde istisna editörü gizler, yakalayıcıyı kaldırır, nedeni altyazıyla söyler. Esc önce açık menüyü, sonra GİZLER.
 "use strict";
 import type { KlipBulucu } from "../../../world/avatar/index.ts";
@@ -28,8 +29,10 @@ import { dugmeYap, el, ipucuSeridi, yaziAlaniMi } from "../ortak/dom.ts";
 import { dokBoyutuKur } from "../ortak/dokBoyutu.ts";
 import { kabukStiliEkle } from "../ortak/kabukStili.ts";
 import { AYIRICI, type Menu } from "../ortak/menuModeli.ts";
-import { menuCubuguKur } from "../ortak/menuCubugu.ts";
-import { yanSekmelerKur } from "../ortak/yanSekmeler.ts";
+import type { AnaMenu } from "../ortak/anaMenu.ts";
+import { yanSekmeleriDokaBagla } from "../ortak/yanSekmeler.ts";
+import type { YanSekmeler } from "../ortak/yanSekmeler.ts";
+import type { DokYoneticisi } from "../ortak/dok/dokYoneticisi.ts";
 import { adKutusuKur, sekmeSeridiKur } from "../ortak/sekmeSeridi.ts";
 import { sekansStiliEkle } from "./sekansStili.ts";
 import type { MesajTuru, SekansBaglami } from "./editorBaglami.ts";
@@ -41,6 +44,10 @@ import { oynatmaDugmeleriKur } from "./oynatmaDugmeleri.ts";
 import { sekansDosyaIslemleriKur } from "./sekansDosyaIslemleri.ts";
 
 export interface SekansEditoruAyari {
+  /** Pencere tepesindeki ana menü şeridi (spec 39 D2): editör menülerini buraya katar. */
+  anaMenu: AnaMenu;
+  /** Dok sistemi (spec 39 D3): Ayrıntılar · Rig · Kamera panelleri burada yaşar. */
+  dokSistemi: DokYoneticisi;
   depo: SekansDeposu;
   oynatici: SekansOynatici;
   /** Klip kütüphanesi (geçici sekans klipleri DEĞİL). */
@@ -78,6 +85,8 @@ export interface SekansEditoru {
   seciliKamera(): string | null;
   /** Dokun yüksekliği (px; test). */
   dokYuksekligi(): number;
+  /** Kaydedilmemiş değişikliği olan sekmelerin adları (proje değişirken uyarı: yeniden başlatma bunları kaybettirir). */
+  kirliSekmeler(): string[];
 }
 
 const dugme = dugmeYap("sk-dugme");
@@ -92,6 +101,8 @@ export function sekansEditoruKur(a: SekansEditoruAyari): SekansEditoru {
 
   const kok = el("div", "sk-kok"); kok.tabIndex = -1; kok.dataset.acik = "0";
   const dok = dokBoyutuKur(kok, "orion.sekans.yukseklik.v1");
+  const ustAd = el("span", "kb-ust-ad"), ustKare = el("span", "kb-okuma");   // ana menü şeridinin sağ ucu (açıkken)
+  let katkiBirak: (() => void) | null = null;
   const sekmeSatiri = el("div", "sk-ust");
   const bant = el("div", "sk-bant");
   const govde = el("div", "sk-govde");
@@ -102,7 +113,7 @@ export function sekansEditoruKur(a: SekansEditoruAyari): SekansEditoru {
   const bildir = (m: string, tur: MesajTuru = "bilgi") => { mesaj.textContent = m; mesaj.dataset.tur = tur; mesaj.title = m; };
 
   // ── bağlam ve parçalar ──
-  let yan: ReturnType<typeof yanSekmelerKur> | null = null;
+  let yan: YanSekmeler | null = null;
   const b: SekansBaglami = {
     oturum: () => etkin()?.icerik ?? null,
     ad: () => etkin()?.ad ?? null,
@@ -123,9 +134,9 @@ export function sekansEditoruKur(a: SekansEditoruAyari): SekansEditoru {
   sag.kok.classList.add("sk-sag-ic");
   const rigPaneli = rigPaneliKur(a.rig, bildir);
   const kameraPaneli = kameraPaneliKur({ b, gorunum: a.kamera.gorunum, orion: a.kamera.orion, onizleme: a.kamera.oynatici });
-  yan = yanSekmelerKur("orion.sekans.yansekme.v1", [
+  yan = yanSekmeleriDokaBagla(a.dokSistemi, [
     { id: "ayrinti", etiket: "Ayrıntılar", ipucu: "Seçili anahtarın, bölümün, izin ya da sekansın alanları", icerik: sag.kok },
-    { id: "rig", etiket: "Rig", ipucu: "Control Rig: kontrolleri seç, döndür; değişiklik playhead karesine anahtar olur", icerik: rigPaneli.kok },
+    { id: "rig", etiket: "Rig", ipucu: "Control Rig: kontrolleri seç, döndür; değişiklik playhead karesine anahtar olur", icerik: rigPaneli.kok, bolgeler: ["sol", "sag", "yuzer"] },
     { id: "kamera", etiket: "Kamera", ipucu: "İsimli kameralar ve kamera kesmeleri", icerik: kameraPaneli.kok },
   ]);
   const kaydir = el("div", "sk-kaydir");
@@ -134,7 +145,7 @@ export function sekansEditoruKur(a: SekansEditoruAyari): SekansEditoru {
   kaydir.append(ic);
   const yardim = el("div", "sk-yardim");
   { const t = el("table"); for (const k of SEKANS_KISAYOLLARI) { const tr = el("tr"); tr.append(el("td", "", k.tus), el("td", "", k.aciklama)); t.append(tr); } yardim.append(el("div", "sk-baslik2", "Kısayollar"), t); }
-  govde.append(kaydir, yan.kok, yardim);
+  govde.append(kaydir, yardim);   // Ayrıntılar · Rig · Kamera dok panelleridir (dok sistemi, spec 39 D3)
 
   // ── sekme satırı ──
   const seritler = sekmeSeridiKur<SekansOturumu>({
@@ -218,9 +229,8 @@ export function sekansEditoruKur(a: SekansEditoruAyari): SekansEditoru {
       { etiket: "Kısayollar", kisayol: "?", calistir: () => komut("yardim") },
     ] },
   ];
-  const menu = menuCubuguKur(menuler);
 
-  kok.append(dok.tutamak, menu.kok, sekmeSatiri, aracSatiri,
+  kok.append(dok.tutamak, sekmeSatiri, aracSatiri,
     ipucuSeridi("orion.sekansEditoru.ipucu.v3", "Cetvele tık/sürükle: playhead (beden o karede) · ← → kare kare · ◆ anahtarı sürükle · çift tık: ekle · 🦴 Rig · 🎥 Kamera · SAHNEDE: sağ tuş sürükle = orbit, orta tuş = pan, tekerlek = yakınlaş, sağ tuş + WASD/QE = uç · kenardan sürükle: editörü büyüt/küçült", "sk-ipucu", dugme),
     bant, govde, alt);
 
@@ -280,10 +290,12 @@ export function sekansEditoruKur(a: SekansEditoruAyari): SekansEditoru {
     try {
       rigSenkron();
       a.rig.pozOnizleme(etkin()?.icerik ?? null, etkin()?.ad ?? null);   // beden playhead karesinde (rig kapalıyken de)
-      seritler.ciz(); oynatma.ciz(); bantCiz(); menu.ciz();
+      seritler.ciz(); oynatma.ciz(); bantCiz(); a.anaMenu.ciz();
       const x = o();
       const k = b.oynayanKare() ?? x?.kare ?? 0;
       playheadYazi.textContent = x ? `▸ ${kareYazisi(k)}` : "";
+      ustKare.textContent = playheadYazi.textContent;
+      ustAd.textContent = etkin() ? `🎬 ${etkin()!.ad}${x?.gecmis.kirli() ? " •" : ""}` : "";
       kaydetD.disabled = !x || x.dis === "silindi";
       for (const d of [anahtarD, yaslaD, sigdirD, rigD, kameraD, odakD, basaD, geriD, ileriD, sonaD]) d.disabled = !x;
       yaslaD.dataset.acik = x?.yasla ? "1" : "0";
@@ -291,7 +303,7 @@ export function sekansEditoruKur(a: SekansEditoruAyari): SekansEditoru {
       yan?.rozet("rig", a.rig.acikMi() ? "●" : "");
       zaman.ciz(); sol.ciz();
       const odak = document.activeElement;
-      const duzenleniyor = odak && yan?.kok.contains(odak) && (yaziAlaniMi(odak) || (odak as HTMLElement).matches?.("input[type=range]"));   // yazılan yarım değer ve sürüklenen kaydırıcı silinmesin
+      const duzenleniyor = odak && yan?.iceriyor(odak) && (yaziAlaniMi(odak) || (odak as HTMLElement).matches?.("input[type=range]"));   // yazılan yarım değer ve sürüklenen kaydırıcı silinmesin
       if (!duzenleniyor) { sag.ciz(); rigPaneli.ciz(); kameraPaneli.ciz(); }   // yazılan yarım değer silinmesin
       const eksik = x ? eksikKlipler(x.sekans(), a.klipler) : [];
       if (eksik.length && mesaj.dataset.tur !== "hata") bildir(`⚠ kütüphanede olmayan klip: ${eksik.join(", ")} — bu sekans oynatılamaz (bölümün klibini Ayrıntılar'dan değiştir)`, "uyari");
@@ -302,7 +314,7 @@ export function sekansEditoruKur(a: SekansEditoruAyari): SekansEditoru {
   function coktu(err: unknown): void {
     console.error("[SEKANS-EDITOR] hata:", err);
     a.altyazi(`sekans editörü hata verdi ve gizlendi: ${err instanceof Error ? err.message : String(err)} (Metin ile JSON'u açabilirsin)`, 6000);
-    try { gizle(); } catch (e2) { console.error("[SEKANS-EDITOR] gizlenemedi:", e2); kok.dataset.acik = "0"; document.documentElement.style.removeProperty("--editor-alt"); removeEventListener("keydown", yakala, { capture: true }); removeEventListener("keyup", yakala, { capture: true }); }
+    try { gizle(); } catch (e2) { console.error("[SEKANS-EDITOR] gizlenemedi:", e2); kok.dataset.acik = "0"; document.documentElement.style.removeProperty("--editor-alt"); katkiBirak?.(); katkiBirak = null; removeEventListener("keydown", yakala, { capture: true }); removeEventListener("keyup", yakala, { capture: true }); }
   }
 
   async function kaydet(): Promise<void> {
@@ -317,7 +329,7 @@ export function sekansEditoruKur(a: SekansEditoruAyari): SekansEditoru {
   }
 
   function escIste(): void {
-    if (menu.kapat()) return;
+    if (a.anaMenu.kapat()) return;
     if (zaman.iptal() || adKutusu.kapat()) return;
     if (yardim.dataset.acik === "1") { yardim.dataset.acik = "0"; return; }
     const kirli = sekmeler.kirliler();
@@ -364,8 +376,8 @@ export function sekansEditoruKur(a: SekansEditoruAyari): SekansEditoru {
   const yakala = (e: KeyboardEvent): void => {
     if (!acik) return;
     const h = e.target as Element | null;
-    if (h && kok.contains(h)) return;
-    if (h?.closest?.(".ep-pencere") || yaziAlaniMi(h)) return;
+    if (h && (kok.contains(h) || a.anaMenu.kok.contains(h))) return;
+    if (h?.closest?.(".ep-pencere, .pp-kok") || yaziAlaniMi(h)) return;   // JSON penceresi ve proje tarayıcısı kendi tuşlarını alır
     e.stopImmediatePropagation();
     if (e.type !== "keydown") return;
     kok.focus({ preventScroll: true });
@@ -375,7 +387,7 @@ export function sekansEditoruKur(a: SekansEditoruAyari): SekansEditoru {
   // Oynarken playhead canlı (33 ms); bitince playhead oynatmanın bittiği karede kalır.
   let saat: ReturnType<typeof setInterval> | null = null;
   a.oynatici.dinle((d) => {
-    if (d.calisiyor && !saat) saat = setInterval(() => { if (acik) { zaman.playheadCiz(); oynatma.ciz(); sol.ciz(); playheadYazi.textContent = `▸ ${kareYazisi(b.oynayanKare() ?? etkin()?.icerik.kare ?? 0)}`; } }, 33);
+    if (d.calisiyor && !saat) saat = setInterval(() => { if (acik) { zaman.playheadCiz(); oynatma.ciz(); sol.ciz(); playheadYazi.textContent = `▸ ${kareYazisi(b.oynayanKare() ?? etkin()?.icerik.kare ?? 0)}`; ustKare.textContent = playheadYazi.textContent; } }, 33);
     if (!d.calisiyor && saat) { clearInterval(saat); saat = null; }
     const s = !d.calisiyor && d.son ? sekmeler.al(d.son.sekans) : null;
     if (s && d.son) s.icerik.kareyeGit(d.son.kare);
@@ -398,7 +410,10 @@ export function sekansEditoruKur(a: SekansEditoruAyari): SekansEditoru {
         acik = true;
         if (!kok.isConnected) document.body.append(kok);
         kok.dataset.acik = "1";
+        // Menüler pencerenin TEPESİNDEKİ ana şeritte (spec 39 D2): editör katkısını kaydeder, gizlenince bırakır; tuş işleyicisi editörün kısayol tablosu.
+        katkiBirak = a.anaMenu.katki({ menuler, tus: (e) => { try { tusIsle(e); } catch (err) { coktu(err); } }, sag: [ustAd, ustKare] });
         dok.goster(true);
+        yan?.gorunur(true);
         a.kamera.serbest.ac();
         addEventListener("keydown", yakala, { capture: true });
         addEventListener("keyup", yakala, { capture: true });
@@ -419,9 +434,10 @@ export function sekansEditoruKur(a: SekansEditoruAyari): SekansEditoru {
     a.kamera.serbest.kapat();           // serbest kamera bırakılır: oyuncunun kendi kamerası
     rigSenkron();                       // rig kapanır (kipi istek olarak kalır: tekrar açılınca geri gelir)
     kameraPaneli.kapat();
-    menu.kapat();
+    katkiBirak?.(); katkiBirak = null;
     kok.dataset.acik = "0";
     dok.goster(false);
+    yan?.gorunur(false);
     adKutusu.kapat(); zaman.iptal();
     removeEventListener("keydown", yakala, { capture: true });
     removeEventListener("keyup", yakala, { capture: true });
@@ -432,6 +448,6 @@ export function sekansEditoruKur(a: SekansEditoruAyari): SekansEditoru {
   const dosyalar = sekansDosyaIslemleriKur({ sekmeler, depo: a.depo, oynatici: a.oynatici, degisti: () => tazele() });
   return {
     ac, gizle, acikMi: () => acik, yenidenAdlandir: dosyalar.yenidenAdlandir, kopyasiniOlustur: dosyalar.kopyasiniOlustur,
-    etkinOturum: () => etkin()?.icerik ?? null, tazele, rigDegistir, yanSekmeAc: (id) => yan?.sec(id), seciliKamera: () => kameraPaneli.seciliKamera(), dokYuksekligi: () => dok.yukseklik(),
+    etkinOturum: () => etkin()?.icerik ?? null, tazele, rigDegistir, yanSekmeAc: (id) => yan?.sec(id), seciliKamera: () => kameraPaneli.seciliKamera(), dokYuksekligi: () => dok.yukseklik(), kirliSekmeler: () => sekmeler.kirliler(),
   };
 }

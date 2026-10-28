@@ -5,6 +5,7 @@
 // anında okunur. Köprü dünyayı da beyni de import etmez; ikisini kompozisyon katmanı (burası) bağlar.
 "use strict";
 import { Kopru } from "../bridge/kopru.ts";
+import type { KopruKancasi } from "../bridge/kopruKancalari.ts";
 import { konumluSabitBilgi } from "../world/yer/birlesikYer.ts";
 import { yerelTepki } from "../mind/yerelTepki.ts";
 import { refleksGirdisi, type KuralRefleksi } from "../mind/refleks.ts";
@@ -54,6 +55,8 @@ export interface KopruGirdisi {
   beyinKapisi?: () => boolean;
   /** Orion'un aktif md dosyalarından kurulmuş NOTES bölümü (spec 32; boş = yok). Her turda çağrı anında okunur. */
   mdBaglami?: () => string;
+  /** Eklenti kancaları (spec 40): her turda çağrı anında okunur; boş = bugünkü köprü. */
+  kancalar?: () => readonly KopruKancasi[];
   /** Orion'un emir verebileceği diğer ajanların kimlikleri (Flash); boşsa `dunya_emret` aracı sunulmaz. Çağrı anında okunur. */
   emirHedefleri?: () => readonly string[];
   /** Seçili nesne (spec 28): söz sözlüğü "buraya otur" gibi sözleri buna göre çözer. */
@@ -139,6 +142,7 @@ export function kopruKur(g: KopruGirdisi): Kopru {
       aniPolitikasi: new URLSearchParams(location.search).get("anipolitikasi") === "eski" ? "eski" : "yeni",
       ...(g.beyinKapisi ? { beyinKapisi: g.beyinKapisi } : {}),
       ...(g.mdBaglami ? { mdBaglami: g.mdBaglami } : {}),
+      ...(g.kancalar ? { kancalar: g.kancalar } : {}),
       ...(g.emirHedefleri ? { emirHedefleri: g.emirHedefleri } : {}),
       hafizaKapasite: PANO_TELLERI.hafiza.kapasite,
       otoSikistirma: () => ({ esik: PANO_TELLERI.hafiza.otoEsik(), aralikMs: PANO_TELLERI.hafiza.otoAralikDk() * 60_000 }),

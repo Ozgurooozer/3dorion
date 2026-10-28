@@ -4,7 +4,8 @@ export interface DosyaBilgisi { ad: string; boyut: number; degisti: number }
 /** Hata nesnesinin `kod` alanı: yok | var | gecersiz-ad | gecersiz-icerik | cok-buyuk. */
 export function kodluHata(kod: string, mesaj: string): Error & { kod: string };
 export function atomikYaz(hedef: string, metin: string): void;
-export function klasorDizini(env: Record<string, string | undefined>, envAdi: string, klasor: string, kullaniciVerisi: string, gecici: string): string;
+/** Öncelik: env > senaryo (geçici) > `projeDizini` (spec 39) > `<kullaniciVerisi>/<klasor>`. */
+export function klasorDizini(env: Record<string, string | undefined>, envAdi: string, klasor: string, kullaniciVerisi: string, gecici: string, projeDizini?: string): string;
 export interface DosyaKlasoru {
   yol(dizin: string, ad: string): string;
   liste(dizin: string): DosyaBilgisi[];

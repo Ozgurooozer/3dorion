@@ -35,6 +35,12 @@ import type { WebMonitoru } from "./webMonitoru.ts";
 import type { Gozlem } from "./gozlem.ts";
 import type { IsikHacmi } from "../world/level/gi/isikHacmi.ts";
 import type { SekansSenaryoYuzu } from "./yapi/sekans/kurulum.ts";
+import type { DokYoneticisi } from "./yapi/ortak/dok/dokYoneticisi.ts";
+import type { EklentiDefteri } from "./eklenti/eklentiDefteri.ts";
+import type { IcerikPaneli } from "./yapi/icerik/icerikPaneli.ts";
+import type { VarlikPenceresi } from "./yapi/onizleme/varlikPenceresi.ts";
+import type { OutlinerPaneli } from "./yapi/outliner/outlinerPaneli.ts";
+import type { SecimDurumu } from "./secimDurumu.ts";
 
 export interface SenaryoBaglami {
   // ── sahne ve oda ──
@@ -76,6 +82,20 @@ export interface SenaryoBaglami {
   readonly gozlem: Gozlem;
   /** Sekans (spec 36; `sekansdene`): örnekler, gerçek oynatıcı, Sekans sekmesi ve editör. Oynatma yalnız `?sekansdene=1` ya da `?kimododene=1` (spec 37) koşusunda. */
   readonly sekans: SekansSenaryoYuzu;
+  /** Dok sistemi (spec 39 D3): `dokdene` bölgeleri, taşımayı ve kalıcılığı buradan sınar. */
+  readonly dok: DokYoneticisi;
+  /** Eklenti defteri (spec 40): `eklentidene` açma/kapama, rozet ve kapıları buradan sınar. */
+  readonly eklentiler: EklentiDefteri;
+  /** Orion'un ayar panelini aç/kapat (imleç kipi açılır): `eklentidene` Eklentiler bölümünü gerçek DOM'da sınar. */
+  ayarAc(): void;
+  ayarKapat(): void;
+  /** İçerik gezgini (spec 39 D4): `icerikdene` panelin gerçek DOM'unu ve işlemlerini buradan sınar. */
+  readonly icerik: IcerikPaneli;
+  /** Varlık/karakter önizleme penceresi (spec 39 D5): `icerikdene` yükleme, mesh hazırlığı ve çizimi buradan ölçer. */
+  readonly onizleme: VarlikPenceresi;
+  /** Level Outliner (spec 39 D6) ve sahnedeki seçim durumu (spec 28): `icerikdene` ikisinin eşleşmesini ölçer. */
+  readonly outliner: OutlinerPaneli;
+  readonly secim: SecimDurumu;
   /** Graf editörü (`grafdene`, spec 38 §6): kayıtlı grafik adları, editörü aç/gizle. */
   readonly graf: { adlar(): string[]; ac(ad: string): void; gizle(): void; acikMi(): boolean; /** Senaryo koşusunun geçici deposuna küçük bir deneme grafiği yazar; adı döner. */ ornekOlustur(): Promise<string> };
   readonly ortam: {
@@ -112,6 +132,7 @@ export const SENARYOLAR = [
   "zihindene", "onaydene", "tahtabeyin", "becerdene", "bakdene", "acidene", "saglobdene",
   "senaryodene", "eylemdene", "benlikdene", "apidene", "tahtadene", "hafizadene", "yuzdene", "baglamdene", "takipdene",
   "kapidene", "gozdene", "ovadene", "ortamdene", "gidene", "efektdene", "gromadene", "gozlemdene", "klipdene", "sekansdene", "kimododene", "rigdene", "kameradene", "grafdene",
+  "projedene", "dokdene", "icerikdene", "eklentidene",
 ] as const;
 export type SenaryoAdi = (typeof SENARYOLAR)[number];
 

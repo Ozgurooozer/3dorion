@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 3dorion: Orion'un (bir yapay zekâ) yaşadığı 3D oda — Babylon.js sahne, Electron kabuk, monitörde gerçek terminal.
 Tez: **"AI'ın oturduğu oda — terminalini onun masasında açıyorsun."** Kod, yorum, commit ve belgeler Türkçe
 (brain-lab hariç); mevcut dosyayı düzenlerken ona uy.
@@ -8,7 +10,7 @@ Tez: **"AI'ın oturduğu oda — terminalini onun masasında açıyorsun."** Kod
 dokunmadan önce oradan ilgili spec'i aç (kararlar ölçüme dayanır, sezgiye değil). Açık işler: `docs/ACIK-ISLER.md`.
 
 **ODAK (2026-10-16 → 2026-10-30):** `world/level/`'a yeni özellik YOK, yalnız hata düzeltme (istisnayı Ozyn "istisna" diyerek verir). Tek soru:
-Orion günlük kullanımda işe yarıyor mu? (İstisna verildi 2026-10-17: oyun içi asset yerleştirme menüsü + hayalet + gizmo, spec 30; alt çubuk (Yapı çubuğu: Asset, Zemin ve Hafıza sekmeleri), spec 31–32; yalnız onlar. Ozyn'in 2026-10-21 isteği: Orion Flash, spec 33 — `world/level/`'a dokunmaz; Orion ayar paneli + seçilebilir ses, spec 34; "İstisna" 2026-10-21: Orion dünyanın editörü — JSON düğüm grafiği, spec 35.) Kayıt ve ön kayıtlı ölçüt: `docs/kullanim-defteri.md` (sonuca bakıp eşik değiştirilmez). `brain-lab/`'a dokunulmaz.
+Orion günlük kullanımda işe yarıyor mu? (İstisna verildi 2026-10-17: oyun içi asset yerleştirme menüsü + hayalet + gizmo, spec 30; alt çubuk (Yapı çubuğu: Asset, Zemin ve Hafıza sekmeleri), spec 31–32; yalnız onlar. Ozyn'in 2026-10-21 isteği: Orion Flash, spec 33 — `world/level/`'a dokunmaz; Orion ayar paneli + seçilebilir ses, spec 34; "İstisna" 2026-10-21: Orion dünyanın editörü — JSON düğüm grafiği, spec 35. "İstisna" 2026-10-27: motor/proje ayrımı, Content Browser, dok, karakter önizleme — spec 39. "İstisna" 2026-10-28: eklenti altyapısı + Düşünme kipi (P=NP/P≠NP) — spec 40; defter `uygulama/eklenti/`, eklentiler `uygulama/eklentiler/`.) Kayıt ve ön kayıtlı ölçüt: `docs/kullanim-defteri.md` (sonuca bakıp eşik değiştirilmez). `brain-lab/`'a dokunulmaz.
 
 ## Komutlar
 ```
@@ -18,6 +20,8 @@ npm run dev         # yalnız vite (Electron'suz)
 npm start           # build + Electron
 npm run exp / lab   # brain-lab deney koşucusu / görüntüleyici (:5190)
 npm run ogret       # tools/ogret.ts gozden — kapı kararlarını kayıttan düzelt (spec 09)
+npm run editor-dene # tools/editor-dene.mjs — level editörü dumanı
+npm run kimodo:hepsi # tools/kimodo/hepsi.ts — Kimodo BVH → Sekans çevirme hattı
 ```
 Tek test: `node --experimental-strip-types --import ./tools/babylon-cozucu.mjs --test yol/dosya.test.ts`
 (`--import` kancası Babylon'un uzantısız alt yol importlarını çözer; dar tutulmuştur).
@@ -58,6 +62,11 @@ Yüzeyler  world/surfaces/{terminal,tahta,duvar,web}/, monitör terminali, tahta
 Zihin mind/ · Köprü bridge/ · Ses voice/ · Kabuk host/ · Uygulama uygulama/ (giris.ts dahil; kök: herkesi alır)
 Flash     flash/                                      LLM'siz NPC ajanı (spec 33): aynı Kopru + beyinsiz beyin; ARKA katman
           (Protokol/Zihin/Köprü alır, dünyayı görmez; bedeni uygulama/ajanlar/ bağlar). Ajan kaydı + girdi adaptörü: uygulama/ajanlar/
+Yapı/Editörler uygulama/yapi/{sekans,graf,rig,icerik,proje,outliner,onizleme,ortak}/ ve uygulama/{sekans,rig}/ — Sekans zaman çizelgesi, Control Rig,
+          Sekans kamerası, Graf editörü, Content Browser; ortak kabuk (ana menü, yan sekmeler, dok) `yapi/ortak/`. Saf mantık
+          (Babylon'suz) `uygulama/sekans/editor/` ve `world/avatar/rig/` altında, DOM `uygulama/yapi/` altında. Çalışmadan önce
+          `.claude/skills/orion-sekans-rig` (mimari, tarifler, tuzaklar) ve oturum sürekliliği için `orion-devam` skill'ini oku;
+          spec 36–39. Güvenlik: ▶ ⚡ yalnız gerçek tıklamayla (`isTrusted`); sekans/rig/kamera Orion'un araç yüzeyine eklenmez.
 ürün dışı: Araçlar tools/, Beyin-Lab brain-lab/ — üretim kodu ikisini de import etmez
 ```
 Bekçi: izinli yön, başka alt-sistemden yalnız kamu dosyası, her göreli import diskte çözülür. Bugünkü ihlaller

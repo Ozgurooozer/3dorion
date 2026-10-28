@@ -14,6 +14,8 @@ import { notlarBolumu } from "./notlarBolumu.ts";
 import { reflekslerBolumu } from "./reflekslerBolumu.ts";
 import { baglamBolumu } from "./baglamBolumu.ts";
 import { kisayollarBolumu } from "./kisayollarBolumu.ts";
+import { eklentilerBolumu } from "./eklentilerBolumu.ts";
+import type { EklentiDefteri } from "../eklenti/eklentiDefteri.ts";
 
 export interface OrionAyarlariGirdisi {
   bildir: (metin: string, ms?: number) => void;
@@ -30,6 +32,8 @@ export interface OrionAyarlariGirdisi {
   yetki: { beceri: boolean; benlikSuzgec: boolean };
   komut: () => boolean;
   hafiza: { esik: () => number; mdToplam: () => number };
+  /** Eklenti defteri (spec 40): motorun açılıp kapanan parçaları. */
+  eklentiler: EklentiDefteri;
 }
 
 export function orionAyarlariKur(g: OrionAyarlariGirdisi): AyarPaneli {
@@ -40,6 +44,7 @@ export function orionAyarlariKur(g: OrionAyarlariGirdisi): AyarPaneli {
   panel.ekle(notlarBolumu({ depo: g.md.depo, ac: g.md.ac, hata: g.md.hata, sekmeAc: () => { g.sekmeAc("hafiza"); } }));
   panel.ekle(reflekslerBolumu({ pano: g.pano, yetki: g.yetki, komut: g.komut }));
   panel.ekle(baglamBolumu({ pano: g.pano, esik: g.hafiza.esik, mdToplam: g.hafiza.mdToplam }));
+  panel.ekle(eklentilerBolumu(g.eklentiler));
   panel.ekle(kisayollarBolumu([
     { ad: "🧠 Zihin sekmesi", ipucu: "Yapı çubuğu ▸ Zihin: şema ve devre panosu", calistir: sekme("zihin", "Zihin") },
     { ad: "📄 Hafıza sekmesi", ipucu: "Yapı çubuğu ▸ Hafıza: md dosyaları, yeni dosya", calistir: sekme("hafiza", "Hafıza") },

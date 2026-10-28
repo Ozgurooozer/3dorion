@@ -46,7 +46,7 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
     ad: "Protokol", sorumluluk: "Beyin ile beden arasındaki tek sözleşme.",
     yollar: ["protocol/"],
     kamu: ["protocol/temel.ts", "protocol/niyet.ts", "protocol/algi.ts", "protocol/dogrula.ts",
-      "protocol/pano.ts", "protocol/bedenTanimi.ts", "protocol/index.ts",
+      "protocol/pano.ts", "protocol/eklenti.ts", "protocol/bedenTanimi.ts", "protocol/index.ts",
       // Düğüm grafiği biçimi (spec 35): Orion/Ozyn programları; yorumlayıcı ve editör uygulama katmanında.
       "protocol/graf.ts",
       // NPC kaydı biçimi (spec 35 dilim 3): ajan + grafikler + parametreler; dinleme ve depo uygulama katmanında.

@@ -1,46 +1,37 @@
-// uygulama/yapi/ortak/yanSekmeler.ts — SAĞ PANELİN SEKMELERİ (DOM; spec 38 §6): Ayrıntılar · Rig · Kamera… Her sekmenin içeriği kendi modülünün öğesidir; burası yalnız hangisinin
-// görünür olduğunu tutar. Seçilen sekme `localStorage`'da hatırlanır (yalnız kolaylık; depo yoksa her açılışta ilk sekme).
+// uygulama/yapi/ortak/yanSekmeler.ts — EDİTÖR PANELLERİNİ DOK SİSTEMİNE BAĞLAR (spec 38 §6 → spec 39 D3): Ayrıntılar · Rig · Kamera…
+// Eskiden editörün sağ sütununda sabit sekmelerdi (`kb-yan`); artık her biri dok paneli: sürüklenip sol/sağ/alt bölgeye ya da yüzer pencereye bırakılır.
+// Editör eski arayüzle (`sec`, `rozet`) konuşmaya devam eder; panel kimlikleri `sekans-<id>` (dokta başka panellerle çakışmasın). Editör GİZLİYKEN paneller
+// görünmez (bölge açmaz, tuvali daraltmaz); açıkken bölgeleri nerede bıraktıysan orada belirir.
 "use strict";
-import { el } from "./dom.ts";
+import type { Bolge } from "./dok/dokDuzeni.ts";
+import type { DokYoneticisi } from "./dok/dokYoneticisi.ts";
 
-export interface YanSekme { id: string; etiket: string; ipucu?: string; icerik: HTMLElement }
+export interface YanSekme {
+  id: string; etiket: string; ipucu?: string; icerik: HTMLElement;
+  /** İzinli dok bölgeleri; yoksa dördü de. */
+  bolgeler?: readonly Bolge[];
+}
 export interface YanSekmeler {
-  kok: HTMLElement;
+  /** Paneli açar (kapalıysa) ve etkin sekme yapar. */
   sec(id: string): void;
-  etkin(): string;
   /** Sekme adındaki işaret (ör. "●" rig açıkken). */
   rozet(id: string, metin: string): void;
+  /** Editör açıldı/kapandı: panellerin görünürlüğü. */
+  gorunur(g: boolean): void;
+  /** Odak/öğe panellerden birinin içinde mi (yazılan yarım değer silinmesin diye). */
+  iceriyor(n: Node | null): boolean;
 }
 
-export function yanSekmelerKur(anahtar: string, sekmeler: readonly YanSekme[]): YanSekmeler {
-  const kok = el("div", "kb-yan");
-  const serit = el("div", "kb-yan-seritler");
-  const icerik = el("div", "kb-yan-icerik");
-  const dugmeler = new Map<string, HTMLButtonElement>();
-  const rozetler = new Map<string, string>();
-  const oku = (): string => { try { const v = localStorage.getItem(anahtar); return v && sekmeler.some((s) => s.id === v) ? v : sekmeler[0]!.id; } catch { return sekmeler[0]!.id; } };
-  let etkin = oku();
+export const yanPanelKimligi = (id: string): string => `sekans-${id}`;
 
+export function yanSekmeleriDokaBagla(dok: DokYoneticisi, sekmeler: readonly YanSekme[]): YanSekmeler {
   for (const s of sekmeler) {
-    const d = el("button", "kb-yan-sekme", s.etiket); d.type = "button"; if (s.ipucu) d.title = s.ipucu;
-    d.addEventListener("click", () => sec(s.id));
-    dugmeler.set(s.id, d); serit.append(d);
-    s.icerik.dataset.sekme = s.id; icerik.append(s.icerik);
+    dok.kaydet({ kayit: { id: yanPanelKimligi(s.id), ad: s.etiket, bolgeler: s.bolgeler ?? ["sol", "sag", "alt", "yuzer"], varsayilan: "sag" }, icerik: s.icerik, gorunur: false, ipucu: s.ipucu });
   }
-  function ciz(): void {
-    for (const s of sekmeler) {
-      const d = dugmeler.get(s.id)!;
-      d.dataset.etkin = s.id === etkin ? "1" : "0";
-      d.textContent = `${s.etiket}${rozetler.get(s.id) ? ` ${rozetler.get(s.id)}` : ""}`;
-      s.icerik.dataset.etkin = s.id === etkin ? "1" : "0";
-    }
-  }
-  function sec(id: string): void {
-    if (!sekmeler.some((s) => s.id === id)) return;
-    etkin = id; try { localStorage.setItem(anahtar, id); } catch { /* depo yok: yalnız bu açılış */ }
-    ciz();
-  }
-  kok.append(serit, icerik);
-  ciz();
-  return { kok, sec, etkin: () => etkin, rozet(id, metin) { rozetler.set(id, metin); ciz(); } };
+  return {
+    sec: (id) => dok.sec(yanPanelKimligi(id)),
+    rozet: (id, metin) => dok.rozet(yanPanelKimligi(id), metin),
+    gorunur(g) { for (const s of sekmeler) dok.gorunur(yanPanelKimligi(s.id), g); },
+    iceriyor: (n) => sekmeler.some((s) => !!n && s.icerik.contains(n)),
+  };
 }

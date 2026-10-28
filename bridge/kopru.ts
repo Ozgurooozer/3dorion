@@ -44,6 +44,7 @@ import { suzgecMercegi, type MercekOnerisi } from "../mind/mercekSuzgec.ts";
 import { araclariUret, cagriyiNiyete, turIcinAraclar } from "./araclar.ts";
 import type { Beyin, BeyinCikti, BeyinGirdisi } from "./beyin.ts";
 import { talimatUret } from "./talimat.ts";
+import { kancaDogrula, kancaTalimati, type KancaBaglami } from "./kopruKancalari.ts";
 import { baglamOlcusu } from "./baglamOlcusu.ts";
 import { ornekUret } from "./ornekler.ts";
 import { metinKurtar } from "./metinKurtarma.ts";
@@ -1009,6 +1010,11 @@ export class Kopru {
     void this._dusun();
   }
 
+  /** Kancalara verilen bağlam (zincir kökeni + saat). */
+  private _kancaBaglami(): KancaBaglami {
+    return { koken: this._zincirKokeni === "inisiyatif" ? "inisiyatif" : "dis", simdi: this._ayar.simdi?.() ?? Date.now(), yerler: this._ayar.yerAdlari?.() ?? [] };
+  }
+
   private async _dusun(): Promise<void> {
     if (this._durduruldu) return;
     if (this._dusunuyor) { this._tekrarGerek = true; return; }
@@ -1188,7 +1194,12 @@ export class Kopru {
     // Ozyn'in aktif md dosyaları (spec 32) talimatın SONUNA: kimlik/duruş/araç kuralları önce gelir, notlar onları geçersiz kılamaz. Okuma hatası turu düşürmez.
     let mdNotlari = "";
     try { mdNotlari = this._ayar.mdBaglami?.() ?? ""; } catch (err) { console.warn("[MD] baglam okunamadi, notsuz devam:", err); }
-    const talimat = mdNotlari ? `${temelTalimat}\n\n${mdNotlari}` : temelTalimat;
+    const mdli = mdNotlari ? `${temelTalimat}\n\n${mdNotlari}` : temelTalimat;
+    // EKLENTİ KANCALARI (spec 40): talimatın sonuna; kancasız (varsayılan) bugünkü talimatla BİREBİR aynıdır.
+    const kancalar = this._ayar.kancalar?.() ?? [];
+    const kancaEki = kancaTalimati(kancalar, this._kancaBaglami());
+    const talimat = kancaEki ? `${mdli}\n\n${kancaEki}` : mdli;
+    if (kancaEki) uyanis.kip = kancalar.map((k) => k.ad).join("+");
 
     // ŞİMDİ (spec 06 K2/K3): anlık gözlemler dünya durumunun yanında,
     // yaşlarıyla. Anılarla aynı listede değil — karışması bu spec'in
@@ -1286,6 +1297,17 @@ export class Kopru {
         this._tampon.push(`Araç reddedildi (${c.ad}): ${d.hata}`);
         this._tamponIdleri.push(null);
         console.warn(`[kopru] çağrı reddedildi: ${d.hata}`);
+        continue;
+      }
+      // EKLENTİ DOĞRULAYICISI (spec 40): doğrulanmış niyet dünyaya gitmeden kancalarca sınanır; ret mevcut ret yolundan modele geri beslenir.
+      const kd = kancaDogrula(this._ayar.kancalar?.() ?? [], d.deger, this._kancaBaglami());
+      if (!kd.ok) {
+        this._sayac.reddedilenCagri++;
+        uyanis.reddedilen++;
+        uyanis.kancaReddi = (uyanis.kancaReddi ?? 0) + 1;
+        this._tampon.push(`Araç reddedildi (${c.ad}): ${kd.neden}`);
+        this._tamponIdleri.push(null);
+        console.warn(`[kopru] kanca reddetti (${kd.kanca}): ${kd.neden}`);
         continue;
       }
       this._ardisikRet = 0;  // geçerli çağrı geldi, düzeltme döngüsü kırıldı

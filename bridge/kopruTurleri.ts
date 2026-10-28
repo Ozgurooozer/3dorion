@@ -12,6 +12,7 @@ import type { OtoSikistirmaAyari } from "../mind/sikistir.ts";
 import type { KapiBaglami } from "../mind/durumKodu.ts";
 import type { BedenOkumasi } from "../mind/benlik.ts";
 import type { Beyin } from "./beyin.ts";
+import type { KopruKancasi } from "./kopruKancalari.ts";
 
 export interface KopruAyari {
   beyin: Beyin;
@@ -144,6 +145,11 @@ export interface KopruAyari {
    * İkisi de kalır: aynı yapıda kıyas ölçüsü alınabilsin (spec 16 P1).
    */
   hafizaKipi?: "otomatik" | "yonlendirici";
+  /**
+   * Eklenti kancaları (spec 40): işlev, çünkü eklenti çalışma anında açılıp kapanır — her turda yeniden okunur. Verilmezse/boşsa köprü bugünkü gibi davranır
+   * (talimat ve ret yolu birebir aynı). Bkz. bridge/kopruKancalari.ts.
+   */
+  kancalar?: () => readonly KopruKancasi[];
   /** Modele giden geçmiş penceresi (spec 16 K3). Verilmezse bütün `gecmisSiniri`. */
   yakinPencere?: { kayit: number; yasMs: number };
   /**

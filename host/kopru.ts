@@ -11,6 +11,8 @@ import type { DosyaDurumu } from "../mind/hafizaGocu.ts";
 import type { DinlemeOlayi } from "./dinleme.js";
 import type { MdBilgisi } from "./mdDosyalari.js";
 import type { DosyaBilgisi } from "./dosyaKlasoru.js";
+import type { ProjeDurumu, SablonAdi } from "./proje.js";
+import type { IcerikOgesi, KokAdi as IcerikKoku } from "./icerik.js";
 import type { SesDurumu, SesIndirmeIlerlemesi, SesSatiri } from "./sesler.js";
 
 export type { SesDurumu, SesIndirmeIlerlemesi, SesSatiri };
@@ -19,6 +21,9 @@ export type { SesDurumu, SesIndirmeIlerlemesi, SesSatiri };
 export type IpcSonuc<T> = { ok: true; deger: T } | { ok: false; kod: string; mesaj: string };
 /** md IPC sonucu (spec 32): `IpcSonuc`un eski adı, kullanıcıları değişmesin diye. */
 export type MdSonuc<T> = IpcSonuc<T>;
+/** Açık proje (spec 39): renderer'ın bildiği kadarı. */
+export type { ProjeDurumu, SablonAdi, IcerikOgesi, IcerikKoku };
+export interface ProjeOzeti { ad: string; dizin: string; icerik: string; varsayilanLevel: string; kok: string }
 
 /** Ofisteki 3. monitörün olayları (host/webMonitor.js). */
 export type WebmonOlayi =
@@ -120,6 +125,35 @@ export interface Kopru {
   sekansYaz(ad: string, metin: string): Promise<IpcSonuc<true>>;
   sekansYeni(ad: string, metin: string): Promise<IpcSonuc<true>>;
   sekansSil(ad: string): Promise<IpcSonuc<true>>;
+  /** Proje (spec 39, host/proje.js): açık projenin özeti; proje hazırlanamadıysa `deger: null` (eski userData klasörleriyle sürüyor). */
+  projeBilgi(): Promise<IpcSonuc<ProjeOzeti | null>>;
+  /** Açık projenin level'ı (`Content/Levels/<ad>/<ad>.level.json`), ham metin; biçimi renderer doğrular. Proje yoksa `proje-yok`. */
+  projeLevelOku(ad: string): Promise<IpcSonuc<string>>;
+  /** Proje tarayıcısı (spec 39 D2): kök, açık proje ve projeler (son açılanlar önde; bozuk proje `hata` ile görünür). */
+  projeListe(): Promise<IpcSonuc<ProjeDurumu>>;
+  /** Şablondan yeni proje (`ofis` | `bos`); AÇMAZ. Hata kodları: var | gecersiz-ad | gecersiz-sablon. */
+  projeYeni(ad: string, sablon: SablonAdi): Promise<IpcSonuc<{ ad: string; dizin: string }>>;
+  /** Projeyi AÇAR: seçimi yazıp uygulamayı yeniden başlatır (`yeniden: true`); zaten açıksa ya da senaryo koşusunda başlatmaz. */
+  projeAc(ad: string): Promise<IpcSonuc<{ yeniden: boolean; neden?: string }>>;
+  /** Açık projenin klasörünü dosya gezgininde aç. */
+  projeKlasorGoster(): Promise<IpcSonuc<true>>;
+  /**
+   * İçerik gezgini (spec 39 D4, host/icerik.js). Adres `Content/…` (proje) | `Engine/…` (motor, salt okunur). Hata kodları: gecersiz-adres | gecersiz-ad | var | yok |
+   * salt-okunur | korumali | cok-buyuk | klasor | kok-yok. `icerikIceAktar` ana süreçte dosya seçici açar (iptal = `eklenen: []`).
+   */
+  icerikListe(kok: IcerikKoku): Promise<IpcSonuc<{ kok: IcerikKoku; ogeler: IcerikOgesi[]; kesildi: boolean }>>;
+  icerikIkili(adres: string): Promise<IpcSonuc<{ adres: string; boyut: number; base64: string }>>;
+  icerikMetin(adres: string): Promise<IpcSonuc<string>>;
+  icerikYeniKlasor(adres: string): Promise<IpcSonuc<string>>;
+  icerikAdlandir(adres: string, yeniAd: string): Promise<IpcSonuc<string>>;
+  icerikCogalt(adres: string): Promise<IpcSonuc<string>>;
+  icerikSil(adres: string): Promise<IpcSonuc<string>>;
+  icerikIceAktar(hedefAdres: string): Promise<IpcSonuc<{ eklenen: string[]; atlanan: { ad: string; neden: string }[] }>>;
+  /** Aynı tür klasörü içinde `adres`i `hedefKlasor`e taşır (üstüne yazmaz); dönüş yeni adres. */
+  icerikTasi(adres: string, hedefKlasor: string): Promise<IpcSonuc<string>>;
+  /** Explorer'dan bırakılan dosyalar (`DataTransfer.files`) `hedefAdres`e kopyalanır; kurallar `icerikIceAktar` ile aynı, seçici açılmaz. */
+  icerikBirakAktar(hedefAdres: string, dosyalar: readonly File[]): Promise<IpcSonuc<{ eklenen: string[]; atlanan: { ad: string; neden: string }[] }>>;
+  icerikGoster(adres: string): Promise<IpcSonuc<true>>;
   /**
    * Orion'un sesi (spec 34, host/sesler.js). Her işlem güncel durumu döner. `sesSec` bir SONRAKİ cümleden geçerli; `ORION_PIPER_MODEL` varken
    * `kilitli` kodla reddedilir. `sesIndir` yalnız katalogdaki adı kabul eder (adres renderer'dan gelmez); `sesSil` yalnız panelden indirileni.

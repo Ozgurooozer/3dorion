@@ -3,7 +3,8 @@ import type { DosyaBilgisi } from "./dosyaKlasoru.js";
 export type { DosyaBilgisi };
 export const SEKANS_BOYUT_SINIRI: number;
 export function sekansAdiGecerli(ad: unknown): ad is string;
-export function sekansDizini(env: Record<string, string | undefined>, kullaniciVerisi: string, gecici: string): string;
+/** `projeDizini` (spec 39): açık projenin `Content/Sequences`ı; env ve senaryo ondan önce gelir. */
+export function sekansDizini(env: Record<string, string | undefined>, kullaniciVerisi: string, gecici: string, projeDizini?: string): string;
 /** Hata nesnesinin `kod` alanı: yok | var | gecersiz-ad | gecersiz-icerik | cok-buyuk. */
 export function sekansListe(dizin: string): DosyaBilgisi[];
 export function sekansOku(dizin: string, ad: string): string;

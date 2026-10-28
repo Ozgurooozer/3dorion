@@ -17,8 +17,8 @@ export const sekansAdiGecerli = grafAdiGecerli;
 const klasor = jsonKlasoru({ adGecerli: sekansAdiGecerli, boyutSiniri: SEKANS_BOYUT_SINIRI, etiket: "sekans", adEtiketi: "sekans adı" });
 
 /** Klasör yolu. Öncelik: `ORION_SEKANS_DIZINI` > senaryo koşusu (`ORION_SMOKE=1`: geçici klasör) > `<userData>/orion-sekans`. */
-export function sekansDizini(env, kullaniciVerisi, gecici) {
-  return klasorDizini(env, "ORION_SEKANS_DIZINI", "orion-sekans", kullaniciVerisi, gecici);
+export function sekansDizini(env, kullaniciVerisi, gecici, projeDizini) {
+  return klasorDizini(env, "ORION_SEKANS_DIZINI", "orion-sekans", kullaniciVerisi, gecici, projeDizini);
 }
 
 export function sekansListe(dizin) { return klasor.liste(dizin); }

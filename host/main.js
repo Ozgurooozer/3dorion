@@ -1,6 +1,6 @@
 // host/main.js — Electron ana süreç. Pencere + pty + varlık çözümü.
 // ESM (package.json "type":"module"). Electron 44 ESM main destekler.
-import { app, BrowserWindow, ipcMain, safeStorage, shell } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, safeStorage, shell } from "electron";
 import { spawn as ptySpawn } from "node-pty";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -17,6 +17,9 @@ import { mdAktifYap, mdDizini, mdListe, mdOku, mdTohumla, mdYaz, mdYeni } from "
 import { grafDizini, grafListe, grafOku, grafSil, grafYaz, grafYeni } from "./grafDosyalari.js";
 import { npcDizini, npcListe, npcOku, npcSil, npcYaz, npcYeni } from "./npcDosyalari.js";
 import { sekansDizini, sekansListe, sekansOku, sekansSil, sekansYaz, sekansYeni } from "./sekansDosyalari.js";
+import { adresCoz as icerikAdresiCoz, adlandir as icerikAdlandir, cogalt as icerikCogalt, icerikIkili, icerikListe, icerikMetin, iceAktar as icerikIceAktar, sil as icerikSil, tasi as icerikTasi, yeniKlasor as icerikYeniKlasor, ICE_AKTAR_UZANTILARI } from "./icerik.js";
+import { icerikDizini, projeAc as projeAcDosyadan, projeDurumu, projeHazirla, projeOlustur, projeSablonu, projelerKoku, sonProjeYaz } from "./proje.js";
+import { levelOku } from "./levelDosyasi.js";
 import { kararYaziciKur, ogretimYolu, ogretimleriOku, satirlariOku, yeniSatirlar } from "./kararDosyasi.js";
 import { mcpSunucuKur } from "./mcpSunucu.js";
 import { ollamaHazirla, ollamaAdresi } from "./ollamaSunucu.js";
@@ -87,6 +90,8 @@ function pencereAc() {
   });
 
   pencere.once("ready-to-show", () => pencere?.show());
+  // Başlıkta açık proje (Unreal gibi): sayfanın <title>'ı onu ezmesin.
+  if (PROJE) { pencere.on("page-title-updated", (e) => e.preventDefault()); pencere.setTitle(`${PROJE.ad} — 3dorion`); }
 
   // Renderer konsolunu ana sürece taşı: GUI'yi göremeyen bir denetçi de kanıt görebilsin.
   // Karar satırları (spec 08) günlüğe BASILMAZ, dosyaya eklenir: her algı bir
@@ -172,9 +177,19 @@ function pencereAc() {
   if (process.env.ORION_RIGDENE === "1") parcalar.push("rigdene=1", "sessiz=1");
   if (process.env.ORION_KAMERADENE === "1") parcalar.push("kameradene=1", "sessiz=1");
   if (process.env.ORION_GRAFDENE === "1") parcalar.push("grafdene=1", "sessiz=1");
+  // Proje (spec 39): proje geçici kökte açıldı mı, level projeden mi geldi, dünya kuruldu mu.
+  if (process.env.ORION_PROJEDENE === "1") parcalar.push("projedene=1", "sessiz=1");
+  // Dok sistemi (spec 39 D3): bölgeler, sürükle-bırak, izin kuralı, boyut, yüzer, kalıcılık.
+  if (process.env.ORION_DOKDENE === "1") parcalar.push("dokdene=1", "sessiz=1");
+  // İçerik gezgini (spec 39 D4): panel, dosya işlemleri, içe aktarma, önizleme (geçici projede).
+  if (process.env.ORION_ICERIKDENE === "1") parcalar.push("icerikdene=1", "sessiz=1");
+  // Eklenti altyapısı (spec 40): defter, Ayarlar ▸ Eklentiler, mevcut özelliklerin kapıları.
+  if (process.env.ORION_EKLENTIDENE === "1") parcalar.push("eklentidene=1", "sessiz=1");
   // Spec 25 Faz 2: görme. `ORION_GOZ` görme modelini seçer (varsayılan bridge/goz.ts'te).
   if (process.env.ORION_GOZDENE === "1") parcalar.push("gozdene=1", "sessiz=1");
   if (process.env.ORION_GOZ) parcalar.push(`goz=${encodeURIComponent(process.env.ORION_GOZ)}`);
+  // Eklentiler (spec 40): `id:1,id:0,id=secenek` — senaryoda ve elle denemede kalıcı kaydı geçersiz kılar.
+  if (process.env.ORION_EKLENTI) parcalar.push(`eklenti=${encodeURIComponent(process.env.ORION_EKLENTI)}`);
   // Spec 12 Faz 5: süzgeç merceğinin yetkisi (varsayılan kapalı).
   if (process.env.ORION_BENLIK_SUZGEC === "1") parcalar.push("benliksuzgec=1");
   // Terminal komutu kipi (spec 26 F2): otomatik (varsayılan) | tam | onayli
@@ -425,6 +440,31 @@ ipcMain.on(CAGRI.durumYaz, (_e, kayitlar) => {
   catch (hata) { console.error(`[durum] yazilamadi: ${hata?.message ?? hata}`); }
 });
 
+// ---- PROJE (spec 39 D1): motor burada (repo), proje Belgeler'de ---------------------------
+// Sekans/graf/NPC/level açık projenin `Content/`ündedir; Orion'a ait olanlar (md, hafıza, durum, karar, ses) userData'da kalır (Ozyn 2026-10-27: Orion motorda, tek).
+// İlk açılışta proje yoksa "Ofis" şablondan doğar: repodaki ova KOPYALANIR (dosyaya dokunulmaz), eski userData sekans/graf/npc KOPYALANIR (silinmez).
+// Senaryo koşusu geçici kökte ve göçsüz (gerçek veri geçici projeye taşınmaz). Proje hazırlanamazsa sessiz değil: eski userData klasörleriyle sürer.
+const PROJELER_KOKU = projelerKoku(process.env, app.getPath("documents"), os.tmpdir());
+const PROJE_SON_YOLU = path.join(app.getPath("userData"), process.env.ORION_SMOKE === "1" ? "projeler-deneme.json" : "projeler.json");
+const PROJE = (() => {
+  const ud = app.getPath("userData");
+  try {
+    const p = projeHazirla({
+      env: process.env, kok: PROJELER_KOKU, sonYolu: PROJE_SON_YOLU, ilkAd: "Ofis",
+      motorSurumu: app.getVersion(),
+      sablon: projeSablonu("ofis", KOK),
+      goc: process.env.ORION_SMOKE === "1" ? [] : [["orion-sekans", "Sequences"], ["orion-graf", "Graphs"], ["orion-npc", "NPC"]].map(([k, h]) => ({ kaynak: path.join(ud, k), hedef: h })),
+    });
+    console.log(`[proje] ${p.olusturuldu ? "OLUŞTURULDU" : "açıldı"}: ${p.ad} (${p.dizin})${p.olusturuldu ? ` · kopyalanan ${p.kopyalanan} dosya` : ""}`);
+    return p;
+  } catch (hata) {
+    console.error(`[proje] HAZIRLANAMADI, eski userData klasörleriyle sürüyor: ${hata?.message ?? hata}`);
+    return null;
+  }
+})();
+const projeKlasoru = (tur) => (PROJE ? icerikDizini(PROJE, tur) : undefined);
+const projeOzeti = () => (PROJE ? { ad: PROJE.ad, dizin: PROJE.dizin, icerik: PROJE.icerik, varsayilanLevel: PROJE.varsayilanLevel, kok: PROJELER_KOKU } : null);
+
 // ---- md dosyaları (Yapı çubuğu · Hafıza sekmesi, spec 32) ------------------------
 // Persona, anlık hafıza ve Ozyn'in notları: kullanıcı verisinde (repoda DEĞİL), düzenleyici penceresi renderer'da. Hata `kod`ları sonuç nesnesinde döner.
 const MD_DIZINI = mdDizini(process.env, app.getPath("userData"), os.tmpdir());
@@ -441,7 +481,7 @@ ipcMain.handle(CAGRI.mdAktif, (_e, ad, aktif) => mdSar(() => { mdAktifYap(MD_DIZ
 
 // ---- düğüm grafikleri (spec 35 dilim 1) ---------------------------------------------
 // Ozyn'in (ve dilim 4'te Orion'un önerdiği) programlar ve desenler: kullanıcı verisinde (repoda DEĞİL). Biçimi renderer doğrular; burası yalnız tutar.
-const GRAF_DIZINI = grafDizini(process.env, app.getPath("userData"), os.tmpdir());
+const GRAF_DIZINI = grafDizini(process.env, app.getPath("userData"), os.tmpdir(), projeKlasoru("graf"));
 ipcMain.handle(CAGRI.grafListe, () => ipcSonucu(() => grafListe(GRAF_DIZINI)));
 ipcMain.handle(CAGRI.grafOku, (_e, ad) => ipcSonucu(() => grafOku(GRAF_DIZINI, ad)));
 ipcMain.handle(CAGRI.grafYaz, (_e, ad, metin) => ipcSonucu(() => { grafYaz(GRAF_DIZINI, ad, metin); return true; }));
@@ -450,7 +490,7 @@ ipcMain.handle(CAGRI.grafSil, (_e, ad) => ipcSonucu(() => { grafSil(GRAF_DIZINI,
 
 // ---- NPC kayıtları (spec 35 dilim 3) ----------------------------------------------
 // Ajan + grafikler + parametreler (NPC sınıfının örneği): kullanıcı verisinde. Biçimi renderer doğrular; dinleme kanalı YOK (Ozyn'in tıklaması renderer'da).
-const NPC_DIZINI = npcDizini(process.env, app.getPath("userData"), os.tmpdir());
+const NPC_DIZINI = npcDizini(process.env, app.getPath("userData"), os.tmpdir(), projeKlasoru("npc"));
 ipcMain.handle(CAGRI.npcListe, () => ipcSonucu(() => npcListe(NPC_DIZINI)));
 ipcMain.handle(CAGRI.npcOku, (_e, ad) => ipcSonucu(() => npcOku(NPC_DIZINI, ad)));
 ipcMain.handle(CAGRI.npcYaz, (_e, ad, metin) => ipcSonucu(() => { npcYaz(NPC_DIZINI, ad, metin); return true; }));
@@ -459,12 +499,84 @@ ipcMain.handle(CAGRI.npcSil, (_e, ad) => ipcSonucu(() => { npcSil(NPC_DIZINI, ad
 
 // ---- sekanslar (spec 36) ---------------------------------------------------------
 // Zaman çizelgeleri (bağlama, uzuv izi, klip bölümü): kullanıcı verisinde. Biçimi renderer doğrular; OYNATMA kanalı YOK (▶ Ozyn'in gerçek tıklaması renderer'da).
-const SEKANS_DIZINI = sekansDizini(process.env, app.getPath("userData"), os.tmpdir());
+const SEKANS_DIZINI = sekansDizini(process.env, app.getPath("userData"), os.tmpdir(), projeKlasoru("sekans"));
 ipcMain.handle(CAGRI.sekansListe, () => ipcSonucu(() => sekansListe(SEKANS_DIZINI)));
 ipcMain.handle(CAGRI.sekansOku, (_e, ad) => ipcSonucu(() => sekansOku(SEKANS_DIZINI, ad)));
 ipcMain.handle(CAGRI.sekansYaz, (_e, ad, metin) => ipcSonucu(() => { sekansYaz(SEKANS_DIZINI, ad, metin); return true; }));
 ipcMain.handle(CAGRI.sekansYeni, (_e, ad, metin) => ipcSonucu(() => { sekansYeni(SEKANS_DIZINI, ad, metin); return true; }));
 ipcMain.handle(CAGRI.sekansSil, (_e, ad) => ipcSonucu(() => { sekansSil(SEKANS_DIZINI, ad); console.log(`[sekans] kaldırıldı (.silinenler): ${ad}`); return true; }));
+
+// ---- proje bilgisi ve level'ları (spec 39 D1) -------------------------------------------
+// Renderer projenin yerini ve level'ını buradan alır (dosya sistemi görmez). Level okuma `levelDosyasi.js`in kuralıyla (`Content/Levels/<ad>/<ad>.level.json`).
+ipcMain.handle(CAGRI.projeBilgi, () => ipcSonucu(() => projeOzeti()));
+// Proje tarayıcısı (D2): liste, YENİ (şablondan), AÇ, klasörde göster. AÇ projeyi CANLI değiştirmez: seçimi son açılanlara yazıp uygulamayı yeniden başlatır
+// (sekans/graf/NPC klasörleri ve level açılışta kurulur; yarım değişim iki projeyi karıştırırdı). Senaryo koşusunda yeniden başlatma YOK (döngüye girerdi).
+ipcMain.handle(CAGRI.projeListe, () => ipcSonucu(() => projeDurumu(PROJELER_KOKU, PROJE_SON_YOLU, PROJE?.ad)));
+ipcMain.handle(CAGRI.projeYeni, (_e, ad, sablon) => ipcSonucu(() => {
+  const p = projeOlustur(PROJELER_KOKU, ad, projeSablonu(sablon, KOK), { motorSurumu: app.getVersion() });
+  console.log(`[proje] yeni: ${p.ad} (${sablon}) · kopyalanan ${p.kopyalanan} dosya`);
+  return { ad: p.ad, dizin: p.dizin };
+}));
+ipcMain.handle(CAGRI.projeAc, (_e, ad) => ipcSonucu(() => {
+  const p = projeAcDosyadan(PROJELER_KOKU, ad);   // yok/bozuk burada hata olur: yeniden başlatmadan ÖNCE
+  sonProjeYaz(PROJE_SON_YOLU, p.ad);   // seçilen "son açılan" olur (zaten açık projeyi seçmek de sırayı tazeler)
+  if (PROJE && p.ad === PROJE.ad) return { yeniden: false, neden: "zaten açık" };
+  if (process.env.ORION_SMOKE === "1") return { yeniden: false, neden: "senaryo koşusu: yeniden başlatılmaz" };
+  console.log(`[proje] açılıyor: ${p.ad} — uygulama yeniden başlıyor`);
+  // `app.quit()`, anında çıkış DEĞİL: anında çıkış `before-quit`i atlar; bizim başlattığımız Ollama, MCP ucu, Piper, terminal kabukları ve Nemotron arkada YETİM kalır
+  // (yeni örnek onları Ozyn'inkiler sanıp kapatmaz, port/VRAM tutulur). quit() normal kapanış zincirini çalıştırır; yeni örnek eskisi çıkınca başlar.
+  // Canlıda (2026-10-27) `quit()` tek başına süreci kapatmadı: eski ana süreç pencereleri yıkıp boşta kaldı, yeniden başlatıcı onu bekledi, yeni pencere hiç açılmadı.
+  // Temizlik `before-quit`te yapılır (quit onu çalıştırır); 4 sn içinde çıkış gelmezse son çare zorla çıkış (o noktada temizlik bitmiştir).
+  setTimeout(() => {
+    app.relaunch();
+    app.quit();
+    setTimeout(() => app.exit(0), 4000).unref();
+  }, 150);   // yanıt renderer'a ulaşsın
+  return { yeniden: true };
+}));
+ipcMain.handle(CAGRI.projeKlasorGoster, () => ipcSonucu(async () => {
+  const hedef = PROJE?.dizin ?? PROJELER_KOKU;
+  fs.mkdirSync(hedef, { recursive: true });
+  const h = await shell.openPath(hedef);
+  if (h) throw new Error(h);
+  return true;
+}));
+// ---- içerik gezgini (spec 39 D4): adresli dosya işlemleri (host/icerik.js) ---------------------
+// `Content/…` açık projenin içeriği (yazılabilir), `Engine/…` motorun assets/'i (salt okunur). Renderer yol vermez, adres verir; kaçış ve yazma kuralları icerik.js'te.
+const icerikKokleri = () => ({ ...(PROJE ? { Content: PROJE.icerik } : {}), Engine: path.join(KOK, "assets") });
+ipcMain.handle(CAGRI.icerikListe, (_e, kok) => ipcSonucu(() => icerikListe(icerikKokleri(), kok)));
+ipcMain.handle(CAGRI.icerikIkili, (_e, adres) => ipcSonucu(() => icerikIkili(icerikKokleri(), adres)));
+ipcMain.handle(CAGRI.icerikMetin, (_e, adres) => ipcSonucu(() => icerikMetin(icerikKokleri(), adres)));
+ipcMain.handle(CAGRI.icerikYeniKlasor, (_e, adres) => ipcSonucu(() => icerikYeniKlasor(icerikKokleri(), adres)));
+ipcMain.handle(CAGRI.icerikAdlandir, (_e, adres, yeniAd) => ipcSonucu(() => { const y = icerikAdlandir(icerikKokleri(), adres, yeniAd); console.log(`[icerik] adlandırıldı: ${adres} → ${y}`); return y; }));
+ipcMain.handle(CAGRI.icerikCogalt, (_e, adres) => ipcSonucu(() => { const y = icerikCogalt(icerikKokleri(), adres); console.log(`[icerik] çoğaltıldı: ${adres} → ${y}`); return y; }));
+ipcMain.handle(CAGRI.icerikSil, (_e, adres) => ipcSonucu(() => { const y = icerikSil(icerikKokleri(), adres); console.log(`[icerik] kaldırıldı (.silinenler): ${adres}`); return y; }));
+// İçe aktar: dosya seçici ana süreçte (renderer rastgele yol veremez). Senaryo koşusunda seçici açılmaz; `ORION_ICE_AKTAR` (';' ile ayrılmış yollar) verilirse onlar alınır.
+ipcMain.handle(CAGRI.icerikIceAktar, (_e, hedefAdres) => ipcSonucu(async () => {
+  icerikAdresiCoz(icerikKokleri(), hedefAdres, { yazma: true });   // önce hedef doğru mu: seçici boşuna açılmasın
+  let yollar;
+  if (process.env.ORION_SMOKE === "1") yollar = (process.env.ORION_ICE_AKTAR ?? "").split(";").filter(Boolean);
+  else {
+    const s = await dialog.showOpenDialog(pencere, { title: "İçe aktar", properties: ["openFile", "multiSelections"], filters: [{ name: "Varlık", extensions: ICE_AKTAR_UZANTILARI.map((u) => u.slice(1)) }] });
+    yollar = s.canceled ? [] : s.filePaths;
+  }
+  const r = icerikIceAktar(icerikKokleri(), hedefAdres, yollar);
+  if (r.eklenen.length) console.log(`[icerik] içe aktarıldı: ${r.eklenen.join(", ")}`);
+  return r;
+}));
+ipcMain.handle(CAGRI.icerikTasi, (_e, adres, hedefKlasor) => ipcSonucu(() => { const y = icerikTasi(icerikKokleri(), adres, hedefKlasor); console.log(`[icerik] taşındı: ${adres} → ${y}`); return y; }));
+ipcMain.handle(CAGRI.icerikBirakAktar, (_e, hedefAdres, yollar) => ipcSonucu(() => {
+  if (!Array.isArray(yollar) || yollar.length > 64 || yollar.some((y) => typeof y !== "string")) throw Object.assign(new Error("geçersiz dosya listesi"), { kod: "gecersiz-adres" });
+  const r = icerikIceAktar(icerikKokleri(), hedefAdres, yollar);
+  if (r.eklenen.length) console.log(`[icerik] bırakılarak içe aktarıldı: ${r.eklenen.join(", ")}`);
+  return r;
+}));
+ipcMain.handle(CAGRI.icerikGoster, (_e, adres) => ipcSonucu(() => { shell.showItemInFolder(icerikAdresiCoz(icerikKokleri(), adres).tam); return true; }));
+
+ipcMain.handle(CAGRI.projeLevelOku, (_e, ad) => ipcSonucu(() => {
+  if (!PROJE) throw Object.assign(new Error("açık proje yok"), { kod: "proje-yok" });
+  return levelOku(icerikDizini(PROJE, "level"), ad);
+}));
 
 // ---- MCP ucu (spec 05 Aşama 1) --------------------------------------------
 // Odadaki `claude` buraya bağlanıp Orion'un bedenini sürer. İstekler IPC ile
@@ -656,14 +768,22 @@ app.whenReady().then(async () => {
 app.on("activate", () => { if (BrowserWindow.getAllWindows().length === 0) pencereAc(); });
 app.on("window-all-closed", () => { if (process.platform !== "darwin") app.quit(); });
 app.on("before-quit", () => {
-  ses.kapat();
-  dinleyici.kapat();
-  webMonitor.kapat();
-  for (const p of ptyler.values()) { try { p.kill(); } catch { /* kapanışta önemsiz */ } }
-  ptyler.clear();
-  // Adaptör bizim başlattığımız süreç: arkada kalıp portu tutmasın.
-  if (claudeBeyni) { try { claudeBeyni.kill(); } catch { /* kapanışta önemsiz */ } claudeBeyni = null; }
-  if (mcpUcu) { try { mcpUcu.kapat(); } catch { /* kapanışta önemsiz */ } mcpUcu = null; }
-  // Yalnızca BİZİM başlattığımız Ollama kapanır; Ozyn'in açtığına dokunulmaz.
-  if (ollama) { ollama.kapat(); ollama = null; }
+  // Her adım ayrı korunur: biri hata fırlatırsa ötekiler (yetim kalacak süreçler) atlanmasın.
+  // Adım adım günlük: kapanış bir adımda ASILIRSA son görünen satır suçluyu gösterir (2026-10-27: proje değişiminde `quit()` sessizce takıldı, sebep bilinmiyordu).
+  const adimlar = [
+    ["ses", () => ses.kapat()],
+    ["dinleyici", () => dinleyici.kapat()],
+    ["webMonitor", () => webMonitor.kapat()],
+    ["pty", () => { for (const p of ptyler.values()) p.kill(); ptyler.clear(); }],
+    // Adaptör bizim başlattığımız süreç: arkada kalıp portu tutmasın.
+    ["claude-beyin", () => { if (claudeBeyni) { claudeBeyni.kill(); claudeBeyni = null; } }],
+    ["mcp", () => { if (mcpUcu) { mcpUcu.kapat(); mcpUcu = null; } }],
+    // Yalnızca BİZİM başlattığımız Ollama kapanır; Ozyn'in açtığına dokunulmaz.
+    ["ollama", () => { if (ollama) { ollama.kapat(); ollama = null; } }],
+  ];
+  for (const [ad, adim] of adimlar) {
+    console.log(`[kapanış] ${ad}…`);
+    try { adim(); } catch (e) { console.error(`[kapanış] ${ad} HATA:`, e?.message ?? e); }
+  }
+  console.log("[kapanış] temizlik bitti");
 });

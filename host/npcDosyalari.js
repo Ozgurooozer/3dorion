@@ -16,8 +16,8 @@ export const npcAdiGecerli = grafAdiGecerli;
 const klasor = jsonKlasoru({ adGecerli: npcAdiGecerli, boyutSiniri: NPC_BOYUT_SINIRI, etiket: "NPC", adEtiketi: "NPC adı" });
 
 /** Klasör yolu. Öncelik: `ORION_NPC_DIZINI` > senaryo koşusu (`ORION_SMOKE=1`: geçici klasör) > `<userData>/orion-npc`. */
-export function npcDizini(env, kullaniciVerisi, gecici) {
-  return klasorDizini(env, "ORION_NPC_DIZINI", "orion-npc", kullaniciVerisi, gecici);
+export function npcDizini(env, kullaniciVerisi, gecici, projeDizini) {
+  return klasorDizini(env, "ORION_NPC_DIZINI", "orion-npc", kullaniciVerisi, gecici, projeDizini);
 }
 
 export function npcListe(dizin) { return klasor.liste(dizin); }

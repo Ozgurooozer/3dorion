@@ -6,9 +6,9 @@
 <style>
   html, body { margin: 0; height: 100%; background: #07070d; overflow: hidden; }
   /* Editör (Sekans) ve Yapı çubuğu açıkken tuval küçülür: sahne dokun arkasında KALMAZ (spec 38 §6). */
-  #tuval { width: 100%; height: calc(100% - max(var(--alt-cubuk, 0px), var(--editor-alt, 0px))); display: block; outline: none; touch-action: none; }
+  #tuval { width: calc(100% - var(--dok-sol, 0px) - var(--dok-sag, 0px)); margin-left: var(--dok-sol, 0px); margin-top: var(--editor-ust, 0px); height: calc(100% - var(--editor-ust, 0px) - var(--dok-alt, 0px) - max(var(--alt-cubuk, 0px), var(--editor-alt, 0px))); display: block; outline: none; touch-action: none; }
   #hud {
-    position: fixed; left: 10px; top: 8px; z-index: 10; pointer-events: none;
+    position: fixed; left: calc(10px + var(--dok-sol, 0px)); top: calc(8px + var(--editor-ust, 0px)); z-index: 10; pointer-events: none;
     font: 11px/1.5 "Cascadia Code", Consolas, monospace; color: #7d8bb5;
     text-shadow: 0 1px 2px #000; white-space: pre;
   }

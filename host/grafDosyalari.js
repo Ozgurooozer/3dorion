@@ -19,8 +19,8 @@ export const grafAdiGecerli = (ad) => typeof ad === "string" && ad.length > 0 &&
 const klasor = jsonKlasoru({ adGecerli: grafAdiGecerli, boyutSiniri: GRAF_BOYUT_SINIRI, etiket: "grafik", adEtiketi: "grafik adı" });
 
 /** Klasör yolu. Öncelik: `ORION_GRAF_DIZINI` > senaryo koşusu (`ORION_SMOKE=1`: geçici klasör) > `<userData>/orion-graf`. */
-export function grafDizini(env, kullaniciVerisi, gecici) {
-  return klasorDizini(env, "ORION_GRAF_DIZINI", "orion-graf", kullaniciVerisi, gecici);
+export function grafDizini(env, kullaniciVerisi, gecici, projeDizini) {
+  return klasorDizini(env, "ORION_GRAF_DIZINI", "orion-graf", kullaniciVerisi, gecici, projeDizini);
 }
 
 /** Klasördeki grafikler (ad = dosya adı uzantısız), ada göre. */

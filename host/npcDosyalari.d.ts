@@ -3,7 +3,8 @@ import type { DosyaBilgisi } from "./dosyaKlasoru.js";
 export type { DosyaBilgisi };
 export const NPC_BOYUT_SINIRI: number;
 export function npcAdiGecerli(ad: unknown): ad is string;
-export function npcDizini(env: Record<string, string | undefined>, kullaniciVerisi: string, gecici: string): string;
+/** `projeDizini` (spec 39): açık projenin `Content/NPC`si; env ve senaryo ondan önce gelir. */
+export function npcDizini(env: Record<string, string | undefined>, kullaniciVerisi: string, gecici: string, projeDizini?: string): string;
 /** Hata nesnesinin `kod` alanı: yok | var | gecersiz-ad | gecersiz-icerik | cok-buyuk. */
 export function npcListe(dizin: string): DosyaBilgisi[];
 export function npcOku(dizin: string, ad: string): string;

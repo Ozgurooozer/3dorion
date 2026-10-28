@@ -3,7 +3,8 @@ import type { DosyaBilgisi } from "./dosyaKlasoru.js";
 export type { DosyaBilgisi };
 export const GRAF_BOYUT_SINIRI: number;
 export function grafAdiGecerli(ad: unknown): ad is string;
-export function grafDizini(env: Record<string, string | undefined>, kullaniciVerisi: string, gecici: string): string;
+/** `projeDizini` (spec 39): açık projenin `Content/Graphs`ı; env ve senaryo ondan önce gelir. */
+export function grafDizini(env: Record<string, string | undefined>, kullaniciVerisi: string, gecici: string, projeDizini?: string): string;
 /** Hata nesnesinin `kod` alanı: yok | var | gecersiz-ad | gecersiz-icerik | cok-buyuk. */
 export function grafListe(dizin: string): DosyaBilgisi[];
 export function grafOku(dizin: string, ad: string): string;

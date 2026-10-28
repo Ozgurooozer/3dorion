@@ -286,7 +286,7 @@ export function grafEditoruKur(a: GrafEditoruAyari): GrafEditoru {
     if (!acik) return;
     const h = e.target as Element | null;
     if (h && kok.contains(h)) return;
-    if (h?.closest?.(".ep-pencere") || yaziAlaniMi(h)) return;
+    if (h?.closest?.(".ep-pencere, .pp-kok") || yaziAlaniMi(h)) return;   // JSON penceresi ve proje tarayıcısı kendi tuşlarını alır
     e.stopImmediatePropagation();
     if (e.type !== "keydown") return;
     kok.focus({ preventScroll: true });

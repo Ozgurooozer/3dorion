@@ -23,6 +23,8 @@ import { sekansOynaticiKur, type OynatmaDurumu, type OynatmaIstegi, type SekansK
 import { sekansDeposuKur, sekansKaynaginiSec, type SekansDeposu } from "../../sekans/sekansDeposu.ts";
 import { ornekKutuphanesiKur, ornekleriYukle } from "../../sekans/ornekler.ts";
 import { sekansEditoruKur, type SekansEditoru } from "./sekansEditoru.ts";
+import type { AnaMenu } from "../ortak/anaMenu.ts";
+import type { DokYoneticisi } from "../ortak/dok/dokYoneticisi.ts";
 import { bosAd, sekansSekmesi } from "./sekansSekmesi.ts";
 
 /** Sekans kamerasının sürdüğü canlı kamera (`KameraRig`in alt kümesi; başsız testte sahte). */
@@ -34,6 +36,10 @@ export interface SekansKameraRig {
 }
 
 export interface SekansKurulumAyari {
+  /** Pencere tepesindeki ana menü şeridi (spec 39 D2): editör menülerini ona katar. */
+  anaMenu: AnaMenu;
+  /** Dok sistemi (spec 39 D3): editörün Ayrıntılar · Rig · Kamera panelleri. */
+  dokSistemi: DokYoneticisi;
   /** Control Rig (spec 38) ve kamera (spec 38 §7) için sahne, tuval, bedenler ve canlı kamera. */
   sahne: Scene;
   tuval: HTMLElement;
@@ -127,7 +133,7 @@ export function sekansKur(a: SekansKurulumAyari): SekansSistemi {
     altyazi: a.altyazi,
   });
   const editor = sekansEditoruKur({
-    depo, oynatici, klipler: a.klipler, ajanlar: a.ajanlar, metinAc, altyazi: a.altyazi, izin: a.izin, gorunurlukDegisti: a.gorunurlukDegisti, rig,
+    anaMenu: a.anaMenu, dokSistemi: a.dokSistemi, depo, oynatici, klipler: a.klipler, ajanlar: a.ajanlar, metinAc, altyazi: a.altyazi, izin: a.izin, gorunurlukDegisti: a.gorunurlukDegisti, rig,
     kamera: {
       oynatici: kamera,
       // Önizleme sürerken canlı kamera sekansın kamerasıdır: görünüm yok (null). Serbest kamera açıkken "şu anki görünüm" ONUN gözüdür (orbit ile kurduğun kadraj).
