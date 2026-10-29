@@ -81,6 +81,8 @@ contextBridge.exposeInMainWorld("kopru", {
   // Proje (spec 39): açık projenin özeti ve level'ı; aynı sonuç biçimi.
   projeBilgi:       () => ipcRenderer.invoke(CAGRI.projeBilgi),
   projeLevelOku:    (ad) => ipcRenderer.invoke(CAGRI.projeLevelOku, ad),
+  arayuzOku:        () => ipcRenderer.invoke(CAGRI.arayuzOku),
+  arayuzYaz:        (metin) => ipcRenderer.invoke(CAGRI.arayuzYaz, metin),
   // Proje tarayıcısı (D2): aç projeyi CANLI değiştirmez, uygulamayı yeniden başlatır.
   projeListe:       () => ipcRenderer.invoke(CAGRI.projeListe),
   projeYeni:        (ad, sablon) => ipcRenderer.invoke(CAGRI.projeYeni, ad, sablon),

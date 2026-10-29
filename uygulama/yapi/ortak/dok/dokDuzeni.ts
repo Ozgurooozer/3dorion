@@ -30,8 +30,8 @@ export interface Duzen {
 }
 
 export const BOYUT_SINIRI: Readonly<Record<KenarBolge, { readonly en_az: number; readonly en_cok: number; readonly varsayilan: number }>> = {
-  sol: { en_az: 180, en_cok: 720, varsayilan: 300 },
-  sag: { en_az: 180, en_cok: 720, varsayilan: 310 },
+  sol: { en_az: 240, en_cok: 720, varsayilan: 360 },
+  sag: { en_az: 240, en_cok: 720, varsayilan: 360 },
   alt: { en_az: 120, en_cok: 600, varsayilan: 300 },
 };
 export const YUZER_VARSAYILAN: YuzerKonum = { x: 120, y: 120, g: 360, yuk: 300 };

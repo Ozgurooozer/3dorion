@@ -35,6 +35,17 @@ Kapsam: alt çubuk (Yapı çubuğu) sekmeleri ve Orion ayar paneli artık dok pa
 - Dok klavyesi artık yalnız Esc'i geçirir: Esc pencereyi kapatabilir, diğer tuşlar oyuna sızmaz.
 - Tarayıcıda `[ÖLÇÜLDÜ]`: O, B, M açıldı; sekmeler ve bölgeler doğru; konsolda yeni hata yok. Nesne paneli (sağ tık) ve stil (G, yalnız ova'da) elle denenmedi.
 
+## 3. dilim: önerilerin uygulanması
+- **Dok ✕ ↔ pencere senkronu:** dok'ta kapatılan pencere kendi kapanışını yapar (`DokPaneli.kapat`). Tarayıcıda `[ÖLÇÜLDÜ]`: ✕ sonrası Gözlem kapalı.
+- **Kapalı pencere menüden açılır:** `DokPaneli.ac`. Menü satırı, pencere kapalıyken pasif değil; `[ÖLÇÜLDÜ]` Pencere ▸ Gözlem açtı.
+- **Düzen proje başına:** açık projenin `Saved/arayuz.json` dosyası (host kanalları `arayuz:oku/yaz`, 64 KB sınır). Dok değişince yazar,
+  açılışta proje dosyası geç gelirse `yenidenYukle` ile uygulanır. Proje açık değilse yalnız tarayıcı deposu (localStorage) kullanılır.
+- **Dar panel:** yan bölgelerin varsayılan genişliği 310/300 → 360 px (en az 240). Sekans kartları artık daha az kesiliyor.
+- **Yüzer kalıntılar (karar):** Pencere (kalıcı, sürüklenebilir) = dok. Geçici/modal öğeler yüzer kalır: bağlam menüsü, onay paneli, sohbet
+  kutusu, altyazı, diyalog, proje seçici (modal). Metin düzenleyici pencereleri (Hafıza, birden çok açık dosya) tek kimlikli dok paneline sığmadığı için
+  yüzer kalır; ayrı bir dilimde ele alınacak.
+- **Dev gürültüsü:** tarayıcıda (Electron'suz) içerik gezgini köprü yokken hata atmak yerine açıklama gösterir.
+
 ## Doğrulama (güncel)
 - Tip denetimi TEMİZ (`npx tsc --noEmit`, 0 hata). Önceki "Babylon tip tanımı yok" sorunu bozuk `node_modules`ten geliyordu: `npm ci` ile çözüldü.
 - Tam test paketi: `npm test` (bkz. commit mesajı).

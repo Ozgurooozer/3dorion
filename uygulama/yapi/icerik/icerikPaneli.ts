@@ -158,6 +158,8 @@ export function icerikPaneliKur(a: IcerikPaneliAyari): IcerikPaneli {
 
   // ── veri ──
   async function yenile(): Promise<void> {
+    // Köprü yok (yalnız tarayıcı, Electron'suz): içerik yok, hata da yok — dosya işlemleri Electron'da çalışır.
+    if (!a.kopru) { mesajVer("İçerik gezgini Electron'da çalışır (proje dosyaları masaüstü uygulamasında)."); return; }
     const [c, e] = await Promise.all([a.kopru.icerikListe("Content"), a.kopru.icerikListe("Engine")]);
     const yeni: Oge[] = [];
     projeYok = false; kesildi = false;

@@ -509,6 +509,17 @@ ipcMain.handle(CAGRI.sekansSil, (_e, ad) => ipcSonucu(() => { sekansSil(SEKANS_D
 // ---- proje bilgisi ve level'ları (spec 39 D1) -------------------------------------------
 // Renderer projenin yerini ve level'ını buradan alır (dosya sistemi görmez). Level okuma `levelDosyasi.js`in kuralıyla (`Content/Levels/<ad>/<ad>.level.json`).
 ipcMain.handle(CAGRI.projeBilgi, () => ipcSonucu(() => projeOzeti()));
+// Arayüz düzeni (spec 41): dok yerleşimi açık projenin `Saved/arayuz.json`unda; proje yoksa tarayıcı deposu yeter. Boyut sınırlı (bozuk/şişkin kayıt yazılmasın).
+const ARAYUZ_EN_COK = 64 * 1024;
+const arayuzYolu = () => (PROJE ? path.join(PROJE.dizin, "Saved", "arayuz.json") : null);
+ipcMain.handle(CAGRI.arayuzOku, () => ipcSonucu(() => { const y = arayuzYolu(); return y && fs.existsSync(y) ? fs.readFileSync(y, "utf8") : null; }));
+ipcMain.handle(CAGRI.arayuzYaz, (_e, metin) => ipcSonucu(() => {
+  const y = arayuzYolu();
+  if (!y || typeof metin !== "string" || metin.length > ARAYUZ_EN_COK) return false;
+  fs.mkdirSync(path.dirname(y), { recursive: true });
+  fs.writeFileSync(y, metin, "utf8");
+  return true;
+}));
 // Proje tarayıcısı (D2): liste, YENİ (şablondan), AÇ, klasörde göster. AÇ projeyi CANLI değiştirmez: seçimi son açılanlara yazıp uygulamayı yeniden başlatır
 // (sekans/graf/NPC klasörleri ve level açılışta kurulur; yarım değişim iki projeyi karıştırırdı). Senaryo koşusunda yeniden başlatma YOK (döngüye girerdi).
 ipcMain.handle(CAGRI.projeListe, () => ipcSonucu(() => projeDurumu(PROJELER_KOKU, PROJE_SON_YOLU, PROJE?.ad)));

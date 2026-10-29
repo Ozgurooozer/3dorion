@@ -28,6 +28,10 @@ export interface DokPaneli {
   goster?(): void;
   /** Panel ekrandan gittiğinde (sekme değişti, bölge kapandı, imleç kipi kapandı). */
   gizle?(): void;
+  /** Dok'tan kapatılınca (✕ ya da Pencere menüsü): pencere kendi kapanışını yapsın (dokPencere.ts). */
+  kapat?(): void;
+  /** Kapalıyken Pencere menüsünden açılınca: pencere kendi açılışını yapsın. Yoksa satır pasif. */
+  ac?(): void;
 }
 
 export interface DokYoneticisi {
@@ -54,6 +58,8 @@ export interface DokYoneticisi {
   /** Yüzer panelin konum/boyutunu ayarlar (yüzer değilse sessizce yok sayılır). İlk açılışta uygun boyut vermek için (ör. önizleme penceresi geniş açılır). */
   yuzerAyarla(id: string, k: Partial<YuzerKonum>): void;
   sifirla(): void;
+  /** Dış depodan okunan düzeni uygular (açılışta proje klasörü geç gelirse). Geçersiz/boş metin yok sayılır. */
+  yenidenYukle(metin: string | null): void;
   /** Panelin ekranda gerçekten görünmesi: görünür + kapalı değil + (kenar bölgesinde) etkin sekme. */
   ekrandaMi(id: string): boolean;
   iceriyor(n: Node | null): boolean;
@@ -63,7 +69,10 @@ export interface DokYoneticisi {
 
 const IPUCU_MS = 4000;
 
-export function dokYoneticisiKur(anahtar: string): DokYoneticisi {
+/** Düzenin dış deposu (ör. proje klasörü). Verilmezse yalnız tarayıcı deposu (localStorage) kullanılır. */
+export interface DokDepo { yaz(metin: string): void }
+
+export function dokYoneticisiKur(anahtar: string, dis?: DokDepo): DokYoneticisi {
   dokStiliEkle();
   const kok = el("div", "dk-kok"); kok.dataset.surukle = "0";
   const depo = el("div", "dk-depo");
@@ -85,7 +94,11 @@ export function dokYoneticisiKur(anahtar: string): DokYoneticisi {
   let canli = new Set<string>();   // ekranda şu an görünen paneller (goster/gizle geçişleri için)
   const acikOrtam = (): boolean => kipAcik && tumuAcik;
 
-  const kaydetDepo = (): void => { try { localStorage.setItem(anahtar, serilestir(duzen)); } catch { /* depo yok: yalnız bu açılış */ } };
+  const kaydetDepo = (): void => {
+    const metin = serilestir(duzen);
+    try { localStorage.setItem(anahtar, metin); } catch { /* depo yok: yalnız bu açılış */ }
+    dis?.yaz(metin);
+  };
   const gorunenler = (b: Bolge): string[] => acikOrtam() ? duzen.gruplar[b].filter((id) => paneller.get(id)?.gorunur) : [];
   const etkinOf = (b: KenarBolge): string | null => { const g = gorunenler(b); return duzen.etkin[b] && g.includes(duzen.etkin[b]!) ? duzen.etkin[b] : (g[0] ?? null); };
   const ad = (id: string): string => paneller.get(id)?.p.kayit.ad ?? id;
@@ -302,7 +315,10 @@ export function dokYoneticisiKur(anahtar: string): DokYoneticisi {
     duzen = s.duzen; degisti = true; kaydetDepo(); ciz();
     return s;
   }
-  function kapat(id: string): void { duzen = kapatModel(duzen, id); degisti = true; kaydetDepo(); ciz(); }
+  function kapat(id: string): void {
+    duzen = kapatModel(duzen, id); degisti = true; kaydetDepo(); ciz();
+    paneller.get(id)?.p.kapat?.();   // pencere de kendi durumunu kapatır (yoksa gizli ama "açık" kalırdı)
+  }
   const acikMi = (id: string): boolean => !duzen.kapali.includes(id) && panelBolgesi(duzen, id) !== null;
   function sec(id: string): void {
     if (!paneller.has(id)) return;
@@ -319,6 +335,10 @@ export function dokYoneticisiKur(anahtar: string): DokYoneticisi {
 
   return {
     kok,
+    yenidenYukle(metin) {
+      if (!metin) return;
+      duzen = oku(metin, kayitlar); degisti = true; ciz();
+    },
     kaydet(p) {
       if (paneller.has(p.kayit.id)) throw new Error(`dok paneli zaten kayıtlı: ${p.kayit.id}`);
       kayitlar.push(p.kayit); paneller.set(p.kayit.id, { p, rozet: "", gorunur: p.gorunur ?? true, bilgi: "" });
@@ -348,9 +368,15 @@ export function dokYoneticisiKur(anahtar: string): DokYoneticisi {
     menuSatirlari() {
       const satirlar: MenuSatiri[] = kayitlar.map((k): MenuSatiri => ({
         etiket: k.ad, ipucu: paneller.get(k.id)?.p.ipucu,
-        etkin: () => paneller.get(k.id)?.gorunur === true,
-        isaretli: () => acikMi(k.id),
-        calistir: () => { if (acikMi(k.id)) kapat(k.id); else sec(k.id); },
+        etkin: () => paneller.get(k.id)?.gorunur === true || paneller.get(k.id)?.p.ac !== undefined,
+        isaretli: () => paneller.get(k.id)?.gorunur === true && acikMi(k.id),
+        calistir: () => {
+          const v = paneller.get(k.id);
+          if (!v) return;
+          if (v.gorunur && acikMi(k.id)) { kapat(k.id); return; }   // açık: kapat
+          if (!v.gorunur && v.p.ac) { v.p.ac(); return; }           // pencere kapalı: kendi açılışını yapar, o da dok'u açar
+          sec(k.id);
+        },
       }));
       return [...satirlar, AYIRICI, { etiket: "Dok düzenini sıfırla", ipucu: "Bütün panelleri varsayılan bölgelerine döndürür", calistir: sifirla }];
     },

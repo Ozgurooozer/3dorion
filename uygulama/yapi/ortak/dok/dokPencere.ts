@@ -18,6 +18,10 @@ export interface DokPencereAyari {
   koku: HTMLElement;
   bolgeler: readonly Bolge[];
   varsayilan: Bolge;
+  /** Pencerenin kendi açılışı (Pencere menüsünden kapalıyken açmak için). Yoksa menü satırı pasif. */
+  ac?(): void;
+  /** Pencerenin kendi kapanışı (dok ✕ ya da menüden kapatınca). */
+  kapat?(): void;
 }
 
 /** Açık mı: pencere `data-acik="1"` ya da `acik` sınıfıyla belirtir (iki bileşen iki yöntem kullanıyor). */
@@ -30,6 +34,7 @@ export function dokPenceresiKaydet(dok: DokYoneticisi, a: DokPencereAyari): void
   dok.kaydet({
     kayit: { id: a.id, ad: a.ad, bolgeler: [...a.bolgeler], varsayilan: a.varsayilan },
     icerik: kabi, simge: a.simge, ipucu: a.ipucu, gorunur: false,
+    ac: a.ac, kapat: a.kapat,
   });
   // Pencere kendi açılışını ve kapanışını işaretine yazar; dok o işareti izleyip sekmeyi buna göre açar/kapatır.
   const izle = (): void => { const acik = acikMi(a.koku); dok.gorunur(a.id, acik); if (acik) dok.sec(a.id); };

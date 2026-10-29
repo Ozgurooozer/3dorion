@@ -129,6 +129,9 @@ export interface Kopru {
   projeBilgi(): Promise<IpcSonuc<ProjeOzeti | null>>;
   /** Açık projenin level'ı (`Content/Levels/<ad>/<ad>.level.json`), ham metin; biçimi renderer doğrular. Proje yoksa `proje-yok`. */
   projeLevelOku(ad: string): Promise<IpcSonuc<string>>;
+  /** Arayüz düzeni (spec 41): açık projenin kayıtlı düzeni (yoksa null); yazma proje açıkken çalışır. */
+  arayuzOku(): Promise<IpcSonuc<string | null>>;
+  arayuzYaz(metin: string): Promise<IpcSonuc<boolean>>;
   /** Proje tarayıcısı (spec 39 D2): kök, açık proje ve projeler (son açılanlar önde; bozuk proje `hata` ile görünür). */
   projeListe(): Promise<IpcSonuc<ProjeDurumu>>;
   /** Şablondan yeni proje (`ofis` | `bos`); AÇMAZ. Hata kodları: var | gecersiz-ad | gecersiz-sablon. */

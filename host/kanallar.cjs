@@ -100,6 +100,9 @@ const CAGRI = {
    */
   projeBilgi:        "proje:bilgi",
   projeLevelOku:     "proje:level-oku",
+  /** Arayüz düzeni (spec 41): açık projenin `Saved/arayuz.json`u. Proje açık değilse okuma boş, yazma yok. */
+  arayuzOku:         "arayuz:oku",
+  arayuzYaz:         "arayuz:yaz",
   /** Proje tarayıcısı (D2): liste, yeni (şablondan), aç (yeniden başlatır), klasörde göster. */
   projeListe:        "proje:liste",
   projeYeni:         "proje:yeni",

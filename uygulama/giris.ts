@@ -759,7 +759,7 @@ const projePenceresi = projePenceresiKur({
   kirli: () => sekansSistemi.editor.kirliSekmeler().map((ad) => `sekans '${ad}'`),
 });
 // Dok sistemi (spec 39 D3): paneller sol/sağ/alt bölgeye ya da yüzer pencereye bırakılır; düzen hatırlanır. Editörler panellerini ona kaydeder.
-const dokSistemi = dokYoneticisiKur("orion.dok.v1");
+const dokSistemi = dokYoneticisiKur("orion.dok.v1", { yaz: (m) => { if (typeof window.kopru?.arayuzYaz === "function") void window.kopru.arayuzYaz(m); } });
 /** Orion ayar paneli dok kimliği (spec 41): Pencere menüsü ve açma/kapama bu adla konuşur. */
 const ORION_AYAR_PANELI_KIMLIGI = "orion-ayar";
 // YAPI PANELLERİ (Y, spec 41): Asset, Zemin, Hafıza, Zihin, Graf, Sekans — dok panelleridir (sol/sağ/alt/yüzer bölgeye sürüklenir, düzen hatırlanır).
@@ -796,6 +796,8 @@ const anaMenu = anaMenuKur(() => [
   ] },
 ]);
 if (kopruVar) void window.kopru.projeBilgi().then((r) => { if (r.ok && r.deger) anaMenu.etiket(`📁 ${r.deger.ad}`); });
+// Proje klasöründeki düzen (spec 41): geç gelirse uygulanır; proje yoksa tarayıcı deposundaki düzen zaten yüklü.
+if (typeof window.kopru?.arayuzOku === "function") void window.kopru.arayuzOku().then((r) => { if (r.ok && r.deger) dokSistemi.yenidenYukle(r.deger); });
 yapi.ekle(assetSekmesi({
   kartlar: () => yerlestirme.kartlar(),
   cagir: cagirHayalet,
@@ -1240,7 +1242,7 @@ function beyniBagla(a: Avatar): void {
   });
   yol.kaydet("modelSecici", modelSecici);
   // Model seçici (M) dok penceresi (spec 41): yüzer varsayılan, sürüklenip kenara bırakılır.
-  dokPenceresiKaydet(dokSistemi, { id: "model", ad: "Model", simge: "🧠", ipucu: "Düşünce modeli seçici (M): kartlar, bağlantı", koku: document.getElementById("modelSecici")!, bolgeler: ["yuzer", "sag", "sol"], varsayilan: "yuzer" });
+  dokPenceresiKaydet(dokSistemi, { id: "model", ad: "Model", simge: "🧠", ipucu: "Düşünce modeli seçici (M): kartlar, bağlantı", koku: document.getElementById("modelSecici")!, bolgeler: ["yuzer", "sag", "sol"], varsayilan: "yuzer", ac: () => modelSecici.ac(), kapat: () => modelSecici.kapat() });
   window.orionModel = modelKancasiKur(secim, () => modelSecici.ac());
   // ── STİL PENCERESİ (G): ova'dayken stil/renk/ışık/shader/saat denemeleri; fare kilidi açılınca bırakılır ──
   const stilPenceresi = stilPenceresiKur({
@@ -1257,7 +1259,7 @@ function beyniBagla(a: Avatar): void {
     acildi: () => rig.fareKilitBirak(),
   });
   yol.kaydet("stilPenceresi", stilPenceresi);
-  dokPenceresiKaydet(dokSistemi, { id: "stil", ad: "Stil", simge: "🎨", ipucu: "Ova stil, renk ve ışık denemeleri (G)", koku: document.getElementById("stil-pencere")!, bolgeler: ["yuzer", "sol", "sag"], varsayilan: "yuzer" });
+  dokPenceresiKaydet(dokSistemi, { id: "stil", ad: "Stil", simge: "🎨", ipucu: "Ova stil, renk ve ışık denemeleri (G)", koku: document.getElementById("stil-pencere")!, bolgeler: ["yuzer", "sol", "sag"], varsayilan: "yuzer", ac: () => stilPenceresi.ac(), kapat: () => stilPenceresi.kapat() });
   const birlesik = gecis.birlesik();
   if (birlesik) stilPenceresi.ova(birlesik.level);   // dünya pencereden ÖNCE hazırsa burada bağlanır (aksi hâlde dünya kurulunca)
   console.log(`[PANO] ${panoKaydi.moduller().length} modül, ` +
@@ -1338,7 +1340,7 @@ const gozPaneli = gozPaneliKur({
   acildi: () => rig.fareKilitBirak(),
 });
 // ── BEDENİM (B): giysi parçalarını ve renkleri değiştir; anında uygulanır, tarayıcı deposuna kaydedilir ──
-bedenPaneliKur({
+const bedenPaneli = bedenPaneliKur({
   model: { slotlar: SLOTLAR, renkAdlari: RENK_ADLARI, varsayilan: BEDEN_VARSAYILANI, yok: BEDEN_YOK },
   ayar: () => oyuncu.bedenAyari,
   // Panelden gelen yapısal ayar tabloya göre doğrulanır (bozuk değer beden ayarına giremez).
@@ -1347,9 +1349,9 @@ bedenPaneliKur({
   acildi: () => rig.fareKilitBirak(),
 });
 // Gözlem (O), Beden (B) ve nesne paneli dok pencereleri (spec 41): açılınca kendi bölgesinde sekme olur, kapanınca kalkar.
-dokPenceresiKaydet(dokSistemi, { id: "gozlem", ad: "Gözlem", simge: "👁", ipucu: "Orion'un gözü: O ile kare al, yerel model yorumlasın", koku: document.getElementById("gozPaneli")!, bolgeler: ["sag", "sol", "yuzer"], varsayilan: "sag" });
-dokPenceresiKaydet(dokSistemi, { id: "beden", ad: "Beden", simge: "🧍", ipucu: "Orion'un giysileri ve renkleri (B)", koku: document.getElementById("bedenPaneli")!, bolgeler: ["sol", "sag", "yuzer"], varsayilan: "sol" });
-dokPenceresiKaydet(dokSistemi, { id: "nesne", ad: "Nesne", simge: "🔍", ipucu: "Seçili nesnenin özellikleri", koku: document.getElementById("nesnePaneli")!, bolgeler: ["sag", "sol", "yuzer"], varsayilan: "sag" });
+dokPenceresiKaydet(dokSistemi, { id: "gozlem", ad: "Gözlem", simge: "👁", ipucu: "Orion'un gözü: O ile kare al, yerel model yorumlasın", koku: document.getElementById("gozPaneli")!, bolgeler: ["sag", "sol", "yuzer"], varsayilan: "sag", ac: () => gozPaneli.ac(), kapat: () => gozPaneli.kapat() });
+dokPenceresiKaydet(dokSistemi, { id: "beden", ad: "Beden", simge: "🧍", ipucu: "Orion'un giysileri ve renkleri (B)", koku: document.getElementById("bedenPaneli")!, bolgeler: ["sol", "sag", "yuzer"], varsayilan: "sol", ac: () => bedenPaneli.ac(), kapat: () => bedenPaneli.kapat() });
+dokPenceresiKaydet(dokSistemi, { id: "nesne", ad: "Nesne", simge: "🔍", ipucu: "Seçili nesnenin özellikleri", koku: document.getElementById("nesnePaneli")!, bolgeler: ["sag", "sol", "yuzer"], varsayilan: "sag", kapat: () => nesnePaneli.kapat() });
 const gozlem = gozlemKur({
   kare: async () => { const k = await orionKaresi(); return k ? { png: k.png, en: 896, boy: 504 } : null; },
   model: gozModeli,
