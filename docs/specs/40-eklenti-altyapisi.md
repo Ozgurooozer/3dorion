@@ -1,6 +1,6 @@
 # Spec 40 — Eklenti (plugin) altyapısı + "Düşünme kipi" (P = NP / P ≠ NP)
 
-Durum: E1–E4 YAZILDI (2026-10-28); canlı senaryo ve ölçüm (E5) KOŞULMADI. İstek: Ozyn, 2026-10-28 ("İstisna": ODAK dönemi, motor özellikleri eklenti).
+Durum: E1–E4 YAZILDI (2026-10-28); E5 ölçüm KAPANDI (2026-10-29): 0 KABUL, "kanıt yok", kip KAPALI (§7). Canlı senaryo (`eklentidene`) KOŞULMADI. Sıradaki aday: deterministik geri dönüş (§7 sonu, ayrı ön kayıt). İstek: Ozyn, 2026-10-28 ("İstisna": ODAK dönemi, motor özellikleri eklenti).
 
 ## 1. Karar
 - Eklenti = **depo içi, derleme zamanı kayıtlı modül**. Dış klasörden JS yükleme YOK (güvenlik; gerekirse ayrı spec).
@@ -40,7 +40,7 @@ Zihin duvarı: açıkken başlıkta rozet (`ZİHİN AKIŞI · P≠NP`); kapalıy
 - `[TEST]` bozma denemesi: defter 19/19; doğrulayıcı/kip/kanca 19 mutantın 17'si yakalandı, ikisi için: biri test eklenip yakalandı (söz halkası), biri eşdeğer (`k &&` koruması boş sözü zaten halkaya almıyor).
 - `[YAZILDI-KOŞULMADI]` `eklentidene` (K1–K6) ve gerilemeler (`projedene`, `dokdene`, `icerikdene`, `sekansdene`, `kameradene`, `grafdene`): pencere açar, oyun kapalıyken.
 
-## 6. E5 — ölçüm (yapılmadı)
+## 6. E5 — ölçüm (yapıldı, sonuçlar §7)
 Kip faydası ölçülene dek KAPALI. `tools/kip-olc.ts` + `docs/olcum/on-kayit-dusunme-kipi.md` (eşik ÖNCEDEN yazılır, sonuca bakıp değişmez): üç kolda (kapalı/çözücü/doğrulayıcı) doğru eylem oranı, reddedilen çağrı, tur başı token, gecikme. Yerel/`dis` beyin; ücretli beyin Ozyn onayı olmadan YOK.
 
 ## 7. E5 sonuçları (2026-10-28, `gemma4:e2b`, n=5, sahte dünya; ön kayıt `docs/olcum/on-kayit-dusunme-kipi.md`)

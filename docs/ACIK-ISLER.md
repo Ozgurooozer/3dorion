@@ -30,7 +30,14 @@
 
 ## Eklenti altyapısı (spec 40; istisna 2026-10-28)
 - `eklentidene` (K1–K6) ve gerilemeler (`projedene`, `dokdene`, `icerikdene`, `sekansdene`, `kameradene`, `grafdene`) KOŞULMADI; oyun kapalıyken.
-- E5: Düşünme kipi ölçümü (`tools/kip-olc.ts` + ön kayıt) yazılmadı; kip faydası bilinmiyor, varsayılan KAPALI.
+- E5 KAPANDI (2026-10-29): Düşünme kipi ölçüldü (`tools/kip-olc.ts`, ön kayıt `docs/olcum/on-kayit-dusunme-kipi.md`, 6 yerel model, tuzak-2): 0 KABUL → "kanıt yok". Kip varsayılan KAPALI kalır; eşik oynatılmaz. Sonuç: spec 40 §7.
+- SIRADAKİ ADIM (isteğe bağlı, ayrı ön kayıt ister): 2. ardışık retten sonra modele sormadan deterministik geri dönüş (ısrarı kes, Ozyn'e tek cümle söylet). Ölçülmedi. `dunya_sor`/`ortam` tekrarı kural kapsamında değil; sezgiyle eklenmez, ölçümle sorulur.
+- Ölçüm sınırları: tek tekrar n=5; sahte dünya `tahta` takma adını reddeder (gerçek oda kabul edebilir); canlı odada kipin faydası `[YAZILDI-KOŞULMADI]`.
+- Content Browser sürükle-bırak/İçe aktar düzeltmesi (`host/birakYollari.cjs`): kök neden KANITLANMADI, canlı doğrulanmadı. Ozyn oyunu tam kapatıp `npm start` ile elle denesin (preload değişti). Tutmazsa DevTools'ta `dragstart`; yan şüphe: `.dk-icerik > [data-dok][data-etkin="1"]{display:block}` `.ic-kok{display:flex}`'i eziyor olabilir.
+- Push bekleyen yerel commitler: `524ddae` (Fikir havuzu), `3d52caf` (çok modelli ölçüm). Ozyn onayıyla.
+- Commit dışı (benim değil / karar bekliyor): `assets/araba/`, `assets/kaynak/araba.py`, `assets/kaynak/pist.py`, `assets/pist/`, `tools/pist-yerlestir.ts`, `docs/arastirma/*`, `docs/olcum/f0-ozerk3-acikis-yeni-dis.jsonl`, `docs/olcum/f3-getirme.json`.
+- Fikir havuzu: telefondan Orion'a uzaktan bağlanma (A hazır araç 1–2 saat / B PWA spec 41 adayı / C yerel uygulama) — `docs/FIKIR-HAVUZU.md`.
+- Hatırlatma: Hugging Face token'ı `huggingface.co/settings/tokens`'tan silinsin.
 - Editör/yan sekme panelleri, Sekans/Graf editörü eklenti değil; dış klasörden eklenti yükleme yok.
 
 ## Sekans · Rig · Kamera (spec 36–38; eklendi 2026-10-27)
