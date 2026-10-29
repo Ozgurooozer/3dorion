@@ -158,6 +158,7 @@ import { geciciKlipKatmaniKur } from "./sekans/geciciKlipler.ts";
 import { sekansKur } from "./yapi/sekans/kurulum.ts";
 import { anaMenuKur } from "./yapi/ortak/anaMenu.ts";
 import { dokYoneticisiKur } from "./yapi/ortak/dok/dokYoneticisi.ts";
+import { dokPenceresiKaydet } from "./yapi/ortak/dok/dokPencere.ts";
 import { AYIRICI } from "./yapi/ortak/menuModeli.ts";
 import { projePenceresiKur } from "./yapi/proje/projePenceresi.ts";
 import { icerikPaneliKur, ICERIK_PANELI_KIMLIGI } from "./yapi/icerik/icerikPaneli.ts";
@@ -1238,6 +1239,8 @@ function beyniBagla(a: Avatar): void {
       && !sohbet.acikMi() && onayKapisi.durum !== "bekliyor",
   });
   yol.kaydet("modelSecici", modelSecici);
+  // Model seçici (M) dok penceresi (spec 41): yüzer varsayılan, sürüklenip kenara bırakılır.
+  dokPenceresiKaydet(dokSistemi, { id: "model", ad: "Model", simge: "🧠", ipucu: "Düşünce modeli seçici (M): kartlar, bağlantı", koku: document.getElementById("modelSecici")!, bolgeler: ["yuzer", "sag", "sol"], varsayilan: "yuzer" });
   window.orionModel = modelKancasiKur(secim, () => modelSecici.ac());
   // ── STİL PENCERESİ (G): ova'dayken stil/renk/ışık/shader/saat denemeleri; fare kilidi açılınca bırakılır ──
   const stilPenceresi = stilPenceresiKur({
@@ -1254,6 +1257,7 @@ function beyniBagla(a: Avatar): void {
     acildi: () => rig.fareKilitBirak(),
   });
   yol.kaydet("stilPenceresi", stilPenceresi);
+  dokPenceresiKaydet(dokSistemi, { id: "stil", ad: "Stil", simge: "🎨", ipucu: "Ova stil, renk ve ışık denemeleri (G)", koku: document.getElementById("stil-pencere")!, bolgeler: ["yuzer", "sol", "sag"], varsayilan: "yuzer" });
   const birlesik = gecis.birlesik();
   if (birlesik) stilPenceresi.ova(birlesik.level);   // dünya pencereden ÖNCE hazırsa burada bağlanır (aksi hâlde dünya kurulunca)
   console.log(`[PANO] ${panoKaydi.moduller().length} modül, ` +
@@ -1342,6 +1346,10 @@ bedenPaneliKur({
   tusSerbest: () => oyuncu.oyuncuDurumu().etkilesim === null && !sohbet.acikMi() && onayKapisi.durum !== "bekliyor",
   acildi: () => rig.fareKilitBirak(),
 });
+// Gözlem (O), Beden (B) ve nesne paneli dok pencereleri (spec 41): açılınca kendi bölgesinde sekme olur, kapanınca kalkar.
+dokPenceresiKaydet(dokSistemi, { id: "gozlem", ad: "Gözlem", simge: "👁", ipucu: "Orion'un gözü: O ile kare al, yerel model yorumlasın", koku: document.getElementById("gozPaneli")!, bolgeler: ["sag", "sol", "yuzer"], varsayilan: "sag" });
+dokPenceresiKaydet(dokSistemi, { id: "beden", ad: "Beden", simge: "🧍", ipucu: "Orion'un giysileri ve renkleri (B)", koku: document.getElementById("bedenPaneli")!, bolgeler: ["sol", "sag", "yuzer"], varsayilan: "sol" });
+dokPenceresiKaydet(dokSistemi, { id: "nesne", ad: "Nesne", simge: "🔍", ipucu: "Seçili nesnenin özellikleri", koku: document.getElementById("nesnePaneli")!, bolgeler: ["sag", "sol", "yuzer"], varsayilan: "sag" });
 const gozlem = gozlemKur({
   kare: async () => { const k = await orionKaresi(); return k ? { png: k.png, en: 896, boy: 504 } : null; },
   model: gozModeli,

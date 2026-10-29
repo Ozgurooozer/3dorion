@@ -289,7 +289,8 @@ export function dokYoneticisiKur(anahtar: string): DokYoneticisi {
     hedefler[b] = h; kok.append(h);
   }
 
-  kok.addEventListener("keydown", (e) => e.stopPropagation());
+  // Esc paneli kapatan pencerelere (model seçici, stil, gözlem) ulaşır; diğer tuşlar oyuna sızmaz. Odaktaki düğme de tuşu yutmasın diye Esc geçer.
+  kok.addEventListener("keydown", (e) => { if (e.key !== "Escape") e.stopPropagation(); });
   kok.addEventListener("keyup", (e) => e.stopPropagation());
   kok.addEventListener("keypress", (e) => e.stopPropagation());
   document.body.append(kok);

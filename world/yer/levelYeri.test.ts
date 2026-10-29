@@ -8,6 +8,7 @@ import path from "node:path";
 import { levelYeri, gecitYonu, gecitCapasi, gecitVarisi, kapiKutusu, levelSiniri, KAPI_DURAGI, VARIS_UZAKLIGI, type KutuMinMax } from "./levelYeri.ts";
 import { ornekTanim } from "../level/cekirdek/ornekTanim.ts";
 import { levelTanimiDogrula, type Gecit, type LevelTanimi, type NesneYeri } from "../level/cekirdek/levelTanimi.ts";
+import { donusVec } from "../level/cekirdek/donusum.ts";
 import { etkinAnlam, anlamSozluguOku } from "../level/cekirdek/anlam.ts";
 import { carpisiyorMu, OYUNCU_YARICAP } from "../level/olculer.ts";
 import { AVATAR_YARICAP, yolBul } from "../avatar/yolBulma.ts";
@@ -108,24 +109,47 @@ const KOK = path.resolve(import.meta.dirname, "..", "..");
 const OVA: LevelTanimi = JSON.parse(fs.readFileSync(path.join(KOK, "world/level/ova/ova.level.json"), "utf8"));
 const KATALOG = katalogOku(JSON.parse(fs.readFileSync(path.join(KOK, "assets/sehir/katalog.json"), "utf8")));
 const SOZLUK = anlamSozluguOku(JSON.parse(fs.readFileSync(path.join(KOK, "assets/sehir/anlam.json"), "utf8")));
-function ovaYeri() {
+function ovaKutulari(): Map<string, KutuMinMax> {
   const boyut = new Map(KATALOG.varliklar.map((v) => [v.ad, v]));
   const k = new Map<string, KutuMinMax>();
   for (const n of OVA.nesneler ?? []) {
     const v = boyut.get(n.varlik)!;
-    // Ölçek: sayı = eşit, [x, y, z] = eksen başına (Ozyn editörde boru duvarını eksen başına büyüttü).
     const o = typeof n.olcek === "number" ? [n.olcek, n.olcek, n.olcek] : n.olcek;
     const [x, y, z] = n.konum, [g, h, d] = [v.boyut[0] * o[0]!, v.boyut[1] * o[1]!, v.boyut[2] * o[2]!];
-    k.set(n.id!, kutu([x - g / 2, y, z - d / 2], [x + g / 2, y + h, z + d / 2]));
+    // Döndürülmüş nesne (Ozyn editörde Y ekseninde çevirdi): kutu, dönmüş ayak izinin sınırını kapsar — düz kutu düşük kalırdı.
+    const t = donusVec(n.donus)[1], c = Math.abs(Math.cos(t)), sn = Math.abs(Math.sin(t));
+    const hx = (c * g + sn * d) / 2, hz = (sn * g + c * d) / 2;
+    k.set(n.id!, kutu([x - hx, y, z - hz], [x + hx, y + h, z + hz]));
   }
+  return k;
+}
+function ovaYeri() {
+  const boyut = new Map(KATALOG.varliklar.map((v) => [v.ad, v]));
+  const k = ovaKutulari();
   return levelYeri({
     ad: "ova", tanim: OVA, kutular: k, yukseklik: duz,
     anlamOf: (n) => etkinAnlam(n, boyut.get(n.varlik)?.kategori, SOZLUK, (a) => a),
   });
 }
 
-test("ova bütün yerleşimleri dönüşsüz (bu bekçinin varsayımı)", () => {
-  assert.deepEqual((OVA.nesneler ?? []).filter((n) => n.donus !== 0).map((n) => n.id), []);
+test("ova'da döndürülmüş yerleşimlerin ayak izi kutusuna sığıyor (düz kutu döndürülmüş binayı kaçırırdı)", () => {
+  const boyut = new Map(KATALOG.varliklar.map((v) => [v.ad, v]));
+  const kutular = ovaKutulari();
+  const disari: string[] = [];
+  for (const n of OVA.nesneler ?? []) {
+    const t = donusVec(n.donus)[1];
+    if (Math.abs(Math.sin(t)) < 1e-9 && Math.abs(Math.cos(t) - 1) < 1e-9) continue;
+    const v = boyut.get(n.varlik)!, o = typeof n.olcek === "number" ? [n.olcek, n.olcek, n.olcek] : n.olcek;
+    const [g, d] = [v.boyut[0] * o[0]!, v.boyut[2] * o[2]!], [x, z] = [n.konum[0]!, n.konum[2]!];
+    const kb = kutular.get(n.id!)!;
+    for (const [sx, sz] of [[-1, -1], [1, -1], [1, 1], [-1, 1]] as const) {
+      // Köşe: merkeze göre yerel (±g/2, ±d/2), Y ekseni etrafında döndürülür.
+      const lx = (sx * g) / 2, lz = (sz * d) / 2;
+      const wx = x + lx * Math.cos(t) + lz * Math.sin(t), wz = z - lx * Math.sin(t) + lz * Math.cos(t);
+      if (wx < kb.min[0]! - 1e-9 || wx > kb.max[0]! + 1e-9 || wz < kb.min[2]! - 1e-9 || wz > kb.max[2]! + 1e-9) disari.push(n.id!);
+    }
+  }
+  assert.deepEqual([...new Set(disari)], []);
 });
 test("ova'da Orion'un ofisine açılan bir geçit var", () => { assert.equal(OVA.gecitler?.filter((g) => g.hedef === "oda").length, 1); });
 test("ova'da ofis kapısının durağı yürünebilir", () => {

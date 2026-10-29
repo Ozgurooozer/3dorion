@@ -29,6 +29,8 @@ export const DOK_CSS = `
 /* Her panel kendi konum bağlamıdır: içindeki mutlak öğeler (boş durum metni, düğüm tuvali) bölgeye değil panele göre yerleşir ve taşmaz. */
 .dk-icerik > [data-dok] { display: none; } .dk-icerik > [data-dok][data-etkin="1"] { display: block; position: relative; overflow: hidden; height: 100%; box-sizing: border-box; }
 .dk-yuzer-icerik > [data-dok] { position: relative; overflow: hidden; height: 100%; box-sizing: border-box; }
+/* Dok'a taşınmış yüzer pencere (dokPencere.ts): kendi yüzen konumu, z-index'i ve gölgesi yok; boyutu kabı doldurur. Kendi display kuralı (açık/kapalı) kalır. */
+.dk-gomulu { position: relative !important; left: auto !important; top: auto !important; right: auto !important; bottom: auto !important; z-index: auto !important; width: auto !important; min-width: 0 !important; max-width: 100% !important; max-height: none !important; height: 100% !important; box-sizing: border-box !important; box-shadow: none !important; transform: none !important; }
 /* Sekans editörünün eski sağ sütun stilleri (sabit genişlik/kenar) dokta bölgenin genişliğine uyar */
 .dk-icerik .sk-sag, .dk-yuzer-icerik .sk-sag { width: auto; border-left: 0; }
 .dk-tutamak { position: absolute; z-index: 5; background: transparent; }
