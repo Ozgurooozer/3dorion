@@ -54,6 +54,19 @@ export function atomikYaz(yol, metin) {
   fs.renameSync(gecici, yol);
 }
 
+/** Oyun içi yazımda (IPC) metin tavanı: renderer'ın yolladığı level metni bundan büyükse reddedilir (spec 42). */
+export const LEVEL_METIN_TAVANI = 8 * 1024 * 1024;
+
+/**
+ * IPC'den gelen level metni yazılabilir mi: dolu metin, tavan altı ve JSON. İÇERİK doğrulaması (level şeması) renderer'da; burada yalnız
+ * "bozuk metin diske gitmesin" emniyeti (host world'ü import etmez). Geçersizse 400 fırlatır.
+ * @param {unknown} metin
+ */
+export function levelMetniniDenetle(metin) {
+  if (typeof metin !== "string" || !metin.trim() || metin.length > LEVEL_METIN_TAVANI) throw hata(400, "geçersiz level metni");
+  try { JSON.parse(metin); } catch { throw hata(400, "level metni JSON değil"); }
+}
+
 /** @param {string} kok @param {string} ad @returns {string} */
 export function levelOku(kok, ad) {
   const yol = levelYolu(kok, ad);

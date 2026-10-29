@@ -138,10 +138,10 @@ test("■ DURDUR: bekleme sırasında basılınca bekleme kesilir, sonraki düğ
   assert.deepEqual([s.durum, y.gunluk], ["durdu", ["önce"]]);
 });
 
-test("olaylar: her düğüm başlarken 'dugum' olayı yayılır (editördeki aktif düğüm vurgusu), sonunda 'bitti'", async () => {
+test("olaylar: her düğüm başlarken 'dugum' (editördeki aktif düğüm vurgusu), bitince 'dugumBitti' (günlük), sonunda 'bitti'", async () => {
   const olaylar: string[] = [];
-  await kos(graf([basla, yaz("a", "x")], [["b", "sonra", "a", "giris"]]), [], { olay: (o) => olaylar.push(o.tur === "dugum" ? o.id : o.tur) });
-  assert.deepEqual(olaylar, ["b", "a", "bitti"]);
+  await kos(graf([basla, yaz("a", "x")], [["b", "sonra", "a", "giris"]]), [], { olay: (o) => olaylar.push(o.tur === "dugum" ? o.id : o.tur === "dugumBitti" ? `${o.id}✓` : o.tur) });
+  assert.deepEqual(olaylar, ["b", "b✓", "a", "a✓", "bitti"]);
 });
 
 // ── tür denetimi (Kontrol et) ──

@@ -14,6 +14,18 @@
 /** Cümle sonu sayılan noktalama. Üç nokta tek cümle sonu sayılır. */
 const CUMLE_SONU = /([.!?]+)(\s|$)/g;
 
+/**
+ * Konuşma uzunluğu ön ayarları (Ayarlar ▸ Ses). `kisa` = ölçümle konan varsayılan fren. `uzun` Piper'ın tek istek tavanının (1200 karakter, `host/ses.js`) altında kalır:
+ * tavanı aşan metin hiç çalınmazdı.
+ */
+export const KONUSMA_UZUNLUKLARI = {
+  kisa: { azamiCumle: 2, azamiKarakter: 180 },
+  orta: { azamiCumle: 4, azamiKarakter: 400 },
+  uzun: { azamiCumle: 8, azamiKarakter: 1100 },
+} as const satisfies Record<string, Required<KisaltmaAyari>>;
+export type KonusmaUzunlugu = keyof typeof KONUSMA_UZUNLUKLARI;
+export const KONUSMA_UZUNLUGU_VARSAYILAN: KonusmaUzunlugu = "kisa";
+
 export interface KisaltmaAyari {
   /** Kaç cümle korunur. */
   azamiCumle?: number;

@@ -13,7 +13,8 @@ import type { DavranisDefteri } from "../world/davranisDenemesi.ts";
 import type { PiperCikisi } from "../voice/cikis.ts";
 import { bulunduguCapa } from "../world/level/capalar.ts";
 import { konumluYerOrtasi } from "../world/yer/birlesikYer.ts";
-import { ikiCumleyeKisalt } from "../voice/kisalt.ts";
+import { KONUSMA_UZUNLUKLARI, ikiCumleyeKisalt } from "../voice/kisalt.ts";
+import { konusmaUzunluguOku } from "./ayar/konusmaUzunlugu.ts";
 import type { OgretimSatiri } from "../mind/kararKaydi.ts";
 import { kabukKoprusu } from "./kabuk.ts";
 import type { Takipci } from "./takip.ts";
@@ -104,7 +105,7 @@ export function orionKonusmasi(g: OrionKonusmaAyari): (ham: string) => Promise<b
   return async (ham) => {
     // Gevezelik freni: talimat "iki cümle" diyor, model 2/3 koşuda uymuyordu.
     // Kural burada BELİRLEYİCİ biçimde uygulanır (ölçüm: 3dorion.bat davranis).
-    const metin = ikiCumleyeKisalt(ham);
+    const metin = ikiCumleyeKisalt(ham, KONUSMA_UZUNLUKLARI[konusmaUzunluguOku()]);
     if (!metin) return false;
     if (metin !== ham.trim().replace(/\s+/g, " ")) {
       console.log(`[SOZ] kisaltildi ${ham.length} -> ${metin.length} karakter`);

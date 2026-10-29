@@ -132,6 +132,10 @@ export interface Kopru {
   /** Arayüz düzeni (spec 41): açık projenin kayıtlı düzeni (yoksa null); yazma proje açıkken çalışır. */
   arayuzOku(): Promise<IpcSonuc<string | null>>;
   arayuzYaz(metin: string): Promise<IpcSonuc<boolean>>;
+  /** Açık projeye YENİ level yazar (spec 42); ham metin, atomik. Hata kodları: proje-yok | 409 (aynı adda var) | 400 (geçersiz ad/metin). Dönen: yazılan yol. */
+  projeLevelOlustur(ad: string, metin: string): Promise<IpcSonuc<string>>;
+  /** Var olan level'ı günceller (spec 42); yoksa 404. Dönen: yazılan yol. */
+  projeLevelKaydet(ad: string, metin: string): Promise<IpcSonuc<string>>;
   /** Proje tarayıcısı (spec 39 D2): kök, açık proje ve projeler (son açılanlar önde; bozuk proje `hata` ile görünür). */
   projeListe(): Promise<IpcSonuc<ProjeDurumu>>;
   /** Şablondan yeni proje (`ofis` | `bos`); AÇMAZ. Hata kodları: var | gecersiz-ad | gecersiz-sablon. */

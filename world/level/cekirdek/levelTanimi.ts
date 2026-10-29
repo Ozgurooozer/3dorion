@@ -8,6 +8,7 @@
 // Ortak çekirdek: ova bugün kullanıyor; Orion'un odası ileride aynı tanıma taşınacak (ayrı adım).
 "use strict";
 import { hex } from "./renk.ts";
+import { grafAdiGecerli } from "../../../protocol/graf.ts";
 import { anlamHatasi, type Anlam } from "./anlam.ts";
 import { stilHatasi, type StilAyari } from "../stil/stilTanimi.ts";
 import type { ZamanAyari } from "../shader/dunyaDurumu.ts";
@@ -73,7 +74,7 @@ export interface KatmanTanimi {
  * Eski biçim (yalnız Y dönüşü + tek ölçek sayısı) aynen geçerli; editör ancak gerekince diziye genişletir
  * (cekirdek/donusum.ts) — dosya küçük kalır.
  */
-export interface NesneYeri {
+export interface NesneYeri extends AktorOzellikleri {
   /** Kararlı kimlik (seçim, sahne düğümü, geri al). Yoksa levelKur doldurur (cekirdek/kimlik.ts); benzersiz. */
   id?: string;
   varlik: string;
@@ -95,6 +96,47 @@ export interface NesneYeri {
    * sözlükteki anlamından gelir (cekirdek/anlam.ts `etkinAnlam`). `ad` burada değil, yukarıda (tek ad).
    */
   anlam?: Omit<Anlam, "ad">;
+}
+
+/** Aktör değişkeninin değeri (spec 43; Unreal "Instance Editable"): düz değer, grafın değişken türleriyle aynı üçü. */
+export type AktorDegiskeni = number | string | boolean;
+/** Aktör değişkeni tavanları (veri koruması): adet ve metin uzunluğu (graf değişkenleriyle aynı ölçek: `uygulama/graf/grafDurumu.ts`). */
+export const AKTOR_DEGISKEN_SINIRI = { adet: 16, metin: 200 } as const;
+
+/**
+ * Her aktörün (nesne, ışık) ORTAK, isteğe bağlı alanları (spec 43): bağlı graf ve örnek başına değişkenler. Alan yoksa hiçbir şey değişmez (eski level bire bir aynı).
+ * `graf` grafik deposundaki ad (var olduğu çalışma anında denetlenir: level dosyası depoyu bilmez). Değişkenler BAŞLANGIÇ değeridir; graf çalışırken yazdığı bellekte kalır.
+ */
+export interface AktorOzellikleri {
+  graf?: string;
+  degiskenler?: Record<string, AktorDegiskeni>;
+}
+
+/** Işık aktörü türleri (spec 42). MVP yalnız `nokta`; spot ve yönlü (ek güneş) sonra eklenir (alan eklemek kırıcı değil). */
+export const ISIK_TURLERI = ["nokta"] as const;
+export type IsikTuru = (typeof ISIK_TURLERI)[number];
+/** Bir level'daki ışık aktörü sayısı üst sınırı (veri koruması; çizim bütçesi ölçümü spec 42 Y3, sınır ölçümle ayarlanır). */
+export const ISIK_TAVANI = 8;
+
+/**
+ * Level'a yerleştirilen ışık kaynağı (spec 42; Unreal'da Place Actors ▸ Lights): güneş+dolgudan AYRI, istenildiği kadar (tavana dek).
+ * `menzil` m (ışığın etkilediği uzaklık), `siddet` ≥ 0, `renk` palet adı ya da "#rrggbb". Kimlik `i<sayı>` (nesneler `n<sayı>`'dan ayrı ad alanı).
+ */
+export interface IsikAktoru extends AktorOzellikleri {
+  /** Kararlı kimlik; yoksa levelKur doldurur ("i1", "i2"…). Nesne kimlikleriyle de çakışmaz. */
+  id?: string;
+  ad?: string;
+  tur: IsikTuru;
+  konum: Vec3;
+  renk: string;
+  siddet: number;
+  menzil: number;
+  /** Sahnede kapalı (kaydedilir). */
+  gizli?: boolean;
+  /** Editörde taşınamaz. */
+  kilitli?: boolean;
+  /** Sahne ağacındaki grup (`gruplar`). */
+  grup?: string;
 }
 
 /** Sahne ağacındaki klasör. İç içe olabilir (`ust`); gizli/kilitli içindekilere geçer. */
@@ -152,6 +194,8 @@ export interface LevelTanimi {
   katmanlar: KatmanTanimi[];
   /** Asset tarayıcısıyla yerleştirilen nesneler (cekirdek/nesneSistemi.ts). Yoksa boş. */
   nesneler?: NesneYeri[];
+  /** Işık aktörleri (spec 42): nokta ışıklar. Yoksa boş; güneş ve dolgu `isik`te kalır. */
+  isiklar?: IsikAktoru[];
   /** Nesne grupları (sahne ağacı klasörleri). Yoksa boş. */
   gruplar?: GrupTanimi[];
   /** Kamera yer imleri. Yoksa boş. */
@@ -203,12 +247,51 @@ export function nesneHatasi(n: unknown, grupIdleri?: ReadonlySet<string>): { ala
   if (g !== undefined && (typeof g !== "string" || (grupIdleri && !grupIdleri.has(g)))) return { alan: "grup", neden: `olmayan grup "${String(g)}"` };
   const e = secimliHata(n, ["gizli", "kilitli"]);
   if (e) return { alan: e, neden: "mantıksal olmalı" };
+  const ao = aktorOzellikleriHatasi(n);
+  if (ao) return ao;
   if (n["anlam"] !== undefined) {
     if (typeof n["anlam"] === "object" && n["anlam"] !== null && "ad" in n["anlam"]) return { alan: "anlam.ad", neden: "ad yerleşimin kendisinde (nesneler[].ad)" };
     const h = anlamHatasi(n["anlam"]);
     if (h) return { alan: `anlam${h.alan ? `.${h.alan}` : ""}`, neden: h.neden };
   }
   return null;
+}
+
+/** Aktörün ortak alanlarının (`graf`, `degiskenler`) hatası; geçerliyse null. Nesne ve ışık aynı kuralı kullanır (kopya yok). */
+export function aktorOzellikleriHatasi(a: Record<string, unknown>): { alan: string; neden: string } | null {
+  if (a["graf"] !== undefined && !grafAdiGecerli(a["graf"])) return { alan: "graf", neden: "geçerli graf adı olmalı (harf, rakam, _ ve -)" };
+  const d = a["degiskenler"];
+  if (d === undefined) return null;
+  if (!nesneMi(d)) return { alan: "degiskenler", neden: "nesne olmalı" };
+  const adlar = Object.keys(d);
+  if (adlar.length > AKTOR_DEGISKEN_SINIRI.adet) return { alan: "degiskenler", neden: `en çok ${AKTOR_DEGISKEN_SINIRI.adet} değişken (${adlar.length} var)` };
+  for (const ad of adlar) {
+    if (!grafAdiGecerli(ad)) return { alan: `degiskenler.${ad}`, neden: "değişken adı geçersiz (harf, rakam, _ ve -)" };
+    const v = d[ad];
+    if (typeof v === "number" ? !Number.isFinite(v) : typeof v === "string" ? v.length > AKTOR_DEGISKEN_SINIRI.metin : typeof v !== "boolean") {
+      return { alan: `degiskenler.${ad}`, neden: `sayı, ${AKTOR_DEGISKEN_SINIRI.metin} karakteri aşmayan metin ya da mantıksal olmalı` };
+    }
+  }
+  return null;
+}
+
+/**
+ * Tek ışık aktörünün hatası (alan + neden; geçerliyse null). `renkMi` palet/hex denetimidir (level paletine bağlı), `grupIdleri` verilirse grup bağı denetlenir.
+ */
+export function isikAktoruHatasi(i: unknown, renkMi: (r: unknown) => boolean, grupIdleri?: ReadonlySet<string>): { alan: string; neden: string } | null {
+  if (!nesneMi(i)) return { alan: "", neden: "nesne olmalı" };
+  if (!(ISIK_TURLERI as readonly unknown[]).includes(i["tur"])) return { alan: "tur", neden: `bilinmeyen tür (bilinenler: ${ISIK_TURLERI.join(", ")})` };
+  if (!vec3Mu(i["konum"])) return { alan: "konum", neden: "[x,y,z] (3 sayı) olmalı" };
+  if (!renkMi(i["renk"])) return { alan: "renk", neden: "renk ya da palet adı değil" };
+  if (!sayiMi(i["siddet"]) || i["siddet"] < 0) return { alan: "siddet", neden: "≥ 0 sayı olmalı" };
+  if (!sayiMi(i["menzil"]) || i["menzil"] <= 0) return { alan: "menzil", neden: "> 0 sayı (m) olmalı" };
+  if (i["id"] !== undefined && !metinMi(i["id"])) return { alan: "id", neden: "boş olmayan metin olmalı" };
+  if (i["ad"] !== undefined && typeof i["ad"] !== "string") return { alan: "ad", neden: "metin olmalı" };
+  const g = i["grup"];
+  if (g !== undefined && (typeof g !== "string" || (grupIdleri && !grupIdleri.has(g)))) return { alan: "grup", neden: `olmayan grup "${String(g)}"` };
+  const e = secimliHata(i, ["gizli", "kilitli"]);
+  if (e) return { alan: e, neden: "mantıksal olmalı" };
+  return aktorOzellikleriHatasi(i);
 }
 
 /** İlk hatanın yolu ve nedeni; geçerliyse `null`. */
@@ -288,6 +371,21 @@ function hataBul(v: unknown): string | null {
       const id = (n as Record<string, unknown>)["id"];
       if (typeof id === "string") {
         if (idler.has(id)) return h(`nesneler[${i}].id`, `yinelenen kimlik "${id}"`);
+        idler.add(id);
+      }
+    }
+  }
+  const isiklar = v["isiklar"];
+  if (isiklar !== undefined) {
+    if (!Array.isArray(isiklar)) return h("isiklar", "dizi değil");
+    if (isiklar.length > ISIK_TAVANI) return h("isiklar", `en çok ${ISIK_TAVANI} ışık (${isiklar.length} var)`);
+    const idler = new Set<string>(Array.isArray(nesneler) ? nesneler.flatMap((n) => (nesneMi(n) && typeof n["id"] === "string" ? [n["id"]] : [])) : []);
+    for (const [i, x] of isiklar.entries()) {
+      const e = isikAktoruHatasi(x, renkMi, grupIdleri);
+      if (e) return h(`isiklar[${i}]${e.alan ? `.${e.alan}` : ""}`, e.neden);
+      const id = (x as Record<string, unknown>)["id"];
+      if (typeof id === "string") {
+        if (idler.has(id)) return h(`isiklar[${i}].id`, `yinelenen kimlik "${id}" (nesne ya da ışık)`);
         idler.add(id);
       }
     }

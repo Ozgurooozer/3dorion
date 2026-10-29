@@ -27,6 +27,10 @@ export interface DugumIsareti {
   hatalar: readonly string[];
   bagliGirisler: ReadonlySet<string>;
   bagliCikislar: ReadonlySet<string>;
+  /** Bu düğümde kesme noktası var (spec 43 A4). */
+  kesme: boolean;
+  /** Çalışma bu düğümde duraklatıldı (kesme noktası ya da adım). */
+  duraklamis: boolean;
 }
 
 const DEGISKEN_TURLERI: ReadonlySet<string> = new Set(Object.values(DEGISKEN_DUGUMU));
@@ -49,6 +53,8 @@ export function dugumOgesi(b: EditorBaglami, d: GrafDugumu, k: DugumKutusu, c: C
   kok.dataset.hata = i.hatalar.length ? "1" : "0";
   kok.dataset.suan = i.suan ? "1" : "0";
   kok.dataset.calismaHata = i.calismaHatasi ? "1" : "0";
+  kok.dataset.kesme = i.kesme ? "1" : "0";
+  kok.dataset.duraklamis = i.duraklamis ? "1" : "0";
   Object.assign(kok.style, { left: `${k.x}px`, top: `${k.y}px`, width: `${k.g}px`, height: `${k.h}px` });
   kok.title = [
     `${t?.ad ?? d.tip} (${d.tip}) · kimlik: ${d.id}`, t?.aciklama ?? "bilinmeyen düğüm türü",
@@ -58,6 +64,15 @@ export function dugumOgesi(b: EditorBaglami, d: GrafDugumu, k: DugumKutusu, c: C
 
   const baslik = el("div", "ge-dbaslik");
   baslik.style.background = t ? KATEGORI_RENGI[t.kategori] : "#5a2020";
+  // Kesme noktası noktası (yalnız akışlı düğümde, hata ayıklama açıkken): tıkla koy/kaldır. Düğme olduğu için tuvalin sürükleme/seçimi başlamaz.
+  const ayiklayici = b.ayiklayici();
+  if (ayiklayici && t && !t.saf) {
+    const nokta = el("button", "ge-kesme"); nokta.type = "button";
+    nokta.title = i.kesme ? "Kesme noktası var: kaldırmak için tıkla" : "Kesme noktası koy: çalışma bu düğümde durur";
+    const grafAdi = o.graf().ad;
+    nokta.addEventListener("click", (e) => { e.stopPropagation(); nokta.blur(); ayiklayici.kesmeDegistir(grafAdi, d.id); b.tazele(); });
+    baslik.append(nokta);
+  }
   baslik.append(el("span", "", `${t?.ad ?? `? ${d.tip}`}${baslikEki(d)}`), el("span", "ge-kimlik", d.id));
   kok.append(baslik);
 

@@ -10,6 +10,7 @@
 import type { GrafCalistirici } from "../../graf/grafCalistirici.ts";
 import type { GrafDinleyici } from "../../graf/grafDinleyici.ts";
 import type { GrafDeposu } from "../../graf/grafDeposu.ts";
+import type { HataAyiklayici } from "../../graf/hataAyiklayici.ts";
 import { olayTetikleri } from "../../graf/olayDugumleri.ts";
 import { dugme } from "./dom.ts";
 import type { MesajTuru } from "./editorBaglami.ts";
@@ -22,12 +23,20 @@ export interface CalistirmaAyari {
   ad(): string | null;
   kirli(): boolean;
   bildir(metin: string, tur?: MesajTuru): void;
+  /** Hata ayıklama (spec 43 A4): verilirse ⏵ Devam ve ⏭ Adım düğmeleri çıkar. */
+  ayiklayici?: HataAyiklayici;
+  /** Aktör çalışmaları (Details ▶): ■ onları da durdurur (tek ■). */
+  aktorCalisiyor?: () => boolean;
+  aktorDurdur?: () => void;
 }
 
 export function calistirmaDugmeleriKur(a: CalistirmaAyari): { ogeler: HTMLElement[]; ciz(): void } {
   const calistir = dugme("▶ Çalıştır", "ge-calistir");
   const durdur = dugme("■ Durdur", "ge-durdur", "Süren bütün grafikleri hemen durdur (▶ ve ⚡ olayla çalışanlar; yürüyen ajan da durur, açık diyalog kapanır)");
   const dinle = dugme("⚡ Dinlemeye al", "ge-dinle");
+  // Duraklayan çalışmayı sürdürmek de çalıştırmaktır: Devam/Adım YALNIZ gerçek tıklamayla (betikten üretilen tık sürdürmez).
+  const devam = dugme("⏵ Devam", "ge-devam", "Duraklayan çalışmayı sürdür (sonraki kesme noktasına kadar)");
+  const adim = dugme("⏭ Adım", "ge-adim", "Bir düğüm ilerle; sıradaki akışlı düğümde yine dur");
 
   calistir.addEventListener("click", (e) => {
     calistir.blur();
@@ -38,7 +47,9 @@ export function calistirmaDugmeleriKur(a: CalistirmaAyari): { ogeler: HTMLElemen
     const r = a.calistirici.calistir(ad);
     if (!r.ok) a.bildir(`çalıştırılamadı: ${r.neden}`, "hata");
   });
-  durdur.addEventListener("click", () => { durdur.blur(); a.calistirici.durdur(); a.dinleyici.durdur(); });
+  durdur.addEventListener("click", () => { durdur.blur(); a.calistirici.durdur(); a.dinleyici.durdur(); a.aktorDurdur?.(); });
+  devam.addEventListener("click", (e) => { devam.blur(); if (!e.isTrusted) return; a.ayiklayici?.devam(); });
+  adim.addEventListener("click", (e) => { adim.blur(); if (!e.isTrusted) return; a.ayiklayici?.adim(); });
   dinle.addEventListener("click", (e) => {
     dinle.blur();
     const ad = a.ad();
@@ -62,7 +73,9 @@ export function calistirmaDugmeleriKur(a: CalistirmaAyari): { ogeler: HTMLElemen
       : k.tur !== "olay" ? "desen tek başına çalışmaz (bir grafikte Desen düğümüyle çağrılır)" : kirli ? "önce kaydet (Ctrl+S): ▶ kaydedilmiş hâli çalıştırır" : "";
     calistir.disabled = neden !== "";
     calistir.title = neden || `'${ad}' çalıştır (yalnız senin tıklamanla; kaydedilmiş hâli)`;
-    durdur.disabled = !calisiyor && !a.dinleyici.liste().some((x) => x.calisiyor);
+    durdur.disabled = !calisiyor && !a.dinleyici.liste().some((x) => x.calisiyor) && !(a.aktorCalisiyor?.() ?? false);
+    const duraklamis = (a.ayiklayici?.duraklamalar().length ?? 0) > 0;
+    devam.disabled = !duraklamis; adim.disabled = !duraklamis;
     const dinlemede = !!ad && a.dinleyici.dinlemedeMi(ad);
     dinle.textContent = dinlemede ? "⚡ Dinlemeyi bırak" : "⚡ Dinlemeye al";
     const olaysiz = !!g && g.tur === "olay" && olayTetikleri(g).length === 0;
@@ -71,5 +84,5 @@ export function calistirmaDugmeleriKur(a: CalistirmaAyari): { ogeler: HTMLElemen
     dinle.title = dinlemede ? "Dinlemeyi bırak (süren olay çalışması da durur)" : dNeden || "Olay gelince (Ozyn Flash'a yaklaştı…) çalışsın — yalnız senin tıklamanla; uygulama kapanınca biter";
   }
 
-  return { ogeler: [calistir, durdur, dinle], ciz };
+  return { ogeler: [calistir, durdur, ...(a.ayiklayici ? [devam, adim] : []), dinle], ciz };
 }

@@ -9,6 +9,7 @@ import type { Scene } from "@babylonjs/core/scene";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import type { Renk } from "./renk.ts";
+import { ISIK_TAVANI } from "./levelTanimi.ts";
 import { RuzgarEklentisi, type RuzgarAyari } from "./ruzgar.ts";
 import { IsikStiliEklentisi, type IsikStiliDurumu } from "../stil/isikEklentisi.ts";
 import { DunyaEklentisi, type DunyaUniformlari } from "../shader/dunyaEklentisi.ts";
@@ -38,8 +39,15 @@ export interface MalzemeAyari {
   gok?: boolean;
 }
 
+/**
+ * Işıklı malzemenin AYNI ANDA işleyebileceği ışık sayısı: güneş + dolgu (2) + ışık aktörleri (`ISIK_TAVANI`, spec 42). Babylon varsayılanı 4: nokta ışık
+ * eklenince fazlası sessizce yok sayılırdı. Bu bir TAVAN, maliyet değil — gölgelendirici yalnız o meshi etkileyen ışıklar kadar döngü kurar.
+ */
+export const MALZEME_ISIK_TAVANI = 2 + ISIK_TAVANI;
+
 export function malzemeKur(sahne: Scene, ad: string, tur: MalzemeTuru, ayar: MalzemeAyari = {}): StandardMaterial {
   const m = new StandardMaterial(`malzeme_${ad}`, sahne);
+  if (tur === "isikli") m.maxSimultaneousLights = MALZEME_ISIK_TAVANI;
   const renk = ayar.renk ? new Color3(...ayar.renk) : Color3.White();
   m.specularColor = Color3.Black();
   m.backFaceCulling = !ayar.ciftYuz;

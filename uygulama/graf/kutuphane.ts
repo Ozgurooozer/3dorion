@@ -15,6 +15,7 @@ import { dunyaDugumleri } from "./dunyaDugumleri.ts";
 import { npcDugumleri } from "./npcDugumleri.ts";
 import { nobetciNpcSablonu } from "./npcSablonu.ts";
 import { animasyonDugumleri } from "./animasyonDugumleri.ts";
+import { aktorDugumleri } from "./aktorDugumleri.ts";
 import type { KlipOzeti } from "../../protocol/animasyon.ts";
 
 /** Kütüphanenin dünyadan bilmesi gerekenler (kompozisyon kökü verir; verilmezse boş: test ve senaryo dünyası). */
@@ -36,6 +37,8 @@ export function grafKutuphanesi(ayar: GrafKutuphanesiAyari = {}): DugumKaydi<Gra
   for (const t of npcDugumleri<GrafYetenegi>()) k.kaydet(t);
   // Dilim 5a: JSON animasyon klibi oynat (Blueprint'in PlayAnimation'ı); seçenekler yüklü kliplerden.
   for (const t of animasyonDugumleri(ayar.klipler ?? (() => []))) k.kaydet(t);
+  // Spec 43 (aktör grafı): level aktörünün bileşen alanı ve değişkeni (`@bu` = grafı çalıştıran aktör); yetenek verilmezse nedenle düşer.
+  for (const t of aktorDugumleri<GrafYetenegi>()) k.kaydet(t);
   return k;
 }
 

@@ -26,6 +26,9 @@ import type { SemaPaneli } from "../world/surfaces/duvar/sema.ts";
 import type { Niyet } from "../protocol/niyet.ts";
 import type { Pano } from "../protocol/pano.ts";
 import type { Kopru } from "../bridge/kopru.ts";
+import type { LevelBaglantisi } from "./levelBaglantisi.ts";
+import type { Graf } from "../protocol/graf.ts";
+import type { Level } from "../world/level/cekirdek/levelKur.ts";
 import type { Cevap, Soru } from "../mind/algiHizmeti.ts";
 import type { KuralRefleksi } from "../mind/refleks.ts";
 import type { OnayKapisi } from "../mind/onayKapisi.ts";
@@ -93,11 +96,20 @@ export interface SenaryoBaglami {
   readonly icerik: IcerikPaneli;
   /** Varlık/karakter önizleme penceresi (spec 39 D5): `icerikdene` yükleme, mesh hazırlığı ve çizimi buradan ölçer. */
   readonly onizleme: VarlikPenceresi;
+  /** Yeni level + ışık aktörleri (spec 42; `leveldene`): pencere/panel kablolaması ve birleşik dünyadaki level (ofiste null). */
+  readonly levelIsik: { readonly baglanti: LevelBaglantisi; level(): Level | null };
   /** Level Outliner (spec 39 D6) ve sahnedeki seçim durumu (spec 28): `icerikdene` ikisinin eşleşmesini ölçer. */
   readonly outliner: OutlinerPaneli;
   readonly secim: SecimDurumu;
   /** Graf editörü (`grafdene`, spec 38 §6): kayıtlı grafik adları, editörü aç/gizle. */
-  readonly graf: { adlar(): string[]; ac(ad: string): void; gizle(): void; acikMi(): boolean; /** Senaryo koşusunun geçici deposuna küçük bir deneme grafiği yazar; adı döner. */ ornekOlustur(): Promise<string> };
+  readonly graf: { adlar(): string[]; ac(ad: string): void; gizle(): void; acikMi(): boolean; /** Senaryo koşusunun geçici deposuna küçük bir deneme grafiği yazar; adı döner. */ ornekOlustur(): Promise<string>; /** Senaryonun geçici deposuna verilen grafiği yazar (varsa hata). */ yeni(g: Graf): Promise<void> };
+  /**
+   * Aktör grafı SENARYO YÜZÜ (spec 43 A3; `aktordene`): Details'teki ▶ ■ düğmeleri yalnız gerçek tıklamayla çalışır (`isTrusted`), senaryo ise sentetik tıklama üretir;
+   * gerçek çalıştırıcıyı sürmek için bu yüz var (`sekansiOynat` emsali). Üretimde başka çağıranı yoktur (bekçi: aktorCalistirici.test.ts).
+   */
+  readonly aktorGraf: { calistir(aktor: string, graf: string): { ok: true } | { ok: false; neden: string }; durdur(aktor: string): boolean; calisiyor(aktor: string): boolean; sayi(): number; bitti(): Promise<void>;
+    /** Hata ayıklama (spec 43 A4): Devam/Adım düğmeleri yalnız gerçek tıklamayla çalışır; senaryo bu yüzle sürdürür. */
+    devam(): boolean; adim(): boolean; duraklayan(): string[] };
   readonly ortam: {
     tanim(): LevelTanimi | null;
     kipAyarla(kip: "oturum" | "kalici"): void;
@@ -132,7 +144,7 @@ export const SENARYOLAR = [
   "zihindene", "onaydene", "tahtabeyin", "becerdene", "bakdene", "acidene", "saglobdene",
   "senaryodene", "eylemdene", "benlikdene", "apidene", "tahtadene", "hafizadene", "yuzdene", "baglamdene", "takipdene",
   "kapidene", "gozdene", "ovadene", "ortamdene", "gidene", "efektdene", "gromadene", "gozlemdene", "klipdene", "sekansdene", "kimododene", "rigdene", "kameradene", "grafdene",
-  "projedene", "dokdene", "icerikdene", "eklentidene",
+  "projedene", "dokdene", "icerikdene", "eklentidene", "leveldene", "aktordene",
 ] as const;
 export type SenaryoAdi = (typeof SENARYOLAR)[number];
 

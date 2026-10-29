@@ -164,6 +164,10 @@ import { projePenceresiKur } from "./yapi/proje/projePenceresi.ts";
 import { icerikPaneliKur, ICERIK_PANELI_KIMLIGI } from "./yapi/icerik/icerikPaneli.ts";
 import { varlikPenceresiKur } from "./yapi/onizleme/varlikPenceresi.ts";
 import { outlinerPaneliKur } from "./yapi/outliner/outlinerPaneli.ts";
+import { levelBaglantisiKur } from "./levelBaglantisi.ts";
+import { aktorCalistiriciKur } from "./graf/aktorCalistirici.ts";
+import { hataAyiklayiciKur } from "./graf/hataAyiklayici.ts";
+import { calismaGunluguKur } from "./graf/calismaGunlugu.ts";
 import { eklentiDefteriKur } from "./eklenti/eklentiDefteri.ts";
 import { ortamKaydi } from "../protocol/eklenti.ts";
 import { dusunmeKipiKur, kipSemasi } from "./eklentiler/dusunmeKipi/dusunmeKipi.ts";
@@ -768,6 +772,12 @@ const yapi = yapiPaneliKur(dokSistemi, {
   tusSerbest: () => oyuncu.oyuncuDurumu().etkilesim === null && !sohbet.acikMi() && onayKapisi.durum !== "bekliyor",
   izin: () => imlec.acik || imlec.ac(),
 });
+// YENİ LEVEL + IŞIKLAR (spec 42): Dosya ▸ Yeni level… (projeye level dosyası yazar) ve Işıklar paneli (açık level'a nokta ışık ekle/düzenle/kaydet). Kablolama `levelBaglantisi.ts`te.
+const levelBaglantisi = levelBaglantisiKur({
+  dok: dokSistemi, sahne, tuval, level: () => gecis.birlesik()?.level ?? null, kamera: rig.kamera, kopru: window.kopru,
+  imlecIzni: () => imlec.acik || imlec.ac(), altyazi: altyaziGoster,
+  grafAdlari: () => grafDeposu.liste().filter((k) => !k.hata && k.tur === "olay").map((k) => k.ad),
+});
 // EKLENTİ DEFTERİ (spec 40): motorun açılıp kapanan parçaları. Kayıt localStorage'da; senaryo koşusunda (gerçek kayda yazılmasın) ve `?eklenti=` ile (ORION_EKLENTI) geçersiz kılınır.
 const eklentiler = eklentiDefteriKur({
   depo: istenenSenaryolar(location.search).length ? null : { oku: () => { try { return localStorage.getItem("orion.eklentiler.v1"); } catch { return null; } }, yaz: (m) => { try { localStorage.setItem("orion.eklentiler.v1", m); } catch { /* depo yok: yalnız bu oturum */ } } },
@@ -784,6 +794,7 @@ const anaMenu = anaMenuKur(() => [
   { ad: "Dosya", satirlar: [
     { etiket: "Yeni proje…", etkin: () => kopruVar, calistir: () => { void projePenceresi.ac("yeni"); } },
     { etiket: "Proje aç…", etkin: () => kopruVar, calistir: () => { void projePenceresi.ac("liste"); } },
+    { etiket: "Yeni level…", ipucu: "Açık projeye level dosyası yaz: Boş ova / Düz zemin / Tamamen boş", etkin: () => kopruVar, calistir: () => levelBaglantisi.yeniLevel.ac() },
     AYIRICI,
     { etiket: "Proje klasörünü göster", etkin: () => kopruVar, calistir: () => { void window.kopru.projeKlasorGoster(); } },
   ] },
@@ -906,14 +917,24 @@ const grafTabani = {
     diyalog: (i) => diyalogDenetimi.ac({ ...i, renk: ajanlar.al(i.ajan.id)?.renk ?? ORION_AJANI.renk }),
     // Ozyn'in AYAK konumu (oyuncu durumunun konumu göz hizası): "Git → konum" Ozyn'in bulunduğu noktaya gitsin, havaya değil.
     ozyn: () => { const d = oyuncu.oyuncuDurumu(); return { konum: { x: d.konum.x, y: d.konum.y - oyuncu.gozYuksekligi, z: d.konum.z }, etkilesim: d.etkilesim }; },
+    // Aktör grafı (spec 43 A3): level aktörlerinin bileşen alanı/değişkeni; yazmalar geçici (çalışma bitince geri alınır).
+    aktor: levelBaglantisi.aktor.yetenek,
   }),
   ajanlar: () => ajanlar.hepsi().map((x) => x.id),
   durum: grafDurumu,
+  // Graf ▶ / ⚡ açık kimlikle (`aktor.yaz` + kimlik) bir aktöre yazmış olabilir: çalışma bitince, aktör ▶'si tutmayan her aktörün geçici yazması geri alınır.
+  bitince: () => { for (const id of levelBaglantisi.aktor.gecici()) if (aktorCalistirici.calisiyor(id) === null) levelBaglantisi.aktor.geriAl(id); },
   gunluk: (seviye: "bilgi" | "iyi" | "uyari" | "hata", metin: string) => { gunluk.ekle(seviye, "graf", metin); console.log(`[GRAF] ${metin}`); },
 };
 // Aynı grafik aynı anda tek çalışma: ▶ ve olay çalışması birbirini görür (biri sürerken öteki başlamaz/atlanır).
-const grafCalistirici: GrafCalistirici = grafCalistiriciKur({ ...grafTabani, mesgul: (ad) => (grafDinleyici.calisiyorMu(ad) ? "şu an olayla (⚡) çalışıyor" : null) });
+// HATA AYIKLAMA (spec 43 A4): kesme noktası/adım adım ve çalışma günlüğü. YALNIZ kullanıcı tetikli çalışmalara (Graf ▶, aktör ▶) verilir; ⚡ dinleme çalışmalarına verilmez (unutulmuş duraklama NPC'nin olay yolunu kilitlemesin).
+const hataAyiklayici = hataAyiklayiciKur();
+const calismaGunlugu = calismaGunluguKur();
+const grafCalistirici: GrafCalistirici = grafCalistiriciKur({ ...grafTabani, ayiklayici: hataAyiklayici, gunlukDefteri: calismaGunlugu, mesgul: (ad) => (grafDinleyici.calisiyorMu(ad) ? "şu an olayla (⚡) çalışıyor" : null) });
 const grafDinleyici: GrafDinleyici = grafDinleyiciKur({ ...grafTabani, kaynak: grafOlaylari, disMesgul: (ad) => grafCalistirici.durum().calisiyor?.graf === ad });
+// AKTÖR GRAFI ▶/■ (spec 43 A3): aktörün Details'inden, `@bu` = o aktör; aktör başına 1, toplam 4. Çalışma bitince aktörün geçici yazmaları geri alınır.
+const aktorCalistirici = aktorCalistiriciKur({ tabani: grafTabani, ayiklayici: hataAyiklayici, gunlukDefteri: calismaGunlugu, geriAl: (id) => levelBaglantisi.aktor.geriAl(id), var: (id) => levelBaglantisi.aktor.yetenek.var(id) });
+levelBaglantisi.aktorCalistiriciBagla(aktorCalistirici);
 const grafPenceresi = editorPenceresiKur({
   kaynak: { oku: (ad) => grafDeposu.oku(ad), yaz: (ad, metin) => grafDeposu.yaz(ad, metin) },
   bilgi: (ad) => { const k = grafDeposu.liste().find((x) => x.ad === ad); return !k ? null : k.hata ? `✗ ${k.hata}` : k.tur === "olay" ? "grafik · ▶ Graf sekmesinden" : "desen · 'Desen' düğümüyle çağrılır"; },
@@ -928,6 +949,8 @@ function grafAc(ad: string): void { grafPenceresi.ac(ad).catch((e: unknown) => a
 const grafEditoru = grafEditoruKur({
   depo: grafDeposu, calistirici: grafCalistirici, dinleyici: grafDinleyici, kayit: grafTabani.kayit, ajanlar: grafTabani.ajanlar,
   metinAc: grafAc, altyazi: altyaziGoster, izin: () => imlec.acik || imlec.ac(),
+  ayiklayici: hataAyiklayici, gunlukDefteri: calismaGunlugu, degiskenler: (graf) => grafDurumu.ozet(graf),
+  aktorCalisiyor: () => aktorCalistirici.sayi() > 0, aktorDurdur: () => { aktorCalistirici.durdurHepsi(); },
   gorunurlukDegisti: (acik) => { orionAyarPaneli.gorunur(!acik && imlec.acik); if (acik) { sekansSistemi.editor.gizle(); nesnePaneli.kapat(); baglamMenusu.kapat(); duzenleme.bitir(); zeminKalemi.sec(null); } },
 });
 // NPC SINIFI (spec 35 dilim 3): NPC kayıtları (ajan + grafikler + parametreler; `<userData>/orion-npc/`), JSON penceresi (üçüncü örnek), Graf sekmesinin
@@ -1426,6 +1449,9 @@ const senaryoBaglami: SenaryoBaglami = {
   eklentiler,
   ayarAc: () => { if (!imlec.acik) imlec.ac(); orionPaneliniAc(true); },
   ayarKapat: () => orionPaneliniAc(false),
+  levelIsik: { baglanti: levelBaglantisi, level: () => gecis.birlesik()?.level ?? null },
+  aktorGraf: { calistir: (a, g) => aktorCalistirici.calistir(a, g), durdur: (a) => aktorCalistirici.durdur(a), calisiyor: (a) => aktorCalistirici.calisiyor(a) !== null, sayi: () => aktorCalistirici.sayi(), bitti: () => aktorCalistirici.bitti(),
+    devam: () => hataAyiklayici.devam(), adim: () => hataAyiklayici.adim(), duraklayan: () => hataAyiklayici.duraklamalar().map((y) => y.id) },
   icerik: icerikPaneli,
   onizleme: varlikPenceresi,
   outliner,
@@ -1435,7 +1461,8 @@ const senaryoBaglami: SenaryoBaglami = {
       const ad = "grafdene_ornek";
       if (!grafDeposu.liste().some((k) => k.ad === ad)) await grafDeposu.yeni({ surum: 1, ad, tur: "olay", girisler: [], cikislar: [], dugumler: [{ id: "b", tip: "olay.basla", konum: [40, 40] }, { id: "sonra", tip: "akis.bekle", ayar: { ms: 500 }, konum: [300, 40] }], baglar: [{ kaynak: ["b", "sonra"], hedef: ["sonra", "giris"] }] });
       return ad;
-    } },
+    },
+    yeni: (g) => grafDeposu.yeni(g) },
 };
 eklentiler.baslat();   // kayıtlı eklentiler bağımlılık sırasıyla kurulur (paneller, ajanda… artık hazır)
 for (const ad of istenenSenaryolar(location.search)) {

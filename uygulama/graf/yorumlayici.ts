@@ -17,6 +17,8 @@
 "use strict";
 import type { Graf, PinUcu } from "../../protocol/graf.ts";
 import type { CalismaTetigi, DegiskenAlani, DugumCalismasi, DugumKaydi, DugumSonucu, NpcBaglami, PinOrtami } from "./dugumKaydi.ts";
+import { onizle, onizleHaritasi } from "./calismaGunlugu.ts";
+import type { Duraklat } from "./hataAyiklayici.ts";
 import { FONKSIYON_DONUS_TIPI, FONKSIYON_GIRIS_TIPI, BASLA_TIPI, dugumleriCoz, grafTurDenetle, type CozulmusDugum } from "./grafTurDenetimi.ts";
 
 export interface CalismaSinirlari {
@@ -31,6 +33,8 @@ export const CALISMA_SINIRLARI: Readonly<CalismaSinirlari> = { adim: 1000, sureM
 
 export type CalismaOlayi =
   | { tur: "dugum"; graf: string; id: string; derinlik: number }
+  /** Düğüm BİTİNCE (spec 43 A4, çalışma günlüğü): okunan girişler ve verilen çıkışlar, `calismaGunlugu.onizle` ile kısaltılmış; `ms` düğümün süresi (duraklama hariç). */
+  | { tur: "dugumBitti"; graf: string; id: string; derinlik: number; girdi: Readonly<Record<string, string>>; cikti: Readonly<Record<string, string>>; sonra: string | null; ms: number }
   | { tur: "bitti"; adim: number }
   | { tur: "durdu"; adim: number }
   /** `graf`: hatanın OLDUĞU grafik (desenin içindeyse desenin adı; dilim 1: editör hatalı düğümü doğru grafikte göstersin). */
@@ -62,6 +66,13 @@ export interface CalismaAyari<Y> {
    * `@ben`li grafik ▶ ile ya da NPC'siz başlarsa kök çerçevenin denetimi nedenle düşer.
    */
   ben?: NpcBaglami | null;
+  /**
+   * Kesme noktası kancası (spec 43 A4): her AKIŞLI düğüm başlamadan sorulur; söz dönerse çalışma o sözü bekler (■ beklemeyi keser), null = durma.
+   * Verilmezse hiçbir düğümde durulmaz (olay dinleme çalışmaları verilmez: unutulmuş duraklama NPC'yi kilitlemesin).
+   */
+  duraklat?: Duraklat;
+  /** Bu çalışmanın aktörü (spec 43, `@bu`): aktörün Details'inden ▶ ile kurulur; verilmezse null (`@bu`lu düğümler nedenle düşer). */
+  aktor?: string | null;
   /** Yerel saat (0–24); varsayılan bilgisayarın saati. */
   saat?: () => number;
 }
@@ -189,22 +200,28 @@ export function grafCalistir<Y>(g: Graf, a: CalismaAyari<Y>): Calisma {
     adimSay(c, id);
     const d = c.cozum.get(id)!;
     a.olay?.({ tur: "dugum", graf: c.graf.ad, id, derinlik: c.derinlik });
+    // Kesme noktası: saf düğümlerde sorulmaz (başka bir düğümün girişi okunurken hesaplanır). "dugum" olayı ÖNCE gider: canlı satır duran düğümü gösterir.
+    if (a.duraklat && !d.tanim.saf) { const bekleyen = a.duraklat(c.graf.ad, id, c.derinlik); if (bekleyen) await bekleVeyaDur(bekleyen); }
     if (d.tanim.tip === FONKSIYON_GIRIS_TIPI) return { cikti: { ...c.girdiler }, sonra: "sonra" };
     if (d.tanim.tip === FONKSIYON_DONUS_TIPI) {
       const donus: Record<string, unknown> = {};
       for (const p of d.pinler.girisler) if (p.tip !== "akis") donus[p.ad] = await girisDegeri(c, id, p.ad);
       return { donus };
     }
+    // Giriş değerleri günlük için toplanır (yalnız olay dinleyen varsa: önizleme maliyeti boşuna ödenmesin).
+    const girdi: Record<string, string> = {};
+    const t0 = simdi();
     const calisma: DugumCalismasi<Y> = {
       dugumId: id,
       tetik,
       degiskenler: a.degiskenler ?? null,
       ajanDegiskenleri: a.ajanDegiskenleri ?? null,
       ben,
+      aktor: a.aktor ?? null,
       ajanlar,
       saat,
       ayar: d.ayar,
-      giris: (pin) => girisDegeri(c, id, pin),
+      giris: async (pin) => { const v = await girisDegeri(c, id, pin); if (a.olay) girdi[pin] = onizle(v); return v; },
       girisAdlari: () => d.pinler.girisler.filter((p) => p.tip !== "akis").map((p) => p.ad),
       durduruldu: () => durdu,
       bekle,
@@ -214,7 +231,9 @@ export function grafCalistir<Y>(g: Graf, a: CalismaAyari<Y>): Calisma {
       yetenek: a.yetenek,
     };
     try {
-      return await d.tanim.calistir(calisma);
+      const s = await d.tanim.calistir(calisma);
+      a.olay?.({ tur: "dugumBitti", graf: c.graf.ad, id, derinlik: c.derinlik, girdi, cikti: onizleHaritasi(s.cikti), sonra: s.sonra ?? null, ms: simdi() - t0 });
+      return s;
     } catch (err) {
       if (err instanceof Durduruldu || err instanceof DugumHatasi) throw err;
       throw new DugumHatasi(id, err instanceof Error ? err.message : String(err), c.graf.ad);

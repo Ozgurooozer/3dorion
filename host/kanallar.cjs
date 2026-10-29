@@ -103,6 +103,9 @@ const CAGRI = {
   /** Arayüz düzeni (spec 41): açık projenin `Saved/arayuz.json`u. Proje açık değilse okuma boş, yazma yok. */
   arayuzOku:         "arayuz:oku",
   arayuzYaz:         "arayuz:yaz",
+  /** Oyun içi level yazma (spec 42): YENİ (varsa `var`/409) ve var olanı KAYDET (yoksa `yok`/404). Metni renderer doğrular (host world'ü import etmez). */
+  projeLevelOlustur: "proje:level-olustur",
+  projeLevelKaydet:  "proje:level-kaydet",
   /** Proje tarayıcısı (D2): liste, yeni (şablondan), aç (yeniden başlatır), klasörde göster. */
   projeListe:        "proje:liste",
   projeYeni:         "proje:yeni",

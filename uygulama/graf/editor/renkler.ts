@@ -12,6 +12,7 @@ export const KATEGORI_RENGI: Readonly<Record<DugumKategorisi, string>> = {
   akis: "#3a4560",
   ajan: "#1f5d8a",
   dunya: "#1f6b5a",
+  aktor: "#8a6a1f",
   veri: "#2c5a33",
   desen: "#6a3d8a",
 };

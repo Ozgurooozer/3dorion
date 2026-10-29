@@ -14,6 +14,8 @@ import type { DugumKaydi, PinOrtami } from "../../graf/dugumKaydi.ts";
 import { grafMetni, type GrafDeposu } from "../../graf/grafDeposu.ts";
 import type { GrafCalistirici } from "../../graf/grafCalistirici.ts";
 import type { GrafDinleyici } from "../../graf/grafDinleyici.ts";
+import type { CalismaGunlugu } from "../../graf/calismaGunlugu.ts";
+import type { HataAyiklayici } from "../../graf/hataAyiklayici.ts";
 import { calismaIsareti, sinirliSiklik } from "../../graf/editor/calismaGorunumu.ts";
 import { dugumEkleKomutu, oturumKur, type EditorOturumu, type KomutSonucu } from "../../graf/editor/editorOturumu.ts";
 import { editorKomutu } from "../../graf/editor/kisayollar.ts";
@@ -49,6 +51,13 @@ export interface GrafEditoruAyari {
   izin?: () => boolean;
   /** Editör açıldı/kapandı (öteki panelleri gizle, yerleştirme kiplerini bitir). */
   gorunurlukDegisti?: (acik: boolean) => void;
+  /** Hata ayıklama (spec 43 A4): kesme noktası/adım adım, çalışma günlüğü, değişken izleme. Verilmezse editörde bu özellikler görünmez. */
+  ayiklayici?: HataAyiklayici;
+  gunlukDefteri?: CalismaGunlugu;
+  degiskenler?: (graf: string) => Readonly<Record<string, GrafDegeri>>;
+  /** Aktör grafı çalışmaları (Details ▶): ■ Durdur onları da durdurur. */
+  aktorCalisiyor?: () => boolean;
+  aktorDurdur?: () => void;
 }
 
 export interface GrafEditoru {
@@ -101,6 +110,9 @@ export function grafEditoruKur(a: GrafEditoruAyari): GrafEditoru {
     desenAc: (ad) => ac(ad),
     desenler: () => a.depo.liste().filter((k) => k.tur === "fonksiyon" && !k.hata).map((k) => k.ad),
     dugumeGit: (id) => tuval.dugumeOdaklan(id),
+    ayiklayici: () => a.ayiklayici ?? null,
+    gunluk: () => a.gunlukDefteri ?? null,
+    degiskenler: (graf) => a.degiskenler?.(graf) ?? {},
   };
 
   const tuval = tuvalKur(b, () => { palet.kapat(); });
@@ -125,6 +137,7 @@ export function grafEditoruKur(a: GrafEditoruAyari): GrafEditoru {
   const calisma = calistirmaDugmeleriKur({
     calistirici: a.calistirici, dinleyici: a.dinleyici, depo: a.depo, ad: () => etkin()?.ad ?? null,
     kirli: () => etkin()?.icerik.gecmis.kirli() ?? false, bildir,
+    ...(a.ayiklayici ? { ayiklayici: a.ayiklayici } : {}), ...(a.aktorCalisiyor ? { aktorCalisiyor: a.aktorCalisiyor } : {}), ...(a.aktorDurdur ? { aktorDurdur: a.aktorDurdur } : {}),
   });
   const arac = dugmeYap("kb-arac");
   const geriD = arac("↶", "", "Ctrl+Z — geri al"), yineleD = arac("↷", "", "Ctrl+Y — yinele");
@@ -167,7 +180,7 @@ export function grafEditoruKur(a: GrafEditoruAyari): GrafEditoru {
     ] },
     { ad: "Çalıştır", satirlar: [
       { etiket: "▶ Çalıştır, ⚡ Dinle — araç çubuğundaki düğmeler", ipucu: "Çalıştırmak ve dinlemeye almak yalnız senin gerçek tıklamanla çalışır: menüden ya da kısayoldan olmaz", etkin: () => false, calistir: () => undefined },
-      { etiket: "■ Durdur", etkin: () => a.calistirici.durum().calisiyor !== null || a.dinleyici.liste().some((x) => x.calisiyor), calistir: () => { a.calistirici.durdur(); a.dinleyici.durdur(); } },
+      { etiket: "■ Durdur", etkin: () => a.calistirici.durum().calisiyor !== null || a.dinleyici.liste().some((x) => x.calisiyor) || (a.aktorCalisiyor?.() ?? false), calistir: () => { a.calistirici.durdur(); a.dinleyici.durdur(); a.aktorDurdur?.(); } },
     ] },
     { ad: "Yardım", satirlar: [{ etiket: "Kısayollar", kisayol: "?", calistir: () => yardim.degistir() }] },
   ];
@@ -304,6 +317,10 @@ export function grafEditoruKur(a: GrafEditoruAyari): GrafEditoru {
   };
   a.calistirici.dinle(calismaDegisti);
   a.dinleyici.dinle(calismaDegisti);
+  // Hata ayıklama (spec 43 A4): duraklama/günlük değişince araç çubuğu (Devam/Adım), tuval (kesme noktası, duran düğüm) ve sağ panel tazelenir. Günlük her düğümde yazılır: sağ panel sınırlı sıklıkta.
+  const gunlukCiz = sinirliSiklik(() => { if (acik) guvenliCiz(sag); }, 150);
+  a.ayiklayici?.dinle(() => { calismaDegisti(); gunlukCiz.iste(); });
+  a.gunlukDefteri?.dinle(() => gunlukCiz.iste());
   // ── aç / gizle ──
   function ac(ad: string): void {
     try {

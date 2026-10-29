@@ -13,6 +13,7 @@ import { ayarKomutu, grafBilgisiKomutu, silKomutu } from "../../graf/editor/edit
 import { KATEGORI_ADI } from "../../graf/editor/palet.ts";
 import { PIN_TIP_ADI } from "../../graf/editor/bagKurali.ts";
 import type { EditorBaglami } from "./editorBaglami.ts";
+import { hataAyiklamaBolumu } from "./hataAyiklamaBolumu.ts";
 import { alanGirdisi, dugme, el } from "./dom.ts";
 
 const VERI_TIPLERI = PIN_TIPLERI.filter((t): t is Exclude<PinTipi, "akis"> => t !== "akis");
@@ -30,6 +31,14 @@ export function ayrintiPaneliKur(b: EditorBaglami): { kok: HTMLElement; ciz(): v
     kok.append(el("div", "", t ? `${t.ad}` : `bilinmeyen tür`), el("div", "ge-soluk", `${d.tip}${t ? ` · ${KATEGORI_ADI[t.kategori]}${t.saf ? " · saf (akışsız, her okunuşta hesaplanır)" : ""}` : ""}`));
     if (t) kok.append(el("p", "", t.aciklama));
     kok.append(el("div", "ge-soluk", `kimlik: ${d.id}`));
+    // Kesme noktası (spec 43 A4): yalnız akışlı düğümlerde (saf düğüm başka bir düğümün girişi okunurken hesaplanır, orada durulmaz).
+    const ayiklayici = b.ayiklayici();
+    if (ayiklayici && t && !t.saf) {
+      const gr = o.graf().ad;
+      const kd = dugme(ayiklayici.kesmeVar(gr, id) ? "● Kesme noktasını kaldır" : "○ Kesme noktası koy", "", "Çalışma bu düğüme gelince BAŞLAMADAN durur (⏵ Devam / ⏭ Adım araç çubuğunda)");
+      kd.addEventListener("click", () => { kd.blur(); ayiklayici.kesmeDegistir(gr, id); b.tazele(); });
+      kok.append(kd);
+    }
     if (d.tip === DESEN_CAGIR_TIPI && typeof d.ayar?.["desen"] === "string") {
       const ac = dugme("Deseni aç", "", "Bu deseni yeni sekmede aç (düğüme çift tık da açar)");
       const ad = d.ayar["desen"];
@@ -135,15 +144,16 @@ export function ayrintiPaneliKur(b: EditorBaglami): { kok: HTMLElement; ciz(): v
       kok.replaceChildren();
       const o = b.oturum();
       if (!o) { kok.append(el("div", "ge-soluk", "Açık grafik yok.")); return; }
-      if (o.secim.size === 1) { dugumCiz([...o.secim][0]!); return; }
-      if (o.secim.size > 1) {
+      if (o.secim.size === 1) dugumCiz([...o.secim][0]!);
+      else if (o.secim.size > 1) {
         kok.append(el("div", "ge-baslik2", "Seçim"), el("div", "", `${o.secim.size} düğüm seçili`));
         const sil = dugme("Sil (bağlarıyla)", "", "Delete");
         sil.addEventListener("click", () => { sil.blur(); b.sonuc(silKomutu(o)); });
         kok.append(sil, el("div", "ge-soluk", "Ctrl+C kopyala · Ctrl+D çoğalt · sürükle: hepsini taşı"));
-        return;
-      }
-      grafCiz();
+      } else grafCiz();
+      // Hata ayıklama bölümü (duraklama, değişkenler, günlük) her görünümde en altta.
+      const ayikla = hataAyiklamaBolumu(b);
+      if (ayikla) kok.append(ayikla);
     },
   };
 }

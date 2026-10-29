@@ -7,6 +7,8 @@ import type { CalismaIsareti } from "../../graf/editor/calismaGorunumu.ts";
 import type { EditorOturumu, KomutSonucu } from "../../graf/editor/editorOturumu.ts";
 import type { PinRef } from "../../graf/editor/bagKurali.ts";
 import type { Nokta } from "../../duzenleyici/tuvalMatematigi.ts";
+import type { CalismaGunlugu } from "../../graf/calismaGunlugu.ts";
+import type { HataAyiklayici } from "../../graf/hataAyiklayici.ts";
 
 export type MesajTuru = "bilgi" | "iyi" | "uyari" | "hata";
 
@@ -32,4 +34,9 @@ export interface EditorBaglami {
   desenler(): string[];
   /** Düğümü seç ve görünümü ona kaydır (hata listesinden). */
   dugumeGit(id: string): void;
+  /** Hata ayıklama (spec 43 A4): kesme noktası/adım adım ve çalışma günlüğü; verilmediyse editörde bu özellikler görünmez. */
+  ayiklayici(): HataAyiklayici | null;
+  gunluk(): CalismaGunlugu | null;
+  /** Grafın bellekteki değişkenleri (duraklamada izleme); yoksa boş. */
+  degiskenler(graf: string): Readonly<Record<string, GrafDegeri>>;
 }

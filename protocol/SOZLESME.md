@@ -63,3 +63,19 @@ eder — yeni bir taşıma icat edilmedi.
 `SURUM` kırıcı değişiklikte artar. Bir alan kaldırmak, bir sözlükten değer
 çıkarmak veya bir niyeti yeniden adlandırmak kırıcıdır. Alan/varyant eklemek
 kırıcı değildir.
+
+## Taşıyıcı kuralları (Pipecat istemci SDK'sından, 2026-10-29)
+
+Kaynak: `pipecat-ai/pipecat-client-cxx` (`transport.h`, `client.h`, BSD-2) — yalnız arayüz sözleşmesi okundu, gerçeklemesi okunmadı. Bir beyin/taşıyıcı (ollama, apiBeyni, disBeyin, mcpBeyin,
+uzak ajan, ileride telefon) köprüye bağlanırken şu kurallar HEDEFTİR; mevcut köprünün hepsine uyumu henüz denetlenmedi (DOGRULAMA-DEFTERI K16):
+
+1. **Gözlemci asla bloklamaz.** Taşıyıcının köprüye verdiği olay çağrıları hemen döner; ağır iş kuyruğa.
+2. **Yaşam döngüsü sırayla.** bağlan / kopar / ayarla çağrıları aynı anda yürümez (bir taşıyıcı eşzamanlı yaşam döngüsü yazmak zorunda kalmasın).
+3. **Köprü, taşıyıcıyı onun olay çağrısının İÇİNDEN çağırmaz** (bağlan/kopar olayı bekleyen kilitlenir).
+4. **Kendi başlattığın kopma olay olarak geri gelmez.** "Taşıyıcı kendiliğinden koptu" yalnız beklenmeyen kopmadır; yoksa köprü kendi kapatmasını hata sanar.
+5. **Hata ölümcül mü?** Her taşıyıcı hatası `fatal` bayrağı taşır: oturum sürebilir mi, bitti mi. Sessiz düşme yok (mevcut ilke) ama tek tür hata da yok.
+6. **İstek/yanıt eşleşmesi:** yanıt isteğin `id`sini taşır; isteğin zaman aşımı vardır (Pipecat varsayılanı 10 sn); sonuç ya yanıt, ya hata, ya zaman aşımıdır — asılı kalmaz. Zarfta `id` zaten var; genel istek yolu henüz yok.
+7. **Uzun iş sonradan yanıtlanır:** araç çağrısı sonucu hemen ya da sonra, tek kez verilir; bağlantı kapandıysa sonuç yutulur (hata değil). Bizdeki karşılığı: onay kapısının asenkron sonucu.
+8. **Yetenek bildirimi:** beyin bağlanınca ne yapabildiğini söyler (araç çağırma, görme, ses); köprü varsaymaz. Bugün `beyinKatalogu` taraması bunun yarısıdır.
+
+Pipecat'in RTVI zarfı (`id, label, type, data`) bizim zarfımızla (`v, id, ts, yon, govde`) aynı fikirdir; çevirmek `SURUM` kırar ve kazancı yoktur — alınmadı.

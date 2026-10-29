@@ -7,7 +7,7 @@
 import type { Graf, GrafDegeri, PinTanimi } from "../../protocol/graf.ts";
 import type { NpcParametresi } from "../../protocol/npc.ts";
 
-export type DugumKategorisi = "olay" | "akis" | "veri" | "ajan" | "dunya" | "desen";
+export type DugumKategorisi = "olay" | "akis" | "veri" | "ajan" | "dunya" | "aktor" | "desen";
 
 export interface DugumPinleri {
   girisler: readonly PinTanimi[];
@@ -96,6 +96,8 @@ export interface DugumCalismasi<Y> {
   readonly ajanDegiskenleri: ((ajan: string) => DegiskenAlani) | null;
   /** Bu çalışmanın NPC'si (`@ben`); ▶ ve NPC'siz dinlemede null. */
   readonly ben: NpcBaglami | null;
+  /** Bu çalışmanın AKTÖRÜ (`@bu`, spec 43): level nesnesinin/ışığının kimliği; grafik bir aktörün Details'inden çalıştırılmadıysa null. */
+  readonly aktor: string | null;
   /** Ajan defterinin kimlikleri şu an (ajan kapsamlı değişkenin sahibi defterde olmalı: yazım hatası sessizce yeni bir ajan alanı açmasın). */
   ajanlar(): readonly string[];
   /** Yerel saat (0–24, kesirli): "Gün vakti" düğümü. Testte sahte saat. */

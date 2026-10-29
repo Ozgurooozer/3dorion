@@ -27,9 +27,9 @@ export interface PaletOgesi {
   pinler: DugumPinleri | null;
 }
 
-export const KATEGORI_SIRASI: readonly DugumKategorisi[] = ["olay", "akis", "ajan", "dunya", "veri", "desen"];
+export const KATEGORI_SIRASI: readonly DugumKategorisi[] = ["olay", "akis", "ajan", "dunya", "aktor", "veri", "desen"];
 export const KATEGORI_ADI: Readonly<Record<DugumKategorisi, string>> = {
-  olay: "Olaylar", akis: "Akış", ajan: "Ajan eylemleri", dunya: "Dünya değişkenleri", veri: "Veri ve mantık", desen: "Desenler",
+  olay: "Olaylar", akis: "Akış", ajan: "Ajan eylemleri", dunya: "Dünya değişkenleri", aktor: "Aktör (bileşen/değişken)", veri: "Veri ve mantık", desen: "Desenler",
 };
 
 function pinlerDene(t: DugumTanimi<unknown>, ayar: Record<string, GrafDegeri>, ortam: PinOrtami): DugumPinleri | null {

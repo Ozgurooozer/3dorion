@@ -1,6 +1,8 @@
 # Açık işler — tek liste
 Önceliği Ozyn belirler. Her madde tek satır + nerede. Biten madde SİLİNİR (geçmişi git'te). Tarihli eski güncenin TAMAMI: `gunluk/acik-isler-2026-10-16.md` (donuk). Son güncelleme: 2026-10-16.
 
+Koşulmayan doğrulamalar ve riskler ayrı defterde: `DOGRULAMA-DEFTERI.md` (geçenler silinmez, kanıtla işaretlenir).
+
 **ODAK (2026-10-16 → 2026-10-30):** `world/level`'a yeni özellik YOK (yalnız hata düzeltme; Ozyn istisnası 2026-10-17: oyun içi asset yerleştirme menüsü `specs/30` ve alt çubuk `specs/31`). Tek soru: **Orion günlük kullanımda işe yarıyor mu?** Kayıt: `kullanim-defteri.md` (ön kayıtlı ölçüt orada).
 
 ## Ozyn'dan bekleyen
@@ -34,11 +36,16 @@
 - SIRADAKİ ADIM (isteğe bağlı, ayrı ön kayıt ister): 2. ardışık retten sonra modele sormadan deterministik geri dönüş (ısrarı kes, Ozyn'e tek cümle söylet). Ölçülmedi. `dunya_sor`/`ortam` tekrarı kural kapsamında değil; sezgiyle eklenmez, ölçümle sorulur.
 - Ölçüm sınırları: tek tekrar n=5; sahte dünya `tahta` takma adını reddeder (gerçek oda kabul edebilir); canlı odada kipin faydası `[YAZILDI-KOŞULMADI]`.
 - Content Browser sürükle-bırak/İçe aktar düzeltmesi (`host/birakYollari.cjs`): kök neden KANITLANMADI, canlı doğrulanmadı. Ozyn oyunu tam kapatıp `npm start` ile elle denesin (preload değişti). Tutmazsa DevTools'ta `dragstart`; yan şüphe: `.dk-icerik > [data-dok][data-etkin="1"]{display:block}` `.ic-kok{display:flex}`'i eziyor olabilir.
-- Push bekleyen yerel commitler: `524ddae` (Fikir havuzu), `3d52caf` (çok modelli ölçüm). Ozyn onayıyla.
 - Commit dışı (benim değil / karar bekliyor): `assets/araba/`, `assets/kaynak/araba.py`, `assets/kaynak/pist.py`, `assets/pist/`, `tools/pist-yerlestir.ts`, `docs/arastirma/*`, `docs/olcum/f0-ozerk3-acikis-yeni-dis.jsonl`, `docs/olcum/f3-getirme.json`.
 - Fikir havuzu: telefondan Orion'a uzaktan bağlanma (A hazır araç 1–2 saat / B PWA spec 41 adayı / C yerel uygulama) — `docs/FIKIR-HAVUZU.md`.
 - Hatırlatma: Hugging Face token'ı `huggingface.co/settings/tokens`'tan silinsin.
 - Editör/yan sekme panelleri, Sekans/Graf editörü eklenti değil; dış klasörden eklenti yükleme yok.
+
+## Yeni level + ışık (spec 42; istisna 2026-10-29) — SIRADAKİ İŞ
+- Y0 belge yazıldı. Sıra: Y1 şablonlar (Düz zemin, Tamamen boş) → Y2 host level yazma IPC → Y3 nokta ışık (`LevelTanimi.isiklar`) + ışık sayısı ölçümü (ön kayıtlı) → Y4 oyun içi düzenleme kipi + dok panelleri → Y5 `leveldene`.
+- Sonra: spot / yönlü (ek güneş) / gölgeli ışık; Şekiller (düzlem/küp = Unreal'ın "zemin yapma"sı); Orion'un yeni level'a geçişi (2. aşama, ayrı onay; `levelYeriniOlc(l,"ova")` sabit adı, canlı level geçişi yok).
+- Bileşen modeli (nesne = bileşen listesi; Details alan şemasından; Graf/Sekans köprüleri) ayrı spec; Unreal karşılaştırması: Outliner/Details/Place Actors/Content Browser farkları (sohbet notu 2026-10-29).
+- Risk: nokta ışık tavanı (Babylon varsayılan 4 eşzamanlı ışık; güneş+dolgu 2'sini yer); `nesneSistemi.ts` başka Claude'un elinde (araba).
 
 ## Sekans · Rig · Kamera (spec 36–38; eklendi 2026-10-27)
 - Ozyn canlıda denedi (çalışıyor); menüler pencere tepesine taşındı (`--editor-ust`) — canlıda görülmedi; elle denenmeyenler: serbest kamera orbit/uçuş hızı, ok tutma payı, Graf menüleri.

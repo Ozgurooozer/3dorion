@@ -12,6 +12,8 @@ import type { DugumKaydi, NpcBaglami } from "./dugumKaydi.ts";
 import { grafTurDenetle } from "./grafTurDenetimi.ts";
 import type { GrafDurumDeposu } from "./grafDurumu.ts";
 import { grafCalistir, type Calisma, type CalismaSinirlari } from "./yorumlayici.ts";
+import type { CalismaGunlugu } from "./calismaGunlugu.ts";
+import type { HataAyiklayici } from "./hataAyiklayici.ts";
 
 export interface SuankiDugum { graf: string; id: string; tip: string; ad: string; derinlik: number }
 
@@ -54,9 +56,17 @@ export interface CalismaTabani<Y> {
   durum?: GrafDurumDeposu;
   /** Yerel saat (0–24): "Gün vakti" düğümü; varsayılan bilgisayarın saati. */
   saat?: () => number;
+  /** Her çalışma bitince (bitti/durdu/hata, hangi yoldan başlarsa başlasın): aktörlere yazılan geçici değerlerin süpürülmesi için (spec 43 A3 kod incelemesi). */
+  bitince?: () => void;
 }
 
-export interface GrafCalistiriciAyari<Y> extends CalismaTabani<Y> {
+/** Kullanıcı tetikli çalışmaların hata ayıklama yüzü (spec 43 A4): kesme noktası/adım adım ve çalışma günlüğü. ⚡ dinleme çalışmalarına VERİLMEZ. */
+export interface HataAyiklamaAyari {
+  ayiklayici?: HataAyiklayici;
+  gunlukDefteri?: CalismaGunlugu;
+}
+
+export interface GrafCalistiriciAyari<Y> extends CalismaTabani<Y>, HataAyiklamaAyari {
   /**
    * Bu grafik BAŞKA YOLDAN çalışıyorsa nedeni (dilim 2: dinlemedeki grafiğin olay çalışması). "Aynı grafik aynı anda tek çalışma": ▶ o sırada başlamaz —
    * aynı NPC programı iki kez aynı bedeni sürerdi ve değişken sayacı iki kez artardı.
@@ -75,7 +85,7 @@ export interface BaslamisCalisma {
  * (hangi düğüm, desen içindeyse desenin adı) kurar. ▶ çalıştırıcısı ve olay dinleyicisi bunu paylaşır: ikinci kopya olsaydı biri "saf düğüm canlı
  * satırda görünmez" kuralını ya da hata yerini unuturdu.
  */
-export function calismaBaslat<Y>(g: Graf, a: CalismaTabani<Y>, ek: { giris?: { dugum: string; veri?: Readonly<Record<string, unknown>> }; suan?: (d: SuankiDugum) => void; ben?: NpcBaglami | null } = {}): BaslamisCalisma {
+export function calismaBaslat<Y>(g: Graf, a: CalismaTabani<Y>, ek: { giris?: { dugum: string; veri?: Readonly<Record<string, unknown>> }; suan?: (d: SuankiDugum) => void; ben?: NpcBaglami | null; aktor?: string | null; kaynak?: string } & HataAyiklamaAyari = {}): BaslamisCalisma {
   const simdi = a.simdi ?? (() => Date.now());
   const baslangic = simdi();
   const durum = a.durum;
@@ -86,14 +96,30 @@ export function calismaBaslat<Y>(g: Graf, a: CalismaTabani<Y>, ek: { giris?: { d
     const tip = kaynak?.dugumler.find((d) => d.id === id)?.tip ?? "?";
     return { graf, id, tip, ad: a.kayit.al(tip)?.ad ?? tip, derinlik };
   };
+  // Hata ayıklama (spec 43 A4): kesme noktası kancası + günlük satırı. Yalnız çağıran verdiyse (kullanıcı tetikli çalışma).
+  const kaynak = ek.kaynak ?? `▶ ${g.ad}`;
+  const ayik = ek.ayiklayici?.calisma(kaynak);
   const calisma = grafCalistir(g, {
+    ...(ayik ? { duraklat: ayik.duraklat } : {}),
     kayit: a.kayit, desen: (x) => a.depo.desen(x), ajanlar: a.ajanlar, yetenek: a.yetenek,
     ...(a.simdi ? { simdi: a.simdi } : {}), ...(a.uyu ? { uyu: a.uyu } : {}), ...(a.sinir ? { sinir: a.sinir } : {}),
     ...(durum ? { degiskenler: durum.alan(g.ad), ajanDegiskenleri: (x: string) => durum.ajanAlani(x) } : {}), ...(a.saat ? { saat: a.saat } : {}),
     ...(ek.giris ? { giris: ek.giris } : {}),
     // `@ben` (dilim 3): ▶ çalıştırıcısı vermez (null: @ben'li grafik nedenle düşer), dinleyici NPC'nin kaydından verir.
     ben: ek.ben ?? null,
+    // `@bu` (spec 43): yalnız aktörün Details'inden ▶ verir; Graf sekmesi ve dinleyici null (aktörsüz grafik `@bu`da nedenle düşer).
+    aktor: ek.aktor ?? null,
     olay: (o) => {
+      if (o.tur === "dugumBitti" && ek.gunlukDefteri) {
+        const b = dugumBilgisi(o.graf, o.id, o.derinlik);
+        ek.gunlukDefteri.ekle({ kaynak, graf: o.graf, id: o.id, tip: b.tip, ad: b.ad, derinlik: o.derinlik, girdi: o.girdi, cikti: o.cikti, sonra: o.sonra, ms: o.ms });
+        return;
+      }
+      if (o.tur === "hata" && ek.gunlukDefteri) {
+        const b = o.id ? dugumBilgisi(o.graf, o.id, 0) : null;
+        ek.gunlukDefteri.ekle({ kaynak, graf: o.graf, id: o.id ?? "-", tip: b?.tip ?? "", ad: b?.ad ?? "", derinlik: o.graf === g.ad ? 0 : 1, girdi: {}, cikti: {}, sonra: null, ms: 0, hata: o.mesaj });
+        return;
+      }
       if (o.tur !== "dugum") return;
       const b = dugumBilgisi(o.graf, o.id, o.derinlik);
       // SAF düğümler (Ajan seç, Nesne bul, Sayı) bir akış düğümünün girişi okunurken anlık hesaplanır: canlı satır onları göstermez, yoksa satır
@@ -103,7 +129,11 @@ export function calismaBaslat<Y>(g: Graf, a: CalismaTabani<Y>, ek: { giris?: { d
       ek.suan?.(b);
     },
   });
-  const bitis = calisma.sonuc.then((s): SonCalisma => {
+  // `finally`: sonuç reddedilse de bekleyen duraklamalar temizlenir ve çalışan kalmadıysa adım modu kapanır; geçici yazmalar süpürülür.
+  const bitis = calisma.sonuc.finally(() => {
+    ayik?.bitir();
+    try { a.bitince?.(); } catch (err) { console.error("[graf] bitince hatası:", err); }
+  }).then((s): SonCalisma => {
     const hataDugumu = s.hataDugumu ? dugumBilgisi(s.hataGrafi ?? g.ad, s.hataDugumu, son?.derinlik ?? 0) : undefined;
     return {
       graf: g.ad, durum: s.durum, adim: s.adim, sureMs: simdi() - baslangic,
@@ -151,6 +181,7 @@ export function grafCalistiriciKur<Y>(a: GrafCalistiriciAyari<Y>): GrafCalistiri
       durum = { calisiyor: { graf: g.ad, baslangic: simdi(), suan: null }, son: durum.son };
       a.gunluk?.("bilgi", `▶ ${g.ad} çalışıyor`);
       const b = calismaBaslat(g, a, {
+        ...(a.ayiklayici ? { ayiklayici: a.ayiklayici } : {}), ...(a.gunlukDefteri ? { gunlukDefteri: a.gunlukDefteri } : {}),
         suan: (d) => {
           if (!durum.calisiyor) return;
           durum = { ...durum, calisiyor: { ...durum.calisiyor, suan: d } };

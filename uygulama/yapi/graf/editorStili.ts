@@ -70,6 +70,13 @@ export const EDITOR_CSS = `
 .ge-dugum[data-hata="1"] { outline: 2px solid ${R.hata}; }
 .ge-dugum[data-suan="1"] { box-shadow: 0 0 0 3px ${R.iyi}, 0 0 18px rgba(143,224,168,0.45); }
 .ge-dugum[data-calisma-hata="1"] { box-shadow: 0 0 0 3px #ff5a4e, 0 0 18px rgba(255,90,78,0.45); }
+.ge-dugum[data-duraklamis="1"] { box-shadow: 0 0 0 3px #ffb347, 0 0 18px rgba(255,179,71,0.5); }
+.ge-kesme { flex: none; width: 11px; height: 11px; padding: 0; border-radius: 50%; border: 1px solid rgba(238,241,250,0.45); background: transparent; cursor: pointer; opacity: 0.35; }
+.ge-dugum:hover .ge-kesme { opacity: 1; }
+.ge-dugum[data-kesme="1"] .ge-kesme { background: #ff4a4a; border-color: #ff4a4a; opacity: 1; }
+.ge-duraklama { color: #ffb347; margin: 2px 0 4px; }
+.ge-gunluk { max-height: 240px; overflow: auto; font: 11px "Cascadia Mono", Consolas, monospace; margin-top: 4px; }
+.ge-gunluk div { padding: 1px 0; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.04); }
 .ge-dbaslik { height: ${O.baslik}px; box-sizing: border-box; padding: 0 10px; display: flex; align-items: center; gap: 6px; border-radius: 7px 7px 0 0; font-weight: 600; color: ${R.yaziParlak};
   white-space: nowrap; overflow: hidden; }
 .ge-dugum[data-saf="1"] .ge-dbaslik { height: ${O.safBaslik}px; font-size: 12px; border-radius: 11px 11px 0 0; }

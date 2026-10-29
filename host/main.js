@@ -19,7 +19,7 @@ import { npcDizini, npcListe, npcOku, npcSil, npcYaz, npcYeni } from "./npcDosya
 import { sekansDizini, sekansListe, sekansOku, sekansSil, sekansYaz, sekansYeni } from "./sekansDosyalari.js";
 import { adresCoz as icerikAdresiCoz, adlandir as icerikAdlandir, cogalt as icerikCogalt, icerikIkili, icerikListe, icerikMetin, iceAktar as icerikIceAktar, sil as icerikSil, tasi as icerikTasi, yeniKlasor as icerikYeniKlasor, ICE_AKTAR_UZANTILARI } from "./icerik.js";
 import { icerikDizini, projeAc as projeAcDosyadan, projeDurumu, projeHazirla, projeOlustur, projeSablonu, projelerKoku, sonProjeYaz } from "./proje.js";
-import { levelOku } from "./levelDosyasi.js";
+import { levelKaydet, levelMetniniDenetle, levelOku, levelOlustur } from "./levelDosyasi.js";
 import { kararYaziciKur, ogretimYolu, ogretimleriOku, satirlariOku, yeniSatirlar } from "./kararDosyasi.js";
 import { mcpSunucuKur } from "./mcpSunucu.js";
 import { ollamaHazirla, ollamaAdresi } from "./ollamaSunucu.js";
@@ -185,6 +185,10 @@ function pencereAc() {
   if (process.env.ORION_ICERIKDENE === "1") parcalar.push("icerikdene=1", "sessiz=1");
   // Eklenti altyapısı (spec 40): defter, Ayarlar ▸ Eklentiler, mevcut özelliklerin kapıları.
   if (process.env.ORION_EKLENTIDENE === "1") parcalar.push("eklentidene=1", "sessiz=1");
+  // Yeni level + ışık aktörleri (spec 42): panel, pencere, tavan, isTrusted kapısı, host yazma (geçici projede).
+  if (process.env.ORION_LEVELDENE === "1") parcalar.push("leveldene=1", "sessiz=1");
+  // Aktör grafı (spec 43 A3): Details graf seçimi, @bu ışık yazma/geri alma, ■, hata, isTrusted kapısı.
+  if (process.env.ORION_AKTORDENE === "1") parcalar.push("aktordene=1", "sessiz=1");
   // Spec 25 Faz 2: görme. `ORION_GOZ` görme modelini seçer (varsayılan bridge/goz.ts'te).
   if (process.env.ORION_GOZDENE === "1") parcalar.push("gozdene=1", "sessiz=1");
   if (process.env.ORION_GOZ) parcalar.push(`goz=${encodeURIComponent(process.env.ORION_GOZ)}`);
@@ -588,6 +592,14 @@ ipcMain.handle(CAGRI.projeLevelOku, (_e, ad) => ipcSonucu(() => {
   if (!PROJE) throw Object.assign(new Error("açık proje yok"), { kod: "proje-yok" });
   return levelOku(icerikDizini(PROJE, "level"), ad);
 }));
+// Oyun içi level yazma (spec 42). İçerik doğrulaması renderer'da (levelTanimiDogrula); burada ad kuralı + metin emniyeti (levelDosyasi.js).
+const levelYaz = (islem) => (_e, ad, metin) => ipcSonucu(() => {
+  if (!PROJE) throw Object.assign(new Error("açık proje yok"), { kod: "proje-yok" });
+  levelMetniniDenetle(metin);
+  return islem(icerikDizini(PROJE, "level"), ad, metin);
+});
+ipcMain.handle(CAGRI.projeLevelOlustur, levelYaz(levelOlustur));
+ipcMain.handle(CAGRI.projeLevelKaydet, levelYaz(levelKaydet));
 
 // ---- MCP ucu (spec 05 Aşama 1) --------------------------------------------
 // Odadaki `claude` buraya bağlanıp Orion'un bedenini sürer. İstekler IPC ile

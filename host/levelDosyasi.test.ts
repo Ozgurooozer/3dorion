@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { levelAdiGecerli, hazirAdiGecerli, levelListesi, levelKaydet, levelOlustur, levelOku, hazirKaydet, hazirListesi } from "./levelDosyasi.js";
+import { levelAdiGecerli, hazirAdiGecerli, levelListesi, levelKaydet, levelOlustur, levelOku, hazirKaydet, hazirListesi, levelMetniniDenetle, LEVEL_METIN_TAVANI } from "./levelDosyasi.js";
 
 const kok = () => fs.mkdtempSync(path.join(os.tmpdir(), "orion-level-"));
 const kodu = (f: () => unknown) => { try { f(); return 0; } catch (e) { return (e as { kod?: number }).kod ?? -1; } };
@@ -42,4 +42,17 @@ test("hazır yapı onaysız üstüne yazılmaz", () => {
 test("hazır yapı listesi uzantısız adlar", () => {
   const k = kok(); hazirKaydet(k, "ev", "1", false); hazirKaydet(k, "çit", "1", false);
   assert.deepEqual(hazirListesi(k), ["çit", "ev"].sort());
+});
+test("oyun içi yazım metni: boş, JSON olmayan ya da tavandan büyük reddedilir (400); geçerli JSON geçer", () => {
+  for (const kotu of ["", "   ", "{bozuk", 5, null, undefined, " ".repeat(LEVEL_METIN_TAVANI + 1)]) assert.equal(kodu(() => levelMetniniDenetle(kotu)), 400, String(kotu).slice(0, 10));
+  assert.equal(kodu(() => levelMetniniDenetle('{"surum":1}')), 0);
+});
+test("proje içine oyun içi yazım: geçersiz ad 400, aynı ad 409, kaydet yalnız var olana", () => {
+  const k = kok();
+  assert.equal(kodu(() => levelOlustur(k, "Büyük Ad", "{}")), 400);
+  levelOlustur(k, "yeni-1", '{"a":1}');
+  assert.equal(kodu(() => levelOlustur(k, "yeni-1", "{}")), 409);
+  levelKaydet(k, "yeni-1", '{"a":2}');
+  assert.equal(levelOku(k, "yeni-1"), '{"a":2}');
+  assert.equal(kodu(() => levelKaydet(k, "baska", "{}")), 404);
 });

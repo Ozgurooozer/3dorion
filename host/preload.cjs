@@ -83,6 +83,8 @@ contextBridge.exposeInMainWorld("kopru", {
   projeLevelOku:    (ad) => ipcRenderer.invoke(CAGRI.projeLevelOku, ad),
   arayuzOku:        () => ipcRenderer.invoke(CAGRI.arayuzOku),
   arayuzYaz:        (metin) => ipcRenderer.invoke(CAGRI.arayuzYaz, metin),
+  projeLevelOlustur: (ad, metin) => ipcRenderer.invoke(CAGRI.projeLevelOlustur, ad, metin),
+  projeLevelKaydet: (ad, metin) => ipcRenderer.invoke(CAGRI.projeLevelKaydet, ad, metin),
   // Proje tarayıcısı (D2): aç projeyi CANLI değiştirmez, uygulamayı yeniden başlatır.
   projeListe:       () => ipcRenderer.invoke(CAGRI.projeListe),
   projeYeni:        (ad, sablon) => ipcRenderer.invoke(CAGRI.projeYeni, ad, sablon),

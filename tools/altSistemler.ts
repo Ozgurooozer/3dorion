@@ -101,7 +101,7 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
     // üzerinden alır (A4, 2026-10-14; önce Sahne sayılıyordu ve Level/Editör'den 3 ters kenar vardı).
     yollar: ["world/level/", "world/varlik.ts"],
     kamu: ["world/varlik.ts", "world/level/cekirdek/levelTanimi.ts", "world/level/cekirdek/levelKur.ts",
-      "world/level/cekirdek/nesneSistemi.ts", "world/level/cekirdek/katalog.ts",
+      "world/level/cekirdek/nesneSistemi.ts", "world/level/cekirdek/katalog.ts", "world/level/cekirdek/bilesen.ts",
       "world/level/cekirdek/anlam.ts", "world/level/cekirdek/modul.ts", "world/level/cekirdek/renk.ts",
       "world/level/moduller/index.ts", "world/level/shader/moduller/index.ts",
       "world/level/stil/stilSistemi.ts", "world/level/depo/levelDeposu.ts",
@@ -122,7 +122,9 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
       // Nesne/Kutu tipleri (B5 tip yarısı): ofis (Sahne) bunları Level'den yeniden dışa verir.
       "world/level/cekirdek/nesneTipi.ts",
       // Ova level verisi: uygulama/yerGecisi.ts birleşik dünyayı bu tanımla kurar (`?url` ile paketlenir).
-      "world/level/ova/ova.level.json"],
+      "world/level/ova/ova.level.json",
+      // Yeni level şablonları (spec 42): uygulama/levelBaglantisi.ts "Yeni level…" için `?url` ile paketler.
+      "world/level/sablon/bos.level.json", "world/level/sablon/duz-zemin.level.json", "world/level/sablon/tamamen-bos.level.json"],
     izinli: ["Protokol"], urun: true,
   },
   {

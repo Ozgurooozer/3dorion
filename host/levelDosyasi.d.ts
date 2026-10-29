@@ -11,6 +11,8 @@ export function levelYolu(kok: string, ad: string): string;
 export function levelListesi(kok: string): LevelDosyaOzeti[];
 export function atomikYaz(yol: string, metin: string): void;
 export function levelOku(kok: string, ad: string): string;
+export const LEVEL_METIN_TAVANI: number;
+export function levelMetniniDenetle(metin: unknown): void;
 export function levelKaydet(kok: string, ad: string, metin: string): string;
 export function levelOlustur(kok: string, ad: string, metin: string): string;
 export function hazirListesi(klasor: string): string[];

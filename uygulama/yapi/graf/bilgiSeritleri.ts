@@ -67,7 +67,7 @@ export function yardimKutusuKur(): { kok: HTMLElement; acikMi(): boolean; degist
   const tablo = el("table");
   for (const k of KISAYOLLAR) { const tr = el("tr"); tr.append(el("td", "", k.tus), el("td", "", k.aciklama)); tablo.append(tr); }
   kok.append(el("div", "ge-baslik2", "Kısayollar"), tablo,
-    el("p", "ge-soluk", "Renkler: başlık = kategori (olay, akış, ajan, dünya, veri, desen); pin = tür (akış beyaz üçgen). Kırmızı çerçeve: denetim hatası (üzerine gel)."));
+    el("p", "ge-soluk", "Renkler: başlık = kategori (olay, akış, ajan, dünya, aktör, veri, desen); pin = tür (akış beyaz üçgen). Kırmızı çerçeve: denetim hatası (üzerine gel)."));
   return {
     kok,
     acikMi: () => kok.dataset.acik === "1",

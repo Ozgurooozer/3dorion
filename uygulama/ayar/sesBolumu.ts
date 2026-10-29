@@ -9,6 +9,8 @@ import type { SesDurumu, SesIndirmeIlerlemesi } from "../../host/kopru.ts";
 import { kabukKoprusu } from "../kabuk.ts";
 import { ipcAc } from "../ipcSonuc.ts";
 import { sesSatirlari } from "./ayarModelleri.ts";
+import { KONUSMA_UZUNLUKLARI, type KonusmaUzunlugu } from "../../voice/kisalt.ts";
+import { konusmaUzunluguOku, konusmaUzunluguYaz } from "./konusmaUzunlugu.ts";
 import { dugme, el, hataMetni } from "./dom.ts";
 
 export interface SesKaynagi {
@@ -48,6 +50,18 @@ export function sesBolumu(a: SesBolumuAyari): AyarBolumu {
     ipucu: "Orion'un konuşma sesi (Piper): seç, indir, dene — değişiklik bir sonraki cümleden geçerli",
     ozet: () => (!a.kaynak ? "yalnız Electron'da" : son ? (son.sesler.find((s) => s.etkin)?.baslik ?? "ses yok") : ""),
     kur(govde, arac) {
+      // Konuşma uzunluğu: ses kaynağından bağımsız (Piper yokken de söz kısaltması çalışır) — bu yüzden kaynak denetiminden ÖNCE.
+      const uzunSatir = el("div", "ap-satir");
+      const uzunSec = el("select"); uzunSec.title = "Orion'un bir seferde söyleyeceği en uzun söz";
+      const ADLAR: Record<KonusmaUzunlugu, string> = { kisa: "Kısa (2 cümle)", orta: "Orta (4 cümle)", uzun: "Uzun (8 cümle)" };
+      for (const k of Object.keys(KONUSMA_UZUNLUKLARI) as KonusmaUzunlugu[]) { const o = el("option", "", ADLAR[k]); o.value = k; uzunSec.append(o); }
+      uzunSec.value = konusmaUzunluguOku();
+      uzunSec.addEventListener("change", () => {
+        const v = uzunSec.value as KonusmaUzunlugu;
+        arac.bildir(konusmaUzunluguYaz(v) ? `konuşma uzunluğu: ${ADLAR[v]} (sonraki sözden)` : "kaydedilemedi: bu oturumda geçerli değil", 2400);
+      });
+      uzunSatir.append(el("span", "ap-etiket", "Konuşma uzunluğu"), uzunSec);
+      govde.append(uzunSatir, el("div", "ap-not", "Kısa varsayılan: model gevezelik etmesin diye ölçümle konan fren. Uzun cevapta söz yarıda kesiliyorsa burayı büyüt."));
       if (!a.kaynak) {
         govde.append(el("div", "ap-not", "Ses seçimi Electron kabuğunda yapılır (npm start / 3dorion.bat). Tarayıcı geliştirme sayfasında Piper yok."));
         return {};

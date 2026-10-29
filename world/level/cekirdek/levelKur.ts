@@ -8,6 +8,7 @@
 import type { Scene } from "@babylonjs/core/scene";
 import { levelTanimiDogrula, type LevelTanimi, type KatmanTanimi } from "./levelTanimi.ts";
 import { isikSistemiKur, type IsikSistemi } from "./isikSistemi.ts";
+import { isiklarKur, type IsikAktorleri } from "./isiklar.ts";
 import { malzemeKur } from "./malzeme.ts";
 import { renkCoz } from "./renk.ts";
 import { stilTamamla } from "../stil/stilTanimi.ts";
@@ -30,6 +31,8 @@ export interface Level {
   /** Zemin modülünün yüksekliği; zemin yoksa 0. */
   yukseklik(x: number, z: number): number;
   readonly isik: IsikSistemi;
+  /** Işık aktörleri (spec 42; `tanim.isiklar`): sayı, kimlikle Babylon ışığı. Düzenleme `ayarla` ile, doğrudan değil. */
+  readonly isiklar: IsikAktorleri;
   /** Görsel stil (ışık bantları, çizgi, renk efektleri); efektler için sayfa `stil.kameraBagla` çağırır. */
   readonly stil: StilSistemi;
   /** Anlık dünya durumu (saat, gece, palet) — gün/gece ve özel shader'lar (spec 20). */
@@ -59,6 +62,8 @@ function normallestir(t: LevelTanimi, kayit: ModulKaydi, shaderKaydi: ShaderKayd
     shaderlar: shaderlariNormallestir(t.shaderlar ?? [], shaderKaydi),
     // Kimliksiz yerleşime kimlik (editör seçimi ve sahne düğümü eşleşmesi kimlikle; eski dosyalar kimliksiz).
     nesneler: kimlikleriDoldur(t.nesneler ?? []),
+    // Işık kimlikleri "i1", "i2"…; nesne kimlikleriyle (n<sayı>) çakışmaz. Yoksa alan yazılmaz (eski level birebir aynı).
+    ...(t.isiklar ? { isiklar: kimlikleriDoldur(t.isiklar, "i") } : {}),
     gruplar: t.gruplar ?? [],
     kameraYerleri: t.kameraYerleri ?? [],
     katmanlar: t.katmanlar.map((k) => {
@@ -79,6 +84,7 @@ export function levelKur(sahne: Scene, tanimHam: unknown, kayit: ModulKaydi, sha
   if (!ilk.ok) throw new Error(`level tanımı geçersiz — ${ilk.hata}`);
   let tanim = normallestir(kopya(ilk.deger), kayit, shaderKaydi);
   const isik = isikSistemiKur(sahne);
+  const isiklar = isiklarKur(sahne);
   // Özel shader'lar (spec 20) ve dünya durumu (saat, gece, palet): her karede ilerler, tanım yeniden kurulmaz.
   const shaderlar = shaderSistemiKur(sahne, shaderKaydi);
   const dunya = dunyaDurumuYap();
@@ -110,6 +116,7 @@ export function levelKur(sahne: Scene, tanimHam: unknown, kayit: ModulKaydi, sha
   /** Işık, zaman, özel shader'lar, stil: her düzenlemede (ucuz). */
   const gorunusUygula = () => {
     isik.uygula(tanim.isik, tanim.ortam, renk);
+    isiklar.uygula(tanim.isiklar ?? [], renk);
     zamanaGore();
     shaderlar.uygula(tanim.shaderlar ?? [], renk);
     stil.uygula(tanim, renk, tanim.zaman ? dunya.saat : undefined);
@@ -234,6 +241,7 @@ export function levelKur(sahne: Scene, tanimHam: unknown, kayit: ModulKaydi, sha
     shaderlar,
     yukseklik,
     isik,
+    isiklar,
     stil,
     nesneler,
     sayim: () => ({ katman: kurulu.size, mesh: [...kurulu.values()].reduce((t, k) => t + k.ornek.meshler.length, 0) }),
@@ -243,6 +251,7 @@ export function levelKur(sahne: Scene, tanimHam: unknown, kayit: ModulKaydi, sha
       nesneler.yokEt();
       shaderlar.yokEt();
       stil.yokEt();
+      isiklar.yokEt();
       isik.yokEt();
     },
   };

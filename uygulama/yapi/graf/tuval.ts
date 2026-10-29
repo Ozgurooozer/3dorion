@@ -128,10 +128,12 @@ export function tuvalKur(b: EditorBaglami, bosTiklama: () => void): Tuval {
     const ekle = (m: Map<string, Set<string>>, id: string, pin: string) => (m.get(id) ?? m.set(id, new Set()).get(id)!).add(pin);
     for (const x of g.baglar) { ekle(bagliCikis, x.kaynak[0], x.kaynak[1]); ekle(bagliGiris, x.hedef[0], x.hedef[1]); }
     const bosKume: ReadonlySet<string> = new Set();
+    const ayiklayici = b.ayiklayici(), duranlar = ayiklayici?.duraklamalar() ?? [];
     dugumKatmani.replaceChildren(...g.dugumler.map((d, i) => {
       const e = dugumOgesi(b, d, kutular[i]!, cozum.get(d.id), {
         secili: o.secim.has(d.id), suan: calisma?.suan === d.id, calismaHatasi: calisma?.hataDugumu === d.id ? calisma.hataMesaji : null,
         hatalar: hatalar.get(d.id) ?? [], bagliGirisler: bagliGiris.get(d.id) ?? bosKume, bagliCikislar: bagliCikis.get(d.id) ?? bosKume,
+        kesme: ayiklayici?.kesmeVar(g.ad, d.id) ?? false, duraklamis: duranlar.some((y) => y.graf === g.ad && y.id === d.id),
       });
       ogeler.set(d.id, e);
       return e;

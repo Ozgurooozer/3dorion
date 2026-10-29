@@ -114,3 +114,14 @@ Yollar (süreler TAHMİN, hiçbiri denenmedi):
 - **C. Yerel uygulama** (Flutter/React Native): 2–3 hafta; B yeterliyse gereksiz.
 Öneri: önce A, ihtiyaç netleşince B.
 Güvenlik: internete port açma, yalnız Tailscale + eşleştirme token'ı; telefondan komut onayı yeni bir onay yolu açar → ilk sürümde YOK (yalnız görme + konuşma); ▶ ⚡ `isTrusted` kuralı uzaktan sentetik tıklamayla çalışmaz (bilinçli).
+
+## Pipecat istemcisinden (2026-10-29) — ses hattı, mikrofon gelince
+
+Kaynak: `pipecat-ai/pipecat-client-cxx` arayüzleri (`client.h`, `rtvi/messages.h`). Taşıyıcı kuralları ve istek/yanıt `protocol/SOZLESME.md`ye alındı; kalanlar burada.
+
+- **Kesme (barge-in).** `UserStartedSpeaking` / `BotStartedSpeaking` / `BotInterrupted`: Ozyn Orion konuşurken konuşursa Orion susar ve söz iptal olur. `voice/`'ta böyle bir olay yok;
+  `Tanima.kesin` (ara/nihai) var. Mikrofon (Nemotron) canlı kullanıma girince lazım; önce `PiperCikisi.kes()` ile ara sonuç gelince susma ölçülür.
+- **Söylenen ilerleme.** `BotOutput.spoken_progress` / `will_be_spoken`: hangi kısmın seslendiği. Altyazıyı Piper sesiyle kelime kelime hizalamak ve uzun sözü bölerek söylemek için
+  (bugün `SesCikisi` yalnız ağız nabzı yayar; Piper tek istekte 1200 karakter alır).
+- **Standart ölçüm alanı.** `Metrics` (`ttfb`, `processing`, `characters`, işlemci bazında): karar kaydına ilk-token süresi ayrı alan olarak.
+- **Uzaktan bağlanma (A/B/C maddesiyle birleştir).** Pipecat'in WebSocket/SmallWebRTC taşıyıcıları telefondan Orion'a bağlanma fikriyle örtüşüyor; JS istemcisinin uyumu ARAŞTIRILMADI.

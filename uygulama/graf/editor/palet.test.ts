@@ -42,7 +42,8 @@ test("desen grafiğinde ▶ Başla ve dünya olayları önerilmez, Fonksiyon gir
 });
 
 test("arama: bütün sözcükler ad/tür/açıklamada geçmeli; Türkçe büyük-küçük harf duyarsız", () => {
-  assert.deepEqual(tipler(paletSuz(OGELER, { arama: "DEĞİŞKEN oku" })), ["degisken.oku"]);
+  // "değişken" aktör düğümünün adında da geçer ("Aktör değişkeni oku", spec 43): iki sözcük de tutmalı, "Değişken yaz" gelmemeli.
+  assert.deepEqual(tipler(paletSuz(OGELER, { arama: "DEĞİŞKEN oku" })), ["aktor.degisken_oku", "degisken.oku"]);
 });
 
 test("PİN UYUMU: sayı ÇIKIŞINDAN sürüklenince listedeki her öğenin uyumlu bir GİRİŞİ var", () => {
@@ -78,6 +79,11 @@ test("gruplar kategori sırasıyla ve boş grup yok", () => {
 test("dünya değişkenleri 'Dünya değişkenleri' grubunda: Saat, Konum, Ajan durumu, Ozyn durumu, Ozyn'e mesafe, En yakın nesne", () => {
   const dunya = paletGrupla(OGELER).find((g) => g.kategori === "dunya")!;
   assert.deepEqual(dunya.ogeler.map((o) => o.tip).sort(), ["ajan.durum", "nesne.en_yakin", "ozyn.durum", "ozyn.mesafe", "saat.simdi", "veri.konum"]);
+});
+
+test("aktör düğümleri kendi 'Aktör' grubunda (Dünya değişkenleri kısayolunu kirletmez)", () => {
+  const g = paletGrupla(OGELER).find((x) => x.kategori === "aktor")!;
+  assert.deepEqual(g.ogeler.map((o) => o.tip).sort(), ["aktor.degisken_oku", "aktor.degisken_yaz", "aktor.oku", "aktor.yaz"]);
 });
 
 test("palet öğesinin ilk ayarıyla eklenen düğüm biçimden geçer (her öğe)", () => {

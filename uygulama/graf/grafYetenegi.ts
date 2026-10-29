@@ -55,8 +55,22 @@ export interface AjanIsi {
   kes(): void;
 }
 
+/**
+ * AKTÖR YETENEĞİ (spec 43): graf bir level aktörünün (nesne/ışık) bileşen alanını ve değişkenini okur/yazar. Alan adları `world/level/cekirdek/bilesen.ts` şemasının
+ * `grafta` alanlarıdır. Yazma GEÇİCİDİR (level tanımına/diske gitmez; çalışma bitince tanımdaki hâle dönülür). Hata durumunda fırlatır (nedenle), düğüm hata olarak düşer.
+ */
+export interface AktorYetenegi {
+  var(id: string): boolean;
+  alanOku(id: string, alan: string): string | number | boolean;
+  alanYaz(id: string, alan: string, deger: string | number | boolean): void;
+  degiskenOku(id: string, ad: string): string | number | boolean | undefined;
+  degiskenYaz(id: string, ad: string, deger: string | number | boolean): void;
+}
+
 /** Düğümlerin gördüğü dünya (dar). */
 export interface GrafYetenegi {
+  /** Aktör yeteneği (spec 43); verilmezse aktör düğümleri nedenle düşer (senaryo/test dünyası). */
+  readonly aktor?: AktorYetenegi;
   /** Ajan defterindeki ajanlar (Ajan seç seçenekleri). */
   ajanlar(): readonly AjanSecenegi[];
   /** Niyeti `kim`in kapısından yürütür. Hiç fırlatmaz: bilinmeyen/bedensiz ajan `hata` sonucu olur (nedeniyle). */
@@ -87,6 +101,8 @@ export interface GrafYetenegiAyari {
   diyalog?: (i: DiyalogIstegi) => DiyalogIsi;
   /** Ozyn'in durumu (oyuncu); verilmezse Ozyn düğümleri nedenle düşer (senaryo/test dünyası). */
   ozyn?: () => OzynDurumu | null;
+  /** Aktör yeteneği (spec 43): level aktörlerinin bileşen alanları ve değişkenleri; verilmezse aktör düğümleri nedenle düşer. */
+  aktor?: AktorYetenegi;
 }
 
 const hemen = (niyet_id: string, not: string): AjanIsi => ({ sonuc: Promise.resolve({ niyet_id, durum: "hata", not }), kes: () => {} });
@@ -94,6 +110,7 @@ const hemen = (niyet_id: string, not: string): AjanIsi => ({ sonuc: Promise.reso
 export function grafYetenegiKur(a: GrafYetenegiAyari): GrafYetenegi {
   const sinir = a.adimSiniriMs ?? GRAF_ADIM_SINIRI_MS;
   return {
+    ...(a.aktor ? { aktor: a.aktor } : {}),
     ajanlar: () => a.ajanlar(),
     nesneler: () => a.nesneler(),
     capalar: () => a.capalar(),

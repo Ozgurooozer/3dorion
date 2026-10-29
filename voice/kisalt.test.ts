@@ -2,7 +2,7 @@
 "use strict";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ikiCumleyeKisalt } from "./kisalt.ts";
+import { KONUSMA_UZUNLUKLARI, KONUSMA_UZUNLUGU_VARSAYILAN, ikiCumleyeKisalt } from "./kisalt.ts";
 
 test("iki cümleden kısa metne dokunmaz", () => {
   assert.equal(ikiCumleyeKisalt("Selam Ozyn."), "Selam Ozyn.");
@@ -55,3 +55,19 @@ test("satır sonları tek boşluğa indirilir — TTS'e temiz metin gider", () =
 test("ayar ile cümle sayısı değiştirilebilir", () => {
   assert.equal(ikiCumleyeKisalt("Bir. İki. Üç.", { azamiCumle: 1 }), "Bir.");
 });
+
+test("konuşma ön ayarları: varsayılan eski fren (2 cümle/180), uzun Piper tavanının (1200) altında, sıra kısa<orta<uzun", () => {
+  assert.equal(KONUSMA_UZUNLUGU_VARSAYILAN, "kisa");
+  assert.deepEqual(KONUSMA_UZUNLUKLARI.kisa, { azamiCumle: 2, azamiKarakter: 180 });
+  const { kisa, orta, uzun } = KONUSMA_UZUNLUKLARI;
+  assert.ok(kisa.azamiCumle < orta.azamiCumle && orta.azamiCumle < uzun.azamiCumle);
+  assert.ok(kisa.azamiKarakter < orta.azamiKarakter && orta.azamiKarakter < uzun.azamiKarakter);
+  assert.ok(uzun.azamiKarakter < 1200, "Piper tek istek tavanı 1200");
+});
+
+test("uzun ön ayar, kısa ayarın kestiği cevabı korur", () => {
+  const g = "Birinci cümle burada. İkinci cümle burada. Üçüncü cümle burada. Dördüncü cümle burada.";
+  assert.equal(ikiCumleyeKisalt(g, KONUSMA_UZUNLUKLARI.kisa), "Birinci cümle burada. İkinci cümle burada.");
+  assert.equal(ikiCumleyeKisalt(g, KONUSMA_UZUNLUKLARI.uzun), g);
+});
+
