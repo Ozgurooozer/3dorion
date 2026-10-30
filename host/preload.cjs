@@ -89,6 +89,7 @@ contextBridge.exposeInMainWorld("kopru", {
   projeListe:       () => ipcRenderer.invoke(CAGRI.projeListe),
   projeYeni:        (ad, sablon) => ipcRenderer.invoke(CAGRI.projeYeni, ad, sablon),
   projeAc:          (ad) => ipcRenderer.invoke(CAGRI.projeAc, ad),
+  projeVarsayilanLevel: (ad) => ipcRenderer.invoke(CAGRI.projeVarsayilanLevel, ad),
   projeKlasorGoster: () => ipcRenderer.invoke(CAGRI.projeKlasorGoster),
   // İçerik gezgini (D4): adresli dosya işlemleri; aynı sonuç biçimi.
   icerikListe:      (kok) => ipcRenderer.invoke(CAGRI.icerikListe, kok),

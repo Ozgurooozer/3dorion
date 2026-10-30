@@ -13,6 +13,7 @@ import { ODA_YERI } from "../world/yer/odaYeri.ts";
 import { levelSahnesiKur, type LevelSahnesi } from "../world/yer/levelSahnesi.ts";
 import { birlesikDunyaKur, ufukAcikMi, giAcikMi, type BirlesikDunya } from "../world/yer/birlesikDunya.ts";
 import { gecitVarisi } from "../world/yer/levelYeri.ts";
+import type { LevelKapsami } from "./levelKapsamliDepo.ts";
 import { carpisiyorMu } from "../world/level/olculer.ts";
 import { capaBul } from "../world/level/capalar.ts";
 // `?url`: vite dosyayı pakete kopyalar ve adresini verir (Electron file:// yüklemesinde de çözülür).
@@ -30,13 +31,17 @@ import type { OrtamGunlugu } from "./ortamDeposu.ts";
  * Ova'nın tanımı AÇIK PROJEDEN (spec 39 D1): `Content/Levels/<varsayılan>/…level.json`. Repodaki `ova.level.json` motorun ŞABLONUdur; proje onun
  * kopyasını taşır. Proje yoksa (vite tek başına, Electron'suz ya da proje hazırlanamadı) şablon okunur — sessiz değil, konsola yazılır.
  */
-async function ovaTanimiOku(): Promise<unknown> {
+async function ovaTanimiOku(kapsamBildir?: (k: LevelKapsami) => void): Promise<unknown> {
   const k = typeof window !== "undefined" ? window.kopru : undefined;
   if (k?.projeBilgi) {
     const b = await k.projeBilgi();
     if (b.ok && b.deger) {
       const r = await k.projeLevelOku(b.deger.varsayilanLevel);
-      if (r.ok) { console.log(`[PROJE] level: ${b.deger.ad} / ${b.deger.varsayilanLevel}`); return JSON.parse(r.deger) as unknown; }
+      if (r.ok) {
+        console.log(`[PROJE] level: ${b.deger.ad} / ${b.deger.varsayilanLevel}`);
+        kapsamBildir?.({ proje: b.deger.ad, level: b.deger.varsayilanLevel });   // yerleştirme/zemin kayıtları bu level'a ait (levelKapsamliDepo)
+        return JSON.parse(r.deger) as unknown;
+      }
       console.error(`[PROJE] level okunamadı (${r.kod}: ${r.mesaj}) — motorun şablonu (ova) kullanılıyor`);
     } else console.warn(`[PROJE] açık proje yok${b.ok ? "" : ` (${b.mesaj})`} — motorun şablonu (ova) kullanılıyor`);
   }
@@ -80,6 +85,8 @@ export interface YerGecisi {
   birlesikDunyayiAc(): void;
   /** Birleşik yer yeniden ölçüldü (asset yerleştirme, spec 30): bu yerde duran aktörlerin yerini tazeler; başka yerdekilere (ofis tek başına) dokunmaz. */
   birlesikYeriniYenile(yer: Yer): void;
+  /** Birleşik dünyanın açıldığı (proje, level) — dünya hazır olmadan ya da proje yokken null. */
+  acilisKapsami(): LevelKapsami | null;
 }
 
 export function yerGecisiKur(d: YerGecisiGirdisi): YerGecisi {
@@ -159,6 +166,8 @@ export function yerGecisiKur(d: YerGecisiGirdisi): YerGecisi {
   let birlesik: BirlesikDunya | null = null;
   /** Birleşik dünyanın GÜNCEL yeri: açılışta `b.yer`; asset yerleştirme yeniden ölçtükçe değişir (`birlesikYeriniYenile`). */
   let birlesikYer: Yer | null = null;
+  /** Açılışta çözülen (proje, level klasörü): yerleştirme/zemin kayıtlarının kapsamı. Proje yoksa (şablon ova) null: eski ekisiz anahtarlar. */
+  let acilisKapsami: LevelKapsami | null = null;
   let birlesikBitti!: () => void;
   const birlesikHazir = new Promise<void>((r) => { birlesikBitti = r; });
   async function ovayaCik(): Promise<boolean> { await birlesikHazir; return birlesik !== null; }
@@ -204,8 +213,8 @@ export function yerGecisiKur(d: YerGecisiGirdisi): YerGecisi {
     void (async () => {
       try {
         await oda.hazir;
-        const tanim = await ovaTanimiOku();
-        const orionKok = () => sahne.getTransformNodeByName("orion_vrm_kok") ?? sahne.getTransformNodeByName("orion_kok");
+        const tanim = await ovaTanimiOku((k) => { acilisKapsami = k; });
+        const orionKok =() => sahne.getTransformNodeByName("orion_vrm_kok") ?? sahne.getTransformNodeByName("orion_kok");
         const b = await birlesikDunyaKur({
           sahne, tanim, oda, kamera: rig.kamera, golgeAtanlar: [oyuncu.govde], ufuk: ufukAcikMi(location.search),
           gi: giAcikMi(location.search),
@@ -249,5 +258,6 @@ export function yerGecisiKur(d: YerGecisiGirdisi): YerGecisi {
     birlesik: () => birlesik,
     disari: () => disari,
     ovayaCik, odayaDon, kapidanGec, birlesikDunyayiAc, birlesikYeriniYenile,
+    acilisKapsami: () => acilisKapsami,
   };
 }

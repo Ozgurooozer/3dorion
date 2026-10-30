@@ -15,6 +15,8 @@ export interface ProjeOzeti { ad: string; dizin: string; degisti: number; hata?:
 export function projeListe(kok: string): ProjeOzeti[];
 /** Hata `kod`u: gecersiz-ad | yok | bozuk. */
 export function projeAc(kok: string, ad: string): ProjeBilgisi;
+/** Açılış level'ını değiştirir (spec 42 2. aşama). Hata `kod`u: gecersiz-ad | yok | bozuk. `ayni`: zaten bu level, dosyaya dokunulmadı. */
+export function projeVarsayilanLevelYaz(kok: string, ad: string, level: string): ProjeBilgisi & { ayni: boolean };
 export function icerikDizini(proje: { icerik: string }, tur: IcerikTuru): string;
 export function kopyala(kaynak: string, hedef: string): number;
 export interface Kopya { kaynak: string; hedef: string }

@@ -142,6 +142,11 @@ export interface Kopru {
   projeYeni(ad: string, sablon: SablonAdi): Promise<IpcSonuc<{ ad: string; dizin: string }>>;
   /** Projeyi AÇAR: seçimi yazıp uygulamayı yeniden başlatır (`yeniden: true`); zaten açıksa ya da senaryo koşusunda başlatmaz. */
   projeAc(ad: string): Promise<IpcSonuc<{ yeniden: boolean; neden?: string }>>;
+  /**
+   * Açık projenin AÇILIŞ level'ını değiştirir ve uygulamayı yeniden başlatır (`yeniden: true`; canlı geçiş yok, spec 42 §8). Level projede olmalı;
+   * zaten açılış level'ıysa ya da senaryo koşusunda yeniden başlatmaz (`neden` söyler). `varsayilanLevel` = diskteki yeni değer.
+   */
+  projeVarsayilanLevel(ad: string): Promise<IpcSonuc<{ yeniden: boolean; neden?: string; varsayilanLevel: string }>>;
   /** Açık projenin klasörünü dosya gezgininde aç. */
   projeKlasorGoster(): Promise<IpcSonuc<true>>;
   /**

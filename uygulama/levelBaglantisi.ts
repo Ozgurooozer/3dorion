@@ -10,6 +10,7 @@ import type { Vec3 } from "../world/level/cekirdek/levelTanimi.ts";
 import type { Kopru } from "../host/kopru.ts";
 import type { DokYoneticisi } from "./yapi/ortak/dok/dokYoneticisi.ts";
 import { yeniLevelPenceresiKur, type YeniLevelPenceresi } from "./yapi/level/yeniLevelPenceresi.ts";
+import { levelGecisPenceresiKur, type LevelGecisPenceresi } from "./yapi/level/levelGecisPenceresi.ts";
 import { ISIKLAR_PANELI_KIMLIGI, isiklarPaneliKur, type IsiklarPaneli } from "./yapi/level/isiklarPaneli.ts";
 import { nesnelerPaneliKur, type NesnelerPaneli } from "./yapi/level/nesnelerPaneli.ts";
 import { isikGizmosuKur, type IsikGizmosu } from "./isikGizmosu.ts";
@@ -41,7 +42,7 @@ export interface LevelBaglantisiGirdisi {
   grafAdlari?: () => readonly string[];
 }
 export interface LevelBaglantisi {
-  yeniLevel: YeniLevelPenceresi; isiklar: IsiklarPaneli; nesneler: NesnelerPaneli; isikGizmosu: IsikGizmosu;
+  yeniLevel: YeniLevelPenceresi; levelGecis: LevelGecisPenceresi; isiklar: IsiklarPaneli; nesneler: NesnelerPaneli; isikGizmosu: IsikGizmosu;
   /** Aktör yeteneği (spec 43 A3): graf `aktor.*` düğümlerinin level aktörlerine erişimi + çalışma bitince geçici yazmaları geri alma. */
   aktor: AktorYetenegiKurulu;
   /** Aktör grafı çalıştırıcısını bağlar (graf tabanından SONRA kurulur; Details'teki ▶ ■ ve canlı satır buna konuşur). */
@@ -102,6 +103,17 @@ export function levelBaglantisiKur(g: LevelBaglantisiGirdisi): LevelBaglantisi {
     ...(g.grafAdlari ? { grafAdlari: g.grafAdlari } : {}),
     grafEylemleri,
   });
+  // Orion'un yeni level'a geçişi (spec 42 2. aşama): İçerik gezgininde level'a çift tık → onay → açılış level'ı değişir, uygulama yeniden başlar (canlı geçiş yok).
+  const levelGecis = levelGecisPenceresiKur({
+    kopru: {
+      projeLevelOku: (ad) => g.kopru!.projeLevelOku(ad),
+      projeVarsayilanLevel: (ad) => g.kopru!.projeVarsayilanLevel(ad),
+    },
+    acikAd: async () => { const b = await g.kopru?.projeBilgi(); return b?.ok && b.deger ? b.deger.varsayilanLevel : null; },
+    kirliMi: () => isiklar.kirliMi() || nesneler.oturumIci(),
+    izin: g.imlecIzni,
+    altyazi: g.altyazi,
+  });
   const nesneler = nesnelerPaneliKur({
     dok: g.dok, level: g.level, altyazi: g.altyazi,
     ...(g.grafAdlari ? { grafAdlari: g.grafAdlari } : {}),
@@ -116,7 +128,7 @@ export function levelBaglantisiKur(g: LevelBaglantisiGirdisi): LevelBaglantisi {
     altyazi: g.altyazi,
   });
   return {
-    yeniLevel, isiklar, nesneler, isikGizmosu, aktor,
+    yeniLevel, levelGecis, isiklar, nesneler, isikGizmosu, aktor,
     aktorCalistiriciBagla(c) {
       aktorCalistirici = c;
       // Çalışma ilerledikçe/bitince Details tazelenir; yazı alanında yazarken tazeleme yok (giriş kaybolmasın).

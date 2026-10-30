@@ -109,6 +109,7 @@ import { secimVurgusuKur } from "../world/level/secimVurgusu.ts";
 import { nesnePaneliKur, type PanelNesne } from "../world/arayuz/nesnePaneli.ts";
 import { baglamMenusuKur } from "../world/arayuz/menu/baglamMenusu.ts";
 import { yerlestirmeKur } from "./yerlestirmeBaglantisi.ts";
+import { levelKapsamliDepo } from "./levelKapsamliDepo.ts";
 import { duzenlemeKipiKur } from "./duzenlemeKipi.ts";
 import { yapiPaneliKur } from "./yapi/ortak/yapiPaneli.ts";
 import { editorPenceresiKur } from "../world/arayuz/editorPenceresi.ts";
@@ -724,7 +725,10 @@ const baglamMenusu = baglamMenusuKur<MenuEylemi>({
 });
 // ASSET YERLEŞTİRME (spec 30): menü komutları level'ın kamu API'siyle uygulanır; Orion'un `Yer`i her değişiklikte yeniden ölçülür.
 let sonZemin: { x: number; y: number; z: number } | null = null;
+// Yerleştirme ve zemin KAYITLARI level'a aittir (spec 42 2. aşama): başka level açılırsa ova'nın nesneleri/arazisi onun üstüne basılmaz (`levelKapsamliDepo`).
+const levelKaydiDeposu = levelKapsamliDepo(() => gecis.acilisKapsami());
 const yerlestirme = yerlestirmeKur({
+  depo: levelKaydiDeposu,
   level: () => gecis.birlesik()?.level ?? null,
   yeniYer: async (l) => birlesikYerKur(await levelYeriniOlc(l, "ova")),
   yerGuncelle: (yer) => gecis.birlesikYeriniYenile(yer),
@@ -740,6 +744,7 @@ const duzenleme = duzenlemeKipiKur({
 // ZEMİN ŞEKİLLENDİRME (Yapı çubuğu · Zemin sekmesi): editörün arazi kalemi; vuruşlar kayda, geri al yığınına ve Orion'un Yer'ine işlenir. Nesneler araziye oturunca
 // yeni konumları yerleştirme kaydına yazılır (yeniden açılışta eski yüksekliğe dönmesinler).
 const zemin = zeminBaglantisiKur({
+  depo: levelKaydiDeposu,
   level: () => gecis.birlesik()?.level ?? null,
   yeniYer: async (l) => birlesikYerKur(await levelYeriniOlc(l, "ova")),
   yerGuncelle: (yer) => gecis.birlesikYeriniYenile(yer),
@@ -1008,8 +1013,10 @@ const icerikPaneli = icerikPaneliKur({
     if (eylem === "sekans") { if (izinli() && !sekansSistemi.editor.ac(ad)) altyaziGoster(`sekans açılamadı: ${ad}`, 2600); }
     else if (eylem === "graf") { if (izinli()) grafEditoru.ac(ad); }
     else if (eylem === "level") {
+      // Çift tık: onay penceresi (spec 42 2. aşama). Açılış level'ını değiştirir, uygulamayı yeniden başlatır; canlı geçiş yok.
       const b = await window.kopru.projeBilgi();
-      altyaziGoster(b.ok && b.deger?.varsayilanLevel === ad ? `level '${ad}' zaten açık (projenin varsayılan level'ı)` : `level '${ad}': canlı level geçişi yok (proje varsayılan level'ını açar)`, 3200);
+      if (b.ok && b.deger?.varsayilanLevel === ad) altyaziGoster(`level '${ad}' zaten açık (projenin açılış level'ı)`, 3200);
+      else await levelBaglantisi.levelGecis.sor(ad);
     } else if (!eklentiler.acikMi(PANEL_ONIZLEME)) altyaziGoster("Önizleme eklentisi kapalı (Pencere ▸ Eklentiler…)", 2600);
     else await varlikPenceresi.ac(k.ac);   // karakter / model / görsel: önizleme penceresi (D5)
   },

@@ -14,6 +14,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { atomikYaz, kodluHata } from "./dosyaKlasoru.js";
+import { levelAdiGecerli, levelYolu } from "./levelDosyasi.js";
 
 export const PROJE_UZANTISI = ".orionproj";
 export const PROJE_SURUMU = 1;
@@ -82,6 +83,21 @@ export function projeAc(kok, ad) {
   const h = projeTanimiHatasi(t);
   if (h) throw kodluHata("bozuk", `proje tanımı bozuk: ${h}`);
   return bilgi(dizin, t);
+}
+
+/**
+ * Projenin AÇILIŞ level'ını değiştirir (spec 42 2. aşama: Orion'un yeni level'a geçişi; açılışta kurulduğu için etkisi yeniden başlatmayla görünür).
+ * Level dosyası projede VAR olmalı (yazım yanlışı projeyi açılamaz bırakmasın). `.orionproj`un öteki alanları aynen kalır; yazım atomik.
+ * Dönüş: yeni proje bilgisi ya da `{ ...bilgi, ayni: true }` (zaten bu level: dosyaya dokunulmaz).
+ */
+export function projeVarsayilanLevelYaz(kok, ad, level) {
+  const p = projeAc(kok, ad);
+  if (!levelAdiGecerli(level)) throw kodluHata("gecersiz-ad", `geçersiz level adı: ${JSON.stringify(level)} (küçük harf, rakam, tire)`);
+  if (!fs.existsSync(levelYolu(icerikDizini(p, "level"), level))) throw kodluHata("yok", `projede level yok: ${level}`);
+  if (p.varsayilanLevel === level) return { ...p, ayni: true };
+  const tanim = { ...p.tanim, varsayilanLevel: level };
+  atomikYaz(tanimYolu(p.dizin, p.ad), `${JSON.stringify(tanim, null, 2)}\n`);
+  return { ...bilgi(p.dizin, tanim), ayni: false };
 }
 
 /** Bir içerik türünün klasörü (bilinmeyen tür hatadır: yazım yanlışı sessiz yeni klasör doğurmasın). */

@@ -29,6 +29,8 @@ export interface NesnelerPaneliAyari {
 export interface NesnelerPaneli {
   readonly kok: HTMLElement;
   tazele(): void;
+  /** Diske yazılmayan (yeniden başlatmada giden) nesne değişikliği var mı. */
+  oturumIci(): boolean;
   secili(): string | null;
   /** Nesneyi seç; listede olmayan kimlikte değişmez. */
   sec(id: string): void;
@@ -83,6 +85,9 @@ export function nesnelerPaneliKur(a: NesnelerPaneliAyari): NesnelerPaneli {
     });
   }
 
+  /** Panelden yapılmış, diske yazılmayan nesne değişikliği var mı (yeniden başlatmada gider). */
+  function oturumIci(): boolean { const t = a.level()?.tanim(); return t !== undefined && ilkImza !== null && imza(t) !== ilkImza; }
+
   function tazele(): void {
     const l = a.level();
     const t = l ? l.tanim() : null;
@@ -101,7 +106,7 @@ export function nesnelerPaneliKur(a: NesnelerPaneliAyari): NesnelerPaneli {
       liste.append(satir);
     }
     detayCizHepsi(secili);
-    const kirli = t !== null && ilkImza !== null && imza(t) !== ilkImza;
+    const kirli = oturumIci();
     rozet.textContent = kirli ? "● oturum içi" : "";
     rozet.title = "Nesne değişiklikleri diske yazılmaz (yalnız bu oturumda geçerli)";
     durum.textContent = `${r.toplam} nesne${r.kesildi ? " (liste kesildi: ara)" : ""}${secili ? ` · seçili: ${secili}` : ""}`;
@@ -120,7 +125,7 @@ export function nesnelerPaneliKur(a: NesnelerPaneliAyari): NesnelerPaneli {
   tazele();
 
   return {
-    kok, tazele, secili: () => secili,
+    kok, tazele, oturumIci, secili: () => secili,
     sec(id) {
       const t = a.level()?.tanim();
       if (!t || !(t.nesneler ?? []).some((n) => n.id === id)) return;

@@ -18,7 +18,7 @@ import { grafDizini, grafListe, grafOku, grafSil, grafYaz, grafYeni } from "./gr
 import { npcDizini, npcListe, npcOku, npcSil, npcYaz, npcYeni } from "./npcDosyalari.js";
 import { sekansDizini, sekansListe, sekansOku, sekansSil, sekansYaz, sekansYeni } from "./sekansDosyalari.js";
 import { adresCoz as icerikAdresiCoz, adlandir as icerikAdlandir, cogalt as icerikCogalt, icerikIkili, icerikListe, icerikMetin, iceAktar as icerikIceAktar, sil as icerikSil, tasi as icerikTasi, yeniKlasor as icerikYeniKlasor, ICE_AKTAR_UZANTILARI } from "./icerik.js";
-import { icerikDizini, projeAc as projeAcDosyadan, projeDurumu, projeHazirla, projeOlustur, projeSablonu, projelerKoku, sonProjeYaz } from "./proje.js";
+import { icerikDizini, projeAc as projeAcDosyadan, projeDurumu, projeHazirla, projeOlustur, projeSablonu, projeVarsayilanLevelYaz, projelerKoku, sonProjeYaz } from "./proje.js";
 import { levelKaydet, levelMetniniDenetle, levelOku, levelOlustur } from "./levelDosyasi.js";
 import { kararYaziciKur, ogretimYolu, ogretimleriOku, satirlariOku, yeniSatirlar } from "./kararDosyasi.js";
 import { mcpSunucuKur } from "./mcpSunucu.js";
@@ -538,6 +538,21 @@ ipcMain.handle(CAGRI.projeAc, (_e, ad) => ipcSonucu(() => {
   if (PROJE && p.ad === PROJE.ad) return { yeniden: false, neden: "zaten açık" };
   if (process.env.ORION_SMOKE === "1") return { yeniden: false, neden: "senaryo koşusu: yeniden başlatılmaz" };
   console.log(`[proje] açılıyor: ${p.ad} — uygulama yeniden başlıyor`);
+  yenidenBaslat();
+  return { yeniden: true };
+}));
+// Açılış level'ını değiştir (spec 42 2. aşama): proje açma ile AYNI yeniden başlatma yolu. Level açılışta kurulur; canlı geçiş sonraki iş (spec 42 §8: dünya yıkma/kurma
+// yan etkileri). `PROJE.varsayilanLevel` bellekte ESKİ kalır: yeniden başlatmaya kadar Işıklar paneli kaydı hâlâ AÇIK dünyanın dosyasına gider.
+ipcMain.handle(CAGRI.projeVarsayilanLevel, (_e, ad) => ipcSonucu(() => {
+  if (!PROJE) throw Object.assign(new Error("açık proje yok"), { kod: "proje-yok" });
+  const p = projeVarsayilanLevelYaz(PROJELER_KOKU, PROJE.ad, ad);
+  if (p.ayni) return { yeniden: false, neden: "zaten açılış level'ı", varsayilanLevel: p.varsayilanLevel };
+  if (process.env.ORION_SMOKE === "1") return { yeniden: false, neden: "senaryo koşusu: yeniden başlatılmaz", varsayilanLevel: p.varsayilanLevel };
+  console.log(`[proje] açılış level'ı: ${p.varsayilanLevel} — uygulama yeniden başlıyor`);
+  yenidenBaslat();
+  return { yeniden: true, varsayilanLevel: p.varsayilanLevel };
+}));
+function yenidenBaslat() {
   // `app.quit()`, anında çıkış DEĞİL: anında çıkış `before-quit`i atlar; bizim başlattığımız Ollama, MCP ucu, Piper, terminal kabukları ve Nemotron arkada YETİM kalır
   // (yeni örnek onları Ozyn'inkiler sanıp kapatmaz, port/VRAM tutulur). quit() normal kapanış zincirini çalıştırır; yeni örnek eskisi çıkınca başlar.
   // Canlıda (2026-10-27) `quit()` tek başına süreci kapatmadı: eski ana süreç pencereleri yıkıp boşta kaldı, yeniden başlatıcı onu bekledi, yeni pencere hiç açılmadı.
@@ -547,8 +562,7 @@ ipcMain.handle(CAGRI.projeAc, (_e, ad) => ipcSonucu(() => {
     app.quit();
     setTimeout(() => app.exit(0), 4000).unref();
   }, 150);   // yanıt renderer'a ulaşsın
-  return { yeniden: true };
-}));
+}
 ipcMain.handle(CAGRI.projeKlasorGoster, () => ipcSonucu(async () => {
   const hedef = PROJE?.dizin ?? PROJELER_KOKU;
   fs.mkdirSync(hedef, { recursive: true });

@@ -11,7 +11,7 @@ export interface Depo {
   setItem(k: string, v: string): void;
 }
 
-const varsayilanDepo = (): Depo | null => {
+export const varsayilanDepo = (): Depo | null => {
   try { return globalThis.localStorage ?? null; } catch { return null; }
 };
 

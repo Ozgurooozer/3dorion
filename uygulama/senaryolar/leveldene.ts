@@ -6,6 +6,7 @@
 //   L5  tavan: ISIK_TAVANI ışıkta "+" pasif, 9. ekleme reddedilir, tanım değişmez.          L6  GÜVENLİK: sentetik (isTrusted=false) 💾 Kaydet ve Oluştur tıklaması DİSKE YAZMAZ.
 //   L7  host: yeni level yaz → oku (gidiş-dönüş); aynı ad 409; bozuk metin 400; kaydet yalnız `isiklar`ı değiştirir; olmayan level 404.
 //   L8  Yeni level penceresi gerçek DOM'da: 4 şablon satırı, Esc kapatır.
+//   L9–L11  Orion'un yeni level'a geçişi (2. aşama): zeminsiz level reddi, zeminli level'da özet, sentetik tık yazmaz, host sözleşmesi (yeniden başlatma senaryoda yok).
 // Kareler ORION_SS_DIR'e PNG. Sonda eklenen ışıklar silinir (level eski hâline döner).
 "use strict";
 import type { SenaryoBaglami } from "../senaryoBaglami.ts";
@@ -174,6 +175,37 @@ export async function kos(d: SenaryoBaglami): Promise<void> {
   kok?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
   await bekle(250);
   kontrol("L8 Yeni level penceresi: 4 şablon satırı, sentetik Oluştur YAZMAZ, Esc kapatır", acildi && sablonSatiri === 4 && !sentetikYazildi && !b.yeniLevel.acikMi(), `şablon=${sablonSatiri} sentetikYazıldı=${sentetikYazildi} kapandı=${!b.yeniLevel.acikMi()}`);
+
+  // ── L9–L11: ORION'UN YENİ LEVEL'A GEÇİŞİ (spec 42 2. aşama): onay penceresi + host sözleşmesi (yeniden başlatma senaryo koşusunda YOK) ──
+  const zeminsizAd = `leveldene-zeminsiz-${Date.now().toString(36)}`;
+  const zeminsizTanim = { ...kopya.deger, katmanlar: kopya.deger.katmanlar.filter((k) => k.tur !== "zemin") };
+  await kopru.projeLevelOlustur(zeminsizAd, JSON.stringify(zeminsizTanim, null, 2) + "\n");
+  const gecKok = () => document.querySelectorAll<HTMLElement>(".yl-kok")[1] ?? null;   // ikinci .yl-kok: geçiş penceresi (ilki Yeni level)
+  const gecDugme = () => gecKok()?.querySelector<HTMLButtonElement>(".yl-alt button") ?? null;
+  const gecMesaj = () => gecKok()?.querySelector(".yl-mesaj")?.textContent ?? "";
+  await b.levelGecis.sor(zeminsizAd);
+  await bekle(300);
+  kontrol("L9 geçiş penceresi: zeminsiz level REDDEDİLİR, neden söylenir, düğme pasif", b.levelGecis.acikMi() && gecDugme()?.disabled === true && /zemin katmanı yok/.test(gecMesaj()), `mesaj="${gecMesaj()}" pasif=${gecDugme()?.disabled}`);
+  await ss("06_gecis_reddi");
+  await b.levelGecis.sor(yeniAd);
+  await bekle(300);
+  const ozetMetni = gecKok()?.textContent ?? "";
+  kontrol("L10 geçiş penceresi: zeminli level'da özet + etkin düğme (katman/nesne/ışık sayıları)", gecDugme()?.disabled === false && /\d+ katman · \d+ nesne · \d+ ışık/.test(ozetMetni), `düğme pasif=${gecDugme()?.disabled} özet="${(ozetMetni.match(/klasör:[^⚠]*/) ?? [""])[0]}"`);
+  await ss("07_gecis_onay");
+  await tik(gecDugme());   // sentetik: isTrusted=false → hiçbir şey yazılmamalı
+  await bekle(300);
+  const ilk = await kopru.projeVarsayilanLevel(yeniAd);   // yazılmışsa "zaten açılış level'ı", yazılmamışsa senaryo koşusu nedeni (+ şimdi yazar)
+  const tekrarGec = await kopru.projeVarsayilanLevel(yeniAd);
+  const olmayanGec = await kopru.projeVarsayilanLevel("leveldene-olmayan");
+  const kacisGec = await kopru.projeVarsayilanLevel("../ova");
+  kontrol("L11 GÜVENLİK + host: sentetik tık açılış level'ını DEĞİŞTİRMEZ; gerçek çağrı yazar (yeniden başlatma yok), tekrar 'zaten', olmayan 'yok', kaçış 'gecersiz-ad'",
+    ilk.ok && ilk.deger.yeniden === false && /senaryo/.test(ilk.deger.neden ?? "") && ilk.deger.varsayilanLevel === yeniAd
+      && tekrarGec.ok && /zaten/.test(tekrarGec.deger.neden ?? "")
+      && !olmayanGec.ok && String(olmayanGec.kod) === "yok" && !kacisGec.ok && String(kacisGec.kod) === "gecersiz-ad",
+    `ilk=${ilk.ok ? ilk.deger.neden : ilk.kod} tekrar=${tekrarGec.ok ? tekrarGec.deger.neden : tekrarGec.kod} olmayan=${olmayanGec.ok ? "ok" : olmayanGec.kod} kaçış=${kacisGec.ok ? "ok" : kacisGec.kod}`);
+  if (projeAdi) await kopru.projeVarsayilanLevel(projeAdi);   // geçici projeyi eski açılış level'ına geri ver
+  gecKok()?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+  await bekle(250);
 
   // ── temizlik: eklenen ışıklar silinir (kirli kalmasın) ──
   for (let n = 0; n < 2 * ISIK_TAVANI && satirlar().length > 0; n++) await tik([...satirlar()[0]!.querySelectorAll<HTMLButtonElement>("button")].pop() ?? null);

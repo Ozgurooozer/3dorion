@@ -110,6 +110,7 @@ const CAGRI = {
   projeListe:        "proje:liste",
   projeYeni:         "proje:yeni",
   projeAc:           "proje:ac",
+  projeVarsayilanLevel: "proje:varsayilan-level",
   projeKlasorGoster: "proje:klasor-goster",
   /**
    * İçerik gezgini (spec 39 D4, host/icerik.js): adres = `Content/…` (proje, yazılabilir) | `Engine/…` (motor, salt okunur). Sonuç biçimi md'ninkiyle aynı.

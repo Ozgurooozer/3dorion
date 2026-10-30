@@ -8,7 +8,7 @@ import os from "node:os";
 import path from "node:path";
 import {
   ICERIK_KLASORLERI, PROJE_SURUMU, icerikDizini, kopyala, projeAc, projeAdiGecerli, projeHazirla, projeListe, projeOlustur, projelerKoku, projeSec,
-  projeTanimiHatasi, sonProjelerOku, sonProjeYaz, SABLON_ADLARI, projeSablonu, projeDurumu,
+  projeTanimiHatasi, sonProjelerOku, sonProjeYaz, SABLON_ADLARI, projeSablonu, projeDurumu, projeVarsayilanLevelYaz,
 } from "./proje.js";
 
 const gecici = (): string => fs.mkdtempSync(path.join(os.tmpdir(), "orion-proje-test-"));
@@ -70,6 +70,44 @@ test("aç: tanımı doğrular; yok 'yok', bozuk 'bozuk'; içerik dizini türe g�
   assert.equal(kod(() => projeAc(kok, "A")), "bozuk");
   fs.writeFileSync(path.join(kok, "A", "A.orionproj"), JSON.stringify({ surum: 99, ad: "A", varsayilanLevel: "ova", olusturuldu: 1 }));
   assert.equal(kod(() => projeAc(kok, "A")), "bozuk");
+});
+
+test("açılış level'ı: yalnız projede VAR olan geçerli ada yazılır; öteki alanlar aynen kalır; aynı ad dosyaya dokunmaz; yol kaçışı/yok/bozuk ad reddedilir", () => {
+  const kok = gecici();
+  const p0 = projeOlustur(kok, "A", SABLON, { motorSurumu: "9.9", simdi: () => 7 });
+  for (const ad of ["ova", "duz-zemin"]) {
+    const d = path.join(p0.icerik, "Levels", ad); fs.mkdirSync(d, { recursive: true });
+    fs.writeFileSync(path.join(d, `${ad}.level.json`), "{}");
+  }
+  const tanimYolu = path.join(kok, "A", "A.orionproj");
+  const oncekiMetin = fs.readFileSync(tanimYolu, "utf8");
+
+  const ayni = projeVarsayilanLevelYaz(kok, "A", "ova");
+  assert.equal(ayni.ayni, true);
+  assert.equal(fs.readFileSync(tanimYolu, "utf8"), oncekiMetin, "aynı level: dosya bayt bayt aynı");
+
+  const yeni = projeVarsayilanLevelYaz(kok, "A", "duz-zemin");
+  assert.deepEqual([yeni.ayni, yeni.varsayilanLevel], [false, "duz-zemin"]);
+  assert.deepEqual(JSON.parse(fs.readFileSync(tanimYolu, "utf8")), { surum: PROJE_SURUMU, ad: "A", motorSurumu: "9.9", varsayilanLevel: "duz-zemin", olusturuldu: 7 });
+  assert.equal(projeAc(kok, "A").varsayilanLevel, "duz-zemin", "yeniden açılışta okunur");
+  assert.ok(!fs.existsSync(`${tanimYolu}.tmp`), "geçici dosya kalmaz");
+
+  const sonMetin = fs.readFileSync(tanimYolu, "utf8");
+  assert.equal(kod(() => projeVarsayilanLevelYaz(kok, "A", "olmayan")), "yok");
+  assert.equal(kod(() => projeVarsayilanLevelYaz(kok, "A", "../ova")), "gecersiz-ad");
+  assert.equal(kod(() => projeVarsayilanLevelYaz(kok, "A", "Ova")), "gecersiz-ad");
+  assert.equal(kod(() => projeVarsayilanLevelYaz(kok, "A", "")), "gecersiz-ad");
+  assert.equal(kod(() => projeVarsayilanLevelYaz(kok, "Yok", "ova")), "yok", "proje yok");
+  assert.equal(fs.readFileSync(tanimYolu, "utf8"), sonMetin, "reddedilen istek dosyayı değiştirmez");
+});
+
+test("BEKÇİ: açılış level'ı değişimi proje açmayla AYNI yeniden başlatma yolunu kullanır (yenidenBaslat tek kopya) ve level'ı IPC'den önce doğrular", () => {
+  const main = fs.readFileSync(new URL("./main.js", import.meta.url), "utf8");
+  const blok = main.slice(main.indexOf("ipcMain.handle(CAGRI.projeVarsayilanLevel"), main.indexOf("function yenidenBaslat()"));
+  assert.match(blok, /projeVarsayilanLevelYaz\(PROJELER_KOKU, PROJE\.ad, ad\)/);
+  assert.match(blok, /yenidenBaslat\(\)/);
+  assert.match(blok, /ORION_SMOKE === "1"/, "senaryo koşusunda yeniden başlatma yok");
+  assert.equal((main.match(/app\.relaunch\(\)/g) ?? []).length, 1, "yeniden başlatma tek yerde");
 });
 
 test("tanım hatası: sürüm, ad, level, tarih", () => {

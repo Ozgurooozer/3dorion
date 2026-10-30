@@ -43,7 +43,7 @@ Koşulmayan doğrulamalar ve riskler ayrı defterde: `DOGRULAMA-DEFTERI.md` (ge�
 
 ## Yeni level + ışık (spec 42; istisna 2026-10-29) — SIRADAKİ İŞ
 - Y0 belge yazıldı. Sıra: Y1 şablonlar (Düz zemin, Tamamen boş) → Y2 host level yazma IPC → Y3 nokta ışık (`LevelTanimi.isiklar`) + ışık sayısı ölçümü (ön kayıtlı) → Y4 oyun içi düzenleme kipi + dok panelleri → Y5 `leveldene`.
-- Sonra: spot / yönlü (ek güneş) / gölgeli ışık; Şekiller (düzlem/küp = Unreal'ın "zemin yapma"sı); Orion'un yeni level'a geçişi (2. aşama, ayrı onay; `levelYeriniOlc(l,"ova")` sabit adı, canlı level geçişi yok).
+- Sonra: spot / yönlü (ek güneş) / gölgeli ışık; Şekiller (düzlem/küp = Unreal'ın "zemin yapma"sı); Orion'un yeni level'a geçişi: YENİDEN BAŞLATMALI olanı yazıldı (spec 42 §8, 2026-10-30); sıradaki: CANLI geçiş (Ozyn: "ileride yapılabilir"; DOGRULAMA-DEFTERI R19 yan etki listesi) ve uçtan uca yeniden başlama ölçümü (K23).
 - Bileşen modeli (nesne = bileşen listesi; Details alan şemasından; Graf/Sekans köprüleri) ayrı spec; Unreal karşılaştırması: Outliner/Details/Place Actors/Content Browser farkları (sohbet notu 2026-10-29).
 - Risk: nokta ışık tavanı (Babylon varsayılan 4 eşzamanlı ışık; güneş+dolgu 2'sini yer); `nesneSistemi.ts` başka Claude'un elinde (araba).
 

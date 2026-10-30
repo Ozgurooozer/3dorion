@@ -42,8 +42,14 @@ const CSS = `
 let stilEklendi = false;
 const dugme = dugmeYap("");
 
+/** Pencere stili (`yl-*`); level geçiş penceresi (`levelGecisPenceresi.ts`) AYNI kutuyu kullanır, ikinci kopya yok. */
+export function yeniLevelPenceresiStiliEkle(): void {
+  if (stilEklendi) return;
+  const s = document.createElement("style"); s.textContent = CSS; document.head.append(s); stilEklendi = true;
+}
+
 export function yeniLevelPenceresiKur(a: YeniLevelPenceresiAyari): YeniLevelPenceresi {
-  if (!stilEklendi) { const s = document.createElement("style"); s.textContent = CSS; document.head.append(s); stilEklendi = true; }
+  yeniLevelPenceresiStiliEkle();
   const kok = el("div", "yl-kok"); kok.tabIndex = -1; kok.dataset.acik = "0";
   const kutu = el("div", "yl-kutu");
   const kapatD = dugme("✕", "", "Kapat (Esc)");
