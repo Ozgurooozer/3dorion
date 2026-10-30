@@ -11,6 +11,7 @@ import type { Kopru } from "../host/kopru.ts";
 import type { DokYoneticisi } from "./yapi/ortak/dok/dokYoneticisi.ts";
 import { yeniLevelPenceresiKur, type YeniLevelPenceresi } from "./yapi/level/yeniLevelPenceresi.ts";
 import { ISIKLAR_PANELI_KIMLIGI, isiklarPaneliKur, type IsiklarPaneli } from "./yapi/level/isiklarPaneli.ts";
+import { nesnelerPaneliKur, type NesnelerPaneli } from "./yapi/level/nesnelerPaneli.ts";
 import { isikGizmosuKur, type IsikGizmosu } from "./isikGizmosu.ts";
 import { aktorYetenegiKur, type AktorYetenegiKurulu } from "./aktorYetenegi.ts";
 import type { AktorCalistirici } from "./graf/aktorCalistirici.ts";
@@ -40,7 +41,7 @@ export interface LevelBaglantisiGirdisi {
   grafAdlari?: () => readonly string[];
 }
 export interface LevelBaglantisi {
-  yeniLevel: YeniLevelPenceresi; isiklar: IsiklarPaneli; isikGizmosu: IsikGizmosu;
+  yeniLevel: YeniLevelPenceresi; isiklar: IsiklarPaneli; nesneler: NesnelerPaneli; isikGizmosu: IsikGizmosu;
   /** Aktör yeteneği (spec 43 A3): graf `aktor.*` düğümlerinin level aktörlerine erişimi + çalışma bitince geçici yazmaları geri alma. */
   aktor: AktorYetenegiKurulu;
   /** Aktör grafı çalıştırıcısını bağlar (graf tabanından SONRA kurulur; Details'teki ▶ ■ ve canlı satır buna konuşur). */
@@ -101,6 +102,11 @@ export function levelBaglantisiKur(g: LevelBaglantisiGirdisi): LevelBaglantisi {
     ...(g.grafAdlari ? { grafAdlari: g.grafAdlari } : {}),
     grafEylemleri,
   });
+  const nesneler = nesnelerPaneliKur({
+    dok: g.dok, level: g.level, altyazi: g.altyazi,
+    ...(g.grafAdlari ? { grafAdlari: g.grafAdlari } : {}),
+    grafEylemleri,
+  });
   const isikGizmosu = isikGizmosuKur({
     sahne: g.sahne, tuval: g.tuval, level: g.level,
     secili: () => isiklar.secili(),
@@ -110,11 +116,14 @@ export function levelBaglantisiKur(g: LevelBaglantisiGirdisi): LevelBaglantisi {
     altyazi: g.altyazi,
   });
   return {
-    yeniLevel, isiklar, isikGizmosu, aktor,
+    yeniLevel, isiklar, nesneler, isikGizmosu, aktor,
     aktorCalistiriciBagla(c) {
       aktorCalistirici = c;
       // Çalışma ilerledikçe/bitince Details tazelenir; yazı alanında yazarken tazeleme yok (giriş kaybolmasın).
-      c.dinle(() => { if (!isiklar.kok.contains(document.activeElement)) isiklar.tazele(); });
+      c.dinle(() => {
+        if (!isiklar.kok.contains(document.activeElement)) isiklar.tazele();
+        if (!nesneler.kok.contains(document.activeElement)) nesneler.tazele();
+      });
     },
   };
 }

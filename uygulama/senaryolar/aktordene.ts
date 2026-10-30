@@ -12,12 +12,14 @@
 //   A9  çalışma kesme noktasında BAŞLAMADAN durur: düğüm 'duraklamış' görünür, sağ panelde ⏸ ve izlenen değişken satırı, Devam açık; sentetik Devam tıklaması SÜRDÜRMEZ.
 //   A10 Devam sürdürür (kesme düğümü koşar), günlük bölümü düğümleri girdi/çıktıyla gösterir.
 //   A11 Adım: bir düğüm ilerleyip sıradaki akışlı düğümde yine durur; ■ duraklamayı keser, ışık geri gelir, kesme noktası kaldırılır.
+//   A12–A15 (A5) Nesneler paneli: liste, nesne şemalı Details + graf ata, sentetik ▶ başlatmaz, ▶ nesneyi GEÇİCİ gizler / ■ geri verir, graf kaldırılınca tanım eski.
 // Kareler ORION_SS_DIR'e PNG. Sonda eklenen ışık silinir.
 "use strict";
 import type { SenaryoBaglami } from "../senaryoBaglami.ts";
 import type { Graf } from "../../protocol/graf.ts";
 import { ISIK_TAVANI } from "../../world/level/cekirdek/levelTanimi.ts";
 import { ISIKLAR_PANELI_KIMLIGI } from "../yapi/level/isiklarPaneli.ts";
+import { NESNELER_PANELI_KIMLIGI } from "../yapi/level/nesnelerPaneli.ts";
 import { AKTOR_DUGUMU } from "../graf/aktorDugumleri.ts";
 
 const KIS = "aktordene_kis", HATA = "aktordene_hata";
@@ -217,6 +219,65 @@ export async function kos(d: SenaryoBaglami): Promise<void> {
     `önce=${once} sonra=${adimSonrasi} adımdaAçık=${adimdaAcik} kalanDuraklama=${kalanDuraklama} geriGeldi=${geriGeldi} kesmeKalktı=${kesmeKalkti}`);
   d.graf.gizle();
   await bekle(400);
+
+  // ── A5: nesne aktörü paneli (liste, Details, graf ata, ▶ ile `gizli` GEÇİCİ yazılır, ■ ile döner) ──
+  const NGRAF = "aktordene_nesne";
+  const nesneGrafi = (): Graf => ({
+    surum: 1, ad: NGRAF, tur: "olay", girisler: [], cikislar: [],
+    dugumler: [
+      { id: "b", tip: "olay.basla", konum: [40, 40] },
+      { id: "g", tip: AKTOR_DUGUMU.yaz, ayar: { alan: "gizli", deger: true }, konum: [280, 40] },
+      { id: "bk", tip: "akis.bekle", ayar: { ms: 3000 }, konum: [520, 40] },
+    ],
+    baglar: [{ kaynak: ["b", "sonra"], hedef: ["g", "giris"] }, { kaynak: ["g", "sonra"], hedef: ["bk", "giris"] }],
+  });
+  if (!d.graf.adlar().includes(NGRAF)) await d.graf.yeni(nesneGrafi());
+  d.dok.sec(NESNELER_PANELI_KIMLIGI);
+  await bekle(500);
+  b.nesneler.tazele();
+  const nKok = b.nesneler.kok;
+  const nSatirlar = () => [...nKok.querySelectorAll<HTMLElement>(".il-satir")];
+  const tanimdakiNesneler = (l0.tanim().nesneler ?? []).filter((n) => n.id);
+  const hedefNesne = tanimdakiNesneler[0];
+  kontrol("A12 Nesneler paneli listeyi çizer (kimlikli nesne sayısı kadar, en çok 300)",
+    hedefNesne !== undefined && nSatirlar().length === Math.min(300, tanimdakiNesneler.length),
+    `satır=${nSatirlar().length} tanım=${tanimdakiNesneler.length}`);
+  if (hedefNesne?.id) {
+    const nid = hedefNesne.id;
+    b.nesneler.sec(nid);
+    await bekle(300);
+    const nDetay = () => nKok.querySelector<HTMLElement>(".il-detay");
+    const etiketler = [...(nDetay()?.querySelectorAll("label") ?? [])].map((x) => x.textContent ?? "");
+    const nSec = nDetay()?.querySelector<HTMLSelectElement>("select[title^='Bu aktörün grafı']") ?? null;
+    if (nSec) { nSec.value = NGRAF; nSec.dispatchEvent(new Event("change", { bubbles: true })); await bekle(300); }
+    const nTanim = () => l0.tanim().nesneler?.find((x) => x.id === nid);
+    const nOynat = [...(nDetay()?.querySelectorAll<HTMLButtonElement>(".il-tam button") ?? [])].find((x) => x.textContent === "▶") ?? null;
+    kontrol("A13 nesne seçilince Details nesne şemasını gösterir (Konum, Dönüş, Ölçek, Gizli, Kilitli), graf atanır (tanıma yazılır), ▶ etkin",
+      ["Konum", "Dönüş", "Ölçek", "Gizli", "Kilitli"].every((e) => etiketler.some((t) => t.startsWith(e))) && nTanim()?.graf === NGRAF && nOynat !== null && !nOynat.disabled,
+      `etiketler=${etiketler.join("|")} graf=${nTanim()?.graf} ▶=${nOynat ? !nOynat.disabled : "yok"}`);
+    await ss("07_nesne_details");
+    await tik(nOynat);   // SENTETİK: başlatmamalı
+    await bekle(300);
+    const dugumGoruyor = () => l0.nesneler.dugum(nid)?.isEnabled(false);
+    const once = dugumGoruyor();
+    const sentetikBaslatmadi = d.aktorGraf.sayi() === 0;
+    const rN = d.aktorGraf.calistir(nid, NGRAF);
+    await bekle(700);
+    const calisirken = dugumGoruyor();
+    const tanimGizli = nTanim()?.gizli === true;
+    d.aktorGraf.durdur(nid);
+    await d.aktorGraf.bitti();
+    await bekle(300);
+    const sonra = dugumGoruyor();
+    kontrol("A14 GÜVENLİK: sentetik ▶ nesne grafını başlatmaz; senaryo yüzüyle ▶ nesneyi GEÇİCİ gizler (tanım gizli DEĞİL), ■ görünürlüğü geri verir",
+      sentetikBaslatmadi && rN.ok && once === true && calisirken === false && !tanimGizli && sonra === true,
+      `sentetikBaşlatmadı=${sentetikBaslatmadi} ok=${rN.ok} önce=${once} çalışırken=${calisirken} tanımGizli=${tanimGizli} sonra=${sonra}`);
+    // temizlik: nesneye atanan graf kalkar (oturum içi tanım eski hâline döner)
+    if (nSec) { nSec.value = ""; nSec.dispatchEvent(new Event("change", { bubbles: true })); await bekle(300); }
+    kontrol("A15 nesneden graf kaldırılınca tanım eski biçime döner (`graf` alanı yok)", nTanim()?.graf === undefined, `graf=${nTanim()?.graf}`);
+  }
+  d.dok.sec(ISIKLAR_PANELI_KIMLIGI);
+  await bekle(300);
 
   // ── temizlik ──
   for (let n = 0; n < 2 * ISIK_TAVANI && satirlar().length > 0; n++) await tik([...satirlar()[0]!.querySelectorAll<HTMLButtonElement>("button")].pop() ?? null);

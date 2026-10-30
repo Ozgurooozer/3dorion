@@ -1,7 +1,7 @@
 # Spec 43 — Aktör + bileşen şeması + aktör grafı + hata ayıklama (Unreal Actor/Component/Blueprint)
 
 Durum: 2026-10-29 "istisna" (Ozyn: "bitirene kadar durma, alt ajan/skill serbest"). Önceki: spec 42 (ışık aktörleri), spec 35 (graf), spec 28/30 (seçim, gizmo).
-İlerleme: A1 ✔ A2 ✔ A3 ✔ A4 ✔ (kesme noktası yalnız akışlı düğümde ve yalnız kullanıcı tetikli çalışmada; Devam/Adım yalnız `isTrusted`; günlük bellekte 200 satır). A5 sonra, onayla. Koşulmayanlar: `DOGRULAMA-DEFTERI.md` K18–K21.
+İlerleme: A1 ✔ A2 ✔ A3 ✔ A4 ✔ (kesme noktası yalnız akışlı düğümde ve yalnız kullanıcı tetikli çalışmada; Devam/Adım yalnız `isTrusted`; günlük bellekte 200 satır). A5 ✔ (yalnız nesne aktörü paneli: `uygulama/yapi/level/nesnelerPaneli.ts`, liste + Details + graf ▶ ■; değişiklikler oturum içi). Mesh/ses/tetik bileşenleri YAPILMADI (§9: `nesneSistemi.ts`). Koşulmayanlar: `DOGRULAMA-DEFTERI.md` K18–K21.
 **İlerleme (2026-10-29):** A1 ✔ (25/25 mutant), A2 ✔ (`leveldene` 12/12), A3 ✔ (`aktordene` 7/7, 32/32 mutant, tam paket 5540/0), A4 yazılıyor. Kod: `uygulama/graf/{aktorDugumleri,aktorCalistirici}.ts`, `uygulama/aktorYetenegi.ts`; düğümler yeni `aktor` kategorisinde.
 
 ## 1. İstek

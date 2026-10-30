@@ -66,13 +66,18 @@ ${DETAY_CSS}
 .il-durum { padding: 3px 10px; border-top: 1px solid ${R.cizgi}; color: ${R.yaziSoluk}; font-size: 11.5px; flex: none; }
 `;
 let stilEklendi = false;
+/** Panel ailesinin (Işıklar, Nesneler) ortak CSS'i: ikinci kopya yerine tek yerden, bir kez eklenir. */
+export function levelPaneliStiliEkle(): void {
+  if (stilEklendi) return;
+  const s = document.createElement("style"); s.textContent = CSS; document.head.append(s); stilEklendi = true;
+}
 const dugme = dugmeYap("");
 
 /** Renk metni → renk girdisi için "#rrggbb" (palet adı verilmişse sıcak beyaz: panel yalnız hex yazar). */
 const hexMi = (r: string): boolean => /^#[0-9a-fA-F]{6}$/.test(r);
 
 export function isiklarPaneliKur(a: IsiklarPaneliAyari): IsiklarPaneli {
-  if (!stilEklendi) { const s = document.createElement("style"); s.textContent = CSS; document.head.append(s); stilEklendi = true; }
+  levelPaneliStiliEkle();
   const kok = el("div", "il-kok"); kok.tabIndex = 0;
   const ekleD = dugme("+ Nokta ışık", "", "Önüne yeni bir nokta ışık koy");
   const kaydetD = dugme("💾 Kaydet", "", "Işık listesini açık projenin level dosyasına yaz (yalnız ışıklar)");
