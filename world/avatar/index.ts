@@ -97,6 +97,8 @@ export interface Avatar {
   rigPozu(degerler: readonly UzuvDegeri[] | null): void;
   /** Uzvun eklem noktasının dünya konumu (rig kontrol şekilleri buraya konur); gövdede yoksa null. */
   uzuvKonumu(u: Uzuv): Vec3 | null;
+  /** Spec 45 B5: uzvun eklem düğümünün dünya matrisi (16 düz sayı, Babylon sıralaması); kılıç/lamba gibi aktörler ele takılır. Yoksa null. */
+  uzuvDunyaMatrisi(u: Uzuv): readonly number[] | null;
   /** Gövdenin ÇİZİLEN yaw'ı (radyan, dünya): rig şekilleri gövdeyle hizalansın. */
   cizimYaw(): number;
 }
@@ -191,6 +193,7 @@ export async function avatarKur(ayar: AvatarAyari): Promise<Avatar> {
     koltugu: () => yurutucu.koltugu(),
     rigPozu: (d) => beden.rigPozu(d),
     uzuvKonumu: (u) => iskelet.uzuvKonumu?.(u) ?? null,
+    uzuvDunyaMatrisi: (u) => iskelet.uzuvDunyaMatrisi?.(u) ?? null,
     cizimYaw: () => beden.cizimYaw(),
     yokEt() { birak(); dinleyiciler.clear(); beden.yokEt(); },
   };

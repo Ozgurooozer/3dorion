@@ -295,6 +295,16 @@ export async function vrmIskeletYukle(sahne: Scene, yol: string, gorunus: Iskele
     return { x: p.x, y: p.y, z: p.z };
   }
 
+  /** Spec 45 B5: eklem düğümünün dünya matrisi (16 sayı); `uzuvKonumu` gibi zinciri kökten tazeler. */
+  function uzuvDunyaMatrisi(u: Uzuv): readonly number[] | null {
+    const d = kemikDugumleri.dugumler.get(u);
+    if (!d) return null;
+    const zincir: TransformNode[] = [];
+    for (let x: TransformNode | null = d; x; x = x.parent as TransformNode | null) zincir.push(x);
+    for (let i = zincir.length - 1; i >= 0; i--) zincir[i]!.computeWorldMatrix(true);
+    return Array.from(d.getWorldMatrix().m);
+  }
+
   function agizUygula(aciklik: number): void {
     const a = Math.min(1, Math.max(0, aciklik));
     for (const h of agizHedefleri) h.influence = a;
@@ -330,6 +340,6 @@ export async function vrmIskeletYukle(sahne: Scene, yol: string, gorunus: Iskele
     bilgi, konumUygula, cizimKonumu,
     govdeUygula, basUygula, pozUygula, jestUygula,
     agizUygula, bostaUygula, gozKirp, gorunur, yokEt,
-    klipUzuvlari: surucu.uzuvlar, klipUygula, uzuvKonumu,
+    klipUzuvlari: surucu.uzuvlar, klipUygula, uzuvKonumu, uzuvDunyaMatrisi,
   };
 }

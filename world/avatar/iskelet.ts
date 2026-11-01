@@ -93,6 +93,11 @@ export interface AvatarIskeleti {
    * buraya konur; Babylon'a bağlı olmayan Vec3 döner.
    */
   uzuvKonumu?(u: Uzuv): Vec3 | null;
+  /**
+   * Spec 45 B5 (beden soketi): uzvun eklem düğümünün DÜNYA matrisi, 16 düz sayı (Babylon sıralaması: satır-ana, sol elli). Kemik düğümü SIZDIRILMAZ —
+   * bu arayüz Babylon'a bağlı olmadığı için matris düz sayı dizisidir; aktör çalışma zamanı kendi `Matrix`ine çevirir. Uzvu olmayan gövdede null.
+   */
+  uzuvDunyaMatrisi?(u: Uzuv): readonly number[] | null;
 }
 
 /**

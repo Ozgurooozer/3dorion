@@ -10,6 +10,7 @@
 import { hex } from "./renk.ts";
 import { grafAdiGecerli } from "../../../protocol/graf.ts";
 import { anlamHatasi, type Anlam } from "./anlam.ts";
+import { bilesenlerHatasi, hiyerarsiHatasi, ustHatasi, type BilesenKaydi } from "./bilesenKaydi.ts";
 import { stilHatasi, type StilAyari } from "../stil/stilTanimi.ts";
 import type { ZamanAyari } from "../shader/dunyaDurumu.ts";
 import type { ShaderTanimi } from "../shader/shaderSistemi.ts";
@@ -110,6 +111,12 @@ export const AKTOR_DEGISKEN_SINIRI = { adet: 16, metin: 200 } as const;
 export interface AktorOzellikleri {
   graf?: string;
   degiskenler?: Record<string, AktorDegiskeni>;
+  /** Bileşenler (spec 45): tür + ayar listesi (`bilesenKaydi.ts`). Yoksa boş; eski level bire bir aynı. */
+  bilesenler?: BilesenKaydi[];
+  /** Üst aktörün kimliği (ya da `beden:<ad>`): varken `konum`/`donus` üste göre yereldir (spec 45 §3). */
+  ust?: string;
+  /** Üstteki soketin adı (`ust` aktörün `soket` bileşeni ya da bedenin soketi). */
+  soket?: string;
 }
 
 /** Işık aktörü türleri (spec 42). MVP yalnız `nokta`; spot ve yönlü (ek güneş) sonra eklenir (alan eklemek kırıcı değil). */
@@ -257,9 +264,13 @@ export function nesneHatasi(n: unknown, grupIdleri?: ReadonlySet<string>): { ala
   return null;
 }
 
-/** Aktörün ortak alanlarının (`graf`, `degiskenler`) hatası; geçerliyse null. Nesne ve ışık aynı kuralı kullanır (kopya yok). */
+/** Aktörün ortak alanlarının (`graf`, `degiskenler`, `bilesenler`, `ust`/`soket`) hatası; geçerliyse null. Nesne ve ışık aynı kuralı kullanır (kopya yok). */
 export function aktorOzellikleriHatasi(a: Record<string, unknown>): { alan: string; neden: string } | null {
   if (a["graf"] !== undefined && !grafAdiGecerli(a["graf"])) return { alan: "graf", neden: "geçerli graf adı olmalı (harf, rakam, _ ve -)" };
+  const bh = bilesenlerHatasi(a["bilesenler"]);
+  if (bh) return bh;
+  const uh = ustHatasi(a);
+  if (uh) return uh;
   const d = a["degiskenler"];
   if (d === undefined) return null;
   if (!nesneMi(d)) return { alan: "degiskenler", neden: "nesne olmalı" };
@@ -390,6 +401,10 @@ function hataBul(v: unknown): string | null {
       }
     }
   }
+  // Aktör hiyerarşisi (spec 45): nesne ve ışık TEK kimlik uzayında; üst var mı, döngü, derinlik.
+  const tumAktorler = [...(Array.isArray(nesneler) ? nesneler : []), ...(Array.isArray(isiklar) ? isiklar : [])].filter(nesneMi);
+  const hi = hiyerarsiHatasi(tumAktorler);
+  if (hi) return h(`aktör "${hi.id}".ust`, hi.neden);
   const yerler = v["kameraYerleri"];
   if (yerler !== undefined) {
     if (!Array.isArray(yerler)) return h("kameraYerleri", "dizi değil");

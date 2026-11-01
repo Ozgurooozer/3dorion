@@ -9,25 +9,13 @@
 import { AKTOR_DEGISKEN_SINIRI, levelTanimiDogrula, type AktorDegiskeni, type IsikAktoru, type LevelTanimi, type NesneYeri, type Vec3 } from "./levelTanimi.ts";
 import { grafAdiGecerli } from "../../../protocol/graf.ts";
 import { donusVec, olcekVec } from "./donusum.ts";
+import { alanDegeriHatasi, type AlanDegeri, type AlanSemasi, type AlanTipi } from "./alanSemasi.ts";
+import { ISIK_ALANLARI } from "./bilesenKaydi.ts";
 
-export type AlanTipi = "sayi" | "metin" | "bool" | "renk" | "vec3";
-export type AlanDegeri = number | string | boolean | Vec3;
+// Alan şeması tipleri ve değer denetimi `alanSemasi.ts`te (tanım doğrulaması da kullanır: import döngüsü olmasın); burada aynı adlarla yeniden dışa verilir.
+export { alanDegeriHatasi };
+export type { AlanDegeri, AlanSemasi, AlanTipi };
 export type AktorTuru = "isik" | "nesne";
-
-export interface AlanSemasi {
-  ad: string;
-  etiket: string;
-  tip: AlanTipi;
-  varsayilan: AlanDegeri;
-  /** Sayı alanında en az / en çok (sınırlar dahil). */
-  en?: number;
-  cok?: number;
-  /** Details'te adım (sayı girişi). */
-  adim?: number;
-  birim?: string;
-  /** Graf düğümleri bu alanı okuyup yazabilir mi (yalnız tek değerli alanlar: sayı, metin, renk, mantıksal). */
-  grafta?: boolean;
-}
 
 export interface BilesenSemasi {
   tur: AktorTuru;
@@ -35,16 +23,7 @@ export interface BilesenSemasi {
   alanlar: readonly AlanSemasi[];
 }
 
-export const ISIK_BILESENI: BilesenSemasi = {
-  tur: "isik", etiket: "Nokta ışık",
-  alanlar: [
-    { ad: "konum", etiket: "Konum", tip: "vec3", varsayilan: [0, 1.5, 0], adim: 0.1, birim: "m" },
-    { ad: "renk", etiket: "Renk", tip: "renk", varsayilan: "#ffd9a0", grafta: true },
-    { ad: "siddet", etiket: "Şiddet", tip: "sayi", varsayilan: 1.5, en: 0, cok: 100, adim: 0.1, grafta: true },
-    { ad: "menzil", etiket: "Menzil", tip: "sayi", varsayilan: 8, en: 0.1, cok: 1000, adim: 0.5, birim: "m", grafta: true },
-    { ad: "gizli", etiket: "Gizli", tip: "bool", varsayilan: false, grafta: true },
-  ],
-};
+export const ISIK_BILESENI: BilesenSemasi = { tur: "isik", etiket: "Nokta ışık", alanlar: ISIK_ALANLARI };
 
 export const NESNE_BILESENI: BilesenSemasi = {
   tur: "nesne", etiket: "Nesne",
@@ -96,25 +75,6 @@ export function alanOku(t: LevelTanimi, id: string, ad: string): Sonuc<AlanDeger
   if (!s) return hata(`'${ad}' ${BILESEN_SEMALARI[y.tur].etiket} bileşeninde yok (alanlar: ${BILESEN_SEMALARI[y.tur].alanlar.map((a) => a.ad).join(", ")})`);
   const veri = y.tur === "nesne" ? t.nesneler![y.sira]! : t.isiklar![y.sira]!;
   return { ok: true, deger: ham(y.tur, veri, ad) ?? s.varsayilan };
-}
-
-/** Değer şemaya uyuyor mu; uymuyorsa nedeni (renk geçerliliği level paletine bağlıdır: yazma sonrası `levelTanimiDogrula` yakalar). */
-export function alanDegeriHatasi(s: AlanSemasi, v: unknown): string | null {
-  switch (s.tip) {
-    case "sayi": {
-      if (typeof v !== "number" || !Number.isFinite(v)) return `${s.etiket}: sayı olmalı`;
-      if (s.en !== undefined && v < s.en) return `${s.etiket}: en az ${s.en}`;
-      if (s.cok !== undefined && v > s.cok) return `${s.etiket}: en çok ${s.cok}`;
-      return null;
-    }
-    case "bool": return typeof v === "boolean" ? null : `${s.etiket}: doğru/yanlış olmalı`;
-    case "metin": case "renk": return typeof v === "string" && v.length > 0 ? null : `${s.etiket}: boş olmayan metin olmalı`;
-    case "vec3": {
-      if (!Array.isArray(v) || v.length !== 3 || !v.every((x) => typeof x === "number" && Number.isFinite(x))) return `${s.etiket}: [x, y, z] (3 sayı) olmalı`;
-      if (s.en !== undefined && (v as number[]).some((x) => x < s.en!)) return `${s.etiket}: her bileşen en az ${s.en}`;
-      return null;
-    }
-  }
 }
 
 const dogrula = (t: unknown): Sonuc<LevelTanimi> => { const d = levelTanimiDogrula(t); return d.ok ? { ok: true, deger: d.deger } : hata(d.hata); };
