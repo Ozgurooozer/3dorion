@@ -34,6 +34,7 @@ rem    3dorion.bat projedene  Motor/proje ayrimi (spec 39): gecici proje acilir,
 rem    3dorion.bat eklentidene Eklenti altyapisi (spec 40): defter, Ayarlar-Eklentiler, mevcut ozelliklerin kapilari
 rem    3dorion.bat leveldene  Yeni level + isik aktorleri (spec 42): panel, pencere, tavan, isTrusted kapisi, host yazma (gecici projede)
 rem    3dorion.bat aktordene  Aktor grafi (spec 43): Details graf secimi, @bu isik kis/sondur, degisken, durdur/geri alma, hata, isTrusted kapisi
+rem    3dorion.bat bpdene     Blueprint JSON arayuzu (spec 45 B7): bilesen ekle/sil, hiyerarsi, sablon (gercek host), glb soketi, panel duzeni
 rem    3dorion.bat dokdene    Dok sistemi (spec 39 D3): bolgeler, surukle-birak, izin kurali, boyut, yuzer, kalicilik
 rem    3dorion.bat icerikdene Icerik gezgini (spec 39 D4): agac, kartlar, cift tik, sag tik, adlandir/cogalt/sil, ice aktar, onizleme resmi (gecici projede)
 rem    3dorion.bat ovadene    Orion ovada: gel, takip, kapiya git, otur, bak, jest, algi, gec (spec 26 F4)
@@ -118,6 +119,7 @@ if /i "%MOD%"=="projedene" goto :projedene
 if /i "%MOD%"=="eklentidene" goto :eklentidene
 if /i "%MOD%"=="leveldene" goto :leveldene
 if /i "%MOD%"=="aktordene" goto :aktordene
+if /i "%MOD%"=="bpdene" goto :bpdene
 if /i "%MOD%"=="dokdene" goto :dokdene
 if /i "%MOD%"=="icerikdene" goto :icerikdene
 if /i "%MOD%"=="ovadene" goto :ovadene
@@ -397,6 +399,19 @@ set "ORION_AKTORDENE=1"
 set "ORION_SMOKE=1"
 set "ORION_SMOKE_MS=90000"
 if "%ORION_SS_DIR%"=="" set "ORION_SS_DIR=%TEMP%\aktordene"
+set "ORION_BEYIN=dis"
+set "ORION_BEYIN_ADRES=http://127.0.0.1:9"
+call npx electron .
+goto :son
+
+:bpdene
+echo [bpdene] Blueprint JSON arayuzu (spec 45 B7): bilesen, hiyerarsi, sablon, glb soketi, panel duzeni; kareler ORION_SS_DIR'e PNG
+call npx vite build
+if errorlevel 1 goto :hata
+set "ORION_BPDENE=1"
+set "ORION_SMOKE=1"
+set "ORION_SMOKE_MS=90000"
+if "%ORION_SS_DIR%"=="" set "ORION_SS_DIR=%TEMP%\orion-bpdene"
 set "ORION_BEYIN=dis"
 set "ORION_BEYIN_ADRES=http://127.0.0.1:9"
 call npx electron .

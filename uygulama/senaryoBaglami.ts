@@ -110,6 +110,8 @@ export interface SenaryoBaglami {
   readonly aktorGraf: { calistir(aktor: string, graf: string): { ok: true } | { ok: false; neden: string }; durdur(aktor: string): boolean; calisiyor(aktor: string): boolean; sayi(): number; bitti(): Promise<void>;
     /** Hata ayıklama (spec 43 A4): Devam/Adım düğmeleri yalnız gerçek tıklamayla çalışır; senaryo bu yüzle sürdürür. */
     devam(): boolean; adim(): boolean; duraklayan(): string[] };
+  /** Ozyn'in AYAK konumu (spec 45 B9; `bpdene`): tetik bileşenlerinin gözlediği kaynakla aynı (`giris.ts` `gozlenenler`). Salt okunur. */
+  ozynKonumu(): { x: number; z: number };
   readonly ortam: {
     tanim(): LevelTanimi | null;
     kipAyarla(kip: "oturum" | "kalici"): void;
@@ -144,7 +146,7 @@ export const SENARYOLAR = [
   "zihindene", "onaydene", "tahtabeyin", "becerdene", "bakdene", "acidene", "saglobdene",
   "senaryodene", "eylemdene", "benlikdene", "apidene", "tahtadene", "hafizadene", "yuzdene", "baglamdene", "takipdene",
   "kapidene", "gozdene", "ovadene", "ortamdene", "gidene", "efektdene", "gromadene", "gozlemdene", "klipdene", "sekansdene", "kimododene", "rigdene", "kameradene", "grafdene",
-  "projedene", "dokdene", "icerikdene", "eklentidene", "leveldene", "aktordene",
+  "projedene", "dokdene", "icerikdene", "eklentidene", "leveldene", "aktordene", "bpdene",
 ] as const;
 export type SenaryoAdi = (typeof SENARYOLAR)[number];
 

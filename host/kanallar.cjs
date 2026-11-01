@@ -127,6 +127,7 @@ const CAGRI = {
   icerikTasi:        "icerik:tasi",
   icerikBirakAktar:  "icerik:birak-aktar",
   icerikGoster:      "icerik:goster",
+  icerikAktorYaz:    "icerik:aktor-yaz",
   /**
    * Orion'un sesi (spec 34, host/sesler.js): kurulu/katalog sesleri, seçim (bir SONRAKİ cümleden geçerli), katalogdan indirme, yalnız indirileni silme.
    * Sonuç biçimi md'ninkiyle aynı (`{ ok, deger: SesDurumu }` | `{ ok: false, kod, mesaj }`); deneme cümlesi mevcut `sesUret` yolundan çalar.

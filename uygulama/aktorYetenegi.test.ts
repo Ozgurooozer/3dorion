@@ -9,7 +9,10 @@ import { Scene } from "@babylonjs/core/scene";
 import { levelKur } from "../world/level/cekirdek/levelKur.ts";
 import { ornekTanim } from "../world/level/cekirdek/ornekTanim.ts";
 import type { LevelTanimi } from "../world/level/cekirdek/levelTanimi.ts";
-import { aktorYetenegiKur } from "./aktorYetenegi.ts";
+import { aktorYetenegiKur, gunlukluYetenek, levelHiyerarsisi } from "./aktorYetenegi.ts";
+import { aktorOlayYoluKur } from "../world/level/cekirdek/aktorOlayYolu.ts";
+import { aktorGunluguKur, bayraklariOku } from "./aktor/aktorGunlugu.ts";
+import { kodOku } from "../world/level/cekirdek/aktorHatalari.ts";
 
 function kur() {
   const t: LevelTanimi = ornekTanim();
@@ -103,4 +106,88 @@ test("level yokken okuma/yazma 'level açık değil' der", () => {
   const y = aktorYetenegiKur({ level: () => null }).yetenek;
   assert.throws(() => y.alanOku("i1", "siddet"), /level açık değil/);
   assert.throws(() => y.degiskenYaz("i1", "hiz", 1), /level açık değil/);
+});
+
+test("olay yolu (spec 45 B3): yayın yönü aktör/üst/alt hiyerarşiyi level tanımından izler; üst/alt arama; yol yoksa ve level yokken nedenle", () => {
+  const t: LevelTanimi = ornekTanim();
+  t.katmanlar = [];
+  t.isiklar = [
+    { id: "a", tur: "nokta", konum: [0, 1, 0], renk: "mavi", siddet: 1, menzil: 5 },
+    { id: "b", tur: "nokta", konum: [0, 1, 0], renk: "mavi", siddet: 1, menzil: 5, ust: "a" },
+    { id: "c", tur: "nokta", konum: [0, 1, 0], renk: "mavi", siddet: 1, menzil: 5, ust: "b" },
+    { id: "d", tur: "nokta", konum: [0, 1, 0], renk: "mavi", siddet: 1, menzil: 5, ust: "beden:orion" },
+  ];
+  const level = levelKur(new Scene(new NullEngine()), t, new Map());
+  const olay = aktorOlayYoluKur({ ...levelHiyerarsisi(() => level), hata: () => {} });
+  const y = aktorYetenegiKur({ level: () => level, olay }).yetenek;
+  const gelen: string[] = [];
+  olay.dinle("*", "*", (o) => gelen.push(`${o.aktor}<-${o.kaynak}:${o.ad}${o.veri["deger"] !== undefined ? `=${o.veri["deger"]}` : ""}`));
+  y.olayYayinla!("b", "x", {}, "aktor");
+  y.olayYayinla!("b", "u", { deger: 1 }, "ust");
+  y.olayYayinla!("b", "d", {}, "alt");
+  assert.deepEqual(gelen, ["b<-b:x", "a<-b:u=1", "c<-b:d"], "yön hiyerarşiyi izler: aktör yalnız kendine, ust üst zincirine, alt alt ağacına");
+  assert.deepEqual([y.ustBul!("c"), y.ustBul!("a"), y.ustBul!("d")], ["b", null, "beden:orion"], "beden üstü olduğu gibi, üstü olmayan null");
+  assert.deepEqual([y.altlar!("a"), y.altlar!("c")], [["b"], []]);
+  assert.throws(() => y.olayYayinla!("b", "bozuk ad", {}, "aktor"), /olay adı/, "yol reddi fırlatır (sessiz yutulmaz)");
+  assert.throws(() => aktorYetenegiKur({ level: () => level }).yetenek.olayYayinla!("b", "x", {}, "aktor"), /olay yolu kurulu değil/);
+  assert.throws(() => aktorYetenegiKur({ level: () => null, olay }).yetenek.ustBul!("a"), /level açık değil/);
+});
+
+// ── günlük sarmalayıcısı (spec 45 §13) ──
+function gunlukluKur(bayrak = "") {
+  const t: LevelTanimi = ornekTanim();
+  t.katmanlar = [];
+  t.isiklar = [{ id: "i1", tur: "nokta", konum: [1, 2, 3], renk: "mavi", siddet: 1.5, menzil: 8 }];
+  const sahne = new Scene(new NullEngine());
+  const level = levelKur(sahne, t, new Map());
+  const gunluk = aktorGunluguKur({ bayrak: bayraklariOku(bayrak) });
+  return { gunluk, y: aktorYetenegiKur({ level: () => level, gunluk }).yetenek };
+}
+
+test("günlük: yetenek hatası KODLU ve aktör adıyla günlüğe düşer, hata YİNE fırlar (düğüm hatayı alır)", () => {
+  const { gunluk, y } = gunlukluKur();
+  let yakalanan: unknown = null;
+  try { y.alanYaz("yok", "siddet", 1); } catch (e) { yakalanan = e; }
+  assert.equal(kodOku(yakalanan), "AKT-YTN-002");
+  const [k] = gunluk.son(5, { seviye: "hata" });
+  assert.equal(k!.kod, "AKT-YTN-002");
+  assert.equal(k!.kategori, "dugum");
+  assert.equal(k!.aktor, "yok");
+  assert.match(k!.metin, /^\[AKT-YTN-002\] alanYaz: aktör yok: yok$/, "kod iki kez basılmaz");
+});
+
+test("günlük: grafta kapalı alan YTN-003, olay yolu yokken OLY-007 (yetenek olmayan yoldan geçen kodlar korunur)", () => {
+  const { gunluk, y } = gunlukluKur();
+  assert.throws(() => y.alanYaz("i1", "olmayanalan", 1));
+  assert.throws(() => y.olayYayinla!("i1", "x", {}, "aktor"));
+  assert.deepEqual(gunluk.son(5, { seviye: "hata" }).map((k) => k.kod), ["AKT-YTN-003", "AKT-OLY-007"]);
+});
+
+test("günlük: salt okuma sessiz, yazma ayrıntılı 'dugum' bayrağı açıkken izlenir (kapalıyken günlüğü şişirmez)", () => {
+  const kapali = gunlukluKur();
+  kapali.y.alanOku("i1", "siddet"); kapali.y.alanYaz("i1", "siddet", 2);
+  assert.equal(kapali.gunluk.son().length, 0);
+  const acik = gunlukluKur("dugum");
+  acik.y.alanOku("i1", "siddet"); acik.y.alanYaz("i1", "siddet", 2);
+  const m = acik.gunluk.son().map((k) => k.metin);
+  assert.deepEqual(m, ['alanYaz("i1", "siddet", 2)'], "yalnız yazma izlenir; okuma yok");
+  assert.equal(acik.gunluk.son()[0]!.aktor, "i1");
+});
+
+test("günlük: dönüş değeri ve geriAl/gecici değişmez (sarmalayıcı şeffaf)", () => {
+  const { y } = gunlukluKur();
+  assert.equal(y.var("i1"), true);
+  assert.equal(y.alanOku("i1", "siddet"), 1.5);
+  assert.equal(y.degiskenOku("i1", "yok"), undefined);
+});
+
+test("günlük: kodsuz (beklenmeyen) istisna uydurma koda bağlanmaz: kod boş, metin olduğu gibi, yine fırlar", () => {
+  const { gunluk } = gunlukluKur();
+  const ham = { var: () => { throw new Error("beklenmedik"); }, alanOku: () => 0, alanYaz: () => {}, degiskenOku: () => undefined, degiskenYaz: () => {} };
+  const y = gunlukluYetenek(ham, gunluk);
+  assert.throws(() => y.var("x"), /beklenmedik/);
+  const k = gunluk.son(1)[0]!;
+  assert.equal(k.kod, null);
+  assert.equal(k.seviye, "hata");
+  assert.equal(k.metin, "var: beklenmedik");
 });

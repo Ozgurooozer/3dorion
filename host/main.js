@@ -17,7 +17,7 @@ import { mdAktifYap, mdDizini, mdListe, mdOku, mdTohumla, mdYaz, mdYeni } from "
 import { grafDizini, grafListe, grafOku, grafSil, grafYaz, grafYeni } from "./grafDosyalari.js";
 import { npcDizini, npcListe, npcOku, npcSil, npcYaz, npcYeni } from "./npcDosyalari.js";
 import { sekansDizini, sekansListe, sekansOku, sekansSil, sekansYaz, sekansYeni } from "./sekansDosyalari.js";
-import { adresCoz as icerikAdresiCoz, adlandir as icerikAdlandir, cogalt as icerikCogalt, icerikIkili, icerikListe, icerikMetin, iceAktar as icerikIceAktar, sil as icerikSil, tasi as icerikTasi, yeniKlasor as icerikYeniKlasor, ICE_AKTAR_UZANTILARI } from "./icerik.js";
+import { adresCoz as icerikAdresiCoz, adlandir as icerikAdlandir, cogalt as icerikCogalt, icerikIkili, icerikListe, icerikMetin, aktorYaz as icerikAktorYaz, iceAktar as icerikIceAktar, sil as icerikSil, tasi as icerikTasi, yeniKlasor as icerikYeniKlasor, ICE_AKTAR_UZANTILARI } from "./icerik.js";
 import { icerikDizini, projeAc as projeAcDosyadan, projeDurumu, projeHazirla, projeOlustur, projeSablonu, projeVarsayilanLevelYaz, projelerKoku, sonProjeYaz } from "./proje.js";
 import { levelKaydet, levelMetniniDenetle, levelOku, levelOlustur } from "./levelDosyasi.js";
 import { kararYaziciKur, ogretimYolu, ogretimleriOku, satirlariOku, yeniSatirlar } from "./kararDosyasi.js";
@@ -189,6 +189,8 @@ function pencereAc() {
   if (process.env.ORION_LEVELDENE === "1") parcalar.push("leveldene=1", "sessiz=1");
   // Aktör grafı (spec 43 A3): Details graf seçimi, @bu ışık yazma/geri alma, ■, hata, isTrusted kapısı.
   if (process.env.ORION_AKTORDENE === "1") parcalar.push("aktordene=1", "sessiz=1");
+  // Blueprint JSON arayüzü (spec 45 B7): Details bileşenleri, hiyerarşi, şablon, glb soketi (geçici projede).
+  if (process.env.ORION_BPDENE === "1") parcalar.push("bpdene=1", "sessiz=1");
   // Spec 25 Faz 2: görme. `ORION_GOZ` görme modelini seçer (varsayılan bridge/goz.ts'te).
   if (process.env.ORION_GOZDENE === "1") parcalar.push("gozdene=1", "sessiz=1");
   if (process.env.ORION_GOZ) parcalar.push(`goz=${encodeURIComponent(process.env.ORION_GOZ)}`);
@@ -576,6 +578,7 @@ const icerikKokleri = () => ({ ...(PROJE ? { Content: PROJE.icerik } : {}), Engi
 ipcMain.handle(CAGRI.icerikListe, (_e, kok) => ipcSonucu(() => icerikListe(icerikKokleri(), kok)));
 ipcMain.handle(CAGRI.icerikIkili, (_e, adres) => ipcSonucu(() => icerikIkili(icerikKokleri(), adres)));
 ipcMain.handle(CAGRI.icerikMetin, (_e, adres) => ipcSonucu(() => icerikMetin(icerikKokleri(), adres)));
+ipcMain.handle(CAGRI.icerikAktorYaz, (_e, ad, metin) => ipcSonucu(() => { const y = icerikAktorYaz(icerikKokleri(), ad, metin); console.log(`[icerik] aktör şablonu yazıldı: ${y}`); return y; }));
 ipcMain.handle(CAGRI.icerikYeniKlasor, (_e, adres) => ipcSonucu(() => icerikYeniKlasor(icerikKokleri(), adres)));
 ipcMain.handle(CAGRI.icerikAdlandir, (_e, adres, yeniAd) => ipcSonucu(() => { const y = icerikAdlandir(icerikKokleri(), adres, yeniAd); console.log(`[icerik] adlandırıldı: ${adres} → ${y}`); return y; }));
 ipcMain.handle(CAGRI.icerikCogalt, (_e, adres) => ipcSonucu(() => { const y = icerikCogalt(icerikKokleri(), adres); console.log(`[icerik] çoğaltıldı: ${adres} → ${y}`); return y; }));

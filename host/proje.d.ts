@@ -4,7 +4,7 @@ export const PROJE_SURUMU: number;
 export const PROJELER_KLASORU: string;
 export const ICERIK: string;
 export const KAYITLI: string;
-export type IcerikTuru = "level" | "karakter" | "animasyon" | "sekans" | "graf" | "npc" | "asset";
+export type IcerikTuru = "level" | "karakter" | "animasyon" | "sekans" | "graf" | "npc" | "asset" | "aktor";
 export const ICERIK_KLASORLERI: Readonly<Record<IcerikTuru, string>>;
 export function projeAdiGecerli(ad: unknown): ad is string;
 export function projelerKoku(env: Record<string, string | undefined>, belgeler: string, gecici: string): string;

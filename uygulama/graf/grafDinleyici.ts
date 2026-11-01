@@ -24,6 +24,7 @@ import { npcDogrula, type Npc } from "../../protocol/npc.ts";
 import { DESEN_CAGIR_TIPI, grafTurDenetle } from "./grafTurDenetimi.ts";
 import { calismaBaslat, sonucSatiri, type BaslamisCalisma, type CalismaTabani, type SonCalisma } from "./grafCalistirici.ts";
 import { olayTetikleri } from "./olayDugumleri.ts";
+import { AKTOR_ADRES_ONEKI } from "./aktorDugumleri.ts";
 import type { NpcBaglami } from "./dugumKaydi.ts";
 
 /** Aynı anda dinleme kaydı sayısı (NPC grafikleri dahil). 8: bir odadaki NPC'ler (nöbetçi, barmen, satıcı…) için bol; her biri bir abonelik ve olası bir çalışma. */
@@ -41,6 +42,8 @@ export interface DunyaOlayi { readonly ad: string; readonly ayrinti?: Readonly<R
 export interface OlayKaynagi {
   ajanlar(): readonly string[];
   dinle(ajan: string, cb: (o: DunyaOlayi) => void): () => void;
+  /** Aktör olayı adresinin (`aktor:<id>`) aktörü level'da var mı. Verilmezse aktör olayı dinlenemez (ajan kaynağı yalnız ajan bilir). */
+  aktorVar?(id: string): boolean;
 }
 
 /** Kompozisyon kökünün olay yolu: ajanın gözü `yay`ar, dinleyici `dinle`r. Gözü olmayan ajan `ajanEkle` edilmez → onun olayı dinlenemez (nedenle). */
@@ -217,7 +220,14 @@ export function grafDinleyiciKur<Y>(a: GrafDinleyiciAyari<Y>): GrafDinleyici {
     const tetikler = olayTetikleri(g, ben?.ajan ?? null);
     if (!tetikler.length) return { ok: false, neden: `'${ad}' hiçbir olayı dinlemiyor (olay düğümü yok: ▶ ile çalışır)` };
     const acik = a.kaynak.ajanlar();
-    const kapali = tetikler.find((t) => !acik.includes(t.ajan));
+    // Aktör adresi (`aktor:<id>`, spec 45 B3): ajan listesine değil aktör olay yoluna bakılır; kaynak aktör olaylarını bilmiyorsa nedenle reddedilir.
+    const aktorAdresi = (x: string): boolean => x.startsWith(AKTOR_ADRES_ONEKI);
+    const aktorKapali = tetikler.find((t) => aktorAdresi(t.ajan) && !(a.kaynak.aktorVar?.(t.ajan.slice(AKTOR_ADRES_ONEKI.length)) ?? false));
+    if (aktorKapali) {
+      const id = aktorKapali.ajan.slice(AKTOR_ADRES_ONEKI.length);
+      return { ok: false, neden: a.kaynak.aktorVar ? `'${id}' aktörü level'da yok (aktör olayı dinlenemez)` : "bu dünyada aktör olay yolu yok (level açık değil)" };
+    }
+    const kapali = tetikler.find((t) => !aktorAdresi(t.ajan) && !acik.includes(t.ajan));
     if (kapali) return { ok: false, neden: `'${kapali.ajan}' ajanının olayları grafiğe açık değil (açık: ${acik.join(", ") || "yok"}; Orion'un olaylarını kendi LLM'i dinler)` };
     // Aynı grafik AYNI ajanın olayını iki kayıtta dinlemez: iki program aynı bedeni aynı anda sürer, sayaç iki kez artardı. Ayrı ajanlar serbest.
     const ajanlari = new Set(tetikler.map((t) => t.ajan));

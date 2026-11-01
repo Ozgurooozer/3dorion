@@ -160,6 +160,8 @@ export interface Kopru {
   icerikAdlandir(adres: string, yeniAd: string): Promise<IpcSonuc<string>>;
   icerikCogalt(adres: string): Promise<IpcSonuc<string>>;
   icerikSil(adres: string): Promise<IpcSonuc<string>>;
+  /** Aktör şablonunu `Content/Actors/<ad>.aktor.json` yazar (spec 45 B6; var olanın üstüne yazmaz). Hata kodları: gecersiz-ad | gecersiz-icerik | cok-buyuk | var. */
+  icerikAktorYaz(ad: string, metin: string): Promise<IpcSonuc<string>>;
   icerikIceAktar(hedefAdres: string): Promise<IpcSonuc<{ eklenen: string[]; atlanan: { ad: string; neden: string }[] }>>;
   /** Aynı tür klasörü içinde `adres`i `hedefKlasor`e taşır (üstüne yazmaz); dönüş yeni adres. */
   icerikTasi(adres: string, hedefKlasor: string): Promise<IpcSonuc<string>>;

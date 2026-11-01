@@ -16,6 +16,10 @@ export interface IcerikOgesi { adres: string; klasor: boolean; boyut: number; de
 export function icerikListe(kokler: Kokler, kok: KokAdi): { kok: KokAdi; ogeler: IcerikOgesi[]; kesildi: boolean };
 export function icerikIkili(kokler: Kokler, adres: string): { adres: string; boyut: number; base64: string };
 export function icerikMetin(kokler: Kokler, adres: string): string;
+export const AKTOR_UZANTISI: string;
+export const AKTOR_TAVAN: number;
+/** Hata `kod`ları: gecersiz-ad | gecersiz-icerik | cok-buyuk | var | salt-okunur | kok-yok. Var olanın üstüne yazmaz; dönüş: `Content/Actors/<ad>.aktor.json`. */
+export function aktorYaz(kokler: Kokler, ad: string, metin: string): string;
 /** Hata `kod`ları: gecersiz-ad | gecersiz-adres | var | yok | salt-okunur. */
 export function yeniKlasor(kokler: Kokler, adres: string): string;
 /** Hata `kod`ları: korumali | gecersiz-ad | var | yok | salt-okunur. Dönüş: yeni adres. */

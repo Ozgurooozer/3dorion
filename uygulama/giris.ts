@@ -150,6 +150,8 @@ import { grafDeposuKur, grafKaynaginiSec } from "./graf/grafDeposu.ts";
 import { npcDeposuKur, npcKaynaginiSec } from "./graf/npcDeposu.ts";
 import { grafCalistiriciKur, type GrafCalistirici } from "./graf/grafCalistirici.ts";
 import { grafDinleyiciKur, olayYoluKur, type GrafDinleyici } from "./graf/grafDinleyici.ts";
+import { aktorOlayKaynagiKur } from "./graf/aktorOlayKaynagi.ts";
+import type { Gozlenen } from "./aktor/tetikModeli.ts";
 import { GrafDurumDeposu } from "./graf/grafDurumu.ts";
 import { diyalogDenetimiKur } from "./graf/diyalogDenetimi.ts";
 import { diyalogKutusuKur } from "./yapi/diyalogKutusu.ts";
@@ -166,6 +168,8 @@ import { icerikPaneliKur, ICERIK_PANELI_KIMLIGI } from "./yapi/icerik/icerikPane
 import { varlikPenceresiKur } from "./yapi/onizleme/varlikPenceresi.ts";
 import { outlinerPaneliKur } from "./yapi/outliner/outlinerPaneli.ts";
 import { levelBaglantisiKur } from "./levelBaglantisi.ts";
+import { bedenSoketiCozucu } from "./aktor/bedenSoketleri.ts";
+import { aktorGunluguKur, bayraklariOku, bayraklariUygula, GECERLI_BAYRAKLAR, gunlukSatiri, type GunlukKaydi } from "./aktor/aktorGunlugu.ts";
 import { aktorCalistiriciKur } from "./graf/aktorCalistirici.ts";
 import { hataAyiklayiciKur } from "./graf/hataAyiklayici.ts";
 import { calismaGunluguKur } from "./graf/calismaGunlugu.ts";
@@ -511,6 +515,7 @@ saat.dinle((t, dt) => {
   const kopru = yol.al("kopru");
   oyuncu.guncelle(t, dt);
   rig.guncelle(dt);
+  levelBaglantisi.aktorZamani.kare(dt);   // aktör bileşenleri: tetik, hareket, üst/soket bağları (spec 45 B4)
 
   const msSimdi = t * 1000;
 
@@ -778,11 +783,42 @@ const yapi = yapiPaneliKur(dokSistemi, {
   izin: () => imlec.acik || imlec.ac(),
 });
 // YENİ LEVEL + IŞIKLAR (spec 42): Dosya ▸ Yeni level… (projeye level dosyası yazar) ve Işıklar paneli (açık level'a nokta ışık ekle/düzenle/kaydet). Kablolama `levelBaglantisi.ts`te.
+// AKTÖR GÜNLÜĞÜ (spec 45 §13): kodlu hata/uyarı HER ZAMAN konsola ve Ozyn'in günlüğüne gider (aynı hata ardışık gelirse 1/10/100… katlarında); ayrıntılı iz bayrakla:
+// `?aktor=olay,tetik,-hareket` ya da `hepsi`; çalışırken `aktorDebug.bayrak(...)`. Tanınmayan bayrak AKT-BYR-001 uyarısı verir, sessiz yutulmaz.
+const aktorBayrak = bayraklariOku(new URLSearchParams(location.search).get("aktor"));
+const aktorGunlugu = aktorGunluguKur({
+  simdi: () => performance.now() / 1000,
+  bayrak: aktorBayrak,
+  cikis: (k: GunlukKaydi) => {
+    const satir = gunlukSatiri(k);
+    (k.seviye === "hata" ? console.error : k.seviye === "uyari" ? console.warn : console.log)(`[AKTOR] ${satir}`);
+    gunluk.ekle(k.seviye, "aktor", satir.split(/\r?\n/)[0] ?? satir);
+  },
+});
+for (const b of aktorBayrak.bilinmeyen) aktorGunlugu.uyari("zaman", "AKT-BYR-001", `tanınmayan bayrak '${b}' (geçerli: ${GECERLI_BAYRAKLAR})`);
 const levelBaglantisi = levelBaglantisiKur({
+  aktorGunlugu,
   dok: dokSistemi, sahne, tuval, level: () => gecis.birlesik()?.level ?? null, kamera: rig.kamera, kopru: window.kopru,
   imlecIzni: () => imlec.acik || imlec.ac(), altyazi: altyaziGoster,
   grafAdlari: () => grafDeposu.liste().filter((k) => !k.hata && k.tur === "olay").map((k) => k.ad),
+  // Beden soketleri (spec 45 B5): `ust: "beden:orion"` + `soket: "el_sag"` → avatarın eklem matrisi; yüklenmemiş beden null (çalışma zamanı AKT-BAG-012 yazar).
+  bedenSoketi: bedenSoketiCozucu((ad) => (ad === "orion" ? yol.al("orion") : ad === FLASH.id ? flashBag?.avatar ?? null : null)),
+  // Tetik bileşenlerinin gözleyeceği kişiler (spec 45 B4): Ozyn (AYAK konumu) ve gövdesi olan ajanlar (Orion = "orion", ötekiler "ajan").
+  gozlenenler: () => {
+    const d = oyuncu.oyuncuDurumu();
+    const l: Gozlenen[] = [{ id: "ozyn", tur: "ozyn", konum: { x: d.konum.x, y: d.konum.y - oyuncu.gozYuksekligi, z: d.konum.z } }];
+    for (const x of ajanlar.hepsi()) { const k = grafKapisi(x.id)?.govde?.()?.konum; if (k) l.push({ id: x.id, tur: x.id === "orion" ? "orion" : "ajan", konum: { x: k.x, y: k.y, z: k.z } }); }
+    return l;
+  },
 });
+// Konsoldan hata ayıklama (DEBUG, protokol değil): `aktorDebug.durum()` bağlar/tetikler/uyarılar dökümü, `.son(20,{seviye:"hata"})`, `.bayrak("olay,-tetik")`, `.sayim()`.
+window.aktorDebug = {
+  durum: () => levelBaglantisi.aktorZamani.hataAyiklama(),
+  son: (n, suzgec) => aktorGunlugu.son(n, suzgec),
+  sayim: () => aktorGunlugu.sayim(),
+  bayrak: (metin) => { const o = bayraklariUygula(aktorGunlugu, metin); return { bilinmeyen: o.bilinmeyen, ...aktorGunlugu.bayraklar() }; },
+  temizle: () => aktorGunlugu.temizle(),
+};
 // EKLENTİ DEFTERİ (spec 40): motorun açılıp kapanan parçaları. Kayıt localStorage'da; senaryo koşusunda (gerçek kayda yazılmasın) ve `?eklenti=` ile (ORION_EKLENTI) geçersiz kılınır.
 const eklentiler = eklentiDefteriKur({
   depo: istenenSenaryolar(location.search).length ? null : { oku: () => { try { return localStorage.getItem("orion.eklentiler.v1"); } catch { return null; } }, yaz: (m) => { try { localStorage.setItem("orion.eklentiler.v1", m); } catch { /* depo yok: yalnız bu oturum */ } } },
@@ -936,7 +972,7 @@ const grafTabani = {
 const hataAyiklayici = hataAyiklayiciKur();
 const calismaGunlugu = calismaGunluguKur();
 const grafCalistirici: GrafCalistirici = grafCalistiriciKur({ ...grafTabani, ayiklayici: hataAyiklayici, gunlukDefteri: calismaGunlugu, mesgul: (ad) => (grafDinleyici.calisiyorMu(ad) ? "şu an olayla (⚡) çalışıyor" : null) });
-const grafDinleyici: GrafDinleyici = grafDinleyiciKur({ ...grafTabani, kaynak: grafOlaylari, disMesgul: (ad) => grafCalistirici.durum().calisiyor?.graf === ad });
+const grafDinleyici: GrafDinleyici = grafDinleyiciKur({ ...grafTabani, kaynak: aktorOlayKaynagiKur({ ajan: grafOlaylari, olay: levelBaglantisi.aktorOlaylari, aktorVar: (id) => levelBaglantisi.aktor.yetenek.var(id) }), disMesgul: (ad) => grafCalistirici.durum().calisiyor?.graf === ad });
 // AKTÖR GRAFI ▶/■ (spec 43 A3): aktörün Details'inden, `@bu` = o aktör; aktör başına 1, toplam 4. Çalışma bitince aktörün geçici yazmaları geri alınır.
 const aktorCalistirici = aktorCalistiriciKur({ tabani: grafTabani, ayiklayici: hataAyiklayici, gunlukDefteri: calismaGunlugu, geriAl: (id) => levelBaglantisi.aktor.geriAl(id), var: (id) => levelBaglantisi.aktor.yetenek.var(id) });
 levelBaglantisi.aktorCalistiriciBagla(aktorCalistirici);
@@ -1459,6 +1495,7 @@ const senaryoBaglami: SenaryoBaglami = {
   levelIsik: { baglanti: levelBaglantisi, level: () => gecis.birlesik()?.level ?? null },
   aktorGraf: { calistir: (a, g) => aktorCalistirici.calistir(a, g), durdur: (a) => aktorCalistirici.durdur(a), calisiyor: (a) => aktorCalistirici.calisiyor(a) !== null, sayi: () => aktorCalistirici.sayi(), bitti: () => aktorCalistirici.bitti(),
     devam: () => hataAyiklayici.devam(), adim: () => hataAyiklayici.adim(), duraklayan: () => hataAyiklayici.duraklamalar().map((y) => y.id) },
+  ozynKonumu: () => { const k = oyuncu.oyuncuDurumu().konum; return { x: k.x, z: k.z }; },
   icerik: icerikPaneli,
   onizleme: varlikPenceresi,
   outliner,

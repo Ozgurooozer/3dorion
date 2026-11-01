@@ -121,6 +121,11 @@ export const ALT_SISTEMLER: readonly AltSistem[] = [
       "world/level/stil/stilTanimi.ts", "world/level/depo/httpDeposu.ts",
       // Nesne/Kutu tipleri (B5 tip yarısı): ofis (Sahne) bunları Level'den yeniden dışa verir.
       "world/level/cekirdek/nesneTipi.ts",
+      // Aktör olay yolu (spec 45 B2): saf dağıtım; uygulama/ graf düğümleri ve level bağlantısı kullanır (Babylon'suz, DOM'suz).
+      "world/level/cekirdek/aktorOlayYolu.ts",
+      // Bileşen kaydı (spec 45 B1): saf tür/şema tablosu; çalışma zamanı (uygulama/aktor/) tetik/hareket/soket ayarlarını buradan okur.
+      "world/level/cekirdek/bilesenKaydi.ts",
+      "world/level/cekirdek/aktorHatalari.ts",
       // Ova level verisi: uygulama/yerGecisi.ts birleşik dünyayı bu tanımla kurar (`?url` ile paketlenir).
       "world/level/ova/ova.level.json",
       // Yeni level şablonları (spec 42): uygulama/levelBaglantisi.ts "Yeni level…" için `?url` ile paketler.

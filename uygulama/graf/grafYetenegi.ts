@@ -65,6 +65,22 @@ export interface AktorYetenegi {
   alanYaz(id: string, alan: string, deger: string | number | boolean): void;
   degiskenOku(id: string, ad: string): string | number | boolean | undefined;
   degiskenYaz(id: string, ad: string, deger: string | number | boolean): void;
+  /**
+   * Aktör olay yolu (spec 45 B3): `yon` "aktor" = yalnız o aktörün dinleyicileri, "ust" = üst zinciri, "alt" = alt ağacı. Opsiyonel: olay yolu kurulu değilse
+   * (senaryo/test dünyası) düğüm nedenle düşer. Tavan aşımı da FIRLATIR (nedenle; sessiz yutulmaz).
+   */
+  olayYayinla?(id: string, ad: string, veri: Readonly<Record<string, string | number | boolean>>, yon: "aktor" | "ust" | "alt"): void;
+  /** Aktörün üstü (`beden:<ad>` olduğu gibi döner); üstü yoksa null. */
+  ustBul?(id: string): string | null;
+  /** Aktörün doğrudan altları (tanım sırasıyla). */
+  altlar?(id: string): readonly string[];
+  /**
+   * Çalışma zamanı (spec 45 B4; level tanımına/diske YAZMAZ, level yeniden kurulunca gider): hareket bileşenine komut (ileri hız m/s, dönme °/s; 0,0 = dur),
+   * aktörü üste/sokete takma (`ust`: aktör kimliği ya da `beden:<ad>`) ve ayırma. Hepsi nedenle fırlatır.
+   */
+  hareketEt?(id: string, hiz: number, donus: number): void;
+  soketeTak?(id: string, ust: string, soket?: string): void;
+  sokettanAl?(id: string): void;
 }
 
 /** Düğümlerin gördüğü dünya (dar). */

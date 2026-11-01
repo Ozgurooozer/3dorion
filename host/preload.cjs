@@ -99,6 +99,7 @@ contextBridge.exposeInMainWorld("kopru", {
   icerikAdlandir:   (adres, yeniAd) => ipcRenderer.invoke(CAGRI.icerikAdlandir, adres, yeniAd),
   icerikCogalt:     (adres) => ipcRenderer.invoke(CAGRI.icerikCogalt, adres),
   icerikSil:        (adres) => ipcRenderer.invoke(CAGRI.icerikSil, adres),
+  icerikAktorYaz:   (ad, metin) => ipcRenderer.invoke(CAGRI.icerikAktorYaz, ad, metin),
   icerikIceAktar:   (hedefAdres) => ipcRenderer.invoke(CAGRI.icerikIceAktar, hedefAdres),
   icerikTasi:       (adres, hedefKlasor) => ipcRenderer.invoke(CAGRI.icerikTasi, adres, hedefKlasor),
   // Explorer'dan bırakılan dosyalar: yollar yalnız burada (webUtils) çözülür; ana süreç uzantı/boyut/hedef kuralını yine uygular.

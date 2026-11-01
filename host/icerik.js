@@ -14,7 +14,7 @@
 //   6. İÇE AKTARMA yalnız glb/png/jpg/jpeg/webp, en çok 128 MB, Content'e (Assets altında); ad geçersizse temizlenir, çakışırsa " 2" eklenir.
 import fs from "node:fs";
 import path from "node:path";
-import { kodluHata } from "./dosyaKlasoru.js";
+import { atomikYaz, kodluHata } from "./dosyaKlasoru.js";
 import { grafAdiGecerli } from "./grafDosyalari.js";
 import { levelAdiGecerli, LEVEL_UZANTISI } from "./levelDosyasi.js";
 import { ICERIK_KLASORLERI, kopyala } from "./proje.js";
@@ -27,7 +27,10 @@ export const ICE_AKTAR_UZANTILARI = Object.freeze([".glb", ".png", ".jpg", ".jpe
 const LISTE_TAVANI = 6000;
 const DERINLIK_TAVANI = 10;
 const AYRILMIS = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
-const DUZ_KLASORLER = Object.freeze(["Sequences", "Graphs", "NPC"]);
+const DUZ_KLASORLER = Object.freeze(["Sequences", "Graphs", "NPC", "Actors"]);
+/** Aktör şablonları (spec 45 §8, B6): `Content/Actors/<ad>.aktor.json`, düz klasör; ad `grafAdiGecerli`. Şablonun İÇERİĞİNİ renderer doğrular (host JSON ve boyuta bakar). */
+export const AKTOR_UZANTISI = ".aktor.json";
+export const AKTOR_TAVAN = 256 * 1024;
 const KORUMALI = new Set(Object.values(ICERIK_KLASORLERI));
 
 /** Tek bir dosya/klasör adı geçerli mi (yol ayracı, gizli, Windows'ta geçersiz karakter, ayrılmış ad yok). */
@@ -124,6 +127,9 @@ function adKuraliniDene(ustParcalar, ad, klasor) {
       if (!klasor) throw kodluHata("gecersiz-ad", "Levels'a yalnız level klasörü girer");
       if (!levelAdiGecerli(ad)) throw kodluHata("gecersiz-ad", `level adı küçük harf, rakam ve tire olmalı: ${JSON.stringify(ad)}`);
     }
+  } else if (tur === "Actors") {
+    if (ustParcalar.length !== 2 || klasor) throw kodluHata("gecersiz-ad", "Actors düz bir klasördür (alt klasör açılmaz)");
+    if (!ad.endsWith(AKTOR_UZANTISI) || !grafAdiGecerli(ad.slice(0, -AKTOR_UZANTISI.length))) throw kodluHata("gecersiz-ad", `Actors dosyası '<ad>${AKTOR_UZANTISI}' olmalı (harf, rakam, _ ve -; en çok 48): ${JSON.stringify(ad)}`);
   } else if (DUZ_KLASORLER.includes(tur ?? "")) {
     if (ustParcalar.length !== 2 || klasor) throw kodluHata("gecersiz-ad", `${tur} düz bir klasördür (alt klasör açılmaz)`);
     if (!ad.endsWith(".json") || !grafAdiGecerli(ad.slice(0, -5))) throw kodluHata("gecersiz-ad", `${tur} dosyası '<ad>.json' olmalı (harf, rakam, _ ve -; en çok 48): ${JSON.stringify(ad)}`);
@@ -141,6 +147,24 @@ export function yeniKlasor(kokler, adres) {
   if (!fs.existsSync(ustTam) || !fs.statSync(ustTam).isDirectory()) throw kodluHata("yok", `üst klasör yok: ${ust.join("/")}`);
   yoksaOlustur(c.tam);
   fs.mkdirSync(c.tam);
+  return c.adres;
+}
+
+/**
+ * Aktör şablonunu `Content/Actors/<ad>.aktor.json` olarak yazar (spec 45 §8). VAR OLANIN ÜSTÜNE YAZMAZ (`var`); klasör yoksa açılır (eski projelerde Actors yok).
+ * Host yalnız ad, JSON nesnesi olması ve boyutu denetler; şablon şeması renderer'da (`uygulama/aktor/aktorSablonu.ts`) hem yazarken hem okurken doğrulanır. Dönüş: adres.
+ */
+export function aktorYaz(kokler, ad, metin) {
+  if (!grafAdiGecerli(ad)) throw kodluHata("gecersiz-ad", `şablon adı geçersiz: ${JSON.stringify(ad)} (harf, rakam, _ ve -; en çok 48)`);
+  if (typeof metin !== "string") throw kodluHata("gecersiz-icerik", "şablon metni metin olmalı");
+  if (Buffer.byteLength(metin, "utf8") > AKTOR_TAVAN) throw kodluHata("cok-buyuk", `şablon ${AKTOR_TAVAN / 1024} KB sınırını aşıyor`);
+  let j;
+  try { j = JSON.parse(metin); } catch { throw kodluHata("gecersiz-icerik", "şablon geçerli JSON değil"); }
+  if (typeof j !== "object" || j === null || Array.isArray(j)) throw kodluHata("gecersiz-icerik", "şablon bir JSON nesnesi olmalı");
+  const c = adresCoz(kokler, `Content/Actors/${ad}${AKTOR_UZANTISI}`, { yazma: true });
+  fs.mkdirSync(path.dirname(c.tam), { recursive: true });
+  yoksaOlustur(c.tam);
+  atomikYaz(c.tam, metin);
   return c.adres;
 }
 
@@ -165,7 +189,8 @@ export function icAdiUydur(tam, eskiGovde, yeniGovde) {
   } catch { return false; }
 }
 const duzDosyaMi = (parcalar, klasor) => !klasor && parcalar.length === 3 && DUZ_KLASORLER.includes(turKlasoru(parcalar) ?? "") && parcalar[2].endsWith(".json");
-const govdeJson = (ad) => ad.slice(0, -5);
+/** Düz dosyanın gövdesi (içteki `ad` alanı bununla eşleşir): `x.json` → `x`, `x.aktor.json` → `x`. */
+const govdeJson = (ad) => ad.slice(0, -(ad.endsWith(AKTOR_UZANTISI) ? AKTOR_UZANTISI.length : 5));
 const levelKlasoruMu = (parcalar) => parcalar[0] === "Content" && parcalar[1] === "Levels" && parcalar.length === 3;
 
 export function adlandir(kokler, adres, yeniAd) {

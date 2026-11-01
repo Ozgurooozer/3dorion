@@ -23,7 +23,7 @@ export const ICERIK = "Content";
 export const KAYITLI = "Saved";
 /** İçerik türü → Content altındaki klasör (Unreal adları: Content Browser'da Ozyn bunları görür). */
 export const ICERIK_KLASORLERI = Object.freeze({
-  level: "Levels", karakter: "Characters", animasyon: "Animations", sekans: "Sequences", graf: "Graphs", npc: "NPC", asset: "Assets",
+  level: "Levels", karakter: "Characters", animasyon: "Animations", sekans: "Sequences", graf: "Graphs", npc: "NPC", asset: "Assets", aktor: "Actors",
 });
 const SON_TAVAN = 10;
 const AYRILMIS = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;

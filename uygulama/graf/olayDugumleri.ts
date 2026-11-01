@@ -12,6 +12,7 @@
 import type { Graf, PinTanimi } from "../../protocol/graf.ts";
 import { AKIS_SONRA, type AyarTanimi, type DugumTanimi } from "./dugumKaydi.ts";
 import { BEN, ajanCoz, benDenetle, benliAjanSecenekleri } from "./benAjani.ts";
+import { AKTOR_ADRES_ONEKI, AKTOR_OLAYI_TIPI } from "./aktorDugumleri.ts";
 
 interface OlayTanimi {
   tip: string;
@@ -62,6 +63,12 @@ export function olayDugumleri<Y>(): DugumTanimi<Y>[] {
 export function olayTetikleri(g: Graf, ben: string | null = null): { dugum: string; ajan: string; olay: string }[] {
   const l: { dugum: string; ajan: string; olay: string }[] = [];
   for (const d of g.dugumler) {
+    // Aktör olayı (spec 45 B3): adres `aktor:<id>`, olay = olay adı (aktorOlayKaynagi.ts bu adresi aktör olay yoluna yönlendirir).
+    if (d.tip === AKTOR_OLAYI_TIPI) {
+      const id = d.ayar?.["aktor"], olay = d.ayar?.["olay"];
+      if (typeof id === "string" && id && typeof olay === "string" && olay) l.push({ dugum: d.id, ajan: `${AKTOR_ADRES_ONEKI}${id}`, olay });
+      continue;
+    }
     const t = OLAY_TANIMLARI.find((x) => x.tip === d.tip);
     const ajan = d.ayar?.["ajan"];
     if (t && typeof ajan === "string" && ajan) l.push({ dugum: d.id, ajan: ajan === BEN && ben ? ben : ajan, olay: t.olay });

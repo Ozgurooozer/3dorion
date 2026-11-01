@@ -88,7 +88,7 @@ export interface Kart {
 }
 
 /** Projenin tür klasörleri (host/proje.js `ICERIK_KLASORLERI`); yeniden adlanmaz/silinmez. Ayrışırsa icerikModeli.test.ts kırılır. */
-export const TUR_KLASORLERI: readonly string[] = ["Levels", "Characters", "Animations", "Sequences", "Graphs", "NPC", "Assets"];
+export const TUR_KLASORLERI: readonly string[] = ["Levels", "Characters", "Animations", "Sequences", "Graphs", "NPC", "Assets", "Actors"];
 
 const PAKET_TURLERI = [".level.json", ".karakter.json"] as const;
 

@@ -7,6 +7,7 @@ import { grafDogrula, type Graf } from "../../../protocol/graf.ts";
 import { DugumKaydi, type PinOrtami } from "../dugumKaydi.ts";
 import { uyumlu } from "../grafTurDenetimi.ts";
 import { grafKutuphanesi, yeniDesenSablonu } from "../kutuphane.ts";
+import { AKTOR_DUGUMU } from "../aktorDugumleri.ts";
 import { KATEGORI_SIRASI, paletGrupla, paletOgeleri, paletSuz, yeniDugumAyari } from "./palet.ts";
 
 const KAYIT = grafKutuphanesi();
@@ -83,7 +84,8 @@ test("dünya değişkenleri 'Dünya değişkenleri' grubunda: Saat, Konum, Ajan 
 
 test("aktör düğümleri kendi 'Aktör' grubunda (Dünya değişkenleri kısayolunu kirletmez)", () => {
   const g = paletGrupla(OGELER).find((x) => x.kategori === "aktor")!;
-  assert.deepEqual(g.ogeler.map((o) => o.tip).sort(), ["aktor.degisken_oku", "aktor.degisken_yaz", "aktor.oku", "aktor.yaz"]);
+  // Aktör ailesinin tamamı (AKTOR_DUGUMU tek kaynak): yeni düğüm eklenince bu liste elle güncellenmez; ailenin DIŞINDAN bir düğüm sızarsa test kırılır.
+  assert.deepEqual(g.ogeler.map((o) => o.tip).sort(), Object.values(AKTOR_DUGUMU).sort());
 });
 
 test("palet öğesinin ilk ayarıyla eklenen düğüm biçimden geçer (her öğe)", () => {
