@@ -48,6 +48,8 @@ export interface IsiklarPaneli {
 
 const CSS = `
 .il-kok { display: flex; flex-direction: column; height: 100%; min-height: 0; background: #0c111e; color: ${R.yazi}; font: ${YAPI_YAZI.govde}; outline: none; }
+/* Dok içeriği kökü [data-dok] olarak yerleştirir ve kendi kuralıyla display: block yapar (dokStili): o zaman .il-detay flex: 1 işlemez, Details uzayınca panel kaymaz ve alt dok altına taşar (spec 45 B7, bpdene P2b). Daha özgül kural flex'i geri verir. */
+.dk-icerik > .il-kok[data-dok][data-etkin="1"] { display: flex; }
 .il-arac { display: flex; align-items: center; gap: 6px; padding: 5px 8px; border-bottom: 1px solid ${R.cizgi}; flex: none; }
 .il-arac .il-bosluk { flex: 1; } .il-rozet { color: ${R.uyari}; font-size: 11.5px; }
 .il-kok button { background: ${R.dugme}; color: ${R.yazi}; border: 1px solid ${R.cizgi}; border-radius: 5px; padding: 2px 9px; font: inherit; cursor: pointer; }

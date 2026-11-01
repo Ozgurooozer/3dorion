@@ -63,32 +63,43 @@ function sayiGirdisi(deger: number, s: { adim?: number; en?: number; cok?: numbe
   return g;
 }
 
-function alanSatiri(g: DetayGirdisi, s: Extract<DetaySatiri, { tur: "alan" }>): void {
+const alanSatiri = (g: DetayGirdisi, s: Extract<DetaySatiri, { tur: "alan" }>): void => alanSatiriCiz(g.hedef, s, g.alanYaz);
+
+/** Tek alan satırını `hedef`e çizer (etiket + tipine uygun giriş). Aktörün kendi alanları ve bileşen alanları (`bilesenDetayPaneli.ts`) AYNI çiziciyi kullanır. */
+export function alanSatiriCiz(hedef: HTMLElement, s: Extract<DetaySatiri, { tur: "alan" }>, yaz: (ad: string, deger: AlanDegeri) => void): void {
   const etiket = el("label", "", s.birim ? `${s.etiket} (${s.birim})` : s.etiket);
-  const tazele = () => g.alanYaz(s.ad, s.deger);   // geçersiz giriş: eski değeri yeniden yazıp paneli tazeler (yazma no-op)
-  if (s.tip === "sayi") { g.hedef.append(etiket, sayiGirdisi(s.deger as number, s, (v) => g.alanYaz(s.ad, v), tazele)); return; }
+  const tazele = () => yaz(s.ad, s.deger);   // geçersiz giriş: eski değeri yeniden yazıp paneli tazeler (yazma no-op)
+  if (s.tip === "sayi") { hedef.append(etiket, sayiGirdisi(s.deger as number, s, (v) => yaz(s.ad, v), tazele)); return; }
   if (s.tip === "bool") {
     const c = el("input"); c.type = "checkbox"; c.checked = s.deger === true;
-    c.addEventListener("change", () => g.alanYaz(s.ad, c.checked));
-    g.hedef.append(etiket, c); return;
+    c.addEventListener("change", () => yaz(s.ad, c.checked));
+    hedef.append(etiket, c); return;
   }
   if (s.tip === "renk") {
     const c = el("input"); c.type = "color"; c.value = typeof s.deger === "string" && hexMi(s.deger) ? s.deger : "#ffd9a0";
-    c.addEventListener("change", () => g.alanYaz(s.ad, c.value));
-    g.hedef.append(etiket, c); return;
+    c.addEventListener("change", () => yaz(s.ad, c.value));
+    hedef.append(etiket, c); return;
   }
   if (s.tip === "vec3") {
     const v = s.deger as [number, number, number];
     const uc = el("div", "il-uc");
     for (const k of [0, 1, 2] as const) {
-      const i = sayiGirdisi(v[k], s, (y) => { const yeni: [number, number, number] = [...v]; yeni[k] = y; g.alanYaz(s.ad, yeni); }, tazele);
+      const i = sayiGirdisi(v[k], s, (y) => { const yeni: [number, number, number] = [...v]; yeni[k] = y; yaz(s.ad, yeni); }, tazele);
       i.title = "XYZ"[k]!; uc.append(i);
     }
-    g.hedef.append(etiket, uc); return;
+    hedef.append(etiket, uc); return;
+  }
+  if (s.secenekler?.length) {
+    // Kapalı küme (tetik şekli, "kim girince"): yazım hatası yapılamasın.
+    const sec = el("select");
+    for (const o of s.secenekler) { const x = el("option", "", o); x.value = o; sec.append(x); }
+    sec.value = String(s.deger);
+    sec.addEventListener("change", () => yaz(s.ad, sec.value));
+    hedef.append(etiket, sec); return;
   }
   const m = el("input"); m.type = "text"; m.value = String(s.deger);
-  m.addEventListener("change", () => g.alanYaz(s.ad, m.value));
-  g.hedef.append(etiket, m);
+  m.addEventListener("change", () => yaz(s.ad, m.value));
+  hedef.append(etiket, m);
 }
 
 function grafSatiri(g: DetayGirdisi, s: Extract<DetaySatiri, { tur: "graf" }>): void {

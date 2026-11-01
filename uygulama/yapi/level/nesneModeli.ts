@@ -17,6 +17,12 @@ export interface NesneSatiri {
   kilitli: boolean;
   /** Bu nesnenin grafı var mı (satırda ⚡ yerine küçük işaret). */
   graf: string | null;
+  /** Hiyerarşi girintisi (spec 45 B7): kök 0, çocuk 1… Arama açıkken hep 0 (süzülmüş liste ağaç değildir). */
+  girinti: number;
+  /** Üst aktör (level aktörü ya da `beden:<ad>`); yoksa null. Listede olmayan üstlü nesne kök gibi girintisiz çizilir. */
+  ust: string | null;
+  /** Bu nesnenin kaç çocuğu (nesne) var. */
+  cocuk: number;
 }
 
 export interface NesneListesi { satirlar: NesneSatiri[]; toplam: number; kesildi: boolean }
@@ -28,6 +34,26 @@ export function kisaVarlikAdi(varlik: string): string {
   return i > 0 ? son.slice(0, i) : son;
 }
 
+/**
+ * Listeyi hiyerarşi sırasına dizer: her kök, hemen ardından çocukları (derinlik öncelikli, level sırası korunur). Üstü LİSTEDE olmayan (ışık, beden, silinmiş) nesne kök sayılır.
+ * Döngülü veri (level doğrulaması reddeder ama ham tanım gelebilir) sonsuz döngüye girmez: ziyaret edilmiş nesne bir daha eklenmez, kalanlar sona kök olarak eklenir.
+ */
+function agacSirasi(liste: NesneSatiri[]): NesneSatiri[] {
+  const kimlikler = new Set(liste.map((s) => s.id));
+  const cocuklar = new Map<string, NesneSatiri[]>();
+  for (const s of liste) if (s.ust !== null && kimlikler.has(s.ust) && s.ust !== s.id) cocuklar.set(s.ust, [...(cocuklar.get(s.ust) ?? []), s]);
+  const sonuc: NesneSatiri[] = [], goruldu = new Set<string>();
+  const ekle = (s: NesneSatiri, girinti: number): void => {
+    if (goruldu.has(s.id)) return;
+    goruldu.add(s.id);
+    sonuc.push({ ...s, girinti, cocuk: cocuklar.get(s.id)?.length ?? 0 });
+    for (const c of cocuklar.get(s.id) ?? []) ekle(c, girinti + 1);
+  };
+  for (const s of liste) if (s.ust === null || !kimlikler.has(s.ust) || s.ust === s.id) ekle(s, 0);
+  for (const s of liste) ekle(s, 0);   // döngüye düşüp köke ulaşılamayanlar (veri bozuksa) görünmez kalmasın
+  return sonuc;
+}
+
 export function nesneListesi(t: LevelTanimi, arama = ""): NesneListesi {
   const q = arama.trim().toLocaleLowerCase("tr");
   const hepsi: NesneSatiri[] = [];
@@ -35,7 +61,9 @@ export function nesneListesi(t: LevelTanimi, arama = ""): NesneListesi {
     if (!n.id) continue;
     const ad = n.ad && n.ad.length ? n.ad : kisaVarlikAdi(n.varlik);
     if (q && !ad.toLocaleLowerCase("tr").includes(q) && !n.id.toLocaleLowerCase("tr").includes(q)) continue;
-    hepsi.push({ id: n.id, ad, varlik: n.varlik, gizli: n.gizli === true, kilitli: n.kilitli === true, graf: n.graf ?? null });
+    hepsi.push({ id: n.id, ad, varlik: n.varlik, gizli: n.gizli === true, kilitli: n.kilitli === true, graf: n.graf ?? null, girinti: 0, ust: n.ust ?? null, cocuk: 0 });
   }
-  return { satirlar: hepsi.slice(0, NESNE_LISTE_AZAMI), toplam: hepsi.length, kesildi: hepsi.length > NESNE_LISTE_AZAMI };
+  // Süzülmüş liste ağaç değildir (çocuğu süzülmüş ata girintiyle yalan söylerdi): arama varken düz.
+  const sirali = q ? hepsi : agacSirasi(hepsi);
+  return { satirlar: sirali.slice(0, NESNE_LISTE_AZAMI), toplam: hepsi.length, kesildi: hepsi.length > NESNE_LISTE_AZAMI };
 }

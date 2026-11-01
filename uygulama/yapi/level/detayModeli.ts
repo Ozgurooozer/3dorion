@@ -13,7 +13,7 @@ export const DEGISKEN_TIP_ADI: Readonly<Record<DegiskenTipi, string>> = { sayi: 
 export const DEGISKEN_ILK_DEGERI: Readonly<Record<DegiskenTipi, AktorDegiskeni>> = { sayi: 0, metin: "", bool: false };
 
 export type DetaySatiri =
-  | { tur: "alan"; ad: string; etiket: string; tip: AlanTipi; deger: AlanDegeri; en?: number; cok?: number; adim?: number; birim?: string }
+  | { tur: "alan"; ad: string; etiket: string; tip: AlanTipi; deger: AlanDegeri; en?: number; cok?: number; adim?: number; birim?: string; secenekler?: readonly string[] }
   /** `eksik`: seçili graf grafik deposunda yok (çalışma anında nedenle düşer; burada görünür olsun). */
   | { tur: "graf"; secili: string | null; secenekler: readonly string[]; eksik: boolean }
   | { tur: "degisken"; ad: string; tip: DegiskenTipi; deger: AktorDegiskeni };

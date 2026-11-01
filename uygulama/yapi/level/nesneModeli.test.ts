@@ -52,6 +52,51 @@ test("sınırlar: boş ad varlığın kısa adına düşer; gizli:false/kilitli:
   assert.deepEqual([t.satirlar.length, t.toplam, t.kesildi], [NESNE_LISTE_AZAMI, NESNE_LISTE_AZAMI, false]);
 });
 
+test("hiyerarşi: çocuk üstünün hemen altında, girintiyle; çocuk sayısı; level sırası kökler arasında korunur (spec 45 B7)", () => {
+  const r = nesneListesi(tanim([
+    nesne({ id: "n1", varlik: "a.glb" }),
+    nesne({ id: "n4", varlik: "d.glb", ust: "n2" }),
+    nesne({ id: "n2", varlik: "b.glb", ust: "n1" }),
+    nesne({ id: "n3", varlik: "c.glb" }),
+    nesne({ id: "n5", varlik: "e.glb", ust: "n2" }),
+  ]));
+  assert.deepEqual(r.satirlar.map((s) => [s.id, s.girinti, s.cocuk]), [["n1", 0, 1], ["n2", 1, 2], ["n4", 2, 0], ["n5", 2, 0], ["n3", 0, 0]]);
+  assert.deepEqual(r.satirlar.map((s) => s.ust), [null, "n1", "n2", "n2", null]);
+  assert.equal(r.toplam, 5);
+});
+
+test("hiyerarşi: üstü listede olmayan (ışık, beden, silinmiş) nesne kök gibi girintisiz ama üstünü söyler", () => {
+  const r = nesneListesi(tanim([nesne({ id: "n1", varlik: "a.glb", ust: "i1" }), nesne({ id: "n2", varlik: "b.glb", ust: "beden:orion", soket: "el_sag" })]));
+  assert.deepEqual(r.satirlar.map((s) => [s.id, s.girinti, s.ust]), [["n1", 0, "i1"], ["n2", 0, "beden:orion"]]);
+});
+
+test("hiyerarşi: arama varken liste DÜZ (süzülmüş ağaç yalan söylemesin)", () => {
+  const t = tanim([nesne({ id: "n1", varlik: "araba.glb" }), nesne({ id: "n2", varlik: "tekerlek.glb", ust: "n1" })]);
+  assert.deepEqual(nesneListesi(t, "tekerlek").satirlar.map((s) => [s.id, s.girinti, s.cocuk]), [["n2", 0, 0]]);
+  assert.deepEqual(nesneListesi(t, "").satirlar.map((s) => [s.id, s.girinti]), [["n1", 0], ["n2", 1]]);
+});
+
+test("hiyerarşi: arama İKİ nesneyi de (üst ve çocuk) eşleştirse de liste düz kalır", () => {
+  const t = tanim([nesne({ id: "n1", varlik: "araba.glb" }), nesne({ id: "n2", varlik: "araba-tekerlek.glb", ust: "n1" })]);
+  assert.deepEqual(nesneListesi(t, "araba").satirlar.map((s) => [s.id, s.girinti, s.cocuk]), [["n1", 0, 0], ["n2", 0, 0]]);
+});
+
+test("hiyerarşi: üstü listede olmayan nesne level sırasındaki yerinde kalır (sona atılmaz)", () => {
+  const r = nesneListesi(tanim([nesne({ id: "n0", varlik: "a.glb" }), nesne({ id: "n1", varlik: "b.glb", ust: "i1" }), nesne({ id: "n2", varlik: "c.glb" })]));
+  assert.deepEqual(r.satirlar.map((s) => s.id), ["n0", "n1", "n2"]);
+});
+
+test("hiyerarşi: döngülü ham veri sonsuz döngüye girmez, hiçbir nesne kaybolmaz; kendi üstü kök sayılır", () => {
+  const r = nesneListesi(tanim([
+    nesne({ id: "n1", varlik: "a.glb", ust: "n2" }),
+    nesne({ id: "n2", varlik: "b.glb", ust: "n1" }),
+    nesne({ id: "n3", varlik: "c.glb", ust: "n3" }),
+  ]));
+  assert.deepEqual(r.satirlar.map((s) => s.id).sort(), ["n1", "n2", "n3"]);
+  assert.equal(r.satirlar.find((s) => s.id === "n3")!.girinti, 0);
+  assert.equal(r.satirlar.find((s) => s.id === "n3")!.cocuk, 0, "kendi kendinin çocuğu sayılmaz");
+});
+
 test("arama yalnız KİMLİKTE eşleşse de bulur (ad farklı)", () => {
   const r = nesneListesi(tanim([nesne({ id: "kapi-7", varlik: "x/duvar.glb" })]), "kapi-7");
   assert.deepEqual(r.satirlar.map((s) => s.id), ["kapi-7"]);
