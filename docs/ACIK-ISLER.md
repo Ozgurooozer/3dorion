@@ -33,7 +33,7 @@ Koşulmayan doğrulamalar ve riskler ayrı defterde: `DOGRULAMA-DEFTERI.md` (ge�
 ## Orion = NPC mimarisi (spec 44; yol haritası 2026-10-31)
 - F0 belge yazıldı; F1–F6 kod yok. Önce Ozyn'in kararları (`specs/44` §6): idle grafı açılışta otomatik dinleme, hakem sırası (§4c yerine), Orion'un graf/katalog yazma kapısı, bilgi kademesi (mesafe + önem).
 - Sıradaki aday: F1 (level ortamı algıya, `world/level/`'a dokunmaz). F2 ve F5 "istisna" ister. Spec 15 S2–S5 bu yol haritasının F3'ü.
-- Uzak dal: `origin` `4561977` (dok, spec 41 3. dilim) yerelin 3 commit'iyle ayrıştı; çakışma `host/kanallar.cjs`, `host/kopru.ts`, `host/preload.cjs`; rebase Ozyn onayı bekliyor.
+- Rebase + push YAPILDI (2026-11-02, Ozyn onayıyla, DOGRULAMA-DEFTERI R38). **`dokdene` 8/14 KALDI** (K1, K2, K3, K5, K8, K13): uzağın temiz `4561977` hâlinde de aynı, yani spec 41 3. dilim kaynaklı; kök neden araştırılmadı.
 
 ## Blueprint JSON altyapısı (spec 45; istisna 2026-10-31)
 - B0 belge yazıldı; B1–B9 sırayla (veri biçimi → olay yolu → graf düğümleri → çalışma zamanı → beden soketi → şablon → arayüz → Orion taslağı → demolar). Kararlar Ozyn'in (nesne kendi içinde, Orion öneri yazar, önce altyapı).
