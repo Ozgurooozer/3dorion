@@ -115,6 +115,18 @@ Yollar (süreler TAHMİN, hiçbiri denenmedi):
 Öneri: önce A, ihtiyaç netleşince B.
 Güvenlik: internete port açma, yalnız Tailscale + eşleştirme token'ı; telefondan komut onayı yeni bir onay yolu açar → ilk sürümde YOK (yalnız görme + konuşma); ▶ ⚡ `isTrusted` kuralı uzaktan sentetik tıklamayla çalışmaz (bilinçli).
 
+## Başkasının tarayıcıdan bağlanması — izleyici + sohbet MVP (Ozyn, 2026-11-01) — ŞİMDİ YAPILMAZ
+
+Ozyn: "IP'den başkasının bağlanabileceği bir yapı; ben server olayım; karşıdaki yalnız tarayıcıdan bağlansın." Yapılmadı, yalnız fikir olarak yazıldı. Yukarıdaki "telefondan uzaktan bağlanma" B maddesiyle (host'ta HTTP + WebSocket) aynı kök; birleştirilip tek spec olur.
+
+- **Karar (Ozyn, 2026-11-01):** ziyaretçi **izleyici + Orion'la sohbet** yapar; ağ kapsamı **yalnız LAN** (aynı Wi-Fi). İnternete açma sonra.
+- **Biçim:** `host/` içinde küçük HTTP + WebSocket sunucusu, tek statik sayfa. Orion'un durumu, altyazısı ve söyledikleri akar; ziyaretçinin yazısı `sozAlindi` yolundan girer (yeni eylem yolu YOK). Görüntü akışı ilk sürümde yok ya da düşük hızlı JPEG.
+- **Kesin dışarıda:** monitördeki gerçek terminal (pty) uzaktan AÇILMAZ: açmak karşıdakine bu bilgisayarda komut çalıştırma yetkisi verir. Dosya, level yazma, ▶ ⚡, onay/taslak onayı da uzaktan yok (`isTrusted` kuralı sentetik tıkla çalışmaz, bilinçli).
+- **Güvenlik:** varsayılan KAPALI, yalnız bayrakla açılır (`ORION_UZAK=1` gibi); parola koda yazılmaz (repo PUBLIC), ortam değişkeniyle verilir; LAN dışına dinlemez (0.0.0.0 yerine yerel ağ adresi); bağlanan her ziyaretçi ve her söz günlüğe yazılır; ziyaretçi başına hız sınırı ve boyut tavanı (ücretli beyin maliyeti + istem enjeksiyonu riski: ziyaretçi sözü Orion'un beynine gider).
+- **Açık sorular:** ziyaretçi sözü Ozyn'in sözüyle aynı güvende mi sayılır (öneri: ayrı kaynak etiketi, Orion'un araç yüzeyine ziyaretçiden gelen komut gitmesin); aynı anda kaç ziyaretçi; ziyaretçi Orion'un cevabını da görsün mü; Windows güvenlik duvarı izni.
+- **Ölçüm gerekir:** yalnız-LAN dinleme gerçekten dışarı kapalı mı (başka cihazdan deneme), ziyaretçi sözünün karar kaydında ayrı kaynak olarak görünmesi, hız sınırının ücretli beyni korumaya yetmesi.
+- **Sonraki adım (istenirse):** spec 46 adayı; önce bu bölüm ve spec 44 §6 kararlarıyla birleştirilir.
+
 ## Pipecat istemcisinden (2026-10-29) — ses hattı, mikrofon gelince
 
 Kaynak: `pipecat-ai/pipecat-client-cxx` arayüzleri (`client.h`, `rtvi/messages.h`). Taşıyıcı kuralları ve istek/yanıt `protocol/SOZLESME.md`ye alındı; kalanlar burada.

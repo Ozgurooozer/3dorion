@@ -30,6 +30,16 @@ Koşulmayan doğrulamalar ve riskler ayrı defterde: `DOGRULAMA-DEFTERI.md` (ge�
 - Yeniden başlatma takılması: `quit()` eski süreci kapatmadı, nedeni bilinmiyor (ikinci denemede çalıştı). `before-quit` adım adım `[kapanış]` yazıyor; tekrarlarsa son satır suçluyu gösterir. 4 sn'lik zorla çıkış emniyeti var.
 - `kapidene` 15/19: dışarıda sis 0,0300 (≈0,004 bekleniyor) ve 3 çizim bütçesi (224/418/222 > 220); D2'den ÖNCE de aynı (temiz HEAD'de ölçüldü). Son temiz ölçüm 19/19 14–15 Ekim; hangi değişiklik bozdu bilinmiyor.
 
+## Orion = NPC mimarisi (spec 44; yol haritası 2026-10-31)
+- F0 belge yazıldı; F1–F6 kod yok. Önce Ozyn'in kararları (`specs/44` §6): idle grafı açılışta otomatik dinleme, hakem sırası (§4c yerine), Orion'un graf/katalog yazma kapısı, bilgi kademesi (mesafe + önem).
+- Sıradaki aday: F1 (level ortamı algıya, `world/level/`'a dokunmaz). F2 ve F5 "istisna" ister. Spec 15 S2–S5 bu yol haritasının F3'ü.
+- Uzak dal: `origin` `4561977` (dok, spec 41 3. dilim) yerelin 3 commit'iyle ayrıştı; çakışma `host/kanallar.cjs`, `host/kopru.ts`, `host/preload.cjs`; rebase Ozyn onayı bekliyor.
+
+## Blueprint JSON altyapısı (spec 45; istisna 2026-10-31)
+- B0 belge yazıldı; B1–B9 sırayla (veri biçimi → olay yolu → graf düğümleri → çalışma zamanı → beden soketi → şablon → arayüz → Orion taslağı → demolar). Kararlar Ozyn'in (nesne kendi içinde, Orion öneri yazar, önce altyapı).
+- **Havok (gerçek fizik) EN SONA** (Ozyn 2026-10-31: "bir eklenti, en son yapılır"): `fizik` bileşeni, ölçüm önce (paket boyu, Electron yükleme, çizim bütçesi 220). O zamana kadar kinematik `hareket` bileşeni.
+- Başka Claude'un araba işi (`nesneSistemi.ts` `KITLER`, `assets/araba`, `assets/pist`) commit'siz: spec 45 ona dokunmaz; araba demosu (B9) o iş commit'lenince.
+
 ## Eklenti altyapısı (spec 40; istisna 2026-10-28)
 - `eklentidene` (K1–K6) ve gerilemeler (`projedene`, `dokdene`, `icerikdene`, `sekansdene`, `kameradene`, `grafdene`) KOŞULMADI; oyun kapalıyken.
 - E5 KAPANDI (2026-10-29): Düşünme kipi ölçüldü (`tools/kip-olc.ts`, ön kayıt `docs/olcum/on-kayit-dusunme-kipi.md`, 6 yerel model, tuzak-2): 0 KABUL → "kanıt yok". Kip varsayılan KAPALI kalır; eşik oynatılmaz. Sonuç: spec 40 §7.

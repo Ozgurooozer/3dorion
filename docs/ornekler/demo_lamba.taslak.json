@@ -1,0 +1,151 @@
+{
+  "taslak": 1,
+  "ad": "demo_lamba",
+  "gerekce": "ÖRNEK taslak (Orion bu biçimde bırakır): Ozyn yaklaşınca yanan sokak lambası = tetik + çocuk ışık. Graflardaki aktör kimlikleri örnek (lamba_nesne/lamba_isik): yerleştirdikten sonra gerçek kimlikle değiştir.",
+  "sablon": {
+    "surum": 1,
+    "ad": "demo_lamba",
+    "aciklama": "lamba: nesne + çocuk ışık + tetik",
+    "kok": "s1",
+    "aktorler": [
+      {
+        "id": "s1",
+        "nesne": {
+          "varlik": "PROP_Streetlamp_Slum_MD",
+          "konum": [
+            0,
+            0,
+            0
+          ],
+          "donus": 0,
+          "olcek": 1,
+          "ad": "Demo lamba",
+          "bilesenler": [
+            {
+              "id": "b1",
+              "tur": "tetik",
+              "ad": "Yaklaşma alanı",
+              "ayar": {
+                "sekil": "kure",
+                "yaricap": 2.5,
+                "kim": "ozyn"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "id": "s2",
+        "isik": {
+          "tur": "nokta",
+          "ad": "Lamba ışığı",
+          "konum": [
+            0,
+            4,
+            0
+          ],
+          "renk": "#ffd9a0",
+          "siddet": 0,
+          "menzil": 12,
+          "ust": "s1"
+        }
+      }
+    ]
+  },
+  "graflar": [
+    {
+      "surum": 1,
+      "ad": "demo_lamba_yak",
+      "tur": "olay",
+      "aciklama": "Ozyn lambaya yaklaşınca ışığı yakar",
+      "girisler": [],
+      "cikislar": [],
+      "dugumler": [
+        {
+          "id": "o",
+          "tip": "olay.aktor_olayi",
+          "ayar": {
+            "aktor": "lamba_nesne",
+            "olay": "tetik.girdi"
+          },
+          "konum": [
+            40,
+            40
+          ]
+        },
+        {
+          "id": "a0",
+          "tip": "aktor.yaz",
+          "ayar": {
+            "aktor": "lamba_isik",
+            "alan": "siddet",
+            "deger": 2.5
+          },
+          "konum": [
+            280,
+            40
+          ]
+        }
+      ],
+      "baglar": [
+        {
+          "kaynak": [
+            "o",
+            "sonra"
+          ],
+          "hedef": [
+            "a0",
+            "giris"
+          ]
+        }
+      ]
+    },
+    {
+      "surum": 1,
+      "ad": "demo_lamba_sondur",
+      "tur": "olay",
+      "aciklama": "Ozyn uzaklaşınca ışığı söndürür",
+      "girisler": [],
+      "cikislar": [],
+      "dugumler": [
+        {
+          "id": "o",
+          "tip": "olay.aktor_olayi",
+          "ayar": {
+            "aktor": "lamba_nesne",
+            "olay": "tetik.cikti"
+          },
+          "konum": [
+            40,
+            40
+          ]
+        },
+        {
+          "id": "a0",
+          "tip": "aktor.yaz",
+          "ayar": {
+            "aktor": "lamba_isik",
+            "alan": "siddet",
+            "deger": 0
+          },
+          "konum": [
+            280,
+            40
+          ]
+        }
+      ],
+      "baglar": [
+        {
+          "kaynak": [
+            "o",
+            "sonra"
+          ],
+          "hedef": [
+            "a0",
+            "giris"
+          ]
+        }
+      ]
+    }
+  ]
+}
