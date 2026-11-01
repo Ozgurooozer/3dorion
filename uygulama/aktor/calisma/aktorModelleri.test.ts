@@ -1,4 +1,4 @@
-// uygulama/aktor/aktorModelleri.test.ts — saf modeller: tetik geometrisi + durum, hareket adımı, hiyerarşi ezmesi (spec 45 B4).
+// uygulama/aktor/calisma/aktorModelleri.test.ts — saf modeller: tetik geometrisi + durum, hareket adımı, hiyerarşi ezmesi (spec 45 B4).
 "use strict";
 import test from "node:test";
 import assert from "node:assert/strict";

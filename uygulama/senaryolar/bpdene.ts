@@ -15,9 +15,9 @@ import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { SenaryoBaglami } from "../senaryoBaglami.ts";
 import { NESNELER_PANELI_KIMLIGI } from "../yapi/level/nesnelerPaneli.ts";
-import { sablonKaydet, sablonAdlari, sablonYerlestirMetinden } from "../aktor/sablonIslemleri.ts";
-import { glbDugumleriniOku } from "../aktor/glbDugumleri.ts";
-import { DEMOLAR, DEMO_ADLARI, kimlikEsle, type DemoAdi, type Kimlikler } from "../aktor/demolar.ts";
+import { sablonKaydet, sablonAdlari, sablonYerlestirMetinden } from "../aktor/sablon/sablonIslemleri.ts";
+import { glbDugumleriniOku } from "../aktor/sablon/glbDugumleri.ts";
+import { DEMOLAR, DEMO_ADLARI, kimlikEsle, type DemoAdi, type Kimlikler } from "../aktor/sablon/demolar.ts";
 
 export async function kos(d: SenaryoBaglami): Promise<void> {
   const bekle = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));

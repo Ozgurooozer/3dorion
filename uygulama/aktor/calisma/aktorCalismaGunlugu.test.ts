@@ -1,4 +1,4 @@
-// uygulama/aktor/aktorCalismaGunlugu.test.ts — çalışma zamanının GÜNLÜK / BAYRAK / KODLU HATA davranışı (spec 45 §13).
+// uygulama/aktor/calisma/aktorCalismaGunlugu.test.ts — çalışma zamanının GÜNLÜK / BAYRAK / KODLU HATA davranışı (spec 45 §13).
 // Soru: "neyin çalıştığını, neyin hata verdiğini günlükte görebiliyor muyuz, hata kodu nerede olduğunu söylüyor mu?" Ekransız Babylon (NullEngine).
 "use strict";
 import test from "node:test";
@@ -6,11 +6,11 @@ import assert from "node:assert/strict";
 import { NullEngine } from "@babylonjs/core/Engines/nullEngine";
 import { Scene } from "@babylonjs/core/scene";
 import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
-import { levelKur, type Level } from "../../world/level/cekirdek/levelKur.ts";
-import { ornekTanim } from "../../world/level/cekirdek/ornekTanim.ts";
-import type { LevelTanimi, NesneYeri } from "../../world/level/cekirdek/levelTanimi.ts";
-import { aktorOlayYoluKur, type AktorOlayYolu } from "../../world/level/cekirdek/aktorOlayYolu.ts";
-import { kodOku } from "../../world/level/cekirdek/aktorHatalari.ts";
+import { levelKur, type Level } from "../../../world/level/cekirdek/levelKur.ts";
+import { ornekTanim } from "../../../world/level/cekirdek/ornekTanim.ts";
+import type { LevelTanimi, NesneYeri } from "../../../world/level/cekirdek/levelTanimi.ts";
+import { aktorOlayYoluKur, type AktorOlayYolu } from "../../../world/level/cekirdek/aktorOlayYolu.ts";
+import { kodOku } from "../../../world/level/cekirdek/aktorHatalari.ts";
 import { aktorCalismaZamaniKur, type AktorCalismaZamani } from "./aktorCalismaZamani.ts";
 import { aktorGunluguKur, bayraklariOku, type AktorGunlugu } from "./aktorGunlugu.ts";
 import type { Gozlenen } from "./tetikModeli.ts";

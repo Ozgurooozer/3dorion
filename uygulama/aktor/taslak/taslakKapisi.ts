@@ -1,4 +1,4 @@
-// uygulama/aktor/taslakKapisi.ts — ORION TASLAK KAPISI, SAF ÇEKİRDEK (spec 45 B8). Babylon, DOM ve dosya YOK.
+// uygulama/aktor/taslak/taslakKapisi.ts — ORION TASLAK KAPISI, SAF ÇEKİRDEK (spec 45 B8). Babylon, DOM ve dosya YOK.
 //
 // Orion aktör/graf JSON'unu YAZAMAZ (araç yüzeyine level/graf/aktör düzenleme eklenmez: CLAUDE.md). Önerisini `Content/Drafts/<ad>.taslak.json` dosyası olarak BIRAKIR (kendi terminalinden;
 // komutu çalıştıran yine Ozyn'in tuşudur). Taslak ZARFTIR: { taslak: 1, ad, gerekce, sablon: AktorSablonu, graflar?: Graf[] }. Bu dosya YALNIZ dışarıdan gelen metni doğrular ve Ozyn'in okuyacağı özeti çıkarır;
@@ -7,9 +7,9 @@
 //
 // SINIR (dürüst): graf DÜĞÜM TÜRLERİNİN kütüphanede var olup olmadığı burada denetlenmez (kütüphane `uygulama/graf/` altında, çalışma anında bilinir); bilinmeyen tür graf çalışınca nedenle durur.
 "use strict";
-import { grafAdiGecerli, grafDogrula, type Graf } from "../../protocol/graf.ts";
-import { kodlu } from "../../world/level/cekirdek/aktorHatalari.ts";
-import { sablonHatasi, type AktorSablonu } from "./aktorSablonu.ts";
+import { grafAdiGecerli, grafDogrula, type Graf } from "../../../protocol/graf.ts";
+import { kodlu } from "../../../world/level/cekirdek/aktorHatalari.ts";
+import { sablonHatasi, type AktorSablonu } from "../sablon/aktorSablonu.ts";
 
 export const TASLAK_SURUMU = 1;
 /** Taslak dosyasının en büyük boyutu (bayt): kapı bellek şişirmesin. */

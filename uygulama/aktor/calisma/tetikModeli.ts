@@ -1,4 +1,4 @@
-// uygulama/aktor/tetikModeli.ts — TETİK BİLEŞENİ MANTIĞI (spec 45 B4). SAF: Babylon, DOM, zaman ve rastgelelik YOK.
+// uygulama/aktor/calisma/tetikModeli.ts — TETİK BİLEŞENİ MANTIĞI (spec 45 B4). SAF: Babylon, DOM, zaman ve rastgelelik YOK.
 //
 // Bir aktörün `tetik` bileşeni (küre ya da eksene hizalı kutu) içine kim girip çıktığını söyler: `tetik.girdi` / `tetik.cikti`. Burada yalnız GEOMETRİ ve DURUM:
 // kimin sayılacağı (`kim`), içeride mi, ve giriş/çıkış geçişleri. Çalışma zamanı (`aktorCalismaZamani.ts`) konumları verir, olayı yayınlar.

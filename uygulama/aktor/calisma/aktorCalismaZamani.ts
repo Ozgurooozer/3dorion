@@ -1,4 +1,4 @@
-// uygulama/aktor/aktorCalismaZamani.ts — AKTÖR ÇALIŞMA ZAMANI (spec 45 B4; Unreal'da bileşenlerin tick'i): BESTECİ. Aktör tablosunu, hiyerarşi ezmesini ve kare aşamalarını yönetir;
+// uygulama/aktor/calisma/aktorCalismaZamani.ts — AKTÖR ÇALIŞMA ZAMANI (spec 45 B4; Unreal'da bileşenlerin tick'i): BESTECİ. Aktör tablosunu, hiyerarşi ezmesini ve kare aşamalarını yönetir;
 // işi yöneticilere böler: bağlar `aktorBaglari.ts`, hareket `aktorHareketi.ts`, tetik `aktorTetikleri.ts` (ortak yüz `calismaBaglami.ts`). Kuralların kendisi saf modellerde
 // (`tetikModeli.ts`, `hareketModeli.ts`, `hiyerarsiEzmesi.ts`) ve olay yolunda (`aktorOlayYolu.ts`).
 //
@@ -16,12 +16,12 @@
 "use strict";
 import type { Matrix } from "@babylonjs/core/Maths/math.vector";
 import type { Node } from "@babylonjs/core/node";
-import type { Level } from "../../world/level/cekirdek/levelKur.ts";
-import type { AktorOlayYolu, AktorOlayYoluAyari } from "../../world/level/cekirdek/aktorOlayYolu.ts";
-import { BEDEN_ONEKI } from "../../world/level/cekirdek/bilesenKaydi.ts";
+import type { Level } from "../../../world/level/cekirdek/levelKur.ts";
+import type { AktorOlayYolu, AktorOlayYoluAyari } from "../../../world/level/cekirdek/aktorOlayYolu.ts";
+import { BEDEN_ONEKI } from "../../../world/level/cekirdek/bilesenKaydi.ts";
 import type { Gozlenen } from "./tetikModeli.ts";
 import { etkinHiyerarsi, ustAtamaHatasi, type Ezme } from "./hiyerarsiEzmesi.ts";
-import { aktorHatasi, kodOku, kodluHata, kodOnekiniSil } from "../../world/level/cekirdek/aktorHatalari.ts";
+import { aktorHatasi, kodOku, kodluHata, kodOnekiniSil } from "../../../world/level/cekirdek/aktorHatalari.ts";
 import { aktorGunluguKur, type AktorGunlugu, type Kapatilabilir } from "./aktorGunlugu.ts";
 import type { Aktor, CalismaBaglami } from "./calismaBaglami.ts";
 import { aktorBaglariKur } from "./aktorBaglari.ts";

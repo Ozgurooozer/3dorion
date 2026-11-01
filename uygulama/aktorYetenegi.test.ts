@@ -11,7 +11,7 @@ import { ornekTanim } from "../world/level/cekirdek/ornekTanim.ts";
 import type { LevelTanimi } from "../world/level/cekirdek/levelTanimi.ts";
 import { aktorYetenegiKur, gunlukluYetenek, levelHiyerarsisi } from "./aktorYetenegi.ts";
 import { aktorOlayYoluKur } from "../world/level/cekirdek/aktorOlayYolu.ts";
-import { aktorGunluguKur, bayraklariOku } from "./aktor/aktorGunlugu.ts";
+import { aktorGunluguKur, bayraklariOku } from "./aktor/calisma/aktorGunlugu.ts";
 import { kodOku } from "../world/level/cekirdek/aktorHatalari.ts";
 
 function kur() {

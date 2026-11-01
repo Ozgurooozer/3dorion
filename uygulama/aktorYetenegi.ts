@@ -13,8 +13,8 @@ import { AKTOR_DEGISKEN_SINIRI } from "../world/level/cekirdek/levelTanimi.ts";
 import { aktorBul, alanDegeriHatasi, alanSemasi, degiskenOku as tanimDegiskeni, type AktorTuru } from "../world/level/cekirdek/bilesen.ts";
 import { aktorHiyerarsisi, type AktorOlayYolu } from "../world/level/cekirdek/aktorOlayYolu.ts";
 import { aktorHatasi, kodOku, kodluHata, kodOnekiniSil } from "../world/level/cekirdek/aktorHatalari.ts";
-import type { AktorGunlugu } from "./aktor/aktorGunlugu.ts";
-import type { AktorCalismaZamani } from "./aktor/aktorCalismaZamani.ts";
+import type { AktorGunlugu } from "./aktor/calisma/aktorGunlugu.ts";
+import type { AktorCalismaZamani } from "./aktor/calisma/aktorCalismaZamani.ts";
 import type { AktorYetenegi } from "./graf/grafYetenegi.ts";
 
 type Deger = string | number | boolean;

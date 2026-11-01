@@ -1,9 +1,9 @@
-// uygulama/aktor/aktorHareketi.ts — HAREKET BİLEŞENİ ÇALIŞMA ZAMANI (spec 45 B4): komut (hız, dönüş) → her karede `hareketAdimi` (saf kural `hareketModeli.ts`) → gerçek düğüm.
+// uygulama/aktor/calisma/aktorHareketi.ts — HAREKET BİLEŞENİ ÇALIŞMA ZAMANI (spec 45 B4): komut (hız, dönüş) → her karede `hareketAdimi` (saf kural `hareketModeli.ts`) → gerçek düğüm.
 // Komut level tanımına YAZMAZ; bellekte durur. (0, 0) komutu ve durma = kayıt silinir.
 "use strict";
 import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
-import { bilesenAyari } from "../../world/level/cekirdek/bilesenKaydi.ts";
-import { aktorHatasi, kodluHata } from "../../world/level/cekirdek/aktorHatalari.ts";
+import { bilesenAyari } from "../../../world/level/cekirdek/bilesenKaydi.ts";
+import { aktorHatasi, kodluHata } from "../../../world/level/cekirdek/aktorHatalari.ts";
 import { hareketAdimi, hareketKomutuHatasi, type HareketAyari, type HareketDurumu, type HareketKomutu } from "./hareketModeli.ts";
 import { bilesenBul, type Aktor, type CalismaBaglami } from "./calismaBaglami.ts";
 

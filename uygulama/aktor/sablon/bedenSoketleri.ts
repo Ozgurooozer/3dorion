@@ -1,7 +1,7 @@
-// uygulama/aktor/bedenSoketleri.ts — beden soketi çözümü (spec 45 B5): "orion/el_sag" → avatarın eklem düğümünün dünya matrisi.
+// uygulama/aktor/sablon/bedenSoketleri.ts — beden soketi çözümü (spec 45 B5): "orion/el_sag" → avatarın eklem düğümünün dünya matrisi.
 // Soket adı oyuncu-dostu (level JSON'unda yazılan: `soket: "el_sag"`); avatar sözleşmesi ise `Uzuv` adı bilir. Eşleme TEK yerde; Babylon'suz saf.
 import { Matrix } from "@babylonjs/core/Maths/math.vector";
-import type { Uzuv } from "../../protocol/animasyon.ts";
+import type { Uzuv } from "../../../protocol/animasyon.ts";
 
 /** Soket adı → uzuv. Yeni soket = bir satır (kılıç ele, lamba kafaya…). Level doğrulaması da bu tabloyu kullanabilir (`BEDEN_SOKETLERI`). */
 export const BEDEN_SOKETLERI = {

@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { bilesenBolumu, soketAdlari, soyKimlikleri } from "./bilesenDetayModeli.ts";
 import { ornekTanim } from "../../../world/level/cekirdek/ornekTanim.ts";
 import { BILESEN_TAVANI, BILESEN_TURLERI } from "../../../world/level/cekirdek/bilesenKaydi.ts";
-import { BEDEN_SOKETLERI } from "../../aktor/bedenSoketleri.ts";
+import { BEDEN_SOKETLERI } from "../../aktor/sablon/bedenSoketleri.ts";
 import type { LevelTanimi } from "../../../world/level/cekirdek/levelTanimi.ts";
 
 const taban = (): LevelTanimi => {

@@ -1,9 +1,9 @@
-// uygulama/aktor/taslakKapisi.test.ts — Orion taslak kapısı (spec 45 B8): zarf doğrulama, özet, ad süzme, onay/red işlemleri (sahte host).
+// uygulama/aktor/taslak/taslakKapisi.test.ts — Orion taslak kapısı (spec 45 B8): zarf doğrulama, özet, ad süzme, onay/red işlemleri (sahte host).
 "use strict";
 import test from "node:test";
 import assert from "node:assert/strict";
-import { kodOku } from "../../world/level/cekirdek/aktorHatalari.ts";
-import { DEMOLAR } from "./demolar.ts";
+import { kodOku } from "../../../world/level/cekirdek/aktorHatalari.ts";
+import { DEMOLAR } from "../sablon/demolar.ts";
 import { TASLAK_GEREKCE_TAVANI, TASLAK_GRAF_TAVANI, TASLAK_TAVANI, taslakAdlari, taslakCoz, taslakOzeti } from "./taslakKapisi.ts";
 import { taslakOku, taslakOnayla, taslakReddet, type HostSonucu, type TaslakDosyalari } from "./taslakIslemleri.ts";
 

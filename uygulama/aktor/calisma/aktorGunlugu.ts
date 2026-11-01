@@ -1,4 +1,4 @@
-// uygulama/aktor/aktorGunlugu.ts — AKTÖR ALTYAPISININ GÜNLÜĞÜ + BAYRAKLARI (spec 45 §13). SAF: DOM, depolama, Babylon YOK; zaman dışarıdan.
+// uygulama/aktor/calisma/aktorGunlugu.ts — AKTÖR ALTYAPISININ GÜNLÜĞÜ + BAYRAKLARI (spec 45 §13). SAF: DOM, depolama, Babylon YOK; zaman dışarıdan.
 //
 // Üç iş: (1) halka belleğe YAPISAL kayıt (seviye, kategori, kod, aktör, tekrar) — "neyin çalıştığını, neyin hata verdiğini" sonradan okumak için;
 // (2) AYNI hata tekrar tekrar gelince (kare başına) günlüğü SEL basmasın: ardışık aynı kayıt `tekrar` sayacını artırır, çıkışa yalnız ilk kez ve 10/100/1000… katlarında gider;
@@ -6,7 +6,7 @@
 // tetiği kapat, hareket sürsün). Bayrak dizgesi `olay,tetik,-hareket` (URL `?aktor=` ya da çalışırken `aktorDebug.bayrak`).
 // Çıkış (`cikis`) enjekte edilir: konsol + Ozyn'in günlük paneli kompozisyon kökünde (giris.ts) bağlanır.
 "use strict";
-import { kodAciklamasi, kodOku, type AktorKodu } from "../../world/level/cekirdek/aktorHatalari.ts";
+import { kodAciklamasi, kodOku, type AktorKodu } from "../../../world/level/cekirdek/aktorHatalari.ts";
 
 export type GunlukSeviyesi = "bilgi" | "iyi" | "uyari" | "hata";
 export const KATEGORILER = ["olay", "tetik", "hareket", "bag", "dugum", "zaman", "sablon"] as const;

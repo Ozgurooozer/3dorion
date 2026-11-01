@@ -1,10 +1,10 @@
-// uygulama/aktor/aktorSablonu.test.ts — aktör şablonu: çıkar / yerleştir / doğrula / glb'den aktör (spec 45 §8, B6). Saf.
+// uygulama/aktor/sablon/aktorSablonu.test.ts — aktör şablonu: çıkar / yerleştir / doğrula / glb'den aktör (spec 45 §8, B6). Saf.
 "use strict";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { glbdenSablon, sablonCikar, sablonHatasi, sablonYerlestir, SABLON_AKTOR_TAVANI, type AktorKumesi, type AktorSablonu } from "./aktorSablonu.ts";
-import type { IsikAktoru, NesneYeri } from "../../world/level/cekirdek/levelTanimi.ts";
-import { kodOku } from "../../world/level/cekirdek/aktorHatalari.ts";
+import type { IsikAktoru, NesneYeri } from "../../../world/level/cekirdek/levelTanimi.ts";
+import { kodOku } from "../../../world/level/cekirdek/aktorHatalari.ts";
 
 const nesne = (id: string, o: Partial<NesneYeri> = {}): NesneYeri => ({ id, varlik: "kutu", konum: [1, 0, 2], donus: 0, olcek: 1, ...o });
 const isik = (id: string, o: Partial<IsikAktoru> = {}): IsikAktoru => ({ id, tur: "nokta", konum: [0, 2, 0], renk: "#fff", siddet: 1, menzil: 5, ...o });

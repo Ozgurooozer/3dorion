@@ -1,4 +1,4 @@
-// uygulama/aktor/aktorCalismaZamani.test.ts — aktör çalışma zamanı (spec 45 B4): tetik olayları, kinematik hareket, hiyerarşi/soket bağları.
+// uygulama/aktor/calisma/aktorCalismaZamani.test.ts — aktör çalışma zamanı (spec 45 B4): tetik olayları, kinematik hareket, hiyerarşi/soket bağları.
 //
 // Ekransız Babylon (NullEngine). Nesne düğümleri model yüklemesinden BAĞIMSIZ senkron kurulur (model yüklenemese de düğüm var); gerçek görüntü canlı senaryoda (bpdene, B9).
 "use strict";
@@ -7,10 +7,10 @@ import assert from "node:assert/strict";
 import { NullEngine } from "@babylonjs/core/Engines/nullEngine";
 import { Scene } from "@babylonjs/core/scene";
 import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
-import { levelKur, type Level } from "../../world/level/cekirdek/levelKur.ts";
-import { ornekTanim } from "../../world/level/cekirdek/ornekTanim.ts";
-import type { LevelTanimi, NesneYeri } from "../../world/level/cekirdek/levelTanimi.ts";
-import { aktorOlayYoluKur, type AktorOlayYolu } from "../../world/level/cekirdek/aktorOlayYolu.ts";
+import { levelKur, type Level } from "../../../world/level/cekirdek/levelKur.ts";
+import { ornekTanim } from "../../../world/level/cekirdek/ornekTanim.ts";
+import type { LevelTanimi, NesneYeri } from "../../../world/level/cekirdek/levelTanimi.ts";
+import { aktorOlayYoluKur, type AktorOlayYolu } from "../../../world/level/cekirdek/aktorOlayYolu.ts";
 import { DT_TAVANI_S, aktorCalismaZamaniKur, type AktorCalismaZamani } from "./aktorCalismaZamani.ts";
 import type { Gozlenen } from "./tetikModeli.ts";
 import { aktorGunluguKur, type AktorGunlugu } from "./aktorGunlugu.ts";

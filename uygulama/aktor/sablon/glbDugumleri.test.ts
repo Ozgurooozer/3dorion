@@ -1,4 +1,4 @@
-// uygulama/aktor/glbDugumleri.test.ts — glb'deki `soket_<ad>` düğümlerinin okunması (spec 45 B7). Ekransız Babylon (NullEngine): düğümler elle kurulur, gerçek glb değil
+// uygulama/aktor/sablon/glbDugumleri.test.ts — glb'deki `soket_<ad>` düğümlerinin okunması (spec 45 B7). Ekransız Babylon (NullEngine): düğümler elle kurulur, gerçek glb değil
 // (glb yükleme canlı senaryoda: bpdene, B9). Sorulan: konum/dönüş NESNE KÖKÜNE göre mi, nesne ölçeği/konumu sızıyor mu, soketsiz düğüm atlanıyor mu?
 "use strict";
 import test from "node:test";

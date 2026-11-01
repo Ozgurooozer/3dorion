@@ -1,11 +1,11 @@
-// uygulama/aktor/sablonIslemleri.ts — "ŞABLON OLARAK KAYDET / ŞABLONDAN YERLEŞTİR" İŞ MANTIĞI (spec 45 B7). Babylon ve DOM YOK; dosya erişimi ENJEKTE (host IPC'si çağırandan).
+// uygulama/aktor/sablon/sablonIslemleri.ts — "ŞABLON OLARAK KAYDET / ŞABLONDAN YERLEŞTİR" İŞ MANTIĞI (spec 45 B7). Babylon ve DOM YOK; dosya erişimi ENJEKTE (host IPC'si çağırandan).
 //
 // `aktorSablonu.ts` biçimi bilir, `host/icerik.js aktorYaz` dosyayı yazar; bu dosya ikisini birleştirir ve yerleştirme sonucunu LEVEL DOĞRULAMASINDAN geçirir
 // (şablon doğrulaması level doğrulamasının eşi değildir: B6 defteri R29). Level'a yazma ve gerçek-tıklama kapısı çağıranındır (`sablonCubugu.ts`).
 // Hiçbir işlev fırlatmaz; her hata AKT-SBL-NNN kodlu, host hatası `kod`uyla ayrıntıda.
 "use strict";
-import { levelTanimiDogrula, type LevelTanimi, type Vec3 } from "../../world/level/cekirdek/levelTanimi.ts";
-import { kodlu } from "../../world/level/cekirdek/aktorHatalari.ts";
+import { levelTanimiDogrula, type LevelTanimi, type Vec3 } from "../../../world/level/cekirdek/levelTanimi.ts";
+import { kodlu } from "../../../world/level/cekirdek/aktorHatalari.ts";
 import { sablonCikar, sablonYerlestir } from "./aktorSablonu.ts";
 
 export type Sonuc<T> = { ok: true; deger: T } | { ok: false; neden: string };

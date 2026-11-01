@@ -1,4 +1,4 @@
-// uygulama/aktor/taslakBekcisi.test.ts — Orion taslak kapısının GÜVENLİK sınırı (spec 45 B8; CLAUDE.md: Orion'un araç yüzeyine aktör/graf düzenleme EKLENMEZ, onay yalnız gerçek tıklama).
+// uygulama/aktor/taslak/taslakBekcisi.test.ts — Orion taslak kapısının GÜVENLİK sınırı (spec 45 B8; CLAUDE.md: Orion'un araç yüzeyine aktör/graf düzenleme EKLENMEZ, onay yalnız gerçek tıklama).
 "use strict";
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -20,7 +20,7 @@ const KOKLER = ["uygulama", "world", "bridge", "protocol", "mind", "host", "flas
 const TUMU = KOKLER.flatMap(uretimDosyalari);
 
 test("bekçi: taslakOnayla/taslakReddet çağrısı üretimde YALNIZ taslakCubugu.ts'te (tanım taslakIslemleri.ts'te)", () => {
-  const izinli = new Set(["uygulama/yapi/level/taslakCubugu.ts", "uygulama/aktor/taslakIslemleri.ts"]);
+  const izinli = new Set(["uygulama/yapi/level/taslakCubugu.ts", "uygulama/aktor/taslak/taslakIslemleri.ts"]);
   const kacaklar = TUMU.filter((d) => !izinli.has(d) && /\btaslak(Onayla|Reddet)\s*\(/.test(oku(d)));
   assert.deepEqual(kacaklar, [], `onay/red yolu gerçek-tıklama çubuğu dışında çağrılamaz:\n${kacaklar.join("\n")}`);
 });
@@ -42,9 +42,16 @@ test("bekçi: Orion'un araç yüzeyinde (niyet, araçlar, köprü) taslak/Drafts
 });
 
 test("bekçi: Content/Drafts yolunu yalnız taslak kapısı bilir (başka dosya oraya yazamaz)", () => {
-  const izinli = new Set(["uygulama/aktor/taslakKapisi.ts"]);
+  const izinli = new Set(["uygulama/aktor/taslak/taslakKapisi.ts"]);
   // Yol İNŞA eden kod aranır: yorum satırları ve klasör adı anan metinler ("Content/Drafts'a") sayılmaz, eğik çizgili yol ("Content/Drafts/") sayılır.
   const kod = (d: string): string => oku(d).split(/\r?\n/).filter((l) => !l.trim().startsWith("//") && !l.trim().startsWith("*") && !l.trim().startsWith("/*")).join("\n");
   const kacaklar = TUMU.filter((d) => !izinli.has(d) && /Content\/Drafts\//.test(kod(d)));
   assert.deepEqual(kacaklar, [], `Content/Drafts yalnız taslakKapisi.ts'te:\n${kacaklar.join("\n")}`);
+});
+
+test("bekçi: Nesneler paneli taslak onayından sonra şablon listesini tazeler (R34-5: ↻'ye basmak gerekmesin)", () => {
+  const p = oku("uygulama/yapi/level/nesnelerPaneli.ts");
+  assert.match(p, /onaylandi:\s*\(\)\s*=>\s*\{\s*void sablonlariYenile\?\.\(\)/, "taslakCubuguKur'a onaylandi geri çağrısı şablon listesini yenilemeli");
+  assert.match(p, /sablonlariYenile\s*=\s*sablon\.yenile/, "şablon çubuğunun yenile tutamacı panele bağlı olmalı");
+  assert.match(oku("uygulama/yapi/level/sablonCubugu.ts"), /return \{ kok, yenile: listeyiYenile \}/, "şablon çubuğu yenile tutamacını döndürmeli");
 });

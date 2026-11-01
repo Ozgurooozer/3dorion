@@ -1,13 +1,13 @@
-// uygulama/aktor/sablonIslemleri.test.ts — "Şablon olarak kaydet / yerleştir" iş mantığı (spec 45 B7). Saf; dosya erişimi sahte.
+// uygulama/aktor/sablon/sablonIslemleri.test.ts — "Şablon olarak kaydet / yerleştir" iş mantığı (spec 45 B7). Saf; dosya erişimi sahte.
 // Sorulan: kaydet doğru metni doğru adla host'a veriyor mu, host hatası kodlu söyleniyor mu; yerleştirme LEVEL DOĞRULAMASINDAN geçiyor mu (B6 defter R29'un koşulmayanı).
 "use strict";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { sablonAdi, sablonAdlari, sablonKaydet, sablonYerlestirMetinden, type HostSonucu } from "./sablonIslemleri.ts";
 import { sablonCikar, sablonHatasi, type AktorSablonu } from "./aktorSablonu.ts";
-import { ornekTanim } from "../../world/level/cekirdek/ornekTanim.ts";
-import { kodOku } from "../../world/level/cekirdek/aktorHatalari.ts";
-import { ISIK_TAVANI, levelTanimiDogrula, type LevelTanimi } from "../../world/level/cekirdek/levelTanimi.ts";
+import { ornekTanim } from "../../../world/level/cekirdek/ornekTanim.ts";
+import { kodOku } from "../../../world/level/cekirdek/aktorHatalari.ts";
+import { ISIK_TAVANI, levelTanimiDogrula, type LevelTanimi } from "../../../world/level/cekirdek/levelTanimi.ts";
 
 const taban = (): LevelTanimi => {
   const t = ornekTanim(); t.katmanlar = [];

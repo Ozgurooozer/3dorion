@@ -12,16 +12,16 @@ import type { Vec3 } from "../../../world/level/cekirdek/levelTanimi.ts";
 import { YAPI_RENK as R } from "../../../world/arayuz/arayuzJetonlari.ts";
 import { dugmeYap, el } from "../ortak/dom.ts";
 import type { DokYoneticisi } from "../ortak/dok/dokYoneticisi.ts";
-import { glbdenSablon } from "../../aktor/aktorSablonu.ts";
-import { bilesenAdiYaz, bilesenAyarYaz, bilesenEkle, bilesenleriEkle, bilesenSil, ustAta } from "../../aktor/bilesenIslemleri.ts";
-import type { GlbDugumOkuma } from "../../aktor/glbDugumleri.ts";
+import { glbdenSablon } from "../../aktor/sablon/aktorSablonu.ts";
+import { bilesenAdiYaz, bilesenAyarYaz, bilesenEkle, bilesenleriEkle, bilesenSil, ustAta } from "../../aktor/sablon/bilesenIslemleri.ts";
+import type { GlbDugumOkuma } from "../../aktor/sablon/glbDugumleri.ts";
 import { bilesenDetayCiz } from "./bilesenDetayPaneli.ts";
 import { DETAY_CSS, detayCiz } from "./detayPaneli.ts";
 import { levelPaneliStiliEkle } from "./isiklarPaneli.ts";
 import { nesneListesi } from "./nesneModeli.ts";
 import { sablonCubuguKur, type SablonDosyalari } from "./sablonCubugu.ts";
 import { taslakCubuguKur } from "./taslakCubugu.ts";
-import type { TaslakDosyalari } from "../../aktor/taslakIslemleri.ts";
+import type { TaslakDosyalari } from "../../aktor/taslak/taslakIslemleri.ts";
 
 export const NESNELER_PANELI_KIMLIGI = "nesneler";
 
@@ -72,8 +72,9 @@ export function nesnelerPaneliKur(a: NesnelerPaneliAyari): NesnelerPaneli {
   const arac = el("div", "il-arac"); arac.append(ara, rozet);
   const liste = el("div", "il-liste"), detay = el("div", "il-detay"), durum = el("div", "il-durum");
   kok.append(arac, liste);
+  let sablonlariYenile: (() => Promise<void>) | null = null;
   if (a.sablonDosyalari) {
-    kok.append(sablonCubuguKur({
+    const sablon = sablonCubuguKur({
       dosyalar: a.sablonDosyalari,
       tanim: () => a.level()?.tanim() ?? null,
       secili: () => secili,
@@ -82,10 +83,15 @@ export function nesnelerPaneliKur(a: NesnelerPaneliAyari): NesnelerPaneli {
       sec: (id) => { secili = id; tazele(); },
       altyazi: a.altyazi,
       iz: (sv, m) => a.iz?.(sv, m),
-    }));
+    });
+    sablonlariYenile = sablon.yenile;
+    kok.append(sablon.kok);
   }
   if (a.taslakDosyalari) {
-    kok.append(taslakCubuguKur({ dosyalar: a.taslakDosyalari, altyazi: a.altyazi, iz: (sv, m) => a.iz?.(sv, m) }));
+    kok.append(taslakCubuguKur({
+      dosyalar: a.taslakDosyalari, altyazi: a.altyazi, iz: (sv, m) => a.iz?.(sv, m),
+      onaylandi: () => { void sablonlariYenile?.(); },   // onaylanan şablon listede kendiliğinden görünsün (R34-5)
+    }));
   }
   kok.append(detay, durum);
 

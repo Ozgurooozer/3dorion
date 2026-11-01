@@ -20,9 +20,9 @@ import { grafCalistiriciKur } from "./grafCalistirici.ts";
 import { grafDinleyiciKur, olayYoluKur } from "./grafDinleyici.ts";
 import { AKTOR_DUGUMU, AKTOR_OLAYI_TIPI } from "./aktorDugumleri.ts";
 import { aktorOlayKaynagiKur } from "./aktorOlayKaynagi.ts";
-import { aktorCalismaZamaniKur } from "../aktor/aktorCalismaZamani.ts";
+import { aktorCalismaZamaniKur } from "../aktor/calisma/aktorCalismaZamani.ts";
 import { aktorYetenegiKur } from "../aktorYetenegi.ts";
-import type { Gozlenen } from "../aktor/tetikModeli.ts";
+import type { Gozlenen } from "../aktor/calisma/tetikModeli.ts";
 
 const ZAMAN = { timeout: 3000 };
 const graf = (dugumler: GrafDugumu[], baglar: [string, string, string, string][] = [], ad = "calisma-deneme"): Graf => {

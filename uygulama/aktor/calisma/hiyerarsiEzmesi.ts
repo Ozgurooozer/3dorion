@@ -1,11 +1,11 @@
-// uygulama/aktor/hiyerarsiEzmesi.ts — ÇALIŞMA ZAMANI HİYERARŞİ EZMESİ (spec 45 B4). SAF.
+// uygulama/aktor/calisma/hiyerarsiEzmesi.ts — ÇALIŞMA ZAMANI HİYERARŞİ EZMESİ (spec 45 B4). SAF.
 //
 // `aktor.sokete_tak/sokettan_al` level DOSYASINA/tanıma yazmaz (graf geçici/çalışma zamanı durumudur): aktörün üstünü bellekte ezer. Etkin hiyerarşi =
 // tanımdaki `ust` + ezme (`null` = tanımdaki üstten AYRILDI). Olay yolu ve çalışma zamanı AYNI etkin hiyerarşiyi görür (iki doğru olmasın).
 "use strict";
-import { aktorHiyerarsisi, type AktorOlayYoluAyari } from "../../world/level/cekirdek/aktorOlayYolu.ts";
-import { kodlu } from "../../world/level/cekirdek/aktorHatalari.ts";
-import { BEDEN_ONEKI, HIYERARSI_DERINLIGI } from "../../world/level/cekirdek/bilesenKaydi.ts";
+import { aktorHiyerarsisi, type AktorOlayYoluAyari } from "../../../world/level/cekirdek/aktorOlayYolu.ts";
+import { kodlu } from "../../../world/level/cekirdek/aktorHatalari.ts";
+import { BEDEN_ONEKI, HIYERARSI_DERINLIGI } from "../../../world/level/cekirdek/bilesenKaydi.ts";
 
 export interface Ezme { readonly ust: string | null; readonly soket?: string }
 

@@ -1,4 +1,4 @@
-// uygulama/aktor/glbDugumleri.ts — YERLEŞTİRİLMİŞ GLB'DEN ADLI BOŞ DÜĞÜMLER (spec 45 B7; Unreal'da mesh soketleri). Babylon katmanı: saf eşleme `aktorSablonu.ts` `glbdenSablon`da.
+// uygulama/aktor/sablon/glbDugumleri.ts — YERLEŞTİRİLMİŞ GLB'DEN ADLI BOŞ DÜĞÜMLER (spec 45 B7; Unreal'da mesh soketleri). Babylon katmanı: saf eşleme `aktorSablonu.ts` `glbdenSablon`da.
 //
 // Sanatçı glb'de `soket_<ad>` adlı boş düğüm koyar (Blender Empty); bu işlev nesnenin sahne düğümünün soyundan o düğümleri, NESNE KÖKÜNE GÖRE yerel konum/dönüşle (derece) okur.
 // Nesne ölçeği kökün dünya matrisinde olduğundan çıkarılır (soket konumu ölçeksiz glb uzayında kalır; ölçek aktörün kendi alanı). Okuma sahneyi DEĞİŞTİRMEZ.
@@ -6,7 +6,7 @@
 "use strict";
 import type { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import { Matrix, Quaternion, Vector3 } from "@babylonjs/core/Maths/math.vector";
-import { kodlu } from "../../world/level/cekirdek/aktorHatalari.ts";
+import { kodlu } from "../../../world/level/cekirdek/aktorHatalari.ts";
 import { GLB_SOKET_ONEKI, type GlbDugumu } from "./aktorSablonu.ts";
 
 const DERECE = 180 / Math.PI;

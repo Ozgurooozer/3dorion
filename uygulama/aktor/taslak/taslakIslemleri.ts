@@ -1,9 +1,9 @@
-// uygulama/aktor/taslakIslemleri.ts — ORION TASLAĞINI OKU / ONAYLA / REDDET (spec 45 B8). Host erişimi ENJEKTE edilir (`TaslakDosyalari`): bu dosya DOM'suz, IPC'siz, test edilebilir.
+// uygulama/aktor/taslak/taslakIslemleri.ts — ORION TASLAĞINI OKU / ONAYLA / REDDET (spec 45 B8). Host erişimi ENJEKTE edilir (`TaslakDosyalari`): bu dosya DOM'suz, IPC'siz, test edilebilir.
 // Onay diske yazar → çağıran panel bunu YALNIZ gerçek tıklamayla (`isTrusted`) çağırır; bu dosya o kuralı bilmez ama kendiliğinden hiçbir yerden çağrılmaz (bekçi: `taslakBekcisi.test.ts`).
 // Onay ATOMİK davranır: önce graflar (`grafYeni` var olanın üstüne yazmaz), en son şablon; biri yazılamazsa o ana kadar yazılan graflar SİLİNİR (yarım taslak kalmaz).
 "use strict";
-import type { Graf } from "../../protocol/graf.ts";
-import { kodlu } from "../../world/level/cekirdek/aktorHatalari.ts";
+import type { Graf } from "../../../protocol/graf.ts";
+import { kodlu } from "../../../world/level/cekirdek/aktorHatalari.ts";
 import { TASLAK_KLASORU, TASLAK_UZANTISI, taslakCoz, type Taslak, type TaslakSonucu } from "./taslakKapisi.ts";
 
 export type HostSonucu<T> = { ok: true; deger: T } | { ok: false; kod: string; mesaj: string };

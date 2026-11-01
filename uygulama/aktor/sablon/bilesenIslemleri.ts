@@ -1,15 +1,15 @@
-// uygulama/aktor/bilesenIslemleri.ts — AKTÖR BİLEŞEN DÜZENLEME İŞLEMLERİ (spec 45 B7; Unreal Details'in "Add Component" / attach). SAF: Babylon, DOM, dosya YOK.
+// uygulama/aktor/sablon/bilesenIslemleri.ts — AKTÖR BİLEŞEN DÜZENLEME İŞLEMLERİ (spec 45 B7; Unreal Details'in "Add Component" / attach). SAF: Babylon, DOM, dosya YOK.
 //
 // Details'in Bileşenler bölümü ve Nesneler panelinin "üst/soket ata" kutusu yazmayı BURADAN yapar: her işlem level tanımını DEĞİŞTİRMEZ, yeni tanım döndürür ve sonucu
 // `levelTanimiDogrula`dan geçirir (bileşen şeması, tavan, yinelenen soket adı, hiyerarşi döngüsü/derinliği orada). Reddedilen işlem eski hâlde bırakır; neden kodludur (AKT-BIL-NNN).
 // Hiçbir işlev fırlatmaz. Level'a yazma kapısı (`level.ayarla`) çağırandadır; bu dosya yalnız "yeni tanım ne olurdu" der.
 "use strict";
-import { grafAdiGecerli } from "../../protocol/graf.ts";
-import { aktorBul, alanDegeriHatasi, type AlanDegeri, type Sonuc } from "../../world/level/cekirdek/bilesen.ts";
-import { BILESEN_TAVANI, bilesenAlani, bilesenTuru, type BilesenKaydi } from "../../world/level/cekirdek/bilesenKaydi.ts";
-import { levelTanimiDogrula, type LevelTanimi } from "../../world/level/cekirdek/levelTanimi.ts";
-import { yeniIdler } from "../../world/level/cekirdek/kimlik.ts";
-import { kodlu } from "../../world/level/cekirdek/aktorHatalari.ts";
+import { grafAdiGecerli } from "../../../protocol/graf.ts";
+import { aktorBul, alanDegeriHatasi, type AlanDegeri, type Sonuc } from "../../../world/level/cekirdek/bilesen.ts";
+import { BILESEN_TAVANI, bilesenAlani, bilesenTuru, type BilesenKaydi } from "../../../world/level/cekirdek/bilesenKaydi.ts";
+import { levelTanimiDogrula, type LevelTanimi } from "../../../world/level/cekirdek/levelTanimi.ts";
+import { yeniIdler } from "../../../world/level/cekirdek/kimlik.ts";
+import { kodlu } from "../../../world/level/cekirdek/aktorHatalari.ts";
 
 const hata = (neden: string): { ok: false; neden: string } => ({ ok: false, neden });
 

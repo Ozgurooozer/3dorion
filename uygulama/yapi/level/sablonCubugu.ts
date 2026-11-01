@@ -5,7 +5,7 @@
 "use strict";
 import type { LevelTanimi, Vec3 } from "../../../world/level/cekirdek/levelTanimi.ts";
 import { kodlu } from "../../../world/level/cekirdek/aktorHatalari.ts";
-import { sablonAdlari, sablonKaydet, sablonYerlestirMetinden, SABLON_KLASORU, SABLON_UZANTISI, type HostSonucu, type Sonuc } from "../../aktor/sablonIslemleri.ts";
+import { sablonAdlari, sablonKaydet, sablonYerlestirMetinden, SABLON_KLASORU, SABLON_UZANTISI, type HostSonucu, type Sonuc } from "../../aktor/sablon/sablonIslemleri.ts";
 import { dugmeYap, el } from "../ortak/dom.ts";
 
 const dugme = dugmeYap("");
@@ -32,7 +32,13 @@ export interface SablonCubuguAyari {
   iz?: (seviye: "bilgi" | "hata", metin: string) => void;
 }
 
-export function sablonCubuguKur(a: SablonCubuguAyari): HTMLElement {
+export interface SablonCubugu {
+  kok: HTMLElement;
+  /** Listeyi diskten tazeler (taslak onayından sonra yeni şablon görünsün diye). */
+  yenile(): Promise<void>;
+}
+
+export function sablonCubuguKur(a: SablonCubuguAyari): SablonCubugu {
   const kok = el("div", "il-tam"); kok.style.flexWrap = "wrap"; kok.style.padding = "4px 0";
   const ad = el("input"); ad.type = "text"; ad.placeholder = "şablon adı"; ad.title = "harf, rakam, _ ve -; en çok 48"; ad.style.flex = "1"; ad.style.minWidth = "80px";
   const kaydet = dugme("Şablon olarak kaydet", "", "Seçili nesnenin alt ağacını Content/Actors'a yaz (yalnız gerçek tıklamayla; var olanın üstüne yazmaz)");
@@ -90,5 +96,5 @@ export function sablonCubuguKur(a: SablonCubuguAyari): HTMLElement {
   });
   yenile.addEventListener("click", () => { yenile.blur(); void listeyiYenile(); });
   void listeyiYenile();
-  return kok;
+  return { kok, yenile: listeyiYenile };
 }

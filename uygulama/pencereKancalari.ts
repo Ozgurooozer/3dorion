@@ -13,8 +13,8 @@ import type { OllamaKatalogu } from "../bridge/ollamaKatalog.ts";
 import type { OpenCodeKatalogu } from "../bridge/opencodeKatalog.ts";
 import type { ApiKatalogu } from "../bridge/apiKatalog.ts";
 import type { AktorKodu } from "../world/level/cekirdek/aktorHatalari.ts";
-import type { AktorGunlugu, GunlukKaydi, GunlukKategorisi, GunlukSeviyesi } from "./aktor/aktorGunlugu.ts";
-import type { HataAyiklamaDokumu } from "./aktor/aktorCalismaZamani.ts";
+import type { AktorGunlugu, GunlukKaydi, GunlukKategorisi, GunlukSeviyesi } from "./aktor/calisma/aktorGunlugu.ts";
+import type { HataAyiklamaDokumu } from "./aktor/calisma/aktorCalismaZamani.ts";
 
 /** M seçicisinin konsol/senaryo yüzü (beyin bağlanınca kurulur). */
 export interface OrionModelKancasi {

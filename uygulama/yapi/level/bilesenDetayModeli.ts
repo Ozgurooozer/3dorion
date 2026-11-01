@@ -1,12 +1,12 @@
 // uygulama/yapi/level/bilesenDetayModeli.ts — DETAILS "BİLEŞENLER" + "HİYERARŞİ" SATIRLARI (spec 45 B7). SAF (DOM yok): çizici `bilesenDetayPaneli.ts`.
 //
 // Bir aktörün bileşen listesini (her bileşenin şema alanları, o bileşenin yayınladığı olaylar), "bileşen ekle" seçeneklerini ve üst/soket seçeneklerini üretir.
-// Yazma burada YOK: panel `uygulama/aktor/bilesenIslemleri.ts` işlemlerini kullanır (şema + tanım doğrulaması orada).
+// Yazma burada YOK: panel `uygulama/aktor/sablon/bilesenIslemleri.ts` işlemlerini kullanır (şema + tanım doğrulaması orada).
 "use strict";
 import { aktorBul, type Sonuc } from "../../../world/level/cekirdek/bilesen.ts";
 import { BEDEN_ONEKI, BILESEN_TAVANI, BILESEN_TURLERI, bilesenAyari, bilesenTuru, type BilesenKaydi } from "../../../world/level/cekirdek/bilesenKaydi.ts";
 import type { LevelTanimi } from "../../../world/level/cekirdek/levelTanimi.ts";
-import { BEDEN_SOKETLERI } from "../../aktor/bedenSoketleri.ts";
+import { BEDEN_SOKETLERI } from "../../aktor/sablon/bedenSoketleri.ts";
 import type { DetaySatiri } from "./detayModeli.ts";
 import { kisaVarlikAdi } from "./nesneModeli.ts";
 

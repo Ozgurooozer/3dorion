@@ -1,11 +1,11 @@
-// uygulama/aktor/demolar.ts — spec 45 B9: DÖRT DEMO (lamba, kutu, kılıç, araba) SAF VERİ olarak. Babylon ve DOM YOK; dosya yazmak çağıranın işi.
+// uygulama/aktor/sablon/demolar.ts — spec 45 B9: DÖRT DEMO (lamba, kutu, kılıç, araba) SAF VERİ olarak. Babylon ve DOM YOK; dosya yazmak çağıranın işi.
 //
 // Demo = aktör ŞABLONU (`aktorSablonu.ts` biçimi, `Content/Actors/<ad>.aktor.json`) + isteğe bağlı GRAFLAR (`Content/Graphs`). Yalnız altyapının ÇALIŞAN yolları kullanılır:
 // nesne + çocuk ışık aktörü (`ust`), `tetik`/`hareket`/`soket` bileşenleri, ⚡ dinleme düğümü `olay.aktor_olayi`, `aktor.yaz`, `aktor.hareket_et`.
 // Dinleme grafı AÇIK aktör kimliği ister (`@bu` dinlemede çözülemez; spec 45 §6): yerleştirmede kimlikler yeniden üretildiğinden graf, yerleştirmeden SONRA kimliklerle kurulur
 // (`...Grafi(kimlikler)`). Şablonla taşınan yalnız graf ADIDIR, graf dosyası değil — bu bilinen sınırdır (defter R32).
 "use strict";
-import { grafDogrula, type Graf, type GrafBagi, type GrafDugumu } from "../../protocol/graf.ts";
+import { grafDogrula, type Graf, type GrafBagi, type GrafDugumu } from "../../../protocol/graf.ts";
 import type { AktorKumesi, AktorSablonu } from "./aktorSablonu.ts";
 import { SABLON_SURUMU } from "./aktorSablonu.ts";
 

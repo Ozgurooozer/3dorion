@@ -152,7 +152,7 @@ export function yeniKlasor(kokler, adres) {
 
 /**
  * Aktör şablonunu `Content/Actors/<ad>.aktor.json` olarak yazar (spec 45 §8). VAR OLANIN ÜSTÜNE YAZMAZ (`var`); klasör yoksa açılır (eski projelerde Actors yok).
- * Host yalnız ad, JSON nesnesi olması ve boyutu denetler; şablon şeması renderer'da (`uygulama/aktor/aktorSablonu.ts`) hem yazarken hem okurken doğrulanır. Dönüş: adres.
+ * Host yalnız ad, JSON nesnesi olması ve boyutu denetler; şablon şeması renderer'da (`uygulama/aktor/sablon/aktorSablonu.ts`) hem yazarken hem okurken doğrulanır. Dönüş: adres.
  */
 export function aktorYaz(kokler, ad, metin) {
   if (!grafAdiGecerli(ad)) throw kodluHata("gecersiz-ad", `şablon adı geçersiz: ${JSON.stringify(ad)} (harf, rakam, _ ve -; en çok 48)`);

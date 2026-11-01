@@ -4,8 +4,8 @@
 // "Reddet" (taslağı siler) YALNIZ GERÇEK TIKLAMAYLA (`isTrusted`): betikten üretilen tık hiçbir şey yapmaz, Orion'un araç yüzeyinde bu işleri yapan yol YOKTUR. Onay şablonu YERLEŞTİRMEZ ve grafı ÇALIŞTIRMAZ.
 "use strict";
 import { kodlu } from "../../../world/level/cekirdek/aktorHatalari.ts";
-import { taslakAdlari, taslakOzeti, type Taslak } from "../../aktor/taslakKapisi.ts";
-import { taslakOku, taslakOnayla, taslakReddet, type TaslakDosyalari } from "../../aktor/taslakIslemleri.ts";
+import { taslakAdlari, taslakOzeti, type Taslak } from "../../aktor/taslak/taslakKapisi.ts";
+import { taslakOku, taslakOnayla, taslakReddet, type TaslakDosyalari } from "../../aktor/taslak/taslakIslemleri.ts";
 import { dugmeYap, el } from "../ortak/dom.ts";
 
 const dugme = dugmeYap("");

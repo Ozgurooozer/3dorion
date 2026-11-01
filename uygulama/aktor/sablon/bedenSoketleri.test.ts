@@ -1,8 +1,8 @@
-// uygulama/aktor/bedenSoketleri.test.ts — soket adı → uzuv → dünya matrisi (spec 45 B5). Saf: avatar yerine sahte kaynak.
+// uygulama/aktor/sablon/bedenSoketleri.test.ts — soket adı → uzuv → dünya matrisi (spec 45 B5). Saf: avatar yerine sahte kaynak.
 "use strict";
 import test from "node:test";
 import assert from "node:assert/strict";
-import { UZUVLAR, type Uzuv } from "../../protocol/animasyon.ts";
+import { UZUVLAR, type Uzuv } from "../../../protocol/animasyon.ts";
 import { BEDEN_SOKETLERI, bedenSoketiCozucu, bedenSoketiVarMi, type BedenKaynagi } from "./bedenSoketleri.ts";
 
 /** Konum = uzvun UZUVLAR sırası (x ekseni): hangi uzva sorulduğu matristen okunur. */

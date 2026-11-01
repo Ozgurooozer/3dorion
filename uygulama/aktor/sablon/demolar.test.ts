@@ -1,4 +1,4 @@
-// uygulama/aktor/demolar.test.ts — spec 45 B9: dört demo (lamba, kutu, kılıç, araba) VERİ olarak doğru mu, GERÇEK çalışma zamanında çalışıyor mu.
+// uygulama/aktor/sablon/demolar.test.ts — spec 45 B9: dört demo (lamba, kutu, kılıç, araba) VERİ olarak doğru mu, GERÇEK çalışma zamanında çalışıyor mu.
 //
 // Üç kat: (1) şablon + level doğrulaması, (2) kimlik eşlemesi, (3) uçtan uca: gerçek level (NullEngine) + gerçek çalışma zamanı + gerçek aktör yeteneği + gerçek ⚡ dinleyici.
 // Görüntü ve gerçek pencere canlı senaryoda (bpdene); burada davranış SAYIYLA ölçülür.
@@ -8,25 +8,25 @@ import assert from "node:assert/strict";
 import { NullEngine } from "@babylonjs/core/Engines/nullEngine";
 import { Scene } from "@babylonjs/core/scene";
 import { Matrix } from "@babylonjs/core/Maths/math.vector";
-import { levelKur, type Level } from "../../world/level/cekirdek/levelKur.ts";
-import { ornekTanim } from "../../world/level/cekirdek/ornekTanim.ts";
-import type { LevelTanimi } from "../../world/level/cekirdek/levelTanimi.ts";
-import { aktorOlayYoluKur } from "../../world/level/cekirdek/aktorOlayYolu.ts";
+import { levelKur, type Level } from "../../../world/level/cekirdek/levelKur.ts";
+import { ornekTanim } from "../../../world/level/cekirdek/ornekTanim.ts";
+import type { LevelTanimi } from "../../../world/level/cekirdek/levelTanimi.ts";
+import { aktorOlayYoluKur } from "../../../world/level/cekirdek/aktorOlayYolu.ts";
 import { sablonHatasi } from "./aktorSablonu.ts";
 import { sablonYerlestirMetinden } from "./sablonIslemleri.ts";
 import { DEMOLAR, DEMO_ADLARI, kimlikEsle, type Demo, type Kimlikler } from "./demolar.ts";
-import { aktorCalismaZamaniKur, type AktorCalismaZamani } from "./aktorCalismaZamani.ts";
-import type { Gozlenen } from "./tetikModeli.ts";
-import { aktorYetenegiKur } from "../aktorYetenegi.ts";
-import { grafYetenegiKur } from "../graf/grafYetenegi.ts";
-import { grafKutuphanesi } from "../graf/kutuphane.ts";
-import { GrafDurumDeposu } from "../graf/grafDurumu.ts";
-import { grafDinleyiciKur } from "../graf/grafDinleyici.ts";
-import { aktorOlayKaynagiKur } from "../graf/aktorOlayKaynagi.ts";
-import { olayYoluKur } from "../graf/grafDinleyici.ts";
-import { grafTurDenetle } from "../graf/grafTurDenetimi.ts";
-import { aktorHiyerarsisi } from "../../world/level/cekirdek/aktorOlayYolu.ts";
-import { KITLER } from "../../world/level/cekirdek/nesneSistemi.ts";
+import { aktorCalismaZamaniKur, type AktorCalismaZamani } from "../calisma/aktorCalismaZamani.ts";
+import type { Gozlenen } from "../calisma/tetikModeli.ts";
+import { aktorYetenegiKur } from "../../aktorYetenegi.ts";
+import { grafYetenegiKur } from "../../graf/grafYetenegi.ts";
+import { grafKutuphanesi } from "../../graf/kutuphane.ts";
+import { GrafDurumDeposu } from "../../graf/grafDurumu.ts";
+import { grafDinleyiciKur } from "../../graf/grafDinleyici.ts";
+import { aktorOlayKaynagiKur } from "../../graf/aktorOlayKaynagi.ts";
+import { olayYoluKur } from "../../graf/grafDinleyici.ts";
+import { grafTurDenetle } from "../../graf/grafTurDenetimi.ts";
+import { aktorHiyerarsisi } from "../../../world/level/cekirdek/aktorOlayYolu.ts";
+import { KITLER } from "../../../world/level/cekirdek/nesneSistemi.ts";
 import fs from "node:fs";
 
 const ZAMAN = { timeout: 8000 };

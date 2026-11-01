@@ -1,4 +1,4 @@
-// uygulama/aktor/aktorSablonu.ts — AKTÖR ŞABLONU (spec 45 §8, B6). SAF: Babylon, DOM, dosya YOK.
+// uygulama/aktor/sablon/aktorSablonu.ts — AKTÖR ŞABLONU (spec 45 §8, B6). SAF: Babylon, DOM, dosya YOK.
 //
 // Şablon = bir aktörün ALT AĞACI (kök + çocuklar + bileşenler + graf adı/değişkenler) tek JSON olarak; Unreal'ın Blueprint sınıfı gibi. Level'a "şablondan yerleştir"
 // yeni kimliklerle kopya koyar, mevcut aktörden "şablon olarak kaydet" alt ağacı çıkarır. Dosya `Content/Actors/<ad>.aktor.json` (saklama host'ta; bu modül yalnız biçim).
@@ -9,11 +9,11 @@
 //   • `grup` taşınmaz (level'a özgü); `beden:<ad>` üstleri olduğu gibi kalır (bedenin varlığı çalışma anında denetlenir).
 //   • Hiçbir işlev fırlatmaz: sonuç `{ ok }` ya da hata metni; her hata AKT-SBL-NNN kodludur (spec 45 §13). Yerleştirme level'a YAZMAZ, yeni aktör listelerini döndürür (yazma kapısı çağırandadır).
 "use strict";
-import { grafAdiGecerli } from "../../protocol/graf.ts";
-import { AKTOR_DEGISKEN_SINIRI, ISIK_TAVANI, type IsikAktoru, type NesneYeri, type Vec3 } from "../../world/level/cekirdek/levelTanimi.ts";
-import { BEDEN_ONEKI, BILESEN_TAVANI, bilesenlerHatasi, hiyerarsiHatasi, ustHatasi, type BilesenKaydi } from "../../world/level/cekirdek/bilesenKaydi.ts";
-import { yeniIdler } from "../../world/level/cekirdek/kimlik.ts";
-import { kodlu } from "../../world/level/cekirdek/aktorHatalari.ts";
+import { grafAdiGecerli } from "../../../protocol/graf.ts";
+import { AKTOR_DEGISKEN_SINIRI, ISIK_TAVANI, type IsikAktoru, type NesneYeri, type Vec3 } from "../../../world/level/cekirdek/levelTanimi.ts";
+import { BEDEN_ONEKI, BILESEN_TAVANI, bilesenlerHatasi, hiyerarsiHatasi, ustHatasi, type BilesenKaydi } from "../../../world/level/cekirdek/bilesenKaydi.ts";
+import { yeniIdler } from "../../../world/level/cekirdek/kimlik.ts";
+import { kodlu } from "../../../world/level/cekirdek/aktorHatalari.ts";
 
 export const SABLON_SURUMU = 1;
 /** Bir şablondaki en çok aktör (veri koruması; level'ın aktör tavanı ayrıca geçerli). */

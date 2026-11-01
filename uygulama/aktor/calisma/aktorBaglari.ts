@@ -1,11 +1,11 @@
-// uygulama/aktor/aktorBaglari.ts — HİYERARŞİ BAĞLARI (spec 45 B4/B5): her bağlı aktör KENDİ ara düğümünün (`bag_<id>`) çocuğudur; ara düğüm her karede üstün (ve varsa soketin) dünya matrisini izler.
+// uygulama/aktor/calisma/aktorBaglari.ts — HİYERARŞİ BAĞLARI (spec 45 B4/B5): her bağlı aktör KENDİ ara düğümünün (`bag_<id>`) çocuğudur; ara düğüm her karede üstün (ve varsa soketin) dünya matrisini izler.
 // Neden doğrudan Babylon ebeveynliği değil: `nesneSistemi` bir düğümü yıkarken ÇOCUKLARINI da yıkar, üstün modeli değişince alt aktörler sessizce silinirdi. Ara düğüm yeni düğümü bulur, çocuk yıkılmaz.
 // Çocuğun KENDİ yerel dönüşümüne dokunulmaz: bağ çözülünce kendiliğinden eski yerine döner. Çözülemeyen bağ kodlu uyarıdır (AKT-BAG-011/012/013), durum DEĞİŞİNCE bir kez yazılır.
 "use strict";
 import { Matrix, Quaternion, Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
-import { BEDEN_ONEKI, bilesenAyari } from "../../world/level/cekirdek/bilesenKaydi.ts";
-import { kodOnekiniSil, kodlu, type AktorKodu } from "../../world/level/cekirdek/aktorHatalari.ts";
+import { BEDEN_ONEKI, bilesenAyari } from "../../../world/level/cekirdek/bilesenKaydi.ts";
+import { kodOnekiniSil, kodlu, type AktorKodu } from "../../../world/level/cekirdek/aktorHatalari.ts";
 import { ucluOku, type Aktor, type CalismaBaglami } from "./calismaBaglami.ts";
 
 interface Bag { proxy: TransformNode; ust: string; soket: string | null }

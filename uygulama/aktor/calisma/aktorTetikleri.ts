@@ -1,8 +1,8 @@
-// uygulama/aktor/aktorTetikleri.ts — TETİK BİLEŞENİ ÇALIŞMA ZAMANI (spec 45 B4): her karede tetik alanı gözlenenlere (Ozyn, ajanlar, hareketli aktörler) karşı sınanır (saf kural `tetikModeli.ts`),
+// uygulama/aktor/calisma/aktorTetikleri.ts — TETİK BİLEŞENİ ÇALIŞMA ZAMANI (spec 45 B4): her karede tetik alanı gözlenenlere (Ozyn, ajanlar, hareketli aktörler) karşı sınanır (saf kural `tetikModeli.ts`),
 // girenler `tetik.girdi`, çıkanlar `tetik.cikti` olayı olur. Durum bellekte; level tanımına yazılmaz.
 "use strict";
 import type { Node } from "@babylonjs/core/node";
-import { bilesenAyari, type BilesenKaydi } from "../../world/level/cekirdek/bilesenKaydi.ts";
+import { bilesenAyari, type BilesenKaydi } from "../../../world/level/cekirdek/bilesenKaydi.ts";
 import { tetikDurumuKur, type Gozlenen, type TetikAyari, type TetikDurumu } from "./tetikModeli.ts";
 import { bilesenBul, ucluOku, type Aktor, type CalismaBaglami } from "./calismaBaglami.ts";
 

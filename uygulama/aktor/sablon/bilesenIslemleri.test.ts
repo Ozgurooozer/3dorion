@@ -1,13 +1,13 @@
-// uygulama/aktor/bilesenIslemleri.test.ts — Details bileşen düzenleme işlemleri (spec 45 B7). Saf.
+// uygulama/aktor/sablon/bilesenIslemleri.test.ts — Details bileşen düzenleme işlemleri (spec 45 B7). Saf.
 // Sorulan: ekle/sil/yaz kaynak tanımı bozmadan doğru yeni tanım veriyor mu; reddedilen işlem eski hâli koruyor mu; hata kodu NEREDE olduğunu söylüyor mu?
 "use strict";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { bilesenAdiYaz, bilesenAyarYaz, bilesenEkle, bilesenleriEkle, bilesenSil, ustAta } from "./bilesenIslemleri.ts";
-import { ornekTanim } from "../../world/level/cekirdek/ornekTanim.ts";
-import { kodOku } from "../../world/level/cekirdek/aktorHatalari.ts";
-import { BILESEN_TAVANI, type BilesenKaydi } from "../../world/level/cekirdek/bilesenKaydi.ts";
-import type { LevelTanimi } from "../../world/level/cekirdek/levelTanimi.ts";
+import { ornekTanim } from "../../../world/level/cekirdek/ornekTanim.ts";
+import { kodOku } from "../../../world/level/cekirdek/aktorHatalari.ts";
+import { BILESEN_TAVANI, type BilesenKaydi } from "../../../world/level/cekirdek/bilesenKaydi.ts";
+import type { LevelTanimi } from "../../../world/level/cekirdek/levelTanimi.ts";
 
 const taban = (): LevelTanimi => {
   const t = ornekTanim(); t.katmanlar = [];

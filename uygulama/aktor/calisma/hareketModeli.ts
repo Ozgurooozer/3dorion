@@ -1,10 +1,10 @@
-// uygulama/aktor/hareketModeli.ts — HAREKET BİLEŞENİ (kinematik) MANTIĞI (spec 45 B4). SAF: Babylon, DOM, zaman ve rastgelelik YOK.
+// uygulama/aktor/calisma/hareketModeli.ts — HAREKET BİLEŞENİ (kinematik) MANTIĞI (spec 45 B4). SAF: Babylon, DOM, zaman ve rastgelelik YOK.
 //
 // Kinematik: fizik motoru yok (Havok en sona, spec 45 §10); komut (hedef hız + dönme hızı) ivmeyle yumuşatılır ve konum/yön her karede ilerler.
 // Eksenler Babylon sol elli: yön `yaw` (rad), ileri vektörü (sin yaw, cos yaw) (`rotation.y` ile aynı; yaw 0 → +Z). Çarpışma yok: duvara yürür,
 // engel tanımaz (spec 45 §12). Zemine yapışma yüksekliği çalışma zamanının işi (burada yalnız yatay düzlem).
 "use strict";
-import { kodlu } from "../../world/level/cekirdek/aktorHatalari.ts";
+import { kodlu } from "../../../world/level/cekirdek/aktorHatalari.ts";
 
 export interface HareketAyari {
   /** m/s */

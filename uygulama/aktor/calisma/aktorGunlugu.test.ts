@@ -1,4 +1,4 @@
-// uygulama/aktor/aktorGunlugu.test.ts — aktör günlüğü, bayrak ayrıştırma ve sel koruması (spec 45 §13). Saf: zaman ve çıkış enjekte.
+// uygulama/aktor/calisma/aktorGunlugu.test.ts — aktör günlüğü, bayrak ayrıştırma ve sel koruması (spec 45 §13). Saf: zaman ve çıkış enjekte.
 "use strict";
 import test from "node:test";
 import assert from "node:assert/strict";
