@@ -17,6 +17,7 @@ const FIRLATMA_DOSYALARI = [
   "uygulama/aktor/calisma/aktorBaglari.ts",
   "uygulama/aktor/calisma/aktorHareketi.ts",
   "uygulama/aktor/calisma/aktorTetikleri.ts",
+  "uygulama/aktor/calisma/aktorIsiklari.ts",
   "uygulama/aktor/taslak/taslakKapisi.ts",
   "uygulama/aktor/taslak/taslakIslemleri.ts",
   "uygulama/aktor/calisma/aktorGunlugu.ts",

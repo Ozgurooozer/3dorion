@@ -26,6 +26,7 @@ import { aktorGunluguKur, type AktorGunlugu, type Kapatilabilir } from "./aktorG
 import type { Aktor, CalismaBaglami } from "./calismaBaglami.ts";
 import { aktorBaglariKur } from "./aktorBaglari.ts";
 import { aktorHareketiKur } from "./aktorHareketi.ts";
+import { aktorIsiklariKur } from "./aktorIsiklari.ts";
 import { aktorTetikleriKur } from "./aktorTetikleri.ts";
 
 /** Aktör listesinin tanımdan yenilenme aralığı (sn). */
@@ -51,6 +52,8 @@ export interface HataAyiklamaDokumu {
   /** Tetik bileşenleri ve içerideki kişiler. */
   tetikler: readonly { aktor: string; bilesen: string; icerde: readonly string[] }[];
   hareketliler: readonly { aktor: string; hiz: number; komut: { hiz: number; donus: number } }[];
+  /** `isik` bileşenlerinin sahnedeki ışıkları ve açık/kapalı durumu. */
+  isiklar: readonly { aktor: string; bilesen: string; acik: boolean }[];
   /** Şu an geçerli (çözülmemiş) uyarılar, kodlu. */
   uyarilar: readonly string[];
   /** Bayrakla kapatılmış bileşenler. */
@@ -72,7 +75,7 @@ export interface AktorCalismaZamani {
   /** Aktörün etkin üstü ve soketi; yoksa null. */
   bag(id: string): { ust: string; soket: string | null } | null;
   /** Test ve hata ayıklama: sayılar ve çözülemeyen bağlar. */
-  durum(): { aktor: number; tetik: number; hareketli: number; bag: number; uyarilar: readonly string[] };
+  durum(): { aktor: number; tetik: number; hareketli: number; bag: number; isik: number; uyarilar: readonly string[] };
   /** Bütün canlı durumun dökümü (aktorDebug): bağlar, tetik içerdekileri, hareketliler, uyarılar, bayraklar, olay sayımı. */
   hataAyiklama(): HataAyiklamaDokumu;
   yokEt(): void;
@@ -110,6 +113,7 @@ export function aktorCalismaZamaniKur(g: CalismaZamaniGirdisi): AktorCalismaZama
   const bag = aktorBaglariKur(baglam, etkinUst, g.bedenSoketi);
   const hareket = aktorHareketiKur(baglam, (id) => bag.kurulu(id));
   const tetik = aktorTetikleriKur(baglam, g.gozlenenler);
+  const isik = aktorIsiklariKur(baglam);
 
   function tanimdanYenile(): void {
     const l = g.level();
@@ -117,7 +121,7 @@ export function aktorCalismaZamaniKur(g: CalismaZamaniGirdisi): AktorCalismaZama
       yuklenmeAboneligi?.();
       yuklenmeAboneligi = l ? l.nesneler.yuklenince(() => { yenile = true; }) : null;
       izlenen = l;
-      ezme.clear(); hareket.sifirla(); tetik.sifirla();
+      ezme.clear(); hareket.sifirla(); tetik.sifirla(); isik.sifirla();
       bag.birak();
     }
     const yeni = new Map<string, Aktor>();
@@ -137,6 +141,7 @@ export function aktorCalismaZamaniKur(g: CalismaZamaniGirdisi): AktorCalismaZama
     for (const id of [...ezme.keys()]) if (!yeni.has(id)) ezme.delete(id);
     hareket.buda((id) => yeni.has(id));
     tetik.buda();
+    isik.buda();
     sonYenileme = zaman; yenile = false;
   }
   const taze = (): void => { if (yenile || zaman - sonYenileme >= YENILEME_ARALIGI_S) tanimdanYenile(); };
@@ -145,7 +150,7 @@ export function aktorCalismaZamaniKur(g: CalismaZamaniGirdisi): AktorCalismaZama
    * Bir kare aşamasını YALITIR: istisna öteki aşamaları durdurmaz (tetik patlasa hareket sürer), kodlu hata olarak günlüğe gider (aynı hata ardışık gelirse sayaç artar:
    * günlük şişmez). `kapatilabilir` bayrağı kapalıysa aşama atlanır (hata kaynağını ayırmak için) ve bu bir kez bildirilir.
    */
-  function asama(ad: string, kategori: "zaman" | "hareket" | "bag" | "tetik", kapatilabilir: Kapatilabilir | null, f: () => void): void {
+  function asama(ad: string, kategori: "zaman" | "hareket" | "bag" | "tetik" | "isik", kapatilabilir: Kapatilabilir | null, f: () => void): void {
     if (kapatilabilir && gunluk.kapaliMi(kapatilabilir)) {
       if (!kapaliBildirildi.has(kapatilabilir)) { kapaliBildirildi.add(kapatilabilir); gunluk.uyari("zaman", "AKT-ZMN-002", `'${kapatilabilir}' bileşeni bayrakla kapalı: bu aşama atlanıyor`); }
       return;
@@ -164,6 +169,7 @@ export function aktorCalismaZamaniKur(g: CalismaZamaniGirdisi): AktorCalismaZama
       asama("hareket", "hareket", "hareket", () => hareket.ilerlet(d));
       asama("bag", "bag", "bag", () => { bag.uzlastir(); bag.izle(); });
       asama("tetik", "tetik", "tetik", tetik.sina);
+      asama("isik", "isik", "isik", isik.uygula);
       bag.uyariBildir();
     },
 
@@ -208,13 +214,14 @@ export function aktorCalismaZamaniKur(g: CalismaZamaniGirdisi): AktorCalismaZama
       return e?.ust ? { ust: e.ust, soket: e.soket ?? null } : null;
     },
 
-    durum: () => ({ aktor: aktorler.size, tetik: tetik.sayi(), hareketli: hareket.sayi(), bag: bag.sayi(), uyarilar: bag.uyarilar() }),
+    durum: () => ({ aktor: aktorler.size, tetik: tetik.sayi(), hareketli: hareket.sayi(), bag: bag.sayi(), isik: isik.sayi(), uyarilar: bag.uyarilar() }),
 
     hataAyiklama: () => ({
       aktor: aktorler.size,
       baglar: [...aktorler.values()].flatMap((a) => { const e = etkinUst(a); return e.ust ? [{ aktor: a.id, ust: e.ust, soket: e.soket ?? null, kurulu: bag.kurulu(a.id) && !bag.cozumsuz(a.id) }] : []; }),
       tetikler: tetik.dokum(),
       hareketliler: hareket.dokum(),
+      isiklar: isik.dokum(),
       uyarilar: bag.uyarilar(),
       kapali: gunluk.bayraklar().kapali,
       olaySayimi: g.olay.sayim(),
@@ -224,7 +231,7 @@ export function aktorCalismaZamaniKur(g: CalismaZamaniGirdisi): AktorCalismaZama
     yokEt() {
       yuklenmeAboneligi?.(); yuklenmeAboneligi = null;
       bag.birak();
-      hareket.sifirla(); tetik.sifirla(); ezme.clear();
+      hareket.sifirla(); tetik.sifirla(); isik.sifirla(); ezme.clear();
     },
   };
 }

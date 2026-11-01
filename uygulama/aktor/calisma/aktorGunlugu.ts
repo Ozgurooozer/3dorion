@@ -9,10 +9,10 @@
 import { kodAciklamasi, kodOku, type AktorKodu } from "../../../world/level/cekirdek/aktorHatalari.ts";
 
 export type GunlukSeviyesi = "bilgi" | "iyi" | "uyari" | "hata";
-export const KATEGORILER = ["olay", "tetik", "hareket", "bag", "dugum", "zaman", "sablon"] as const;
+export const KATEGORILER = ["olay", "tetik", "hareket", "bag", "dugum", "zaman", "sablon", "isik"] as const;
 export type GunlukKategorisi = (typeof KATEGORILER)[number];
 /** Kapatılabilir bileşenler (hata kaynağını ayırmak için). */
-export const KAPATILABILIRLER = ["tetik", "hareket", "bag"] as const;
+export const KAPATILABILIRLER = ["tetik", "hareket", "bag", "isik"] as const;
 export type Kapatilabilir = (typeof KAPATILABILIRLER)[number];
 
 /** Halka belleğin boyu; dolunca en eski kayıt düşer. */

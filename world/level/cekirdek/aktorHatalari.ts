@@ -8,12 +8,12 @@
 // (`uygulama/aktor/aktorHataBekcisi.test.ts`). Yeni hata = önce buraya satır, sonra kodu kullan.
 "use strict";
 
-export type AktorAlani = "OLY" | "BAG" | "HRK" | "DUG" | "YTN" | "ZMN" | "BYR" | "SEM" | "SBL" | "BIL" | "TSL";
+export type AktorAlani = "OLY" | "BAG" | "HRK" | "DUG" | "YTN" | "ZMN" | "BYR" | "SEM" | "SBL" | "BIL" | "TSL" | "ISK";
 
 /** Alan → okunur ad (günlük ve hata ayıklama çıktısı). */
 export const AKTOR_ALANLARI: Readonly<Record<AktorAlani, string>> = {
   OLY: "olay yolu", BAG: "üst/soket bağı", HRK: "hareket bileşeni", DUG: "graf düğümü",
-  YTN: "aktör yeteneği", ZMN: "çalışma zamanı", BYR: "bayrak/ayar", SEM: "bileşen şeması", SBL: "aktör şablonu", BIL: "bileşen düzenleme", TSL: "Orion taslağı",
+  YTN: "aktör yeteneği", ZMN: "çalışma zamanı", BYR: "bayrak/ayar", SEM: "bileşen şeması", SBL: "aktör şablonu", BIL: "bileşen düzenleme", TSL: "Orion taslağı", ISK: "ışık bileşeni",
 };
 
 export interface HataKaydi { readonly alan: AktorAlani; readonly anlam: string; readonly cozum: string }
@@ -110,6 +110,9 @@ export const AKTOR_HATALARI = {
   "AKT-TSL-003": { alan: "TSL", anlam: "taslaktaki graf geçersiz (biçim, ad ya da tavan)", cozum: "graf biçimi protocol/graf.ts şeması; adlar benzersiz, en çok 4 graf" },
   "AKT-TSL-004": { alan: "TSL", anlam: "taslak dosyası okunamadı ya da silinemedi (host/IPC hatası)", cozum: "Content/Drafts klasörünü ve dosya adını (<ad>.taslak.json) kontrol et" },
   "AKT-TSL-005": { alan: "TSL", anlam: "taslak onaylanamadı (şablon ya da graf dosyası yazılamadı, çoğunlukla aynı ad zaten var)", cozum: "var olan şablonu/grafı yeniden adlandır ya da sil, taslağı yeniden onayla; yarım yazma geri alınır" },
+  // ── ışık bileşeni (spec 45; aktorIsiklari.ts) ──
+  "AKT-ISK-001": { alan: "ISK", anlam: "ışık bileşeni kurulamadı: level ışık tavanı doldu (ışık aktörleri + bileşen ışıkları)", cozum: "başka bir ışığı sil/gizle ya da bileşeni gizli yap; tavan ISIK_TAVANI (levelTanimi.ts)" },
+  "AKT-ISK-002": { alan: "ISK", anlam: "ışık bileşeninin rengi çözülemedi (palette olmayan ad ya da bozuk #rrggbb); varsayılan renk kullanıldı", cozum: "rengi #rrggbb yaz ya da level paletinde tanımlı bir ad ver" },
 } as const satisfies Record<string, HataKaydi>;
 
 export type AktorKodu = keyof typeof AKTOR_HATALARI;
