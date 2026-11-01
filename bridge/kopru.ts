@@ -29,29 +29,27 @@ import { Hafiza, type AniTuru, type Ani, type GetirSonucu } from "../mind/hafiza
 import { aniKaydi } from "../mind/aniSuzgeci.ts";
 import { calismaBellegiKur, type CalismaBellegi } from "../mind/calismaBellegi.ts";
 import { oncesiSozu } from "../mind/zaman.ts";
-import { sozEylemUcurumu } from "../mind/sozEylem.ts";
-import { ingilizceMi } from "../mind/dilSecimi.ts";
 import { komutCoz, type KomutEslesmesi } from "../mind/komutSozlugu.ts";
 import { AnlikBenlik, eden, niyetOzeti, type Eden } from "../mind/benlik.ts";
 import { DurumDefteri, type DurumKaydi } from "../mind/durumDefteri.ts";
-import { yonlendir, type CekmeceIstegi } from "../mind/hafizaYonlendirici.ts";
 import { sikistirmaCoz, sikistirmaIstegi, sikistirmaPlani, sikistirmaSorusu, otoSikistirmaGerekli, SIKISTIR_SOZLERI, SIKISTIR_TALIMATI, EN_AZ_PLAN } from "../mind/sikistir.ts";
 import { sohbetEylemi, sonrakiKip, SOHBET_ONAYI, type SohbetEylemi, type SohbetKipi } from "../mind/sohbetKipi.ts";
 import { takipEylemi, TAKIP_ONAYI, type TakipEylemi } from "../mind/takipSozu.ts";
 import { AJANDA_ONEKI } from "../mind/ajanda.ts";
 import { terminalAyristir } from "../mind/durumKodu.ts";
 import { suzgecMercegi, type MercekOnerisi } from "../mind/mercekSuzgec.ts";
-import { araclariUret, cagriyiNiyete, turIcinAraclar } from "./araclar.ts";
-import type { Beyin, BeyinCikti, BeyinGirdisi } from "./beyin.ts";
+import { araclariUret, turIcinAraclar } from "./araclar.ts";
+import type { Beyin, BeyinGirdisi } from "./beyin.ts";
 import { talimatUret } from "./talimat.ts";
-import { kancaDogrula, kancaTalimati, type KancaBaglami } from "./kopruKancalari.ts";
+import { kancaTalimati, type KancaBaglami } from "./kopruKancalari.ts";
+import { ciktiyiIsle, type CiktiBaglami } from "./kopruCikti.ts";
+import { turAnilariniGetir } from "./kopruGetirme.ts";
 import { baglamOlcusu } from "./baglamOlcusu.ts";
 import { ornekUret } from "./ornekler.ts";
-import { metinKurtar } from "./metinKurtarma.ts";
 import { EylemSirasi } from "./eylemSirasi.ts";
 import { BeceriRefleksi, type RefleksGeriVerme } from "./beceriRefleksi.ts";
 import { programPlani } from "./komutProgrami.ts";
-import { REFLEKS_ONEKI, REFLEKS_ONAYI, REFLEKS_ZAMAN_ASIMI_MS, HAREKET_OLAYLARI, SOZ_NIYETLERI, IS_NIYETLERI, SUSMA_ILANI, inisiyatifOlayiMi, ZINCIR_AZAMI } from "./kopruTurleri.ts";
+import { REFLEKS_ONEKI, REFLEKS_ONAYI, REFLEKS_ZAMAN_ASIMI_MS, HAREKET_OLAYLARI, IS_NIYETLERI, SUSMA_ILANI, inisiyatifOlayiMi, ZINCIR_AZAMI } from "./kopruTurleri.ts";
 import type { KopruAyari, KopruSayaci, TurCiktisi } from "./kopruTurleri.ts";
 export { REFLEKS_ONEKI, REFLEKS_ONAYI, REFLEKS_ZAMAN_ASIMI_MS, ZINCIR_AZAMI } from "./kopruTurleri.ts";
 export type { KopruAyari, SuzgecKarari, KopruSayaci } from "./kopruTurleri.ts";
@@ -161,6 +159,22 @@ export class Kopru {
   private _ardisikRet = 0;
   private _konusmaDinleyiciler = new Set<(metin: string) => void>();
   private _durduruldu = false;
+  /** Çıktı işleyicisinin (kopruCikti.ts) köprüden gördüğü DAR yüz: özel alanlar dışarı çıkmaz, işleyici yalnız bunları çağırır. */
+  private _cikti: CiktiBaglami = ((k: Kopru): CiktiBaglami => ({
+    get ayar() { return k._ayar; },
+    get sayac() { return k._sayac; },
+    get sira() { return k._sira; },
+    tamponaEkle: (ozet) => { k._tampon.push(ozet); k._tamponIdleri.push(null); },
+    kancaBaglami: () => k._kancaBaglami(),
+    ardisikRetSifirla: () => { k._ardisikRet = 0; },
+    sozuGecir: (metin) => k._sozuGecir(metin),
+    konusmaDinleyiciVar: () => k._konusmaDinleyiciler.size > 0,
+    konusmaYay: (metin) => k._konusmaYay(metin),
+    gecmiseEkle: (g) => k._gecmiseEkle(g),
+    kirp: () => k._kirp(),
+    ortamOgrenmeyiHazirla: (uyanis, beden) => k._ortamOgrenmeyiHazirla(uyanis, beden),
+    gonder: (n, id) => k._gonder(n, id),
+  }))(this);
 
   constructor(ayar: KopruAyari) {
     this._ayar = ayar;
@@ -1059,7 +1073,7 @@ export class Kopru {
       console.log(`[BAGLAM] toplam=${b.toplam}ch${b.token !== undefined ? ` token=${b.token}` : ""} talimat=${b.talimat} araclar=${b.araclar} ornekler=${b.ornekler} gecmis=${b.gecmis}(${b.gecmisKayit}) dunya=${b.dunya} anilar=${b.anilar} ozetler=${b.ozetler}`);
       if (cikti.metin) uyanis.metin = cikti.metin;
 
-      this._ciktiyiIsle(cikti, uyanis, sessiz, istekler, new Set(girdi.araclar.map((a) => a.ad)));
+      ciktiyiIsle(this._cikti, cikti, uyanis, sessiz, istekler, new Set(girdi.araclar.map((a) => a.ad)));
     } catch (err) {
       this._sayac.hata++;
       // Beyin hatası dünyayı durdurmaz ama SESSİZ de kalmaz.
@@ -1114,34 +1128,11 @@ export class Kopru {
     const istekler = this._turSozleri.splice(0);
     const turTerminal = this._turTerminal, turNiyetHatasi = this._turNiyetHatasi;
     this._turTerminal = undefined; this._turNiyetHatasi = false;
-    let getirilen: GetirSonucu[];
-    let durumSatirlari: string[] = [];
-    if (this._sohbetKipi === "temiz") {
-      // TEMİZ SOHBET (spec 16 F5b): hafıza ve durum defteri bağlama girmez — hangi hafıza kipi olursa.
-      getirilen = [];
-      uyanis.sohbetKipi = "temiz";
-    } else if (this._ayar.hafizaKipi === "yonlendirici") {
-      // SPEC 16: bağlama yalnız İSTENEN girer. Yönlendirici sözden karar verir; varsayılan boş.
-      const istek = yonlendir({
-        sozler: istekler,
-        ...(turTerminal ? { terminal: turTerminal } : {}),
-        niyetHatasi: turNiyetHatasi,
-        yerAdlari: this._ayar.yerAdlari?.() ?? [],
-      });
-      uyanis.hafizaIstegi = istek.kurallar;
-      // Yakın pencerede ZATEN görünen sözler çekmeceden tekrar gelmez: "ne konuşmuştuk" pencerenin
-      // ÖNCESİNİ getirmeli (baglamdene 1. koşu: pencerenin kendisini tekrar getirdi, eski bilgi dışarıda kaldı).
-      const penceredeki = this._yakinPencere(simdiMs).map((g) => g.metin).filter(Boolean);
-      getirilen = this._istenenAnilar(istek.cekmece, [...icerikler, ...penceredeki], icerikler);
-      durumSatirlari = this._durum.satirlar(istek.durum);
-      if (istek.kurallar.length) console.log(`[HAFIZA] istek: ${istek.kurallar.join(", ")} · durum ${durumSatirlari.length} satır · anı ${getirilen.length}`);
-    } else {
-      getirilen = adet > 0 && icerikler.length
-        // Bu turun içerikleri hafızaya az önce yazıldı; anı olarak geri
-        // gelmeleri "hatırlamak" değil kendini tekrar etmektir.
-        ? this._hafiza.getir(icerikler.join(" "), adet, icerikler)
-        : [];
-    }
+    const { getirilen, durumSatirlari } = turAnilariniGetir(
+      { ayar: this._ayar, hafiza: this._hafiza, durum: this._durum, sohbetKipi: this._sohbetKipi, yakinPencere: (s) => this._yakinPencere(s) },
+      { istekler, icerikler, terminal: turTerminal, niyetHatasi: turNiyetHatasi, simdiMs, adet },
+      uyanis,
+    );
     // Zihin duvarının hafıza görünümü bu turda neyin hatırlandığını gösterir (spec 13 Faz 5).
     this._sonGetirilen = getirilen;
     // ZAMAN ETİKETİ (spec 06 K3): anı, şimdiki bilgiden ayırt edilebilsin.
@@ -1247,179 +1238,6 @@ export class Kopru {
   }
 
   /**
-   * Bir düşünme turunun ÇIKTISI (spec 14 R2: `_dusun`'dan ayrıldı, mantık aynı): düz metin,
-   * araç çağrıları, düz metinden kurtarma, beden niyetleri (eylem sırası), iç ses ve
-   * "söyledi ama yapmadı" bekçisi.
-   */
-  /**
-   * `sunulan`: bu turda modele SUNULAN araç adları. Sözleşme yalnız listede değil burada da uygulanır: özerk turda
-   * (`OZERK_ARACLAR`) sunulmayan `dunya_komut`/`dunya_sor` yapısal ya da metin içinde çağrılınca dünyaya gidiyordu
-   * (2026-10-13 sondası). Sunulmayan çağrı reddedilir ve modele geri beslenir; metinden yalnız sunulanlar kurtarılır.
-   */
-  private _ciktiyiIsle(cikti: BeyinCikti, uyanis: UyanisBilgisi, sessiz: boolean, istekler: string[], sunulan: ReadonlySet<string>): void {
-    // Düz metin DUYULMAZ — protokolde konuşmak bir eylemdir (dunya_soyle).
-    //
-    // GEÇMİŞE DE YAZILMAZ (spec 13). Eskiden "modelin kendi düşüncesi bağlamda
-    // kalsın" diye `assistant` metni olarak yazılıyordu. Ölçüm (2026-10-02, taban):
-    // ortak testin gerçek geçmişiyle qwen2.5:7b 40 komutun 0'ında araç çağırdı ve
-    // geçmişteki kendi düz metnini taklit etti ("ortalığı kontrol ediyorum…").
-    // Düz metin artık İÇ SES: kayda ve zihin duvarına gider, geçmişe gitmez.
-    if (cikti.metin) {
-      // Düz metin DUYULMAZ. Model araç çağırmak yerine sohbet ediyorsa bu
-      // SESSİZ bir davranış hatasıdır — kullanıcı Orion'u susmuş sanır.
-      // Görünür olsun ki ölçülebilsin.
-      console.log(`[BEYIN:metin] ${cikti.metin.slice(0, 160)}${cikti.cagrilar.length === 0 ? "  ← ARAÇ YOK, bu duyulmayacak" : ""}`);
-      this._ayar.metinDinle?.(cikti.metin, cikti.cagrilar.length > 0);
-    }
-
-    const tur: TurCiktisi = { sessiz, sozler: [], icSes: [], beden: [] };
-    // Düşünen API modelinin ayrı gelen akıl yürütmesi (`reasoning_content`, bridge/apiBeyni.ts)
-    // İÇ SESTİR: sesli okunmaz, geçmişe girmez, duvarda görünür (spec 13 Faz 5).
-    const akil = cikti.bilgi?.["dusunce"];
-    if (typeof akil === "string" && akil.trim()) tur.icSes.push(akil.trim());
-    // Araç ÇAĞIRDIYSA düz metin eyleme eşlik eden iç düşüncedir.
-    if (cikti.metin && cikti.cagrilar.length > 0) tur.icSes.push(cikti.metin);
-
-    for (const c of cikti.cagrilar) {
-      // Sunulmayan araç: sayılır ama modele GERİ BESLENMEZ — geri besleme yeni bir tur açar ve özerk turun
-      // "zincir 0"ını, gordum turunun "sor yok"unu delip bakış döngüsünü geri getirirdi. Model aracı görmüyordu.
-      if (!sunulan.has(c.ad)) {
-        this._sayac.reddedilenCagri++;
-        uyanis.reddedilen++;
-        console.warn(`[kopru] sunulmayan arac reddedildi: ${c.ad}`);
-        continue;
-      }
-      const d = cagriyiNiyete(c.ad, c.girdi);
-      if (!d.ok) {
-        this._sayac.reddedilenCagri++;
-        uyanis.reddedilen++;
-        // Reddi sessizce yutma: modele geri besle, kendini düzeltsin.
-        this._tampon.push(`Araç reddedildi (${c.ad}): ${d.hata}`);
-        this._tamponIdleri.push(null);
-        console.warn(`[kopru] çağrı reddedildi: ${d.hata}`);
-        continue;
-      }
-      // EKLENTİ DOĞRULAYICISI (spec 40): doğrulanmış niyet dünyaya gitmeden kancalarca sınanır; ret mevcut ret yolundan modele geri beslenir.
-      const kd = kancaDogrula(this._ayar.kancalar?.() ?? [], d.deger, this._kancaBaglami());
-      if (!kd.ok) {
-        this._sayac.reddedilenCagri++;
-        uyanis.reddedilen++;
-        uyanis.kancaReddi = (uyanis.kancaReddi ?? 0) + 1;
-        this._tampon.push(`Araç reddedildi (${c.ad}): ${kd.neden}`);
-        this._tamponIdleri.push(null);
-        console.warn(`[kopru] kanca reddetti (${kd.kanca}): ${kd.neden}`);
-        continue;
-      }
-      this._ardisikRet = 0;  // geçerli çağrı geldi, düzeltme döngüsü kırıldı
-      this._niyetiIsle(d.deger, uyanis, tur);
-    }
-
-    // ── Düz metin kurtarma ──────────────────────────────────────────────
-    // Kural: düz metin DUYULMAZ (konuşmak bir eylemdir). Ama model HİÇ araç
-    // çağırmadıysa o metin başka bir şey olamaz — söylemek istediği şeydir.
-    // Sessizce yutmak, Orion'u kullanıcı gözünde bozuk gösterir.
-    //
-    // ÖLÇÜMDEN DOĞDU: canlı davranış denemesinde Orion gerçek bir kabuk
-    // hatasını doğru teşhis etti ("Terminal'da yanlış bir komut girildi")
-    // ama `dunya_soyle` çağırmadı; kullanıcı hiçbir şey duymadı.
-    //
-    // Araç ÇAĞIRDIYSA metin kurtarılmaz: o zaman metin eyleme eşlik eden
-    // iç düşüncedir ve seslendirilmesi gürültü olur.
-    if (cikti.cagrilar.length === 0 && cikti.metin) {
-      // GERCEK HATA (ekran goruntusu, 2026-09-13): model arac cagrilarini
-      // duz metin olarak yazdi (`orld {"name": "dunya_bak", ...}`) ve bu
-      // kurtarma onu OLDUGU GIBI seslendirdi; kullanici JSON dinledi.
-      //
-      // Artik once ICINDEN ARAC CAGRILARI KURTARILIR (hatayi eyleme
-      // cevirmek sesli okumaktan iyidir), sonra yalnizca temiz cumle
-      // konusulur. Kurtarilamayan arac copu ASLA duyulmaz.
-      const { cagrilar: kurtarilan, konusulabilir } = metinKurtar(cikti.metin, [...sunulan]);
-
-      for (const c of kurtarilan) {
-        const d = cagriyiNiyete(c.ad, c.girdi);
-        if (!d.ok) { console.warn(`[kopru] metinden kurtarilan cagri gecersiz: ${d.hata}`); continue; }
-        this._sayac.kurtarilanCagri++;
-        uyanis.kurtarilan++;
-        console.warn(`[kopru] METINDEN kurtarildi: ${c.ad}`);
-        this._niyetiIsle(d.deger, uyanis, tur);
-      }
-
-      if (konusulabilir && (sessiz || ingilizceMi(konusulabilir)) && this._sozuGecir(konusulabilir)) {
-        // Hareket zinciri: kurtarılan cümle de iç seste kalır. İngilizce düz metin de
-        // (Ozyn'in testi, 2026-10-02: lfm25-tb'nin "I see the user is asking…" iç
-        // monoloğu sesli okundu): Orion'un sesi Türkçedir, İngilizce çerçevenin dilidir.
-        tur.icSes.push(konusulabilir);
-      } else if (konusulabilir && this._konusmaDinleyiciler.size && this._sozuGecir(konusulabilir)) {
-        const metin = konusulabilir.slice(0, 400);
-        this._sayac.kurtarilanMetin++;
-        uyanis.konusulanMetin = true;
-        console.warn(`[kopru] arac cagrilmadi, temiz metin konusmaya cevrildi: "${metin.slice(0, 80)}"`);
-        this._konusmaYay(metin);
-        // Söylendi: geçmişe SÖZ olarak girer (düz metin olarak değil — bkz. yukarı).
-        this._gecmiseEkle({ rol: "orion", metin, arac: true });
-        this._kirp();
-        tur.sozler.push(metin);
-      } else if (!konusulabilir && kurtarilan.length === 0) {
-        this._sayac.yutulanCop++;
-        console.warn(`[kopru] arac copu KONUSULMADI: "${cikti.metin.slice(0, 80)}"`);
-      }
-    }
-
-    // Öğrenen ortam sözlüğü: sonuçlar eylem sırası başlarken SENKRON gelebilir, bu yüzden bekleme ÖNCE kurulur.
-    this._ortamOgrenmeyiHazirla(uyanis, tur.beden);
-
-    // Beden niyetleri: tek niyet hemen, birden çoğu sırayla (bkz. EylemSirasi).
-    this._sira.baslat(tur.beden);
-
-    if (tur.icSes.length) {
-      uyanis.icSes = tur.icSes.join(" / ");
-      if (sessiz) uyanis.susturan = "kopru.hareket_sessiz";
-      console.log(`[kopru] iç ses${sessiz ? " (hareket zinciri, kopru.hareket_sessiz)" : ""}: "${uyanis.icSes.slice(0, 120)}"`);
-      try { this._ayar.icSesDinle?.(uyanis.icSes); }
-      catch (err) { console.error("[kopru] iç ses dinleyicisi hatası:", err); }
-    }
-
-    // SÖYLEDİ AMA YAPMADI (mind/sozEylem.ts): yalnız gözlem, davranış değişmez.
-    const eksik = sozEylemUcurumu(tur.sozler, uyanis.niyetler.map((n) => n.tur), istekler);
-    if (eksik.length) {
-      uyanis.sozEylemUcurumu = eksik;
-      const soz = tur.sozler.join(" ");
-      console.warn(`[kopru] SOZ-EYLEM: "${soz.slice(0, 80)}" dedi ama ${eksik.join(", ")} niyeti yok`);
-      try { this._ayar.sozEylemDinle?.(eksik, soz); }
-      catch (err) { console.error("[kopru] söz-eylem dinleyicisi hatası:", err); }
-    }
-  }
-
-  /**
-   * Doğrulanmış bir niyeti turun çıktısına işler (model çağrısı ve metinden kurtarılan
-   * çağrı aynı yoldan geçer). Söz hemen konuşulur (ya da hareket zincirinde iç seste
-   * kalır); `sor` hemen gider; beden niyetleri toplanır, tur sonunda sıraya girer.
-   */
-  private _niyetiIsle(n: Niyet, uyanis: UyanisBilgisi, tur: TurCiktisi): void {
-    const id = kimlik("n");
-    if (n.tur === "soyle") {
-      // Düşen söz dünyaya da GİTMEZ: `niyetGonder` de atlanır.
-      if (!this._sozuGecir(n.metin)) { uyanis.yutulanSoz++; return; }
-      if (tur.sessiz) { tur.icSes.push(n.metin); return; }
-      if (this._konusmaDinleyiciler.size) {
-        this._konusmaYay(n.metin);
-        this._gecmiseEkle({ rol: "orion", metin: n.metin, arac: true });
-        this._kirp();
-      }
-      tur.sozler.push(n.metin);
-    }
-    // Gövdesiyle (spec 10, Faz A): beceri refleksi görevin nasıl yapıldığını buradan öğrenir.
-    uyanis.niyetler.push(niyetKaydi(id, n));
-    this._sayac.niyet++;
-    if (SOZ_NIYETLERI.has(n.tur)) { this._gonder(n, id); return; }
-    // Beden niyeti geçmişe ARAÇ olarak girer (spec 13): model "komut → eylem" görsün.
-    const { tur: nt, ...girdi } = n;
-    this._gecmiseEkle({ rol: "orion", metin: "", arac: true, cagri: { ad: `dunya_${nt}`, girdi } });
-    this._kirp();
-    tur.beden.push({ niyet: n, id });
-  }
-
-  /**
    * Modele giden geçmiş. `yakinPencere` verilmezse bütün pencere (gecmisSiniri). Verilirse yalnız son
    * `kayit` kayıt ve `yasMs`ten yeni olanlar (spec 16 K3): "evet", "onu da yap" anlaşılsın diye az
    * önceki alışveriş kalır; daha eskisi yalnız sorulunca konuşma çekmecesinden gelir. Zihin
@@ -1429,19 +1247,6 @@ export class Kopru {
     const p = this._ayar.yakinPencere;
     if (!p) return this._gecmis.slice();
     return this._gecmis.slice(-p.kayit).filter((k) => simdi - (this._gecmisZamani.get(k) ?? simdi) <= p.yasMs);
-  }
-
-  /** Yönlendiricinin istediği çekmecelerden anılar; aynı anı iki istekten gelirse bir kez. */
-  private _istenenAnilar(istekler: readonly CekmeceIstegi[], haric: string[], icerikler: string[]): GetirSonucu[] {
-    const sonuc: GetirSonucu[] = [];
-    const gorulen = new Set<string>();
-    for (const i of istekler) {
-      const r = i.mod === "son"
-        ? this._hafiza.sonlar(i.cekmeceler, i.adet, haric)
-        : (icerikler.length ? this._hafiza.getir(icerikler.join(" "), i.adet, haric, i.cekmeceler) : []);
-      for (const x of r) if (!gorulen.has(x.ani.metin)) { gorulen.add(x.ani.metin); sonuc.push(x); }
-    }
-    return sonuc;
   }
 
   /** Modele sunulan araçlar: `cikarilanAraclar` dışındakiler (spec 16 F6) + tur kuralı (`turIcinAraclar`, spec 26 F1). */
