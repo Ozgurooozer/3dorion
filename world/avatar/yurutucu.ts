@@ -18,11 +18,9 @@
 import type { Hedef, Vec3 } from "../../protocol/temel.ts";
 import type { Jest, Niyet, NiyetSonucu, Poz } from "../../protocol/niyet.ts";
 import type { OrionDurumu } from "../../protocol/algi.ts";
-import { BEDEN } from "../../protocol/bedenTanimi.ts";
 import { capaBul, mesafeXZ } from "../level/capalar.ts";
 import type { Yer } from "../yer/yer.ts";
 import { ODA_YERI } from "../yer/odaYeri.ts";
-import { SANDALYE } from "../level/olculer.ts";
 import { PozMakinesi, hareketliMi } from "./durumMakinesi.ts";
 import type { AnimasyonKlibi, Uzuv } from "../../protocol/animasyon.ts";
 import type { KlipBulucu } from "./klipKutuphanesi.ts";
@@ -32,230 +30,16 @@ import {
   type Nokta2,
 } from "./yolBulma.ts";
 
-// ── Ölçüler ve hızlar ──────────────────────────────────────────────────────
-//
-// Sayılar artık BURADA DEĞİL: `protocol/bedenTanimi.ts` künyesinden geliyor.
-// Aynı gövdenin ölçüleri üç dosyada üç kez yaşıyordu (burası, `prosedurel.ts`,
-// `mind/algiHizmeti.ts`) ve VRM iskeleti hiçbirini paylaşmıyordu.
-//
-// Adlar dışa verilmeye DEVAM EDİYOR: `yurutucu.test.ts` sınırları buradan
-// import ediyor ve testin künyeyi değil DAVRANIŞI sınaması doğru — sınır
-// künyede değişirse test yine gerçek sınırı görür.
 
-/** Yürüme hızı (m/s). Sakin, ofis içi tempo. */
-export const YURUME_HIZI = BEDEN.hareket.yurumeHizi;
-/** Koşma hızı (m/s). Uzun mesafede kendiliğinden devreye girer. */
-export const KOSMA_HIZI = BEDEN.hareket.kosmaHizi;
-/** Kalan yol bundan uzunsa avatar koşar. 10×8 m odada nadiren aşılır. */
-export const KOSMA_ESIGI = BEDEN.hareket.kosmaEsigi;
-/** Gövde dönüş hızı (rad/s). */
-export const GOVDE_DONME_HIZI = BEDEN.eklem.govdeYaw.aciHiz;
-/** Baş dönüş hızı (rad/s) — gövdeden hızlı, insan böyle. */
-export const BAS_DONME_HIZI = BEDEN.eklem.basYaw.aciHiz;
-/** İvme (m/s²) — aktüatör doyumu; hız azami değere sıçramaz. */
-export const IVME = BEDEN.hareket.ivme;
-/** Frenleme (m/s²) — durmak hızlanmaktan hızlı. */
-export const FREN = BEDEN.hareket.fren;
-
-/** İnsan boyun sınırı, yaw. Aşılırsa GÖVDE döner — donuk kafa dönüşü yok. */
-export const BOYUN_YAW_SINIRI = BEDEN.eklem.basYaw.sinir;
-/** İnsan boyun sınırı, pitch. Aşılamaz; gövde pitch'i telafi etmez. */
-export const BOYUN_PITCH_SINIRI = BEDEN.eklem.basPitch.sinir;
-
-/** `git {tip:"nokta"}` için varsayılan varış toleransı. */
-export const NOKTA_TOLERANSI = 0.25;
-/** Ara noktanın "geçildi" sayılma yarıçapı. */
-export const ARA_NOKTA_TOLERANSI = 0.02;
-/** Bir `git`/`otur` işi bu süreyi aşarsa `hata` yayılır. Sonsuz döngü kalkanı. */
-export const IS_ZAMAN_ASIMI = 20;
-
-export const OTURMA_SURESI = 0.8;
-export const KALKMA_SURESI = 0.7;
-export const JEST_SURESI = 1.1;
-
-/** Baş yüksekliği (ayak hizasından). Bakış açısı buradan hesaplanır. */
-export const BAS_YUKSEKLIGI = BEDEN.basYuksekligi;
-/** Bir yürüme adımının uzunluğu — yürüme fazı buradan türer. */
-export const ADIM_UZUNLUGU = BEDEN.adimUzunlugu;
-
-/**
- * Otururken kök, oturma yüzeyinin bu kadar (m) ALTINDA kalır: bacaklar bükülür, kalça yüzeye oturur. Kökün mutlak y'si = çapanın oturma yüzeyi − bu pay
- * (`capa.konum.y - OTURMA_KALCA_PAYI`): sandalye 0,46 → 0,16; terastaki bank 0,40 → 0,10.
- */
-export const OTURMA_KALCA_PAYI = 0.30;
-/** Sandalyeye oturunca kökün yükselmesi (geriye dönük dışa aktarım; yürütücü çapadan hesaplar). */
-export const OTURMA_YUKSELMESI = SANDALYE.oturma - OTURMA_KALCA_PAYI;
-
-/**
- * Sandalyeye YANDAN, sırtı dönük oturulur; oturunca döner sandalye masaya
- * çevrilir (2026-09-26).
- *
- * NEDEN. Eskiden kök masa/monitör durağından (z=-1.62) oturma noktasına
- * düz ileri kayıyordu: sandalyenin SIRTLIĞININ içinden, yüzü masaya dönük,
- * ~0.9 m. Prosedürel robotta göze batmıyordu; iskeletli low-poly bedende
- * `otur` klibi kökün 0.45 m GERİ gittiğini varsayıp ayakları buna göre
- * telafi ediyor. Canlı ölçüm (deneme `?kamera=yan`): kök 0.93 m İLERİ gitti,
- * ayaklar masanın altına ~1.4 m kaydı.
- *
- * Önden oturmak mümkün değil: oturağın ön kenarı ile masa kenarı arası
- * 0.215 m — ayakta durulacak yer yok. Sandalyenin kolçağı yok (`sandalye_kol`
- * tabanın yıldız kolları), yani YANDAN yaklaşılabilir: yana gel, arkanı dön,
- * geri otur, sonra sandalyeyle masaya dön. Gerçek bir döner sandalyede de
- * böyle oturulur.
- *
- * `OTURMA_ADIMI` klipteki telafiyle AYNI olmalı (assets/orion-lowpoly.glb
- * `otur`/`kalk`: ayakta bilek → oturmuş bilek = 0.453 m). Değişirse klip
- * yeniden bake edilir; biri değişip öteki değişmezse ayak kayar.
- */
-export const OTURMA_ADIMI = 0.45;
-/**
- * Yol bulmanın gidebildiği en yakın yanaşma noktasının oturma noktasına uzaklığı: oturağın yanaşma yönündeki yarı boyu + avatar yarıçapı. Oturma yeri
- * (0.45) bunun İÇİNDE kalır — çarpışma yarıçapı omuz genişliğine göre cömert, oturak ise diz hizasında. Son kısmı `_yoluKur` düz bir adım olarak
- * ekler. Sandalye için yarı boy genişlik/2: eski sabitle birebir aynı.
- */
-const yanasmaUzakligi = (yariBoy: number): number => yariBoy + AVATAR_YARICAP + 0.02;
-/** Oturma yerine varış eşiği — klibin varsaydığı mesafeyi bozmayacak kadar sıkı. */
-const OTURMA_YERI_TOLERANSI = 0.03;
-
-/** `poz` niyetiyle doğrudan girilebilen pozlar. Diğerleri kendi niyetini ister. */
-const SERBEST_POZLAR: readonly Poz[] = ["duruyor", "eğiliyor", "yatıyor", "bakıyor"];
-
-// ── Yardımcılar ────────────────────────────────────────────────────────────
-
-/** Açıyı (-π, π] aralığına sarar. */
-export function aciSar(a: number): number {
-  let x = (a + Math.PI) % (Math.PI * 2);
-  if (x < 0) x += Math.PI * 2;
-  return x - Math.PI;
-}
-
-function kis(v: number, alt: number, ust: number): number {
-  return v < alt ? alt : v > ust ? ust : v;
-}
-
-/** `a`dan `b`ye en fazla `azami` kadar yaklaş (açı sarmalı). */
-function aciYaklas(a: number, b: number, azami: number): number {
-  const fark = aciSar(b - a);
-  if (Math.abs(fark) <= azami) return aciSar(b);
-  return aciSar(a + Math.sign(fark) * azami);
-}
-
-/** Babylon sol-elli yaw: ileri = (sin ψ, 0, cos ψ). */
-function yonYaw(dx: number, dz: number): number {
-  return Math.atan2(dx, dz);
-}
-
-// ── Dışa verilen görünüm ───────────────────────────────────────────────────
-
-/** Bedenin çizmek için ihtiyacı olan her şey. Karar yok, yalnızca durum. */
-export interface AvatarGorunumu {
-  konum: Vec3;
-  /** Gövde yaw'ı (radyan, 0 = +Z). */
-  govdeYaw: number;
-  /** Baş yaw'ı — GÖVDEYE GÖRELİ. */
-  basYaw: number;
-  /** Baş pitch'i, pozitif = yukarı bakıyor. */
-  basPitch: number;
-  poz: Poz;
-  /** Poz geçişinin üstünden geçen süre — beden harmanlama için okur. */
-  pozYasi: number;
-  oturuyor: boolean;
-  elinde: string | null;
-  mesgul: boolean;
-  /** Aktif jest ve 0..1 ilerlemesi. */
-  jest: Jest | null;
-  jestIlerlemesi: number;
-  /** Oynayan JSON klibi (Dilim 5a) ya da null. Klip oynarken `jest` null'dır: klip jestin yerine geçer. */
-  klip: KlipGorunumu | null;
-  /** Yürüme fazı 0..1 — ayak/kol salınımı. */
-  yurumeFazi: number;
-  /** Anlık hız (m/s) — beden salınım genliğini buna göre ölçekler. */
-  hiz: number;
-  /** Ağız açıklığı 0..1 (TTS bağlar). */
-  agiz: number;
-  /** Kalan yol — hata ayıklama/görselleştirme. */
-  yol: readonly Nokta2[];
-}
-
-/** Oynayan klip: hangi niyetin, ne kadar geçti (sn, sarılmamış; örnekleyici sarar), anlamı (uzvu olmayan gövde bunu gösterir). */
-export interface KlipGorunumu {
-  readonly id: string;
-  readonly klip: AnimasyonKlibi;
-  readonly gecen: number;
-  readonly jest: Jest;
-}
-
-export interface YurutucuAyari {
-  spawn?: Vec3;
-  /** Başlangıç gövde yaw'ı (radyan). */
-  yaw?: number;
-  /**
-   * Oyuncu konumu sağlayıcısı. `bak {tip:"oyuncu"}` ve `git {tip:"oyuncu"}`
-   * bunu kullanır. Verilmezse o hedefler `hata` döner — sessizce yerinde
-   * durmak yerine sebebini söyler.
-   */
-  oyuncuKonumu?: () => Vec3;
-  /**
-   * Orion'un bulunduğu yer (spec 24): yol bulma, engeller ve çapalar buradan. Varsayılan oda.
-   * Geri çağrı, çünkü kapıdan geçince yer değişir; yürütücü yeniden kurulmaz. Oturma çapanın `oturma`
-   * geometrisinden okunur (sandalye, bank) — çapası olmayan yerde `otur` zaten "bilinmeyen çapa" döner.
-   */
-  yer?: () => Yer;
-  /**
-   * OTURMA İZNİ (spec 33, iki beden): çapa (kanonik ad) başka bir bedenin koltuğuysa onun ADI, boşsa null. `otur` işe başlamadan
-   * sorulur; doluysa açık bir hata döner. Verilmezse her koltuk boş sayılır (tek beden: eski davranış birebir).
-   * NEDEN: başsız deneme (2026-10-21) — iki avatar aynı sandalyeye "otur" alınca ikisi de AYNI noktaya oturdu, hata yok.
-   */
-  koltukDolu?: (capa: string) => string | null;
-  /**
-   * JSON klip kütüphanesi (spec 35 Dilim 5a): `jest` niyetinin `klip`i buradan ÇAĞRI ANINDA aranır (yükleme asenkron, kütüphane sonradan dolar).
-   * Verilmezse klipli jest nedenle `hata` döner (sessiz düz jeste düşmez).
-   */
-  klipler?: KlipBulucu;
-  /** Gövdenin klip uygulayabildiği uzuvlar (`AvatarIskeleti.klipUzuvlari`): uygulanamayan izler `basladi` sonucunda adlarıyla bildirilir. */
-  klipUzuvlari?: ReadonlySet<Uzuv>;
-}
-
-// ── İç iş tanımı ───────────────────────────────────────────────────────────
-
-type IsTuru = "git" | "otur" | "kalk";
-/** `sandalyeDon`: oturur hâlde döner sandalyeyle dönüş (otur sonu / kalk başı). */
-type Asama = "kalkiyor" | "yuruyor" | "donuyor" | "poz" | "sandalyeDon";
-
-interface AktifIs {
-  id: string;
-  tur: IsTuru;
-  asama: Asama;
-  asamaGecen: number;
-  toplamGecen: number;
-  /** Yürünecek son nokta (XZ). `kalk` için null. */
-  hedef: Nokta2 | null;
-  tolerans: number;
-  /** Varışta dönülecek yaw; null = yön serbest. */
-  varisYaw: number | null;
-  yol: Nokta2[];
-  kosuyor: boolean;
-  capa: string | null;
-  /** Oturma/kalkma ara değeri: başlangıç konumu. */
-  pozBasKonum: Nokta2;
-  pozBasY: number;
-  /** `git` otomatik kalkma yaptıysa sonuçta bildirilir. */
-  kalkildi: boolean;
-  /**
-   * Yol bulmanın gideceği son SERBEST nokta; `hedef` ondan sonra düz adımla
-   * eklenir. Yalnızca `otur` kullanır (oturma yeri çarpışma payının içinde).
-   */
-  yanasma?: Nokta2;
-  /** `otur`: oturduktan sonra oturakla dönülecek yaw (sandalye: masaya, bank: ova'ya). */
-  oturmaYaw?: number;
-  /** `otur`: oturunca kökün geleceği nokta (XZ) ve mutlak y (çapanın oturma yüzeyi − `OTURMA_KALCA_PAYI`). */
-  oturmaNoktasi?: Nokta2;
-  oturmaY?: number;
-  /** `kalk`/`kalkiyor`: sandalye çıkışa döndü mü — kalkma ondan sonra başlar. */
-  dondu?: boolean;
-  /** `otur`: tutulan koltuk (çapanın KANONİK adı; `capa` istenen addır ve sonuçta öyle bildirilir). */
-  koltuk?: string;
-}
+// Ölçüler/hızlar ve saf yardımcılar `yurutucuSabitleri.ts`'te, dışa verilen arayüzler `yurutucuTurleri.ts`'te; adlar burada DEĞİŞMEDEN yeniden dışa verilir.
+export {
+  YURUME_HIZI, KOSMA_HIZI, KOSMA_ESIGI, GOVDE_DONME_HIZI, BAS_DONME_HIZI, IVME, FREN, BOYUN_YAW_SINIRI, BOYUN_PITCH_SINIRI, NOKTA_TOLERANSI, ARA_NOKTA_TOLERANSI, IS_ZAMAN_ASIMI, OTURMA_SURESI, KALKMA_SURESI, JEST_SURESI, BAS_YUKSEKLIGI, ADIM_UZUNLUGU, OTURMA_KALCA_PAYI, OTURMA_YUKSELMESI, OTURMA_ADIMI, aciSar,
+} from "./yurutucuSabitleri.ts";
+export type { AvatarGorunumu, KlipGorunumu, YurutucuAyari } from "./yurutucuTurleri.ts";
+import {
+  YURUME_HIZI, KOSMA_HIZI, KOSMA_ESIGI, GOVDE_DONME_HIZI, BAS_DONME_HIZI, IVME, FREN, BOYUN_YAW_SINIRI, BOYUN_PITCH_SINIRI, NOKTA_TOLERANSI, ARA_NOKTA_TOLERANSI, IS_ZAMAN_ASIMI, OTURMA_SURESI, KALKMA_SURESI, JEST_SURESI, BAS_YUKSEKLIGI, ADIM_UZUNLUGU, OTURMA_KALCA_PAYI, OTURMA_YUKSELMESI, OTURMA_ADIMI, aciSar, yanasmaUzakligi, OTURMA_YERI_TOLERANSI, SERBEST_POZLAR, kis, aciYaklas, yonYaw,
+} from "./yurutucuSabitleri.ts";
+import type { AktifIs, Asama, AvatarGorunumu, IsTuru, KlipGorunumu, YurutucuAyari } from "./yurutucuTurleri.ts";
 
 // ── Yürütücü ───────────────────────────────────────────────────────────────
 
